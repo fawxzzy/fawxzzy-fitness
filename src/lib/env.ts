@@ -2,7 +2,12 @@ const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const SUPABASE_ANON_KEY_ENV = "NEXT_PUBLIC_SUPABASE_ANON_KEY";
 
 export function mustGetEnv(name: string): string {
-  const value = process.env[name];
+  const value =
+    name === SUPABASE_URL_ENV
+      ? process.env.NEXT_PUBLIC_SUPABASE_URL
+      : name === SUPABASE_ANON_KEY_ENV
+        ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        : process.env[name];
 
   if (!value) {
     throw new Error(
