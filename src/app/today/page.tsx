@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ async function startSessionAction() {
   "use server";
 
   const user = await requireUser();
-  const supabase = createServerSupabase();
+  const supabase = supabaseServer();
 
   const { data: session, error: sessionError } = await supabase
     .from("sessions")

@@ -6,14 +6,6 @@ const PUBLIC_PATHS = ["/login"];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.includes(".")
-  ) {
-    return NextResponse.next();
-  }
-
   const isPublic = PUBLIC_PATHS.includes(pathname);
   const accessToken = request.cookies.get("sb-access-token")?.value;
 
@@ -29,5 +21,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

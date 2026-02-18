@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function HistoryPage() {
   const user = await requireUser();
-  const supabase = createServerSupabase();
+  const supabase = supabaseServer();
 
   const { data } = await supabase
     .from("sessions")
