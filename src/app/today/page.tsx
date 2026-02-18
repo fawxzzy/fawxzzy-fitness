@@ -3,6 +3,8 @@ import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 const PLACEHOLDER_EXERCISE_ID = "11111111-1111-1111-1111-111111111111";
 
 async function startSessionAction() {

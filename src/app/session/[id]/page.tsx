@@ -5,6 +5,8 @@ import { requireUser } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { SetRow } from "@/types/db";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: {
     id: string;

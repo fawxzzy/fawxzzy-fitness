@@ -2,6 +2,8 @@ import { AppNav } from "@/components/AppNav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   const user = await requireUser();
 
