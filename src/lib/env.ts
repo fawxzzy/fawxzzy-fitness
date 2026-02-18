@@ -1,0 +1,22 @@
+const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
+const SUPABASE_ANON_KEY_ENV = "NEXT_PUBLIC_SUPABASE_ANON_KEY";
+
+export function mustGetEnv(name: string): string {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}. Set it in .env.local for local development and in Vercel Environment Variables for deployments.`
+    );
+  }
+
+  return value;
+}
+
+export function SUPABASE_URL(): string {
+  return mustGetEnv(SUPABASE_URL_ENV);
+}
+
+export function SUPABASE_ANON_KEY(): string {
+  return mustGetEnv(SUPABASE_ANON_KEY_ENV);
+}
