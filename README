@@ -69,7 +69,7 @@ npm run start
 
 ## Included baseline features
 
-- Email/password login page (`/login`)
+- Email/password login + sign up page (`/login`)
 - Auth-protected app routes (`/today`, `/session/[id]`, `/history`, `/settings`)
 - Start session flow from `/today`
 - Set logging in `/session/[id]`
