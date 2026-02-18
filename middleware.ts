@@ -6,7 +6,9 @@ const PUBLIC_PATHS = ["/login"];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublic = PUBLIC_PATHS.includes(pathname);
+  const isPublic = PUBLIC_PATHS.some(
+    (publicPath) => pathname === publicPath || pathname.startsWith(`${publicPath}/`)
+  );
   const accessToken = request.cookies.get("sb-access-token")?.value;
 
   if (!accessToken && !isPublic) {
