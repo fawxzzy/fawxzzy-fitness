@@ -1,0 +1,17 @@
+# Changelog
+
+## [Unreleased]
+
+### Added
+- Initial Next.js + Supabase scaffold
+- Auth flow (email/password)
+- Sessions, session_exercises, sets tables
+- RLS policies enforcing user_id ownership
+- Start Session → Log Sets → History vertical slice
+- Dynamic routing to prevent prerender issues
+
+### Fixed
+- Server/client boundary violations causing runtime crash
+- Middleware matcher to exclude static assets
+- Environment variable validation handling
+
