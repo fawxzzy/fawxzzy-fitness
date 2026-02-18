@@ -4,6 +4,8 @@ import { requireUser } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { SessionRow } from "@/types/db";
 
+export const dynamic = "force-dynamic";
+
 export default async function HistoryPage() {
   const user = await requireUser();
   const supabase = createServerSupabase();
