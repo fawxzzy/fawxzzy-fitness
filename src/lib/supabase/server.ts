@@ -1,8 +1,9 @@
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 
-export function createServerSupabase() {
+export function supabaseServer() {
   const accessToken = cookies().get("sb-access-token")?.value;
 
   return createClient(SUPABASE_URL(), SUPABASE_ANON_KEY(), {
