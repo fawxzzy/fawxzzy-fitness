@@ -8,6 +8,7 @@ export type SessionRow = {
   name: string | null;
   routine_day_name: string | null;
   duration_seconds: number | null;
+  status: "in_progress" | "completed";
 };
 
 export type SessionExerciseRow = {

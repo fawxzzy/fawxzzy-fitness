@@ -18,13 +18,17 @@ export function SessionHeaderControls({
 
   return (
     <div className="space-y-3">
-      <form action={saveSessionAction}>
-        <input type="hidden" name="sessionId" value={sessionId} />
-        <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white">
-          Save Session
-        </button>
-      </form>
+      <div className="sticky top-2 z-10 rounded-md bg-slate-900 p-2 shadow-sm">
+        <form action={saveSessionAction}>
+          <input type="hidden" name="sessionId" value={sessionId} />
+          <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
+          <div className="flex items-center justify-end">
+            <button type="submit" className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">
+              Save Session
+            </button>
+          </div>
+        </form>
+      </div>
 
       <SessionTimerCard initialDurationSeconds={initialDurationSeconds} onDurationChange={setDurationSeconds} />
     </div>

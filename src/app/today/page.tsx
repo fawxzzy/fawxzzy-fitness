@@ -4,7 +4,7 @@ import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
 import { getExerciseName } from "@/lib/exercise-options";
 import { ensureProfile } from "@/lib/profile";
-import { getRoutineDayComputation, getTodayDateInTimeZone } from "@/lib/routines";
+import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
@@ -71,6 +71,7 @@ async function startSessionAction() {
       routine_day_index: routineDayIndex,
       name: activeRoutine.name,
       routine_day_name: routineDayName,
+      status: "in_progress",
     })
     .select("id")
     .single();
@@ -109,6 +110,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   let dayExercises: RoutineDayExerciseRow[] = [];
   let todayDayIndex: number | null = null;
   let completedTodayCount = 0;
+  let inProgressSession: SessionRow | null = null;
 
   if (profile.active_routine_id) {
     const { data: routine } = await supabase
@@ -150,23 +152,33 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
       }
 
-      const { data: recentSessions } = await supabase
+      const { startIso, endIso } = getTimeZoneDayWindow(profile.timezone);
+
+      const { count: completedTodayCountValue } = await supabase
         .from("sessions")
-        .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .eq("routine_id", activeRoutine.id)
+        .gte("performed_at", startIso)
+        .lt("performed_at", endIso)
+        .limit(1);
+
+      completedTodayCount = completedTodayCountValue ?? 0;
+
+      const { data: inProgress } = await supabase
+        .from("sessions")
+        .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
         .eq("user_id", user.id)
         .eq("routine_id", activeRoutine.id)
+        .eq("status", "in_progress")
+        .gte("performed_at", startIso)
+        .lt("performed_at", endIso)
         .order("performed_at", { ascending: false })
-        .limit(100);
+        .limit(1)
+        .maybeSingle();
 
-      const todayKey = getTodayDateInTimeZone(profile.timezone);
-      const formatter = new Intl.DateTimeFormat("en-CA", {
-        timeZone: profile.timezone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-
-      completedTodayCount = ((recentSessions ?? []) as SessionRow[]).filter((session) => formatter.format(new Date(session.performed_at)) === todayKey).length;
+      inProgressSession = (inProgress as SessionRow | null) ?? null;
     }
   }
 
@@ -176,8 +188,11 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
       {activeRoutine && todayRoutineDay && todayDayIndex ? (
         <div className="space-y-3 rounded-md bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold">{activeRoutine.name}: {todayRoutineDay.name ?? `Day ${todayDayIndex}`}</h2>
-          {todayRoutineDay.is_rest ? <p className="text-sm">Rest day</p> : null}
+          <h2 className="text-lg font-semibold">{activeRoutine.name}: {todayRoutineDay.is_rest ? `REST DAY — ${todayRoutineDay.name ?? `Day ${todayDayIndex}`}` : todayRoutineDay.name ?? `Day ${todayDayIndex}`}</h2>
+          {todayRoutineDay.is_rest ? (
+            <div className="rounded-md border border-orange-200 bg-orange-500 px-3 py-2 text-center text-sm font-bold tracking-wide text-white">REST DAY — {todayRoutineDay.name ?? `Day ${todayDayIndex}`}</div>
+          ) : null}
+          {inProgressSession ? <p className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">In progress</p> : null}
           <p className="text-xs text-slate-500">Completed today: {completedTodayCount}</p>
 
           <ul className="space-y-1 text-sm">
@@ -192,9 +207,13 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             {dayExercises.length === 0 ? <li className="rounded-md bg-slate-50 px-3 py-2 text-slate-500">No template exercises.</li> : null}
           </ul>
 
-          <form action={startSessionAction}>
-            <button type="submit" className="w-full rounded-lg bg-emerald-600 px-4 py-5 text-lg font-semibold text-white">Start Session</button>
-          </form>
+          {inProgressSession ? (
+            <Link href={`/session/${inProgressSession.id}`} className="block w-full rounded-lg bg-amber-500 px-4 py-5 text-center text-lg font-semibold text-white">Resume Session</Link>
+          ) : (
+            <form action={startSessionAction}>
+              <button type="submit" className="w-full rounded-lg bg-emerald-600 px-4 py-5 text-lg font-semibold text-white">{todayRoutineDay.is_rest ? "Start Optional Session" : "Start Session"}</button>
+            </form>
+          )}
         </div>
       ) : (
         <div className="space-y-3 rounded-md bg-white p-4 shadow-sm">

@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Added
+- Sessions now track an explicit lifecycle (`in_progress` vs `completed`) so lifters can safely leave mid-workout and resume the same session later without losing confidence in saved progress.
+
+### Changed
+- Today now surfaces clear Resume vs Start behavior, shows an in-progress indicator, and marks rest days with unmistakable REST DAY messaging plus an optional-start label to remove ambiguity before training.
+- Session logging now feels immediate with fast local set feedback and automatic next-set prefill so repeated set entry stays frictionless on mobile.
+- Session screen now keeps a prominent sticky Save Session action and completing a session moves it into done state with final time, while History lists completed sessions only for cleaner records.
+
+### Added
 - History now supports inline edit and delete flows so lifters can correct or remove past logs without leaving the app.
 - Routine templates now support lbs/kg units and rep-range targets (min/max reps) for faster plan customization across equipment preferences.
 - Session logging now includes optional session/set timers plus tap-per-rep counting, so lifters can track pacing data quickly without mandatory extra input or per-rep event storage.
