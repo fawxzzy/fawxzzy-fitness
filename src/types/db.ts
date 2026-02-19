@@ -30,6 +30,7 @@ export type SetRow = {
   is_warmup: boolean;
   notes: string | null;
   duration_seconds: number | null;
+  rpe: number | null;
 };
 
 export type ProfileRow = {
@@ -46,6 +47,7 @@ export type RoutineRow = {
   start_date: string;
   timezone: string;
   updated_at: string;
+  weight_unit: "lbs" | "kg";
 };
 
 export type RoutineDayRow = {
@@ -66,7 +68,7 @@ export type RoutineDayExerciseRow = {
   position: number;
   target_sets: number | null;
   target_reps: number | null;
-  rep_range_min: number | null;
-  rep_range_max: number | null;
+  target_reps_min: number | null;
+  target_reps_max: number | null;
   notes: string | null;
 };

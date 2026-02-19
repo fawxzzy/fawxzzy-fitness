@@ -1,7 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
-import { SessionTimerCard, SetTimerForm } from "@/components/SessionTimers";
+import { SessionHeaderControls } from "@/components/SessionHeaderControls";
+import { SetTimerForm } from "@/components/SessionTimers";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS, getExerciseName } from "@/lib/exercise-options";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -157,7 +158,7 @@ async function removeExerciseAction(formData: FormData) {
   revalidatePath(`/session/${sessionId}`);
 }
 
-async function saveSessionDurationAction(formData: FormData) {
+async function saveSessionAction(formData: FormData) {
   "use server";
 
   const user = await requireUser();
@@ -185,7 +186,9 @@ async function saveSessionDurationAction(formData: FormData) {
     redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath(`/session/${sessionId}`);
+  revalidatePath("/today");
+  revalidatePath("/history");
+  redirect("/today?completed=1");
 }
 
 export default async function SessionPage({ params, searchParams }: PageProps) {
@@ -203,6 +206,10 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     notFound();
   }
 
+  const { data: routine } = session.routine_id
+    ? await supabase.from("routines").select("weight_unit").eq("id", session.routine_id).eq("user_id", user.id).maybeSingle()
+    : { data: null };
+
   const { data: sessionExercisesData } = await supabase
     .from("session_exercises")
     .select("id, session_id, user_id, exercise_id, position, notes, is_skipped")
@@ -216,7 +223,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const { data: setsData } = exerciseIds.length
     ? await supabase
         .from("sets")
-        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds")
+        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
         .in("session_exercise_id", exerciseIds)
         .eq("user_id", user.id)
         .order("set_index", { ascending: true })
@@ -232,23 +239,16 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   }
 
   const sessionRow = session as SessionRow;
+  const unitLabel = routine?.weight_unit ?? "kg";
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">{sessionRow.name || "Session"}</h1>
-      <p className="rounded-md bg-white p-3 text-sm shadow-sm">
-        {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}
-        {" · "}
-        {new Date(sessionRow.performed_at).toLocaleString()}
-      </p>
+      <h1 className="text-2xl font-semibold">{sessionRow.name || "Routine"}: {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}</h1>
+      <p className="rounded-md bg-white p-3 text-sm shadow-sm">{new Date(sessionRow.performed_at).toLocaleString()}</p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
 
-      <SessionTimerCard
-        sessionId={params.id}
-        initialDurationSeconds={sessionRow.duration_seconds}
-        saveAction={saveSessionDurationAction}
-      />
+      <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} />
 
       <form action={addExerciseAction} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
         <input type="hidden" name="sessionId" value={params.id} />
@@ -262,13 +262,13 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       </form>
 
       <div className="space-y-3">
-        {sessionExercises.map((exercise, index) => {
+        {sessionExercises.map((exercise) => {
           const exerciseSets = setsByExercise.get(exercise.id) ?? [];
 
           return (
             <article key={exercise.id} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold">{index + 1}. {getExerciseName(exercise.exercise_id)}</p>
+                <p className="font-semibold">{getExerciseName(exercise.exercise_id)}</p>
                 <div className="flex gap-2">
                   <form action={toggleSkipAction}>
                     <input type="hidden" name="sessionId" value={params.id} />
@@ -288,16 +288,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
               {exercise.is_skipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
 
-              <SetTimerForm
-                sessionId={params.id}
-                sessionExerciseId={exercise.id}
-                addSetAction={addSetAction}
-              />
+              <SetTimerForm sessionId={params.id} sessionExerciseId={exercise.id} addSetAction={addSetAction} />
 
               <ul className="space-y-1 text-sm">
                 {exerciseSets.map((set) => (
                   <li key={set.id} className="rounded-md bg-slate-50 px-2 py-1">
-                    #{set.set_index + 1} · {set.weight} kg × {set.reps}
+                    #{set.set_index + 1} · {set.weight} {unitLabel} × {set.reps}
                     {set.duration_seconds !== null ? ` · ${set.duration_seconds}s` : ""}
                   </li>
                 ))}

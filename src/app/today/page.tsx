@@ -4,9 +4,9 @@ import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
 import { getExerciseName } from "@/lib/exercise-options";
 import { ensureProfile } from "@/lib/profile";
-import { getRoutineDayComputation } from "@/lib/routines";
+import { getRoutineDayComputation, getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
-import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
+import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +69,7 @@ async function startSessionAction() {
       user_id: user.id,
       routine_id: activeRoutine.id,
       routine_day_index: routineDayIndex,
-      name: routineDayName,
+      name: activeRoutine.name,
       routine_day_name: routineDayName,
     })
     .select("id")
@@ -108,11 +108,12 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   let todayRoutineDay: RoutineDayRow | null = null;
   let dayExercises: RoutineDayExerciseRow[] = [];
   let todayDayIndex: number | null = null;
+  let completedTodayCount = 0;
 
   if (profile.active_routine_id) {
     const { data: routine } = await supabase
       .from("routines")
-      .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at")
+      .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
       .eq("id", profile.active_routine_id)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -141,13 +142,31 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       if (todayRoutineDay) {
         const { data: exercises } = await supabase
           .from("routine_day_exercises")
-          .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, notes")
+          .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
           .eq("routine_day_id", todayRoutineDay.id)
           .eq("user_id", user.id)
           .order("position", { ascending: true });
 
         dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
       }
+
+      const { data: recentSessions } = await supabase
+        .from("sessions")
+        .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds")
+        .eq("user_id", user.id)
+        .eq("routine_id", activeRoutine.id)
+        .order("performed_at", { ascending: false })
+        .limit(100);
+
+      const todayKey = getTodayDateInTimeZone(profile.timezone);
+      const formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: profile.timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+
+      completedTodayCount = ((recentSessions ?? []) as SessionRow[]).filter((session) => formatter.format(new Date(session.performed_at)) === todayKey).length;
     }
   }
 
@@ -157,18 +176,17 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
       {activeRoutine && todayRoutineDay && todayDayIndex ? (
         <div className="space-y-3 rounded-md bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-600">{profile.timezone}</p>
-          <h2 className="text-lg font-semibold">{activeRoutine.name}</h2>
-          <p className="text-sm">
-            Day {todayDayIndex}: {todayRoutineDay.name ?? `Day ${todayDayIndex}`}
-            {todayRoutineDay.is_rest ? " (Rest)" : ""}
-          </p>
+          <h2 className="text-lg font-semibold">{activeRoutine.name}: {todayRoutineDay.name ?? `Day ${todayDayIndex}`}</h2>
+          {todayRoutineDay.is_rest ? <p className="text-sm">Rest day</p> : null}
+          <p className="text-xs text-slate-500">Completed today: {completedTodayCount}</p>
 
           <ul className="space-y-1 text-sm">
             {dayExercises.map((exercise) => (
               <li key={exercise.id} className="rounded-md bg-slate-50 px-3 py-2">
-                {exercise.position + 1}. {getExerciseName(exercise.exercise_id)}
-                {exercise.target_sets && exercise.target_reps ? ` · ${exercise.target_sets} × ${exercise.target_reps}` : ""}
+                {getExerciseName(exercise.exercise_id)}
+                {exercise.target_sets
+                  ? ` · ${exercise.target_sets} × ${exercise.target_reps_min ?? exercise.target_reps ?? "-"}-${exercise.target_reps_max ?? exercise.target_reps ?? "-"}`
+                  : ""}
               </li>
             ))}
             {dayExercises.length === 0 ? <li className="rounded-md bg-slate-50 px-3 py-2 text-slate-500">No template exercises.</li> : null}

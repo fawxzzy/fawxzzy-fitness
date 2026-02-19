@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Added
+- History now supports inline edit and delete flows so lifters can correct or remove past logs without leaving the app.
+- Routine templates now support lbs/kg units and rep-range targets (min/max reps) for faster plan customization across equipment preferences.
 - Session logging now includes optional session/set timers plus tap-per-rep counting, so lifters can track pacing data quickly without mandatory extra input or per-rep event storage.
 - Session history now records a session name and routine day snapshot so past workouts keep human-readable context even if routine templates change.
 - Session logging now supports optional per-set time (seconds) and exercise-level skip state for faster real-world tracking flexibility.
@@ -11,6 +13,11 @@
 - Initial vertical slice (auth, sessions, sets, history).
 
 ### Changed
+- Routine save now returns users directly to the routines list, and routine day sections are collapsible to reduce scrolling during edits.
+- Today and Session headers now use the "Routine Title: Current Day Title" format, and Today shows a completed-session count for the current date.
+- Session timer controls now use a single Start/Pause toggle and sessions are completed with one Save Session action that returns to Today.
+- Bottom navigation now hides the current tab to keep the mobile menu focused on available destinations.
+- Routine cards now include delete actions and clearer Active vs Set Active styling for quicker state recognition.
 - Routine setup/edit now uses preset IANA timezone dropdown choices to reduce input errors while preserving timezone-aware scheduling.
 - Routine templates now use target sets + target reps instead of rep ranges to match the app's deterministic workout planning style.
 - Today now resolves the correct routine day from timezone-aware date math and routine start date so training day selection stays deterministic across locales.
@@ -18,6 +25,7 @@
 - History now shows session name, routine day snapshot, and performed timestamp for quicker scan of past training days.
 
 ### Fixed
+- History deletions now remove child session exercises and sets reliably through cascade-safe constraints and guarded delete actions.
 - Routine cards no longer show the extra start-date/timezone subtitle line, reducing visual noise on the routines list.
 - Routine-day exercise editing now uses a controlled UUID exercise picker and inserts `routine_day_exercises` with authenticated `user_id` + selected `routine_day_id`, so adding exercises saves reliably instead of failing on invalid free-text IDs.
 - Today + Start Session now derive routine context from `profiles.active_routine_id` on the server, recompute the current day index, and persist `sessions.routine_id` + `sessions.routine_day_index` before seeding `session_exercises`, so session rows keep routine linkage and template exercises are consistently preloaded.
