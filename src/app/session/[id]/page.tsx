@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { SessionTimerCard, SetTimerForm } from "@/components/SessionTimers";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS, getExerciseName } from "@/lib/exercise-options";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -156,13 +157,44 @@ async function removeExerciseAction(formData: FormData) {
   revalidatePath(`/session/${sessionId}`);
 }
 
+async function saveSessionDurationAction(formData: FormData) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = String(formData.get("sessionId") ?? "");
+  const durationValue = String(formData.get("durationSeconds") ?? "").trim();
+  const durationSeconds = durationValue ? Number(durationValue) : null;
+
+  if (!sessionId) {
+    redirect(`/today?error=${encodeURIComponent("Missing session info")}`);
+  }
+
+  if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
+    redirect(`/session/${sessionId}?error=${encodeURIComponent("Session time must be an integer in seconds")}`);
+  }
+
+  const { error } = await supabase
+    .from("sessions")
+    .update({ duration_seconds: durationSeconds })
+    .eq("id", sessionId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/session/${sessionId}`);
+}
+
 export default async function SessionPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name")
+    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds")
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
@@ -212,6 +244,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
 
+      <SessionTimerCard
+        sessionId={params.id}
+        initialDurationSeconds={sessionRow.duration_seconds}
+        saveAction={saveSessionDurationAction}
+      />
+
       <form action={addExerciseAction} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
         <input type="hidden" name="sessionId" value={params.id} />
         <label className="text-sm font-semibold">Add exercise</label>
@@ -250,14 +288,11 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
               {exercise.is_skipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
 
-              <form action={addSetAction} className="grid grid-cols-3 gap-2">
-                <input type="hidden" name="sessionId" value={params.id} />
-                <input type="hidden" name="sessionExerciseId" value={exercise.id} />
-                <input type="number" name="weight" min={0} step="0.5" required placeholder="Weight" className="rounded-md border border-slate-300 px-2 py-2 text-sm" />
-                <input type="number" name="reps" min={0} required placeholder="Reps" className="rounded-md border border-slate-300 px-2 py-2 text-sm" />
-                <input type="number" name="durationSeconds" min={0} placeholder="Time (sec)" className="rounded-md border border-slate-300 px-2 py-2 text-sm" />
-                <button type="submit" className="col-span-3 rounded-md bg-slate-900 px-3 py-2 text-sm text-white">Log Set</button>
-              </form>
+              <SetTimerForm
+                sessionId={params.id}
+                sessionExerciseId={exercise.id}
+                addSetAction={addSetAction}
+              />
 
               <ul className="space-y-1 text-sm">
                 {exerciseSets.map((set) => (

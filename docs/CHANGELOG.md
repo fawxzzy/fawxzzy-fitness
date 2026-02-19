@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- Session logging now includes optional session/set timers plus tap-per-rep counting, so lifters can track pacing data quickly without mandatory extra input or per-rep event storage.
 - Session history now records a session name and routine day snapshot so past workouts keep human-readable context even if routine templates change.
 - Session logging now supports optional per-set time (seconds) and exercise-level skip state for faster real-world tracking flexibility.
 - Routine template system with configurable cycle length, per-user timezone support, active routine selection, and routine/day exercise management so users can run repeatable plans without manual daily setup.
