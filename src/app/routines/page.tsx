@@ -78,7 +78,7 @@ export default async function RoutinesPage() {
                 <div>
                   <p className="font-semibold">{routine.name}</p>
                   <p className="text-xs text-slate-600">
-                    {routine.cycle_length_days} day cycle · starts {routine.start_date} · {routine.timezone}
+                    {routine.cycle_length_days} day cycle
                   </p>
                 </div>
                 <Link href={`/routines/${routine.id}/edit`} className="text-sm text-slate-700 underline">

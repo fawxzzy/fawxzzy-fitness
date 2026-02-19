@@ -5,6 +5,8 @@ export type SessionRow = {
   notes: string | null;
   routine_id: string | null;
   routine_day_index: number | null;
+  name: string | null;
+  routine_day_name: string | null;
 };
 
 export type SessionExerciseRow = {
@@ -14,6 +16,7 @@ export type SessionExerciseRow = {
   exercise_id: string;
   position: number;
   notes: string | null;
+  is_skipped: boolean;
 };
 
 export type SetRow = {
@@ -25,6 +28,7 @@ export type SetRow = {
   reps: number;
   is_warmup: boolean;
   notes: string | null;
+  duration_seconds: number | null;
 };
 
 export type ProfileRow = {
@@ -60,6 +64,7 @@ export type RoutineDayExerciseRow = {
   exercise_id: string;
   position: number;
   target_sets: number | null;
+  target_reps: number | null;
   rep_range_min: number | null;
   rep_range_max: number | null;
   notes: string | null;
