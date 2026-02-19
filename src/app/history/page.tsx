@@ -12,10 +12,10 @@ export default async function HistoryPage() {
 
   const { data } = await supabase
     .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index")
+    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name")
     .eq("user_id", user.id)
     .order("performed_at", { ascending: false })
-    .limit(10);
+    .limit(20);
 
   const sessions = (data ?? []) as SessionRow[];
 
@@ -25,19 +25,14 @@ export default async function HistoryPage() {
       <ul className="space-y-2">
         {sessions.map((session) => (
           <li key={session.id}>
-            <Link
-              href={`/session/${session.id}`}
-              className="block rounded-md bg-white p-3 shadow-sm"
-            >
-              {new Date(session.performed_at).toLocaleString()}
+            <Link href={`/session/${session.id}`} className="block rounded-md bg-white p-3 shadow-sm">
+              <p className="font-semibold">{session.name || "Session"}</p>
+              <p className="text-sm text-slate-600">{session.routine_day_name || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day X")}</p>
+              <p className="text-xs text-slate-500">{new Date(session.performed_at).toLocaleString()}</p>
             </Link>
           </li>
         ))}
-        {sessions.length === 0 ? (
-          <li className="rounded-md bg-white p-3 text-sm text-slate-500 shadow-sm">
-            No sessions yet.
-          </li>
-        ) : null}
+        {sessions.length === 0 ? <li className="rounded-md bg-white p-3 text-sm text-slate-500 shadow-sm">No sessions yet.</li> : null}
       </ul>
       <AppNav />
     </section>
