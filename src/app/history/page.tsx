@@ -12,7 +12,7 @@ export default async function HistoryPage() {
 
   const { data } = await supabase
     .from("sessions")
-    .select("id, user_id, performed_at, notes")
+    .select("id, user_id, performed_at, notes, routine_id, routine_day_index")
     .eq("user_id", user.id)
     .order("performed_at", { ascending: false })
     .limit(10);
