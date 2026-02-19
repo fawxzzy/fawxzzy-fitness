@@ -125,7 +125,7 @@ export default async function EditHistorySessionPage({ params }: PageProps) {
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds")
+    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
     .eq("id", params.sessionId)
     .eq("user_id", user.id)
     .single();

@@ -26,6 +26,46 @@ export function getTodayDateInTimeZone(timeZone: string) {
   return `${parts.year}-${month}-${day}`;
 }
 
+function getTimeZoneOffsetMs(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const day = Number(parts.find((part) => part.type === "day")?.value);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value);
+  const second = Number(parts.find((part) => part.type === "second")?.value);
+
+  const asUtc = Date.UTC(year, month - 1, day, hour, minute, second);
+  return asUtc - date.getTime();
+}
+
+export function getTimeZoneDayWindow(timeZone: string, date = new Date()) {
+  const parts = getDatePartsInTimeZone(date, timeZone);
+  const startGuess = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 0, 0, 0));
+  const startOffset = getTimeZoneOffsetMs(startGuess, timeZone);
+  const start = new Date(startGuess.getTime() - startOffset);
+
+  const nextGuess = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + 1, 0, 0, 0));
+  const nextOffset = getTimeZoneOffsetMs(nextGuess, timeZone);
+  const end = new Date(nextGuess.getTime() - nextOffset);
+
+  return {
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+  };
+}
+
 function parseDateStringAsUtc(dateString: string) {
   const [year, month, day] = dateString.split("-").map(Number);
   return Date.UTC(year, month - 1, day);

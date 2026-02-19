@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { SetTimerForm } from "@/components/SessionTimers";
+import { SetLoggerCard } from "@/components/SessionTimers";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS, getExerciseName } from "@/lib/exercise-options";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -19,29 +19,33 @@ type PageProps = {
   };
 };
 
-async function addSetAction(formData: FormData) {
+async function addSetAction(payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  weight: number;
+  reps: number;
+  durationSeconds: number | null;
+  isWarmup: boolean;
+  rpe: number | null;
+  notes: string | null;
+}) {
   "use server";
 
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const sessionId = String(formData.get("sessionId") ?? "");
-  const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "");
-  const weight = Number(formData.get("weight"));
-  const reps = Number(formData.get("reps"));
-  const durationValue = String(formData.get("durationSeconds") ?? "").trim();
-  const durationSeconds = durationValue ? Number(durationValue) : null;
+  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, isWarmup, rpe, notes } = payload;
 
   if (!sessionId || !sessionExerciseId) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent("Missing session info")}`);
+    return { ok: false, error: "Missing session info" };
   }
 
   if (!Number.isFinite(weight) || !Number.isFinite(reps) || weight < 0 || reps < 0) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent("Weight and reps must be 0 or greater")}`);
+    return { ok: false, error: "Weight and reps must be 0 or greater" };
   }
 
   if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent("Time must be an integer in seconds")}`);
+    return { ok: false, error: "Time must be an integer in seconds" };
   }
 
   const { count } = await supabase
@@ -52,21 +56,27 @@ async function addSetAction(formData: FormData) {
 
   const nextSetIndex = count ?? 0;
 
-  const { error } = await supabase.from("sets").insert({
-    session_exercise_id: sessionExerciseId,
-    user_id: user.id,
-    set_index: nextSetIndex,
-    weight,
-    reps,
-    duration_seconds: durationSeconds,
-    is_warmup: false,
-  });
+  const { data: insertedSet, error } = await supabase
+    .from("sets")
+    .insert({
+      session_exercise_id: sessionExerciseId,
+      user_id: user.id,
+      set_index: nextSetIndex,
+      weight,
+      reps,
+      duration_seconds: durationSeconds,
+      is_warmup: isWarmup,
+      rpe,
+      notes,
+    })
+    .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+    .single();
 
-  if (error) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
+  if (error || !insertedSet) {
+    return { ok: false, error: error?.message ?? "Could not log set" };
   }
 
-  revalidatePath(`/session/${sessionId}`);
+  return { ok: true, set: insertedSet as SetRow };
 }
 
 async function toggleSkipAction(formData: FormData) {
@@ -178,7 +188,7 @@ async function saveSessionAction(formData: FormData) {
 
   const { error } = await supabase
     .from("sessions")
-    .update({ duration_seconds: durationSeconds })
+    .update({ duration_seconds: durationSeconds, status: "completed" })
     .eq("id", sessionId)
     .eq("user_id", user.id);
 
@@ -197,7 +207,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds")
+    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
@@ -243,6 +253,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
   return (
     <section className="space-y-4">
+      {sessionRow.status === "in_progress" ? <p className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">In progress</p> : null}
       <h1 className="text-2xl font-semibold">{sessionRow.name || "Routine"}: {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}</h1>
       <p className="rounded-md bg-white p-3 text-sm shadow-sm">{new Date(sessionRow.performed_at).toLocaleString()}</p>
 
@@ -288,17 +299,13 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
               {exercise.is_skipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
 
-              <SetTimerForm sessionId={params.id} sessionExerciseId={exercise.id} addSetAction={addSetAction} />
-
-              <ul className="space-y-1 text-sm">
-                {exerciseSets.map((set) => (
-                  <li key={set.id} className="rounded-md bg-slate-50 px-2 py-1">
-                    #{set.set_index + 1} · {set.weight} {unitLabel} × {set.reps}
-                    {set.duration_seconds !== null ? ` · ${set.duration_seconds}s` : ""}
-                  </li>
-                ))}
-                {exerciseSets.length === 0 ? <li className="text-slate-500">No sets logged.</li> : null}
-              </ul>
+              <SetLoggerCard
+                sessionId={params.id}
+                sessionExerciseId={exercise.id}
+                addSetAction={addSetAction}
+                unitLabel={unitLabel}
+                initialSets={exerciseSets}
+              />
             </article>
           );
         })}

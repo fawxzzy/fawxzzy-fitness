@@ -18,7 +18,8 @@ async function deleteHistorySessionAction(formData: FormData) {
     throw new Error("Missing session id");
   }
 
-  const { error } = await supabase.from("sessions").delete().eq("id", sessionId).eq("user_id", user.id);
+  const { error } = await supabase.from("sessions").delete().eq("id", sessionId).eq("user_id", user.id)
+    .eq("status", "completed");
 
   if (error) {
     throw new Error(error.message);
@@ -34,8 +35,9 @@ export default async function HistoryPage() {
 
   const { data } = await supabase
     .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds")
+    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
     .eq("user_id", user.id)
+    .eq("status", "completed")
     .order("performed_at", { ascending: false })
     .limit(20);
 
