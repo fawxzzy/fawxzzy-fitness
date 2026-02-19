@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 type AuthMode = "login" | "signup";
@@ -12,6 +12,7 @@ type AuthView = "chooser" | AuthMode;
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createBrowserSupabase();
   const [view, setView] = useState<AuthView>("chooser");
   const [email, setEmail] = useState("");
@@ -26,6 +27,21 @@ export function LoginForm() {
       setEmail(savedEmail);
     }
   }, []);
+
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    const emailParam = searchParams.get("email");
+
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+
+    if (verified === "1") {
+      setView("login");
+      setInfo("Email verified. Log in to continue.");
+      setError(null);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!email) {
@@ -66,6 +82,9 @@ export function LoginForm() {
     const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm?email=${encodeURIComponent(email)}`,
+      },
     });
 
     if (signupError) {
