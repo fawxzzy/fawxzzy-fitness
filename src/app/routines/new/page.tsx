@@ -17,6 +17,7 @@ async function createRoutineAction(formData: FormData) {
   const cycleLengthDays = Number(formData.get("cycleLengthDays"));
   const timezone = String(formData.get("timezone") ?? "").trim();
   const startDate = String(formData.get("startDate") ?? "").trim();
+  const weightUnit = String(formData.get("weightUnit") ?? "lbs").trim();
 
   if (!name || !timezone || !startDate) {
     throw new Error("Name, timezone, and start date are required.");
@@ -30,6 +31,10 @@ async function createRoutineAction(formData: FormData) {
     throw new Error("Cycle length must be between 1 and 365.");
   }
 
+  if (weightUnit !== "lbs" && weightUnit !== "kg") {
+    throw new Error("Weight unit must be lbs or kg.");
+  }
+
   const { data: routine, error: routineError } = await supabase
     .from("routines")
     .insert({
@@ -38,6 +43,7 @@ async function createRoutineAction(formData: FormData) {
       cycle_length_days: cycleLengthDays,
       timezone,
       start_date: startDate,
+      weight_unit: weightUnit,
     })
     .select("id")
     .single();
@@ -88,6 +94,14 @@ export default async function NewRoutinePage() {
             required
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
           />
+        </label>
+
+        <label className="block text-sm">
+          Units
+          <select name="weightUnit" defaultValue="lbs" className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+            <option value="lbs">lbs</option>
+            <option value="kg">kg</option>
+          </select>
         </label>
 
         <label className="block text-sm">

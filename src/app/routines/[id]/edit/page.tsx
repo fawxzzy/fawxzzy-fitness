@@ -34,6 +34,7 @@ async function updateRoutineAction(formData: FormData) {
   const timezone = String(formData.get("timezone") ?? "").trim();
   const startDate = String(formData.get("startDate") ?? "").trim();
   const cycleLengthDays = Number(formData.get("cycleLengthDays"));
+  const weightUnit = String(formData.get("weightUnit") ?? "lbs").trim();
 
   if (!routineId || !name || !timezone || !startDate) {
     throw new Error("Missing required fields");
@@ -41,6 +42,10 @@ async function updateRoutineAction(formData: FormData) {
 
   if (!isRoutineTimezone(timezone)) {
     throw new Error("Please select a supported timezone.");
+  }
+
+  if (weightUnit !== "lbs" && weightUnit !== "kg") {
+    throw new Error("Weight unit must be lbs or kg.");
   }
 
   if (!Number.isInteger(cycleLengthDays) || cycleLengthDays < 1 || cycleLengthDays > 365) {
@@ -60,7 +65,14 @@ async function updateRoutineAction(formData: FormData) {
 
   const { error: routineError } = await supabase
     .from("routines")
-    .update({ name, timezone, start_date: startDate, cycle_length_days: cycleLengthDays, updated_at: new Date().toISOString() })
+    .update({
+      name,
+      timezone,
+      start_date: startDate,
+      cycle_length_days: cycleLengthDays,
+      weight_unit: weightUnit,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", routineId)
     .eq("user_id", user.id);
 
@@ -103,9 +115,9 @@ async function updateRoutineAction(formData: FormData) {
     }
   }
 
-  revalidatePath(`/routines/${routineId}/edit`);
   revalidatePath("/routines");
   revalidatePath("/today");
+  redirect("/routines");
 }
 
 async function updateRoutineDayAction(formData: FormData) {
@@ -142,14 +154,19 @@ async function addRoutineExerciseAction(formData: FormData) {
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const exerciseId = String(formData.get("exerciseId") ?? "").trim();
   const targetSets = Number(formData.get("targetSets"));
-  const targetReps = Number(formData.get("targetReps"));
+  const targetRepsMin = Number(formData.get("targetRepsMin"));
+  const targetRepsMax = Number(formData.get("targetRepsMax"));
 
   if (!routineId || !routineDayId || !exerciseId) {
     redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Missing exercise info")}`);
   }
 
-  if (!Number.isInteger(targetSets) || targetSets < 1 || !Number.isInteger(targetReps) || targetReps < 1) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Target sets and reps must be whole numbers greater than 0")}`);
+  if (!Number.isInteger(targetSets) || targetSets < 1) {
+    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Target sets must be a whole number greater than 0")}`);
+  }
+
+  if (!Number.isInteger(targetRepsMin) || !Number.isInteger(targetRepsMax) || targetRepsMin < 1 || targetRepsMax < 1 || targetRepsMin > targetRepsMax) {
+    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Rep range must be whole numbers with min <= max")}`);
   }
 
   const { count } = await supabase
@@ -165,7 +182,9 @@ async function addRoutineExerciseAction(formData: FormData) {
       exercise_id: exerciseId,
       position: count ?? 0,
       target_sets: targetSets,
-      target_reps: targetReps,
+      target_reps_min: targetRepsMin,
+      target_reps_max: targetRepsMax,
+      target_reps: targetRepsMin,
     });
 
     if (error) throw new Error(error.message);
@@ -201,7 +220,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
   const { data: routine } = await supabase
     .from("routines")
-    .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at")
+    .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
@@ -221,7 +240,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const { data: exercises } = routineDayIds.length
     ? await supabase
         .from("routine_day_exercises")
-        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, notes")
+        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
         .in("routine_day_id", routineDayIds)
         .eq("user_id", user.id)
         .order("position", { ascending: true })
@@ -257,6 +276,12 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         <label className="block text-sm">Cycle length (days)
           <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
         </label>
+        <label className="block text-sm">Units
+          <select name="weightUnit" defaultValue={(routine as RoutineRow).weight_unit ?? "lbs"} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+            <option value="lbs">lbs</option>
+            <option value="kg">kg</option>
+          </select>
+        </label>
         <label className="block text-sm">Timezone
           <select name="timezone" required defaultValue={routineTimezoneDefault} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
             {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{timeZoneOption}</option>))}
@@ -265,51 +290,56 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         <label className="block text-sm">Start date
           <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
         </label>
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">Save Routine Details</button>
+        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">Save Routine</button>
       </form>
 
       <div className="space-y-3">
-        {routineDays.map((day) => {
+        {routineDays.map((day, index) => {
           const dayExercises = exerciseMap.get(day.id) ?? [];
 
           return (
-            <article key={day.id} className="space-y-3 rounded-md bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold">Day {day.day_index}</p>
-              <form action={updateRoutineDayAction} className="space-y-2">
-                <input type="hidden" name="routineId" value={routine.id} />
-                <input type="hidden" name="routineDayId" value={day.id} />
-                <input name="name" defaultValue={day.name ?? ""} placeholder={`Day ${day.day_index}`} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isRest" defaultChecked={day.is_rest} />Rest day</label>
-                <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Day</button>
-              </form>
+            <details key={day.id} open={index === 0} className="rounded-md bg-white p-4 shadow-sm">
+              <summary className="cursor-pointer text-sm font-semibold">Day {day.day_index}</summary>
+              <div className="mt-3 space-y-3">
+                <form action={updateRoutineDayAction} className="space-y-2">
+                  <input type="hidden" name="routineId" value={routine.id} />
+                  <input type="hidden" name="routineDayId" value={day.id} />
+                  <input name="name" defaultValue={day.name ?? ""} placeholder={`Day ${day.day_index}`} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isRest" defaultChecked={day.is_rest} />Rest day</label>
+                  <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Day</button>
+                </form>
 
-              <ul className="space-y-1">
-                {dayExercises.map((exercise) => (
-                  <li key={exercise.id} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2 text-xs">
-                    <span>{getExerciseName(exercise.exercise_id)} ({exercise.target_sets ?? "-"} sets × {exercise.target_reps ?? "-"} reps)</span>
-                    <form action={deleteRoutineExerciseAction}>
-                      <input type="hidden" name="routineId" value={routine.id} />
-                      <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                      <button type="submit" className="text-red-600">Remove</button>
-                    </form>
-                  </li>
-                ))}
-                {dayExercises.length === 0 ? <li className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">No exercises yet.</li> : null}
-              </ul>
+                <ul className="space-y-1">
+                  {dayExercises.map((exercise) => (
+                    <li key={exercise.id} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2 text-xs">
+                      <span>
+                        {getExerciseName(exercise.exercise_id)} ({exercise.target_sets ?? "-"} sets × {exercise.target_reps_min ?? exercise.target_reps ?? "-"}-{exercise.target_reps_max ?? exercise.target_reps ?? "-"} reps)
+                      </span>
+                      <form action={deleteRoutineExerciseAction}>
+                        <input type="hidden" name="routineId" value={routine.id} />
+                        <input type="hidden" name="exerciseRowId" value={exercise.id} />
+                        <button type="submit" className="text-red-600">Remove</button>
+                      </form>
+                    </li>
+                  ))}
+                  {dayExercises.length === 0 ? <li className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">No exercises yet.</li> : null}
+                </ul>
 
-              <form action={addRoutineExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
-                <input type="hidden" name="routineId" value={routine.id} />
-                <input type="hidden" name="routineDayId" value={day.id} />
-                <select name="exerciseId" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-                  {EXERCISE_OPTIONS.map((exercise) => (<option key={exercise.id} value={exercise.id}>{exercise.name}</option>))}
-                </select>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="number" min={1} name="targetSets" placeholder="Target sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                  <input type="number" min={1} name="targetReps" placeholder="Target reps" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                </div>
-                <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white">Add Exercise</button>
-              </form>
-            </article>
+                <form action={addRoutineExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
+                  <input type="hidden" name="routineId" value={routine.id} />
+                  <input type="hidden" name="routineDayId" value={day.id} />
+                  <select name="exerciseId" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    {EXERCISE_OPTIONS.map((exercise) => (<option key={exercise.id} value={exercise.id}>{exercise.name}</option>))}
+                  </select>
+                  <div className="grid grid-cols-3 gap-2">
+                    <input type="number" min={1} name="targetSets" placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                    <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                    <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                  <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white">Add Exercise</button>
+                </form>
+              </div>
+            </details>
           );
         })}
       </div>

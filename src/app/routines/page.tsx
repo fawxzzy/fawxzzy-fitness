@@ -39,9 +39,55 @@ async function setActiveRoutineAction(formData: FormData) {
     throw new Error(profileError.message);
   }
 
+  revalidatePath("/routines");
+  revalidatePath("/today");
+}
+
+async function deleteRoutineAction(formData: FormData) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "");
+
+  if (!routineId) {
+    throw new Error("Missing routine ID");
+  }
+
+  const { data: profile, error: profileLoadError } = await supabase
+    .from("profiles")
+    .select("active_routine_id")
+    .eq("id", user.id)
+    .single();
+
+  if (profileLoadError) {
+    throw new Error(profileLoadError.message);
+  }
+
+  if (profile.active_routine_id === routineId) {
+    const { error: clearActiveError } = await supabase
+      .from("profiles")
+      .update({ active_routine_id: null })
+      .eq("id", user.id);
+
+    if (clearActiveError) {
+      throw new Error(clearActiveError.message);
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("routines")
+    .delete()
+    .eq("id", routineId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
 
   revalidatePath("/routines");
   revalidatePath("/today");
+  revalidatePath("/history");
 }
 
 export default async function RoutinesPage() {
@@ -51,7 +97,7 @@ export default async function RoutinesPage() {
 
   const { data } = await supabase
     .from("routines")
-    .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at")
+    .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
@@ -77,20 +123,26 @@ export default async function RoutinesPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold">{routine.name}</p>
-                  <p className="text-xs text-slate-600">
-                    {routine.cycle_length_days} day cycle
-                  </p>
+                  <p className="text-xs text-slate-600">{routine.cycle_length_days} day cycle · {routine.weight_unit}</p>
                 </div>
-                <Link href={`/routines/${routine.id}/edit`} className="text-sm text-slate-700 underline">
-                  Edit
-                </Link>
+                <div className="flex gap-3 text-sm">
+                  <Link href={`/routines/${routine.id}/edit`} className="text-slate-700 underline">
+                    Edit
+                  </Link>
+                  <form action={deleteRoutineAction}>
+                    <input type="hidden" name="routineId" value={routine.id} />
+                    <button type="submit" className="text-red-600 underline">Delete</button>
+                  </form>
+                </div>
               </div>
               <form action={setActiveRoutineAction}>
                 <input type="hidden" name="routineId" value={routine.id} />
                 <button
                   type="submit"
                   disabled={isActive}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:opacity-50"
+                  className={`w-full rounded-md px-3 py-2 text-sm ${
+                    isActive ? "bg-emerald-600 font-semibold text-white" : "border border-slate-300 text-slate-700"
+                  }`}
                 >
                   {isActive ? "Active" : "Set Active"}
                 </button>

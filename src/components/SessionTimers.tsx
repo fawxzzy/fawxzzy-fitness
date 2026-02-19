@@ -15,16 +15,18 @@ function formatSeconds(totalSeconds: number) {
 }
 
 export function SessionTimerCard({
-  sessionId,
   initialDurationSeconds,
-  saveAction,
+  onDurationChange,
 }: {
-  sessionId: string;
   initialDurationSeconds: number | null;
-  saveAction: ServerAction;
+  onDurationChange: (value: number) => void;
 }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(initialDurationSeconds ?? 0);
   const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    onDurationChange(elapsedSeconds);
+  }, [elapsedSeconds, onDurationChange]);
 
   useEffect(() => {
     if (!isRunning) {
@@ -42,12 +44,13 @@ export function SessionTimerCard({
     <section className="space-y-2 rounded-md bg-white p-3 shadow-sm">
       <h2 className="text-sm font-semibold">Session Timer</h2>
       <p className="text-3xl font-semibold tabular-nums">{formatSeconds(elapsedSeconds)}</p>
-      <div className="grid grid-cols-3 gap-2">
-        <button type="button" onClick={() => setIsRunning(true)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-          Start
-        </button>
-        <button type="button" onClick={() => setIsRunning(false)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-          Pause
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setIsRunning((value) => !value)}
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        >
+          {isRunning ? "Pause" : "Start"}
         </button>
         <button
           type="button"
@@ -60,13 +63,6 @@ export function SessionTimerCard({
           Reset
         </button>
       </div>
-      <form action={saveAction}>
-        <input type="hidden" name="sessionId" value={sessionId} />
-        <input type="hidden" name="durationSeconds" value={String(elapsedSeconds)} />
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white">
-          Save Session Time
-        </button>
-      </form>
     </section>
   );
 }
