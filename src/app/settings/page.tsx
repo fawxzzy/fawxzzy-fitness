@@ -1,11 +1,13 @@
 import { AppNav } from "@/components/AppNav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth";
+import { ensureProfile } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const user = await requireUser();
+  await ensureProfile(user.id);
 
   return (
     <section className="space-y-4">

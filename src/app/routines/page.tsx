@@ -39,24 +39,6 @@ async function setActiveRoutineAction(formData: FormData) {
     throw new Error(profileError.message);
   }
 
-  const { error: clearError } = await supabase
-    .from("routines")
-    .update({ is_active: false })
-    .eq("user_id", user.id);
-
-  if (clearError) {
-    throw new Error(clearError.message);
-  }
-
-  const { error: markError } = await supabase
-    .from("routines")
-    .update({ is_active: true })
-    .eq("id", routineId)
-    .eq("user_id", user.id);
-
-  if (markError) {
-    throw new Error(markError.message);
-  }
 
   revalidatePath("/routines");
   revalidatePath("/today");
@@ -69,7 +51,7 @@ export default async function RoutinesPage() {
 
   const { data } = await supabase
     .from("routines")
-    .select("id, user_id, name, cycle_length_days, start_date, timezone, is_active, updated_at")
+    .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
 
