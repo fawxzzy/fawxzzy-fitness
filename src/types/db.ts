@@ -7,6 +7,7 @@ export type SessionRow = {
   routine_day_index: number | null;
   name: string | null;
   routine_day_name: string | null;
+  duration_seconds: number | null;
 };
 
 export type SessionExerciseRow = {
