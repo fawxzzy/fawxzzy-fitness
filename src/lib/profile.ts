@@ -4,6 +4,7 @@ import type { ProfileRow } from "@/types/db";
 
 export async function ensureProfile(userId: string) {
   const supabase = supabaseServer();
+  const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Toronto";
 
   const { data } = await supabase
     .from("profiles")
@@ -17,7 +18,7 @@ export async function ensureProfile(userId: string) {
 
   const { data: inserted, error } = await supabase
     .from("profiles")
-    .insert({ id: userId })
+    .insert({ id: userId, timezone: defaultTimeZone })
     .select("id, timezone, active_routine_id")
     .single();
 

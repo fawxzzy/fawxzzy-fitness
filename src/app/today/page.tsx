@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
-import { getRoutineDayIndex } from "@/lib/routines";
+import { getRoutineDayComputation } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -91,7 +91,7 @@ export default async function TodayPage() {
   if (profile.active_routine_id) {
     const { data: routine } = await supabase
       .from("routines")
-      .select("id, user_id, name, cycle_length_days, start_date, timezone, is_active, updated_at")
+      .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at")
       .eq("id", profile.active_routine_id)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -99,10 +99,20 @@ export default async function TodayPage() {
     activeRoutine = (routine as RoutineRow | null) ?? null;
 
     if (activeRoutine) {
-      todayDayIndex = getRoutineDayIndex({
+      const { todayDate, daysSinceStart, dayIndex } = getRoutineDayComputation({
         cycleLengthDays: activeRoutine.cycle_length_days,
         startDate: activeRoutine.start_date,
         profileTimeZone: profile.timezone,
+      });
+
+      todayDayIndex = dayIndex;
+
+      console.log("[today] routine-day", {
+        userId: user.id,
+        timezone: profile.timezone,
+        todayDate,
+        daysSinceStart,
+        dayIndex,
       });
 
       const { data: routineDay } = await supabase

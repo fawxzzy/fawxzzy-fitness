@@ -40,7 +40,6 @@ export type RoutineRow = {
   cycle_length_days: number;
   start_date: string;
   timezone: string;
-  is_active: boolean;
   updated_at: string;
 };
 

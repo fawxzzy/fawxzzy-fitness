@@ -31,7 +31,7 @@ function parseDateStringAsUtc(dateString: string) {
   return Date.UTC(year, month - 1, day);
 }
 
-export function getRoutineDayIndex(params: {
+export function getRoutineDayComputation(params: {
   cycleLengthDays: number;
   startDate: string;
   profileTimeZone: string;
@@ -44,7 +44,11 @@ export function getRoutineDayIndex(params: {
   const daysSinceStart = Math.floor((todayTs - startTs) / MS_PER_DAY);
   const normalized = ((daysSinceStart % cycleLengthDays) + cycleLengthDays) % cycleLengthDays;
 
-  return normalized + 1;
+  return {
+    todayDate,
+    daysSinceStart,
+    dayIndex: normalized + 1,
+  };
 }
 
 export function createRoutineDaySeeds(cycleLengthDays: number, userId: string, routineId: string) {

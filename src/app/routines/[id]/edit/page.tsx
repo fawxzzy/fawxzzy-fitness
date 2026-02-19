@@ -58,7 +58,7 @@ async function updateRoutineAction(formData: FormData) {
   if (cycleLengthDays !== existingRoutine.cycle_length_days) {
     const { data: existingDays, error: daysError } = await supabase
       .from("routine_days")
-      .select("id, day_index, name, is_rest, notes")
+      .select("id, day_index")
       .eq("routine_id", routineId)
       .eq("user_id", user.id)
       .order("day_index", { ascending: true });
@@ -67,38 +67,37 @@ async function updateRoutineAction(formData: FormData) {
       throw new Error(daysError.message);
     }
 
-    const dayMap = new Map((existingDays ?? []).map((day) => [day.day_index, day]));
-    const seeds = createRoutineDaySeeds(cycleLengthDays, user.id, routineId).map((seed) => {
-      const existingDay = dayMap.get(seed.day_index);
-      return {
-        ...seed,
-        name: existingDay?.name ?? seed.name,
-        is_rest: existingDay?.is_rest ?? false,
-        notes: existingDay?.notes ?? null,
-      };
-    });
+    const existingDayIndexes = new Set((existingDays ?? []).map((day) => day.day_index));
 
-    const { error: upsertError } = await supabase
-      .from("routine_days")
-      .upsert(seeds, { onConflict: "routine_id,day_index" });
+    if (cycleLengthDays > existingRoutine.cycle_length_days) {
+      const missingSeeds = createRoutineDaySeeds(cycleLengthDays, user.id, routineId).filter(
+        (seed) => !existingDayIndexes.has(seed.day_index),
+      );
 
-    if (upsertError) {
-      throw new Error(upsertError.message);
+      if (missingSeeds.length > 0) {
+        const { error: insertError } = await supabase.from("routine_days").insert(missingSeeds);
+
+        if (insertError) {
+          throw new Error(insertError.message);
+        }
+      }
     }
 
-    const existingDayIds = (existingDays ?? [])
-      .filter((day) => day.day_index > cycleLengthDays)
-      .map((day) => day.id);
+    if (cycleLengthDays < existingRoutine.cycle_length_days) {
+      const dayIdsToDelete = (existingDays ?? [])
+        .filter((day) => day.day_index > cycleLengthDays)
+        .map((day) => day.id);
 
-    if (existingDayIds.length > 0) {
-      const { error: deleteError } = await supabase
-        .from("routine_days")
-        .delete()
-        .in("id", existingDayIds)
-        .eq("user_id", user.id);
+      if (dayIdsToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("routine_days")
+          .delete()
+          .in("id", dayIdsToDelete)
+          .eq("user_id", user.id);
 
-      if (deleteError) {
-        throw new Error(deleteError.message);
+        if (deleteError) {
+          throw new Error(deleteError.message);
+        }
       }
     }
   }
@@ -213,7 +212,7 @@ export default async function EditRoutinePage({ params }: PageProps) {
 
   const { data: routine } = await supabase
     .from("routines")
-    .select("id, user_id, name, cycle_length_days, start_date, timezone, is_active, updated_at")
+    .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at")
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();

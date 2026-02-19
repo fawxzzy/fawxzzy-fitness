@@ -11,7 +11,15 @@
 - Initial vertical slice (auth, sessions, sets, history)
 
 ### Fixed
+- Routine activation now uses `profiles.active_routine_id` as the only source of truth so Today and Routines stay in sync immediately after switching active routine.
+- Protected page loads now ensure a profile exists (timezone + active routine pointer) so routine logic always has required user settings data.
+- Today routine-day resolution now consistently uses the profile timezone and safe modulo day math (including future start dates) so the selected template day is deterministic.
+- Routine cycle-length edits now safely resize day rows (add missing days, remove overflow days, preserve kept days) so template history remains stable while plans evolve.
+
 - Email verification links now redirect to login with verified state and prefilled email instead of landing on an error page
 - Server/client boundary violations causing runtime crash
 - Middleware matcher exclusions
 - Environment variable handling
+
+### Notes
+- Manual test checklist: login → routines (create/select active) → today (verify day name/exercises) → Start Session (verify seeded exercise order) → edit routine cycle length up/down → switch active routine and confirm Today updates immediately.
