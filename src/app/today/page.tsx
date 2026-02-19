@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
+import { getExerciseName } from "@/lib/exercise-options";
 import { ensureProfile } from "@/lib/profile";
 import { getRoutineDayComputation } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -15,23 +16,38 @@ async function startSessionAction(formData: FormData) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const routineId = String(formData.get("routineId") ?? "");
-  const routineDayIndex = Number(formData.get("routineDayIndex"));
-
-  if (!routineId || !Number.isInteger(routineDayIndex)) {
-    throw new Error("Missing routine context");
+  const profile = await ensureProfile(user.id);
+  if (!profile.active_routine_id) {
+    redirect("/today?error=No%20active%20routine%20selected");
   }
+
+  const { data: activeRoutine, error: routineError } = await supabase
+    .from("routines")
+    .select("id, cycle_length_days, start_date")
+    .eq("id", profile.active_routine_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (routineError || !activeRoutine) {
+    redirect(`/today?error=${encodeURIComponent(routineError?.message ?? "Active routine not found")}`);
+  }
+
+  const { dayIndex: routineDayIndex } = getRoutineDayComputation({
+    cycleLengthDays: activeRoutine.cycle_length_days,
+    startDate: activeRoutine.start_date,
+    profileTimeZone: profile.timezone,
+  });
 
   const { data: routineDay } = await supabase
     .from("routine_days")
     .select("id")
-    .eq("routine_id", routineId)
+    .eq("routine_id", activeRoutine.id)
     .eq("day_index", routineDayIndex)
     .eq("user_id", user.id)
     .single();
 
   if (!routineDay) {
-    throw new Error("Routine day not found");
+    redirect("/today?error=Routine%20day%20not%20found");
   }
 
   const { data: templateExercises, error: templateError } = await supabase
@@ -42,17 +58,17 @@ async function startSessionAction(formData: FormData) {
     .order("position", { ascending: true });
 
   if (templateError) {
-    throw new Error(templateError.message);
+    redirect(`/today?error=${encodeURIComponent(templateError.message)}`);
   }
 
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .insert({ user_id: user.id, routine_id: routineId, routine_day_index: routineDayIndex })
+    .insert({ user_id: user.id, routine_id: activeRoutine.id, routine_day_index: routineDayIndex })
     .select("id")
     .single();
 
   if (sessionError || !session) {
-    throw new Error(sessionError?.message ?? "Could not create session");
+    redirect(`/today?error=${encodeURIComponent(sessionError?.message ?? "Could not create session")}`);
   }
 
   if ((templateExercises ?? []).length > 0) {
@@ -71,14 +87,14 @@ async function startSessionAction(formData: FormData) {
     );
 
     if (exerciseError) {
-      throw new Error(exerciseError.message);
+      redirect(`/today?error=${encodeURIComponent(exerciseError.message)}`);
     }
   }
 
   redirect(`/session/${session.id}`);
 }
 
-export default async function TodayPage() {
+export default async function TodayPage({ searchParams }: { searchParams?: { error?: string } }) {
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const supabase = supabaseServer();
@@ -156,7 +172,7 @@ export default async function TodayPage() {
           <ul className="space-y-1 text-sm">
             {dayExercises.map((exercise) => (
               <li key={exercise.id} className="rounded-md bg-slate-50 px-3 py-2">
-                {exercise.position + 1}. {exercise.exercise_id}
+                {exercise.position + 1}. {getExerciseName(exercise.exercise_id)}
                 {exercise.rep_range_min
                   ? ` · ${exercise.rep_range_min}-${exercise.rep_range_max ?? exercise.rep_range_min} reps`
                   : ""}
@@ -168,8 +184,6 @@ export default async function TodayPage() {
           </ul>
 
           <form action={startSessionAction}>
-            <input type="hidden" name="routineId" value={activeRoutine.id} />
-            <input type="hidden" name="routineDayIndex" value={todayDayIndex} />
             <button
               type="submit"
               className="w-full rounded-lg bg-emerald-600 px-4 py-5 text-lg font-semibold text-white"
@@ -186,6 +200,10 @@ export default async function TodayPage() {
           </Link>
         </div>
       )}
+
+      {searchParams?.error ? (
+        <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p>
+      ) : null}
 
       <AppNav />
     </section>
