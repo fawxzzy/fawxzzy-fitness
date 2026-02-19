@@ -1,7 +1,8 @@
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { EXERCISE_OPTIONS, getExerciseName } from "@/lib/exercise-options";
 import { createRoutineDaySeeds } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
@@ -12,7 +13,14 @@ type PageProps = {
   params: {
     id: string;
   };
+  searchParams?: {
+    error?: string;
+  };
 };
+
+function toErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Request failed";
+}
 
 async function updateRoutineAction(formData: FormData) {
   "use server";
@@ -150,7 +158,7 @@ async function addRoutineExerciseAction(formData: FormData) {
   const repRangeMaxValue = String(formData.get("repRangeMax") ?? "").trim();
 
   if (!routineId || !routineDayId || !exerciseId) {
-    throw new Error("Missing exercise info");
+    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Missing exercise info")}`);
   }
 
   const { count } = await supabase
@@ -162,17 +170,21 @@ async function addRoutineExerciseAction(formData: FormData) {
   const repRangeMin = repRangeMinValue ? Number(repRangeMinValue) : null;
   const repRangeMax = repRangeMaxValue ? Number(repRangeMaxValue) : null;
 
-  const { error } = await supabase.from("routine_day_exercises").insert({
-    user_id: user.id,
-    routine_day_id: routineDayId,
-    exercise_id: exerciseId,
-    position: count ?? 0,
-    rep_range_min: Number.isFinite(repRangeMin) ? repRangeMin : null,
-    rep_range_max: Number.isFinite(repRangeMax) ? repRangeMax : null,
-  });
+  try {
+    const { error } = await supabase.from("routine_day_exercises").insert({
+      user_id: user.id,
+      routine_day_id: routineDayId,
+      exercise_id: exerciseId,
+      position: count ?? 0,
+      rep_range_min: Number.isFinite(repRangeMin) ? repRangeMin : null,
+      rep_range_max: Number.isFinite(repRangeMax) ? repRangeMax : null,
+    });
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      throw new Error(error.message);
+    }
+  } catch (error) {
+    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent(toErrorMessage(error))}`);
   }
 
   revalidatePath(`/routines/${routineId}/edit`);
@@ -206,7 +218,7 @@ async function deleteRoutineExerciseAction(formData: FormData) {
   revalidatePath("/today");
 }
 
-export default async function EditRoutinePage({ params }: PageProps) {
+export default async function EditRoutinePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -259,6 +271,10 @@ export default async function EditRoutinePage({ params }: PageProps) {
           Back
         </Link>
       </div>
+
+      {searchParams?.error ? (
+        <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p>
+      ) : null}
 
       <form action={updateRoutineAction} className="space-y-3 rounded-md bg-white p-4 shadow-sm">
         <input type="hidden" name="routineId" value={routine.id} />
@@ -341,7 +357,8 @@ export default async function EditRoutinePage({ params }: PageProps) {
                 {dayExercises.map((exercise) => (
                   <li key={exercise.id} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2 text-xs">
                     <span>
-                      {exercise.exercise_id} {exercise.rep_range_min ? `(${exercise.rep_range_min}-${exercise.rep_range_max ?? exercise.rep_range_min} reps)` : ""}
+                      {getExerciseName(exercise.exercise_id)}{" "}
+                      {exercise.rep_range_min ? `(${exercise.rep_range_min}-${exercise.rep_range_max ?? exercise.rep_range_min} reps)` : ""}
                     </span>
                     <form action={deleteRoutineExerciseAction}>
                       <input type="hidden" name="routineId" value={routine.id} />
@@ -358,12 +375,13 @@ export default async function EditRoutinePage({ params }: PageProps) {
               <form action={addRoutineExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
                 <input type="hidden" name="routineId" value={routine.id} />
                 <input type="hidden" name="routineDayId" value={day.id} />
-                <input
-                  name="exerciseId"
-                  required
-                  placeholder="Exercise UUID"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                />
+                <select name="exerciseId" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                  {EXERCISE_OPTIONS.map((exercise) => (
+                    <option key={exercise.id} value={exercise.id}>
+                      {exercise.name}
+                    </option>
+                  ))}
+                </select>
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="number"

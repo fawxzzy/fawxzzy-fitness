@@ -11,6 +11,10 @@
 - Initial vertical slice (auth, sessions, sets, history)
 
 ### Fixed
+- Routine-day exercise editing now uses a controlled UUID exercise picker and inserts `routine_day_exercises` with authenticated `user_id` + selected `routine_day_id`, so adding exercises saves reliably instead of failing on invalid free-text IDs.
+- Today + Start Session now derive routine context from `profiles.active_routine_id` on the server, recompute the current day index, and persist `sessions.routine_id` + `sessions.routine_day_index` before seeding `session_exercises`, so session rows keep routine linkage and template exercises are consistently preloaded.
+- Routine edit and Today now surface server action error messages inline, so users can see the real failure reason and recover quickly.
+
 - Routine activation now uses `profiles.active_routine_id` as the only source of truth so Today and Routines stay in sync immediately after switching active routine.
 - Protected page loads now ensure a profile exists (timezone + active routine pointer) so routine logic always has required user settings data.
 - Today routine-day resolution now consistently uses the profile timezone and safe modulo day math (including future start dates) so the selected template day is deterministic.
