@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+- Exercise loading no longer uses request-scoped auth context inside cached reads, while global catalog data remains cached and user-specific exercises stay request-scoped for stability.
+- Middleware now treats auth confirmation routes as public so email verification links can complete without redirect loops.
+
+### Why
+- Prevent runtime crashes tied to request-only cookie access during cached execution, keep deploy behavior predictable across schema rollout timing, and avoid broken account confirmation flows.
+
 ### Added
 - Exercise picker now supports per-user custom exercises (add, rename, and safe delete) so lifters can track movements not included in the default catalog without breaking routine/session history.
 - Global exercise library was expanded with broad coverage across muscle groups, equipment types, and common variations to reduce setup friction and speed routine/session building.

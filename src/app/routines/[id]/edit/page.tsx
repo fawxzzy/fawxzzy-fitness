@@ -261,7 +261,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
     : { data: [] };
 
   const exerciseRows = (exercises ?? []) as RoutineDayExerciseRow[];
-  const exerciseOptions = await listExercises(user.id);
+  const exerciseOptions = await listExercises();
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
   const routineTimezoneDefault = isRoutineTimezone((routine as RoutineRow).timezone)

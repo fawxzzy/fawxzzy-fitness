@@ -278,7 +278,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
   const sessionRow = session as SessionRow;
   const unitLabel = routine?.weight_unit ?? "kg";
-  const exerciseOptions = await listExercises(user.id);
+  const exerciseOptions = await listExercises();
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
 
