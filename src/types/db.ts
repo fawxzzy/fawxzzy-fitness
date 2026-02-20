@@ -73,3 +73,14 @@ export type RoutineDayExerciseRow = {
   target_reps_max: number | null;
   notes: string | null;
 };
+
+
+export type ExerciseRow = {
+  id: string;
+  name: string;
+  user_id: string | null;
+  is_global: boolean;
+  primary_muscle: string | null;
+  equipment: string | null;
+  created_at: string;
+};

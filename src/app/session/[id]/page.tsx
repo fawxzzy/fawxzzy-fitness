@@ -3,8 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { SetLoggerCard } from "@/components/SessionTimers";
+import { ExercisePicker } from "@/components/ExercisePicker";
+import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { requireUser } from "@/lib/auth";
-import { EXERCISE_OPTIONS, getExerciseName } from "@/lib/exercise-options";
+import { listExercises } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
@@ -16,6 +18,8 @@ type PageProps = {
   };
   searchParams?: {
     error?: string;
+    success?: string;
+    exerciseId?: string;
   };
 };
 
@@ -274,6 +278,9 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
   const sessionRow = session as SessionRow;
   const unitLabel = routine?.weight_unit ?? "kg";
+  const exerciseOptions = await listExercises(user.id);
+  const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
+  const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
 
   return (
     <section className="space-y-4">
@@ -282,19 +289,54 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       <p className="rounded-md bg-white p-3 text-sm shadow-sm">{new Date(sessionRow.performed_at).toLocaleString()}</p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
+      {searchParams?.success ? <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{searchParams.success}</p> : null}
 
       <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
 
-      <form action={addExerciseAction} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
-        <input type="hidden" name="sessionId" value={params.id} />
-        <label className="text-sm font-semibold">Add exercise</label>
-        <select name="exerciseId" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-          {EXERCISE_OPTIONS.map((exercise) => (
-            <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
-          ))}
-        </select>
-        <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Add</button>
-      </form>
+      <details className="rounded-md bg-white p-3 shadow-sm" open>
+        <summary className="cursor-pointer text-sm font-semibold">Add exercise</summary>
+        <div className="mt-3 space-y-3">
+          <form action={addExerciseAction} className="space-y-2">
+            <input type="hidden" name="sessionId" value={params.id} />
+            <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
+            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Add</button>
+          </form>
+
+          <form action={createCustomExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
+            <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
+            <label className="text-sm font-semibold">+ Add custom exercise</label>
+            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <div className="grid grid-cols-2 gap-2">
+              <input name="primaryMuscle" placeholder="Primary muscle (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="equipment" placeholder="Equipment (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Custom Exercise</button>
+          </form>
+
+          {customExercises.length > 0 ? (
+            <ul className="space-y-2 border-t border-slate-200 pt-3">
+              {customExercises.map((exercise) => (
+                <li key={exercise.id} className="rounded-md bg-slate-50 p-2">
+                  <p className="text-xs font-semibold">{exercise.name}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <form action={renameCustomExerciseAction} className="flex gap-2">
+                      <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
+                      <input type="hidden" name="exerciseId" value={exercise.id} />
+                      <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
+                      <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">Rename</button>
+                    </form>
+                    <form action={deleteCustomExerciseAction}>
+                      <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
+                      <input type="hidden" name="exerciseId" value={exercise.id} />
+                      <button type="submit" className="w-full rounded-md border border-red-300 px-2 py-1 text-xs text-red-700">Delete</button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      </details>
 
       <div className="space-y-3">
         {sessionExercises.map((exercise) => {
@@ -303,7 +345,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           return (
             <article key={exercise.id} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold">{getExerciseName(exercise.exercise_id)}</p>
+                <p className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</p>
                 <div className="flex gap-2">
                   <form action={toggleSkipAction}>
                     <input type="hidden" name="sessionId" value={params.id} />
