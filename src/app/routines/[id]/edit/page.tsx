@@ -2,7 +2,9 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { requireUser } from "@/lib/auth";
-import { EXERCISE_OPTIONS, getExerciseName } from "@/lib/exercise-options";
+import { ExercisePicker } from "@/components/ExercisePicker";
+import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
+import { listExercises } from "@/lib/exercises";
 import { createRoutineDaySeeds, formatRepTarget } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
@@ -16,6 +18,8 @@ type PageProps = {
   };
   searchParams?: {
     error?: string;
+    success?: string;
+    exerciseId?: string;
   };
 };
 
@@ -257,6 +261,9 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
     : { data: [] };
 
   const exerciseRows = (exercises ?? []) as RoutineDayExerciseRow[];
+  const exerciseOptions = await listExercises(user.id);
+  const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
+  const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
   const routineTimezoneDefault = isRoutineTimezone((routine as RoutineRow).timezone)
     ? (routine as RoutineRow).timezone
     : "America/Toronto";
@@ -277,6 +284,44 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
       </div>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
+      {searchParams?.success ? <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{searchParams.success}</p> : null}
+
+      <details className="rounded-md bg-white p-4 shadow-sm">
+        <summary className="cursor-pointer text-sm font-semibold">+ Add custom exercise</summary>
+        <div className="mt-3 space-y-3">
+          <form action={createCustomExerciseAction} className="space-y-2">
+            <input type="hidden" name="returnTo" value={`/routines/${params.id}/edit`} />
+            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <div className="grid grid-cols-2 gap-2">
+              <input name="primaryMuscle" placeholder="Primary muscle (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="equipment" placeholder="Equipment (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Custom Exercise</button>
+          </form>
+          {customExercises.length > 0 ? (
+            <ul className="space-y-2">
+              {customExercises.map((exercise) => (
+                <li key={exercise.id} className="rounded-md bg-slate-50 p-2">
+                  <p className="text-xs font-semibold">{exercise.name}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <form action={renameCustomExerciseAction} className="flex gap-2">
+                      <input type="hidden" name="returnTo" value={`/routines/${params.id}/edit`} />
+                      <input type="hidden" name="exerciseId" value={exercise.id} />
+                      <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
+                      <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">Rename</button>
+                    </form>
+                    <form action={deleteCustomExerciseAction}>
+                      <input type="hidden" name="returnTo" value={`/routines/${params.id}/edit`} />
+                      <input type="hidden" name="exerciseId" value={exercise.id} />
+                      <button type="submit" className="w-full rounded-md border border-red-300 px-2 py-1 text-xs text-red-700">Delete</button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      </details>
 
       <form action={updateRoutineAction} className="space-y-3 rounded-md bg-white p-4 shadow-sm">
         <input type="hidden" name="routineId" value={routine.id} />
@@ -327,7 +372,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                       {dayExercises.map((exercise) => (
                         <li key={exercise.id} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2 text-xs">
                           <span>
-                            {getExerciseName(exercise.exercise_id)} ({exercise.target_sets ?? "-"} sets · {formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)})
+                            {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id} ({exercise.target_sets ?? "-"} sets · {formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)})
                           </span>
                           <form action={deleteRoutineExerciseAction}>
                             <input type="hidden" name="routineId" value={routine.id} />
@@ -342,9 +387,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                     <form action={addRoutineExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
                       <input type="hidden" name="routineId" value={routine.id} />
                       <input type="hidden" name="routineDayId" value={day.id} />
-                      <select name="exerciseId" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-                        {EXERCISE_OPTIONS.map((exercise) => (<option key={exercise.id} value={exercise.id}>{exercise.name}</option>))}
-                      </select>
+                      <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
                       <div className="grid grid-cols-3 gap-2">
                         <input type="number" min={1} name="targetSets" placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                         <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />

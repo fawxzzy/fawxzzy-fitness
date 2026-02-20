@@ -2,7 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getExerciseName } from "@/lib/exercise-options";
+import { getExerciseNameMap } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
@@ -163,6 +163,7 @@ export default async function EditHistorySessionPage({ params }: PageProps) {
   }
 
   const sessionRow = session as SessionRow;
+  const exerciseNameMap = await getExerciseNameMap(user.id);
 
   return (
     <section className="space-y-4">
@@ -183,7 +184,7 @@ export default async function EditHistorySessionPage({ params }: PageProps) {
 
       {sessionExercises.map((exercise) => (
         <article key={exercise.id} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
-          <p className="font-semibold">{getExerciseName(exercise.exercise_id)}</p>
+          <p className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</p>
           <form action={updateSessionExerciseAction} className="space-y-2">
             <input type="hidden" name="sessionId" value={sessionRow.id} />
             <input type="hidden" name="sessionExerciseId" value={exercise.id} />

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
-import { getExerciseName } from "@/lib/exercise-options";
+import { getExerciseNameMap } from "@/lib/exercises";
 import { ensureProfile } from "@/lib/profile";
 import { formatRepTarget, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -182,6 +182,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     }
   }
 
+  const exerciseNameMap = await getExerciseNameMap(user.id);
+
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Today</h1>
@@ -195,7 +197,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           <ul className="space-y-1 text-sm">
             {dayExercises.map((exercise) => (
               <li key={exercise.id} className="rounded-md bg-slate-50 px-3 py-2">
-                {getExerciseName(exercise.exercise_id)}
+                {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
                 {exercise.target_sets
                   ? ` · ${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
                   : ""}
