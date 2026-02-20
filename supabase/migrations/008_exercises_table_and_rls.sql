@@ -36,19 +36,15 @@ create unique index if not exists exercises_user_name_uq
   on public.exercises (user_id, (lower(btrim(name))))
   where user_id is not null;
 
-insert into public.exercises (id, name, user_id, is_global, primary_muscle, equipment)
+insert into public.exercises (name, user_id, is_global, primary_muscle, equipment)
 values
-  ('11111111-1111-1111-1111-111111111111', 'Bench Press', null, true, 'Chest', 'Barbell'),
-  ('22222222-2222-2222-2222-222222222222', 'Back Squat', null, true, 'Legs', 'Barbell'),
-  ('33333333-3333-3333-3333-333333333333', 'Deadlift', null, true, 'Back', 'Barbell'),
-  ('44444444-4444-4444-4444-444444444444', 'Barbell Row', null, true, 'Back', 'Barbell'),
-  ('55555555-5555-5555-5555-555555555555', 'Overhead Press', null, true, 'Shoulders', 'Barbell'),
-  ('66666666-6666-6666-6666-666666666666', 'Pull-Up', null, true, 'Back', 'Bodyweight')
-on conflict (id) do update
-set
-  name = excluded.name,
-  user_id = null,
-  is_global = true;
+  ('Bench Press', null, true, 'Chest', 'Barbell'),
+  ('Back Squat', null, true, 'Legs', 'Barbell'),
+  ('Deadlift', null, true, 'Back', 'Barbell'),
+  ('Barbell Row', null, true, 'Back', 'Barbell'),
+  ('Overhead Press', null, true, 'Shoulders', 'Barbell'),
+  ('Pull-Up', null, true, 'Back', 'Bodyweight')
+on conflict do nothing;
 
 alter table public.exercises enable row level security;
 

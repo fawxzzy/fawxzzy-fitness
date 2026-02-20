@@ -9,6 +9,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
 
 const FALLBACK_CREATED_AT = "1970-01-01T00:00:00.000Z";
+let hasLoggedMissingExerciseId = false;
 
 function fallbackGlobalExercises(): ExerciseRow[] {
   return EXERCISE_OPTIONS.map((exercise) => ({
@@ -42,9 +43,21 @@ export async function listExercises() {
   const customExercises = await listUserExercises(user.id);
 
   const mergedExercises = [...customExercises, ...globalExercises];
+  const validExercises = mergedExercises.filter((exercise) => {
+    if (exercise.id) {
+      return true;
+    }
+
+    if (!hasLoggedMissingExerciseId) {
+      hasLoggedMissingExerciseId = true;
+      console.error("[exercises] Dropped exercise rows with missing id.");
+    }
+
+    return false;
+  });
   const dedupedExercises = new Map<string, ExerciseRow>();
 
-  for (const exercise of mergedExercises) {
+  for (const exercise of validExercises) {
     if (!dedupedExercises.has(exercise.id)) {
       dedupedExercises.set(exercise.id, exercise);
     }
