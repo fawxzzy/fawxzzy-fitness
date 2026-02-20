@@ -71,6 +71,8 @@ export type RoutineDayExerciseRow = {
   target_reps: number | null;
   target_reps_min: number | null;
   target_reps_max: number | null;
+  target_weight: number | null;
+  target_duration_seconds: number | null;
   notes: string | null;
 };
 
