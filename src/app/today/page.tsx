@@ -189,35 +189,35 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       <h1 className="text-2xl font-semibold">Today</h1>
 
       {activeRoutine && todayRoutineDay && todayDayIndex ? (
-        <div className="space-y-3 rounded-xl border border-slate-300 bg-white/95 p-4">
-          <h2 className="text-lg font-semibold text-[rgb(var(--text))]">{activeRoutine.name}: {todayRoutineDay.is_rest ? `REST DAY — ${todayRoutineDay.name ?? `Day ${todayDayIndex}`}` : todayRoutineDay.name ?? `Day ${todayDayIndex}`}</h2>
+        <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
+          <h2 className="text-lg font-semibold text-text">{activeRoutine.name}: {todayRoutineDay.is_rest ? `REST DAY — ${todayRoutineDay.name ?? `Day ${todayDayIndex}`}` : todayRoutineDay.name ?? `Day ${todayDayIndex}`}</h2>
           {inProgressSession ? <p className="inline-flex rounded-full border border-accent/25 bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">In progress</p> : null}
-          <p className="text-xs text-[rgb(var(--muted))]">Completed (this routine) today: {completedTodayCount}</p>
+          <p className="text-xs text-muted">Completed (this routine) today: {completedTodayCount}</p>
 
           <ul className="space-y-1 text-sm">
             {dayExercises.map((exercise) => (
-              <li key={exercise.id} className="rounded-md bg-[rgb(var(--surface-2)/0.55)] px-3 py-2 text-[rgb(var(--text)/0.95)]">
+              <li key={exercise.id} className="rounded-md bg-[rgb(var(--surface-2)/0.55)] px-3 py-2 text-text">
                 {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
                 {exercise.target_sets
                   ? ` · ${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
                   : ""}
               </li>
             ))}
-            {dayExercises.length === 0 ? <li className="rounded-md bg-[rgb(var(--surface-2)/0.55)] px-3 py-2 text-[rgb(var(--muted))]">No routine exercises planned today.</li> : null}
+            {dayExercises.length === 0 ? <li className="rounded-md bg-[rgb(var(--surface-2)/0.55)] px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
           </ul>
 
           {inProgressSession ? (
-            <Link href={`/session/${inProgressSession.id}`} className="block w-full rounded-lg border border-accent/30 bg-accent px-4 py-5 text-center text-lg font-semibold text-[rgb(var(--bg))] transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Session</Link>
+            <Link href={`/session/${inProgressSession.id}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-bg transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Session</Link>
           ) : (
             <form action={startSessionAction}>
-              <button type="submit" className="w-full rounded-lg border border-accent/30 bg-accent px-4 py-5 text-lg font-semibold text-[rgb(var(--bg))] transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">{todayRoutineDay.is_rest ? "Start Optional Session" : "Start Session"}</button>
+              <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-bg transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">{todayRoutineDay.is_rest ? "Start Optional Session" : "Start Session"}</button>
             </form>
           )}
         </div>
       ) : (
-        <div className="space-y-3 rounded-xl border border-slate-300 bg-white/95 p-4">
-          <p className="text-sm text-[rgb(var(--muted))]">No active routine selected.</p>
-          <Link href="/routines" className="block rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-center text-sm">Go to Routines</Link>
+        <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
+          <p className="text-sm text-muted">No active routine selected.</p>
+          <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">Go to Routines</Link>
         </div>
       )}
 
