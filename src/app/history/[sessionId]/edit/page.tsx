@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
+import { BackButton } from "@/components/ui/BackButton";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -169,7 +169,7 @@ export default async function EditHistorySessionPage({ params }: PageProps) {
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Edit History</h1>
-        <Link href="/history" className="text-sm underline">Back</Link>
+        <BackButton href="/history" />
       </div>
 
       <p className="rounded-md bg-white p-3 text-sm shadow-sm">{sessionRow.name || "Session"} · {sessionRow.routine_day_name || "Day"}</p>

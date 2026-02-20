@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
+import { BackButton } from "@/components/ui/BackButton";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction } from "@/app/routines/[id]/edit/day/actions";
 import { requireUser } from "@/lib/auth";
@@ -119,7 +120,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{dayTitle}</h1>
-        <Link href={`/routines/${params.id}/edit`} className="rounded-md border border-slate-300 px-3 py-2 text-sm">Back</Link>
+        <BackButton href={`/routines/${params.id}/edit`} />
       </div>
       <p className="text-sm text-slate-600">{(routine as RoutineRow).name}: {dayTitle}</p>
 

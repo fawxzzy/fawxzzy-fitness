@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { BackButton } from "@/components/ui/BackButton";
 
 type Props = {
   href: string;
@@ -8,19 +8,14 @@ type Props = {
 };
 
 export function RoutineBackButton({ href, hasUnsavedChanges = true }: Props) {
-  const router = useRouter();
-
-  function handleBack() {
-    if (hasUnsavedChanges && !window.confirm("Discard changes?")) {
-      return;
-    }
-
-    router.push(href);
-  }
-
   return (
-    <button type="button" onClick={handleBack} className="text-sm underline">
-      Back
-    </button>
+    <BackButton
+      href={href}
+      onClick={(event) => {
+        if (hasUnsavedChanges && !window.confirm("Discard changes?")) {
+          event.preventDefault();
+        }
+      }}
+    />
   );
 }
