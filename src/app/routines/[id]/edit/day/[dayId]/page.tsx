@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { BackButton } from "@/components/ui/BackButton";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction } from "@/app/routines/[id]/edit/day/actions";
 import { requireUser } from "@/lib/auth";
@@ -127,9 +128,9 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-      <details className="rounded-md bg-white p-4 shadow-sm">
-        <summary className="cursor-pointer text-sm font-semibold">+ Add custom exercise</summary>
-        <div className="mt-3 space-y-3">
+      <details className="rounded-md border border-slate-300 bg-white transition-colors hover:border-[rgb(var(--border)/0.8)]">
+        <summary className="cursor-pointer list-none rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-[rgb(var(--surface-2)/0.35)] active:bg-[rgb(var(--surface-2)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">+ Add custom exercise</summary>
+        <div className="space-y-3 px-4 pb-4">
           <form action={createCustomExerciseAction} className="space-y-2">
             <input type="hidden" name="returnTo" value={returnTo} />
             <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
@@ -205,19 +206,21 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             {dayExercises.length === 0 ? <li className="rounded-md bg-white px-3 py-2 text-xs text-slate-500 shadow-sm">No exercises yet.</li> : null}
           </ul>
 
-          <form action={addRoutineDayExerciseAction} className="space-y-2 rounded-md bg-white p-4 shadow-sm">
-            <input type="hidden" name="routineId" value={params.id} />
-            <input type="hidden" name="routineDayId" value={params.dayId} />
-            <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <input type="number" min={1} name="targetSets" placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${(routine as RoutineRow).weight_unit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            </div>
-            <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
-          </form>
+          <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={false}>
+            <form action={addRoutineDayExerciseAction} className="space-y-2">
+              <input type="hidden" name="routineId" value={params.id} />
+              <input type="hidden" name="routineDayId" value={params.dayId} />
+              <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <input type="number" min={1} name="targetSets" placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${(routine as RoutineRow).weight_unit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
+            </form>
+          </CollapsibleCard>
         </>
       )}
     </section>
