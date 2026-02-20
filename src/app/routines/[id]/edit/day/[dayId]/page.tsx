@@ -124,7 +124,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       <p className="text-sm text-slate-600">{(routine as RoutineRow).name}: {dayTitle}</p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-      {searchParams?.success ? <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{searchParams.success}</p> : null}
+      {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
       <details className="rounded-md bg-white p-4 shadow-sm">
         <summary className="cursor-pointer text-sm font-semibold">+ Add custom exercise</summary>
@@ -170,7 +170,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
         </label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />Rest day</label>
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">Save Day</button>
+        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Save Day</button>
       </form>
 
       {(day as RoutineDayRow).is_rest ? (
@@ -215,7 +215,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${(routine as RoutineRow).weight_unit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </div>
-            <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white">Add Exercise</button>
+            <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
           </form>
         </>
       )}

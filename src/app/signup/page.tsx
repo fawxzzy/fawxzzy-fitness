@@ -37,8 +37,8 @@ export default function SignupPage({ searchParams }: SignupPageProps) {
           />
         </div>
         {searchParams?.error ? <p className="text-sm text-red-600">{searchParams.error}</p> : null}
-        {searchParams?.info ? <p className="text-sm text-emerald-700">{searchParams.info}</p> : null}
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">
+        {searchParams?.info ? <p className="text-sm text-accent">{searchParams.info}</p> : null}
+        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
           Sign up
         </button>
         <p className="text-sm text-slate-600">

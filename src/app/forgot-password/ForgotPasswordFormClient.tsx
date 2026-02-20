@@ -19,7 +19,7 @@ function SubmitButton({ cooldownRemaining }: { cooldownRemaining: number }) {
     <button
       type="submit"
       disabled={isDisabled}
-      className="w-full rounded-md bg-slate-900 px-3 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {label}
     </button>
@@ -46,7 +46,7 @@ export default function ForgotPasswordFormClient({
 
     if (infoMessage) {
       return (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{infoMessage}</p>
+        <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{infoMessage}</p>
       );
     }
 

@@ -135,7 +135,7 @@ export default async function NewRoutinePage() {
           />
         </label>
 
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">
+        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
           Save Routine
         </button>
       </form>

@@ -121,7 +121,7 @@ export default async function RoutinesPage() {
         <p className="text-sm text-slate-600">Timezone: {profile.timezone}</p>
       </div>
 
-      <Link href="/routines/new" className="block rounded-md bg-emerald-600 px-4 py-3 text-center text-white">
+      <Link href="/routines/new" className="block rounded-md bg-accent px-4 py-3 text-center text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
         Create Routine
       </Link>
 
@@ -152,7 +152,7 @@ export default async function RoutinesPage() {
                   type="submit"
                   disabled={isActive}
                   className={`w-full rounded-md px-3 py-2 text-sm ${
-                    isActive ? "bg-emerald-600 font-semibold text-white" : "border border-slate-300 text-slate-700"
+                    isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-300 text-slate-700"
                   }`}
                 >
                   {isActive ? "Active" : "Set Active"}
