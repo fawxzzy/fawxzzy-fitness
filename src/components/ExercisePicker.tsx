@@ -34,14 +34,14 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         placeholder="Search exercises"
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="h-11 w-full rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))] focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
       />
       <select
         name={name}
         value={selectedId}
         onChange={(event) => setSelectedId(event.target.value)}
         required
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="h-11 w-full rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))] focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
       >
         {globals.length > 0 ? (
           <optgroup label="Common / Global">
