@@ -39,7 +39,7 @@ function getResetPasswordErrorMessage(message: string | undefined) {
   const normalizedMessage = (message ?? "").toLowerCase();
 
   if (normalizedMessage.includes("rate limit")) {
-    return "Too many emails requested. Please wait a few minutes and try again.";
+    return "Please wait a few minutes before requesting another reset email.";
   }
 
   if (normalizedMessage.includes("redirect") || normalizedMessage.includes("not allowed")) {
