@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { requestPasswordReset } from "@/app/auth/actions";
+import ForgotPasswordFormClient from "@/app/forgot-password/ForgotPasswordFormClient";
 
 export const dynamic = "force-dynamic";
 
@@ -10,42 +9,38 @@ type ForgotPasswordPageProps = {
   };
 };
 
+function getErrorMessage(errorCode: string | undefined) {
+  if (errorCode === "rate_limited") {
+    return "We just sent a link recently. Please wait a few minutes before trying again.";
+  }
+
+  if (errorCode) {
+    return "We couldn’t send a reset link right now. Please try again in a few minutes.";
+  }
+
+  return null;
+}
+
+function getInfoMessage(infoCode: string | undefined) {
+  if (infoCode === "reset_requested") {
+    return "If an account exists for that email, we sent a reset link. Check spam/junk and try again in a few minutes if it doesn’t arrive.";
+  }
+
+  return null;
+}
+
 export default function ForgotPasswordPage({ searchParams }: ForgotPasswordPageProps) {
+  const errorMessage = getErrorMessage(searchParams?.error);
+  const infoMessage = getInfoMessage(searchParams?.info);
+  const shouldStartCooldown = Boolean(searchParams?.error || searchParams?.info);
+
   return (
     <main className="mx-auto min-h-screen max-w-md px-4 py-10">
-      <form action={requestPasswordReset} className="space-y-4 rounded-lg bg-white p-4 shadow-sm">
-        <h1 className="text-2xl font-semibold">Forgot password</h1>
-        <p className="text-sm text-slate-600">Enter your email and we’ll send a reset link.</p>
-        <div>
-          <label className="mb-1 block text-sm">Email</label>
-          <input
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
-          />
-        </div>
-        {searchParams?.error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {searchParams.error}
-          </p>
-        ) : null}
-        {searchParams?.info ? (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            {searchParams.info}
-          </p>
-        ) : null}
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">
-          Send reset link
-        </button>
-        <p className="text-sm text-slate-600">
-          Back to{" "}
-          <Link href="/login" className="underline">
-            log in
-          </Link>
-        </p>
-      </form>
+      <ForgotPasswordFormClient
+        errorMessage={errorMessage}
+        infoMessage={infoMessage}
+        shouldStartCooldown={shouldStartCooldown}
+      />
     </main>
   );
 }
