@@ -332,7 +332,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       <p className="rounded-md bg-white p-3 text-sm shadow-sm">{new Date(sessionRow.performed_at).toLocaleString()}</p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-      {searchParams?.success ? <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{searchParams.success}</p> : null}
+      {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
       <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
 

@@ -186,7 +186,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
       </div>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-      {searchParams?.success ? <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{searchParams.success}</p> : null}
+      {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
       <details className="rounded-md bg-white p-4 shadow-sm">
         <summary className="cursor-pointer text-sm font-semibold">+ Add custom exercise</summary>
@@ -247,7 +247,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         <label className="block text-sm">Start date
           <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
         </label>
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">Save Routine</button>
+        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Save Routine</button>
       </form>
 
       <div className="space-y-2">

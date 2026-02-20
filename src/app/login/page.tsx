@@ -51,8 +51,8 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
           />
         </div>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {info ? <p className="text-sm text-emerald-700">{info}</p> : null}
-        <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">
+        {info ? <p className="text-sm text-accent">{info}</p> : null}
+        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
           Log in
         </button>
         <div className="flex justify-between text-sm">

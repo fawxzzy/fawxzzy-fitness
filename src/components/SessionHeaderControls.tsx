@@ -14,7 +14,7 @@ function SaveSessionButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : "✓ Save Session"}
     </button>

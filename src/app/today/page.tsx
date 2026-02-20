@@ -210,7 +210,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             <Link href={`/session/${inProgressSession.id}`} className="block w-full rounded-lg bg-amber-500 px-4 py-5 text-center text-lg font-semibold text-white">Resume Session</Link>
           ) : (
             <form action={startSessionAction}>
-              <button type="submit" className="w-full rounded-lg bg-emerald-600 px-4 py-5 text-lg font-semibold text-white">{todayRoutineDay.is_rest ? "Start Optional Session" : "Start Session"}</button>
+              <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">{todayRoutineDay.is_rest ? "Start Optional Session" : "Start Session"}</button>
             </form>
           )}
         </div>
