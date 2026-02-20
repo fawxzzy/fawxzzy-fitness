@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
@@ -188,9 +189,9 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-      <details className="rounded-md bg-white p-4 shadow-sm">
-        <summary className="cursor-pointer text-sm font-semibold">+ Add custom exercise</summary>
-        <div className="mt-3 space-y-3">
+      <details className="rounded-md border border-slate-300 bg-white transition-colors hover:border-[rgb(var(--border)/0.8)]">
+        <summary className="cursor-pointer list-none rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-[rgb(var(--surface-2)/0.35)] active:bg-[rgb(var(--surface-2)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">+ Add custom exercise</summary>
+        <div className="space-y-3 px-4 pb-4">
           <form action={createCustomExerciseAction} className="space-y-2">
             <input type="hidden" name="returnTo" value={`/routines/${params.id}/edit`} />
             <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
@@ -225,28 +226,36 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         </div>
       </details>
 
-      <form action={updateRoutineAction} className="space-y-3 rounded-md bg-white p-4 shadow-sm">
+      <form action={updateRoutineAction} className="space-y-3">
         <input type="hidden" name="routineId" value={routine.id} />
-        <label className="block text-sm">Name
-          <input name="name" required defaultValue={(routine as RoutineRow).name} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
-        </label>
-        <label className="block text-sm">Cycle length (days)
-          <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
-        </label>
-        <label className="block text-sm">Units
-          <select name="weightUnit" defaultValue={(routine as RoutineRow).weight_unit ?? "lbs"} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
-            <option value="lbs">lbs</option>
-            <option value="kg">kg</option>
-          </select>
-        </label>
-        <label className="block text-sm">Timezone
-          <select name="timezone" required defaultValue={routineTimezoneDefault} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
-            {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{timeZoneOption}</option>))}
-          </select>
-        </label>
-        <label className="block text-sm">Start date
-          <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
-        </label>
+        <CollapsibleCard
+          title="Routine details"
+          summary={`${(routine as RoutineRow).name} · ${(routine as RoutineRow).cycle_length_days} day${(routine as RoutineRow).cycle_length_days === 1 ? "" : "s"}`}
+          defaultOpen={false}
+        >
+          <div className="space-y-3">
+            <label className="block text-sm">Name
+              <input name="name" required defaultValue={(routine as RoutineRow).name} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+            </label>
+            <label className="block text-sm">Cycle length (days)
+              <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+            </label>
+            <label className="block text-sm">Units
+              <select name="weightUnit" defaultValue={(routine as RoutineRow).weight_unit ?? "lbs"} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+                <option value="lbs">lbs</option>
+                <option value="kg">kg</option>
+              </select>
+            </label>
+            <label className="block text-sm">Timezone
+              <select name="timezone" required defaultValue={routineTimezoneDefault} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+                {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{timeZoneOption}</option>))}
+              </select>
+            </label>
+            <label className="block text-sm">Start date
+              <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+            </label>
+          </div>
+        </CollapsibleCard>
         <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Save Routine</button>
       </form>
 
@@ -254,7 +263,11 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         {routineDays.map((day) => {
           const count = dayExerciseCount.get(day.id) ?? 0;
           return (
-            <Link key={day.id} href={`/routines/${params.id}/edit/day/${day.id}`} className="block rounded-md bg-white p-4 shadow-sm">
+            <Link
+              key={day.id}
+              href={`/routines/${params.id}/edit/day/${day.id}`}
+              className="block cursor-pointer rounded-md border border-slate-300 bg-white p-4 transition-colors hover:border-[rgb(var(--border)/0.8)] hover:bg-[rgb(var(--surface-2)/0.35)] active:bg-[rgb(var(--surface-2)/0.5)]"
+            >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
                 <span className="text-xs text-slate-500">Edit</span>
