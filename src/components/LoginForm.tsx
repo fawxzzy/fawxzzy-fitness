@@ -20,6 +20,8 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const verified = searchParams.get("verified");
+  const emailParam = searchParams.get("email");
 
   useEffect(() => {
     const savedEmail = window.localStorage.getItem(SAVED_EMAIL_KEY);
@@ -29,11 +31,8 @@ export function LoginForm() {
   }, []);
 
   useEffect(() => {
-    const verified = searchParams.get("verified");
-    const emailParam = searchParams.get("email");
-
     if (emailParam) {
-      setEmail(emailParam);
+      setEmail((currentEmail) => (currentEmail === emailParam ? currentEmail : emailParam));
     }
 
     if (verified === "1") {
@@ -41,7 +40,7 @@ export function LoginForm() {
       setInfo("Email verified. Log in to continue.");
       setError(null);
     }
-  }, [searchParams]);
+  }, [emailParam, verified]);
 
   useEffect(() => {
     if (!email) {
