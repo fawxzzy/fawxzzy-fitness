@@ -27,6 +27,78 @@ function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Request failed";
 }
 
+function parseTargetDurationSeconds(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.includes(":")) {
+    const [minutesRaw, secondsRaw] = trimmed.split(":");
+    if (secondsRaw === undefined) return Number.NaN;
+
+    const minutes = Number(minutesRaw);
+    const seconds = Number(secondsRaw);
+
+    if (!Number.isInteger(minutes) || !Number.isInteger(seconds) || minutes < 0 || seconds < 0 || seconds > 59) {
+      return Number.NaN;
+    }
+
+    return (minutes * 60) + seconds;
+  }
+
+  const asSeconds = Number(trimmed);
+  if (!Number.isInteger(asSeconds) || asSeconds < 0) {
+    return Number.NaN;
+  }
+
+  return asSeconds;
+}
+
+function formatTargetDuration(seconds: number | null) {
+  if (seconds === null) {
+    return null;
+  }
+
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const secondsPart = seconds % 60;
+  return `${minutes}:${String(secondsPart).padStart(2, "0")}`;
+}
+
+function formatExerciseTargetSummary(params: {
+  sets: number | null;
+  repsMin: number | null;
+  repsMax: number | null;
+  repsFallback: number | null;
+  weight: number | null;
+  durationSeconds: number | null;
+  weightUnit: "lbs" | "kg";
+}) {
+  const parts: string[] = [];
+
+  if (params.sets !== null) {
+    parts.push(`${params.sets} sets`);
+  }
+
+  const repsText = formatRepTarget(params.repsMin, params.repsMax, params.repsFallback).replace("Reps: ", "");
+  if (repsText !== "-") {
+    parts.push(`${repsText} reps`);
+  }
+
+  if (params.weight !== null) {
+    parts.push(`@ ${params.weight} ${params.weightUnit}`);
+  }
+
+  const durationText = formatTargetDuration(params.durationSeconds);
+  if (durationText) {
+    parts.push(`Time ${durationText}`);
+  }
+
+  return parts.join(" · ");
+}
+
 async function updateRoutineAction(formData: FormData) {
   "use server";
 
@@ -160,8 +232,12 @@ async function addRoutineExerciseAction(formData: FormData) {
   const targetSets = Number(formData.get("targetSets"));
   const targetRepsMinRaw = String(formData.get("targetRepsMin") ?? "").trim();
   const targetRepsMaxRaw = String(formData.get("targetRepsMax") ?? "").trim();
+  const targetWeightRaw = String(formData.get("targetWeight") ?? "").trim();
+  const targetDurationRaw = String(formData.get("targetDuration") ?? "").trim();
   const targetRepsMin = targetRepsMinRaw ? Number(targetRepsMinRaw) : null;
   const targetRepsMax = targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
+  const targetWeight = targetWeightRaw ? Number(targetWeightRaw) : null;
+  const targetDurationSeconds = parseTargetDurationSeconds(targetDurationRaw);
 
   if (!routineId || !routineDayId || !exerciseId) {
     redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Missing exercise info")}`);
@@ -183,6 +259,14 @@ async function addRoutineExerciseAction(formData: FormData) {
     redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Rep range must use min <= max")}`);
   }
 
+  if (targetWeight !== null && (!Number.isFinite(targetWeight) || targetWeight < 0)) {
+    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Weight must be 0 or greater")}`);
+  }
+
+  if (Number.isNaN(targetDurationSeconds)) {
+    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Time must be seconds or mm:ss")}`);
+  }
+
   const { count } = await supabase
     .from("routine_day_exercises")
     .select("id", { head: true, count: "exact" })
@@ -199,6 +283,8 @@ async function addRoutineExerciseAction(formData: FormData) {
       target_reps_min: targetRepsMin,
       target_reps_max: targetRepsMax,
       target_reps: targetRepsMin ?? targetRepsMax,
+      target_weight: targetWeight,
+      target_duration_seconds: targetDurationSeconds,
     });
 
     if (error) throw new Error(error.message);
@@ -254,7 +340,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const { data: exercises } = routineDayIds.length
     ? await supabase
         .from("routine_day_exercises")
-        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
+        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_duration_seconds, notes")
         .in("routine_day_id", routineDayIds)
         .eq("user_id", user.id)
         .order("position", { ascending: true })
@@ -372,7 +458,17 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                       {dayExercises.map((exercise) => (
                         <li key={exercise.id} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2 text-xs">
                           <span>
-                            {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id} ({exercise.target_sets ?? "-"} sets · {formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)})
+                            {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
+                            {" "}
+                            ({formatExerciseTargetSummary({
+                              sets: exercise.target_sets,
+                              repsMin: exercise.target_reps_min,
+                              repsMax: exercise.target_reps_max,
+                              repsFallback: exercise.target_reps,
+                              weight: exercise.target_weight,
+                              durationSeconds: exercise.target_duration_seconds,
+                              weightUnit: (routine as RoutineRow).weight_unit,
+                            }) || "No target"})
                           </span>
                           <form action={deleteRoutineExerciseAction}>
                             <input type="hidden" name="routineId" value={routine.id} />
@@ -388,10 +484,12 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                       <input type="hidden" name="routineId" value={routine.id} />
                       <input type="hidden" name="routineDayId" value={day.id} />
                       <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         <input type="number" min={1} name="targetSets" placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                         <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                         <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                        <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${(routine as RoutineRow).weight_unit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                        <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                       </div>
                       <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white">Add Exercise</button>
                     </form>

@@ -7,10 +7,52 @@ import { ExercisePicker } from "@/components/ExercisePicker";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
+import { getSessionTargets, type DisplayTarget } from "@/lib/session-targets";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
+
+function formatDurationText(durationSeconds: number) {
+  if (durationSeconds < 60) {
+    return `${durationSeconds}s`;
+  }
+
+  const minutes = Math.floor(durationSeconds / 60);
+  const seconds = durationSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatGoalLine(target: DisplayTarget, weightUnit: string | null) {
+  const parts: string[] = [];
+
+  if (target.sets !== undefined) {
+    parts.push(`${target.sets} sets`);
+  }
+
+  if (target.repsText) {
+    if (parts.length > 0) {
+      parts[parts.length - 1] = `${parts[parts.length - 1]} × ${target.repsText}`;
+    } else {
+      parts.push(target.repsText);
+    }
+  }
+
+  if (target.weight !== undefined) {
+    const unitSuffix = weightUnit ? ` ${weightUnit}` : "";
+    parts.push(`@ ${target.weight}${unitSuffix}`);
+  }
+
+  if (target.durationSeconds !== undefined) {
+    parts.push(`Time: ${formatDurationText(target.durationSeconds)}`);
+  }
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return `Goal: ${parts.join(" • ")}`;
+}
 
 type PageProps = {
   params: {
@@ -278,6 +320,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
   const sessionRow = session as SessionRow;
   const unitLabel = routine?.weight_unit ?? "kg";
+  const sessionTargets = await getSessionTargets(params.id);
   const exerciseOptions = await listExercises();
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
@@ -341,6 +384,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       <div className="space-y-3">
         {sessionExercises.map((exercise) => {
           const exerciseSets = setsByExercise.get(exercise.id) ?? [];
+          const displayTarget = sessionTargets.get(exercise.exercise_id);
+          const goalText = displayTarget ? formatGoalLine(displayTarget, routine?.weight_unit ?? null) : null;
 
           return (
             <article key={exercise.id} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
@@ -362,6 +407,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   </form>
                 </div>
               </div>
+
+              {goalText ? <p className="text-xs text-slate-500">{goalText}</p> : null}
 
               {exercise.is_skipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
 
