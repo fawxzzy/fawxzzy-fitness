@@ -182,7 +182,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     }
   }
 
-  const exerciseNameMap = await getExerciseNameMap(user.id);
+  const exerciseNameMap = await getExerciseNameMap();
 
   return (
     <section className="space-y-4">

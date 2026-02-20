@@ -163,7 +163,7 @@ export default async function EditHistorySessionPage({ params }: PageProps) {
   }
 
   const sessionRow = session as SessionRow;
-  const exerciseNameMap = await getExerciseNameMap(user.id);
+  const exerciseNameMap = await getExerciseNameMap();
 
   return (
     <section className="space-y-4">

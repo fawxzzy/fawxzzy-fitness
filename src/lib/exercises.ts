@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { optionalEnv } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -35,8 +36,24 @@ export function validateExerciseName(name: string) {
   return normalized;
 }
 
-export async function listExercises(userId: string) {
+export async function listExercises() {
+  const user = await requireUser();
   const globalExercises = await listGlobalExercisesCached();
+  const customExercises = await listUserExercises(user.id);
+
+  const mergedExercises = [...customExercises, ...globalExercises];
+  const dedupedExercises = new Map<string, ExerciseRow>();
+
+  for (const exercise of mergedExercises) {
+    if (!dedupedExercises.has(exercise.id)) {
+      dedupedExercises.set(exercise.id, exercise);
+    }
+  }
+
+  return Array.from(dedupedExercises.values());
+}
+
+async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
   const supabase = supabaseServer();
   const { data: customData, error: customError } = await supabase
     .from("exercises")
@@ -46,13 +63,13 @@ export async function listExercises(userId: string) {
 
   if (customError) {
     if (customError.code === "42P01") {
-      return globalExercises;
+      return [];
     }
 
     throw new Error(customError.message);
   }
 
-  return [...globalExercises, ...((customData ?? []) as ExerciseRow[])];
+  return (customData ?? []) as ExerciseRow[];
 }
 
 const listGlobalExercisesCached = unstable_cache(
@@ -82,7 +99,7 @@ const listGlobalExercisesCached = unstable_cache(
   ["global-exercise-list"],
 );
 
-export async function getExerciseNameMap(userId: string) {
-  const exercises = await listExercises(userId);
+export async function getExerciseNameMap() {
+  const exercises = await listExercises();
   return new Map(exercises.map((exercise) => [exercise.id, exercise.name]));
 }
