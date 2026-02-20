@@ -44,7 +44,7 @@ values
   ('Barbell Row', null, true, 'Back', 'Barbell'),
   ('Overhead Press', null, true, 'Shoulders', 'Barbell'),
   ('Pull-Up', null, true, 'Back', 'Bodyweight')
-on conflict do nothing;
+on conflict (name) where user_id is null do nothing;
 
 alter table public.exercises enable row level security;
 

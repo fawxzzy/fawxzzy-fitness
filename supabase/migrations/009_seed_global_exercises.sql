@@ -141,4 +141,4 @@ values
   ('Jump Rope', null, true, 'Cardio', 'Bodyweight'),
   ('Air Bike Sprint', null, true, 'Cardio', 'Cardio Machine'),
   ('Sled Push', null, true, 'Cardio', 'Sled')
-on conflict do nothing;
+on conflict (name) where user_id is null do nothing;
