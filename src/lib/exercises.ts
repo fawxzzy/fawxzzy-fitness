@@ -1,8 +1,23 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
+
+const FALLBACK_CREATED_AT = "1970-01-01T00:00:00.000Z";
+
+function fallbackGlobalExercises(): ExerciseRow[] {
+  return EXERCISE_OPTIONS.map((exercise) => ({
+    id: exercise.id,
+    name: exercise.name,
+    user_id: null,
+    is_global: true,
+    primary_muscle: null,
+    equipment: null,
+    created_at: FALLBACK_CREATED_AT,
+  }));
+}
 
 function normalizeExerciseName(name: string) {
   return name.trim().replace(/\s+/g, " ");
@@ -30,6 +45,10 @@ export async function listExercises(userId: string) {
         .order("name", { ascending: true });
 
       if (error) {
+        if (error.code === "42P01") {
+          return fallbackGlobalExercises();
+        }
+
         throw new Error(error.message);
       }
 
