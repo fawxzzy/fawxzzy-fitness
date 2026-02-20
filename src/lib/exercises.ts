@@ -43,17 +43,19 @@ export async function listExercises() {
   const customExercises = await listUserExercises(user.id);
 
   const mergedExercises = [...customExercises, ...globalExercises];
-  const validExercises = mergedExercises.filter((exercise) => {
-    if (exercise.id) {
-      return true;
+  const validExercises = mergedExercises.flatMap((exercise) => {
+    const id = typeof exercise.id === "string" ? exercise.id.trim() : "";
+
+    if (id.length > 0) {
+      return [{ ...exercise, id }];
     }
 
     if (!hasLoggedMissingExerciseId) {
       hasLoggedMissingExerciseId = true;
-      console.error("[exercises] Dropped exercise rows with missing id.");
+      console.error("[exercises] Dropped exercise rows with missing/invalid id.");
     }
 
-    return false;
+    return [];
   });
   const dedupedExercises = new Map<string, ExerciseRow>();
 
@@ -63,7 +65,7 @@ export async function listExercises() {
     }
   }
 
-  return Array.from(dedupedExercises.values());
+  return Array.from(dedupedExercises.values()).sort((left, right) => left.name.localeCompare(right.name));
 }
 
 async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
