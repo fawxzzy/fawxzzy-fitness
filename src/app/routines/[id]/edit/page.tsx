@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
+import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
@@ -235,24 +236,24 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         >
           <div className="space-y-3">
             <label className="block text-sm">Name
-              <input name="name" required defaultValue={(routine as RoutineRow).name} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+              <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
             </label>
             <label className="block text-sm">Cycle length (days)
-              <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+              <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
             </label>
             <label className="block text-sm">Units
-              <select name="weightUnit" defaultValue={(routine as RoutineRow).weight_unit ?? "lbs"} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+              <select name="weightUnit" defaultValue={(routine as RoutineRow).weight_unit ?? "lbs"} className={controlClassName}>
                 <option value="lbs">lbs</option>
                 <option value="kg">kg</option>
               </select>
             </label>
             <label className="block text-sm">Timezone
-              <select name="timezone" required defaultValue={routineTimezoneDefault} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+              <select name="timezone" required defaultValue={routineTimezoneDefault} className={controlClassName}>
                 {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{timeZoneOption}</option>))}
               </select>
             </label>
             <label className="block text-sm">Start date
-              <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+              <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
             </label>
           </div>
         </CollapsibleCard>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
+import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { createRoutineDaySeeds, getTodayDateInTimeZone } from "@/lib/routines";
@@ -82,7 +83,7 @@ export default async function NewRoutinePage() {
           <input
             name="name"
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className={controlClassName}
             placeholder="Push/Pull/Legs"
           />
         </label>
@@ -96,13 +97,13 @@ export default async function NewRoutinePage() {
             max={365}
             defaultValue={7}
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className={controlClassName}
           />
         </label>
 
         <label className="block text-sm">
           Units
-          <select name="weightUnit" defaultValue="lbs" className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+          <select name="weightUnit" defaultValue="lbs" className={controlClassName}>
             <option value="lbs">lbs</option>
             <option value="kg">kg</option>
           </select>
@@ -114,7 +115,7 @@ export default async function NewRoutinePage() {
             name="timezone"
             required
             defaultValue={routineTimezoneDefault}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className={controlClassName}
           >
             {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (
               <option key={timeZoneOption} value={timeZoneOption}>
@@ -131,7 +132,7 @@ export default async function NewRoutinePage() {
             name="startDate"
             required
             defaultValue={startDateDefault}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className={dateControlClassName}
           />
         </label>
 
