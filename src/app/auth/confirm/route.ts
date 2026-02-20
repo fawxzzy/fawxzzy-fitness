@@ -10,10 +10,15 @@ export async function GET(request: NextRequest) {
   const type = url.searchParams.get("type") as EmailOtpType | null;
   const code = url.searchParams.get("code");
   const next = url.searchParams.get("next") || null;
+  const isRecoveryFlow = type === "recovery" || next === "/reset-password" || next?.startsWith("/reset-password?");
 
   const supabase = supabaseServer();
   const failureRedirect = new URL("/login", request.url);
-  failureRedirect.searchParams.set("error", "Could not verify your link. Please request a new one.");
+  failureRedirect.searchParams.set("error", "confirm_failed");
+  const recoverySessionMissingRedirect = new URL("/login", request.url);
+  recoverySessionMissingRedirect.searchParams.set("error", "recovery_session_missing");
+  const confirmedRedirect = new URL("/login", request.url);
+  confirmedRedirect.searchParams.set("info", "confirmed");
 
   let session: { access_token: string; refresh_token: string } | null = null;
 
@@ -23,7 +28,7 @@ export async function GET(request: NextRequest) {
       type,
     });
 
-    if (error || !data.session) {
+    if (error) {
       console.error("Auth confirm verifyOtp failed", {
         message: error?.message,
         status: error?.status,
@@ -36,10 +41,12 @@ export async function GET(request: NextRequest) {
   } else if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (error || !data.session) {
+    if (error) {
       console.error("Auth confirm exchangeCodeForSession failed", {
         message: error?.message,
         status: error?.status,
+        type,
+        next,
       });
       return NextResponse.redirect(failureRedirect);
     }
@@ -49,7 +56,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(failureRedirect);
   }
 
-  const isRecoveryFlow = type === "recovery" || next === "/reset-password" || next?.startsWith("/reset-password?");
+  if (isRecoveryFlow && !session) {
+    console.error("Auth confirm recovery session missing", {
+      tokenHashPresent: Boolean(tokenHash),
+      codePresent: Boolean(code),
+      type,
+      next,
+    });
+    return NextResponse.redirect(recoverySessionMissingRedirect);
+  }
+
+  if (!session) {
+    return NextResponse.redirect(confirmedRedirect);
+  }
+
   const redirectPath = isRecoveryFlow ? "/reset-password" : next || "/today";
 
   const response = NextResponse.redirect(new URL(redirectPath, request.url));

@@ -11,11 +11,11 @@ type ForgotPasswordPageProps = {
 
 function getErrorMessage(errorCode: string | undefined) {
   if (errorCode === "rate_limited") {
-    return "We just sent a link recently. Please wait a few minutes before trying again.";
+    return "Too many reset requests. Please wait a few minutes and try again.";
   }
 
   if (errorCode) {
-    return "We couldn’t send a reset link right now. Please try again in a few minutes.";
+    return "Could not send reset email. Please try again in a few minutes.";
   }
 
   return null;
@@ -23,7 +23,7 @@ function getErrorMessage(errorCode: string | undefined) {
 
 function getInfoMessage(infoCode: string | undefined) {
   if (infoCode === "reset_requested") {
-    return "If an account exists for that email, we sent a reset link. Check spam/junk and try again in a few minutes if it doesn’t arrive.";
+    return "If that email is registered, you’ll receive a reset link shortly. Check spam/promotions.";
   }
 
   return null;
@@ -32,7 +32,7 @@ function getInfoMessage(infoCode: string | undefined) {
 export default function ForgotPasswordPage({ searchParams }: ForgotPasswordPageProps) {
   const errorMessage = getErrorMessage(searchParams?.error);
   const infoMessage = getInfoMessage(searchParams?.info);
-  const shouldStartCooldown = Boolean(searchParams?.error || searchParams?.info);
+  const shouldStartCooldown = searchParams?.info === "reset_requested";
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-4 py-10">
