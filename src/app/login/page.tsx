@@ -46,9 +46,12 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
           Log in
         </button>
         <div className="flex justify-between text-sm">
-          <Link className="underline" href="/forgot-password">
-            Forgot password?
-          </Link>
+          <div className="space-y-1">
+            <Link className="underline" href="/forgot-password">
+              Forgot password?
+            </Link>
+            <p className="text-xs text-slate-500">Didn’t get the email? Check spam/junk.</p>
+          </div>
           <Link className="underline" href="/signup">
             Create account
           </Link>

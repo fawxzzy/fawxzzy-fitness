@@ -35,18 +35,14 @@ function getAppOrigin() {
   return getOrigin();
 }
 
-function getResetPasswordErrorMessage(message: string | undefined) {
+function getResetPasswordErrorCode(message: string | undefined) {
   const normalizedMessage = (message ?? "").toLowerCase();
 
   if (normalizedMessage.includes("rate limit")) {
-    return "Please wait a few minutes before requesting another reset email.";
+    return "rate_limited";
   }
 
-  if (normalizedMessage.includes("redirect") || normalizedMessage.includes("not allowed")) {
-    return "Reset link configuration error. Please try again later.";
-  }
-
-  return "Could not send reset email. Please try again in a few minutes.";
+  return "send_failed";
 }
 
 function setSessionCookies(session: { access_token: string; refresh_token: string }) {
@@ -121,9 +117,9 @@ export async function requestPasswordReset(formData: FormData) {
       name: error.name,
     });
 
-    const safeErrorMessage = getResetPasswordErrorMessage(error.message);
-    redirect(`/forgot-password?error=${encodeURIComponent(safeErrorMessage)}`);
+    const errorCode = getResetPasswordErrorCode(error.message);
+    redirect(`/forgot-password?error=${encodeURIComponent(errorCode)}`);
   }
 
-  redirect(`/forgot-password?info=${encodeURIComponent("If that email is registered, you’ll receive a reset link shortly.")}`);
+  redirect(`/forgot-password?info=${encodeURIComponent("reset_requested")}`);
 }

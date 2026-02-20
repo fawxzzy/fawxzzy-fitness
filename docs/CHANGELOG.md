@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+- Forgot-password now enforces a one-minute client cooldown after each reset attempt, keeps the timer active across refresh, and uses clearer delivery/rate-limit guidance while preserving enumeration-safe messaging.
+
+### Why
+- Reduce accidental reset-email spam and Supabase rate-limit hits during real use/testing while giving customers calmer expectations they can act on.
+
 ### Fixed
 - Forgot-password now reports real delivery outcomes instead of always showing a sent state, with user-safe errors for retry guidance when requests are rate-limited or temporarily unavailable.
 - Password reset and auth email redirects now prefer a canonical app URL environment origin in production, with header-derived origin fallback for local development.
