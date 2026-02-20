@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useFormStatus } from "react-dom";
+import { BackButton } from "@/components/ui/BackButton";
 import { requestPasswordReset } from "@/app/auth/actions";
 
 const COOLDOWN_SECONDS = 60;
@@ -98,12 +98,7 @@ export default function ForgotPasswordFormClient({
       {message}
       <SubmitButton cooldownRemaining={cooldownRemaining} />
       <p className="text-xs text-slate-500">For security, you can request a new link once per minute.</p>
-      <p className="text-sm text-slate-600">
-        Back to{" "}
-        <Link href="/login" className="underline">
-          log in
-        </Link>
-      </p>
+      <BackButton href="/login" label="Back to log in" />
     </form>
   );
 }
