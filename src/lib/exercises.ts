@@ -3,13 +3,16 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
-import { optionalEnv } from "@/lib/env";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseServerAnon } from "@/lib/supabase/server-anon";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
 
 const FALLBACK_CREATED_AT = "1970-01-01T00:00:00.000Z";
 let hasLoggedMissingExerciseId = false;
+
+function logExerciseLoaderEvent(event: string, details?: Record<string, unknown>) {
+  console.info("[exercises]", event, details ?? {});
+}
 
 function fallbackGlobalExercises(): ExerciseRow[] {
   return EXERCISE_OPTIONS.map((exercise) => ({
@@ -89,11 +92,7 @@ async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
 
 const listGlobalExercisesCached = unstable_cache(
   async (): Promise<ExerciseRow[]> => {
-    if (!optionalEnv("SUPABASE_SERVICE_ROLE_KEY")) {
-      return fallbackGlobalExercises();
-    }
-
-    const supabase = supabaseAdmin();
+    const supabase = supabaseServerAnon();
     const { data, error } = await supabase
       .from("exercises")
       .select("id, name, user_id, is_global, primary_muscle, equipment, created_at")
@@ -102,16 +101,38 @@ const listGlobalExercisesCached = unstable_cache(
       .order("name", { ascending: true });
 
     if (error) {
+      logExerciseLoaderEvent("global-db-query-failed", {
+        code: error.code,
+        message: error.message,
+      });
+
       if (error.code === "42P01") {
-        return fallbackGlobalExercises();
+        const fallbackRows = fallbackGlobalExercises();
+        logExerciseLoaderEvent("global-fallback-baseline", {
+          reason: "undefined_table",
+          rows: fallbackRows.length,
+        });
+
+        return fallbackRows;
       }
 
-      throw new Error(error.message);
+      console.error("[exercises] Failed to load global exercises from database.", {
+        code: error.code,
+        message: error.message,
+      });
+
+      return [];
     }
 
-    return (data ?? []) as ExerciseRow[];
+    const rows = (data ?? []) as ExerciseRow[];
+    logExerciseLoaderEvent("global-db-query-success", {
+      rows: rows.length,
+      fallbackUsed: false,
+    });
+
+    return rows;
   },
-  ["global-exercise-list"],
+  ["global-exercise-list-v3"],
 );
 
 export async function getExerciseNameMap() {
