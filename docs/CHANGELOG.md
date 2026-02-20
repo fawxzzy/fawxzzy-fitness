@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Changed
+- Brightened the global dark theme tokens and increased contrast, updated cards/inputs/buttons to use solid surface colors for crisp separation, and improved typography smoothing for clearer text rendering.
 - Routine edit day labels now collapse redundant names (like "Day 1") so cards and day-editor headers show clean titles such as "Day X" unless a meaningful custom name exists.
 - In-progress session exercise cards now show a compact logged-set count badge, the add-exercise trigger now uses card-like styling, and Save Session now appears as a single clean button with mobile-friendly full-width behavior.
 - History cards now navigate directly when tapped, and the front-list Open/Delete controls were removed so detail management stays inside the session detail flow.
@@ -21,6 +22,7 @@
 - Forgot-password now enforces a one-minute client cooldown after successful reset requests, keeps the timer active across refresh, and uses clearer delivery/rate-limit guidance while preserving enumeration-safe messaging.
 
 ### Why
+- Improves readability and a crisp dark-mode feel while reducing muddy blending caused by semi-transparent surface treatments.
 - Removes repeated wording and noisy labels so routine planning screens are faster to scan on mobile.
 - Makes active session controls clearer and more consistent with surrounding cards while preserving the same logging behavior.
 - Simplifies history browsing with larger tap targets and keeps destructive actions inside the detailed context where users expect them.
