@@ -25,6 +25,30 @@ function getOrigin() {
   return `${protocol}://${host}`;
 }
 
+function getAppOrigin() {
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL;
+
+  if (configuredOrigin) {
+    return configuredOrigin.replace(/\/$/, "");
+  }
+
+  return getOrigin();
+}
+
+function getResetPasswordErrorMessage(message: string | undefined) {
+  const normalizedMessage = (message ?? "").toLowerCase();
+
+  if (normalizedMessage.includes("rate limit")) {
+    return "Too many emails requested. Please wait a few minutes and try again.";
+  }
+
+  if (normalizedMessage.includes("redirect") || normalizedMessage.includes("not allowed")) {
+    return "Reset link configuration error. Please try again later.";
+  }
+
+  return "Could not send reset email. Please try again in a few minutes.";
+}
+
 function setSessionCookies(session: { access_token: string; refresh_token: string }) {
   const cookieStore = cookies();
   cookieStore.set("sb-access-token", session.access_token, {
@@ -63,7 +87,7 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${getOrigin()}/auth/confirm`,
+      emailRedirectTo: `${getAppOrigin()}/auth/confirm`,
     },
   });
 
@@ -82,14 +106,24 @@ export async function signup(formData: FormData) {
 export async function requestPasswordReset(formData: FormData) {
   const email = normalizeEmail(formData.get("email"));
   const supabase = supabaseServer();
+  const redirectTo = `${getAppOrigin()}/auth/confirm`;
 
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${getOrigin()}/auth/confirm`,
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
   });
 
-  redirect(
-    `/forgot-password?info=${encodeURIComponent(
-      "If that email is registered, a reset link has been sent. Check your inbox.",
-    )}`,
-  );
+  if (error) {
+    console.error("Password reset email request failed", {
+      email,
+      redirectTo,
+      message: error.message,
+      status: error.status,
+      name: error.name,
+    });
+
+    const safeErrorMessage = getResetPasswordErrorMessage(error.message);
+    redirect(`/forgot-password?error=${encodeURIComponent(safeErrorMessage)}`);
+  }
+
+  redirect(`/forgot-password?info=${encodeURIComponent("If that email is registered, you’ll receive a reset link shortly.")}`);
 }
