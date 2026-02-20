@@ -7,6 +7,7 @@ import type { MouseEventHandler } from "react";
 type BackButtonProps = {
   href?: string;
   label?: string;
+  ariaLabel?: string;
   className?: string;
   onClick?: MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>;
 };
@@ -27,13 +28,13 @@ function BackIcon() {
   );
 }
 
-export function BackButton({ href, label = "Back", className = "", onClick }: BackButtonProps) {
+export function BackButton({ href, label = "Back", ariaLabel, className = "", onClick }: BackButtonProps) {
   const router = useRouter();
   const classes = `${baseClassName} ${className}`.trim();
 
   if (href) {
     return (
-      <Link href={href} onClick={onClick} className={`group ${classes}`}>
+      <Link href={href} onClick={onClick} aria-label={ariaLabel} className={`group ${classes}`}>
         <BackIcon />
         <span>{label}</span>
       </Link>
@@ -43,6 +44,7 @@ export function BackButton({ href, label = "Back", className = "", onClick }: Ba
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
       className={`group ${classes}`}
       onClick={(event) => {
         onClick?.(event);

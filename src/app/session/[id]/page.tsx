@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
-import { AppNav } from "@/components/AppNav";
 import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
+import { BackButton } from "@/components/ui/BackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
@@ -326,7 +326,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 pt-[max(env(safe-area-inset-top),0.5rem)]">
+      <BackButton href="/today" label="Back" ariaLabel="Back to Today" className="-ml-1" />
       {sessionRow.status === "in_progress" ? <p className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">In progress</p> : null}
       <h1 className="text-2xl font-semibold">{sessionRow.name || "Routine"}: {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}</h1>
       <p className="rounded-md bg-white p-3 text-sm shadow-sm">{new Date(sessionRow.performed_at).toLocaleString()}</p>
@@ -406,7 +407,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
       {sessionExercises.length === 0 ? <p className="rounded-md bg-white p-3 text-sm text-slate-500 shadow-sm">No exercises in this session yet.</p> : null}
 
-      <AppNav />
     </section>
   );
 }
