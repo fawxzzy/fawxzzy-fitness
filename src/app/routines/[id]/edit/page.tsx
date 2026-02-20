@@ -1,11 +1,11 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
-import { requireUser } from "@/lib/auth";
-import { ExercisePicker } from "@/components/ExercisePicker";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
+import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
-import { createRoutineDaySeeds, formatRepTarget } from "@/lib/routines";
+import { createRoutineDaySeeds } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
@@ -22,82 +22,6 @@ type PageProps = {
     exerciseId?: string;
   };
 };
-
-function toErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Request failed";
-}
-
-function parseTargetDurationSeconds(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  if (trimmed.includes(":")) {
-    const [minutesRaw, secondsRaw] = trimmed.split(":");
-    if (secondsRaw === undefined) return Number.NaN;
-
-    const minutes = Number(minutesRaw);
-    const seconds = Number(secondsRaw);
-
-    if (!Number.isInteger(minutes) || !Number.isInteger(seconds) || minutes < 0 || seconds < 0 || seconds > 59) {
-      return Number.NaN;
-    }
-
-    return (minutes * 60) + seconds;
-  }
-
-  const asSeconds = Number(trimmed);
-  if (!Number.isInteger(asSeconds) || asSeconds < 0) {
-    return Number.NaN;
-  }
-
-  return asSeconds;
-}
-
-function formatTargetDuration(seconds: number | null) {
-  if (seconds === null) {
-    return null;
-  }
-
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
-
-  const minutes = Math.floor(seconds / 60);
-  const secondsPart = seconds % 60;
-  return `${minutes}:${String(secondsPart).padStart(2, "0")}`;
-}
-
-function formatExerciseTargetSummary(params: {
-  sets: number | null;
-  repsMin: number | null;
-  repsMax: number | null;
-  repsFallback: number | null;
-  weight: number | null;
-  durationSeconds: number | null;
-  weightUnit: "lbs" | "kg";
-}) {
-  const parts: string[] = [];
-
-  if (params.sets !== null) {
-    parts.push(`${params.sets} sets`);
-  }
-
-  const repsText = formatRepTarget(params.repsMin, params.repsMax, params.repsFallback).replace("Reps: ", "");
-  if (repsText !== "-") {
-    parts.push(`${repsText} reps`);
-  }
-
-  if (params.weight !== null) {
-    parts.push(`@ ${params.weight} ${params.weightUnit}`);
-  }
-
-  const durationText = formatTargetDuration(params.durationSeconds);
-  if (durationText) {
-    parts.push(`Time ${durationText}`);
-  }
-
-  return parts.join(" · ");
-}
 
 async function updateRoutineAction(formData: FormData) {
   "use server";
@@ -192,126 +116,9 @@ async function updateRoutineAction(formData: FormData) {
   }
 
   revalidatePath("/routines");
+  revalidatePath(`/routines/${routineId}/edit`);
   revalidatePath("/today");
   redirect("/routines");
-}
-
-async function updateRoutineDayAction(formData: FormData) {
-  "use server";
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const routineId = String(formData.get("routineId") ?? "");
-  const routineDayId = String(formData.get("routineDayId") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
-  const isRest = formData.get("isRest") === "on";
-
-  if (!routineId || !routineDayId) throw new Error("Missing day info");
-
-  const { error } = await supabase
-    .from("routine_days")
-    .update({ name: name || null, is_rest: isRest })
-    .eq("id", routineDayId)
-    .eq("user_id", user.id)
-    .eq("routine_id", routineId);
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath(`/routines/${routineId}/edit`);
-  revalidatePath("/today");
-}
-
-async function addRoutineExerciseAction(formData: FormData) {
-  "use server";
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const routineId = String(formData.get("routineId") ?? "");
-  const routineDayId = String(formData.get("routineDayId") ?? "");
-  const exerciseId = String(formData.get("exerciseId") ?? "").trim();
-  const targetSets = Number(formData.get("targetSets"));
-  const targetRepsMinRaw = String(formData.get("targetRepsMin") ?? "").trim();
-  const targetRepsMaxRaw = String(formData.get("targetRepsMax") ?? "").trim();
-  const targetWeightRaw = String(formData.get("targetWeight") ?? "").trim();
-  const targetDurationRaw = String(formData.get("targetDuration") ?? "").trim();
-  const targetRepsMin = targetRepsMinRaw ? Number(targetRepsMinRaw) : null;
-  const targetRepsMax = targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
-  const targetWeight = targetWeightRaw ? Number(targetWeightRaw) : null;
-  const targetDurationSeconds = parseTargetDurationSeconds(targetDurationRaw);
-
-  if (!routineId || !routineDayId || !exerciseId) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Missing exercise info")}`);
-  }
-
-  if (!Number.isInteger(targetSets) || targetSets < 1) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Target sets must be a whole number greater than 0")}`);
-  }
-
-  if (targetRepsMin !== null && (!Number.isInteger(targetRepsMin) || targetRepsMin < 1)) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Min reps must be a whole number greater than 0")}`);
-  }
-
-  if (targetRepsMax !== null && (!Number.isInteger(targetRepsMax) || targetRepsMax < 1)) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Max reps must be a whole number greater than 0")}`);
-  }
-
-  if (targetRepsMin !== null && targetRepsMax !== null && targetRepsMin > targetRepsMax) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Rep range must use min <= max")}`);
-  }
-
-  if (targetWeight !== null && (!Number.isFinite(targetWeight) || targetWeight < 0)) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Weight must be 0 or greater")}`);
-  }
-
-  if (Number.isNaN(targetDurationSeconds)) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent("Time must be seconds or mm:ss")}`);
-  }
-
-  const { count } = await supabase
-    .from("routine_day_exercises")
-    .select("id", { head: true, count: "exact" })
-    .eq("routine_day_id", routineDayId)
-    .eq("user_id", user.id);
-
-  try {
-    const { error } = await supabase.from("routine_day_exercises").insert({
-      user_id: user.id,
-      routine_day_id: routineDayId,
-      exercise_id: exerciseId,
-      position: count ?? 0,
-      target_sets: targetSets,
-      target_reps_min: targetRepsMin,
-      target_reps_max: targetRepsMax,
-      target_reps: targetRepsMin ?? targetRepsMax,
-      target_weight: targetWeight,
-      target_duration_seconds: targetDurationSeconds,
-    });
-
-    if (error) throw new Error(error.message);
-  } catch (error) {
-    redirect(`/routines/${routineId}/edit?error=${encodeURIComponent(toErrorMessage(error))}`);
-  }
-
-  revalidatePath(`/routines/${routineId}/edit`);
-  revalidatePath("/today");
-}
-
-async function deleteRoutineExerciseAction(formData: FormData) {
-  "use server";
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const routineId = String(formData.get("routineId") ?? "");
-  const exerciseRowId = String(formData.get("exerciseRowId") ?? "");
-
-  if (!routineId || !exerciseRowId) throw new Error("Missing delete info");
-
-  const { error } = await supabase.from("routine_day_exercises").delete().eq("id", exerciseRowId).eq("user_id", user.id);
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath(`/routines/${routineId}/edit`);
-  revalidatePath("/today");
 }
 
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
@@ -340,27 +147,22 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const { data: exercises } = routineDayIds.length
     ? await supabase
         .from("routine_day_exercises")
-        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_duration_seconds, notes")
+        .select("id, user_id, routine_day_id")
         .in("routine_day_id", routineDayIds)
         .eq("user_id", user.id)
-        .order("position", { ascending: true })
     : { data: [] };
 
-  const exerciseRows = (exercises ?? []) as RoutineDayExerciseRow[];
+  const exerciseRows = (exercises ?? []) as Pick<RoutineDayExerciseRow, "id" | "routine_day_id">[];
+  const dayExerciseCount = new Map<string, number>();
+  for (const row of exerciseRows) {
+    dayExerciseCount.set(row.routine_day_id, (dayExerciseCount.get(row.routine_day_id) ?? 0) + 1);
+  }
+
   const exerciseOptions = await listExercises();
-  const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
   const routineTimezoneDefault = isRoutineTimezone((routine as RoutineRow).timezone)
     ? (routine as RoutineRow).timezone
     : "America/Toronto";
-
-  const exerciseMap = new Map<string, RoutineDayExerciseRow[]>();
-
-  for (const exercise of exerciseRows) {
-    const current = exerciseMap.get(exercise.routine_day_id) ?? [];
-    current.push(exercise);
-    exerciseMap.set(exercise.routine_day_id, current);
-  }
 
   return (
     <section className="space-y-4">
@@ -434,69 +236,17 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">Save Routine</button>
       </form>
 
-      <div className="space-y-3">
-        {routineDays.map((day, index) => {
-          const dayExercises = exerciseMap.get(day.id) ?? [];
-
+      <div className="space-y-2">
+        {routineDays.map((day) => {
+          const count = dayExerciseCount.get(day.id) ?? 0;
           return (
-            <details key={day.id} open={index === 0} className="rounded-md bg-white p-4 shadow-sm">
-              <summary className="cursor-pointer text-sm font-semibold">Day {day.day_index}</summary>
-              <div className="mt-3 space-y-3">
-                <form action={updateRoutineDayAction} className="space-y-2">
-                  <input type="hidden" name="routineId" value={routine.id} />
-                  <input type="hidden" name="routineDayId" value={day.id} />
-                  <input name="name" defaultValue={day.name ?? ""} placeholder={`Day ${day.day_index}`} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isRest" defaultChecked={day.is_rest} />Rest day</label>
-                  <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Day</button>
-                </form>
-
-                {day.is_rest ? (
-                  <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Rest day enabled. Routine exercises stay saved but are ignored until you turn rest day off.</p>
-                ) : (
-                  <>
-                    <ul className="space-y-1">
-                      {dayExercises.map((exercise) => (
-                        <li key={exercise.id} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2 text-xs">
-                          <span>
-                            {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
-                            {" "}
-                            ({formatExerciseTargetSummary({
-                              sets: exercise.target_sets,
-                              repsMin: exercise.target_reps_min,
-                              repsMax: exercise.target_reps_max,
-                              repsFallback: exercise.target_reps,
-                              weight: exercise.target_weight,
-                              durationSeconds: exercise.target_duration_seconds,
-                              weightUnit: (routine as RoutineRow).weight_unit,
-                            }) || "No target"})
-                          </span>
-                          <form action={deleteRoutineExerciseAction}>
-                            <input type="hidden" name="routineId" value={routine.id} />
-                            <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                            <button type="submit" className="text-red-600">Remove</button>
-                          </form>
-                        </li>
-                      ))}
-                      {dayExercises.length === 0 ? <li className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">No exercises yet.</li> : null}
-                    </ul>
-
-                    <form action={addRoutineExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
-                      <input type="hidden" name="routineId" value={routine.id} />
-                      <input type="hidden" name="routineDayId" value={day.id} />
-                      <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        <input type="number" min={1} name="targetSets" placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                        <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                        <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                        <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${(routine as RoutineRow).weight_unit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                        <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                      </div>
-                      <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm text-white">Add Exercise</button>
-                    </form>
-                  </>
-                )}
+            <Link key={day.id} href={`/routines/${params.id}/edit/day/${day.id}`} className="block rounded-md bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold">Day {day.day_index}: {day.name ?? `Day ${day.day_index}`}</p>
+                <span className="text-xs text-slate-500">Edit</span>
               </div>
-            </details>
+              <p className="mt-1 text-xs text-slate-500">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
+            </Link>
           );
         })}
       </div>

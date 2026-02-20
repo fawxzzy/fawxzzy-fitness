@@ -1,8 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { SetLoggerCard } from "@/components/SessionTimers";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { requireUser } from "@/lib/auth";
@@ -381,48 +381,25 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         </div>
       </details>
 
-      <div className="space-y-3">
-        {sessionExercises.map((exercise) => {
-          const exerciseSets = setsByExercise.get(exercise.id) ?? [];
-          const displayTarget = sessionTargets.get(exercise.exercise_id);
-          const goalText = displayTarget ? formatGoalLine(displayTarget, routine?.weight_unit ?? null) : null;
-
-          return (
-            <article key={exercise.id} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</p>
-                <div className="flex gap-2">
-                  <form action={toggleSkipAction}>
-                    <input type="hidden" name="sessionId" value={params.id} />
-                    <input type="hidden" name="sessionExerciseId" value={exercise.id} />
-                    <input type="hidden" name="nextSkipped" value={String(!exercise.is_skipped)} />
-                    <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">
-                      {exercise.is_skipped ? "Unskip" : "Skip"}
-                    </button>
-                  </form>
-                  <form action={removeExerciseAction}>
-                    <input type="hidden" name="sessionId" value={params.id} />
-                    <input type="hidden" name="sessionExerciseId" value={exercise.id} />
-                    <button type="submit" className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700">Remove</button>
-                  </form>
-                </div>
-              </div>
-
-              {goalText ? <p className="text-xs text-slate-500">{goalText}</p> : null}
-
-              {exercise.is_skipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
-
-              <SetLoggerCard
-                sessionId={params.id}
-                sessionExerciseId={exercise.id}
-                addSetAction={addSetAction}
-                unitLabel={unitLabel}
-                initialSets={exerciseSets}
-              />
-            </article>
-          );
-        })}
-      </div>
+      {sessionExercises.length > 0 ? (
+        <SessionExerciseFocus
+          sessionId={params.id}
+          unitLabel={unitLabel}
+          exercises={sessionExercises.map((exercise) => {
+            const displayTarget = sessionTargets.get(exercise.exercise_id);
+            return {
+              id: exercise.id,
+              name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+              isSkipped: exercise.is_skipped,
+              goalText: displayTarget ? formatGoalLine(displayTarget, routine?.weight_unit ?? null) : null,
+              initialSets: setsByExercise.get(exercise.id) ?? [],
+            };
+          })}
+          addSetAction={addSetAction}
+          toggleSkipAction={toggleSkipAction}
+          removeExerciseAction={removeExerciseAction}
+        />
+      ) : null}
 
       {sessionExercises.length === 0 ? <p className="rounded-md bg-white p-3 text-sm text-slate-500 shadow-sm">No exercises in this session yet.</p> : null}
 
