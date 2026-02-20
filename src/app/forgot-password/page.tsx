@@ -26,8 +26,16 @@ export default function ForgotPasswordPage({ searchParams }: ForgotPasswordPageP
             className="w-full rounded-md border border-slate-300 px-3 py-2"
           />
         </div>
-        {searchParams?.error ? <p className="text-sm text-red-600">{searchParams.error}</p> : null}
-        {searchParams?.info ? <p className="text-sm text-emerald-700">{searchParams.info}</p> : null}
+        {searchParams?.error ? (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {searchParams.error}
+          </p>
+        ) : null}
+        {searchParams?.info ? (
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {searchParams.info}
+          </p>
+        ) : null}
         <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">
           Send reset link
         </button>
