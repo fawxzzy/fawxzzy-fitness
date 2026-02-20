@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth/confirm", "/auth/callback"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/confirm",
+  "/auth/callback",
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic = PUBLIC_PATHS.some(
-    (publicPath) => pathname === publicPath || pathname.startsWith(`${publicPath}/`)
+    (publicPath) => pathname === publicPath || pathname.startsWith(`${publicPath}/`),
   );
   const accessToken = request.cookies.get("sb-access-token")?.value;
 
@@ -15,7 +22,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (accessToken && pathname === "/login") {
+  if (accessToken && (pathname === "/login" || pathname === "/signup")) {
     return NextResponse.redirect(new URL("/today", request.url));
   }
 
