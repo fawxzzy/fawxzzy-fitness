@@ -12,8 +12,18 @@ type LoginPageProps = {
 };
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
-  const error = searchParams?.error;
-  const info = searchParams?.verified === "1" ? "Email confirmed. You can log in now." : searchParams?.info;
+  const errorCode = searchParams?.error;
+  const error =
+    errorCode === "confirm_failed"
+      ? "Could not verify your link. Please request a new one."
+      : errorCode === "recovery_session_missing"
+        ? "Your reset link expired. Please request a new one."
+        : errorCode;
+
+  const info =
+    searchParams?.verified === "1" || searchParams?.info === "confirmed"
+      ? "Email verified. You can log in now."
+      : searchParams?.info;
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-4 py-10">

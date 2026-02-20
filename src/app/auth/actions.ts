@@ -102,7 +102,7 @@ export async function signup(formData: FormData) {
 export async function requestPasswordReset(formData: FormData) {
   const email = normalizeEmail(formData.get("email"));
   const supabase = supabaseServer();
-  const redirectTo = `${getAppOrigin()}/auth/confirm`;
+  const redirectTo = `${getAppOrigin()}/auth/confirm?next=${encodeURIComponent("/reset-password")}`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,
