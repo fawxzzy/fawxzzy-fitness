@@ -10,6 +10,10 @@ const SAVED_EMAIL_KEY = "last-auth-email";
 
 type AuthView = "chooser" | AuthMode;
 
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,8 +24,10 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
   const verified = searchParams.get("verified");
   const emailParam = searchParams.get("email");
+  const infoParam = searchParams.get("info");
 
   useEffect(() => {
     const savedEmail = window.localStorage.getItem(SAVED_EMAIL_KEY);
@@ -40,7 +46,12 @@ export function LoginForm() {
       setInfo("Email verified. Log in to continue.");
       setError(null);
     }
-  }, [emailParam, verified]);
+
+    if (infoParam) {
+      setInfo(infoParam);
+      setError(null);
+    }
+  }, [emailParam, infoParam, verified]);
 
   useEffect(() => {
     if (!email) {
@@ -60,9 +71,11 @@ export function LoginForm() {
     setError(null);
     setInfo(null);
 
+    const normalizedEmail = normalizeEmail(email);
+
     if (view === "login") {
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       });
 
@@ -79,10 +92,10 @@ export function LoginForm() {
     }
 
     const { data, error: signupError } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm?email=${encodeURIComponent(email)}`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm?email=${encodeURIComponent(normalizedEmail)}`,
       },
     });
 
@@ -100,8 +113,34 @@ export function LoginForm() {
     }
 
     setInfo("Account created. Check your email to confirm your account, then log in.");
+    setPassword("");
     setView("login");
     setLoading(false);
+  };
+
+  const onForgotPassword = async () => {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      setError("Enter your email first so we can send a reset link.");
+      return;
+    }
+
+    setSendingReset(true);
+    setError(null);
+    setInfo(null);
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${window.location.origin}/auth/confirm?email=${encodeURIComponent(normalizedEmail)}`,
+    });
+
+    if (resetError) {
+      setError(resetError.message);
+      setSendingReset(false);
+      return;
+    }
+
+    setInfo("Password reset email sent. Check your inbox for the secure reset link.");
+    setSendingReset(false);
   };
 
   if (view === "chooser") {
@@ -181,6 +220,16 @@ export function LoginForm() {
           autoComplete={view === "login" ? "current-password" : "new-password"}
         />
       </div>
+      {view === "login" ? (
+        <button
+          type="button"
+          disabled={sendingReset || loading}
+          onClick={onForgotPassword}
+          className="text-left text-sm text-slate-700 underline disabled:opacity-70"
+        >
+          {sendingReset ? "Sending reset link..." : "Forgot password? Send reset link"}
+        </button>
+      ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {info ? <p className="text-sm text-emerald-700">{info}</p> : null}
       <button

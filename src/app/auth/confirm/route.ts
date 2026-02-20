@@ -10,19 +10,35 @@ export async function GET(request: NextRequest) {
   const type = url.searchParams.get("type");
   const email = url.searchParams.get("email") ?? "";
 
+  let sessionToken: string | null = null;
+
   if (tokenHash && type) {
     const supabase = createClient(SUPABASE_URL(), SUPABASE_ANON_KEY());
-    await supabase.auth.verifyOtp({
+    const { data } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: type as EmailOtpType,
     });
+    sessionToken = data.session?.access_token ?? null;
   }
 
-  const redirectTo = new URL("/login", request.url);
-  redirectTo.searchParams.set("verified", "1");
+  const redirectPath = type === "recovery" ? "/reset-password" : "/login";
+  const redirectTo = new URL(redirectPath, request.url);
+  if (type !== "recovery") {
+    redirectTo.searchParams.set("verified", "1");
+  }
   if (email) {
     redirectTo.searchParams.set("email", email);
   }
 
-  return NextResponse.redirect(redirectTo);
+  const response = NextResponse.redirect(redirectTo);
+
+  if (sessionToken) {
+    response.cookies.set("sb-access-token", sessionToken, {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: false,
+    });
+  }
+
+  return response;
 }
