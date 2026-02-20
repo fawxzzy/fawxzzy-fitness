@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,8 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <main className="mx-auto min-h-screen w-full max-w-md px-4 py-6">
+      <body className="relative overflow-x-hidden">
+        <AnimatedBackground />
+        <main className="relative z-10 mx-auto min-h-screen w-full max-w-md px-4 py-6">
           {children}
         </main>
       </body>
