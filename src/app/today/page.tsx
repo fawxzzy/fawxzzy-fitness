@@ -207,10 +207,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           </ul>
 
           {inProgressSession ? (
-            <Link href={`/session/${inProgressSession.id}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-bg transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Session</Link>
+            <Link href={`/session/${inProgressSession.id}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-text transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</Link>
           ) : (
             <form action={startSessionAction}>
-              <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-bg transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">{todayRoutineDay.is_rest ? "Start Optional Session" : "Start Session"}</button>
+              <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-text transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</button>
             </form>
           )}
         </div>
