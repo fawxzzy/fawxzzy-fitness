@@ -75,6 +75,17 @@ async function deleteRoutineAction(formData: FormData) {
     }
   }
 
+
+  const { error: detachSessionError } = await supabase
+    .from("sessions")
+    .update({ routine_id: null })
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id);
+
+  if (detachSessionError) {
+    throw new Error(detachSessionError.message);
+  }
+
   const { error: deleteError } = await supabase
     .from("routines")
     .delete()
