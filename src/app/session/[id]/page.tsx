@@ -336,9 +336,10 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
       <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
 
-      <details className="rounded-md bg-white p-3 shadow-sm" open>
-        <summary className="cursor-pointer text-sm font-semibold">Add exercise</summary>
-        <div className="mt-3 space-y-3">
+      <details className="rounded-md" open>
+        <summary className="cursor-pointer list-none rounded-md bg-white px-4 py-3 text-sm font-semibold shadow-sm [&::-webkit-details-marker]:hidden">Add exercise</summary>
+        <div className="mt-2 rounded-md bg-white p-3 shadow-sm">
+        <div className="space-y-3">
           <form action={addExerciseAction} className="space-y-2">
             <input type="hidden" name="sessionId" value={params.id} />
             <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
@@ -379,6 +380,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             </ul>
           ) : null}
         </div>
+      </div>
       </details>
 
       {sessionExercises.length > 0 ? (
@@ -393,6 +395,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               isSkipped: exercise.is_skipped,
               goalText: displayTarget ? formatGoalLine(displayTarget, routine?.weight_unit ?? null) : null,
               initialSets: setsByExercise.get(exercise.id) ?? [],
+              loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,
             };
           })}
           addSetAction={addSetAction}

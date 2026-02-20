@@ -14,7 +14,7 @@ function SaveSessionButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? "Saving..." : "✓ Save Session"}
     </button>
@@ -36,13 +36,11 @@ export function SessionHeaderControls({
 
   return (
     <div className="space-y-3">
-      <div className="sticky top-2 z-10 rounded-md bg-slate-900 p-2 shadow-sm">
+      <div className="sticky top-2 z-10">
         <form action={saveSessionAction}>
           <input type="hidden" name="sessionId" value={sessionId} />
           <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-          <div className="flex items-center justify-end">
-            <SaveSessionButton />
-          </div>
+          <SaveSessionButton />
         </form>
       </div>
 

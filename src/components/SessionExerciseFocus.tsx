@@ -27,6 +27,7 @@ type SessionExerciseFocusItem = {
   isSkipped: boolean;
   goalText: string | null;
   initialSets: SetRow[];
+  loggedSetCount: number;
 };
 
 export function SessionExerciseFocus({
@@ -67,7 +68,12 @@ export function SessionExerciseFocus({
                 onClick={() => setSelectedExerciseId(exercise.id)}
                 className="w-full rounded-md bg-white p-3 text-left shadow-sm"
               >
-                <p className="font-semibold">{exercise.name}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">{exercise.name}</p>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    {exercise.loggedSetCount} set{exercise.loggedSetCount === 1 ? "" : "s"}
+                  </span>
+                </div>
                 {exercise.goalText ? <p className="text-xs text-slate-500">{exercise.goalText}</p> : null}
                 {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-700">Skipped</p> : null}
               </button>
