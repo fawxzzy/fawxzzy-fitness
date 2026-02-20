@@ -1,4 +1,4 @@
-import { resetPasswordAction } from "@/app/reset-password/actions";
+import { updatePasswordAction } from "@/app/reset-password/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default function ResetPasswordPage({ searchParams }: ResetPasswordPagePro
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-4 py-10">
-      <form action={resetPasswordAction} className="space-y-4 rounded-lg bg-white p-4 shadow-sm">
+      <form action={updatePasswordAction} className="space-y-4 rounded-lg bg-white p-4 shadow-sm">
         <h1 className="text-2xl font-semibold">Reset password</h1>
         <p className="text-sm text-slate-600">
           {email ? `Create a new password for ${email}.` : "Create your new password to regain access."}

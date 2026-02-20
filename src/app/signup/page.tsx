@@ -1,24 +1,20 @@
 import Link from "next/link";
-import { login } from "@/app/auth/actions";
+import { signup } from "@/app/auth/actions";
 
 export const dynamic = "force-dynamic";
 
-type LoginPageProps = {
+type SignupPageProps = {
   searchParams?: {
     error?: string;
     info?: string;
-    verified?: string;
   };
 };
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
-  const error = searchParams?.error;
-  const info = searchParams?.verified === "1" ? "Email confirmed. You can log in now." : searchParams?.info;
-
+export default function SignupPage({ searchParams }: SignupPageProps) {
   return (
     <main className="mx-auto min-h-screen max-w-md px-4 py-10">
-      <form action={login} className="space-y-4 rounded-lg bg-white p-4 shadow-sm">
-        <h1 className="text-2xl font-semibold">Log in</h1>
+      <form action={signup} className="space-y-4 rounded-lg bg-white p-4 shadow-sm">
+        <h1 className="text-2xl font-semibold">Sign up</h1>
         <div>
           <label className="mb-1 block text-sm">Email</label>
           <input
@@ -36,23 +32,21 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
             name="password"
             minLength={6}
             required
-            autoComplete="current-password"
+            autoComplete="new-password"
             className="w-full rounded-md border border-slate-300 px-3 py-2"
           />
         </div>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {info ? <p className="text-sm text-emerald-700">{info}</p> : null}
+        {searchParams?.error ? <p className="text-sm text-red-600">{searchParams.error}</p> : null}
+        {searchParams?.info ? <p className="text-sm text-emerald-700">{searchParams.info}</p> : null}
         <button type="submit" className="w-full rounded-md bg-slate-900 px-3 py-2 text-white">
-          Log in
+          Sign up
         </button>
-        <div className="flex justify-between text-sm">
-          <Link className="underline" href="/forgot-password">
-            Forgot password?
+        <p className="text-sm text-slate-600">
+          Already have an account?{" "}
+          <Link href="/login" className="underline">
+            Log in
           </Link>
-          <Link className="underline" href="/signup">
-            Create account
-          </Link>
-        </div>
+        </p>
       </form>
     </main>
   );
