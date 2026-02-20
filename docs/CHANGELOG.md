@@ -40,6 +40,8 @@
 - History now shows session name, routine day snapshot, and performed timestamp for quicker scan of past training days.
 
 ### Fixed
+- Exercise loading now avoids request-cookie access inside cached reads and keeps custom exercises request-scoped, preventing session/routine page crashes after recent merges while preserving fast global exercise loading.
+- Auth confirmation links are now allowed through middleware, so email verification can complete and redirect users back to login instead of being blocked as unauthenticated traffic.
 - History deletions now remove child session exercises and sets reliably through cascade-safe constraints and guarded delete actions.
 - Routine cards no longer show the extra start-date/timezone subtitle line, reducing visual noise on the routines list.
 - Routine-day exercise editing now uses a controlled UUID exercise picker and inserts `routine_day_exercises` with authenticated `user_id` + selected `routine_day_id`, so adding exercises saves reliably instead of failing on invalid free-text IDs.

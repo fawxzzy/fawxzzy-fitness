@@ -2,6 +2,8 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
+import { optionalEnv } from "@/lib/env";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
 
@@ -34,32 +36,51 @@ export function validateExerciseName(name: string) {
 }
 
 export async function listExercises(userId: string) {
-  const loader = unstable_cache(
-    async () => {
-      const supabase = supabaseServer();
-      const { data, error } = await supabase
-        .from("exercises")
-        .select("id, name, user_id, is_global, primary_muscle, equipment, created_at")
-        .or(`user_id.is.null,user_id.eq.${userId}`)
-        .order("is_global", { ascending: false })
-        .order("name", { ascending: true });
+  const globalExercises = await listGlobalExercisesCached();
+  const supabase = supabaseServer();
+  const { data: customData, error: customError } = await supabase
+    .from("exercises")
+    .select("id, name, user_id, is_global, primary_muscle, equipment, created_at")
+    .eq("user_id", userId)
+    .order("name", { ascending: true });
 
-      if (error) {
-        if (error.code === "42P01") {
-          return fallbackGlobalExercises();
-        }
+  if (customError) {
+    if (customError.code === "42P01") {
+      return globalExercises;
+    }
 
-        throw new Error(error.message);
+    throw new Error(customError.message);
+  }
+
+  return [...globalExercises, ...((customData ?? []) as ExerciseRow[])];
+}
+
+const listGlobalExercisesCached = unstable_cache(
+  async (): Promise<ExerciseRow[]> => {
+    if (!optionalEnv("SUPABASE_SERVICE_ROLE_KEY")) {
+      return fallbackGlobalExercises();
+    }
+
+    const supabase = supabaseAdmin();
+    const { data, error } = await supabase
+      .from("exercises")
+      .select("id, name, user_id, is_global, primary_muscle, equipment, created_at")
+      .is("user_id", null)
+      .eq("is_global", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      if (error.code === "42P01") {
+        return fallbackGlobalExercises();
       }
 
-      return (data ?? []) as ExerciseRow[];
-    },
-    ["exercise-list", userId],
-    { tags: [`exercises:${userId}`] },
-  );
+      throw new Error(error.message);
+    }
 
-  return loader();
-}
+    return (data ?? []) as ExerciseRow[];
+  },
+  ["global-exercise-list"],
+);
 
 export async function getExerciseNameMap(userId: string) {
   const exercises = await listExercises(userId);
