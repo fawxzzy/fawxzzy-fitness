@@ -23,6 +23,20 @@ type PageProps = {
   };
 };
 
+function formatDayTitle(dayIndex: number, dayName: string | null) {
+  const fallback = `Day ${dayIndex}`;
+  const trimmedName = dayName?.trim() ?? "";
+  if (!trimmedName) {
+    return fallback;
+  }
+
+  if (trimmedName.toLowerCase() === fallback.toLowerCase()) {
+    return fallback;
+  }
+
+  return trimmedName;
+}
+
 function formatTargetDuration(seconds: number | null) {
   if (seconds === null) return null;
   if (seconds < 60) return `${seconds}s`;
@@ -95,6 +109,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     .order("position", { ascending: true });
 
   const dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
+  const dayTitle = formatDayTitle(day.day_index, (day as RoutineDayRow).name);
   const exerciseOptions = await listExercises();
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
@@ -103,10 +118,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Day {day.day_index} Editor</h1>
+        <h1 className="text-2xl font-semibold">{dayTitle}</h1>
         <Link href={`/routines/${params.id}/edit`} className="rounded-md border border-slate-300 px-3 py-2 text-sm">Back</Link>
       </div>
-      <p className="text-sm text-slate-600">{(routine as RoutineRow).name}: {(day as RoutineDayRow).name ?? `Day ${day.day_index}`}</p>
+      <p className="text-sm text-slate-600">{(routine as RoutineRow).name}: {dayTitle}</p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{searchParams.success}</p> : null}

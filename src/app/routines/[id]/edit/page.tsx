@@ -23,6 +23,20 @@ type PageProps = {
   };
 };
 
+function formatRoutineDayLabel(dayIndex: number, dayName: string | null) {
+  const fallback = `Day ${dayIndex}`;
+  const trimmedName = dayName?.trim() ?? "";
+  if (!trimmedName) {
+    return fallback;
+  }
+
+  if (trimmedName.toLowerCase() === fallback.toLowerCase()) {
+    return fallback;
+  }
+
+  return `${fallback}: ${trimmedName}`;
+}
+
 async function updateRoutineAction(formData: FormData) {
   "use server";
 
@@ -242,7 +256,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
           return (
             <Link key={day.id} href={`/routines/${params.id}/edit/day/${day.id}`} className="block rounded-md bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold">Day {day.day_index}: {day.name ?? `Day ${day.day_index}`}</p>
+                <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
                 <span className="text-xs text-slate-500">Edit</span>
               </div>
               <p className="mt-1 text-xs text-slate-500">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
