@@ -100,3 +100,26 @@ export function createRoutineDaySeeds(cycleLengthDays: number, userId: string, r
     is_rest: false,
   }));
 }
+
+
+export function formatRepTarget(minReps: number | null, maxReps: number | null, fallbackReps: number | null) {
+  const resolvedMin = minReps ?? fallbackReps ?? null;
+  const resolvedMax = maxReps ?? fallbackReps ?? null;
+
+  if (resolvedMin !== null && resolvedMax !== null) {
+    if (resolvedMin === resolvedMax) {
+      return `Reps: ${resolvedMin}`;
+    }
+    return `Reps: ${resolvedMin}–${resolvedMax}`;
+  }
+
+  if (resolvedMin !== null) {
+    return `Reps: ${resolvedMin}`;
+  }
+
+  if (resolvedMax !== null) {
+    return `Reps: ${resolvedMax}`;
+  }
+
+  return "Reps: -";
+}

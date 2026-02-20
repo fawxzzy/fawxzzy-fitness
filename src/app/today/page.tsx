@@ -4,7 +4,7 @@ import { AppNav } from "@/components/AppNav";
 import { requireUser } from "@/lib/auth";
 import { getExerciseName } from "@/lib/exercise-options";
 import { ensureProfile } from "@/lib/profile";
-import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import { formatRepTarget, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
@@ -152,7 +152,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
       }
 
-      const { startIso, endIso } = getTimeZoneDayWindow(profile.timezone);
+      const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone);
 
       const { count: completedTodayCountValue } = await supabase
         .from("sessions")
@@ -189,22 +189,19 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       {activeRoutine && todayRoutineDay && todayDayIndex ? (
         <div className="space-y-3 rounded-md bg-white p-4 shadow-sm">
           <h2 className="text-lg font-semibold">{activeRoutine.name}: {todayRoutineDay.is_rest ? `REST DAY — ${todayRoutineDay.name ?? `Day ${todayDayIndex}`}` : todayRoutineDay.name ?? `Day ${todayDayIndex}`}</h2>
-          {todayRoutineDay.is_rest ? (
-            <div className="rounded-md border border-orange-200 bg-orange-500 px-3 py-2 text-center text-sm font-bold tracking-wide text-white">REST DAY — {todayRoutineDay.name ?? `Day ${todayDayIndex}`}</div>
-          ) : null}
           {inProgressSession ? <p className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">In progress</p> : null}
-          <p className="text-xs text-slate-500">Completed today: {completedTodayCount}</p>
+          <p className="text-xs text-slate-500">Completed (this routine) today: {completedTodayCount}</p>
 
           <ul className="space-y-1 text-sm">
             {dayExercises.map((exercise) => (
               <li key={exercise.id} className="rounded-md bg-slate-50 px-3 py-2">
                 {getExerciseName(exercise.exercise_id)}
                 {exercise.target_sets
-                  ? ` · ${exercise.target_sets} × ${exercise.target_reps_min ?? exercise.target_reps ?? "-"}-${exercise.target_reps_max ?? exercise.target_reps ?? "-"}`
+                  ? ` · ${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
                   : ""}
               </li>
             ))}
-            {dayExercises.length === 0 ? <li className="rounded-md bg-slate-50 px-3 py-2 text-slate-500">No template exercises.</li> : null}
+            {dayExercises.length === 0 ? <li className="rounded-md bg-slate-50 px-3 py-2 text-slate-500">No routine exercises planned today.</li> : null}
           </ul>
 
           {inProgressSession ? (

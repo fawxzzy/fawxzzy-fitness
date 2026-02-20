@@ -31,11 +31,15 @@ function formatSeconds(totalSeconds: number) {
 }
 
 export function SessionTimerCard({
+  sessionId,
   initialDurationSeconds,
   onDurationChange,
+  persistDurationAction,
 }: {
+  sessionId: string;
   initialDurationSeconds: number | null;
   onDurationChange: (value: number) => void;
+  persistDurationAction: (payload: { sessionId: string; durationSeconds: number }) => Promise<{ ok: boolean }>;
 }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(initialDurationSeconds ?? 0);
   const [isRunning, setIsRunning] = useState(false);
@@ -63,16 +67,22 @@ export function SessionTimerCard({
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={() => setIsRunning((value) => !value)}
+          onClick={async () => {
+            if (isRunning) {
+              await persistDurationAction({ sessionId, durationSeconds: elapsedSeconds });
+            }
+            setIsRunning((value) => !value);
+          }}
           className="rounded-md border border-slate-300 px-3 py-2 text-sm"
         >
           {isRunning ? "Pause" : "Start"}
         </button>
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             setIsRunning(false);
             setElapsedSeconds(0);
+            await persistDurationAction({ sessionId, durationSeconds: 0 });
           }}
           className="rounded-md border border-slate-300 px-3 py-2 text-sm"
         >

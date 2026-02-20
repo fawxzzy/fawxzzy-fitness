@@ -168,6 +168,30 @@ async function removeExerciseAction(formData: FormData) {
   revalidatePath(`/session/${sessionId}`);
 }
 
+async function persistDurationAction(payload: { sessionId: string; durationSeconds: number }) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  if (!payload.sessionId || !Number.isInteger(payload.durationSeconds) || payload.durationSeconds < 0) {
+    return { ok: false };
+  }
+
+  const { error } = await supabase
+    .from("sessions")
+    .update({ duration_seconds: payload.durationSeconds })
+    .eq("id", payload.sessionId)
+    .eq("user_id", user.id)
+    .eq("status", "in_progress");
+
+  if (error) {
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 async function saveSessionAction(formData: FormData) {
   "use server";
 
@@ -259,7 +283,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
 
-      <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} />
+      <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
 
       <form action={addExerciseAction} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
         <input type="hidden" name="sessionId" value={params.id} />
