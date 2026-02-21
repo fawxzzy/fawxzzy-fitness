@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+
+### Changed
+WHAT:
+- Added docs/PROJECT_GOVERNANCE.md (thin-docs governance)
+- Added docs/PLAYBOOK_NOTES.md (project-local inbox for upstream playbook improvements)
+- Removed duplicated playbook/doctrine docs from this repo (if present)
+WHY:
+- Centralize reusable engineering doctrine in one Playbook repo
+- Keep project repositories minimal and focused
+- Prevent drift across projects
+- Ensure learnings are captured without relying on chat output
+
 ### Changed
 - Added a new `docs/PLAYBOOK/` documentation set (index, principles, decisions, conventions, patterns, checklists, and Codex prompts) that captures the current engineering practices already present in this repo, so future work can move faster with consistent, evidence-based execution.
 - Updated the Today primary CTA copy to always read “Start Workout” with explicit high-contrast text on the phthalo accent button, added an in-session Back control, and removed the bottom tab bar from the workout/session screen to keep focus on active logging.
