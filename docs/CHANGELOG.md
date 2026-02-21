@@ -4,6 +4,12 @@
 
 ### Fixed
 WHAT:
+- Reduced perceived lag when switching between bottom home tabs by proactively prefetching the other tab routes from the nav component and adding a shared app-level loading state during route transitions.
+WHY:
+- Tab switches were waiting on server-rendered route payloads, which made navigation feel sluggish; prefetch + immediate loading feedback keeps the interaction feeling responsive.
+
+### Fixed
+WHAT:
 - Increased contrast for the Today screen primary “Start Workout” CTA text by switching it to white on the accent button for both new-session and resume-session states.
 WHY:
 - The prior text color could blend into the accent background and make the action label hard to read, reducing usability for a core workflow.
