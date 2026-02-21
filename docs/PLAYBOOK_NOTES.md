@@ -34,3 +34,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: A single full-card link hides action intent and increases mis-taps when users need different next steps.
 - Evidence: src/app/history/page.tsx
 - Status: Proposed
+
+## 2026-02-21 — Reconcile UI merges against theme tokens before ship
+- Type: Guardrail
+- Summary: When merging visual PRs into active dark-theme work, validate final utility-token output on the merged branch so contrast and hierarchy remain consistent.
+- Suggested Playbook File: patterns/frontend/theming-dark-mode.md
+- Rationale: Independent visual changes can pass in isolation but conflict after merge, creating low-contrast or inconsistent UI states.
+- Evidence: src/app/history/page.tsx
+- Status: Proposed
