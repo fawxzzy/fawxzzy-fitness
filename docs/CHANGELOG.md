@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Refined the History list session cards with sharper visual hierarchy and split primary actions into dedicated View + Edit buttons, plus a compact duration badge for fast scanning.
+WHY:
+- The previous single-card tap target felt soft and low-information; clearer card structure and explicit actions improve readability and speed on mobile.
+
 ### Fixed
 WHAT:
 - Replaced light/white routine-edit card surfaces with dark theme surface tokens so the expanded “Routine details” section and day cards stay on-brand instead of flashing white/grey on mobile.
