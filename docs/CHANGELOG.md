@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+WHAT:
+- Replaced light/white routine-edit card surfaces with dark theme surface tokens so the expanded “Routine details” section and day cards stay on-brand instead of flashing white/grey on mobile.
+WHY:
+- Hardcoded white/opacity utility classes created washed-out panels against the graphite theme, hurting readability and visual consistency.
+
 ### Changed
 WHAT:
 - Removed the "+ Add custom exercise" card from the main Edit Routine screen (`/routines/[id]/edit`).

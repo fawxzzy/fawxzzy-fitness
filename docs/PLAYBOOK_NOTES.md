@@ -17,3 +17,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Dynamic server-rendered routes can feel sluggish if navigation waits on fresh payloads; explicit prefetch and immediate loading affordance improve responsiveness without architectural complexity.
 - Evidence: src/components/AppNav.tsx, src/app/loading.tsx
 - Status: Proposed
+
+## 2026-02-21 — Avoid white-opacity surfaces in dark-theme mobile flows
+- Type: Guardrail
+- Summary: In dark-mode products, avoid hardcoded `bg-white/*` utility classes on primary containers; use theme surface tokens so expanded/collapsible panels do not wash out on iOS and low-brightness devices.
+- Suggested Playbook File: patterns/frontend/theming-dark-mode.md
+- Rationale: White-opacity containers can appear disabled or overexposed against dark backdrops, especially in mobile Safari screenshots.
+- Evidence: src/components/ui/CollapsibleCard.tsx, src/app/routines/[id]/edit/page.tsx
+- Status: Proposed
+

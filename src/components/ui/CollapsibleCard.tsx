@@ -14,7 +14,7 @@ export function CollapsibleCard({ title, summary, defaultOpen = false, children 
   const panelId = useId();
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-300 bg-white/95 transition-colors hover:border-[rgb(var(--border)/0.8)]">
+    <section className="overflow-hidden rounded-xl border border-slate-300 bg-[rgb(var(--surface)/0.95)] transition-colors hover:border-[rgb(var(--border)/0.8)]">
       <button
         type="button"
         aria-expanded={isOpen}
