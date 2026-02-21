@@ -144,7 +144,7 @@ export default async function RoutinesPage() {
                     <input type="hidden" name="routineId" value={routine.id} />
                     <button
                       type="submit"
-                      className="rounded-sm bg-transparent p-0 text-red-600 underline transition-colors hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/25"
+                      className="appearance-none border-0 bg-transparent p-0 text-red-600 underline transition-colors hover:text-red-700 focus:outline-none focus-visible:text-red-700"
                     >
                       Delete
                     </button>
