@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { SVGProps } from "react";
+import { useEffect } from "react";
 
 type NavLink = {
   href: string;
@@ -57,6 +58,17 @@ const links: NavLink[] = [
 
 export function AppNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    for (const link of links) {
+      if (pathname === link.href || pathname.startsWith(`${link.href}/`)) {
+        continue;
+      }
+
+      router.prefetch(link.href);
+    }
+  }, [pathname, router]);
 
   return (
     <nav className="mt-8 grid grid-cols-4 gap-1 rounded-2xl border border-slate-300 bg-white p-1 text-center text-xs" aria-label="App tabs">
@@ -68,6 +80,7 @@ export function AppNav() {
           <Link
             key={link.href}
             href={link.href}
+            prefetch
             aria-current={isActive ? "page" : undefined}
             className={`group relative rounded-xl px-2 py-2 transition-colors ${
               isActive
