@@ -42,3 +42,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Independent visual changes can pass in isolation but conflict after merge, creating low-contrast or inconsistent UI states.
 - Evidence: src/app/history/page.tsx
 - Status: Proposed
+
+## 2026-02-21 — Use scroll-snap windows for long mobile card timelines
+- Type: Pattern
+- Summary: For long chronological card feeds on mobile, wrap the list in a fixed-height `overflow-y-auto` container with `snap-y` items so users can cycle entries while the surrounding screen stays anchored.
+- Suggested Playbook File: patterns/frontend/mobile-list-cards.md
+- Rationale: A stationary shell with snapping list movement improves orientation and reduces visual jumpiness versus full-page scrolling through dense logs.
+- Evidence: src/app/history/page.tsx
+- Status: Proposed

@@ -4,6 +4,13 @@
 
 ### Changed
 WHAT:
+- History cards now show a subtle sequential `Log #` badge on each session item to make order easier to scan at a glance.
+- The history list now lives inside a fixed-height, scroll-snapping container so the page shell stays visually stationary while users wheel/scroll through many logs.
+WHY:
+- Users asked for clearer log ordering and a more "wheel-like" browsing experience that keeps context stable even with long history lists.
+
+### Changed
+WHAT:
 - Session screen now loads with the “Add exercise” section collapsed by default so workout logging opens with less vertical clutter.
 - Routine day cards on the Edit Routine screen now label the action as “Tap to edit” instead of “Edit.”
 WHY:
