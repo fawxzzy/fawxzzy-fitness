@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Session screen now loads with the “Add exercise” section collapsed by default so workout logging opens with less vertical clutter.
+- Routine day cards on the Edit Routine screen now label the action as “Tap to edit” instead of “Edit.”
+WHY:
+- This matches the requested mobile flow, keeps the current workout context visible first, and gives clearer touch-oriented guidance on day-card actions.
+
 ### Fixed
 WHAT:
 - Replaced light/white routine-edit card surfaces with dark theme surface tokens so the expanded “Routine details” section and day cards stay on-brand instead of flashing white/grey on mobile.

@@ -337,7 +337,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
       <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
 
-      <details className="rounded-md" open>
+      <details className="rounded-md">
         <summary className="cursor-pointer list-none rounded-md bg-white px-4 py-3 text-sm font-semibold shadow-sm [&::-webkit-details-marker]:hidden">Add exercise</summary>
         <div className="mt-2 rounded-md bg-white p-3 shadow-sm">
         <div className="space-y-3">
