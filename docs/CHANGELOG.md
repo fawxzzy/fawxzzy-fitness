@@ -4,6 +4,11 @@
 
 ### Fixed
 WHAT:
+- Standardized the routine-card Delete control styling so it renders as intended text action without browser-default button highlight artifacts.
+WHY:
+- The previous default button rendering could show an inconsistent highlight box around Delete, which looked broken and distracted from the routine card layout.
+
+WHAT:
 - Increased contrast for the Today screen primary “Start Workout” CTA text by switching it to white on the accent button for both new-session and resume-session states.
 WHY:
 - The prior text color could blend into the accent background and make the action label hard to read, reducing usability for a core workflow.
