@@ -26,3 +26,19 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: src/components/ui/CollapsibleCard.tsx, src/app/routines/[id]/edit/page.tsx
 - Status: Proposed
 
+
+## 2026-02-21 — Use explicit split actions on dense history cards
+- Type: Pattern
+- Summary: For mobile list cards that need both open and manage flows, prefer explicit primary/secondary buttons (e.g., View + Edit) and keep metadata visible inside the card.
+- Suggested Playbook File: patterns/frontend/mobile-list-cards.md
+- Rationale: A single full-card link hides action intent and increases mis-taps when users need different next steps.
+- Evidence: src/app/history/page.tsx
+- Status: Proposed
+
+## 2026-02-21 — Reconcile UI merges against theme tokens before ship
+- Type: Guardrail
+- Summary: When merging visual PRs into active dark-theme work, validate final utility-token output on the merged branch so contrast and hierarchy remain consistent.
+- Suggested Playbook File: patterns/frontend/theming-dark-mode.md
+- Rationale: Independent visual changes can pass in isolation but conflict after merge, creating low-contrast or inconsistent UI states.
+- Evidence: src/app/history/page.tsx
+- Status: Proposed

@@ -11,6 +11,18 @@ WHY:
 
 ### Fixed
 WHAT:
+- Resolved merge drift on the History page by reconciling the recent card redesign with the latest dark-theme token updates, keeping explicit View/Edit actions while restoring consistent contrast.
+WHY:
+- The prior merge left the history surface and text treatments visually inconsistent with the rest of the app, reducing clarity and perceived polish.
+
+### Changed
+WHAT:
+- Refined the History list session cards with sharper visual hierarchy and split primary actions into dedicated View + Edit buttons, plus a compact duration badge for fast scanning.
+WHY:
+- The previous single-card tap target felt soft and low-information; clearer card structure and explicit actions improve readability and speed on mobile.
+
+### Fixed
+WHAT:
 - Replaced light/white routine-edit card surfaces with dark theme surface tokens so the expanded “Routine details” section and day cards stay on-brand instead of flashing white/grey on mobile.
 WHY:
 - Hardcoded white/opacity utility classes created washed-out panels against the graphite theme, hurting readability and visual consistency.
