@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Removed the "+ Add custom exercise" card from the main Edit Routine screen (`/routines/[id]/edit`).
+WHY:
+- This streamlines the primary routine-editing flow and removes a control that should not appear on that specific screen.
+
 ### Fixed
 WHAT:
 - Reduced perceived lag when switching between bottom home tabs by proactively prefetching the other tab routes from the nav component and adding a shared app-level loading state during route transitions.

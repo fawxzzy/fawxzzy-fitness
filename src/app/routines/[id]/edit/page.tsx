@@ -4,9 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
-import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { requireUser } from "@/lib/auth";
-import { listExercises } from "@/lib/exercises";
 import { createRoutineDaySeeds } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
@@ -174,8 +172,6 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
     dayExerciseCount.set(row.routine_day_id, (dayExerciseCount.get(row.routine_day_id) ?? 0) + 1);
   }
 
-  const exerciseOptions = await listExercises();
-  const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
   const routineTimezoneDefault = isRoutineTimezone((routine as RoutineRow).timezone)
     ? (routine as RoutineRow).timezone
     : "America/Toronto";
@@ -189,43 +185,6 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
-
-      <details className="rounded-md border border-slate-300 bg-white transition-colors hover:border-[rgb(var(--border)/0.8)]">
-        <summary className="cursor-pointer list-none rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-[rgb(var(--surface-2)/0.35)] active:bg-[rgb(var(--surface-2)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">+ Add custom exercise</summary>
-        <div className="space-y-3 px-4 pb-4">
-          <form action={createCustomExerciseAction} className="space-y-2">
-            <input type="hidden" name="returnTo" value={`/routines/${params.id}/edit`} />
-            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <div className="grid grid-cols-2 gap-2">
-              <input name="primaryMuscle" placeholder="Primary muscle (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              <input name="equipment" placeholder="Equipment (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            </div>
-            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Custom Exercise</button>
-          </form>
-          {customExercises.length > 0 ? (
-            <ul className="space-y-2">
-              {customExercises.map((exercise) => (
-                <li key={exercise.id} className="rounded-md bg-slate-50 p-2">
-                  <p className="text-xs font-semibold">{exercise.name}</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <form action={renameCustomExerciseAction} className="flex gap-2">
-                      <input type="hidden" name="returnTo" value={`/routines/${params.id}/edit`} />
-                      <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
-                      <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">Rename</button>
-                    </form>
-                    <form action={deleteCustomExerciseAction}>
-                      <input type="hidden" name="returnTo" value={`/routines/${params.id}/edit`} />
-                      <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <button type="submit" className="w-full rounded-md border border-red-300 px-2 py-1 text-xs text-red-700">Delete</button>
-                    </form>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      </details>
 
       <form action={updateRoutineAction} className="space-y-3">
         <input type="hidden" name="routineId" value={routine.id} />
