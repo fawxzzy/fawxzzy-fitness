@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+WHAT:
+- Increased contrast for the Today screen primary “Start Workout” CTA text by switching it to white on the accent button for both new-session and resume-session states.
+WHY:
+- The prior text color could blend into the accent background and make the action label hard to read, reducing usability for a core workflow.
+
 
 ### Changed
 WHAT:
