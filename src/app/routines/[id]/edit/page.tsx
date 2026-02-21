@@ -230,7 +230,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
-                <span className="text-xs text-slate-500">Edit</span>
+                <span className="text-xs text-slate-500">Tap to edit</span>
               </div>
               <p className="mt-1 text-xs text-slate-500">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
             </Link>
