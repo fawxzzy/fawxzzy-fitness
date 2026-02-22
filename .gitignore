@@ -6,3 +6,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .DS_Store
+public/icon-*.png
+public/apple-touch-icon*.png
+public/splash/*.png
