@@ -4,6 +4,14 @@
 
 ### Changed
 WHAT:
+- Added a back navigation control on the History log detail (view) screen so users can return to the history list in one tap.
+- Updated log set statements on the History log detail screen to include the routine weight unit directly after each logged weight value (for example, `30lbs` or `30kg`).
+WHY:
+- The view flow now has an explicit, mobile-friendly way to return to the log list without relying on browser navigation.
+- Showing units inline removes ambiguity when reviewing completed workouts across routines that may use different weight systems.
+
+### Changed
+WHAT:
 - Added a dedicated History Log Details (audit) screen at `/history/[logId]` with a read-first layout and explicit Edit → Save/Cancel mode instead of reusing live session controls.
 - Reintroduced editable history fields for completed logs: day name override, session notes, and per-exercise notes.
 WHY:
