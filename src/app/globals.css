@@ -62,6 +62,26 @@ a:focus-visible {
 }
 
 @layer utilities {
+
+  .bg-surface {
+    background-color: rgb(var(--surface));
+  }
+
+  .bg-surface-soft {
+    background-color: rgb(var(--surface) / 0.92);
+  }
+
+  .bg-surface-strong {
+    background-color: rgb(var(--surface) / 0.95);
+  }
+
+  .bg-surface-2-soft {
+    background-color: rgb(var(--surface-2) / 0.35);
+  }
+
+  .bg-surface-2-strong {
+    background-color: rgb(var(--surface-2) / 0.55);
+  }
   .bg-white {
     background-color: rgb(var(--surface));
   }

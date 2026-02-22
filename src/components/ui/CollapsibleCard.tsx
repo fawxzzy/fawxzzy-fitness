@@ -14,13 +14,13 @@ export function CollapsibleCard({ title, summary, defaultOpen = false, children 
   const panelId = useId();
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-300 bg-[rgb(var(--surface)/0.95)] transition-colors hover:border-[rgb(var(--border)/0.8)]">
+    <section className="overflow-hidden rounded-xl border border-slate-300 bg-surface-strong transition-colors hover:border-[rgb(var(--border)/0.8)]">
       <button
         type="button"
         aria-expanded={isOpen}
         aria-controls={panelId}
         onClick={() => setIsOpen((current) => !current)}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[rgb(var(--surface-2)/0.35)] active:bg-[rgb(var(--surface-2)/0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2-soft active:bg-surface-2-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
       >
         <span className="min-w-0">
           <span className="block text-sm font-semibold">{title}</span>
