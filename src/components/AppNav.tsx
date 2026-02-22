@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { SVGProps } from "react";
 import { useEffect } from "react";
+import { Glass } from "@/components/ui/Glass";
 
 type NavLink = {
   href: string;
@@ -71,31 +72,33 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <nav className="mt-8 grid grid-cols-4 gap-1 rounded-2xl border border-slate-300 bg-white p-1 text-center text-xs" aria-label="App tabs">
-      {links.map((link) => {
-        const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-        const Icon = link.Icon;
+    <Glass variant="raised" className="mt-8 p-1" interactive={false}>
+      <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
+        {links.map((link) => {
+          const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+          const Icon = link.Icon;
 
-        return (
-          <Link
-            key={link.href}
-            href={link.href}
-            prefetch
-            aria-current={isActive ? "page" : undefined}
-            className={`group relative rounded-xl px-2 py-2 transition-colors ${
-              isActive
-                ? "font-medium text-accent"
-                : "text-[rgb(var(--text)/0.68)] hover:text-[rgb(var(--text)/0.78)]"
-            }`}
-          >
-            <span className="flex flex-col items-center gap-1">
-              <Icon className={`h-5 w-5 transition-colors ${isActive ? "text-accent" : "text-[rgb(var(--text)/0.6)] group-hover:text-[rgb(var(--text)/0.68)]"}`} />
-              <span>{link.label}</span>
-            </span>
-            {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-accent" aria-hidden="true" /> : null}
-          </Link>
-        );
-      })}
-    </nav>
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              prefetch
+              aria-current={isActive ? "page" : undefined}
+              className={`group relative rounded-[var(--radius-sm)] px-2 py-2 transition-colors ${
+                isActive
+                  ? "bg-accent/16 font-semibold text-accent"
+                  : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"
+              }`}
+            >
+              <span className="flex flex-col items-center gap-1">
+                <Icon className={`h-5 w-5 transition-colors ${isActive ? "text-accent" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
+                <span>{link.label}</span>
+              </span>
+              {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-accent" aria-hidden="true" /> : null}
+            </Link>
+          );
+        })}
+      </nav>
+    </Glass>
   );
 }

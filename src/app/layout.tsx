@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
+import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import "./globals.css";
 
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="relative overflow-x-hidden">
         <ToastProvider>
+          <GlassEffectsBootstrap />
           <AnimatedBackground />
           <main className="relative z-10 mx-auto min-h-screen w-full max-w-md px-4 py-6">
             {children}
