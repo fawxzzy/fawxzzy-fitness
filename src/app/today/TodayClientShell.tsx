@@ -81,26 +81,24 @@ export function TodayClientShell({
   return (
     <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
       <OfflineSyncBadge />
-      <h2 className="text-lg font-semibold text-text">
-        {display.routine.name}: {display.routine.isRest ? `REST DAY — ${display.routine.dayName}` : display.routine.dayName}
-      </h2>
-      {display.inProgressSessionId ? (
-        <p className="inline-flex rounded-full border border-accent/25 bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">In progress</p>
-      ) : null}
-      <p className="text-xs text-muted">Completed (this routine) today: {display.completedTodayCount}</p>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-text">
+          {display.routine.name}: {display.routine.isRest ? `REST DAY — ${display.routine.dayName}` : display.routine.dayName}
+        </h2>
+        {display.completedTodayCount > 0 ? (
+          <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p>
+        ) : null}
+      </div>
 
       {display.staleAt ? (
         <p className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          Offline snapshot · stale data from {new Date(display.staleAt).toLocaleString()}
+          Offline snapshot · stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
         </p>
       ) : null}
 
       <ul className="space-y-1 text-sm">
         {display.exercises.map((exercise) => (
-          <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">
-            {exercise.name}
-            {exercise.targets ? ` · ${exercise.targets}` : ""}
-          </li>
+          <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
         ))}
         {display.exercises.length === 0 ? (
           <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li>
@@ -112,7 +110,7 @@ export function TodayClientShell({
           href={`/session/${display.inProgressSessionId}`}
           className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
         >
-          Start Workout
+          Resume Workout
         </Link>
       ) : (
         <p className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center text-sm text-muted">

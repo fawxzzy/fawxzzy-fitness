@@ -340,3 +340,13 @@ WHY:
 
 ### Notes
 - Manual test checklist: login → routines (create/select active) → today (verify day name/exercises) → Start Session (verify seeded exercise order) → edit routine cycle length up/down → switch active routine and confirm Today updates immediately.
+
+### Changed
+- Main tab navigation now lives in the top header area with the active page title inside the nav, replacing standalone page titles so tab screens feel more consistent and space-efficient on mobile.
+- Today now shows a lighter workout preview (exercise names only), removes in-progress/completed-count helper copy, switches CTA text to Start vs Resume based on recoverable session state, and surfaces a clear Completed pill on the workout row after a saved workout.
+- History cards now use a single consolidated label format (`{Routine Name} Log #{N}: {Day Name}`), remove redundant routine/day text from the card body, show concise date+time formatting (no seconds), and drop the Manage action in favor of the existing dedicated edit flow.
+- Routines list cards now follow the same visual treatment pattern as history log cards for stronger cross-screen UI consistency.
+
+### Why
+- These updates reduce visual noise, improve scanability, and make workout state (start/resume/completed) easier to understand at a glance while keeping core logging flows intact.
+- Consolidating top-level navigation and harmonizing card styling improves app-wide consistency and reduces context switching between main tabs.

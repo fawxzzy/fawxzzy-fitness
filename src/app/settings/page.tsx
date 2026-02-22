@@ -13,14 +13,13 @@ export default async function SettingsPage() {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <AppNav />
       <Glass variant="base" className="p-4" interactive={false}>
         <p className="text-sm text-slate-600">Logged in as</p>
         <p className="font-medium">{user.email}</p>
       </Glass>
       <GlassEffectsSettings />
       <SignOutButton />
-      <AppNav />
     </section>
   );
 }

@@ -236,27 +236,25 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Today</h1>
+      <AppNav />
 
       {todayPayload.routine && !fetchFailed ? (
         <Glass variant="base" className="space-y-3 p-4" interactive={false}>
           <OfflineSyncBadge />
-          <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
-          {todayPayload.inProgressSessionId ? <p className="inline-flex rounded-full border border-accent/25 bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">In progress</p> : null}
-          <p className="text-xs text-muted">Completed (this routine) today: {todayPayload.completedTodayCount}</p>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
+            {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
+          </div>
 
           <ul className="space-y-1 text-sm">
             {todayPayload.exercises.map((exercise) => (
-              <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">
-                {exercise.name}
-                {exercise.targets ? ` · ${exercise.targets}` : ""}
-              </li>
+              <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
             ))}
             {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
           </ul>
 
-          {todayPayload.inProgressSessionId ? (
-            <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</Link>
+        {todayPayload.inProgressSessionId ? (
+            <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Workout</Link>
           ) : (
             <form action={startSessionAction}>
               <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</button>
@@ -270,8 +268,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       <TodayOfflineBridge snapshot={todaySnapshot} />
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-
-      <AppNav />
     </section>
   );
 }
