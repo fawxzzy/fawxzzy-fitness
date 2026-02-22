@@ -18,6 +18,22 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: src/components/ui/interactionClasses.ts, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/SessionHeaderControls.tsx, src/app/session/[id]/page.tsx
 - Status: Proposed
 
+## 2026-02-22 — Keep dark-mode glass sheen edge-weighted to avoid glare
+- Type: Guardrail
+- Summary: For dark mobile UIs, keep glass highlights low-intensity and edge-weighted (thin inner light + very soft gradient) rather than bright full-surface hotspots.
+- Suggested Playbook File: patterns/frontend/theming-dark-mode.md
+- Rationale: Strong sheen gradients quickly overpower content readability and feel noisy on small screens.
+- Evidence: src/app/globals.css, src/components/ui/Glass.tsx, src/components/AppNav.tsx
+- Status: Proposed
+
+## 2026-02-22 — Centralize glass-surface intensity tokens with user preference modes
+- Type: Pattern
+- Summary: Define one global token contract for glass blur/tint/border/sheen and map it to app-wide modes (`on`, `reduced`, `off`) so components consume shared primitives instead of custom translucency utilities.
+- Suggested Playbook File: patterns/frontend/theming-dark-mode.md
+- Rationale: Tokenized intensity modes reduce visual drift, simplify performance tuning (especially on mobile Safari), and make accessibility preferences explicit.
+- Evidence: src/app/globals.css, src/lib/useGlassEffects.ts, src/components/ui/Glass.tsx, src/components/settings/GlassEffectsSettings.tsx
+- Status: Proposed
+
 ## 2026-02-22 — Pair offline queue sync with server idempotency fallback
 - Type: Guardrail
 - Summary: When syncing offline append-only logs, couple FIFO retry/backoff in the client queue with server-side idempotency (`client_log_id` if present, deterministic payload dedupe fallback if not).

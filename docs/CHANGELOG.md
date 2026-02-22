@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Fixed
+WHAT:
+- Retuned the glass visual tokens to reduce harsh glare: softer sheen intensity, lower blur/saturation levels, calmer elevation, and slightly denser tint for dark-mode readability.
+- Adjusted shared glass highlight behavior to use a subtle edge-light treatment instead of a strong full-surface hotspot.
+WHY:
+- The prior glass pass looked too glossy and produced distracting glare on key cards/nav surfaces; the updated tuning better matches the softer frosted reference style while keeping contrast and legibility stable.
+
+### Changed
+WHAT:
+- Introduced a centralized glass-design token system (blur/tint/border/shadow/radius/sheen) and reusable glass primitives, then applied those surfaces to core app UI shells (navigation, cards, and key page containers) for a consistent Liquid Glass-inspired look.
+- Added a user-facing Glass Effects preference (On / Reduced / Off) in Settings, persisted locally and wired to global styling behavior.
+WHY:
+- A single source of truth for translucent surfaces keeps styling consistent and easier to maintain while avoiding ad hoc blur stacking.
+- Giving users control over effect intensity improves accessibility/performance, especially when reduced motion or lower visual complexity is preferred.
+
 ### Changed
 WHAT:
 - Added a reusable `tapFeedbackClass` interaction pattern for session controls with press-scale, subtle press opacity shift, and short transition timing.

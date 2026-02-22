@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { AppNav } from "@/components/AppNav";
+import { Glass } from "@/components/ui/Glass";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -130,7 +131,7 @@ export default async function RoutinesPage() {
           const isActive = profile.active_routine_id === routine.id;
 
           return (
-            <li key={routine.id} className="space-y-2 rounded-md bg-white p-3 shadow-sm">
+            <Glass key={routine.id} variant="base" className="space-y-2 p-3" interactive={false}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold">{routine.name}</p>
@@ -163,13 +164,13 @@ export default async function RoutinesPage() {
                   {isActive ? "Active" : "Set Active"}
                 </button>
               </form>
-            </li>
+            </Glass>
           );
         })}
       </ul>
 
       {routines.length === 0 ? (
-        <p className="rounded-md bg-white p-3 text-sm text-slate-500 shadow-sm">No routines yet.</p>
+        <Glass variant="base" className="p-3 text-sm text-slate-500" interactive={false}>No routines yet.</Glass>
       ) : null}
       <AppNav />
     </section>

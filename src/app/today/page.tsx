@@ -4,6 +4,7 @@ import { AppNav } from "@/components/AppNav";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { Glass } from "@/components/ui/Glass";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
@@ -238,7 +239,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       <h1 className="text-2xl font-semibold">Today</h1>
 
       {todayPayload.routine && !fetchFailed ? (
-        <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
+        <Glass variant="base" className="space-y-3 p-4" interactive={false}>
           <OfflineSyncBadge />
           <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
           {todayPayload.inProgressSessionId ? <p className="inline-flex rounded-full border border-accent/25 bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">In progress</p> : null}
@@ -261,7 +262,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</button>
             </form>
           )}
-        </div>
+        </Glass>
       ) : (
         <TodayClientShell payload={todayPayload} fetchFailed={fetchFailed} />
       )}
