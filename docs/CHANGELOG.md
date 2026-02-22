@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Added PWA install metadata (`manifest.ts`) and iOS Add-to-Home-Screen metadata in the root layout, including references to generated Android and Apple icon files.
+- Added text-only PWA source assets plus a build-time asset generator script (`sharp`) that creates required PNG icons in `public/` during `prebuild`.
+- Updated `.gitignore` to keep generated icon/splash PNG binaries out of git history.
+WHY:
+- iOS and Android install flows need PNG icon assets for reliable home-screen behavior.
+- Generating binaries at build time keeps pull requests text-diffable and compatible with tooling that rejects binary file diffs.
+
 ### Fixed
 WHAT:
 - Retuned the glass visual tokens to reduce harsh glare: softer sheen intensity, lower blur/saturation levels, calmer elevation, and slightly denser tint for dark-mode readability.
