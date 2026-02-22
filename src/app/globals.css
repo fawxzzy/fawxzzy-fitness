@@ -82,6 +82,10 @@ a:focus-visible {
   .bg-surface-2-strong {
     background-color: rgb(var(--surface-2) / 0.55);
   }
+
+  .bg-surface-2-active {
+    background-color: rgb(var(--surface-2) / 0.5);
+  }
   .bg-white {
     background-color: rgb(var(--surface));
   }

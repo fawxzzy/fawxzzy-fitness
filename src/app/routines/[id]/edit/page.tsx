@@ -226,7 +226,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             <Link
               key={day.id}
               href={`/routines/${params.id}/edit/day/${day.id}`}
-              className="block cursor-pointer rounded-md border border-slate-300 bg-surface-soft p-4 transition-colors hover:border-[rgb(var(--border)/0.8)] hover:bg-surface-2-soft active:bg-[rgb(var(--surface-2)/0.5)]"
+              className="block cursor-pointer rounded-md border border-slate-300 bg-surface-soft p-4 transition-colors hover:border-[rgb(var(--border)/0.8)] hover:bg-surface-2-soft active:bg-surface-2-active"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
