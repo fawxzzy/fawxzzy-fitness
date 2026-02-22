@@ -74,6 +74,8 @@ export function SessionExerciseFocus({
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const focusedRef = useRef<HTMLElement | null>(null);
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
@@ -87,16 +89,50 @@ export function SessionExerciseFocus({
     focusedRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedExerciseId]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    syncPreference();
+    mediaQuery.addEventListener("change", syncPreference);
+    return () => mediaQuery.removeEventListener("change", syncPreference);
+  }, []);
+
+  async function handleRemoveExercise(exerciseId: string) {
+    const formData = new FormData();
+    formData.set("sessionId", sessionId);
+    formData.set("sessionExerciseId", exerciseId);
+
+    setRemovingExerciseIds((current) => (current.includes(exerciseId) ? current : [...current, exerciseId]));
+
+    try {
+      if (!prefersReducedMotion) {
+        await new Promise((resolve) => setTimeout(resolve, 140));
+      }
+      await removeExerciseAction(formData);
+    } catch {
+      setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
+    }
+  }
+
   return (
     <div className="space-y-3">
       {selectedExerciseId === null ? (
         <ul className="space-y-2">
-          {exercises.map((exercise) => (
-            <li key={exercise.id}>
+          {exercises.map((exercise) => {
+            const isRemoving = removingExerciseIds.includes(exercise.id);
+
+            return (
+            <li
+              key={exercise.id}
+              className={[
+                "origin-top transition-all duration-150 motion-reduce:transition-none",
+                isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-40 scale-100 opacity-100",
+              ].join(" ")}
+            >
               <button
                 type="button"
                 onClick={() => setSelectedExerciseId(exercise.id)}
-                className="w-full rounded-md bg-white p-3 text-left shadow-sm"
+                className="w-full rounded-md bg-white p-3 text-left shadow-sm transition-all duration-150 motion-reduce:transition-none"
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold">{exercise.name}</p>
@@ -108,7 +144,8 @@ export function SessionExerciseFocus({
                 {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-700">Skipped</p> : null}
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : (
         <div className="rounded-md bg-white p-3 shadow-sm">
@@ -121,13 +158,19 @@ export function SessionExerciseFocus({
 
       {exercises.map((exercise) => {
         const isVisible = selectedExerciseId === exercise.id;
+        const isRemoving = removingExerciseIds.includes(exercise.id);
 
         return (
           <article
             key={exercise.id}
             ref={isVisible ? focusedRef : null}
-            className="space-y-2 rounded-md bg-white p-3 shadow-sm"
-            style={{ display: isVisible ? "block" : "none" }}
+            className={[
+              "space-y-2 overflow-hidden rounded-md bg-white p-3 shadow-sm",
+              "origin-top transition-all duration-150 motion-reduce:transition-none",
+              isVisible && !isRemoving
+                ? "max-h-[1200px] scale-100 opacity-100"
+                : "pointer-events-none max-h-0 scale-[0.98] p-0 opacity-0",
+            ].join(" ")}
             aria-hidden={!isVisible}
           >
             <div className="flex items-center justify-between gap-2">
@@ -159,6 +202,14 @@ export function SessionExerciseFocus({
                   <input type="hidden" name="sessionExerciseId" value={exercise.id} />
                   <button type="submit" className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700">Remove</button>
                 </form>
+                <button
+                  type="button"
+                  onClick={() => void handleRemoveExercise(exercise.id)}
+                  disabled={isRemoving}
+                  className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 disabled:opacity-50"
+                >
+                  {isRemoving ? "Removing..." : "Remove"}
+                </button>
               </div>
             </div>
 

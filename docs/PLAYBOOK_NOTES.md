@@ -104,4 +104,10 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: patterns/frontend/action-feedback.md
 - Rationale: Shared toast handling keeps feedback consistent and low-friction while preserving strict server-action ownership of data writes.
 - Evidence: src/components/ui/ToastProvider.tsx, src/lib/action-feedback.ts, src/components/SessionHeaderControls.tsx, src/components/SessionAddExerciseForm.tsx, src/components/SessionExerciseFocus.tsx
+## 2026-02-22 — Prefer short reduced-motion-safe transitions for session logging lists
+- Type: Pattern
+- Summary: For high-frequency workout logging UI (exercise focus toggles, set list updates), use short enter/exit transitions with `prefers-reduced-motion` fallback instead of hard visibility jumps.
+- Suggested Playbook File: patterns/frontend/motion-accessibility.md
+- Rationale: Small motion cues preserve spatial continuity without slowing core flows, while reduced-motion fallback keeps the interaction accessible.
+- Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx
 - Status: Proposed
