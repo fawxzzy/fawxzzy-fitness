@@ -101,6 +101,7 @@ export function SessionTimerCard({
 }
 
 type DisplaySet = SetRow & { pending?: boolean; queueStatus?: SetLogQueueItem["status"] };
+type AnimatedDisplaySet = DisplaySet & { isLeaving?: boolean };
 
 export function SetLoggerCard({
   sessionId,
@@ -130,7 +131,46 @@ export function SetLoggerCard({
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [tapReps, setTapReps] = useState(0);
+  const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    syncPreference();
+    mediaQuery.addEventListener("change", syncPreference);
+    return () => mediaQuery.removeEventListener("change", syncPreference);
+  }, []);
+
+  useEffect(() => {
+    setAnimatedSets((current) => {
+      const nextIds = new Set(sets.map((set) => set.id));
+      const removed = current
+        .filter((set) => !nextIds.has(set.id))
+        .map((set) => ({ ...set, isLeaving: true }));
+      const merged = [...sets, ...removed];
+      const uniqueById = new Map<string, AnimatedDisplaySet>();
+      for (const set of merged) {
+        uniqueById.set(set.id, set);
+      }
+      return Array.from(uniqueById.values());
+    });
+  }, [sets]);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setAnimatedSets(sets);
+      return;
+    }
+    if (!animatedSets.some((set) => set.isLeaving)) {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setAnimatedSets((current) => current.filter((set) => !set.isLeaving));
+    }, 140);
+    return () => window.clearTimeout(timeout);
+  }, [animatedSets, prefersReducedMotion, sets]);
 
   useEffect(() => {
     const engine = createSetLogSyncEngine({
@@ -489,8 +529,15 @@ export function SetLoggerCard({
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
       <ul className="space-y-1 text-sm">
-        {sets.map((set) => (
-          <li key={set.id} className="rounded-md bg-slate-50 px-2 py-1">
+        {animatedSets.map((set) => (
+          <li
+            key={set.id}
+            className={[
+              "rounded-md bg-slate-50 px-2 py-1",
+              "origin-top transition-all duration-150 motion-reduce:transition-none",
+              set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
+            ].join(" ")}
+          >
             #{set.set_index + 1} · {set.weight} {unitLabel} × {set.reps}
             {set.duration_seconds !== null ? ` · ${set.duration_seconds}s` : ""}
             {set.queueStatus ? ` · ${set.queueStatus}` : ""}

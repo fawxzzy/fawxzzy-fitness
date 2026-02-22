@@ -97,3 +97,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Users should not lose training data during transient failures, and queued-state visibility avoids false confidence about server persistence.
 - Evidence: src/lib/offline/set-log-queue.ts, src/components/SessionTimers.tsx
 - Status: Proposed
+
+## 2026-02-22 — Prefer short reduced-motion-safe transitions for session logging lists
+- Type: Pattern
+- Summary: For high-frequency workout logging UI (exercise focus toggles, set list updates), use short enter/exit transitions with `prefers-reduced-motion` fallback instead of hard visibility jumps.
+- Suggested Playbook File: patterns/frontend/motion-accessibility.md
+- Rationale: Small motion cues preserve spatial continuity without slowing core flows, while reduced-motion fallback keeps the interaction accessible.
+- Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx
+- Status: Proposed
