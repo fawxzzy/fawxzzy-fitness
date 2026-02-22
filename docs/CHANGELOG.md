@@ -4,6 +4,12 @@
 
 ### Changed
 WHAT:
+- Clarified History card split actions by keeping `View` as the primary button and relabeling the secondary action to `Manage` with a quieter visual treatment.
+WHY:
+- Explicit primary/secondary action hierarchy better signals “open vs manage” intent on mobile list cards and reduces accidental taps.
+
+### Changed
+WHAT:
 - Tuned the History timeline to use an explicit fixed-height scroll window on mobile with snap alignment while relaxing the height cap on larger breakpoints.
 WHY:
 - A fixed mobile viewport keeps the surrounding shell anchored and improves orientation when cycling long chronological card feeds.
