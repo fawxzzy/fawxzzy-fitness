@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import { SessionTimerCard } from "@/components/SessionTimers";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { useToast } from "@/components/ui/ToastProvider";
+import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 
 type SaveSessionActionResult = {
@@ -24,7 +25,7 @@ function SaveSessionButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className={`w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto ${tapFeedbackClass}`}
     >
       {pending ? "Saving..." : "✓ Save Session"}
     </button>

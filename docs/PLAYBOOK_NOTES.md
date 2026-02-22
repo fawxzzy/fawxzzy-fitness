@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: <file paths in this repo that triggered the note>
 - Status: Proposed | Upstreamed | Rejected
 
+## 2026-02-22 — Standardize mobile press feedback via shared class constant
+- Type: Pattern
+- Summary: Use a shared tap-feedback utility constant (`active` scale + opacity + short transition) for button-like controls in touch-heavy flows, and pair it with existing `focus-visible` rings.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Repeated one-off press states drift quickly; a shared constant keeps touch response consistent without regressing keyboard accessibility.
+- Evidence: src/components/ui/interactionClasses.ts, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/SessionHeaderControls.tsx, src/app/session/[id]/page.tsx
+- Status: Proposed
+
 ## 2026-02-22 — Pair offline queue sync with server idempotency fallback
 - Type: Guardrail
 - Summary: When syncing offline append-only logs, couple FIFO retry/backoff in the client queue with server-side idempotency (`client_log_id` if present, deterministic payload dedupe fallback if not).

@@ -9,6 +9,7 @@ import {
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
+import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 
 type AddSetPayload = {
   sessionId: string;
@@ -81,7 +82,7 @@ export function SessionTimerCard({
             }
             setIsRunning((value) => !value);
           }}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
         >
           {isRunning ? "Pause" : "Start"}
         </button>
@@ -92,7 +93,7 @@ export function SessionTimerCard({
             setElapsedSeconds(0);
             await persistDurationAction({ sessionId, durationSeconds: 0 });
           }}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
         >
           Reset
         </button>
@@ -464,7 +465,7 @@ export function SetLoggerCard({
             setDurationSeconds("");
             setIsRunning(true);
           }}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
         >
           Start Set
         </button>
@@ -477,7 +478,7 @@ export function SetLoggerCard({
               setReps(String(tapReps));
             }
           }}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
         >
           Stop
         </button>
@@ -490,7 +491,7 @@ export function SetLoggerCard({
           <button
             type="button"
             onClick={() => setTapReps((value) => value + 1)}
-            className="w-full rounded-md bg-accent px-4 py-4 text-base font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+            className={`w-full rounded-md bg-accent px-4 py-4 text-base font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
           >
             Tap Rep
           </button>
@@ -547,7 +548,7 @@ export function SetLoggerCard({
           type="button"
           onClick={handleLogSet}
           disabled={isSubmitting}
-          className="col-span-2 rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-60"
+          className={`col-span-2 rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-60 ${tapFeedbackClass}`}
         >
           Log Set
         </button>
