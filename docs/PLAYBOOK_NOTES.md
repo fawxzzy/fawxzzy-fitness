@@ -67,3 +67,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Named token utilities keep container styling consistent across collapsible states and reduce regression risk when refactoring utility classes.
 - Evidence: src/app/globals.css, src/components/ui/CollapsibleCard.tsx, src/app/routines/[id]/edit/page.tsx
 - Status: Proposed
+
+## 2026-02-22 — Use explicit stale guardrails for offline training snapshots
+- Type: Pattern
+- Summary: When adding offline fallbacks for workout-day screens, cache a normalized snapshot with schema version + timestamp and always show a visible stale-data indicator when rendering cached content.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Offline continuity should preserve usability without implying live freshness; explicit staleness metadata reduces trust errors and support confusion.
+- Evidence: src/lib/offline/today-cache.ts, src/app/today/page.tsx, src/app/today/TodayClientShell.tsx, src/app/today/TodayOfflineBridge.tsx
+- Status: Proposed

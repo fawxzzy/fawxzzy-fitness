@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { TodayClientShell } from "@/app/today/TodayClientShell";
+import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
+import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { formatRepTarget, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -111,103 +114,146 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   let todayDayIndex: number | null = null;
   let completedTodayCount = 0;
   let inProgressSession: SessionRow | null = null;
+  let fetchFailed = false;
 
   if (profile.active_routine_id) {
-    const { data: routine } = await supabase
-      .from("routines")
-      .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
-      .eq("id", profile.active_routine_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    activeRoutine = (routine as RoutineRow | null) ?? null;
-
-    if (activeRoutine) {
-      const { dayIndex } = getRoutineDayComputation({
-        cycleLengthDays: activeRoutine.cycle_length_days,
-        startDate: activeRoutine.start_date,
-        profileTimeZone: profile.timezone,
-      });
-
-      todayDayIndex = dayIndex;
-
-      const { data: routineDay } = await supabase
-        .from("routine_days")
-        .select("id, user_id, routine_id, day_index, name, is_rest, notes")
-        .eq("routine_id", activeRoutine.id)
-        .eq("day_index", todayDayIndex)
+    try {
+      const { data: routine } = await supabase
+        .from("routines")
+        .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
+        .eq("id", profile.active_routine_id)
         .eq("user_id", user.id)
-        .single();
-
-      todayRoutineDay = (routineDay as RoutineDayRow | null) ?? null;
-
-      if (todayRoutineDay) {
-        const { data: exercises } = await supabase
-          .from("routine_day_exercises")
-          .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
-          .eq("routine_day_id", todayRoutineDay.id)
-          .eq("user_id", user.id)
-          .order("position", { ascending: true });
-
-        dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
-      }
-
-      const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone);
-
-      const { count: completedTodayCountValue } = await supabase
-        .from("sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "completed")
-        .eq("routine_id", activeRoutine.id)
-        .gte("performed_at", startIso)
-        .lt("performed_at", endIso)
-        .limit(1);
-
-      completedTodayCount = completedTodayCountValue ?? 0;
-
-      const { data: inProgress } = await supabase
-        .from("sessions")
-        .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
-        .eq("user_id", user.id)
-        .eq("routine_id", activeRoutine.id)
-        .eq("status", "in_progress")
-        .gte("performed_at", startIso)
-        .lt("performed_at", endIso)
-        .order("performed_at", { ascending: false })
-        .limit(1)
         .maybeSingle();
 
-      inProgressSession = (inProgress as SessionRow | null) ?? null;
+      activeRoutine = (routine as RoutineRow | null) ?? null;
+
+      if (activeRoutine) {
+        const { dayIndex } = getRoutineDayComputation({
+          cycleLengthDays: activeRoutine.cycle_length_days,
+          startDate: activeRoutine.start_date,
+          profileTimeZone: profile.timezone,
+        });
+
+        todayDayIndex = dayIndex;
+
+        const { data: routineDay } = await supabase
+          .from("routine_days")
+          .select("id, user_id, routine_id, day_index, name, is_rest, notes")
+          .eq("routine_id", activeRoutine.id)
+          .eq("day_index", todayDayIndex)
+          .eq("user_id", user.id)
+          .single();
+
+        todayRoutineDay = (routineDay as RoutineDayRow | null) ?? null;
+
+        if (todayRoutineDay) {
+          const { data: exercises } = await supabase
+            .from("routine_day_exercises")
+            .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
+            .eq("routine_day_id", todayRoutineDay.id)
+            .eq("user_id", user.id)
+            .order("position", { ascending: true });
+
+          dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
+        }
+
+        const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone);
+
+        const { count: completedTodayCountValue } = await supabase
+          .from("sessions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "completed")
+          .eq("routine_id", activeRoutine.id)
+          .gte("performed_at", startIso)
+          .lt("performed_at", endIso)
+          .limit(1);
+
+        completedTodayCount = completedTodayCountValue ?? 0;
+
+        const { data: inProgress } = await supabase
+          .from("sessions")
+          .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
+          .eq("user_id", user.id)
+          .eq("routine_id", activeRoutine.id)
+          .eq("status", "in_progress")
+          .gte("performed_at", startIso)
+          .lt("performed_at", endIso)
+          .order("performed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        inProgressSession = (inProgress as SessionRow | null) ?? null;
+      }
+    } catch {
+      fetchFailed = true;
     }
   }
 
   const exerciseNameMap = await getExerciseNameMap();
+  const routineName = activeRoutine?.name ?? null;
+  const routineDayName = todayRoutineDay ? todayRoutineDay.name ?? `Day ${todayDayIndex ?? todayRoutineDay.day_index}` : null;
+
+  const todayPayload = {
+    routine:
+      activeRoutine && todayRoutineDay && todayDayIndex !== null && routineDayName
+        ? {
+            id: activeRoutine.id,
+            name: routineName ?? "Routine",
+            dayIndex: todayDayIndex,
+            dayName: routineDayName,
+            isRest: todayRoutineDay.is_rest,
+          }
+        : null,
+    exercises: dayExercises.map((exercise) => ({
+      id: exercise.id,
+      name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+      targets: exercise.target_sets
+        ? `${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
+        : null,
+      notes: exercise.notes,
+    })),
+    completedTodayCount,
+    inProgressSessionId: inProgressSession?.id ?? null,
+  };
+
+  const todaySnapshot: TodayCacheSnapshot | null =
+    todayPayload.routine === null
+      ? null
+      : {
+          schemaVersion: TODAY_CACHE_SCHEMA_VERSION,
+          capturedAt: new Date().toISOString(),
+          routine: todayPayload.routine,
+          exercises: todayPayload.exercises,
+          hints: {
+            inProgressSessionId: todayPayload.inProgressSessionId,
+            completedTodayCount,
+            recentExerciseIds: dayExercises.map((exercise) => exercise.exercise_id),
+          },
+        };
 
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Today</h1>
 
-      {activeRoutine && todayRoutineDay && todayDayIndex ? (
+      {todayPayload.routine && !fetchFailed ? (
         <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
-          <h2 className="text-lg font-semibold text-text">{activeRoutine.name}: {todayRoutineDay.is_rest ? `REST DAY — ${todayRoutineDay.name ?? `Day ${todayDayIndex}`}` : todayRoutineDay.name ?? `Day ${todayDayIndex}`}</h2>
-          {inProgressSession ? <p className="inline-flex rounded-full border border-accent/25 bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">In progress</p> : null}
-          <p className="text-xs text-muted">Completed (this routine) today: {completedTodayCount}</p>
+          <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
+          {todayPayload.inProgressSessionId ? <p className="inline-flex rounded-full border border-accent/25 bg-accent/15 px-3 py-1 text-xs font-semibold text-accent">In progress</p> : null}
+          <p className="text-xs text-muted">Completed (this routine) today: {todayPayload.completedTodayCount}</p>
 
           <ul className="space-y-1 text-sm">
-            {dayExercises.map((exercise) => (
+            {todayPayload.exercises.map((exercise) => (
               <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">
-                {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
-                {exercise.target_sets
-                  ? ` · ${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
-                  : ""}
+                {exercise.name}
+                {exercise.targets ? ` · ${exercise.targets}` : ""}
               </li>
             ))}
-            {dayExercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
+            {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
           </ul>
 
-          {inProgressSession ? (
-            <Link href={`/session/${inProgressSession.id}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</Link>
+          {todayPayload.inProgressSessionId ? (
+            <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</Link>
           ) : (
             <form action={startSessionAction}>
               <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</button>
@@ -215,11 +261,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           )}
         </div>
       ) : (
-        <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
-          <p className="text-sm text-muted">No active routine selected.</p>
-          <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">Go to Routines</Link>
-        </div>
+        <TodayClientShell payload={todayPayload} fetchFailed={fetchFailed} />
       )}
+
+      <TodayOfflineBridge snapshot={todaySnapshot} />
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
 
