@@ -73,8 +73,8 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <Glass variant="raised" className="sticky top-4 z-20 p-2" interactive={false}>
-      <p className="px-2 pb-2 text-center text-sm font-semibold text-text">{activeLink?.label ?? "Fawxzzy Fitness"}</p>
+    <Glass variant="raised" className="sticky top-3 z-20 px-2 py-1.5" interactive={false}>
+      <p className="px-2 pb-1 text-center text-sm font-semibold text-text">{activeLink?.label ?? "Fawxzzy Fitness"}</p>
       <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
         {links.map((link) => {
           const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -86,7 +86,7 @@ export function AppNav() {
               href={link.href}
               prefetch
               aria-current={isActive ? "page" : undefined}
-              className={`group relative rounded-[var(--radius-sm)] px-2 py-2 transition-colors ${
+              className={`group relative rounded-[var(--radius-sm)] px-2 py-1.5 transition-colors ${
                 isActive
                   ? "bg-accent/16 font-semibold text-accent"
                   : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"

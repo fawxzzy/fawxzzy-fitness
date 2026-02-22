@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Slimmed the shared top tab bar spacing so it occupies less vertical height and leaves clearer separation from page content below.
+- Updated the Routines page to use the same contained, snap-scrolling list structure as History logs for consistent mobile list behavior.
+WHY:
+- The prior header felt visually heavy and crowded adjacent content on mobile.
+- Matching History’s scroll container pattern improves cross-tab consistency and keeps long routine lists easier to scan without shifting the full page.
+
 ### Fixed
 WHAT:
 - Consolidated session exercise removal to a single action button per focused exercise, using the existing form-action removal path with one in-flight state to prevent duplicate submits.
