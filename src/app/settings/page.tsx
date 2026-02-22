@@ -1,4 +1,6 @@
 import { AppNav } from "@/components/AppNav";
+import { GlassEffectsSettings } from "@/components/settings/GlassEffectsSettings";
+import { Glass } from "@/components/ui/Glass";
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
@@ -12,10 +14,11 @@ export default async function SettingsPage() {
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Settings</h1>
-      <div className="rounded-md bg-white p-4 shadow-sm">
+      <Glass variant="base" className="p-4" interactive={false}>
         <p className="text-sm text-slate-600">Logged in as</p>
         <p className="font-medium">{user.email}</p>
-      </div>
+      </Glass>
+      <GlassEffectsSettings />
       <SignOutButton />
       <AppNav />
     </section>

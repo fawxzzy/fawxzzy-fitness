@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
+import { Glass } from "@/components/ui/Glass";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionRow } from "@/types/db";
@@ -39,10 +40,10 @@ export default async function HistoryPage() {
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold text-white">History</h1>
 
-      <div className="rounded-2xl border border-slate-700/70 bg-slate-900/55 p-2">
+      <Glass variant="base" className="p-2" interactive={false}>
         <ul className="h-[68vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:h-auto md:max-h-[72vh]">
           {sessions.map((session, index) => (
-            <li key={session.id} className="snap-start rounded-xl border border-slate-300 bg-white p-4">
+            <li key={session.id} className="snap-start rounded-xl border border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] bg-[rgb(var(--glass-tint-rgb)/0.72)] p-4">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   Log #{sessions.length - index}
@@ -79,10 +80,10 @@ export default async function HistoryPage() {
             </li>
           ))}
         </ul>
-      </div>
+      </Glass>
 
       {sessions.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">No sessions yet.</p>
+        <Glass variant="base" className="border-dashed p-4 text-sm text-slate-500" interactive={false}>No sessions yet.</Glass>
       ) : null}
 
       <AppNav />
