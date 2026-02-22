@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Tuned the History timeline to use an explicit fixed-height scroll window on mobile with snap alignment while relaxing the height cap on larger breakpoints.
+WHY:
+- A fixed mobile viewport keeps the surrounding shell anchored and improves orientation when cycling long chronological card feeds.
+
 ### Fixed
 WHAT:
 - Added dark-theme utility overrides for `bg-slate-50` and `bg-slate-100` so newly logged set rows no longer render as pale/blank bars in the session logger.
