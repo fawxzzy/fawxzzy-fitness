@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+WHAT:
+- Replaced count-based set index assignment in session set logging with conflict-safe append allocation (`max(set_index) + 1`) and bounded retry behavior.
+- Added a database unique index on `(session_exercise_id, set_index)` for deterministic per-exercise set ordering.
+WHY:
+- Count-based indexing can collide during reconnect/offline flush races; uniqueness plus retry preserves append semantics while preventing duplicate set indexes.
+
 ### Changed
 WHAT:
 - Added a Today offline snapshot flow that writes normalized routine/day/exercise + session-start hints to browser storage after successful render hydration, using IndexedDB with localStorage fallback.

@@ -75,3 +75,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Offline continuity should preserve usability without implying live freshness; explicit staleness metadata reduces trust errors and support confusion.
 - Evidence: src/lib/offline/today-cache.ts, src/app/today/page.tsx, src/app/today/TodayClientShell.tsx, src/app/today/TodayOfflineBridge.tsx
 - Status: Proposed
+
+## 2026-02-22 — Guard set append order with DB uniqueness + retry
+- Type: Guardrail
+- Summary: For append-only child rows (like workout sets), avoid count-based indexes; enforce parent-scoped uniqueness in DB and retry on unique conflicts using `max(index)+1`.
+- Suggested Playbook File: patterns/backend/postgres-concurrency.md
+- Rationale: Offline reconnect flushes and concurrent inserts can duplicate ordinal indexes unless allocation is conflict-safe at the database boundary.
+- Evidence: src/app/session/[id]/page.tsx, supabase/migrations/013_sets_session_exercise_set_index_unique.sql
+- Status: Proposed
