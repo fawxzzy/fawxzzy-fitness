@@ -21,6 +21,23 @@ type AddSetActionResult = {
   set?: SetRow;
 };
 
+type SyncQueuedSetLogsAction = (payload: {
+  items: Array<{
+    id: string;
+    clientLogId: string;
+    sessionId: string;
+    sessionExerciseId: string;
+    payload: {
+      weight: number;
+      reps: number;
+      durationSeconds: number | null;
+      isWarmup: boolean;
+      rpe: number | null;
+      notes: string | null;
+    };
+  }>;
+}) => Promise<{ ok: boolean; results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>;
+
 type SessionExerciseFocusItem = {
   id: string;
   name: string;
@@ -35,6 +52,7 @@ export function SessionExerciseFocus({
   unitLabel,
   exercises,
   addSetAction,
+  syncQueuedSetLogsAction,
   toggleSkipAction,
   removeExerciseAction,
 }: {
@@ -42,6 +60,7 @@ export function SessionExerciseFocus({
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
   addSetAction: (payload: AddSetPayload) => Promise<AddSetActionResult>;
+  syncQueuedSetLogsAction: SyncQueuedSetLogsAction;
   toggleSkipAction: (formData: FormData) => Promise<void>;
   removeExerciseAction: (formData: FormData) => Promise<void>;
 }) {
@@ -126,6 +145,7 @@ export function SessionExerciseFocus({
               sessionId={sessionId}
               sessionExerciseId={exercise.id}
               addSetAction={addSetAction}
+              syncQueuedSetLogsAction={syncQueuedSetLogsAction}
               unitLabel={unitLabel}
               initialSets={exercise.initialSets}
             />

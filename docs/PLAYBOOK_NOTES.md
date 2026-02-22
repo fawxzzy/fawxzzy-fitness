@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: <file paths in this repo that triggered the note>
 - Status: Proposed | Upstreamed | Rejected
 
+## 2026-02-22 — Pair offline queue sync with server idempotency fallback
+- Type: Guardrail
+- Summary: When syncing offline append-only logs, couple FIFO retry/backoff in the client queue with server-side idempotency (`client_log_id` if present, deterministic payload dedupe fallback if not).
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Queue retries during reconnects can duplicate inserts without coordinated idempotency at the server boundary.
+- Evidence: src/lib/offline/sync-engine.ts, src/lib/offline/set-log-queue.ts, src/app/session/[id]/page.tsx, supabase/migrations/014_sets_client_log_id_unique.sql
+- Status: Proposed
+
 ## 2026-02-21 — Prefetch primary tab destinations for dynamic mobile shells
 - Type: Pattern
 - Summary: In dynamic App Router screens, prefetch sibling tab routes from the active nav shell and provide a route-level loading boundary to reduce perceived latency on tab switches.

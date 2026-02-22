@@ -17,6 +17,7 @@ export type SetLogQueueStatus = "queued" | "syncing" | "failed" | "synced";
 
 export type SetLogQueueItem = {
   id: string;
+  clientLogId: string;
   dedupeKey: string;
   schemaVersion: number;
   sessionId: string;
@@ -25,6 +26,10 @@ export type SetLogQueueItem = {
   createdAt: string;
   retryCount: number;
   status: SetLogQueueStatus;
+  lastAttemptAt?: string;
+  nextRetryAt?: string;
+  lastError?: string;
+  syncedAt?: string;
   serverSetId?: string;
 };
 
@@ -87,6 +92,7 @@ export async function enqueueSetLog(input: {
   const now = new Date().toISOString();
   const baseItem: Omit<SetLogQueueItem, "dedupeKey"> = {
     id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `queued-${Date.now()}`,
+    clientLogId: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `client-${Date.now()}`,
     schemaVersion: SET_LOG_QUEUE_SCHEMA_VERSION,
     sessionId: input.sessionId,
     sessionExerciseId: input.sessionExerciseId,
@@ -152,6 +158,51 @@ export async function readQueuedSetLogsBySessionExerciseId(sessionExerciseId: st
     return items
       .filter((item) => item.schemaVersion === SET_LOG_QUEUE_SCHEMA_VERSION)
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  } finally {
+    db.close();
+  }
+}
+
+export async function readPendingSetLogs(): Promise<SetLogQueueItem[]> {
+  if (!canUseIndexedDb()) {
+    return [];
+  }
+
+  const db = await openOfflineDb();
+  try {
+    const items = await new Promise<SetLogQueueItem[]>((resolve, reject) => {
+      const tx = db.transaction(SET_LOG_QUEUE_STORE, "readonly");
+      const store = tx.objectStore(SET_LOG_QUEUE_STORE);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        resolve((request.result as SetLogQueueItem[] | undefined) ?? []);
+      };
+      request.onerror = () => reject(request.error ?? new Error("Unable to read queued set logs."));
+    });
+
+    return items
+      .filter((item) => item.schemaVersion === SET_LOG_QUEUE_SCHEMA_VERSION && item.status !== "synced")
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  } finally {
+    db.close();
+  }
+}
+
+export async function updateSetLogQueueItem(item: SetLogQueueItem): Promise<void> {
+  if (!canUseIndexedDb()) {
+    return;
+  }
+
+  const db = await openOfflineDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(SET_LOG_QUEUE_STORE, "readwrite");
+      tx.objectStore(SET_LOG_QUEUE_STORE).put(item);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("Unable to update queued set log."));
+      tx.onabort = () => reject(tx.error ?? new Error("Queued set log update aborted."));
+    });
   } finally {
     db.close();
   }

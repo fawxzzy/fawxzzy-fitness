@@ -7,6 +7,7 @@ import {
   readQueuedSetLogsBySessionExerciseId,
   type SetLogQueueItem,
 } from "@/lib/offline/set-log-queue";
+import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 
 type AddSetPayload = {
   sessionId: string;
@@ -17,6 +18,7 @@ type AddSetPayload = {
   isWarmup: boolean;
   rpe: number | null;
   notes: string | null;
+  clientLogId?: string;
 };
 
 type AddSetActionResult = {
@@ -104,12 +106,16 @@ export function SetLoggerCard({
   sessionId,
   sessionExerciseId,
   addSetAction,
+  syncQueuedSetLogsAction,
   unitLabel,
   initialSets,
 }: {
   sessionId: string;
   sessionExerciseId: string;
   addSetAction: (payload: AddSetPayload) => Promise<AddSetActionResult>;
+  syncQueuedSetLogsAction: (payload: {
+    items: SetLogQueueItem[];
+  }) => Promise<{ ok: boolean; results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>;
   unitLabel: string;
   initialSets: SetRow[];
 }) {
@@ -125,6 +131,31 @@ export function SetLoggerCard({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [tapReps, setTapReps] = useState(0);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const engine = createSetLogSyncEngine({
+      syncSetLogsAction: syncQueuedSetLogsAction,
+      onQueueUpdate: () => {
+        void readQueuedSetLogsBySessionExerciseId(sessionExerciseId).then((queued) => {
+          setSets((current) =>
+            current.map((set) => {
+              const queuedMatch = queued.find((item) => item.id === set.id);
+              if (!queuedMatch) {
+                return set;
+              }
+              return {
+                ...set,
+                queueStatus: queuedMatch.status,
+              };
+            }),
+          );
+        });
+      },
+    });
+
+    engine.start();
+    return () => engine.stop();
+  }, [sessionExerciseId, syncQueuedSetLogsAction]);
 
   useEffect(() => {
     let isCancelled = false;
