@@ -94,35 +94,53 @@ async function addSetAction(payload: {
     return { ok: false, error: "Time must be an integer in seconds" };
   }
 
-  const { count } = await supabase
-    .from("sets")
-    .select("id", { head: true, count: "exact" })
-    .eq("session_exercise_id", sessionExerciseId)
-    .eq("user_id", user.id);
+  // Append semantics are based on MAX(set_index) + 1 instead of count-based indexing.
+  // A unique DB constraint plus retry-on-conflict prevents duplicate indexes when offline
+  // actions reconnect and flush concurrently for the same session exercise.
+  const MAX_SET_INDEX_RETRIES = 5;
 
-  const nextSetIndex = count ?? 0;
+  for (let attempt = 0; attempt < MAX_SET_INDEX_RETRIES; attempt += 1) {
+    const { data: latestSet, error: latestSetError } = await supabase
+      .from("sets")
+      .select("set_index")
+      .eq("session_exercise_id", sessionExerciseId)
+      .eq("user_id", user.id)
+      .order("set_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  const { data: insertedSet, error } = await supabase
-    .from("sets")
-    .insert({
-      session_exercise_id: sessionExerciseId,
-      user_id: user.id,
-      set_index: nextSetIndex,
-      weight,
-      reps,
-      duration_seconds: durationSeconds,
-      is_warmup: isWarmup,
-      rpe,
-      notes,
-    })
-    .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
-    .single();
+    if (latestSetError) {
+      return { ok: false, error: latestSetError.message };
+    }
 
-  if (error || !insertedSet) {
-    return { ok: false, error: error?.message ?? "Could not log set" };
+    const nextSetIndex = latestSet ? latestSet.set_index + 1 : 0;
+
+    const { data: insertedSet, error } = await supabase
+      .from("sets")
+      .insert({
+        session_exercise_id: sessionExerciseId,
+        user_id: user.id,
+        set_index: nextSetIndex,
+        weight,
+        reps,
+        duration_seconds: durationSeconds,
+        is_warmup: isWarmup,
+        rpe,
+        notes,
+      })
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+      .single();
+
+    if (!error && insertedSet) {
+      return { ok: true, set: insertedSet as SetRow };
+    }
+
+    if (error?.code !== "23505") {
+      return { ok: false, error: error?.message ?? "Could not log set" };
+    }
   }
 
-  return { ok: true, set: insertedSet as SetRow };
+  return { ok: false, error: "Could not log set after retrying index allocation" };
 }
 
 async function toggleSkipAction(formData: FormData) {
