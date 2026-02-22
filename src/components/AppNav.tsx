@@ -60,6 +60,7 @@ const links: NavLink[] = [
 export function AppNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const activeLink = links.find((link) => pathname === link.href || pathname.startsWith(`${link.href}/`));
 
   useEffect(() => {
     for (const link of links) {
@@ -72,7 +73,8 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <Glass variant="raised" className="mt-8 p-1" interactive={false}>
+    <Glass variant="raised" className="sticky top-4 z-20 p-2" interactive={false}>
+      <p className="px-2 pb-2 text-center text-sm font-semibold text-text">{activeLink?.label ?? "Fawxzzy Fitness"}</p>
       <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
         {links.map((link) => {
           const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);

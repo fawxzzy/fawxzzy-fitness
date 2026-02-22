@@ -117,24 +117,23 @@ export default async function RoutinesPage() {
 
   return (
     <section className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Routines</h1>
-        <p className="text-sm text-slate-600">Timezone: {profile.timezone}</p>
-      </div>
+      <AppNav />
+
+      <p className="text-sm text-slate-600">Timezone: {profile.timezone}</p>
 
       <Link href="/routines/new" className="block rounded-md bg-accent px-4 py-3 text-center text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
         Create Routine
       </Link>
 
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {routines.map((routine) => {
           const isActive = profile.active_routine_id === routine.id;
 
           return (
-            <Glass key={routine.id} variant="base" className="space-y-2 p-3" interactive={false}>
+            <li key={routine.id} className="snap-start rounded-xl border border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] bg-[rgb(var(--glass-tint-rgb)/0.72)] p-4">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold">{routine.name}</p>
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
                   <p className="text-xs text-slate-600">{routine.cycle_length_days} day cycle · {routine.weight_unit}</p>
                 </div>
                 <div className="flex gap-3 text-sm">
@@ -157,14 +156,14 @@ export default async function RoutinesPage() {
                 <button
                   type="submit"
                   disabled={isActive}
-                  className={`w-full rounded-md px-3 py-2 text-sm ${
-                    isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-300 text-slate-700"
+                  className={`mt-3 w-full rounded-md px-3 py-2 text-sm ${
+                    isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
                   }`}
                 >
                   {isActive ? "Active" : "Set Active"}
                 </button>
               </form>
-            </Glass>
+            </li>
           );
         })}
       </ul>
@@ -172,7 +171,6 @@ export default async function RoutinesPage() {
       {routines.length === 0 ? (
         <Glass variant="base" className="p-3 text-sm text-slate-500" interactive={false}>No routines yet.</Glass>
       ) : null}
-      <AppNav />
     </section>
   );
 }
