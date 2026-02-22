@@ -59,3 +59,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Partial utility mapping can leave isolated components in light palettes, creating “blank” rows where text contrast appears broken after state updates.
 - Evidence: src/app/globals.css, src/components/SessionTimers.tsx
 - Status: Proposed
+
+## 2026-02-22 — Prefer named theme-surface utilities over inline rgb(var()) formulas
+- Type: Guardrail
+- Summary: For dark-themed containers, prefer reusable semantic utilities (e.g., `bg-surface-soft`, `bg-surface-strong`) instead of repeating inline `bg-[rgb(var(--surface)/...)]` formulas.
+- Suggested Playbook File: patterns/frontend/theming-dark-mode.md
+- Rationale: Named token utilities keep container styling consistent across collapsible states and reduce regression risk when refactoring utility classes.
+- Evidence: src/app/globals.css, src/components/ui/CollapsibleCard.tsx, src/app/routines/[id]/edit/page.tsx
+- Status: Proposed
