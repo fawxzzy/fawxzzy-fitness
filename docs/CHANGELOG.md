@@ -48,8 +48,10 @@ WHY:
 WHAT:
 - Replaced count-based set index assignment in session set logging with conflict-safe append allocation (`max(set_index) + 1`) and bounded retry behavior.
 - Added a database unique index on `(session_exercise_id, set_index)` for deterministic per-exercise set ordering.
+- Narrowed session set idempotency checks to explicit `client_log_id` matches (scoped by session exercise + user) and removed payload-hash duplicate detection when no client log ID is supplied.
 WHY:
 - Count-based indexing can collide during reconnect/offline flush races; uniqueness plus retry preserves append semantics while preventing duplicate set indexes.
+- Payload-based matching could suppress legitimate repeated sets with identical values; explicit client IDs preserve safe retries without blocking intentional logs.
 
 ### Changed
 WHAT:
