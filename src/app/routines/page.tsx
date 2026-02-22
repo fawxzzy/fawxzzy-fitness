@@ -119,12 +119,14 @@ export default async function RoutinesPage() {
     <section className="flex min-h-[calc(100dvh-6.5rem)] flex-col gap-4">
       <AppNav />
 
-      <Link
-        href="/routines/new"
-        className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-      >
-        Create Routine
-      </Link>
+      <Glass variant="base" className="p-2" interactive={false}>
+        <Link
+          href="/routines/new"
+          className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+        >
+          Create Routine
+        </Link>
+      </Glass>
 
       <Glass variant="base" className="p-2" interactive={false}>
         <ul className="h-[68vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:h-auto md:max-h-[72vh]">

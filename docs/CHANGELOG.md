@@ -4,6 +4,11 @@
 
 ### Fixed
 WHAT:
+- Wrapped the Routines page "Create Routine" CTA in a glass card backdrop container so it visually matches surrounding list/navigation surfaces.
+WHY:
+- The primary action now aligns with the app's established card hierarchy and feels more cohesive in the Routines layout.
+
+WHAT:
 - Adjusted the Routines page primary "Create Routine" CTA to use the same button geometry and emphasis as other primary actions.
 - Matched the Routines list container height behavior to History so the card list fills the same bounded viewport region and no longer appears to stop short.
 WHY:
