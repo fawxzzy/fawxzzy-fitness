@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+WHAT:
+- Adjusted the Routines page primary "Create Routine" CTA to use the same button geometry and emphasis as other primary actions.
+- Matched the Routines list container height behavior to History so the card list fills the same bounded viewport region and no longer appears to stop short.
+WHY:
+- Consistent CTA proportions improve visual polish and tap-target predictability on mobile.
+- Aligning Routines with History container sizing removes uneven bottom spacing and keeps scrolling behavior consistent across tabs.
+
 ### Changed
 WHAT:
 - Added a back navigation control on the History log detail (view) screen so users can return to the history list in one tap.
