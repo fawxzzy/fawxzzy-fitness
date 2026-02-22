@@ -4,6 +4,14 @@
 
 ### Changed
 WHAT:
+- Added a dedicated History Log Details (audit) screen at `/history/[logId]` with a read-first layout and explicit Edit → Save/Cancel mode instead of reusing live session controls.
+- Reintroduced editable history fields for completed logs: day name override, session notes, and per-exercise notes.
+WHY:
+- Completed workout logs should feel like auditable records rather than resumable live sessions.
+- Explicit edit mode reduces accidental changes while still allowing lightweight post-workout context updates.
+
+### Changed
+WHAT:
 - Updated the Routines tab layout to use a viewport-contained list region so long routine lists stay fully visible on screen instead of being clipped at the bottom.
 - Removed the timezone text line from the Routines overview screen.
 WHY:
