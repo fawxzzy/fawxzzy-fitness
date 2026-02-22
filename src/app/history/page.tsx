@@ -40,7 +40,7 @@ export default async function HistoryPage() {
       <h1 className="text-2xl font-semibold text-white">History</h1>
 
       <div className="rounded-2xl border border-slate-700/70 bg-slate-900/55 p-2">
-        <ul className="max-h-[68vh] space-y-3 overflow-y-auto overscroll-contain pr-1 snap-y snap-mandatory">
+        <ul className="h-[68vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:h-auto md:max-h-[72vh]">
           {sessions.map((session, index) => (
             <li key={session.id} className="snap-start rounded-xl border border-slate-300 bg-white p-4">
               <div className="mb-2 flex items-center justify-between gap-2">
