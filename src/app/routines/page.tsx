@@ -125,48 +125,50 @@ export default async function RoutinesPage() {
         Create Routine
       </Link>
 
-      <ul className="space-y-3">
-        {routines.map((routine) => {
-          const isActive = profile.active_routine_id === routine.id;
+      <Glass variant="base" className="p-2" interactive={false}>
+        <ul className="h-[68vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:h-auto md:max-h-[72vh]">
+          {routines.map((routine) => {
+            const isActive = profile.active_routine_id === routine.id;
 
-          return (
-            <li key={routine.id} className="snap-start rounded-xl border border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] bg-[rgb(var(--glass-tint-rgb)/0.72)] p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 space-y-1">
-                  <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
-                  <p className="text-xs text-slate-600">{routine.cycle_length_days} day cycle · {routine.weight_unit}</p>
+            return (
+              <li key={routine.id} className="snap-start rounded-xl border border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] bg-[rgb(var(--glass-tint-rgb)/0.72)] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
+                    <p className="text-xs text-slate-600">{routine.cycle_length_days} day cycle · {routine.weight_unit}</p>
+                  </div>
+                  <div className="flex gap-3 text-sm">
+                    <Link href={`/routines/${routine.id}/edit`} className="text-slate-700 underline">
+                      Edit
+                    </Link>
+                    <form action={deleteRoutineAction}>
+                      <input type="hidden" name="routineId" value={routine.id} />
+                      <button
+                        type="submit"
+                        className="appearance-none border-0 bg-transparent p-0 text-red-600 underline transition-colors hover:text-red-700 focus:outline-none focus-visible:text-red-700"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
                 </div>
-                <div className="flex gap-3 text-sm">
-                  <Link href={`/routines/${routine.id}/edit`} className="text-slate-700 underline">
-                    Edit
-                  </Link>
-                  <form action={deleteRoutineAction}>
-                    <input type="hidden" name="routineId" value={routine.id} />
-                    <button
-                      type="submit"
-                      className="appearance-none border-0 bg-transparent p-0 text-red-600 underline transition-colors hover:text-red-700 focus:outline-none focus-visible:text-red-700"
-                    >
-                      Delete
-                    </button>
-                  </form>
-                </div>
-              </div>
-              <form action={setActiveRoutineAction}>
-                <input type="hidden" name="routineId" value={routine.id} />
-                <button
-                  type="submit"
-                  disabled={isActive}
-                  className={`mt-3 w-full rounded-md px-3 py-2 text-sm ${
-                    isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
-                  }`}
-                >
-                  {isActive ? "Active" : "Set Active"}
-                </button>
-              </form>
-            </li>
-          );
-        })}
-      </ul>
+                <form action={setActiveRoutineAction}>
+                  <input type="hidden" name="routineId" value={routine.id} />
+                  <button
+                    type="submit"
+                    disabled={isActive}
+                    className={`mt-3 w-full rounded-md px-3 py-2 text-sm ${
+                      isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
+                    }`}
+                  >
+                    {isActive ? "Active" : "Set Active"}
+                  </button>
+                </form>
+              </li>
+            );
+          })}
+        </ul>
+      </Glass>
 
       {routines.length === 0 ? (
         <Glass variant="base" className="p-3 text-sm text-slate-500" interactive={false}>No routines yet.</Glass>
