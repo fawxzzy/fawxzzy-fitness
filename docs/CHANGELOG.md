@@ -4,6 +4,13 @@
 
 ### Changed
 WHAT:
+- Replaced hard show/hide behavior for focused session exercise cards with quick expand/collapse transitions, and added reduced-motion-safe animation handling for session exercise card/list states.
+- Added short enter/exit transitions for logged set rows so set list updates feel smoother while preserving fast logging flow.
+WHY:
+- Animated visibility/list updates improve spatial continuity during workout logging without slowing down interaction speed, and reduced-motion support keeps the flow accessible.
+
+### Changed
+WHAT:
 - Added a lightweight offline/sync status badge component used in Session controls and Today cards to surface connection + queue state (`Offline`, `Saved locally`, `Syncing…`) with a brief `All changes synced` confirmation after queue drain.
 WHY:
 - Users logging workouts on mobile need low-noise confidence about whether entries are local-only, actively syncing, or fully synced without leaving the current flow.
