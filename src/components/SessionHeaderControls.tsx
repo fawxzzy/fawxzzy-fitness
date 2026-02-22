@@ -1,11 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { SessionTimerCard } from "@/components/SessionTimers";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { useToast } from "@/components/ui/ToastProvider";
+import { toastActionResult } from "@/lib/action-feedback";
 
-type ServerAction = (formData: FormData) => void | Promise<void>;
+type SaveSessionActionResult = {
+  ok: boolean;
+  error?: string;
+  message?: string;
+};
+
+type ServerAction = (formData: FormData) => Promise<SaveSessionActionResult>;
 type PersistDurationAction = (payload: { sessionId: string; durationSeconds: number }) => Promise<{ ok: boolean }>;
 
 function SaveSessionButton() {
@@ -34,12 +43,26 @@ export function SessionHeaderControls({
   persistDurationAction: PersistDurationAction;
 }) {
   const [durationSeconds, setDurationSeconds] = useState(initialDurationSeconds ?? 0);
+  const toast = useToast();
+  const router = useRouter();
 
   return (
     <div className="space-y-3">
       <div className="sticky top-2 z-10 space-y-2">
         <OfflineSyncBadge />
-        <form action={saveSessionAction}>
+        <form
+          action={async (formData) => {
+            const result = await saveSessionAction(formData);
+            toastActionResult(toast, result, {
+              success: "Workout saved.",
+              error: "Could not save workout.",
+            });
+
+            if (result.ok) {
+              router.push("/today?completed=1");
+            }
+          }}
+        >
           <input type="hidden" name="sessionId" value={sessionId} />
           <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
           <SaveSessionButton />

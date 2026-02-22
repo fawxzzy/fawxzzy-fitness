@@ -4,7 +4,8 @@ import { createHash } from "node:crypto";
 import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
 import { BackButton } from "@/components/ui/BackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { ExercisePicker } from "@/components/ExercisePicker";
+import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
+import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
@@ -61,7 +62,6 @@ type PageProps = {
   };
   searchParams?: {
     error?: string;
-    success?: string;
     exerciseId?: string;
   };
 };
@@ -292,7 +292,7 @@ async function addExerciseAction(formData: FormData) {
   const exerciseId = String(formData.get("exerciseId") ?? "");
 
   if (!sessionId || !exerciseId) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent("Missing exercise info")}`);
+    return { ok: false, error: "Missing exercise info" };
   }
 
   const { count } = await supabase
@@ -310,10 +310,11 @@ async function addExerciseAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidatePath(`/session/${sessionId}`);
+  return { ok: true, message: "Exercise added." };
 }
 
 async function removeExerciseAction(formData: FormData) {
@@ -326,7 +327,7 @@ async function removeExerciseAction(formData: FormData) {
   const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "");
 
   if (!sessionId || !sessionExerciseId) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent("Missing remove info")}`);
+    return { ok: false, error: "Missing remove info" };
   }
 
   const { error } = await supabase
@@ -337,10 +338,11 @@ async function removeExerciseAction(formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidatePath(`/session/${sessionId}`);
+  return { ok: true, message: "Exercise removed." };
 }
 
 async function persistDurationAction(payload: { sessionId: string; durationSeconds: number }) {
@@ -378,11 +380,11 @@ async function saveSessionAction(formData: FormData) {
   const durationSeconds = durationValue ? Number(durationValue) : null;
 
   if (!sessionId) {
-    redirect(`/today?error=${encodeURIComponent("Missing session info")}`);
+    return { ok: false, error: "Missing session info" };
   }
 
   if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent("Session time must be an integer in seconds")}`);
+    return { ok: false, error: "Session time must be an integer in seconds" };
   }
 
   const { error } = await supabase
@@ -392,12 +394,12 @@ async function saveSessionAction(formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidatePath("/today");
   revalidatePath("/history");
-  redirect("/today?completed=1");
+  return { ok: true, message: "Workout saved." };
 }
 
 export default async function SessionPage({ params, searchParams }: PageProps) {
@@ -462,7 +464,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       <p className="rounded-md bg-white p-3 text-sm shadow-sm">{new Date(sessionRow.performed_at).toLocaleString()}</p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-      {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
+      <ActionFeedbackToasts />
 
       <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
 
@@ -470,11 +472,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         <summary className="cursor-pointer list-none rounded-md bg-white px-4 py-3 text-sm font-semibold shadow-sm [&::-webkit-details-marker]:hidden">Add exercise</summary>
         <div className="mt-2 rounded-md bg-white p-3 shadow-sm">
         <div className="space-y-3">
-          <form action={addExerciseAction} className="space-y-2">
-            <input type="hidden" name="sessionId" value={params.id} />
-            <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
-            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Add</button>
-          </form>
+          <SessionAddExerciseForm
+            sessionId={params.id}
+            exercises={exerciseOptions}
+            initialSelectedId={searchParams?.exerciseId}
+            addExerciseAction={addExerciseAction}
+          />
 
           <form action={createCustomExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
             <input type="hidden" name="returnTo" value={`/session/${params.id}`} />

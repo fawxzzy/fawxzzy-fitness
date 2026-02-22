@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
+import { useToast } from "@/components/ui/ToastProvider";
+import { toastActionResult } from "@/lib/action-feedback";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -19,6 +22,12 @@ type AddSetActionResult = {
   ok: boolean;
   error?: string;
   set?: SetRow;
+};
+
+type ActionResult = {
+  ok: boolean;
+  error?: string;
+  message?: string;
 };
 
 type SyncQueuedSetLogsAction = (payload: {
@@ -62,7 +71,7 @@ export function SessionExerciseFocus({
   addSetAction: (payload: AddSetPayload) => Promise<AddSetActionResult>;
   syncQueuedSetLogsAction: SyncQueuedSetLogsAction;
   toggleSkipAction: (formData: FormData) => Promise<void>;
-  removeExerciseAction: (formData: FormData) => Promise<void>;
+  removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
@@ -72,6 +81,8 @@ export function SessionExerciseFocus({
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
     [exercises, selectedExerciseId],
   );
+  const toast = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     if (!selectedExerciseId || !focusedRef.current) return;
@@ -172,6 +183,24 @@ export function SessionExerciseFocus({
                   <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">
                     {exercise.isSkipped ? "Unskip" : "Skip"}
                   </button>
+                </form>
+                <form
+                  action={async (formData) => {
+                    const result = await removeExerciseAction(formData);
+                    toastActionResult(toast, result, {
+                      success: "Exercise removed.",
+                      error: "Could not remove exercise.",
+                    });
+
+                    if (result.ok) {
+                      setSelectedExerciseId(null);
+                      router.refresh();
+                    }
+                  }}
+                >
+                  <input type="hidden" name="sessionId" value={sessionId} />
+                  <input type="hidden" name="sessionExerciseId" value={exercise.id} />
+                  <button type="submit" className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700">Remove</button>
                 </form>
                 <button
                   type="button"

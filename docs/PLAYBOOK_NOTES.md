@@ -98,6 +98,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: src/lib/offline/set-log-queue.ts, src/components/SessionTimers.tsx
 - Status: Proposed
 
+## 2026-02-22 — Standardize client action feedback with app-level toasts
+- Type: Pattern
+- Summary: For mobile-heavy flows, centralize immediate server-action feedback in a root toast provider and reuse a tiny action-result helper (`ok/error/message`) across client form handlers.
+- Suggested Playbook File: patterns/frontend/action-feedback.md
+- Rationale: Shared toast handling keeps feedback consistent and low-friction while preserving strict server-action ownership of data writes.
+- Evidence: src/components/ui/ToastProvider.tsx, src/lib/action-feedback.ts, src/components/SessionHeaderControls.tsx, src/components/SessionAddExerciseForm.tsx, src/components/SessionExerciseFocus.tsx
 ## 2026-02-22 — Prefer short reduced-motion-safe transitions for session logging lists
 - Type: Pattern
 - Summary: For high-frequency workout logging UI (exercise focus toggles, set list updates), use short enter/exit transitions with `prefers-reduced-motion` fallback instead of hard visibility jumps.

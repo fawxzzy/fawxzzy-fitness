@@ -8,6 +8,7 @@ import {
   type SetLogQueueItem,
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type AddSetPayload = {
   sessionId: string;
@@ -134,6 +135,7 @@ export function SetLoggerCard({
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -272,17 +274,23 @@ export function SetLoggerCard({
     const parsedRpe = rpe.trim() ? Number(rpe) : null;
 
     if (!Number.isFinite(parsedWeight) || !Number.isFinite(parsedReps) || parsedWeight < 0 || parsedReps < 0) {
-      setError("Weight and reps must be 0 or greater.");
+      const message = "Weight and reps must be 0 or greater.";
+      setError(message);
+      toast.error(message);
       return;
     }
 
     if (parsedDuration !== null && (!Number.isInteger(parsedDuration) || parsedDuration < 0)) {
-      setError("Time must be an integer in seconds.");
+      const message = "Time must be an integer in seconds.";
+      setError(message);
+      toast.error(message);
       return;
     }
 
     if (parsedRpe !== null && (!Number.isFinite(parsedRpe) || parsedRpe < 0)) {
-      setError("RPE must be 0 or greater.");
+      const message = "RPE must be 0 or greater.";
+      setError(message);
+      toast.error(message);
       return;
     }
 
@@ -336,7 +344,13 @@ export function SetLoggerCard({
             : item,
         ),
       );
-      setError(queued ? "Offline: set queued for sync." : "Offline: unable to save set locally.");
+      const message = queued ? "Offline: set queued for sync." : "Offline: unable to save set locally.";
+      setError(message);
+      if (queued) {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
       setIsSubmitting(false);
       return;
     }
@@ -380,12 +394,19 @@ export function SetLoggerCard({
               : item,
           ),
         );
-        setError(queued ? "Could not reach server. Set queued for sync." : result.error ?? "Could not log set.");
+        const message = queued ? "Could not reach server. Set queued for sync." : result.error ?? "Could not log set.";
+        setError(message);
+        if (queued) {
+          toast.success(message);
+        } else {
+          toast.error(message);
+        }
         setIsSubmitting(false);
         return;
       }
 
       setSets((current) => current.map((item) => (item.id === pendingId ? result.set! : item)));
+      toast.success("Set logged.");
     } catch {
       const queued = await enqueueSetLog({
         sessionId,
@@ -412,7 +433,13 @@ export function SetLoggerCard({
             : item,
         ),
       );
-      setError(queued ? "Request failed. Set queued for sync." : "Could not log set.");
+      const message = queued ? "Request failed. Set queued for sync." : "Could not log set.";
+      setError(message);
+      if (queued) {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
       setIsSubmitting(false);
       return;
     }
