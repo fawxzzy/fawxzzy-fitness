@@ -1,6 +1,5 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
-import { createHash } from "node:crypto";
 import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
 import { BackButton } from "@/components/ui/BackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
@@ -97,51 +96,7 @@ async function addSetAction(payload: {
     return { ok: false, error: "Time must be an integer in seconds" };
   }
 
-  const payloadHash = createHash("sha256")
-    .update(
-      JSON.stringify({
-        sessionExerciseId,
-        weight,
-        reps,
-        durationSeconds,
-        isWarmup,
-        rpe,
-        notes,
-      }),
-    )
-    .digest("hex");
-
-  const { data: duplicateWithinWindow } = await supabase
-    .from("sets")
-    .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
-    .eq("session_exercise_id", sessionExerciseId)
-    .eq("user_id", user.id)
-    .order("set_index", { ascending: false })
-    .limit(20);
-
-  const duplicateMatch = (duplicateWithinWindow ?? []).find((set) => {
-    const existingHash = createHash("sha256")
-      .update(
-        JSON.stringify({
-          sessionExerciseId: set.session_exercise_id,
-          weight: Number(set.weight),
-          reps: set.reps,
-          durationSeconds: set.duration_seconds,
-          isWarmup: set.is_warmup,
-          rpe: set.rpe,
-          notes: set.notes,
-        }),
-      )
-      .digest("hex");
-    return existingHash === payloadHash;
-  });
-
-  if (duplicateMatch) {
-    return { ok: true, set: duplicateMatch as SetRow };
-  }
-
-  const hasClientLogIdColumn = Boolean(clientLogId);
-  if (hasClientLogIdColumn) {
+  if (clientLogId) {
     const { data: existingByClientLogId, error: existingByClientLogIdError } = await supabase
       .from("sets")
       .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")

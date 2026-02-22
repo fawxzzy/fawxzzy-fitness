@@ -19,6 +19,17 @@ WHY:
 
 ### Changed
 WHAT:
+- Introduced a centralized glass-design token system (blur/tint/border/shadow/radius/sheen) and reusable glass primitives, then applied those surfaces to core app UI shells (navigation, cards, and key page containers) for a consistent Liquid Glass-inspired look.
+- Added a user-facing Glass Effects preference (On / Reduced / Off) in Settings, persisted locally and wired to global styling behavior.
+WHY:
+- A single source of truth for translucent surfaces keeps styling consistent and easier to maintain while avoiding ad hoc blur stacking.
+- Giving users control over effect intensity improves accessibility/performance, especially when reduced motion or lower visual complexity is preferred.
+- Updated `docs/ARCHITECTURE.md` to explicitly document server/client boundaries, strict server-action write rules, RLS expectations, and architectural change-management guidance.
+WHY:
+- Keeping architecture guardrails explicit in-repo reduces accidental drift and keeps future feature work aligned with governance constraints.
+
+### Changed
+WHAT:
 - Added a reusable `tapFeedbackClass` interaction pattern for session controls with press-scale, subtle press opacity shift, and short transition timing.
 - Applied the pattern across session exercise focus controls, set timer/logger actions, session header save action, and session add/remove exercise buttons.
 WHY:
@@ -52,8 +63,10 @@ WHY:
 WHAT:
 - Replaced count-based set index assignment in session set logging with conflict-safe append allocation (`max(set_index) + 1`) and bounded retry behavior.
 - Added a database unique index on `(session_exercise_id, set_index)` for deterministic per-exercise set ordering.
+- Narrowed session set idempotency checks to explicit `client_log_id` matches (scoped by session exercise + user) and removed payload-hash duplicate detection when no client log ID is supplied.
 WHY:
 - Count-based indexing can collide during reconnect/offline flush races; uniqueness plus retry preserves append semantics while preventing duplicate set indexes.
+- Payload-based matching could suppress legitimate repeated sets with identical values; explicit client IDs preserve safe retries without blocking intentional logs.
 
 ### Changed
 WHAT:
