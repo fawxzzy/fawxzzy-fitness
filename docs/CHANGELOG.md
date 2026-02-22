@@ -11,6 +11,12 @@ WHY:
 
 ### Changed
 WHAT:
+- Added an offline set-log queue for session set entries so failed/offline set submissions are stored locally and restored in-session with a visible queued state.
+WHY:
+- This keeps workout logging usable during network/server interruptions while preserving server-side data ownership and existing online save behavior.
+
+### Changed
+WHAT:
 - Added a Today offline snapshot flow that writes normalized routine/day/exercise + session-start hints to browser storage after successful render hydration, using IndexedDB with localStorage fallback.
 - Added a Today client fallback shell that reads cached data when live Today fetches fail and surfaces a subtle stale-data timestamp warning.
 WHY:

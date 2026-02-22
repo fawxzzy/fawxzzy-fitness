@@ -82,4 +82,10 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: patterns/backend/postgres-concurrency.md
 - Rationale: Offline reconnect flushes and concurrent inserts can duplicate ordinal indexes unless allocation is conflict-safe at the database boundary.
 - Evidence: src/app/session/[id]/page.tsx, supabase/migrations/013_sets_session_exercise_set_index_unique.sql
+## 2026-02-22 — Queue failed set logs locally instead of dropping entries
+- Type: Pattern
+- Summary: For workout set logging, keep the existing server action as primary, but on offline/failure enqueue the set payload locally and render a visible queued status in the active list.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Users should not lose training data during transient failures, and queued-state visibility avoids false confidence about server persistence.
+- Evidence: src/lib/offline/set-log-queue.ts, src/components/SessionTimers.tsx
 - Status: Proposed
