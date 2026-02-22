@@ -71,9 +71,9 @@ export default async function HistoryPage() {
                 </Link>
                 <Link
                   href={`/history/${session.id}/edit`}
-                  className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+                  className="inline-flex items-center justify-center rounded-md border border-slate-400 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
                 >
-                  Edit
+                  Manage
                 </Link>
               </div>
             </li>
