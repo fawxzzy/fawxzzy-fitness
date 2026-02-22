@@ -116,17 +116,15 @@ export default async function RoutinesPage() {
   const routines = (data ?? []) as RoutineRow[];
 
   return (
-    <section className="space-y-4">
+    <section className="flex min-h-[calc(100dvh-6.5rem)] flex-col gap-4">
       <AppNav />
-
-      <p className="text-sm text-slate-600">Timezone: {profile.timezone}</p>
 
       <Link href="/routines/new" className="block rounded-md bg-accent px-4 py-3 text-center text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
         Create Routine
       </Link>
 
-      <Glass variant="base" className="p-2" interactive={false}>
-        <ul className="h-[68vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:h-auto md:max-h-[72vh]">
+      <Glass variant="base" className="min-h-0 flex-1 p-2" interactive={false}>
+        <ul className="h-full space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:h-auto md:max-h-[72vh]">
           {routines.map((routine) => {
             const isActive = profile.active_routine_id === routine.id;
 

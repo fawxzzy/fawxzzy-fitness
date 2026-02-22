@@ -4,6 +4,14 @@
 
 ### Changed
 WHAT:
+- Updated the Routines tab layout to use a viewport-contained list region so long routine lists stay fully visible on screen instead of being clipped at the bottom.
+- Removed the timezone text line from the Routines overview screen.
+WHY:
+- Matching the History tab’s anchored scroll behavior improves mobile usability and keeps list navigation predictable.
+- The timezone line was redundant on the overview and removing it reduces visual clutter.
+
+### Changed
+WHAT:
 - Slimmed the shared top tab bar spacing so it occupies less vertical height and leaves clearer separation from page content below.
 - Updated the Routines page to use the same contained, snap-scrolling list structure as History logs for consistent mobile list behavior.
 WHY:
