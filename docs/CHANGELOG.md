@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Added an offline set-log sync engine that listens for reconnect events, processes queued logs in FIFO order, and tracks retry/backoff metadata for failed sync attempts.
+- Added server-side queued-set ingestion support with idempotency via `client_log_id` when available and deterministic payload dedupe against recent set history.
+- Added a nullable `client_log_id` column and a user-scoped unique index for durable idempotent set ingestion.
+WHY:
+- Reconnect sync needs deterministic retry behavior and duplicate protection so offline logging can recover safely without creating repeated set rows.
+
 ### Fixed
 WHAT:
 - Replaced count-based set index assignment in session set logging with conflict-safe append allocation (`max(set_index) + 1`) and bounded retry behavior.

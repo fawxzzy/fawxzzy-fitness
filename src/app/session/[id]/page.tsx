@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
+import { createHash } from "node:crypto";
 import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
 import { BackButton } from "@/components/ui/BackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
@@ -74,13 +75,14 @@ async function addSetAction(payload: {
   isWarmup: boolean;
   rpe: number | null;
   notes: string | null;
+  clientLogId?: string;
 }) {
   "use server";
 
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, isWarmup, rpe, notes } = payload;
+  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, isWarmup, rpe, notes, clientLogId } = payload;
 
   if (!sessionId || !sessionExerciseId) {
     return { ok: false, error: "Missing session info" };
@@ -92,6 +94,65 @@ async function addSetAction(payload: {
 
   if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
     return { ok: false, error: "Time must be an integer in seconds" };
+  }
+
+  const payloadHash = createHash("sha256")
+    .update(
+      JSON.stringify({
+        sessionExerciseId,
+        weight,
+        reps,
+        durationSeconds,
+        isWarmup,
+        rpe,
+        notes,
+      }),
+    )
+    .digest("hex");
+
+  const { data: duplicateWithinWindow } = await supabase
+    .from("sets")
+    .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+    .eq("session_exercise_id", sessionExerciseId)
+    .eq("user_id", user.id)
+    .order("set_index", { ascending: false })
+    .limit(20);
+
+  const duplicateMatch = (duplicateWithinWindow ?? []).find((set) => {
+    const existingHash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          sessionExerciseId: set.session_exercise_id,
+          weight: Number(set.weight),
+          reps: set.reps,
+          durationSeconds: set.duration_seconds,
+          isWarmup: set.is_warmup,
+          rpe: set.rpe,
+          notes: set.notes,
+        }),
+      )
+      .digest("hex");
+    return existingHash === payloadHash;
+  });
+
+  if (duplicateMatch) {
+    return { ok: true, set: duplicateMatch as SetRow };
+  }
+
+  const hasClientLogIdColumn = Boolean(clientLogId);
+  if (hasClientLogIdColumn) {
+    const { data: existingByClientLogId, error: existingByClientLogIdError } = await supabase
+      .from("sets")
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+      .eq("session_exercise_id", sessionExerciseId)
+      .eq("user_id", user.id)
+      .eq("client_log_id", clientLogId)
+      .limit(1)
+      .maybeSingle();
+
+    if (!existingByClientLogIdError && existingByClientLogId) {
+      return { ok: true, set: existingByClientLogId as SetRow };
+    }
   }
 
   // Append semantics are based on MAX(set_index) + 1 instead of count-based indexing.
@@ -115,9 +176,7 @@ async function addSetAction(payload: {
 
     const nextSetIndex = latestSet ? latestSet.set_index + 1 : 0;
 
-    const { data: insertedSet, error } = await supabase
-      .from("sets")
-      .insert({
+    const insertPayload = {
         session_exercise_id: sessionExerciseId,
         user_id: user.id,
         set_index: nextSetIndex,
@@ -127,7 +186,15 @@ async function addSetAction(payload: {
         is_warmup: isWarmup,
         rpe,
         notes,
-      })
+      } as Record<string, unknown>;
+
+    if (clientLogId) {
+      insertPayload.client_log_id = clientLogId;
+    }
+
+    const { data: insertedSet, error } = await supabase
+      .from("sets")
+      .insert(insertPayload)
       .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
       .single();
 
@@ -141,6 +208,50 @@ async function addSetAction(payload: {
   }
 
   return { ok: false, error: "Could not log set after retrying index allocation" };
+}
+
+async function syncQueuedSetLogsAction(payload: {
+  items: Array<{
+    id: string;
+    clientLogId: string;
+    sessionId: string;
+    sessionExerciseId: string;
+    payload: {
+      weight: number;
+      reps: number;
+      durationSeconds: number | null;
+      isWarmup: boolean;
+      rpe: number | null;
+      notes: string | null;
+    };
+  }>;
+}) {
+  "use server";
+
+  const results = await Promise.all(
+    payload.items.map(async (item) => {
+      const insertResult = await addSetAction({
+        sessionId: item.sessionId,
+        sessionExerciseId: item.sessionExerciseId,
+        weight: item.payload.weight,
+        reps: item.payload.reps,
+        durationSeconds: item.payload.durationSeconds,
+        isWarmup: item.payload.isWarmup,
+        rpe: item.payload.rpe,
+        notes: item.payload.notes,
+        clientLogId: item.clientLogId,
+      });
+
+      return {
+        queueItemId: item.id,
+        ok: insertResult.ok,
+        serverSetId: insertResult.set?.id,
+        error: insertResult.error,
+      };
+    }),
+  );
+
+  return { ok: true, results };
 }
 
 async function toggleSkipAction(formData: FormData) {
@@ -418,6 +529,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             };
           })}
           addSetAction={addSetAction}
+          syncQueuedSetLogsAction={syncQueuedSetLogsAction}
           toggleSkipAction={toggleSkipAction}
           removeExerciseAction={removeExerciseAction}
         />
