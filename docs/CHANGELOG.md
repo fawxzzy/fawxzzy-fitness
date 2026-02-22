@@ -9,6 +9,9 @@ WHAT:
 WHY:
 - A single source of truth for translucent surfaces keeps styling consistent and easier to maintain while avoiding ad hoc blur stacking.
 - Giving users control over effect intensity improves accessibility/performance, especially when reduced motion or lower visual complexity is preferred.
+- Updated `docs/ARCHITECTURE.md` to explicitly document server/client boundaries, strict server-action write rules, RLS expectations, and architectural change-management guidance.
+WHY:
+- Keeping architecture guardrails explicit in-repo reduces accidental drift and keeps future feature work aligned with governance constraints.
 
 ### Changed
 WHAT:
