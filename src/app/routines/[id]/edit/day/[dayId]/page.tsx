@@ -129,7 +129,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
       <details className="rounded-md border border-slate-300 bg-white transition-colors hover:border-[rgb(var(--border)/0.8)]">
-        <summary className="cursor-pointer list-none rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-[rgb(var(--surface-2)/0.35)] active:bg-[rgb(var(--surface-2)/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">+ Add custom exercise</summary>
+        <summary className="cursor-pointer list-none rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">+ Add custom exercise</summary>
         <div className="space-y-3 px-4 pb-4">
           <form action={createCustomExerciseAction} className="space-y-2">
             <input type="hidden" name="returnTo" value={returnTo} />

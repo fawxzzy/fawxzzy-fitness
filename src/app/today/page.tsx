@@ -196,14 +196,14 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
           <ul className="space-y-1 text-sm">
             {dayExercises.map((exercise) => (
-              <li key={exercise.id} className="rounded-md bg-[rgb(var(--surface-2)/0.55)] px-3 py-2 text-text">
+              <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">
                 {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
                 {exercise.target_sets
                   ? ` · ${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
                   : ""}
               </li>
             ))}
-            {dayExercises.length === 0 ? <li className="rounded-md bg-[rgb(var(--surface-2)/0.55)] px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
+            {dayExercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
           </ul>
 
           {inProgressSession ? (

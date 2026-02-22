@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+WHAT:
+- Replaced remaining inline dark-surface `bg-[rgb(var(--surface-2)/...)]` formulas in routine-edit and today UI states with named semantic utilities, and added a dedicated `bg-surface-2-active` utility for pressed states.
+WHY:
+- Named surface utilities keep dark-theme container states consistent, reduce class-string drift, and make future refactors less regression-prone.
+
 ### Changed
 WHAT:
 - Clarified History card split actions by keeping `View` as the primary button and relabeling the secondary action to `Manage` with a quieter visual treatment.
