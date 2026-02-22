@@ -135,3 +135,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Small motion cues preserve spatial continuity without slowing core flows, while reduced-motion fallback keeps the interaction accessible.
 - Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx
 - Status: Proposed
+
+## 2026-02-22 — Keep history logs read-first with explicit edit mode
+- Type: Pattern
+- Summary: For completed workout history, default to a read-only audit screen and require explicit Edit → Save/Cancel for metadata updates.
+- Suggested Playbook File: patterns/frontend/history-audit-views.md
+- Rationale: Completed records should communicate finality and avoid accidental “resume session” behavior while still allowing intentional note/day-name corrections.
+- Evidence: src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed

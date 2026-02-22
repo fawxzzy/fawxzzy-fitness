@@ -29,7 +29,7 @@ export default async function HistoryPage() {
 
   const { data } = await supabase
     .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
+    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, day_name_override, duration_seconds, status")
     .eq("user_id", user.id)
     .eq("status", "completed")
     .order("performed_at", { ascending: false })
@@ -47,7 +47,7 @@ export default async function HistoryPage() {
             <li key={session.id} className="snap-start rounded-xl border border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] bg-[rgb(var(--glass-tint-rgb)/0.72)] p-4">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  {(session.name || "Session")} Log #{sessions.length - index}: {session.routine_day_name || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day")}
+                  {(session.name || "Session")} Log #{sessions.length - index}: {session.day_name_override || session.routine_day_name || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day")}
                 </span>
                 <span className="shrink-0 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600">
                   {formatDuration(session.duration_seconds)}
@@ -58,7 +58,7 @@ export default async function HistoryPage() {
 
               <div className="mt-3">
                 <Link
-                  href={`/session/${session.id}`}
+                  href={`/history/${session.id}`}
                   className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong"
                 >
                   View
