@@ -75,3 +75,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Offline continuity should preserve usability without implying live freshness; explicit staleness metadata reduces trust errors and support confusion.
 - Evidence: src/lib/offline/today-cache.ts, src/app/today/page.tsx, src/app/today/TodayClientShell.tsx, src/app/today/TodayOfflineBridge.tsx
 - Status: Proposed
+
+## 2026-02-22 — Queue failed set logs locally instead of dropping entries
+- Type: Pattern
+- Summary: For workout set logging, keep the existing server action as primary, but on offline/failure enqueue the set payload locally and render a visible queued status in the active list.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Users should not lose training data during transient failures, and queued-state visibility avoids false confidence about server persistence.
+- Evidence: src/lib/offline/set-log-queue.ts, src/components/SessionTimers.tsx
+- Status: Proposed

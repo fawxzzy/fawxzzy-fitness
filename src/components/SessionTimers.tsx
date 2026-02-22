@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SetRow } from "@/types/db";
+import {
+  enqueueSetLog,
+  readQueuedSetLogsBySessionExerciseId,
+  type SetLogQueueItem,
+} from "@/lib/offline/set-log-queue";
 
 type AddSetPayload = {
   sessionId: string;
@@ -93,7 +98,7 @@ export function SessionTimerCard({
   );
 }
 
-type DisplaySet = SetRow & { pending?: boolean };
+type DisplaySet = SetRow & { pending?: boolean; queueStatus?: SetLogQueueItem["status"] };
 
 export function SetLoggerCard({
   sessionId,
@@ -120,6 +125,55 @@ export function SetLoggerCard({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [tapReps, setTapReps] = useState(0);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function restoreQueuedSets() {
+      try {
+        const queued = await readQueuedSetLogsBySessionExerciseId(sessionExerciseId);
+        if (isCancelled || queued.length === 0) {
+          return;
+        }
+
+        setSets((current) => {
+          const existingIds = new Set(current.map((set) => set.id));
+          const restored = queued
+            .filter((item) => !existingIds.has(item.id))
+            .map(
+              (item, index): DisplaySet => ({
+                id: item.id,
+                session_exercise_id: item.sessionExerciseId,
+                user_id: "queued",
+                set_index: current.length + index,
+                weight: item.payload.weight,
+                reps: item.payload.reps,
+                duration_seconds: item.payload.durationSeconds,
+                is_warmup: item.payload.isWarmup,
+                notes: item.payload.notes,
+                rpe: item.payload.rpe,
+                pending: true,
+                queueStatus: item.status,
+              }),
+            );
+
+          if (restored.length === 0) {
+            return current;
+          }
+
+          return [...current, ...restored];
+        });
+      } catch {
+        // Ignore restore failures to keep logger usable.
+      }
+    }
+
+    void restoreQueuedSets();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [sessionExerciseId]);
 
   useEffect(() => {
     if (!isRunning) {
@@ -182,25 +236,116 @@ export function SetLoggerCard({
 
     setSets((current) => [...current, optimisticSet]);
 
-    const result = await addSetAction({
-      sessionId,
-      sessionExerciseId,
-      weight: parsedWeight,
-      reps: parsedReps,
-      durationSeconds: parsedDuration,
-      isWarmup,
-      rpe: parsedRpe,
-      notes: null,
-    });
+    const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
 
-    if (!result.ok || !result.set) {
-      setSets((current) => current.filter((item) => item.id !== pendingId));
-      setError(result.error ?? "Could not log set.");
+    if (isOffline) {
+      const queued = await enqueueSetLog({
+        sessionId,
+        sessionExerciseId,
+        payload: {
+          weight: parsedWeight,
+          reps: parsedReps,
+          durationSeconds: parsedDuration,
+          isWarmup,
+          rpe: parsedRpe,
+          notes: null,
+        },
+      });
+
+      setSets((current) =>
+        current.map((item) =>
+          item.id === pendingId
+            ? {
+                ...item,
+                id: queued?.id ?? item.id,
+                pending: true,
+                queueStatus: "queued",
+                user_id: "queued",
+              }
+            : item,
+        ),
+      );
+      setError(queued ? "Offline: set queued for sync." : "Offline: unable to save set locally.");
       setIsSubmitting(false);
       return;
     }
 
-    setSets((current) => current.map((item) => (item.id === pendingId ? result.set! : item)));
+    try {
+      const result = await addSetAction({
+        sessionId,
+        sessionExerciseId,
+        weight: parsedWeight,
+        reps: parsedReps,
+        durationSeconds: parsedDuration,
+        isWarmup,
+        rpe: parsedRpe,
+        notes: null,
+      });
+
+      if (!result.ok || !result.set) {
+        const queued = await enqueueSetLog({
+          sessionId,
+          sessionExerciseId,
+          payload: {
+            weight: parsedWeight,
+            reps: parsedReps,
+            durationSeconds: parsedDuration,
+            isWarmup,
+            rpe: parsedRpe,
+            notes: null,
+          },
+        });
+
+        setSets((current) =>
+          current.map((item) =>
+            item.id === pendingId
+              ? {
+                  ...item,
+                  id: queued?.id ?? item.id,
+                  pending: true,
+                  queueStatus: "queued",
+                  user_id: "queued",
+                }
+              : item,
+          ),
+        );
+        setError(queued ? "Could not reach server. Set queued for sync." : result.error ?? "Could not log set.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSets((current) => current.map((item) => (item.id === pendingId ? result.set! : item)));
+    } catch {
+      const queued = await enqueueSetLog({
+        sessionId,
+        sessionExerciseId,
+        payload: {
+          weight: parsedWeight,
+          reps: parsedReps,
+          durationSeconds: parsedDuration,
+          isWarmup,
+          rpe: parsedRpe,
+          notes: null,
+        },
+      });
+      setSets((current) =>
+        current.map((item) =>
+          item.id === pendingId
+            ? {
+                ...item,
+                id: queued?.id ?? item.id,
+                pending: true,
+                queueStatus: "queued",
+                user_id: "queued",
+              }
+            : item,
+        ),
+      );
+      setError(queued ? "Request failed. Set queued for sync." : "Could not log set.");
+      setIsSubmitting(false);
+      return;
+    }
+
     setDurationSeconds("");
     setWeight(String(parsedWeight));
     setReps(String(parsedReps));
@@ -317,7 +462,8 @@ export function SetLoggerCard({
           <li key={set.id} className="rounded-md bg-slate-50 px-2 py-1">
             #{set.set_index + 1} · {set.weight} {unitLabel} × {set.reps}
             {set.duration_seconds !== null ? ` · ${set.duration_seconds}s` : ""}
-            {set.pending ? " · saving..." : ""}
+            {set.queueStatus ? ` · ${set.queueStatus}` : ""}
+            {set.pending && !set.queueStatus ? " · saving..." : ""}
           </li>
         ))}
         {sets.length === 0 ? <li className="text-slate-500">No sets logged.</li> : null}
