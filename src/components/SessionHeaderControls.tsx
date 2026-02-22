@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { SessionTimerCard } from "@/components/SessionTimers";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 
 type ServerAction = (formData: FormData) => void | Promise<void>;
 type PersistDurationAction = (payload: { sessionId: string; durationSeconds: number }) => Promise<{ ok: boolean }>;
@@ -36,7 +37,8 @@ export function SessionHeaderControls({
 
   return (
     <div className="space-y-3">
-      <div className="sticky top-2 z-10">
+      <div className="sticky top-2 z-10 space-y-2">
+        <OfflineSyncBadge />
         <form action={saveSessionAction}>
           <input type="hidden" name="sessionId" value={sessionId} />
           <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />

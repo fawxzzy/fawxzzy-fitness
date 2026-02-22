@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { readTodayCache } from "@/lib/offline/today-cache";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 
 type TodayPayload = {
   routine: {
@@ -79,6 +80,7 @@ export function TodayClientShell({
 
   return (
     <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
+      <OfflineSyncBadge />
       <h2 className="text-lg font-semibold text-text">
         {display.routine.name}: {display.routine.isRest ? `REST DAY — ${display.routine.dayName}` : display.routine.dayName}
       </h2>
