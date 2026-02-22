@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+WHAT:
+- Added dark-theme utility overrides for `bg-slate-50` and `bg-slate-100` so newly logged set rows no longer render as pale/blank bars in the session logger.
+WHY:
+- Some set-list items were still using light Tailwind backgrounds that were not mapped to theme tokens, making text appear washed out or invisible in dark mode.
+
 ### Changed
 WHAT:
 - History cards now show a subtle sequential `Log #` badge on each session item to make order easier to scan at a glance.

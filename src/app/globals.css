@@ -85,6 +85,11 @@ a:focus-visible {
     background-color: rgb(var(--surface-2));
   }
 
+  .bg-slate-50,
+  .bg-slate-100 {
+    background-color: rgb(var(--surface-2));
+  }
+
   .bg-emerald-600 {
     background-color: rgb(var(--accent));
   }

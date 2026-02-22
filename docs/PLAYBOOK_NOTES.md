@@ -50,3 +50,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: A stationary shell with snapping list movement improves orientation and reduces visual jumpiness versus full-page scrolling through dense logs.
 - Evidence: src/app/history/page.tsx
 - Status: Proposed
+
+
+## 2026-02-21 — Map fallback slate background utilities in dark mode
+- Type: Guardrail
+- Summary: If dark theming relies on utility remaps, include common fallback surfaces (`bg-slate-50`, `bg-slate-100`) so optimistic-list rows and secondary chips never render as light bars.
+- Suggested Playbook File: patterns/frontend/theming-dark-mode.md
+- Rationale: Partial utility mapping can leave isolated components in light palettes, creating “blank” rows where text contrast appears broken after state updates.
+- Evidence: src/app/globals.css, src/components/SessionTimers.tsx
+- Status: Proposed
