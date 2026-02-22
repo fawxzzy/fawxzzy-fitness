@@ -26,12 +26,14 @@ export function LogAuditClient({
   logId,
   initialDayName,
   initialNotes,
+  unitLabel,
   exerciseNameMap,
   exercises,
 }: {
   logId: string;
   initialDayName: string;
   initialNotes: string | null;
+  unitLabel: "lbs" | "kg";
   exerciseNameMap: Record<string, string>;
   exercises: AuditExercise[];
 }) {
@@ -147,7 +149,8 @@ export function LogAuditClient({
               <ul className="mb-3 space-y-1 text-sm text-slate-700">
                 {exercise.sets.map((set) => (
                   <li key={set.id} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1">
-                    Set {set.set_index + 1}: {set.weight} × {set.reps}
+                    Set {set.set_index + 1}: {set.weight}
+                    {unitLabel} × {set.reps}
                   </li>
                 ))}
               </ul>

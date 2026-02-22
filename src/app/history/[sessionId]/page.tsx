@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
+import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { requireUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/datetime";
 import { getExerciseNameMap } from "@/lib/exercises";
@@ -35,7 +37,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, day_name_override, duration_seconds, status, routines(name)")
+    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, day_name_override, duration_seconds, status, routines(name, weight_unit)")
     .eq("id", params.sessionId)
     .eq("user_id", user.id)
     .eq("status", "completed")
@@ -73,7 +75,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     setsByExercise.set(set.session_exercise_id, current);
   }
 
-  const sessionRow = session as SessionRow & { routines?: Array<{ name: string }> | { name: string } | null };
+  const sessionRow = session as SessionRow & { routines?: Array<{ name: string; weight_unit: "lbs" | "kg" | null }> | { name: string; weight_unit: "lbs" | "kg" | null } | null };
 
   const exerciseNameMap = await getExerciseNameMap();
   const exerciseNameRecord = Object.fromEntries(exerciseNameMap.entries());
@@ -81,6 +83,9 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const routineName = Array.isArray(routineField)
     ? routineField[0]?.name ?? sessionRow.name ?? "Session"
     : routineField?.name ?? sessionRow.name ?? "Session";
+  const unitLabel = Array.isArray(routineField)
+    ? routineField[0]?.weight_unit ?? "kg"
+    : routineField?.weight_unit ?? "kg";
   const effectiveDayName = sessionRow.day_name_override ?? sessionRow.routine_day_name ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
 
   return (
@@ -88,6 +93,9 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       <AppNav />
 
       <Glass variant="base" className="p-4" interactive={false}>
+        <Link href="/history" className={`mb-3 inline-flex rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 ${tapFeedbackClass}`}>
+          ← Back to history
+        </Link>
         <h1 className="text-2xl font-semibold">Log Details</h1>
         <p className="mt-1 text-sm text-slate-600">
           {routineName} • {effectiveDayName} • {formatDateTime(sessionRow.performed_at)} • {formatDuration(sessionRow.duration_seconds)}
@@ -98,6 +106,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         logId={sessionRow.id}
         initialDayName={effectiveDayName}
         initialNotes={sessionRow.notes}
+        unitLabel={unitLabel}
         exerciseNameMap={exerciseNameRecord}
         exercises={sessionExercises.map((exercise) => ({
           id: exercise.id,
