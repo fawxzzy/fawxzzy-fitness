@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+WHAT:
+- Consolidated session exercise removal to a single action button per focused exercise, using the existing form-action removal path with one in-flight state to prevent duplicate submits.
+WHY:
+- A single canonical removal flow avoids duplicated controls, keeps feedback/refresh behavior consistent, and reduces accidental double-submit risk during workout logging.
+
 ### Changed
 WHAT:
 - Added PWA install metadata (`manifest.ts`) and iOS Add-to-Home-Screen metadata in the root layout, including references to generated Android and Apple icon files.

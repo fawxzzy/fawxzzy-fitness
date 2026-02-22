@@ -76,7 +76,6 @@ export function SessionExerciseFocus({
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const focusedRef = useRef<HTMLElement | null>(null);
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
@@ -89,31 +88,6 @@ export function SessionExerciseFocus({
     if (!selectedExerciseId || !focusedRef.current) return;
     focusedRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedExerciseId]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
-    syncPreference();
-    mediaQuery.addEventListener("change", syncPreference);
-    return () => mediaQuery.removeEventListener("change", syncPreference);
-  }, []);
-
-  async function handleRemoveExercise(exerciseId: string) {
-    const formData = new FormData();
-    formData.set("sessionId", sessionId);
-    formData.set("sessionExerciseId", exerciseId);
-
-    setRemovingExerciseIds((current) => (current.includes(exerciseId) ? current : [...current, exerciseId]));
-
-    try {
-      if (!prefersReducedMotion) {
-        await new Promise((resolve) => setTimeout(resolve, 140));
-      }
-      await removeExerciseAction(formData);
-    } catch {
-      setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
-    }
-  }
 
   return (
     <div className="space-y-3">
@@ -187,30 +161,40 @@ export function SessionExerciseFocus({
                 </form>
                 <form
                   action={async (formData) => {
-                    const result = await removeExerciseAction(formData);
-                    toastActionResult(toast, result, {
-                      success: "Exercise removed.",
-                      error: "Could not remove exercise.",
-                    });
-
-                    if (result.ok) {
-                      setSelectedExerciseId(null);
-                      router.refresh();
+                    if (removingExerciseIds.includes(exercise.id)) {
+                      return;
                     }
+
+                    setRemovingExerciseIds((current) => [...current, exercise.id]);
+                    try {
+                      const result = await removeExerciseAction(formData);
+                      toastActionResult(toast, result, {
+                        success: "Exercise removed.",
+                        error: "Could not remove exercise.",
+                      });
+
+                      if (result.ok) {
+                        setSelectedExerciseId(null);
+                        router.refresh();
+                        return;
+                      }
+                    } catch {
+                      toast.error("Could not remove exercise.");
+                    }
+
+                    setRemovingExerciseIds((current) => current.filter((id) => id !== exercise.id));
                   }}
                 >
                   <input type="hidden" name="sessionId" value={sessionId} />
                   <input type="hidden" name="sessionExerciseId" value={exercise.id} />
-                  <button type="submit" className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Remove</button>
+                  <button
+                    type="submit"
+                    disabled={isRemoving}
+                    className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 ${tapFeedbackClass}`}
+                  >
+                    {isRemoving ? "Removing..." : "Remove"}
+                  </button>
                 </form>
-                <button
-                  type="button"
-                  onClick={() => void handleRemoveExercise(exercise.id)}
-                  disabled={isRemoving}
-                  className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 ${tapFeedbackClass}`}
-                >
-                  {isRemoving ? "Removing..." : "Remove"}
-                </button>
               </div>
             </div>
 
