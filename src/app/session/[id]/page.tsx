@@ -6,6 +6,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
+import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
@@ -482,12 +483,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           <form action={createCustomExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
             <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
             <label className="text-sm font-semibold">+ Add custom exercise</label>
-            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25" />
             <div className="grid grid-cols-2 gap-2">
               <input name="primaryMuscle" placeholder="Primary muscle (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <input name="equipment" placeholder="Equipment (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </div>
-            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Custom Exercise</button>
+            <button type="submit" className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Save Custom Exercise</button>
           </form>
 
           {customExercises.length > 0 ? (
@@ -500,12 +501,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                       <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
                       <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
-                      <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">Rename</button>
+                      <button type="submit" className={`rounded-md border border-slate-300 px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Rename</button>
                     </form>
                     <form action={deleteCustomExerciseAction}>
                       <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <button type="submit" className="w-full rounded-md border border-red-300 px-2 py-1 text-xs text-red-700">Delete</button>
+                      <button type="submit" className={`w-full rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Delete</button>
                     </form>
                   </div>
                 </li>
