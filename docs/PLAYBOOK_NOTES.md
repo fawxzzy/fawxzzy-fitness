@@ -10,6 +10,13 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: <file paths in this repo that triggered the note>
 - Status: Proposed | Upstreamed | Rejected
 
+## 2026-02-23 — Reuse shared list-shell tokens across tabbed mobile feeds
+- Type: Pattern
+- Summary: For sibling list tabs (for example Routines and History), centralize shell-only classes (viewport height, overflow behavior, snap, card shell, and action tap-target sizing) in one tiny token module.
+- Suggested Playbook File: patterns/frontend/mobile-list-cards.md
+- Rationale: Shared shell tokens keep mobile list ergonomics consistent without introducing heavy component abstraction or visual redesign drift.
+- Evidence: src/components/ui/listShellClasses.ts, src/app/routines/page.tsx, src/app/history/page.tsx
+- Status: Proposed
 ## 2026-02-22 — Standardize mobile press feedback via shared class constant
 - Type: Pattern
 - Summary: Use a shared tap-feedback utility constant (`active` scale + opacity + short transition) for button-like controls in touch-heavy flows, and pair it with existing `focus-visible` rings.

@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 
+### Changed
+WHAT:
+- Added a shared list-shell class token set and applied it to both Routines and History list surfaces to standardize mobile scroll viewport sizing, snap behavior, and card shell spacing.
+- Increased list row action tap-target sizing for routine/history card controls using the shared shell tokens.
+WHY:
+- This keeps list behavior consistent across tabs while honoring the no-redesign request by limiting updates to shell ergonomics (scroll, padding, snap, and tap targets).
+
 ### Fixed
 WHAT:
 - Softened the History card Delete action interaction state by removing the stronger hover/click highlight treatment.

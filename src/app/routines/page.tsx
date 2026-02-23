@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
+import { listShellClasses } from "@/components/ui/listShellClasses";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -129,12 +130,12 @@ export default async function RoutinesPage() {
       </Glass>
 
       <Glass variant="base" className="p-2" interactive={false}>
-        <ul className="max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:max-h-[68vh]">
+        <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
           {routines.map((routine) => {
             const isActive = profile.active_routine_id === routine.id;
 
             return (
-              <li key={routine.id} className="snap-start rounded-xl border border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] bg-[rgb(var(--glass-tint-rgb)/0.72)] p-4">
+              <li key={routine.id} className={listShellClasses.card}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
                     <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
@@ -143,7 +144,7 @@ export default async function RoutinesPage() {
                   <div className="flex gap-2 text-sm">
                     <Link
                       href={`/routines/${routine.id}/edit`}
-                      className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20"
+                      className={`${listShellClasses.pillAction} border border-accent/40 bg-accent/10 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20`}
                     >
                       Edit
                     </Link>
@@ -151,7 +152,7 @@ export default async function RoutinesPage() {
                       <input type="hidden" name="routineId" value={routine.id} />
                       <button
                         type="submit"
-                        className="rounded-full border border-red-200/80 bg-red-100/65 px-3 py-1 text-xs font-semibold text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85"
+                        className={`${listShellClasses.pillAction} border border-red-200/80 bg-red-100/65 text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85`}
                       >
                         Delete
                       </button>
