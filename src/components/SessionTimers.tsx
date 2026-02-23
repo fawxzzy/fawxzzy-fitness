@@ -496,8 +496,8 @@ export function SetLoggerCard({
             Tap Rep
           </button>
           <p className="text-sm">
-            Reps tapped: <span className="font-semibold">{tapReps}</span>
-            {averageSecondsPerRep ? <span> · Avg {averageSecondsPerRep}s/rep</span> : null}
+            Reps tapped: <span className="font-semibold">{tapReps} reps</span>
+            {averageSecondsPerRep ? <span> · Avg {averageSecondsPerRep} sec/rep</span> : null}
           </p>
         </div>
       ) : null}
@@ -510,7 +510,7 @@ export function SetLoggerCard({
           required
           value={weight}
           onChange={(event) => setWeight(event.target.value)}
-          placeholder="Weight"
+          placeholder={`Weight (${unitLabel})`}
           className="rounded-md border border-slate-300 px-2 py-2 text-sm"
         />
         <input
@@ -520,7 +520,7 @@ export function SetLoggerCard({
           required
           value={reps}
           onChange={(event) => setReps(event.target.value)}
-          placeholder="Reps"
+          placeholder="Reps (count)"
           className="rounded-md border border-slate-300 px-2 py-2 text-sm"
         />
         <input
@@ -566,8 +566,8 @@ export function SetLoggerCard({
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
           >
-            #{set.set_index + 1} · {set.weight} {unitLabel} × {set.reps}
-            {set.duration_seconds !== null ? ` · ${set.duration_seconds}s` : ""}
+            #{set.set_index + 1} · {set.weight} {unitLabel} × {set.reps} reps
+            {set.duration_seconds !== null ? ` · ${set.duration_seconds} sec` : ""}
             {set.queueStatus ? ` · ${set.queueStatus}` : ""}
             {set.pending && !set.queueStatus ? " · saving..." : ""}
           </li>

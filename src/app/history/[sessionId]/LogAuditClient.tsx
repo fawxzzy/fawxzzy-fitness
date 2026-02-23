@@ -13,6 +13,7 @@ type AuditSet = {
   set_index: number;
   weight: number;
   reps: number;
+  duration_seconds: number | null;
 };
 
 type AuditExercise = {
@@ -150,7 +151,8 @@ export function LogAuditClient({
                 {exercise.sets.map((set) => (
                   <li key={set.id} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1">
                     Set {set.set_index + 1}: {set.weight}
-                    {unitLabel} × {set.reps}
+                    {unitLabel} × {set.reps} reps
+                    {set.duration_seconds !== null ? ` · ${set.duration_seconds} sec` : ""}
                   </li>
                 ))}
               </ul>
