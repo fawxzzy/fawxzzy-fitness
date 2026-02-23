@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 
+### Changed
+WHAT:
+- Updated History list fetching to use cursor-based pagination with a server-rendered "Load more" control while keeping the existing 20-item initial page size.
+WHY:
+- Cursor pagination keeps large history feeds bounded and responsive without changing the first-load behavior users already expect.
+
+
 ### Fixed
 WHAT:
 - Softened the History card Delete action interaction state by removing the stronger hover/click highlight treatment.
