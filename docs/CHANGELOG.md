@@ -441,3 +441,10 @@ WHY:
 ### Why
 - These updates reduce visual noise, improve scanability, and make workout state (start/resume/completed) easier to understand at a glance while keeping core logging flows intact.
 - Consolidating top-level navigation and harmonizing card styling improves app-wide consistency and reduces context switching between main tabs.
+
+### Changed
+WHAT:
+- Updated governance and architecture contracts to require explicit pre-change Playbook compliance review, enforce strict server-action and boundary guardrails, and codify checklist/quality-gate expectations in local docs.
+WHY:
+- This reduces process drift, keeps architectural boundaries explicit, and makes repo-level execution standards consistent with the Playbook contract.
+

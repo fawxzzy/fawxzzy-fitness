@@ -15,6 +15,30 @@ https://github.com/ZachariahRedfield/Playbook
      - Add an entry to docs/PLAYBOOK_NOTES.md (see format below)
      - Include a brief “Playbook Impact” section in your output (optional but preferred)
 
+## Playbook Compliance Workflow (Required Before Changes)
+
+Before implementing repository code or structural changes:
+
+1. Read Playbook/ (vendored subtree) sections relevant to the request.
+2. Read docs/PLAYBOOK_CHECKLIST.md.
+3. Perform a Playbook Compliance Review:
+   - Identify applicable Playbook + checklist rules.
+   - Identify request conflicts against those rules.
+   - Propose compliant alternatives when needed.
+   - Provide a short implementation plan before coding.
+4. Do not modify the central Playbook subtree unless explicitly requested.
+
+## Enforcement Guardrails
+
+- `docs/ARCHITECTURE.md` is the local architectural contract; do not introduce undocumented architectural drift.
+- Do not create new structural layers without clear justification.
+- Preserve strict server/client boundaries, RLS safety, and server-owned data writes.
+- Use strict server actions for protected mutations (`requireUser()` + `supabaseServer()`).
+- Prefer the smallest clear diff over abstraction-heavy changes.
+- Run quality gates after implementation:
+  - `npm run lint`
+  - `npm run build`
+
 ## Documentation Scope in This Repo
 
 Allowed documentation files:
@@ -22,5 +46,6 @@ Allowed documentation files:
 - docs/ARCHITECTURE.md
 - docs/CHANGELOG.md
 - docs/PLAYBOOK_NOTES.md
+- docs/PLAYBOOK_CHECKLIST.md
 
 All reusable patterns, templates, prompts, and checklists live in the central Playbook repository.
