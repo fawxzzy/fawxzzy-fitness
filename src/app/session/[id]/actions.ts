@@ -1,0 +1,285 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import { supabaseServer } from "@/lib/supabase/server";
+import type { SetRow } from "@/types/db";
+
+export async function addSetAction(payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  weight: number;
+  reps: number;
+  durationSeconds: number | null;
+  isWarmup: boolean;
+  rpe: number | null;
+  notes: string | null;
+  clientLogId?: string;
+}) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, isWarmup, rpe, notes, clientLogId } = payload;
+
+  if (!sessionId || !sessionExerciseId) {
+    return { ok: false, error: "Missing session info" };
+  }
+
+  if (!Number.isFinite(weight) || !Number.isFinite(reps) || weight < 0 || reps < 0) {
+    return { ok: false, error: "Weight and reps must be 0 or greater" };
+  }
+
+  if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
+    return { ok: false, error: "Time must be an integer in seconds" };
+  }
+
+  if (clientLogId) {
+    const { data: existingByClientLogId, error: existingByClientLogIdError } = await supabase
+      .from("sets")
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+      .eq("session_exercise_id", sessionExerciseId)
+      .eq("user_id", user.id)
+      .eq("client_log_id", clientLogId)
+      .limit(1)
+      .maybeSingle();
+
+    if (!existingByClientLogIdError && existingByClientLogId) {
+      return { ok: true, set: existingByClientLogId as SetRow };
+    }
+  }
+
+  // Append semantics are based on MAX(set_index) + 1 instead of count-based indexing.
+  // A unique DB constraint plus retry-on-conflict prevents duplicate indexes when offline
+  // actions reconnect and flush concurrently for the same session exercise.
+  const MAX_SET_INDEX_RETRIES = 5;
+
+  for (let attempt = 0; attempt < MAX_SET_INDEX_RETRIES; attempt += 1) {
+    const { data: latestSet, error: latestSetError } = await supabase
+      .from("sets")
+      .select("set_index")
+      .eq("session_exercise_id", sessionExerciseId)
+      .eq("user_id", user.id)
+      .order("set_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestSetError) {
+      return { ok: false, error: latestSetError.message };
+    }
+
+    const nextSetIndex = latestSet ? latestSet.set_index + 1 : 0;
+
+    const insertPayload = {
+      session_exercise_id: sessionExerciseId,
+      user_id: user.id,
+      set_index: nextSetIndex,
+      weight,
+      reps,
+      duration_seconds: durationSeconds,
+      is_warmup: isWarmup,
+      rpe,
+      notes,
+    } as Record<string, unknown>;
+
+    if (clientLogId) {
+      insertPayload.client_log_id = clientLogId;
+    }
+
+    const { data: insertedSet, error } = await supabase
+      .from("sets")
+      .insert(insertPayload)
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+      .single();
+
+    if (!error && insertedSet) {
+      return { ok: true, set: insertedSet as SetRow };
+    }
+
+    if (error?.code !== "23505") {
+      return { ok: false, error: error?.message ?? "Could not log set" };
+    }
+  }
+
+  return { ok: false, error: "Could not log set after retrying index allocation" };
+}
+
+export async function syncQueuedSetLogsAction(payload: {
+  items: Array<{
+    id: string;
+    clientLogId: string;
+    sessionId: string;
+    sessionExerciseId: string;
+    payload: {
+      weight: number;
+      reps: number;
+      durationSeconds: number | null;
+      isWarmup: boolean;
+      rpe: number | null;
+      notes: string | null;
+    };
+  }>;
+}) {
+  const results = await Promise.all(
+    payload.items.map(async (item) => {
+      const insertResult = await addSetAction({
+        sessionId: item.sessionId,
+        sessionExerciseId: item.sessionExerciseId,
+        weight: item.payload.weight,
+        reps: item.payload.reps,
+        durationSeconds: item.payload.durationSeconds,
+        isWarmup: item.payload.isWarmup,
+        rpe: item.payload.rpe,
+        notes: item.payload.notes,
+        clientLogId: item.clientLogId,
+      });
+
+      return {
+        queueItemId: item.id,
+        ok: insertResult.ok,
+        serverSetId: insertResult.set?.id,
+        error: insertResult.error,
+      };
+    }),
+  );
+
+  return { ok: true, results };
+}
+
+export async function toggleSkipAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = String(formData.get("sessionId") ?? "");
+  const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "");
+  const nextSkipped = formData.get("nextSkipped") === "true";
+
+  if (!sessionId || !sessionExerciseId) {
+    redirect(`/session/${sessionId}?error=${encodeURIComponent("Missing skip info")}`);
+  }
+
+  const { error } = await supabase
+    .from("session_exercises")
+    .update({ is_skipped: nextSkipped })
+    .eq("id", sessionExerciseId)
+    .eq("user_id", user.id)
+    .eq("session_id", sessionId);
+
+  if (error) {
+    redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/session/${sessionId}`);
+}
+
+export async function addExerciseAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = String(formData.get("sessionId") ?? "");
+  const exerciseId = String(formData.get("exerciseId") ?? "");
+
+  if (!sessionId || !exerciseId) {
+    return { ok: false, error: "Missing exercise info" };
+  }
+
+  const { count } = await supabase
+    .from("session_exercises")
+    .select("id", { head: true, count: "exact" })
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id);
+
+  const { error } = await supabase.from("session_exercises").insert({
+    session_id: sessionId,
+    user_id: user.id,
+    exercise_id: exerciseId,
+    position: count ?? 0,
+    is_skipped: false,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath(`/session/${sessionId}`);
+  return { ok: true, message: "Exercise added." };
+}
+
+export async function removeExerciseAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = String(formData.get("sessionId") ?? "");
+  const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "");
+
+  if (!sessionId || !sessionExerciseId) {
+    return { ok: false, error: "Missing remove info" };
+  }
+
+  const { error } = await supabase
+    .from("session_exercises")
+    .delete()
+    .eq("id", sessionExerciseId)
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath(`/session/${sessionId}`);
+  return { ok: true, message: "Exercise removed." };
+}
+
+export async function persistDurationAction(payload: { sessionId: string; durationSeconds: number }) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  if (!payload.sessionId || !Number.isInteger(payload.durationSeconds) || payload.durationSeconds < 0) {
+    return { ok: false };
+  }
+
+  const { error } = await supabase
+    .from("sessions")
+    .update({ duration_seconds: payload.durationSeconds })
+    .eq("id", payload.sessionId)
+    .eq("user_id", user.id)
+    .eq("status", "in_progress");
+
+  if (error) {
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+export async function saveSessionAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = String(formData.get("sessionId") ?? "");
+  const durationValue = String(formData.get("durationSeconds") ?? "").trim();
+  const durationSeconds = durationValue ? Number(durationValue) : null;
+
+  if (!sessionId) {
+    return { ok: false, error: "Missing session info" };
+  }
+
+  if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
+    return { ok: false, error: "Session time must be an integer in seconds" };
+  }
+
+  const { error } = await supabase
+    .from("sessions")
+    .update({ duration_seconds: durationSeconds, status: "completed" })
+    .eq("id", sessionId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/today");
+  revalidatePath("/history");
+  return { ok: true, message: "Workout saved." };
+}
