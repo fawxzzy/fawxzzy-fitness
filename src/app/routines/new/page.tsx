@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
+import { RoutineLocalDefaults } from "@/components/RoutineLocalDefaults";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { createRoutineDaySeedsFromStartDate, getTodayDateInTimeZone } from "@/lib/routines";
@@ -62,7 +63,7 @@ async function createRoutineAction(formData: FormData) {
     throw new Error(daysError.message);
   }
 
-  redirect("/routines");
+  redirect(`/routines/${routine.id}/edit?success=${encodeURIComponent("Routine created")}`);
 }
 
 export default async function NewRoutinePage() {
@@ -78,6 +79,7 @@ export default async function NewRoutinePage() {
         <RoutineBackButton href="/routines" />
       </div>
       <form action={createRoutineAction} className="space-y-3 rounded-md bg-white p-4 shadow-sm">
+        <RoutineLocalDefaults timezoneOptions={ROUTINE_TIMEZONE_OPTIONS} />
         <label className="block text-sm">
           Name
           <input
