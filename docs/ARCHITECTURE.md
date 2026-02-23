@@ -22,6 +22,8 @@
 
 ## Execution Boundaries
 - Server components and server actions own data reads/writes against Supabase.
+- Server actions should return the standard action contract for non-navigation outcomes: `ActionResult<T> = { ok: true, data?: T } | { ok: false, error: string }`.
+- Use redirects only for true navigation outcomes (route transitions), not for in-place mutation error handling.
 - Client components handle presentation and interaction state only.
 - Client-side database writes are not allowed.
 - Protected mutations must execute in strict server actions using `requireUser()` and `supabaseServer()`.

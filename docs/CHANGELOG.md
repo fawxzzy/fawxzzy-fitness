@@ -478,3 +478,11 @@ WHAT:
 - Refactored `src/app/session/[id]/page.tsx` so route-owned server actions and session data-query assembly now live in adjacent `actions.ts` and `queries.ts` files, leaving the page focused on composition and rendering.
 WHY:
 - This reduces controller/query sprawl in the route page while preserving existing behavior and keeping server/client boundaries explicit with route-local ownership.
+
+
+### Changed
+WHAT:
+- Standardized session feature server-action outcomes to a single `ActionResult<T>` contract (`{ ok: true, data?: T } | { ok: false, error: string }`) and aligned session clients/offline sync adapters to consume the new shape.
+- Kept redirects scoped to navigation-only outcomes in the session flow; in-place mutations now return explicit error results instead of redirect-based error transport.
+WHY:
+- This creates a deterministic, consistent action contract for incremental rollout, reduces mixed result semantics, and keeps server/client interaction boundaries clearer without adding new structural layers.

@@ -10,6 +10,7 @@ import {
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
+import type { ActionResult } from "@/lib/action-result";
 
 type AddSetPayload = {
   sessionId: string;
@@ -23,11 +24,7 @@ type AddSetPayload = {
   clientLogId?: string;
 };
 
-type AddSetActionResult = {
-  ok: boolean;
-  error?: string;
-  set?: SetRow;
-};
+type AddSetActionResult = ActionResult<{ set: SetRow }>;
 
 function formatSeconds(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60)
@@ -48,7 +45,7 @@ export function SessionTimerCard({
   sessionId: string;
   initialDurationSeconds: number | null;
   onDurationChange: (value: number) => void;
-  persistDurationAction: (payload: { sessionId: string; durationSeconds: number }) => Promise<{ ok: boolean }>;
+  persistDurationAction: (payload: { sessionId: string; durationSeconds: number }) => Promise<ActionResult>;
 }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(initialDurationSeconds ?? 0);
   const [isRunning, setIsRunning] = useState(false);
@@ -118,7 +115,7 @@ export function SetLoggerCard({
   addSetAction: (payload: AddSetPayload) => Promise<AddSetActionResult>;
   syncQueuedSetLogsAction: (payload: {
     items: SetLogQueueItem[];
-  }) => Promise<{ ok: boolean; results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>;
+  }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
   unitLabel: string;
   initialSets: SetRow[];
 }) {
@@ -369,7 +366,7 @@ export function SetLoggerCard({
         notes: null,
       });
 
-      if (!result.ok || !result.set) {
+      if (!result.ok || !result.data?.set) {
         const queued = await enqueueSetLog({
           sessionId,
           sessionExerciseId,
@@ -396,7 +393,7 @@ export function SetLoggerCard({
               : item,
           ),
         );
-        const message = queued ? "Could not reach server. Set queued for sync." : result.error ?? "Could not log set.";
+        const message = queued ? "Could not reach server. Set queued for sync." : (!result.ok ? result.error : "Could not log set.");
         setError(message);
         if (queued) {
           toast.success(message);
@@ -407,7 +404,7 @@ export function SetLoggerCard({
         return;
       }
 
-      setSets((current) => current.map((item) => (item.id === pendingId ? result.set! : item)));
+      setSets((current) => current.map((item) => (item.id === pendingId ? result.data!.set : item)));
       toast.success("Set logged.");
     } catch {
       const queued = await enqueueSetLog({

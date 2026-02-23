@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
 export async function addSetAction(payload: {
@@ -16,7 +16,7 @@ export async function addSetAction(payload: {
   rpe: number | null;
   notes: string | null;
   clientLogId?: string;
-}) {
+}) : Promise<ActionResult<{ set: SetRow }>> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -45,7 +45,7 @@ export async function addSetAction(payload: {
       .maybeSingle();
 
     if (!existingByClientLogIdError && existingByClientLogId) {
-      return { ok: true, set: existingByClientLogId as SetRow };
+      return { ok: true, data: { set: existingByClientLogId as SetRow } };
     }
   }
 
@@ -93,7 +93,7 @@ export async function addSetAction(payload: {
       .single();
 
     if (!error && insertedSet) {
-      return { ok: true, set: insertedSet as SetRow };
+      return { ok: true, data: { set: insertedSet as SetRow } };
     }
 
     if (error?.code !== "23505") {
@@ -119,7 +119,7 @@ export async function syncQueuedSetLogsAction(payload: {
       notes: string | null;
     };
   }>;
-}) {
+}) : Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>> {
   const results = await Promise.all(
     payload.items.map(async (item) => {
       const insertResult = await addSetAction({
@@ -137,16 +137,16 @@ export async function syncQueuedSetLogsAction(payload: {
       return {
         queueItemId: item.id,
         ok: insertResult.ok,
-        serverSetId: insertResult.set?.id,
-        error: insertResult.error,
+        serverSetId: insertResult.ok ? insertResult.data?.set.id : undefined,
+        error: insertResult.ok ? undefined : insertResult.error,
       };
     }),
   );
 
-  return { ok: true, results };
+  return { ok: true, data: { results } };
 }
 
-export async function toggleSkipAction(formData: FormData) {
+export async function toggleSkipAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -155,7 +155,7 @@ export async function toggleSkipAction(formData: FormData) {
   const nextSkipped = formData.get("nextSkipped") === "true";
 
   if (!sessionId || !sessionExerciseId) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent("Missing skip info")}`);
+    return { ok: false, error: "Missing skip info" };
   }
 
   const { error } = await supabase
@@ -166,13 +166,14 @@ export async function toggleSkipAction(formData: FormData) {
     .eq("session_id", sessionId);
 
   if (error) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidatePath(`/session/${sessionId}`);
+  return { ok: true };
 }
 
-export async function addExerciseAction(formData: FormData) {
+export async function addExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -202,10 +203,10 @@ export async function addExerciseAction(formData: FormData) {
   }
 
   revalidatePath(`/session/${sessionId}`);
-  return { ok: true, message: "Exercise added." };
+  return { ok: true };
 }
 
-export async function removeExerciseAction(formData: FormData) {
+export async function removeExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -228,15 +229,15 @@ export async function removeExerciseAction(formData: FormData) {
   }
 
   revalidatePath(`/session/${sessionId}`);
-  return { ok: true, message: "Exercise removed." };
+  return { ok: true };
 }
 
-export async function persistDurationAction(payload: { sessionId: string; durationSeconds: number }) {
+export async function persistDurationAction(payload: { sessionId: string; durationSeconds: number }): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
   if (!payload.sessionId || !Number.isInteger(payload.durationSeconds) || payload.durationSeconds < 0) {
-    return { ok: false };
+    return { ok: false, error: "Invalid session duration payload" };
   }
 
   const { error } = await supabase
@@ -247,13 +248,13 @@ export async function persistDurationAction(payload: { sessionId: string; durati
     .eq("status", "in_progress");
 
   if (error) {
-    return { ok: false };
+    return { ok: false, error: error.message };
   }
 
   return { ok: true };
 }
 
-export async function saveSessionAction(formData: FormData) {
+export async function saveSessionAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -281,5 +282,5 @@ export async function saveSessionAction(formData: FormData) {
 
   revalidatePath("/today");
   revalidatePath("/history");
-  return { ok: true, message: "Workout saved." };
+  return { ok: true };
 }
