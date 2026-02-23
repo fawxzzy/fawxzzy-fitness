@@ -12,6 +12,7 @@
 - Require authenticated server context for protected mutations (`requireUser()` + `supabaseServer()`).
 - Preserve RLS as the primary data-access safety boundary.
 - Favor the smallest clear change over new abstraction layers.
+- Do not introduce new structural layers without clear, documented justification.
 
 ## Folder Structure Overview
 - `src/app`: App Router routes, layouts, and server actions.
@@ -23,6 +24,7 @@
 - Server components and server actions own data reads/writes against Supabase.
 - Client components handle presentation and interaction state only.
 - Client-side database writes are not allowed.
+- Protected mutations must execute in strict server actions using `requireUser()` and `supabaseServer()`.
 
 ## Data Model Overview
 Core entities currently include:
@@ -35,3 +37,8 @@ All user-owned rows are expected to remain protected by RLS and tied to `user_id
 
 ## Change Management Rule
 Any future architectural change that alters boundaries, ownership, or data flow should be documented here before or alongside implementation to prevent undocumented drift.
+
+## Architecture Compliance Checklist
+- Verify requested changes align with this architecture contract before coding.
+- If a requested change conflicts with these boundaries, propose a compliant alternative first.
+- Keep diffs minimal and explicit; avoid speculative abstractions.
