@@ -3,7 +3,7 @@ import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
-import { createRoutineDaySeeds, getTodayDateInTimeZone } from "@/lib/routines";
+import { createRoutineDaySeedsFromStartDate, getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
 
@@ -56,7 +56,7 @@ async function createRoutineAction(formData: FormData) {
 
   const { error: daysError } = await supabase
     .from("routine_days")
-    .insert(createRoutineDaySeeds(cycleLengthDays, user.id, routine.id));
+    .insert(createRoutineDaySeedsFromStartDate(cycleLengthDays, user.id, routine.id, startDate));
 
   if (daysError) {
     throw new Error(daysError.message);

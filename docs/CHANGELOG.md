@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Replaced the time badge on History list cards with an inline Delete action, while keeping the existing detailed log view available via View.
+- Removed the empty-state card from the Routines page so no extra bottom card appears when the list is empty.
+- Refined Routines list layout and card actions: shortened list container height to avoid page-level right-edge overflow, and restyled Edit/Delete controls with a smoother glass-like treatment.
+- Updated routine day seeding/naming to auto-assign weekday names based on the routine start date and corresponding calendar progression (e.g., Monday through Sunday alignment).
+- Updated the active Session header layout by removing the "In progress" tag and placing the Back button on the right side of the title row.
+WHY:
+- History cards now prioritize direct lifecycle management where users requested it while retaining log navigation.
+- Removing redundant empty-state chrome keeps the routines screen cleaner.
+- The routines list now fits mobile viewport constraints better and action controls better match the app's glass visual language.
+- Automatic weekday naming improves day-to-calendar clarity for routine planning and execution.
+- Session header changes reduce visual noise and align back-navigation placement with the edit-routine screen pattern.
+
 ### Fixed
 WHAT:
 - Added explicit measurement units in set logging and history set displays so weight, rep, and time values are always labeled (for example `kg/lbs`, `reps`, and `sec`).

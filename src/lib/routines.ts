@@ -92,11 +92,33 @@ export function getRoutineDayComputation(params: {
 }
 
 export function createRoutineDaySeeds(cycleLengthDays: number, userId: string, routineId: string) {
+  return createRoutineDaySeedsFromStartDate(cycleLengthDays, userId, routineId, null);
+}
+
+function getWeekdayNameFromUtcDate(date: Date) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(date);
+}
+
+export function getRoutineDayNamesFromStartDate(cycleLengthDays: number, startDate: string | null) {
+  const startTimestamp = startDate ? Date.parse(`${startDate}T00:00:00Z`) : Number.NaN;
+  const canUseWeekdayNames = Number.isFinite(startTimestamp);
+
+  return Array.from({ length: cycleLengthDays }, (_, index) => {
+    if (!canUseWeekdayNames) {
+      return `Day ${index + 1}`;
+    }
+    return getWeekdayNameFromUtcDate(new Date(startTimestamp + (index * MS_PER_DAY)));
+  });
+}
+
+export function createRoutineDaySeedsFromStartDate(cycleLengthDays: number, userId: string, routineId: string, startDate: string | null) {
+  const dayNames = getRoutineDayNamesFromStartDate(cycleLengthDays, startDate);
+
   return Array.from({ length: cycleLengthDays }, (_, index) => ({
+    day_index: index + 1,
     user_id: userId,
     routine_id: routineId,
-    day_index: index + 1,
-    name: `Day ${index + 1}`,
+    name: dayNames[index],
     is_rest: false,
   }));
 }
