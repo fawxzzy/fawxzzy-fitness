@@ -9,6 +9,28 @@ import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
+const PAGE_SIZE = 20;
+
+type HistoryCursor = {
+  performedAt: string;
+  id: string;
+};
+
+function encodeCursor(cursor: HistoryCursor) {
+  return Buffer.from(JSON.stringify(cursor)).toString("base64url");
+}
+
+function decodeCursor(value?: string): HistoryCursor | null {
+  if (!value) return null;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<HistoryCursor>;
+    if (!parsed.performedAt || !parsed.id) return null;
+    return { performedAt: parsed.performedAt, id: parsed.id };
+  } catch {
+    return null;
+  }
+}
 
 async function deleteSessionAction(formData: FormData) {
   "use server";
@@ -36,19 +58,40 @@ async function deleteSessionAction(formData: FormData) {
 }
 
 
-export default async function HistoryPage() {
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams?: { cursor?: string };
+}) {
   const user = await requireUser();
   const supabase = supabaseServer();
+  const cursor = decodeCursor(searchParams?.cursor);
 
-  const { data } = await supabase
+  let query = supabase
     .from("sessions")
     .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, day_name_override, duration_seconds, status")
     .eq("user_id", user.id)
     .eq("status", "completed")
     .order("performed_at", { ascending: false })
-    .limit(20);
+    .order("id", { ascending: false })
+    .limit(PAGE_SIZE + 1);
 
-  const sessions = (data ?? []) as SessionRow[];
+  if (cursor) {
+    query = query.or(
+      `performed_at.lt.${cursor.performedAt},and(performed_at.eq.${cursor.performedAt},id.lt.${cursor.id})`,
+    );
+  }
+
+  const { data } = await query;
+
+  const fetchedSessions = (data ?? []) as SessionRow[];
+  const hasMore = fetchedSessions.length > PAGE_SIZE;
+  const sessions = hasMore ? fetchedSessions.slice(0, PAGE_SIZE) : fetchedSessions;
+  const lastSession = sessions[sessions.length - 1];
+  const nextCursor =
+    hasMore && lastSession?.performed_at
+      ? encodeCursor({ performedAt: lastSession.performed_at, id: lastSession.id })
+      : null;
 
   return (
     <section className="space-y-4">
@@ -90,6 +133,17 @@ export default async function HistoryPage() {
 
       {sessions.length === 0 ? (
         <Glass variant="base" className="border-dashed p-4 text-sm text-slate-500" interactive={false}>No sessions yet.</Glass>
+      ) : null}
+
+      {nextCursor ? (
+        <div className="flex justify-center">
+          <Link
+            href={`/history?cursor=${encodeURIComponent(nextCursor)}`}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            Load more
+          </Link>
+        </div>
       ) : null}
     </section>
   );
