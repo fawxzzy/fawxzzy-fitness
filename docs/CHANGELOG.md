@@ -5,6 +5,12 @@
 
 ### Changed
 WHAT:
+- Refined the bottom-nav Settings icon to a cleaner, sharper gear mark for improved small-size legibility.
+WHY:
+- The prior icon looked visually soft at mobile tab size; a simplified shape reads faster and feels crisper.
+
+### Changed
+WHAT:
 - Updated routine creation flow so saving a new routine now sends users directly to that routine’s edit screen.
 - Updated new-routine defaults and active-session date display to prefer device-local timezone/date when available.
 - Refined routine list Edit button coloring for more consistent accent contrast.
