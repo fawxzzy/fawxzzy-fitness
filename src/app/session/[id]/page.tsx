@@ -424,8 +424,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       <ActionFeedbackToasts />
 
-      <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
-
       <details className="rounded-md">
         <summary className="cursor-pointer list-none rounded-md bg-white px-4 py-3 text-sm font-semibold shadow-sm [&::-webkit-details-marker]:hidden">Add exercise</summary>
         <div className="mt-2 rounded-md bg-white p-3 shadow-sm">
@@ -473,6 +471,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         </div>
       </div>
       </details>
+
+      <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
 
       {sessionExercises.length > 0 ? (
         <SessionExerciseFocus

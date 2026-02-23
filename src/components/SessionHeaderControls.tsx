@@ -25,9 +25,9 @@ function SaveSessionButton() {
     <button
       type="submit"
       disabled={pending}
-      className={`w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto ${tapFeedbackClass}`}
+      className={`w-full rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/25 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto ${tapFeedbackClass}`}
     >
-      {pending ? "Saving..." : "✓ Save Session"}
+      {pending ? "Saving..." : "Save Session"}
     </button>
   );
 }
