@@ -143,7 +143,7 @@ export default async function RoutinesPage() {
                   <div className="flex gap-2 text-sm">
                     <Link
                       href={`/routines/${routine.id}/edit`}
-                      className="rounded-full border border-white/55 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur transition-all hover:bg-white/60"
+                      className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20"
                     >
                       Edit
                     </Link>

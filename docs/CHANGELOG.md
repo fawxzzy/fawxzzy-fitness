@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+
+### Changed
+WHAT:
+- Updated routine creation flow so saving a new routine now sends users directly to that routine’s edit screen.
+- Updated new-routine defaults and active-session date display to prefer device-local timezone/date when available.
+- Refined routine list Edit button coloring for more consistent accent contrast.
+- Added exercise count plus a short exercise-name preview on day cards in the routine edit screen.
+- Updated logged set labels in active sessions from shorthand hash format to explicit "Set N" wording.
+WHY:
+- These changes align routine/session UX with requested navigation and readability improvements while making time/date context reflect the user’s local device more reliably.
+
 ### Changed
 WHAT:
 - Updated the active Session screen controls by removing the checkmark from the Save Session label, using a clearer green save CTA, and placing the Add exercise section before the session timer block.

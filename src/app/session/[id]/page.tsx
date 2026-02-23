@@ -10,7 +10,7 @@ import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExe
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import { getSessionTargets, type DisplayTarget } from "@/lib/session-targets";
-import { formatDateTime } from "@/lib/datetime";
+import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
@@ -419,7 +419,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         <h1 className="text-2xl font-semibold">{sessionRow.name || "Routine"}: {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}</h1>
         <BackButton href="/today" label="Back" ariaLabel="Back to Today" />
       </div>
-      <p className="rounded-md bg-white p-3 text-sm shadow-sm">{formatDateTime(sessionRow.performed_at)}</p>
+      <p className="rounded-md bg-white p-3 text-sm shadow-sm"><LocalDateTime value={sessionRow.performed_at} /></p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       <ActionFeedbackToasts />

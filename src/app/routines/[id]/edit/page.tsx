@@ -188,15 +188,33 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const { data: exercises } = routineDayIds.length
     ? await supabase
         .from("routine_day_exercises")
-        .select("id, user_id, routine_day_id")
+        .select("id, user_id, routine_day_id, exercise_id, position")
         .in("routine_day_id", routineDayIds)
         .eq("user_id", user.id)
+        .order("position", { ascending: true })
     : { data: [] };
 
-  const exerciseRows = (exercises ?? []) as Pick<RoutineDayExerciseRow, "id" | "routine_day_id">[];
+  const exerciseRows = (exercises ?? []) as Pick<RoutineDayExerciseRow, "id" | "routine_day_id" | "exercise_id">[];
+  const exerciseIds = Array.from(new Set(exerciseRows.map((row) => row.exercise_id)));
+
+  const { data: exerciseData } = exerciseIds.length
+    ? await supabase
+        .from("exercises")
+        .select("id, name")
+        .in("id", exerciseIds)
+    : { data: [] };
+
+  const exerciseNameById = new Map((exerciseData ?? []).map((exercise) => [exercise.id, exercise.name]));
   const dayExerciseCount = new Map<string, number>();
+  const dayExercisePreview = new Map<string, string[]>();
+
   for (const row of exerciseRows) {
     dayExerciseCount.set(row.routine_day_id, (dayExerciseCount.get(row.routine_day_id) ?? 0) + 1);
+    const preview = dayExercisePreview.get(row.routine_day_id) ?? [];
+    if (preview.length < 3) {
+      preview.push(exerciseNameById.get(row.exercise_id) ?? "Exercise");
+      dayExercisePreview.set(row.routine_day_id, preview);
+    }
   }
 
   const routineTimezoneDefault = isRoutineTimezone((routine as RoutineRow).timezone)
@@ -249,6 +267,8 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
       <div className="space-y-2">
         {routineDays.map((day) => {
           const count = dayExerciseCount.get(day.id) ?? 0;
+          const preview = dayExercisePreview.get(day.id) ?? [];
+
           return (
             <Link
               key={day.id}
@@ -260,6 +280,12 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                 <span className="text-xs text-slate-500">Tap to edit</span>
               </div>
               <p className="mt-1 text-xs text-slate-500">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
+              {!day.is_rest && preview.length > 0 ? (
+                <p className="mt-1 truncate text-xs text-slate-500">
+                  {preview.join(" • ")}
+                  {count > preview.length ? " • …" : ""}
+                </p>
+              ) : null}
             </Link>
           );
         })}

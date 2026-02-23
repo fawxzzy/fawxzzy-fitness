@@ -581,7 +581,7 @@ export function SetLoggerCard({
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
           >
-            #{set.set_index + 1} · {set.weight} {unitLabel} × {set.reps} reps
+            Set {set.set_index + 1} · {set.weight} {unitLabel} × {set.reps} reps
             {set.duration_seconds !== null ? ` · ${set.duration_seconds} sec` : ""}
             {set.queueStatus ? ` · ${set.queueStatus}` : ""}
             {set.pending && !set.queueStatus ? " · saving..." : ""}
