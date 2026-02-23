@@ -1,5 +1,3 @@
-import { revalidatePath } from "next/cache";
-import { notFound, redirect } from "next/navigation";
 import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
 import { BackButton } from "@/components/ui/BackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
@@ -7,12 +5,18 @@ import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
-import { requireUser } from "@/lib/auth";
-import { listExercises } from "@/lib/exercises";
-import { getSessionTargets, type DisplayTarget } from "@/lib/session-targets";
+import type { DisplayTarget } from "@/lib/session-targets";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
-import { supabaseServer } from "@/lib/supabase/server";
-import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
+import {
+  addExerciseAction,
+  addSetAction,
+  persistDurationAction,
+  removeExerciseAction,
+  saveSessionAction,
+  syncQueuedSetLogsAction,
+  toggleSkipAction,
+} from "./actions";
+import { getSessionPageData } from "./queries";
 
 export const dynamic = "force-dynamic";
 
@@ -67,351 +71,19 @@ type PageProps = {
   };
 };
 
-async function addSetAction(payload: {
-  sessionId: string;
-  sessionExerciseId: string;
-  weight: number;
-  reps: number;
-  durationSeconds: number | null;
-  isWarmup: boolean;
-  rpe: number | null;
-  notes: string | null;
-  clientLogId?: string;
-}) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, isWarmup, rpe, notes, clientLogId } = payload;
-
-  if (!sessionId || !sessionExerciseId) {
-    return { ok: false, error: "Missing session info" };
-  }
-
-  if (!Number.isFinite(weight) || !Number.isFinite(reps) || weight < 0 || reps < 0) {
-    return { ok: false, error: "Weight and reps must be 0 or greater" };
-  }
-
-  if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
-    return { ok: false, error: "Time must be an integer in seconds" };
-  }
-
-  if (clientLogId) {
-    const { data: existingByClientLogId, error: existingByClientLogIdError } = await supabase
-      .from("sets")
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
-      .eq("session_exercise_id", sessionExerciseId)
-      .eq("user_id", user.id)
-      .eq("client_log_id", clientLogId)
-      .limit(1)
-      .maybeSingle();
-
-    if (!existingByClientLogIdError && existingByClientLogId) {
-      return { ok: true, set: existingByClientLogId as SetRow };
-    }
-  }
-
-  // Append semantics are based on MAX(set_index) + 1 instead of count-based indexing.
-  // A unique DB constraint plus retry-on-conflict prevents duplicate indexes when offline
-  // actions reconnect and flush concurrently for the same session exercise.
-  const MAX_SET_INDEX_RETRIES = 5;
-
-  for (let attempt = 0; attempt < MAX_SET_INDEX_RETRIES; attempt += 1) {
-    const { data: latestSet, error: latestSetError } = await supabase
-      .from("sets")
-      .select("set_index")
-      .eq("session_exercise_id", sessionExerciseId)
-      .eq("user_id", user.id)
-      .order("set_index", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (latestSetError) {
-      return { ok: false, error: latestSetError.message };
-    }
-
-    const nextSetIndex = latestSet ? latestSet.set_index + 1 : 0;
-
-    const insertPayload = {
-        session_exercise_id: sessionExerciseId,
-        user_id: user.id,
-        set_index: nextSetIndex,
-        weight,
-        reps,
-        duration_seconds: durationSeconds,
-        is_warmup: isWarmup,
-        rpe,
-        notes,
-      } as Record<string, unknown>;
-
-    if (clientLogId) {
-      insertPayload.client_log_id = clientLogId;
-    }
-
-    const { data: insertedSet, error } = await supabase
-      .from("sets")
-      .insert(insertPayload)
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
-      .single();
-
-    if (!error && insertedSet) {
-      return { ok: true, set: insertedSet as SetRow };
-    }
-
-    if (error?.code !== "23505") {
-      return { ok: false, error: error?.message ?? "Could not log set" };
-    }
-  }
-
-  return { ok: false, error: "Could not log set after retrying index allocation" };
-}
-
-async function syncQueuedSetLogsAction(payload: {
-  items: Array<{
-    id: string;
-    clientLogId: string;
-    sessionId: string;
-    sessionExerciseId: string;
-    payload: {
-      weight: number;
-      reps: number;
-      durationSeconds: number | null;
-      isWarmup: boolean;
-      rpe: number | null;
-      notes: string | null;
-    };
-  }>;
-}) {
-  "use server";
-
-  const results = await Promise.all(
-    payload.items.map(async (item) => {
-      const insertResult = await addSetAction({
-        sessionId: item.sessionId,
-        sessionExerciseId: item.sessionExerciseId,
-        weight: item.payload.weight,
-        reps: item.payload.reps,
-        durationSeconds: item.payload.durationSeconds,
-        isWarmup: item.payload.isWarmup,
-        rpe: item.payload.rpe,
-        notes: item.payload.notes,
-        clientLogId: item.clientLogId,
-      });
-
-      return {
-        queueItemId: item.id,
-        ok: insertResult.ok,
-        serverSetId: insertResult.set?.id,
-        error: insertResult.error,
-      };
-    }),
-  );
-
-  return { ok: true, results };
-}
-
-async function toggleSkipAction(formData: FormData) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const sessionId = String(formData.get("sessionId") ?? "");
-  const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "");
-  const nextSkipped = formData.get("nextSkipped") === "true";
-
-  if (!sessionId || !sessionExerciseId) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent("Missing skip info")}`);
-  }
-
-  const { error } = await supabase
-    .from("session_exercises")
-    .update({ is_skipped: nextSkipped })
-    .eq("id", sessionExerciseId)
-    .eq("user_id", user.id)
-    .eq("session_id", sessionId);
-
-  if (error) {
-    redirect(`/session/${sessionId}?error=${encodeURIComponent(error.message)}`);
-  }
-
-  revalidatePath(`/session/${sessionId}`);
-}
-
-async function addExerciseAction(formData: FormData) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const sessionId = String(formData.get("sessionId") ?? "");
-  const exerciseId = String(formData.get("exerciseId") ?? "");
-
-  if (!sessionId || !exerciseId) {
-    return { ok: false, error: "Missing exercise info" };
-  }
-
-  const { count } = await supabase
-    .from("session_exercises")
-    .select("id", { head: true, count: "exact" })
-    .eq("session_id", sessionId)
-    .eq("user_id", user.id);
-
-  const { error } = await supabase.from("session_exercises").insert({
-    session_id: sessionId,
-    user_id: user.id,
-    exercise_id: exerciseId,
-    position: count ?? 0,
-    is_skipped: false,
-  });
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath(`/session/${sessionId}`);
-  return { ok: true, message: "Exercise added." };
-}
-
-async function removeExerciseAction(formData: FormData) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const sessionId = String(formData.get("sessionId") ?? "");
-  const sessionExerciseId = String(formData.get("sessionExerciseId") ?? "");
-
-  if (!sessionId || !sessionExerciseId) {
-    return { ok: false, error: "Missing remove info" };
-  }
-
-  const { error } = await supabase
-    .from("session_exercises")
-    .delete()
-    .eq("id", sessionExerciseId)
-    .eq("session_id", sessionId)
-    .eq("user_id", user.id);
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath(`/session/${sessionId}`);
-  return { ok: true, message: "Exercise removed." };
-}
-
-async function persistDurationAction(payload: { sessionId: string; durationSeconds: number }) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  if (!payload.sessionId || !Number.isInteger(payload.durationSeconds) || payload.durationSeconds < 0) {
-    return { ok: false };
-  }
-
-  const { error } = await supabase
-    .from("sessions")
-    .update({ duration_seconds: payload.durationSeconds })
-    .eq("id", payload.sessionId)
-    .eq("user_id", user.id)
-    .eq("status", "in_progress");
-
-  if (error) {
-    return { ok: false };
-  }
-
-  return { ok: true };
-}
-
-async function saveSessionAction(formData: FormData) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const sessionId = String(formData.get("sessionId") ?? "");
-  const durationValue = String(formData.get("durationSeconds") ?? "").trim();
-  const durationSeconds = durationValue ? Number(durationValue) : null;
-
-  if (!sessionId) {
-    return { ok: false, error: "Missing session info" };
-  }
-
-  if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
-    return { ok: false, error: "Session time must be an integer in seconds" };
-  }
-
-  const { error } = await supabase
-    .from("sessions")
-    .update({ duration_seconds: durationSeconds, status: "completed" })
-    .eq("id", sessionId)
-    .eq("user_id", user.id);
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  revalidatePath("/today");
-  revalidatePath("/history");
-  return { ok: true, message: "Workout saved." };
-}
-
 export default async function SessionPage({ params, searchParams }: PageProps) {
-  const user = await requireUser();
-  const supabase = supabaseServer();
+  const {
+    sessionRow,
+    routine,
+    sessionExercises,
+    setsByExercise,
+    sessionTargets,
+    exerciseOptions,
+    exerciseNameMap,
+    customExercises,
+  } = await getSessionPageData(params.id);
 
-  const { data: session } = await supabase
-    .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
-    .eq("id", params.id)
-    .eq("user_id", user.id)
-    .single();
-
-  if (!session) {
-    notFound();
-  }
-
-  const { data: routine } = session.routine_id
-    ? await supabase.from("routines").select("weight_unit").eq("id", session.routine_id).eq("user_id", user.id).maybeSingle()
-    : { data: null };
-
-  const { data: sessionExercisesData } = await supabase
-    .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, position, notes, is_skipped")
-    .eq("session_id", params.id)
-    .eq("user_id", user.id)
-    .order("position", { ascending: true });
-
-  const sessionExercises = (sessionExercisesData ?? []) as SessionExerciseRow[];
-  const exerciseIds = sessionExercises.map((exercise) => exercise.id);
-
-  const { data: setsData } = exerciseIds.length
-    ? await supabase
-        .from("sets")
-        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
-        .in("session_exercise_id", exerciseIds)
-        .eq("user_id", user.id)
-        .order("set_index", { ascending: true })
-    : { data: [] };
-
-  const sets = (setsData ?? []) as SetRow[];
-  const setsByExercise = new Map<string, SetRow[]>();
-
-  for (const set of sets) {
-    const current = setsByExercise.get(set.session_exercise_id) ?? [];
-    current.push(set);
-    setsByExercise.set(set.session_exercise_id, current);
-  }
-
-  const sessionRow = session as SessionRow;
   const unitLabel = routine?.weight_unit ?? "kg";
-  const sessionTargets = await getSessionTargets(params.id);
-  const exerciseOptions = await listExercises();
-  const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
-  const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
 
   return (
     <section className="space-y-4 pt-[max(env(safe-area-inset-top),0.5rem)]">
