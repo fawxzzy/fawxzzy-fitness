@@ -5,6 +5,31 @@ This repository is governed by the Product Engineering Playbook.
 Source of truth:
 https://github.com/ZachariahRedfield/Playbook
 
+## Updating Playbook (Subtree Model)
+
+When the central Playbook repository changes and you want to bring updates into this repository:
+
+```bash
+git subtree pull --prefix=Playbook https://github.com/ZachariahRedfield/Playbook.git main --squash
+```
+
+This pulls the latest `main` from the Playbook repository, squashes upstream changes into a single commit, and updates only the local `Playbook/` subtree to keep history compact.
+
+If your git alias is already configured, use:
+
+```bash
+git sync-playbook
+```
+
+Mental model: treat subtree-managed Playbook content as vendored doctrine with controlled, intentional updates. Nothing auto-updates unless you run the sync command.
+
+### Clean workflow
+
+1. Commit and push changes in the central Playbook repository.
+2. In this repository, run `git sync-playbook`.
+3. Commit subtree update changes if needed (subtree may auto-commit in some cases).
+4. Push and merge.
+
 ## Rules for Codex / Agents
 
 1. Follow the central Playbook principles and patterns.
