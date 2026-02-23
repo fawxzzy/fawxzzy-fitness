@@ -150,3 +150,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Completed records should communicate finality and avoid accidental “resume session” behavior while still allowing intentional note/day-name corrections.
 - Evidence: src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
 - Status: Proposed
+
+
+## 2026-02-23 — Standardize server-action result semantics with navigation-only redirects
+- Type: Guardrail
+- Summary: Use a shared `ActionResult<T>` union (`ok + data` success, `ok + error` failure) for non-navigation server-action outcomes, and reserve redirects strictly for navigation transitions.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: Mixed return/redirect error semantics increase UI adapter complexity and make action behavior less deterministic across features.
+- Evidence: src/lib/action-result.ts, src/app/session/[id]/actions.ts, src/components/SessionTimers.tsx, src/lib/offline/sync-engine.ts
+- Status: Proposed

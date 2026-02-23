@@ -6,6 +6,7 @@ import { SetLoggerCard } from "@/components/SessionTimers";
 import { useToast } from "@/components/ui/ToastProvider";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { toastActionResult } from "@/lib/action-feedback";
+import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -19,17 +20,7 @@ type AddSetPayload = {
   notes: string | null;
 };
 
-type AddSetActionResult = {
-  ok: boolean;
-  error?: string;
-  set?: SetRow;
-};
-
-type ActionResult = {
-  ok: boolean;
-  error?: string;
-  message?: string;
-};
+type AddSetActionResult = ActionResult<{ set: SetRow }>;
 
 type SyncQueuedSetLogsAction = (payload: {
   items: Array<{
@@ -46,7 +37,7 @@ type SyncQueuedSetLogsAction = (payload: {
       notes: string | null;
     };
   }>;
-}) => Promise<{ ok: boolean; results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>;
+}) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
 type SessionExerciseFocusItem = {
   id: string;
@@ -71,7 +62,7 @@ export function SessionExerciseFocus({
   exercises: SessionExerciseFocusItem[];
   addSetAction: (payload: AddSetPayload) => Promise<AddSetActionResult>;
   syncQueuedSetLogsAction: SyncQueuedSetLogsAction;
-  toggleSkipAction: (formData: FormData) => Promise<void>;
+  toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -154,7 +145,19 @@ export function SessionExerciseFocus({
             <div className="flex items-center justify-between gap-2">
               <p className="font-semibold">{exercise.name}</p>
               <div className="flex gap-2">
-                <form action={toggleSkipAction}>
+                <form
+                  action={async (formData) => {
+                    const result = await toggleSkipAction(formData);
+                    toastActionResult(toast, result, {
+                      success: exercise.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
+                      error: "Could not update skip state.",
+                    });
+
+                    if (result.ok) {
+                      router.refresh();
+                    }
+                  }}
+                >
                   <input type="hidden" name="sessionId" value={sessionId} />
                   <input type="hidden" name="sessionExerciseId" value={exercise.id} />
                   <input type="hidden" name="nextSkipped" value={String(!exercise.isSkipped)} />

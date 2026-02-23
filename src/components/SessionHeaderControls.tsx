@@ -8,15 +8,10 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { useToast } from "@/components/ui/ToastProvider";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { toastActionResult } from "@/lib/action-feedback";
+import type { ActionResult } from "@/lib/action-result";
 
-type SaveSessionActionResult = {
-  ok: boolean;
-  error?: string;
-  message?: string;
-};
-
-type ServerAction = (formData: FormData) => Promise<SaveSessionActionResult>;
-type PersistDurationAction = (payload: { sessionId: string; durationSeconds: number }) => Promise<{ ok: boolean }>;
+type ServerAction = (formData: FormData) => Promise<ActionResult>;
+type PersistDurationAction = (payload: { sessionId: string; durationSeconds: number }) => Promise<ActionResult>;
 
 function SaveSessionButton() {
   const { pending } = useFormStatus();
