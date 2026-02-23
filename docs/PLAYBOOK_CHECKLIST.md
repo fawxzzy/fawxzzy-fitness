@@ -1,8 +1,8 @@
 # Playbook Checklist (Codex Gate)
 
 Before implementing any change:
-1) Read Playbook/ (Playbook submodule) - (https://github.com/ZachariahRedfield/Playbook/tree/5792c9dd41a675090683f719c93860c9ece6df86) relevant sections.
-2) If Playbook/ is missing or empty, do not proceed. Initialize submodules first (git submodule update --init --recursive).
+1) Playbook directory (vendored via subtree)
+2) -
 3) Confirm change aligns with:
    - Mobile-first UX (fast, simple, consistent)
    - Clean server/client boundary (no client DB writes)
