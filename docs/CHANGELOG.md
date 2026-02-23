@@ -4,6 +4,12 @@
 
 ### Fixed
 WHAT:
+- Added explicit measurement units in set logging and history set displays so weight, rep, and time values are always labeled (for example `kg/lbs`, `reps`, and `sec`).
+WHY:
+- Unit-labeled values reduce ambiguity and make workout data quicker to scan accurately.
+
+### Fixed
+WHAT:
 - Wrapped the Routines page "Create Routine" CTA in a glass card backdrop container so it visually matches surrounding list/navigation surfaces.
 WHY:
 - The primary action now aligns with the app's established card hierarchy and feels more cohesive in the Routines layout.

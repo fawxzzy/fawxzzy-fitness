@@ -117,6 +117,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             set_index: set.set_index,
             weight: set.weight,
             reps: set.reps,
+            duration_seconds: set.duration_seconds,
           })),
         }))}
       />
