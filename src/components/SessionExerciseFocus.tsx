@@ -110,10 +110,13 @@ export function SessionExerciseFocus({
                 className={`w-full rounded-md bg-white p-3 text-left shadow-sm transition-all duration-150 motion-reduce:transition-none ${tapFeedbackClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold">{exercise.name}</p>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                    {exercise.loggedSetCount} set{exercise.loggedSetCount === 1 ? "" : "s"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">{exercise.name}</p>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                      {exercise.loggedSetCount} set{exercise.loggedSetCount === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <span className={`rounded-md border border-slate-300 px-2 py-1 text-xs ${tapFeedbackClass}`}>Open</span>
                 </div>
                 {exercise.goalText ? <p className="text-xs text-slate-500">{exercise.goalText}</p> : null}
                 {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-700">Skipped</p> : null}

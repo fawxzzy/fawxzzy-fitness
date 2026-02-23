@@ -4,6 +4,15 @@
 
 ### Changed
 WHAT:
+- Updated the active Session screen controls by removing the checkmark from the Save Session label, using a clearer green save CTA, and placing the Add exercise section before the session timer block.
+- Refined current-session exercise cards so the set-count badge sits inline with the exercise title and a right-aligned Open control appears while cards are collapsed.
+- Reworked in-card Set Timer layout to mirror the session timer pattern (title, running time, Start/Pause + Reset) while keeping compact sizing.
+- Added reset behavior for Set Timer rep-source logic so resetting exits timer-tap rep mode and logging returns to manual reps input values.
+WHY:
+- These updates match the requested session UX flow, make expand/collapse actions clearer in dense card lists, and keep timer-driven logging behavior predictable after reset actions.
+
+### Changed
+WHAT:
 - Replaced the time badge on History list cards with an inline Delete action, while keeping the existing detailed log view available via View.
 - Removed the empty-state card from the Routines page so no extra bottom card appears when the list is empty.
 - Refined Routines list layout and card actions: shortened list container height to avoid page-level right-edge overflow, and restyled Edit/Delete controls with a smoother glass-like treatment.

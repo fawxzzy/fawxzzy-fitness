@@ -133,6 +133,7 @@ export function SetLoggerCard({
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [tapReps, setTapReps] = useState(0);
+  const [useTimerRepCount, setUseTimerRepCount] = useState(false);
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
@@ -270,12 +271,12 @@ export function SetLoggerCard({
 
   async function handleLogSet() {
     const parsedWeight = Number(weight);
-    const parsedReps = Number(reps);
+    const parsedReps = Number(useTimerRepCount ? tapReps : reps);
     const parsedDuration = durationSeconds.trim() ? Number(durationSeconds) : null;
     const parsedRpe = rpe.trim() ? Number(rpe) : null;
 
     if (!Number.isFinite(parsedWeight) || !Number.isFinite(parsedReps) || parsedWeight < 0 || parsedReps < 0) {
-      const message = "Weight and reps must be 0 or greater.";
+      const message = useTimerRepCount ? "Weight and tapped reps must be 0 or greater." : "Weight and reps must be 0 or greater.";
       setError(message);
       toast.error(message);
       return;
@@ -456,41 +457,50 @@ export function SetLoggerCard({
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            setElapsedSeconds(0);
-            setTapReps(0);
-            setDurationSeconds("");
-            setIsRunning(true);
-          }}
-          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
-        >
-          Start Set
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setIsRunning(false);
-            setDurationSeconds(String(elapsedSeconds));
-            if (tapReps > 0) {
-              setReps(String(tapReps));
-            }
-          }}
-          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
-        >
-          Stop
-        </button>
-      </div>
-
-      <p className="text-sm text-slate-600">Set timer: {formatSeconds(elapsedSeconds)}</p>
+      <section className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Set Timer</h3>
+        <p className="text-xl font-semibold tabular-nums">{formatSeconds(elapsedSeconds)}</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (isRunning) {
+                setDurationSeconds(String(elapsedSeconds));
+              }
+              setIsRunning((value) => !value);
+            }}
+            className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+          >
+            {isRunning ? "Pause" : "Start"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsRunning(false);
+              setElapsedSeconds(0);
+              setTapReps(0);
+              setDurationSeconds("");
+              setUseTimerRepCount(false);
+            }}
+            className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+          >
+            Reset
+          </button>
+        </div>
+      </section>
 
       {isRunning ? (
         <div className="space-y-2 rounded-md bg-slate-50 p-2">
           <button
             type="button"
-            onClick={() => setTapReps((value) => value + 1)}
+            onClick={() => {
+              setTapReps((value) => {
+                const nextValue = value + 1;
+                setReps(String(nextValue));
+                return nextValue;
+              });
+              setUseTimerRepCount(true);
+            }}
             className={`w-full rounded-md bg-accent px-4 py-4 text-base font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
           >
             Tap Rep
@@ -501,6 +511,8 @@ export function SetLoggerCard({
           </p>
         </div>
       ) : null}
+
+      {useTimerRepCount ? <p className="text-xs text-slate-600">Logging reps from timer taps ({tapReps}). Edit reps input to switch back.</p> : null}
 
       <div className="grid grid-cols-2 gap-2">
         <input
@@ -519,7 +531,10 @@ export function SetLoggerCard({
           min={0}
           required
           value={reps}
-          onChange={(event) => setReps(event.target.value)}
+          onChange={(event) => {
+            setReps(event.target.value);
+            setUseTimerRepCount(false);
+          }}
           placeholder="Reps (count)"
           className="rounded-md border border-slate-300 px-2 py-2 text-sm"
         />
