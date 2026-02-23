@@ -12,6 +12,13 @@ WHY:
 
 ### Changed
 WHAT:
+- Documented the standard Playbook subtree sync workflow in governance docs, including `git subtree pull --prefix=Playbook ... --squash`, the `git sync-playbook` alias path, and a concise ongoing update sequence.
+WHY:
+- Keeping subtree update guidance in-repo makes Playbook governance repeatable, reduces sync ambiguity, and reinforces intentional doctrine versioning.
+
+
+### Changed
+WHAT:
 - Refined the bottom-nav Settings icon to a cleaner, sharper gear mark for improved small-size legibility.
 WHY:
 - The prior icon looked visually soft at mobile tab size; a simplified shape reads faster and feels crisper.
