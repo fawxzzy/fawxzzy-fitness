@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 
+### Fixed
+WHAT:
+- Softened the History card Delete action interaction state by removing the stronger hover/click highlight treatment.
+WHY:
+- The prior highlight drew too much attention during quick list interactions; a calmer state keeps destructive controls readable without visual flash.
+
+
 ### Changed
 WHAT:
 - Refined the bottom-nav Settings icon to a cleaner, sharper gear mark for improved small-size legibility.
@@ -447,4 +454,3 @@ WHAT:
 - Updated governance and architecture contracts to require explicit pre-change Playbook compliance review, enforce strict server-action and boundary guardrails, and codify checklist/quality-gate expectations in local docs.
 WHY:
 - This reduces process drift, keeps architectural boundaries explicit, and makes repo-level execution standards consistent with the Playbook contract.
-

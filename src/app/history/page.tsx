@@ -65,7 +65,7 @@ export default async function HistoryPage() {
                   <input type="hidden" name="sessionId" value={session.id} />
                   <button
                     type="submit"
-                    className="shrink-0 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+                    className="shrink-0 rounded-md border border-red-300 bg-red-50/80 px-2 py-1 text-xs font-semibold text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                   >
                     Delete
                   </button>
