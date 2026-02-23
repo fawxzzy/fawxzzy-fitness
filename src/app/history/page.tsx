@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
 import { requireUser } from "@/lib/auth";
@@ -8,20 +9,31 @@ import type { SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
-function formatDuration(durationSeconds: number | null): string {
-  if (!durationSeconds || durationSeconds <= 0) {
-    return "No timer";
+async function deleteSessionAction(formData: FormData) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const sessionId = String(formData.get("sessionId") ?? "");
+
+  if (!sessionId) {
+    throw new Error("Missing session ID");
   }
 
-  const minutes = Math.round(durationSeconds / 60);
-  if (minutes < 60) {
-    return `${minutes} min`;
+  const { error } = await supabase
+    .from("sessions")
+    .delete()
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .eq("status", "completed");
+
+  if (error) {
+    throw new Error(error.message);
   }
 
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `${hours}h ${remainingMinutes}m`;
+  revalidatePath("/history");
 }
+
 
 export default async function HistoryPage() {
   const user = await requireUser();
@@ -49,9 +61,15 @@ export default async function HistoryPage() {
                 <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {(session.name || "Session")} Log #{sessions.length - index}: {session.day_name_override || session.routine_day_name || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day")}
                 </span>
-                <span className="shrink-0 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600">
-                  {formatDuration(session.duration_seconds)}
-                </span>
+                <form action={deleteSessionAction}>
+                  <input type="hidden" name="sessionId" value={session.id} />
+                  <button
+                    type="submit"
+                    className="shrink-0 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+                  >
+                    Delete
+                  </button>
+                </form>
               </div>
 
               <p className="text-xs text-slate-500">{formatDateTime(session.performed_at)}</p>

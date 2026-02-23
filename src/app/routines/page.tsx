@@ -116,7 +116,7 @@ export default async function RoutinesPage() {
   const routines = (data ?? []) as RoutineRow[];
 
   return (
-    <section className="flex min-h-[calc(100dvh-6.5rem)] flex-col gap-4">
+    <section className="space-y-4">
       <AppNav />
 
       <Glass variant="base" className="p-2" interactive={false}>
@@ -129,7 +129,7 @@ export default async function RoutinesPage() {
       </Glass>
 
       <Glass variant="base" className="p-2" interactive={false}>
-        <ul className="h-[68vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:h-auto md:max-h-[72vh]">
+        <ul className="max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:max-h-[68vh]">
           {routines.map((routine) => {
             const isActive = profile.active_routine_id === routine.id;
 
@@ -140,15 +140,18 @@ export default async function RoutinesPage() {
                     <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
                     <p className="text-xs text-slate-600">{routine.cycle_length_days} day cycle · {routine.weight_unit}</p>
                   </div>
-                  <div className="flex gap-3 text-sm">
-                    <Link href={`/routines/${routine.id}/edit`} className="text-slate-700 underline">
+                  <div className="flex gap-2 text-sm">
+                    <Link
+                      href={`/routines/${routine.id}/edit`}
+                      className="rounded-full border border-white/55 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur transition-all hover:bg-white/60"
+                    >
                       Edit
                     </Link>
                     <form action={deleteRoutineAction}>
                       <input type="hidden" name="routineId" value={routine.id} />
                       <button
                         type="submit"
-                        className="appearance-none border-0 bg-transparent p-0 text-red-600 underline transition-colors hover:text-red-700 focus:outline-none focus-visible:text-red-700"
+                        className="rounded-full border border-red-200/80 bg-red-100/65 px-3 py-1 text-xs font-semibold text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85"
                       >
                         Delete
                       </button>
@@ -172,10 +175,6 @@ export default async function RoutinesPage() {
           })}
         </ul>
       </Glass>
-
-      {routines.length === 0 ? (
-        <Glass variant="base" className="p-3 text-sm text-slate-500" interactive={false}>No routines yet.</Glass>
-      ) : null}
     </section>
   );
 }

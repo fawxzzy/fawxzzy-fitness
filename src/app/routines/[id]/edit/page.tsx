@@ -5,7 +5,7 @@ import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
-import { createRoutineDaySeeds } from "@/lib/routines";
+import { createRoutineDaySeedsFromStartDate, getRoutineDayNamesFromStartDate } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
@@ -109,7 +109,7 @@ async function updateRoutineAction(formData: FormData) {
     const existingDayIndexes = new Set((existingDays ?? []).map((day) => day.day_index));
 
     if (cycleLengthDays > existingRoutine.cycle_length_days) {
-      const missingSeeds = createRoutineDaySeeds(cycleLengthDays, user.id, routineId).filter(
+      const missingSeeds = createRoutineDaySeedsFromStartDate(cycleLengthDays, user.id, routineId, startDate).filter(
         (seed) => !existingDayIndexes.has(seed.day_index),
       );
 
@@ -126,6 +126,33 @@ async function updateRoutineAction(formData: FormData) {
         const { error: deleteError } = await supabase.from("routine_days").delete().in("id", dayIdsToDelete).eq("user_id", user.id);
         if (deleteError) throw new Error(deleteError.message);
       }
+    }
+  }
+
+  const dayNameUpdates = getRoutineDayNamesFromStartDate(cycleLengthDays, startDate);
+
+  const { data: existingDayRows, error: existingDayRowsError } = await supabase
+    .from("routine_days")
+    .select("id, day_index")
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id);
+
+  if (existingDayRowsError) {
+    throw new Error(existingDayRowsError.message);
+  }
+
+  for (const day of existingDayRows ?? []) {
+    const nextName = dayNameUpdates[day.day_index - 1];
+    if (!nextName) continue;
+
+    const { error: renameDayError } = await supabase
+      .from("routine_days")
+      .update({ name: nextName })
+      .eq("id", day.id)
+      .eq("user_id", user.id);
+
+    if (renameDayError) {
+      throw new Error(renameDayError.message);
     }
   }
 
