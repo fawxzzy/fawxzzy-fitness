@@ -5,6 +5,15 @@
 
 ### Changed
 WHAT:
+- Removed the routine-day empty-state line in day editing so the exercise list no longer shows the extra "No exercises yet" placeholder block.
+- Added an inline clear (×) control to the exercise search field so users can reset filtering in one tap.
+- Slightly reduced the Routines list viewport height on mobile so the bottom edge sits cleaner within the screen.
+WHY:
+- This matches requested UX cleanup for the routines flow, improves search ergonomics during exercise selection, and prevents the routines list from appearing to bleed off the bottom of the viewport.
+
+
+### Changed
+WHAT:
 - Added a shared list-shell class token set and applied it to both Routines and History list surfaces to standardize mobile scroll viewport sizing, snap behavior, and card shell spacing.
 - Increased list row action tap-target sizing for routine/history card controls using the shared shell tokens.
 WHY:

@@ -203,7 +203,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                 </form>
               </li>
             ))}
-            {dayExercises.length === 0 ? <li className="rounded-md bg-white px-3 py-2 text-xs text-slate-500 shadow-sm">No exercises yet.</li> : null}
           </ul>
 
           <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={false}>
