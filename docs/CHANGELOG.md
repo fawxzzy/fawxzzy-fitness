@@ -5,6 +5,10 @@
 
 ### Changed
 WHAT:
+- Added a shared list-shell class token set and applied it to both Routines and History list surfaces to standardize mobile scroll viewport sizing, snap behavior, and card shell spacing.
+- Increased list row action tap-target sizing for routine/history card controls using the shared shell tokens.
+WHY:
+- This keeps list behavior consistent across tabs while honoring the no-redesign request by limiting updates to shell ergonomics (scroll, padding, snap, and tap targets).
 - Updated History list fetching to use cursor-based pagination with a server-rendered "Load more" control while keeping the existing 20-item initial page size.
 WHY:
 - Cursor pagination keeps large history feeds bounded and responsive without changing the first-load behavior users already expect.
