@@ -79,6 +79,7 @@ export function SessionExerciseFocus({
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
+  const [setLoggerResetSignal, setSetLoggerResetSignal] = useState(0);
   const [loggedSetCounts, setLoggedSetCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount])),
   );
@@ -96,8 +97,36 @@ export function SessionExerciseFocus({
   }, [selectedExerciseId]);
 
   useEffect(() => {
-    setLoggedSetCounts(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount])));
+    setLoggedSetCounts((current) => {
+      const next = Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount]));
+      for (const exercise of exercises) {
+        const existing = current[exercise.id];
+        if (typeof existing === "number" && existing > (next[exercise.id] ?? 0)) {
+          next[exercise.id] = existing;
+        }
+      }
+      return next;
+    });
   }, [exercises]);
+
+  useEffect(() => {
+    if (!selectedExerciseId) {
+      return;
+    }
+
+    const state = window.history.state as Record<string, unknown> | null;
+    if (!state?.sessionExerciseOpen) {
+      window.history.pushState({ ...state, sessionExerciseOpen: true }, "");
+    }
+
+    const handlePopState = () => {
+      setSetLoggerResetSignal((value) => value + 1);
+      setSelectedExerciseId(null);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [selectedExerciseId]);
 
   return (
     <div className="space-y-3">
@@ -221,6 +250,7 @@ export function SessionExerciseFocus({
             initialSets={selectedExercise.initialSets}
             prefill={selectedExercise.prefill}
             deleteSetAction={deleteSetAction}
+            resetSignal={setLoggerResetSignal}
             onSetCountChange={(count) => {
               setLoggedSetCounts((current) => ({ ...current, [selectedExercise.id]: count }));
             }}

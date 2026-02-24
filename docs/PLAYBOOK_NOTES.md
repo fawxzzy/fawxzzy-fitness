@@ -191,3 +191,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Redirect-based error transport (`?error=...`) mixes navigation and failure semantics, while ActionResult keeps outcomes deterministic for client adapters.
 - Evidence: src/app/today/page.tsx, src/app/today/TodayStartButton.tsx
 - Status: Proposed
+
+## 2026-02-24 — Restore persisted running timers with non-additive wall-clock reconciliation
+- Type: Guardrail
+- Summary: When resuming persisted running timers, derive elapsed time from one authoritative source (`runningStartedAt`) or reconcile with stored elapsed using `max(...)`; do not add both values together.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Additive reconciliation can double-count elapsed time after navigation/resume and breaks deterministic timer continuity.
+- Evidence: src/components/SessionTimers.tsx
+- Status: Proposed

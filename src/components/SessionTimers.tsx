@@ -63,8 +63,8 @@ export function SessionTimerCard({
       const parsed = JSON.parse(raw) as { elapsedSeconds?: number; isRunning?: boolean; runningStartedAt?: number | null };
       const baseElapsed = Number.isFinite(parsed.elapsedSeconds) ? Number(parsed.elapsedSeconds) : 0;
       if (parsed.isRunning && Number.isFinite(parsed.runningStartedAt)) {
-        const deltaSeconds = Math.max(0, Math.floor((Date.now() - Number(parsed.runningStartedAt)) / 1000));
-        setElapsedSeconds(baseElapsed + deltaSeconds);
+        const elapsedFromStart = Math.max(0, Math.floor((Date.now() - Number(parsed.runningStartedAt)) / 1000));
+        setElapsedSeconds(Math.max(baseElapsed, elapsedFromStart));
         setIsRunning(true);
         return;
       }
@@ -172,6 +172,7 @@ export function SetLoggerCard({
   onSetCountChange,
   prefill,
   deleteSetAction,
+  resetSignal,
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -189,6 +190,7 @@ export function SetLoggerCard({
     weightUnit?: "lbs" | "kg";
   };
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
+  resetSignal?: number;
 }) {
   const [weight, setWeight] = useState(prefill?.weight !== undefined ? String(prefill.weight) : "");
   const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
@@ -392,6 +394,22 @@ export function SetLoggerCard({
     }
     return (elapsedSeconds / tapReps).toFixed(1);
   }, [elapsedSeconds, tapReps]);
+
+  function resetTimerState() {
+    setIsRunning(false);
+    setElapsedSeconds(0);
+    setTapReps(0);
+    setDurationSeconds("");
+    setUseTimerRepCount(false);
+  }
+
+  useEffect(() => {
+    if (!resetSignal) {
+      return;
+    }
+
+    resetTimerState();
+  }, [resetSignal]);
 
   async function handleLogSet() {
     const parsedWeight = Number(weight);
@@ -629,11 +647,7 @@ export function SetLoggerCard({
           <button
             type="button"
             onClick={() => {
-              setIsRunning(false);
-              setElapsedSeconds(0);
-              setTapReps(0);
-              setDurationSeconds("");
-              setUseTimerRepCount(false);
+              resetTimerState();
             }}
             className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
           >

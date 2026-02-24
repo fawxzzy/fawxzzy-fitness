@@ -206,6 +206,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             dayIndex: todayDayIndex,
             dayName: routineDayName,
             isRest: todayRoutineDay.is_rest,
+            routineId: activeRoutine.id,
+            routineDayId: todayRoutineDay.id,
           }
         : null,
     exercises: dayExercises.map((exercise) => ({
@@ -257,7 +259,15 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         {todayPayload.inProgressSessionId ? (
             <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Workout</Link>
           ) : (
-            <TodayStartButton startSessionAction={startSessionAction} />
+            <div className="space-y-2">
+              <TodayStartButton startSessionAction={startSessionAction} />
+              <Link
+                href={`/routines/${todayPayload.routine.routineId}/edit/day/${todayPayload.routine.routineDayId}`}
+                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-center text-xs font-medium text-text transition-colors hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+              >
+                Change day
+              </Link>
+            </div>
           )}
         </Glass>
       ) : (

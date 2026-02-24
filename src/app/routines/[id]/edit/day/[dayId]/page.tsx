@@ -4,7 +4,7 @@ import { ExercisePicker } from "@/components/ExercisePicker";
 import { BackButton } from "@/components/ui/BackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
-import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction } from "@/app/routines/[id]/edit/day/actions";
+import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction, updateRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import { formatRepTarget } from "@/lib/routines";
@@ -179,30 +179,66 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Rest day enabled. Routine exercises stay saved but are ignored until you turn rest day off.</p>
       ) : (
         <>
-          <ul className="space-y-1">
-            {dayExercises.map((exercise) => (
-              <li key={exercise.id} className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-xs shadow-sm">
-                <span>
-                  {exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
-                  {" "}
-                  ({formatExerciseTargetSummary({
-                    sets: exercise.target_sets,
-                    repsMin: exercise.target_reps_min,
-                    repsMax: exercise.target_reps_max,
-                    repsFallback: exercise.target_reps,
-                    weight: exercise.target_weight,
-                    durationSeconds: exercise.target_duration_seconds,
-                    weightUnit: exercise.target_weight_unit ?? (routine as RoutineRow).weight_unit,
-                  }) || "No target"})
-                </span>
-                <form action={deleteRoutineDayExerciseAction}>
-                  <input type="hidden" name="routineId" value={params.id} />
-                  <input type="hidden" name="routineDayId" value={params.dayId} />
-                  <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                  <button type="submit" className="text-red-600">Remove</button>
-                </form>
-              </li>
-            ))}
+          <ul className="space-y-2">
+            {dayExercises.map((exercise) => {
+              const targetSummary = formatExerciseTargetSummary({
+                sets: exercise.target_sets,
+                repsMin: exercise.target_reps_min,
+                repsMax: exercise.target_reps_max,
+                repsFallback: exercise.target_reps,
+                weight: exercise.target_weight,
+                durationSeconds: exercise.target_duration_seconds,
+                weightUnit: exercise.target_weight_unit ?? (routine as RoutineRow).weight_unit,
+              }) || "No target";
+
+              return (
+                <li key={exercise.id} className="rounded-md bg-white shadow-sm">
+                  <details>
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs [&::-webkit-details-marker]:hidden">
+                      <span>
+                        <span className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</span>
+                        <span className="text-slate-500"> · {targetSummary}</span>
+                      </span>
+                      <span className="rounded-md border border-slate-300 px-2 py-1 text-[11px]">Edit</span>
+                    </summary>
+
+                    <div className="space-y-2 border-t border-slate-100 px-3 pb-3 pt-2">
+                      <form action={updateRoutineDayExerciseAction} className="space-y-2">
+                        <input type="hidden" name="routineId" value={params.id} />
+                        <input type="hidden" name="routineDayId" value={params.dayId} />
+                        <input type="hidden" name="exerciseRowId" value={exercise.id} />
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          <input type="number" min={1} name="targetSets" defaultValue={exercise.target_sets ?? 1} placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                          <input type="number" min={1} name="targetRepsMin" defaultValue={exercise.target_reps_min ?? ""} placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                          <input type="number" min={1} name="targetRepsMax" defaultValue={exercise.target_reps_max ?? ""} placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                          <input type="number" min={0} step="0.5" name="targetWeight" defaultValue={exercise.target_weight ?? ""} placeholder={`Weight (${(routine as RoutineRow).weight_unit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                          <select name="targetWeightUnit" defaultValue={exercise.target_weight_unit ?? (routine as RoutineRow).weight_unit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <option value="lbs">lbs</option>
+                            <option value="kg">kg</option>
+                          </select>
+                          <input
+                            name="targetDuration"
+                            defaultValue={exercise.target_duration_seconds ?? ""}
+                            placeholder="Time (sec or mm:ss)"
+                            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <button type="submit" className="rounded-md border border-slate-300 px-3 py-1.5 text-xs">Save</button>
+                          <button
+                            type="submit"
+                            formAction={deleteRoutineDayExerciseAction}
+                            className="text-xs text-red-600"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </details>
+                </li>
+              );
+            })}
           </ul>
 
           <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={false}>
