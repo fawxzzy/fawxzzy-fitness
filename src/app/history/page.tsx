@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -141,7 +142,7 @@ export default async function HistoryPage({
               <div className="mt-3">
                 <Link
                   href={`/history/${session.id}`}
-                  className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong"
+                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
                 >
                   View
                 </Link>

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { readTodayCache } from "@/lib/offline/today-cache";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
 type TodayPayload = {
   routine: {
@@ -111,7 +112,7 @@ export function TodayClientShell({
       {display.inProgressSessionId ? (
         <Link
           href={`/session/${display.inProgressSessionId}`}
-          className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+          className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
         >
           Resume Workout
         </Link>

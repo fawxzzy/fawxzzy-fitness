@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
-import { BackButton } from "@/components/ui/BackButton";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction, updateRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
@@ -121,7 +121,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{dayTitle}</h1>
-        <BackButton href={`/routines/${params.id}/edit`} />
+        <TopRightBackButton href={`/routines/${params.id}/edit`} />
       </div>
       <p className="text-sm text-slate-600">{(routine as RoutineRow).name}: {dayTitle}</p>
 

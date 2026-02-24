@@ -14,6 +14,34 @@
   --accent: 18 94 74;
   --accent-strong: 28 124 99;
 
+  --button-height: 2.75rem;
+  --button-padding-x: 1rem;
+  --button-font-size: 0.9375rem;
+  --button-font-weight: 600;
+  --button-radius: 0.625rem;
+
+  --button-primary-bg: var(--accent);
+  --button-primary-bg-hover: var(--accent-strong);
+  --button-primary-bg-active: 15 82 65;
+  --button-primary-text: 247 250 252;
+  --button-primary-border: 32 115 93;
+
+  --button-secondary-bg: 48 56 68;
+  --button-secondary-bg-hover: 58 68 83;
+  --button-secondary-bg-active: 42 50 62;
+  --button-secondary-text: var(--text);
+  --button-secondary-border: 86 99 116;
+
+  --button-destructive-bg: 126 32 45;
+  --button-destructive-bg-hover: 146 40 55;
+  --button-destructive-bg-active: 108 28 40;
+  --button-destructive-text: 255 239 241;
+  --button-destructive-border: 168 58 72;
+
+  --button-focus-ring: rgb(var(--accent) / 0.3);
+  --button-transition: 140ms ease;
+  --button-press-scale: 0.98;
+
   --radius-sm: 0.625rem;
   --radius-md: 0.875rem;
   --radius-lg: 1.125rem;
@@ -100,6 +128,29 @@ button,
   background-color: rgb(var(--surface-2));
   border: 1px solid rgb(var(--border));
   color: rgb(var(--text));
+}
+
+.app-button {
+  height: var(--button-height);
+  border-radius: var(--button-radius);
+  padding-inline: var(--button-padding-x);
+  font-size: var(--button-font-size);
+  font-weight: var(--button-font-weight);
+  transition: transform var(--button-transition), background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);
+}
+
+.app-button:active {
+  transform: scale(var(--button-press-scale));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-button {
+    transition: background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);
+  }
+
+  .app-button:active {
+    transform: none;
+  }
 }
 
 
