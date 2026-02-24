@@ -621,3 +621,10 @@ WHAT:
 - Updated Today’s day selection flow so choosing a day immediately updates the workout header and exercise preview to that selected day instead of showing only helper text.
 WHY:
 - This removes visual inconsistency on the primary CTA and makes Change Day behavior reflect the user’s selected workout context before starting a session.
+
+### Fixed
+WHAT:
+- Expanded the Today “Change Day” chooser overlay sizing/scroll behavior so all day options remain visible on smaller/rest-day card contexts, and widened the routines “Create Routine” CTA to fill its list row.
+- Hardened the Today “Start Workout” button text color across interaction states so the CTA color treatment does not degrade to grey after taps.
+WHY:
+- These updates keep primary workout actions legible and reachable on small/mobile layouts, while preserving consistent visual affordance for the main start action.

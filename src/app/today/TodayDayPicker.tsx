@@ -126,7 +126,7 @@ export function TodayDayPicker({
       </button>
 
       {isPickerOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" aria-hidden={false}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" aria-hidden={false}>
           <button
             type="button"
             aria-label="Close day picker"
@@ -135,12 +135,12 @@ export function TodayDayPicker({
           />
           <Glass
             variant="overlay"
-            className="relative z-[1] w-full max-w-sm rounded-xl border border-border p-4"
+            className="relative z-[1] flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col rounded-xl border border-border p-4 sm:max-h-[calc(100dvh-2rem)]"
             interactive={false}
           >
-            <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Choose workout day" className="space-y-3">
+            <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Choose workout day" className="flex min-h-0 flex-1 flex-col gap-3">
               <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
-              <div role="radiogroup" aria-label="Routine days" className="space-y-2">
+              <div role="radiogroup" aria-label="Routine days" className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                 {days.map((day) => {
                   const isSelected = selectedDayIndex === day.dayIndex;
                   return (
