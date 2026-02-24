@@ -1,0 +1,992 @@
+diff --git a/docs/CHANGELOG.md b/docs/CHANGELOG.md
+index de78a0350240ef8bdc96143d307085b2bc17eb92..8d39a0256db580e4cb4dea90b0069e1c83897c9b 100644
+--- a/docs/CHANGELOG.md
++++ b/docs/CHANGELOG.md
+@@ -1,25 +1,32 @@
++### Changed
++WHAT:
++- Expanded exercise metadata support (how-to blurb, muscle focus arrays, movement/equipment tags, and static image path fields) and updated exercise picker UX to show compact tags/thumbs plus an Info overlay with richer details.
++- Added placeholder exercise image assets and seeded a small set of common global exercises with starter metadata/image paths using a static file convention.
++WHY:
++- This keeps exercise selection fast while giving users optional guidance on demand, improves mobile-friendly decision support, and prepares schema/path conventions for a future Supabase Storage migration without rewriting clients.
++
+ ### Changed
+ WHAT:
+ - Repositioned routine-card move controls to a left-side vertical stack, added a temporary Today day-picker for session start, added an explicit “End Session (Don't Save)” action for in-progress workouts, and updated session back behavior so an open exercise card closes before navigating away.
+ WHY:
+ - These updates make day/order controls easier to hit on mobile, let users run a different day without permanently changing routines, and reduce accidental session loss/navigation friction during active workouts.
+ 
+ # Changelog
+ 
+ ## [Unreleased]
+ 
+ ### Changed
+ WHAT:
+ - Removed the helper sentence under Today’s `CHANGE DAY` action and made day cards in the chooser immediately selectable on tap, applying the chosen day for the next workout start without requiring an extra confirmation button.
+ - Reverted Routines cards to the pre-reorder-arrow layout by removing up/down move controls and restoring the prior card action arrangement.
+ WHY:
+ - This matches requested day-picker interaction expectations (tap-to-select temporary day) and restores the preferred routines card UI without arrow-based ordering controls.
+ 
+ ### Changed
+ WHAT:
+ - Replaced Today's pre-start day selector dropdown with a `CHANGE DAY` button that opens a centered chooser overlay with single-select routine-day options plus `OK`/`Cancel`.
+ WHY:
+ - This keeps the start flow cleaner on mobile while preserving temporary day selection control before launching a workout session.
+ 
+ 
+ ### Changed
+diff --git a/public/exercises/placeholders/howto.webp b/public/exercises/placeholders/howto.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..f803af3eb78c25d23c13c7b51f8f5cc2c7b5f5e8
+GIT binary patch
+literal 41
+tcmWIYbaPW;U|<M$bqWXzuuu>KvJDs+<}zwAF)%UcWtz<LRRRJg1^}4e2E_mX
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/exercises/placeholders/muscles.webp b/public/exercises/placeholders/muscles.webp
+new file mode 100644
+index 0000000000000000000000000000000000000000..f803af3eb78c25d23c13c7b51f8f5cc2c7b5f5e8
+GIT binary patch
+literal 41
+tcmWIYbaPW;U|<M$bqWXzuuu>KvJDs+<}zwAF)%UcWtz<LRRRJg1^}4e2E_mX
+
+literal 0
+HcmV?d00001
+
+diff --git a/src/app/actions/exercises.ts b/src/app/actions/exercises.ts
+index 69d5e7a824090a8b86f4867046998a8f05de1a67..586ae58eab3605d6176961d0366caff90796da5c 100644
+--- a/src/app/actions/exercises.ts
++++ b/src/app/actions/exercises.ts
+@@ -1,52 +1,77 @@
+ "use server";
+ 
+ import { revalidatePath, revalidateTag } from "next/cache";
+ import { redirect } from "next/navigation";
+ import { requireUser } from "@/lib/auth";
+ import { validateExerciseName } from "@/lib/exercises";
+ import { supabaseServer } from "@/lib/supabase/server";
+ 
++import type { ActionResult } from "@/lib/action-result";
++
++
++const ALLOWED_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight"] as const;
++const ALLOWED_MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "carry", "rotation"] as const;
++const ALLOWED_EQUIPMENT_SET = new Set<string>(ALLOWED_EQUIPMENT);
++const ALLOWED_MOVEMENT_PATTERNS_SET = new Set<string>(ALLOWED_MOVEMENT_PATTERNS);
++
++function normalizeEquipment(value: string | null) {
++  if (!value) {
++    return null;
++  }
++
++  const normalized = value.trim().toLowerCase();
++  if (!normalized) {
++    return null;
++  }
++
++  if (!ALLOWED_EQUIPMENT_SET.has(normalized)) {
++    throw new Error("Equipment must be one of: barbell, dumbbell, cable, machine, bodyweight.");
++  }
++
++  return normalized;
++}
++
+ function redirectWithMessage(returnTo: string, key: "error" | "success", message: string, exerciseId?: string) {
+   const params = new URLSearchParams();
+   params.set(key, message);
+ 
+   if (exerciseId) {
+     params.set("exerciseId", exerciseId);
+   }
+ 
+   redirect(`${returnTo}?${params.toString()}`);
+ }
+ 
+ export async function createCustomExerciseAction(formData: FormData) {
+   const user = await requireUser();
+   const supabase = supabaseServer();
+ 
+   const returnTo = String(formData.get("returnTo") ?? "").trim();
+   const name = validateExerciseName(String(formData.get("name") ?? ""));
+   const primaryMuscle = String(formData.get("primaryMuscle") ?? "").trim() || null;
+-  const equipment = String(formData.get("equipment") ?? "").trim() || null;
++  const equipment = normalizeEquipment(String(formData.get("equipment") ?? "").trim() || null);
+ 
+   const { data, error } = await supabase
+     .from("exercises")
+     .insert({
+       name,
+       user_id: user.id,
+       is_global: false,
+       primary_muscle: primaryMuscle,
+       equipment,
+     })
+     .select("id")
+     .single();
+ 
+   if (error || !data) {
+     if (returnTo) {
+       redirectWithMessage(returnTo, "error", error?.message ?? "Could not create exercise");
+     }
+     throw new Error(error?.message ?? "Could not create exercise");
+   }
+ 
+   revalidateTag(`exercises:${user.id}`);
+   if (returnTo) {
+     revalidatePath(returnTo);
+     redirectWithMessage(returnTo, "success", "Custom exercise added.", data.id);
+   }
+@@ -93,25 +118,84 @@ export async function deleteCustomExerciseAction(formData: FormData) {
+   ]);
+ 
+   if ((routineCount ?? 0) > 0 || (sessionCount ?? 0) > 0) {
+     if (returnTo) redirectWithMessage(returnTo, "error", "Can't delete: used in routines or session history.");
+     throw new Error("Can't delete: used in routines or session history.");
+   }
+ 
+   const { error } = await supabase
+     .from("exercises")
+     .delete()
+     .eq("id", exerciseId)
+     .eq("user_id", user.id)
+     .eq("is_global", false);
+ 
+   if (error) {
+     if (returnTo) redirectWithMessage(returnTo, "error", error.message);
+     throw new Error(error.message);
+   }
+ 
+   revalidateTag(`exercises:${user.id}`);
+   if (returnTo) {
+     revalidatePath(returnTo);
+     redirectWithMessage(returnTo, "success", "Custom exercise deleted.");
+   }
+ }
++
++
++type ExerciseDetail = {
++  id: string;
++  name: string;
++  how_to_short: string | null;
++  primary_muscles: string[] | null;
++  secondary_muscles: string[] | null;
++  movement_pattern: "push" | "pull" | "hinge" | "squat" | "carry" | "rotation" | null;
++  equipment: "barbell" | "dumbbell" | "cable" | "machine" | "bodyweight" | null;
++  image_howto_path: string | null;
++  image_muscles_path: string | null;
++};
++
++export async function getExerciseDetailsAction(exerciseId: string): Promise<ActionResult<ExerciseDetail>> {
++  await requireUser();
++  const supabase = supabaseServer();
++
++  const id = exerciseId.trim();
++  if (!id) {
++    return { ok: false, error: "Missing exercise id" };
++  }
++
++  const { data, error } = await supabase
++    .from("exercises")
++    .select("id, name, how_to_short, primary_muscles, secondary_muscles, movement_pattern, equipment, image_howto_path, image_muscles_path")
++    .eq("id", id)
++    .maybeSingle();
++
++  if (error) {
++    return { ok: false, error: error.message };
++  }
++
++  if (!data) {
++    return { ok: false, error: "Exercise not found" };
++  }
++
++  const movementPattern = typeof data.movement_pattern === "string" && ALLOWED_MOVEMENT_PATTERNS_SET.has(data.movement_pattern)
++    ? (data.movement_pattern as ExerciseDetail["movement_pattern"])
++    : null;
++  const equipment = typeof data.equipment === "string" && ALLOWED_EQUIPMENT_SET.has(data.equipment)
++    ? (data.equipment as ExerciseDetail["equipment"])
++    : null;
++
++  return {
++    ok: true,
++    data: {
++      id: data.id,
++      name: data.name,
++      how_to_short: data.how_to_short,
++      primary_muscles: data.primary_muscles,
++      secondary_muscles: data.secondary_muscles,
++      movement_pattern: movementPattern,
++      equipment,
++      image_howto_path: data.image_howto_path,
++      image_muscles_path: data.image_muscles_path,
++    },
++  };
++}
+diff --git a/src/app/routines/[id]/edit/day/[dayId]/page.tsx b/src/app/routines/[id]/edit/day/[dayId]/page.tsx
+index 9bfb0e22cd20013168b189b6d8c8e09c13b54eb2..3faefbad3cdaa767643ea33db9dfb0043a69a4c7 100644
+--- a/src/app/routines/[id]/edit/day/[dayId]/page.tsx
++++ b/src/app/routines/[id]/edit/day/[dayId]/page.tsx
+@@ -1,31 +1,31 @@
+ import Link from "next/link";
+ import { notFound } from "next/navigation";
+ import { ExercisePicker } from "@/components/ExercisePicker";
+ import { BackButton } from "@/components/ui/BackButton";
+ import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
+-import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
++import { createCustomExerciseAction, deleteCustomExerciseAction, getExerciseDetailsAction, renameCustomExerciseAction } from "@/app/actions/exercises";
+ import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction, updateRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
+ import { requireUser } from "@/lib/auth";
+ import { listExercises } from "@/lib/exercises";
+ import { formatRepTarget } from "@/lib/routines";
+ import { supabaseServer } from "@/lib/supabase/server";
+ import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
+ 
+ export const dynamic = "force-dynamic";
+ 
+ type PageProps = {
+   params: {
+     id: string;
+     dayId: string;
+   };
+   searchParams?: {
+     error?: string;
+     success?: string;
+     exerciseId?: string;
+   };
+ };
+ 
+ function formatDayTitle(dayIndex: number, dayName: string | null) {
+   const fallback = `Day ${dayIndex}`;
+   const trimmedName = dayName?.trim() ?? "";
+   if (!trimmedName) {
+@@ -223,45 +223,45 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
+                             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                           />
+                         </div>
+                         <div className="flex items-center justify-between gap-2">
+                           <button type="submit" className="rounded-md border border-slate-300 px-3 py-1.5 text-xs">Save</button>
+                           <button
+                             type="submit"
+                             formAction={deleteRoutineDayExerciseAction}
+                             className="text-xs font-medium text-red-700 hover:text-red-800"
+                           >
+                             Remove
+                           </button>
+                         </div>
+                       </form>
+                     </div>
+                   </details>
+                 </li>
+               );
+             })}
+           </ul>
+ 
+           <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={false}>
+             <form action={addRoutineDayExerciseAction} className="space-y-2">
+               <input type="hidden" name="routineId" value={params.id} />
+               <input type="hidden" name="routineDayId" value={params.dayId} />
+-              <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} />
++              <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} getExerciseDetailsAction={getExerciseDetailsAction} />
+               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                 <input type="number" min={1} name="targetSets" placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                 <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                 <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                 <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${(routine as RoutineRow).weight_unit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                 <select name="targetWeightUnit" defaultValue={(routine as RoutineRow).weight_unit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                   <option value="lbs">lbs</option>
+                   <option value="kg">kg</option>
+                 </select>
+                 <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+               </div>
+               <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
+             </form>
+           </CollapsibleCard>
+         </>
+       )}
+     </section>
+   );
+ }
+diff --git a/src/app/session/[id]/page.tsx b/src/app/session/[id]/page.tsx
+index 78961726ed50abf7e8acff6791f72e167460ee08..2903bc9410bec32530f709f29539cbd0d0a3ef03 100644
+--- a/src/app/session/[id]/page.tsx
++++ b/src/app/session/[id]/page.tsx
+@@ -1,32 +1,32 @@
+ import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
+ import { SessionBackButton } from "@/components/SessionBackButton";
+ import { SessionHeaderControls } from "@/components/SessionHeaderControls";
+ import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
+ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
+ import { tapFeedbackClass } from "@/components/ui/interactionClasses";
+-import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
++import { createCustomExerciseAction, deleteCustomExerciseAction, getExerciseDetailsAction, renameCustomExerciseAction } from "@/app/actions/exercises";
+ import type { DisplayTarget } from "@/lib/session-targets";
+ import { LocalDateTime } from "@/components/ui/LocalDateTime";
+ import {
+   addExerciseAction,
+   addSetAction,
+   persistDurationAction,
+   removeExerciseAction,
+   deleteSetAction,
+   saveSessionAction,
+   syncQueuedSetLogsAction,
+   toggleSkipAction,
+ } from "./actions";
+ import { getSessionPageData } from "./queries";
+ 
+ export const dynamic = "force-dynamic";
+ 
+ function formatDurationText(durationSeconds: number) {
+   if (durationSeconds < 60) {
+     return `${durationSeconds}s`;
+   }
+ 
+   const minutes = Math.floor(durationSeconds / 60);
+   const seconds = durationSeconds % 60;
+   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+ }
+@@ -116,50 +116,51 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
+     customExercises,
+   } = await getSessionPageData(params.id);
+ 
+   const unitLabel = routine?.weight_unit ?? "kg";
+ 
+   return (
+     <section className="space-y-4 pt-[max(env(safe-area-inset-top),0.5rem)]">
+       <div className="flex items-center justify-between gap-3">
+         <h1 className="text-2xl font-semibold">{sessionRow.name || "Routine"}: {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}</h1>
+         <SessionBackButton />
+       </div>
+       <p className="rounded-md bg-white p-3 text-sm shadow-sm"><LocalDateTime value={sessionRow.performed_at} /></p>
+ 
+       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
+       <ActionFeedbackToasts />
+ 
+       <details className="rounded-md">
+         <summary className="cursor-pointer list-none rounded-md bg-white px-4 py-3 text-sm font-semibold shadow-sm [&::-webkit-details-marker]:hidden">Add exercise</summary>
+         <div className="mt-2 rounded-md bg-white p-3 shadow-sm">
+         <div className="space-y-3">
+           <SessionAddExerciseForm
+             sessionId={params.id}
+             exercises={exerciseOptions}
+             initialSelectedId={searchParams?.exerciseId}
+             addExerciseAction={addExerciseAction}
++            getExerciseDetailsAction={getExerciseDetailsAction}
+           />
+ 
+           <form action={createCustomExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
+             <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
+             <label className="text-sm font-semibold">+ Add custom exercise</label>
+             <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25" />
+             <div className="grid grid-cols-2 gap-2">
+               <input name="primaryMuscle" placeholder="Primary muscle (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+               <input name="equipment" placeholder="Equipment (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+             </div>
+             <button type="submit" className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Save Custom Exercise</button>
+           </form>
+ 
+           {customExercises.length > 0 ? (
+             <ul className="space-y-2 border-t border-slate-200 pt-3">
+               {customExercises.map((exercise) => (
+                 <li key={exercise.id} className="rounded-md bg-slate-50 p-2">
+                   <p className="text-xs font-semibold">{exercise.name}</p>
+                   <div className="mt-2 grid grid-cols-2 gap-2">
+                     <form action={renameCustomExerciseAction} className="flex gap-2">
+                       <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
+                       <input type="hidden" name="exerciseId" value={exercise.id} />
+                       <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
+                       <button type="submit" className={`rounded-md border border-slate-300 px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Rename</button>
+                     </form>
+diff --git a/src/components/ExercisePicker.tsx b/src/components/ExercisePicker.tsx
+index 7d2c739c510ce29de9c2d3c119bc67182cec6654..f0cfec94cb87f04cf026317529b4274bd9cacf77 100644
+--- a/src/components/ExercisePicker.tsx
++++ b/src/components/ExercisePicker.tsx
+@@ -1,75 +1,221 @@
+ "use client";
+ 
+-import { useMemo, useState } from "react";
++import Image from "next/image";
++import { useEffect, useMemo, useRef, useState, useTransition } from "react";
++import { Glass } from "@/components/ui/Glass";
++import type { ActionResult } from "@/lib/action-result";
+ 
+ type ExerciseOption = {
+   id: string;
+   name: string;
+   user_id: string | null;
+   is_global: boolean;
++  equipment: string | null;
++  movement_pattern: "push" | "pull" | "hinge" | "squat" | "carry" | "rotation" | null;
++  image_howto_path: string | null;
++};
++
++type ExerciseDetail = {
++  id: string;
++  name: string;
++  how_to_short: string | null;
++  primary_muscles: string[] | null;
++  secondary_muscles: string[] | null;
++  movement_pattern: "push" | "pull" | "hinge" | "squat" | "carry" | "rotation" | null;
++  equipment: "barbell" | "dumbbell" | "cable" | "machine" | "bodyweight" | null;
++  image_howto_path: string | null;
++  image_muscles_path: string | null;
+ };
+ 
+ type ExercisePickerProps = {
+   exercises: ExerciseOption[];
+   name: string;
+   initialSelectedId?: string;
++  getExerciseDetailsAction: (exerciseId: string) => Promise<ActionResult<ExerciseDetail>>;
+ };
+ 
+-export function ExercisePicker({ exercises, name, initialSelectedId }: ExercisePickerProps) {
++function formatTag(value: string | null) {
++  return value ? value.replace(/_/g, " ") : null;
++}
++
++export function ExercisePicker({ exercises, name, initialSelectedId, getExerciseDetailsAction }: ExercisePickerProps) {
+   const [search, setSearch] = useState("");
+   const [selectedId, setSelectedId] = useState(initialSelectedId ?? exercises[0]?.id ?? "");
++  const [isInfoOpen, setIsInfoOpen] = useState(false);
++  const [activeExerciseId, setActiveExerciseId] = useState<string | null>(null);
++  const [detailsById, setDetailsById] = useState<Record<string, ExerciseDetail>>({});
++  const [detailError, setDetailError] = useState<string | null>(null);
++  const [isPending, startTransition] = useTransition();
++  const modalRef = useRef<HTMLDivElement | null>(null);
+ 
+   const filteredExercises = useMemo(() => {
+     const query = search.trim().toLowerCase();
+     if (!query) return exercises;
+     return exercises.filter((exercise) => exercise.name.toLowerCase().includes(query));
+   }, [exercises, search]);
+ 
+   const globals = filteredExercises.filter((exercise) => exercise.is_global || exercise.user_id === null);
+   const customs = filteredExercises.filter((exercise) => !exercise.is_global && exercise.user_id !== null);
+ 
++  const activeDetail = activeExerciseId ? detailsById[activeExerciseId] : null;
++
++  useEffect(() => {
++    if (!isInfoOpen) return;
++
++    const handleKeyDown = (event: KeyboardEvent) => {
++      if (event.key === "Escape") {
++        event.preventDefault();
++        setIsInfoOpen(false);
++        return;
++      }
++
++      if (event.key !== "Tab" || !modalRef.current) {
++        return;
++      }
++
++      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
++        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
++      );
++      if (focusable.length === 0) return;
++
++      const first = focusable[0];
++      const last = focusable[focusable.length - 1];
++      const active = document.activeElement as HTMLElement | null;
++
++      if (!event.shiftKey && active === last) {
++        event.preventDefault();
++        first.focus();
++      }
++
++      if (event.shiftKey && active === first) {
++        event.preventDefault();
++        last.focus();
++      }
++    };
++
++    const firstFocusable = modalRef.current?.querySelector<HTMLElement>('button:not([disabled])');
++    firstFocusable?.focus();
++
++    window.addEventListener("keydown", handleKeyDown);
++    return () => {
++      window.removeEventListener("keydown", handleKeyDown);
++    };
++  }, [isInfoOpen]);
++
++  function openInfo(exerciseId: string) {
++    setActiveExerciseId(exerciseId);
++    setDetailError(null);
++    setIsInfoOpen(true);
++
++    if (detailsById[exerciseId]) {
++      return;
++    }
++
++    startTransition(async () => {
++      const result = await getExerciseDetailsAction(exerciseId);
++      if (!result.ok) {
++        setDetailError(result.error);
++        return;
++      }
++
++      const detail = result.data;
++      if (!detail) {
++        setDetailError("Exercise details unavailable");
++        return;
++      }
++
++      setDetailsById((current) => ({ ...current, [exerciseId]: detail }));
++    });
++  }
++
+   return (
+     <div className="space-y-2">
++      <input type="hidden" name={name} value={selectedId} />
+       <div className="relative">
+         <input
+           value={search}
+           onChange={(event) => setSearch(event.target.value)}
+           placeholder="Search exercises"
+           className="h-11 w-full rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 pr-9 text-sm text-[rgb(var(--text))] focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+         />
+         {search ? (
+           <button
+             type="button"
+             onClick={() => setSearch("")}
+             aria-label="Clear exercise search"
+             className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+           >
+             ×
+           </button>
+         ) : null}
+       </div>
+-      <select
+-        name={name}
+-        value={selectedId}
+-        onChange={(event) => setSelectedId(event.target.value)}
+-        required
+-        className="h-11 w-full rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))] focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+-      >
+-        {globals.length > 0 ? (
+-          <optgroup label="Common / Global">
+-            {globals.map((exercise) => (
+-              <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
+-            ))}
+-          </optgroup>
+-        ) : null}
+-        {customs.length > 0 ? (
+-          <optgroup label="Your Custom">
+-            {customs.map((exercise) => (
+-              <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
+-            ))}
+-          </optgroup>
+-        ) : null}
+-      </select>
++      <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-border bg-surface-2-soft p-2">
++        {[{ label: "Common / Global", rows: globals }, { label: "Your Custom", rows: customs }].map((group) =>
++          group.rows.length ? (
++            <div key={group.label} className="space-y-1">
++              <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{group.label}</p>
++              {group.rows.map((exercise) => {
++                const isSelected = selectedId === exercise.id;
++                return (
++                  <div key={exercise.id} className={`flex items-center gap-2 rounded-md border px-2 py-1.5 ${isSelected ? "border-accent/55 bg-accent/15" : "border-border bg-surface-2-soft"}`}>
++                    {exercise.image_howto_path ? (
++                      <Image src={exercise.image_howto_path} alt="" width={36} height={36} className="h-9 w-9 rounded object-cover" />
++                    ) : null}
++                    <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 text-left">
++                      <p className="truncate text-sm text-text">{exercise.name}</p>
++                      <div className="mt-1 flex flex-wrap gap-1">
++                        {exercise.equipment ? <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">{formatTag(exercise.equipment)}</span> : null}
++                        {exercise.movement_pattern ? <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">{formatTag(exercise.movement_pattern)}</span> : null}
++                      </div>
++                    </button>
++                    <button type="button" onClick={() => openInfo(exercise.id)} className="rounded-md border border-border px-2 py-1 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Info</button>
++                  </div>
++                );
++              })}
++            </div>
++          ) : null,
++        )}
++        {filteredExercises.length === 0 ? <p className="px-2 py-3 text-sm text-muted">No exercises found.</p> : null}
++      </div>
++
++      {isInfoOpen ? (
++        <div className="fixed inset-0 z-50 flex items-center justify-center p-3" aria-hidden={false}>
++          <button type="button" aria-label="Close exercise info" className="absolute inset-0 bg-black/50" onClick={() => setIsInfoOpen(false)} />
++          <Glass variant="overlay" className="relative z-[1] flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col rounded-xl border border-border p-4" interactive={false}>
++            <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Exercise details" className="min-h-0 space-y-3 overflow-y-auto pr-1">
++              <div className="flex items-start justify-between gap-2">
++                <h3 className="text-base font-semibold text-text">{activeDetail?.name ?? "Exercise info"}</h3>
++                <button type="button" onClick={() => setIsInfoOpen(false)} className="rounded-md border border-border px-2 py-1 text-xs">Close</button>
++              </div>
++
++              {isPending && !activeDetail ? <p className="text-sm text-muted">Loading…</p> : null}
++              {detailError ? <p className="text-sm text-red-300">{detailError}</p> : null}
++
++              {activeDetail ? (
++                <>
++                  <div className="space-y-2">
++                    {activeDetail.image_howto_path ? <Image src={activeDetail.image_howto_path} alt={`${activeDetail.name} how-to`} width={600} height={340} className="h-auto w-full rounded-lg object-cover" /> : null}
++                    {activeDetail.image_muscles_path ? <Image src={activeDetail.image_muscles_path} alt={`${activeDetail.name} muscle focus`} width={600} height={340} className="h-auto w-full rounded-lg object-cover" /> : null}
++                  </div>
++                  {activeDetail.how_to_short ? <p className="text-sm text-text">{activeDetail.how_to_short}</p> : null}
++                  <div className="flex flex-wrap gap-1">
++                    {(activeDetail.primary_muscles ?? []).map((muscle) => (
++                      <span key={`primary-${muscle}`} className="rounded-full border border-emerald-300/40 bg-emerald-300/10 px-2 py-0.5 text-[11px] text-emerald-100">{muscle}</span>
++                    ))}
++                    {(activeDetail.secondary_muscles ?? []).map((muscle) => (
++                      <span key={`secondary-${muscle}`} className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">{muscle}</span>
++                    ))}
++                  </div>
++                  <div className="flex flex-wrap gap-2 text-xs text-muted">
++                    {activeDetail.equipment ? <span>Equipment: {activeDetail.equipment}</span> : null}
++                    {activeDetail.movement_pattern ? <span>Pattern: {activeDetail.movement_pattern}</span> : null}
++                  </div>
++                </>
++              ) : null}
++            </div>
++          </Glass>
++        </div>
++      ) : null}
+     </div>
+   );
+ }
+diff --git a/src/components/SessionAddExerciseForm.tsx b/src/components/SessionAddExerciseForm.tsx
+index 612bf3af23c4aa2d00247b028ed3580ae9b827a6..eea376e4cef737650e4964cd31efda93d13b885c 100644
+--- a/src/components/SessionAddExerciseForm.tsx
++++ b/src/components/SessionAddExerciseForm.tsx
+@@ -1,51 +1,72 @@
+ "use client";
+ 
+ import { useRouter } from "next/navigation";
+ import { ExercisePicker } from "@/components/ExercisePicker";
+ import { useToast } from "@/components/ui/ToastProvider";
+ import { toastActionResult } from "@/lib/action-feedback";
+ import type { ActionResult } from "@/lib/action-result";
+ 
+ type ExerciseOption = {
+   id: string;
+   name: string;
+   user_id: string | null;
+   is_global: boolean;
++  equipment: string | null;
++  movement_pattern: "push" | "pull" | "hinge" | "squat" | "carry" | "rotation" | null;
++  image_howto_path: string | null;
+ };
+ 
++type ExerciseDetail = {
++  id: string;
++  name: string;
++  how_to_short: string | null;
++  primary_muscles: string[] | null;
++  secondary_muscles: string[] | null;
++  movement_pattern: "push" | "pull" | "hinge" | "squat" | "carry" | "rotation" | null;
++  equipment: "barbell" | "dumbbell" | "cable" | "machine" | "bodyweight" | null;
++  image_howto_path: string | null;
++  image_muscles_path: string | null;
++};
+ 
+ export function SessionAddExerciseForm({
+   sessionId,
+   exercises,
+   initialSelectedId,
+   addExerciseAction,
++  getExerciseDetailsAction,
+ }: {
+   sessionId: string;
+   exercises: ExerciseOption[];
+   initialSelectedId?: string;
+   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
++  getExerciseDetailsAction: (exerciseId: string) => Promise<ActionResult<ExerciseDetail>>;
+ }) {
+   const toast = useToast();
+   const router = useRouter();
+ 
+   return (
+     <form
+       action={async (formData) => {
+         const result = await addExerciseAction(formData);
+         toastActionResult(toast, result, {
+           success: "Exercise added.",
+           error: "Could not add exercise.",
+         });
+ 
+         if (result.ok) {
+           router.refresh();
+         }
+       }}
+       className="space-y-2"
+     >
+       <input type="hidden" name="sessionId" value={sessionId} />
+-      <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} />
++      <ExercisePicker
++        exercises={exercises}
++        name="exerciseId"
++        initialSelectedId={initialSelectedId}
++        getExerciseDetailsAction={getExerciseDetailsAction}
++      />
+       <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Add</button>
+     </form>
+   );
+ }
+diff --git a/src/lib/exercises.ts b/src/lib/exercises.ts
+index 3f518fd9974900c7727c028b2f15b9b4347418f5..35db0127247021f100bf0b1a6a9d638f53f3859f 100644
+--- a/src/lib/exercises.ts
++++ b/src/lib/exercises.ts
+@@ -1,49 +1,55 @@
+ import "server-only";
+ 
+ import { unstable_cache } from "next/cache";
+ import { requireUser } from "@/lib/auth";
+ import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
+ import { supabaseServerAnon } from "@/lib/supabase/server-anon";
+ import { supabaseServer } from "@/lib/supabase/server";
+ import type { ExerciseRow } from "@/types/db";
+ 
+ const FALLBACK_CREATED_AT = "1970-01-01T00:00:00.000Z";
+ let hasLoggedMissingExerciseId = false;
+ 
+ function logExerciseLoaderEvent(event: string, details?: Record<string, unknown>) {
+   console.info("[exercises]", event, details ?? {});
+ }
+ 
+ function fallbackGlobalExercises(): ExerciseRow[] {
+   return EXERCISE_OPTIONS.map((exercise) => ({
+     id: exercise.id,
+     name: exercise.name,
+     user_id: null,
+     is_global: true,
+     primary_muscle: null,
+     equipment: null,
++    how_to_short: null,
++    primary_muscles: null,
++    secondary_muscles: null,
++    movement_pattern: null,
++    image_howto_path: null,
++    image_muscles_path: null,
+     created_at: FALLBACK_CREATED_AT,
+   }));
+ }
+ 
+ function normalizeExerciseName(name: string) {
+   return name.trim().replace(/\s+/g, " ");
+ }
+ 
+ export function validateExerciseName(name: string) {
+   const normalized = normalizeExerciseName(name);
+ 
+   if (normalized.length < 2 || normalized.length > 80) {
+     throw new Error("Exercise name must be 2-80 characters.");
+   }
+ 
+   return normalized;
+ }
+ 
+ export async function listExercises() {
+   const user = await requireUser();
+   const globalExercises = await listGlobalExercisesCached();
+   const customExercises = await listUserExercises(user.id);
+ 
+   const mergedExercises = [...customExercises, ...globalExercises];
+   const validExercises = mergedExercises.flatMap((exercise) => {
+@@ -53,71 +59,71 @@ export async function listExercises() {
+       return [{ ...exercise, id }];
+     }
+ 
+     if (!hasLoggedMissingExerciseId) {
+       hasLoggedMissingExerciseId = true;
+       console.error("[exercises] Dropped exercise rows with missing/invalid id.");
+     }
+ 
+     return [];
+   });
+   const dedupedExercises = new Map<string, ExerciseRow>();
+ 
+   for (const exercise of validExercises) {
+     if (!dedupedExercises.has(exercise.id)) {
+       dedupedExercises.set(exercise.id, exercise);
+     }
+   }
+ 
+   return Array.from(dedupedExercises.values()).sort((left, right) => left.name.localeCompare(right.name));
+ }
+ 
+ async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
+   const supabase = supabaseServer();
+   const { data: customData, error: customError } = await supabase
+     .from("exercises")
+-    .select("id, name, user_id, is_global, primary_muscle, equipment, created_at")
++    .select("id, name, user_id, is_global, primary_muscle, equipment, how_to_short, primary_muscles, secondary_muscles, movement_pattern, image_howto_path, image_muscles_path, created_at")
+     .eq("user_id", userId)
+     .order("name", { ascending: true });
+ 
+   if (customError) {
+     if (customError.code === "42P01") {
+       return [];
+     }
+ 
+     throw new Error(customError.message);
+   }
+ 
+   return (customData ?? []) as ExerciseRow[];
+ }
+ 
+ const listGlobalExercisesCached = unstable_cache(
+   async (): Promise<ExerciseRow[]> => {
+     const supabase = supabaseServerAnon();
+     const { data, error } = await supabase
+       .from("exercises")
+-      .select("id, name, user_id, is_global, primary_muscle, equipment, created_at")
++      .select("id, name, user_id, is_global, primary_muscle, equipment, how_to_short, primary_muscles, secondary_muscles, movement_pattern, image_howto_path, image_muscles_path, created_at")
+       .is("user_id", null)
+       .eq("is_global", true)
+       .order("name", { ascending: true });
+ 
+     if (error) {
+       logExerciseLoaderEvent("global-db-query-failed", {
+         code: error.code,
+         message: error.message,
+       });
+ 
+       if (error.code === "42P01") {
+         const fallbackRows = fallbackGlobalExercises();
+         logExerciseLoaderEvent("global-fallback-baseline", {
+           reason: "undefined_table",
+           rows: fallbackRows.length,
+         });
+ 
+         return fallbackRows;
+       }
+ 
+       console.error("[exercises] Failed to load global exercises from database.", {
+         code: error.code,
+         message: error.message,
+       });
+ 
+diff --git a/src/types/db.ts b/src/types/db.ts
+index b98773527e2e53b3678cb18c84b49083c90317d9..3735d3eef50486bbebd688b6136ca250b9695ca1 100644
+--- a/src/types/db.ts
++++ b/src/types/db.ts
+@@ -65,27 +65,33 @@ export type RoutineDayRow = {
+ 
+ export type RoutineDayExerciseRow = {
+   id: string;
+   user_id: string;
+   routine_day_id: string;
+   exercise_id: string;
+   position: number;
+   target_sets: number | null;
+   target_reps: number | null;
+   target_reps_min: number | null;
+   target_reps_max: number | null;
+   target_weight: number | null;
+   target_weight_unit: "lbs" | "kg" | null;
+   target_duration_seconds: number | null;
+   notes: string | null;
+ };
+ 
+ 
+ export type ExerciseRow = {
+   id: string;
+   name: string;
+   user_id: string | null;
+   is_global: boolean;
+   primary_muscle: string | null;
+   equipment: string | null;
++  how_to_short: string | null;
++  primary_muscles: string[] | null;
++  secondary_muscles: string[] | null;
++  movement_pattern: "push" | "pull" | "hinge" | "squat" | "carry" | "rotation" | null;
++  image_howto_path: string | null;
++  image_muscles_path: string | null;
+   created_at: string;
+ };
+diff --git a/supabase/migrations/017_exercise_metadata_and_images.sql b/supabase/migrations/017_exercise_metadata_and_images.sql
+new file mode 100644
+index 0000000000000000000000000000000000000000..dbe38153214c8611d6db976dbc1a94c02431574b
+--- /dev/null
++++ b/supabase/migrations/017_exercise_metadata_and_images.sql
+@@ -0,0 +1,87 @@
++alter table public.exercises
++  add column if not exists how_to_short text null,
++  add column if not exists primary_muscles text[] null,
++  add column if not exists secondary_muscles text[] null,
++  add column if not exists movement_pattern text null,
++  add column if not exists image_howto_path text null,
++  add column if not exists image_muscles_path text null;
++
++alter table public.exercises
++  drop constraint if exists exercises_movement_pattern_check;
++
++alter table public.exercises
++  add constraint exercises_movement_pattern_check
++  check (
++    movement_pattern is null
++    or movement_pattern in ('push', 'pull', 'hinge', 'squat', 'carry', 'rotation')
++  );
++
++-- Option C (current): static files under /public.
++-- Intended structure for real assets (Option B compatible path fields):
++-- public/exercises/<exercise_slug>/howto.webp
++-- public/exercises/<exercise_slug>/muscles.webp
++update public.exercises
++set
++  how_to_short = 'Grip shoulder-width, pull elbows down, and bring your chest toward the bar.',
++  primary_muscles = array['Lats', 'Upper Back'],
++  secondary_muscles = array['Biceps', 'Core'],
++  movement_pattern = 'pull',
++  equipment = 'bodyweight',
++  image_howto_path = '/exercises/placeholders/howto.webp',
++  image_muscles_path = '/exercises/placeholders/muscles.webp'
++where lower(name) = 'pull-up' and user_id is null;
++
++update public.exercises
++set
++  how_to_short = 'Lower to mid-chest with control, then press up while keeping your upper back tight.',
++  primary_muscles = array['Chest'],
++  secondary_muscles = array['Front Delts', 'Triceps'],
++  movement_pattern = 'push',
++  equipment = 'barbell',
++  image_howto_path = '/exercises/placeholders/howto.webp',
++  image_muscles_path = '/exercises/placeholders/muscles.webp'
++where lower(name) in ('bench press', 'barbell bench press') and user_id is null;
++
++update public.exercises
++set
++  how_to_short = 'Brace, sit hips down and back, then stand up by driving through mid-foot.',
++  primary_muscles = array['Quads', 'Glutes'],
++  secondary_muscles = array['Core', 'Lower Back'],
++  movement_pattern = 'squat',
++  equipment = 'barbell',
++  image_howto_path = '/exercises/placeholders/howto.webp',
++  image_muscles_path = '/exercises/placeholders/muscles.webp'
++where lower(name) in ('squat', 'back squat') and user_id is null;
++
++update public.exercises
++set
++  how_to_short = 'Hinge at the hips, row toward the lower ribs, and control the lowering phase.',
++  primary_muscles = array['Lats', 'Mid Back'],
++  secondary_muscles = array['Rear Delts', 'Biceps'],
++  movement_pattern = 'pull',
++  equipment = 'barbell',
++  image_howto_path = '/exercises/placeholders/howto.webp',
++  image_muscles_path = '/exercises/placeholders/muscles.webp'
++where lower(name) in ('row', 'barbell row') and user_id is null;
++
++update public.exercises
++set
++  how_to_short = 'Pull bar to upper chest, keep torso tall, and let shoulder blades rise on the return.',
++  primary_muscles = array['Lats'],
++  secondary_muscles = array['Biceps', 'Upper Back'],
++  movement_pattern = 'pull',
++  equipment = 'cable',
++  image_howto_path = '/exercises/placeholders/howto.webp',
++  image_muscles_path = '/exercises/placeholders/muscles.webp'
++where lower(name) = 'lat pulldown' and user_id is null;
++
++update public.exercises
++set
++  how_to_short = 'Raise dumbbells out to shoulder height with a soft elbow bend and slow lower.',
++  primary_muscles = array['Side Delts'],
++  secondary_muscles = array['Upper Traps'],
++  movement_pattern = 'pull',
++  equipment = 'dumbbell',
++  image_howto_path = '/exercises/placeholders/howto.webp',
++  image_muscles_path = '/exercises/placeholders/muscles.webp'
++where lower(name) = 'lateral raise' and user_id is null;
