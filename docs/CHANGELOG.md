@@ -580,11 +580,3 @@ WHAT:
 - Fixed session interaction continuity bugs: timer restore no longer double-counts after leaving/resuming, exercise-back navigation now closes the focused exercise first, exercise timer resets when backing out of a focused exercise, and local logged-set counters stay in sync when resuming a session.
 WHY:
 - These updates make day selection and day-exercise editing faster on mobile, while restoring deterministic session behavior so timers/navigation/set counts match user expectations during resume/back workflows.
-
-### Changed
-WHAT:
-- Updated routines list controls to use explicit Active/Inactive status labels (Active shown in green, Inactive kept neutral/grey) and moved reorder arrows beside status controls with square arrow buttons for cleaner card balance.
-- Restored an in-progress Today "CHANGE DAY" action as a lightweight modal overlay with day options and OK/Cancel flow, and wired it to a strict server action that updates the in-progress session day.
-- Updated session Back button behavior to close any focused exercise and also navigate back out of the session in one interaction.
-WHY:
-- These changes improve scanability and control ergonomics on routine cards, bring back expected day-switch affordance during active workouts, and remove extra back-navigation friction during session logging.

@@ -7,12 +7,16 @@ export function SessionBackButton() {
     <BackButton
       label="Back"
       ariaLabel="Back to Today"
-      onClick={() => {
+      onClick={(event) => {
         const closeRequestEvent = new CustomEvent<{ closed: boolean }>("session-exercise-focus:close-request", {
           detail: { closed: false },
         });
 
         window.dispatchEvent(closeRequestEvent);
+
+        if (closeRequestEvent.detail.closed) {
+          event.preventDefault();
+        }
       }}
     />
   );
