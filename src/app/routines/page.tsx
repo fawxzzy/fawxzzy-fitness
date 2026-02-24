@@ -44,6 +44,70 @@ async function setActiveRoutineAction(formData: FormData) {
   revalidateRoutinesViews();
 }
 
+async function moveRoutineAction(formData: FormData) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const routineId = String(formData.get("routineId") ?? "");
+  const direction = String(formData.get("direction") ?? "");
+
+  if (!routineId || (direction !== "up" && direction !== "down")) {
+    throw new Error("Missing reorder info");
+  }
+
+  const { data: orderedRoutines, error: routinesError } = await supabase
+    .from("routines")
+    .select("id, updated_at")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false });
+
+  if (routinesError) {
+    throw new Error(routinesError.message);
+  }
+
+  const index = (orderedRoutines ?? []).findIndex((routine) => routine.id === routineId);
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+  if (index < 0 || targetIndex < 0 || targetIndex >= (orderedRoutines ?? []).length) {
+    return;
+  }
+
+  const targetRoutine = orderedRoutines?.[targetIndex];
+  if (!targetRoutine) {
+    return;
+  }
+
+  const timestampBase = Date.now();
+  const topTimestamp = new Date(timestampBase + 2000).toISOString();
+  const bottomTimestamp = new Date(timestampBase + 1000).toISOString();
+
+  const firstId = direction === "up" ? routineId : targetRoutine.id;
+  const secondId = direction === "up" ? targetRoutine.id : routineId;
+
+  const { error: firstUpdateError } = await supabase
+    .from("routines")
+    .update({ updated_at: topTimestamp })
+    .eq("id", firstId)
+    .eq("user_id", user.id);
+
+  if (firstUpdateError) {
+    throw new Error(firstUpdateError.message);
+  }
+
+  const { error: secondUpdateError } = await supabase
+    .from("routines")
+    .update({ updated_at: bottomTimestamp })
+    .eq("id", secondId)
+    .eq("user_id", user.id);
+
+  if (secondUpdateError) {
+    throw new Error(secondUpdateError.message);
+  }
+
+  revalidateRoutinesViews();
+}
+
 async function deleteRoutineAction(formData: FormData) {
   "use server";
 
@@ -75,7 +139,6 @@ async function deleteRoutineAction(formData: FormData) {
       throw new Error(clearActiveError.message);
     }
   }
-
 
   const { error: detachSessionError } = await supabase
     .from("sessions")
@@ -129,7 +192,7 @@ export default async function RoutinesPage() {
         </div>
 
         <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
-          {routines.map((routine) => {
+          {routines.map((routine, index) => {
             const isActive = profile.active_routine_id === routine.id;
 
             return (
@@ -139,6 +202,34 @@ export default async function RoutinesPage() {
                     <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
                   </div>
                   <div className="flex gap-2 text-sm">
+                    <form action={moveRoutineAction}>
+                      <input type="hidden" name="routineId" value={routine.id} />
+                      <button
+                        type="submit"
+                        name="direction"
+                        value="up"
+                        disabled={index === 0}
+                        className={`${listShellClasses.pillAction} border border-slate-300 bg-white/80 text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40`}
+                        aria-label={`Move ${routine.name} up`}
+                        title="Move up"
+                      >
+                        ↑
+                      </button>
+                    </form>
+                    <form action={moveRoutineAction}>
+                      <input type="hidden" name="routineId" value={routine.id} />
+                      <button
+                        type="submit"
+                        name="direction"
+                        value="down"
+                        disabled={index === routines.length - 1}
+                        className={`${listShellClasses.pillAction} border border-slate-300 bg-white/80 text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40`}
+                        aria-label={`Move ${routine.name} down`}
+                        title="Move down"
+                      >
+                        ↓
+                      </button>
+                    </form>
                     <Link
                       href={`/routines/${routine.id}/edit`}
                       className={`${listShellClasses.pillAction} border border-accent/40 bg-accent/10 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20`}
@@ -149,7 +240,7 @@ export default async function RoutinesPage() {
                       <input type="hidden" name="routineId" value={routine.id} />
                       <button
                         type="submit"
-                        className={`${listShellClasses.pillAction} border border-red-200/80 bg-red-100/65 text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85`}
+                        className={`${listShellClasses.pillAction} border border-red-600/70 bg-red-600 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur transition-all hover:bg-red-700`}
                       >
                         Delete
                       </button>

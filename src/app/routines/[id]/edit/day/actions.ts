@@ -51,9 +51,23 @@ export async function saveRoutineDayAction(formData: FormData) {
     redirect(`/routines/${routineId}/edit/day/${routineDayId}?error=${encodeURIComponent("Missing day info")}`);
   }
 
+  const { data: existingDay, error: existingDayError } = await supabase
+    .from("routine_days")
+    .select("name")
+    .eq("id", routineDayId)
+    .eq("user_id", user.id)
+    .eq("routine_id", routineId)
+    .single();
+
+  if (existingDayError || !existingDay) {
+    redirect(`/routines/${routineId}/edit/day/${routineDayId}?error=${encodeURIComponent(existingDayError?.message ?? "Routine day not found")}`);
+  }
+
+  const safeName = name || existingDay.name || null;
+
   const { error } = await supabase
     .from("routine_days")
-    .update({ name: name || null, is_rest: isRest })
+    .update({ name: safeName, is_rest: isRest })
     .eq("id", routineDayId)
     .eq("user_id", user.id)
     .eq("routine_id", routineId);

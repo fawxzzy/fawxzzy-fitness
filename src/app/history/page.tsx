@@ -129,7 +129,7 @@ export default async function HistoryPage({
                   <input type="hidden" name="sessionId" value={session.id} />
                   <button
                     type="submit"
-                    className={`${listShellClasses.pillAction} shrink-0 border border-red-200/80 bg-red-100/65 text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
+                    className={`${listShellClasses.pillAction} shrink-0 border border-red-600/70 bg-red-600 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur transition-all hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30`}
                   >
                     Delete
                   </button>
