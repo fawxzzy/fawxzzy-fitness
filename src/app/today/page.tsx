@@ -159,7 +159,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
         }
 
-        const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone);
+        const { startIso, endIso } = getTimeZoneDayWindow(profile.timezone);
 
         const { count: completedTodayCountValue } = await supabase
           .from("sessions")
@@ -243,7 +243,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           <OfflineSyncBadge />
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
-            {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
+            {todayPayload.completedTodayCount > 0 && !todayPayload.inProgressSessionId ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
           </div>
 
           <ul className="space-y-1 text-sm">

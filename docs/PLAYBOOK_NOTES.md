@@ -175,3 +175,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Users expect “resume workout” continuity to include in-progress interaction state, not just server-fetched records.
 - Evidence: src/components/SessionTimers.tsx
 - Status: Proposed
+
+## 2026-02-24 — Resolve local-day status and timestamps from one timezone source
+- Type: Guardrail
+- Summary: For day-scoped workout UX (today routing, completion badges, and history clocks), derive day windows and displayed timestamps from user-local timezone context instead of mixing routine/server timezone assumptions.
+- Suggested Playbook File: patterns/timezone-determinism.md
+- Rationale: Mixed timezone sources can shift local-day boundaries and produce incorrect “current day” and saved-time displays.
+- Evidence: src/app/today/page.tsx, src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed

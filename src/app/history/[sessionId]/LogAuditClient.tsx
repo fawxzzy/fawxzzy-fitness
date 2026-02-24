@@ -7,7 +7,9 @@ import { Glass } from "@/components/ui/Glass";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import {
+  addLogExerciseAction,
   addLogExerciseSetAction,
+  deleteLogExerciseAction,
   deleteLogExerciseSetAction,
   updateLogExerciseNotesAction,
   updateLogExerciseSetAction,
@@ -46,6 +48,7 @@ export function LogAuditClient({
   unitLabel,
   exerciseNameMap,
   exercises,
+  exerciseOptions,
 }: {
   logId: string;
   initialDayName: string;
@@ -53,6 +56,12 @@ export function LogAuditClient({
   unitLabel: "lbs" | "kg";
   exerciseNameMap: Record<string, string>;
   exercises: AuditExercise[];
+  exerciseOptions: Array<{
+    id: string;
+    name: string;
+    user_id: string | null;
+    is_global: boolean;
+  }>;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -60,6 +69,8 @@ export function LogAuditClient({
   const [isEditing, setIsEditing] = useState(false);
   const [dayName, setDayName] = useState(initialDayName);
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
+
+  const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseOptions[0]?.id ?? "");
   const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>(
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])),
   );
@@ -193,6 +204,30 @@ export function LogAuditClient({
     });
   };
 
+  const handleAddExercise = () => {
+    if (!selectedExerciseId) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await addLogExerciseAction({ logId, exerciseId: selectedExerciseId });
+      toastActionResult(toast, result, { success: "Exercise added.", error: "Unable to add exercise." });
+      if (result.ok) {
+        router.refresh();
+      }
+    });
+  };
+
+  const handleDeleteExercise = (logExerciseId: string) => {
+    startTransition(async () => {
+      const result = await deleteLogExerciseAction({ logId, logExerciseId });
+      toastActionResult(toast, result, { success: "Exercise removed.", error: "Unable to remove exercise." });
+      if (result.ok) {
+        router.refresh();
+      }
+    });
+  };
+
   return (
     <>
       <Glass variant="base" className="p-4" interactive={false}>
@@ -224,6 +259,17 @@ export function LogAuditClient({
               Session Notes
               <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <p className="mb-2 text-sm font-medium text-slate-700">Add exercise</p>
+              <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
+              </select>
+              <div className="mt-2 flex justify-end">
+                <button type="button" onClick={handleAddExercise} className={`rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium ${tapFeedbackClass}`}>
+                  Add Exercise
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           <dl className="space-y-2 text-sm text-slate-700">
@@ -249,7 +295,14 @@ export function LogAuditClient({
             <Glass key={exercise.id} variant="base" className="p-4" interactive={false}>
               <div className="mb-2 flex items-center justify-between gap-2">
                 <h3 className="text-base font-semibold text-slate-900">{name}</h3>
+                <div className="flex items-center gap-2">
                 <span className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600">{setCount} sets</span>
+                {isEditing ? (
+                  <button type="button" onClick={() => handleDeleteExercise(exercise.id)} className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 ${tapFeedbackClass}`}>
+                    Remove Exercise
+                  </button>
+                ) : null}
+              </div>
               </div>
 
               <ul className="mb-3 space-y-1 text-sm text-slate-700">

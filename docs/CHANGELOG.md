@@ -5,6 +5,17 @@
 
 ### Changed
 WHAT:
+- Updated History cards and Log Details to resolve and display the current routine day name for each session (while still honoring manual day-name overrides), instead of relying only on originally-captured auto-generated names.
+- Switched History date/time rendering to client-local formatting for accurate local clock display.
+- Expanded History Edit mode so users can add and remove exercises from completed logs (in addition to existing set and note edits).
+- Fixed Today’s day-window/session-completion logic to use the profile timezone consistently and hide the Completed badge while a new in-progress workout exists.
+- Stopped routine-level edits from auto-renaming all existing day names, preserving user-customized day labels.
+WHY:
+- These changes address reported correctness issues around day naming, timestamp trust, and daily-session status, while improving post-workout log maintenance without changing the server-action/RLS architecture.
+
+
+### Changed
+WHAT:
 - Added in-session set removal controls in the active workout logger, including removal of queued offline set logs from local queue storage.
 - Added goal-driven set logger prefill so target weight/reps/duration auto-populate when opening an exercise during an active session.
 - Persisted active-session logged-set state/form inputs to local storage so set logs survive app/device restarts for the same resumable workout session.
