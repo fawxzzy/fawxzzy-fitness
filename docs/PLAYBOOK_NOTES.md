@@ -215,3 +215,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: This preserves responsive search/select UX and keeps database access in authenticated server actions with explicit ActionResult contracts.
 - Evidence: src/components/ExercisePicker.tsx, src/app/actions/exercises.ts, src/lib/exercises.ts
 - Status: Proposed
+
+## 2026-02-24 — Use shared button tokens/components for primary cross-screen actions
+- Type: Pattern
+- Summary: Define app-level button design tokens once (size, colors, states, motion) and apply shared button primitives to high-frequency actions (start/resume/end/create/view/change-day/back).
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Shared primitives prevent action-style drift and preserve consistent touch feedback/accessibility without redesigning each screen.
+- Evidence: src/app/globals.css, src/components/ui/AppButton.tsx, src/components/ui/TopRightBackButton.tsx, src/app/today/TodayDayPicker.tsx
+- Status: Proposed

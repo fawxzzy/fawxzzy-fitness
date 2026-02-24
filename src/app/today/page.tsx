@@ -6,6 +6,8 @@ import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { Glass } from "@/components/ui/Glass";
+import { DestructiveButton } from "@/components/ui/AppButton";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
@@ -347,12 +349,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
               </ul>
 
-              <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Workout</Link>
+              <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>Resume Workout</Link>
               <form action={discardInProgressSessionAction}>
                 <input type="hidden" name="sessionId" value={todayPayload.inProgressSessionId} />
-                <button type="submit" className="block w-full rounded-md border border-red-400/50 bg-red-500/10 px-3 py-2 text-center text-sm font-semibold text-red-100 transition-colors hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/35">
-                  End Session (Don’t Save)
-                </button>
+                <DestructiveButton type="submit" fullWidth>End Workout</DestructiveButton>
               </form>
             </div>
           ) : (

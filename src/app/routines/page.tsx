@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -122,7 +123,7 @@ export default async function RoutinesPage() {
         <div className="w-full">
           <Link
             href="/routines/new"
-            className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+            className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
           >
             Create Routine
           </Link>

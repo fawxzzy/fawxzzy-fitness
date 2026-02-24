@@ -671,3 +671,11 @@ WHAT:
 - Adjusted the Today selected-day preview layout so long day content uses a bounded, scrollable exercise list and keeps the CHANGE DAY control visible when the start-session card has less vertical space.
 WHY:
 - This prevents day-selection controls from being visually clipped on smaller mobile card layouts while preserving the existing Today workflow.
+
+### Changed
+WHAT:
+- Standardized primary action buttons across Today, Session, Routines, and History using shared button tokens and reusable app button primitives, including label normalization for End Workout and CHANGE DAY.
+- Standardized top-right back controls behind one shared back-button component and replaced inconsistent per-screen variants.
+- Updated CHANGE DAY to open a compact overlay with multi-select day options and explicit OK/Cancel controls while preserving existing day-switch workout behavior.
+WHY:
+- This keeps critical actions visually consistent and predictable across mobile flows, reduces style drift for future screens, and preserves existing navigation/data boundaries with a minimal UI-focused diff.

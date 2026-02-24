@@ -1,6 +1,6 @@
 "use client";
 
-import { BackButton } from "@/components/ui/BackButton";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 
 type Props = {
   href: string;
@@ -9,7 +9,7 @@ type Props = {
 
 export function RoutineBackButton({ href, hasUnsavedChanges = true }: Props) {
   return (
-    <BackButton
+    <TopRightBackButton
       href={href}
       onClick={(event) => {
         if (hasUnsavedChanges && !window.confirm("Discard changes?")) {

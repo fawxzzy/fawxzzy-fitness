@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
 
 type TodayExercise = {
@@ -32,7 +33,23 @@ export function TodayDayPicker({
   startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
+  const [pendingDayIndexes, setPendingDayIndexes] = useState<number[]>([currentDayIndex]);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isPickerOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsPickerOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isPickerOpen]);
 
   const selectedDay = useMemo(
     () => days.find((day) => day.dayIndex === selectedDayIndex) ?? days.find((day) => day.dayIndex === currentDayIndex) ?? null,
@@ -41,7 +58,7 @@ export function TodayDayPicker({
 
   return (
     <div className="flex min-h-0 flex-col gap-3">
-      {selectedDay && !isPickerOpen ? (
+      {selectedDay ? (
         <div className="min-h-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <h2 className="pr-1 text-lg font-semibold leading-tight text-text">
@@ -64,62 +81,67 @@ export function TodayDayPicker({
         </div>
       ) : null}
 
-      {!isPickerOpen ? (
-        <>
-          <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />
-          <button
-            id="today-day-picker"
-            type="button"
-            onClick={() => {
-              setIsPickerOpen(true);
-            }}
-            aria-expanded={false}
-            className="block w-full rounded-md border border-border bg-surface-2-soft px-3 py-2 text-center text-sm font-semibold text-text transition-colors hover:bg-surface-2-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-          >
-            Change Day
-          </button>
-        </>
-      ) : (
-        <div className="min-h-0 space-y-3 rounded-lg border border-border bg-surface-1 p-3">
-          <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
-          <div role="radiogroup" aria-label="Routine days" className="min-h-0 max-h-72 space-y-2 overflow-y-auto pr-1">
-            {days.map((day) => {
-              const isSelected = selectedDayIndex === day.dayIndex;
-              return (
-                <button
-                  key={day.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  onClick={() => {
-                    setSelectedDayIndex(day.dayIndex);
-                    setIsPickerOpen(false);
-                  }}
-                  className={`w-full rounded-md border px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
-                    isSelected
-                      ? "border-accent/60 bg-accent/20 text-text"
-                      : "border-border bg-surface-2-soft text-text hover:bg-surface-2-strong"
-                  }`}
-                >
-                  {day.name}
-                  {day.isRest ? " (Rest)" : ""}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setIsPickerOpen(false);
-              }}
-              className="rounded-md border border-border bg-surface-2-soft px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-2-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-            >
-              Cancel
-            </button>
+      <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />
+      <SecondaryButton
+        id="today-day-picker"
+        type="button"
+        fullWidth
+        onClick={() => {
+          setPendingDayIndexes([selectedDayIndex]);
+          setIsPickerOpen(true);
+        }}
+        aria-expanded={isPickerOpen}
+        className="font-light tracking-[0.2em]"
+      >
+        CHANGE DAY
+      </SecondaryButton>
+
+      {isPickerOpen ? (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => setIsPickerOpen(false)}
+        >
+          <div className="w-full max-w-xs space-y-3 rounded-lg border border-border bg-surface p-3" onClick={(event) => event.stopPropagation()}>
+            <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
+            <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
+              {days.map((day) => {
+                const isSelected = pendingDayIndexes.includes(day.dayIndex);
+                return (
+                  <label key={day.id} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${isSelected ? "border-accent/60 bg-accent/20" : "border-border bg-surface-2-soft"}`}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {
+                        setPendingDayIndexes((current) => (
+                          current.includes(day.dayIndex)
+                            ? current.filter((value) => value !== day.dayIndex)
+                            : [...current, day.dayIndex]
+                        ));
+                      }}
+                    />
+                    <span>{day.name}{day.isRest ? " (Rest)" : ""}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <SecondaryButton type="button" onClick={() => setIsPickerOpen(false)}>Cancel</SecondaryButton>
+              <PrimaryButton
+                type="button"
+                onClick={() => {
+                  const nextDay = [...pendingDayIndexes].sort((a, b) => a - b)[0];
+                  if (nextDay) {
+                    setSelectedDayIndex(nextDay);
+                  }
+                  setIsPickerOpen(false);
+                }}
+              >
+                OK
+              </PrimaryButton>
+            </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

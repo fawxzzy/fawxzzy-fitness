@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/action-result";
 import { useToast } from "@/components/ui/ToastProvider";
+import { PrimaryButton } from "@/components/ui/AppButton";
 
 
 export function TodayStartButton({
@@ -18,9 +19,10 @@ export function TodayStartButton({
   const toast = useToast();
 
   return (
-    <button
+    <PrimaryButton
       type="button"
-      disabled={isPending}
+      loading={isPending}
+      fullWidth
       onClick={() => {
         startTransition(async () => {
           const result = await startSessionAction({ dayIndex: selectedDayIndex });
@@ -32,9 +34,8 @@ export function TodayStartButton({
           router.push(`/session/${result.data.sessionId}`);
         });
       }}
-      className="w-full rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white [-webkit-tap-highlight-color:transparent] transition-colors hover:bg-accent-strong active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:bg-accent/80 disabled:text-white"
     >
       {isPending ? "Starting…" : "Start Workout"}
-    </button>
+    </PrimaryButton>
   );
 }
