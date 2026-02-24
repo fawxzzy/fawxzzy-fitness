@@ -4,6 +4,13 @@ WHAT:
 WHY:
 - These updates make day/order controls easier to hit on mobile, let users run a different day without permanently changing routines, and reduce accidental session loss/navigation friction during active workouts.
 
+### Changed
+WHAT:
+- Updated Today's day-change interaction so tapping `CHANGE DAY` now swaps the Start Session content out for a dedicated inline chooser card instead of opening an overlay inside the same surface.
+- Added explicit `OK`/`Cancel` confirmation in that dedicated chooser card before applying a new pre-start day selection.
+WHY:
+- This keeps the Today UI cleaner and avoids cramped nested card layering while preserving temporary day selection before starting a workout.
+
 # Changelog
 
 ## [Unreleased]
