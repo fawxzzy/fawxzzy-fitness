@@ -10,6 +10,7 @@ type ExerciseOption = {
   name: string;
   user_id: string | null;
   is_global: boolean;
+  primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
   image_howto_path: string | null;
@@ -112,6 +113,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
             <div className="flex flex-wrap justify-end gap-1">
               <MetaTag value={selectedExercise.equipment} />
               <MetaTag value={selectedExercise.movement_pattern} />
+              <span className="hidden sm:inline-flex"><MetaTag value={selectedExercise.primary_muscle} /></span>
             </div>
           </div>
         ) : (
@@ -133,6 +135,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
                   <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>
                     <MetaTag value={exercise.equipment} />
                     <MetaTag value={exercise.movement_pattern} />
+                    <span className="hidden sm:inline-flex"><MetaTag value={exercise.primary_muscle} /></span>
                   </div>
                 </button>
                 <button
