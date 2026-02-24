@@ -1,3 +1,10 @@
+### Changed
+WHAT:
+- Refined main-screen action styling for Today/Routines/History so key actions use a more consistent mid-weight button treatment, including Start Workout, Change Day, End Session, Create Routine, and View.
+- Updated Today day selection to tap-to-select day choices (with Cancel only), added right-aligned per-exercise goal targets in Today exercise rows, and adjusted routine-card typography (underlined routine titles plus lighter Edit text).
+WHY:
+- This improves cross-screen visual consistency and readability while speeding up day switching and making workout goals visible at a glance before users start sessions.
+
 ### Fixed
 WHAT:
 - Updated the Add Exercise expanded-card picker to remove the legacy dropdown control, keep a selected-exercise summary box, increase list image/button fill, and deduplicate duplicate exercise-name entries in the scroll list (including duplicate Abductor Machine rows).

@@ -339,7 +339,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
               <ul className="space-y-1 text-sm">
                 {todayPayload.exercises.map((exercise) => (
-                  <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
+                  <li key={exercise.id} className="flex items-center justify-between gap-3 rounded-md bg-surface-2-strong px-3 py-2 text-text">
+                    <span className="truncate">{exercise.name}</span>
+                    {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
+                  </li>
                 ))}
                 {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
               </ul>
@@ -347,7 +350,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Workout</Link>
               <form action={discardInProgressSessionAction}>
                 <input type="hidden" name="sessionId" value={todayPayload.inProgressSessionId} />
-                <button type="submit" className="block w-full rounded-md border border-red-400/50 bg-red-500/10 px-3 py-2 text-center text-sm font-medium text-red-100 transition-colors hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/35">
+                <button type="submit" className="block w-full rounded-md border border-red-400/50 bg-red-500/10 px-3 py-2 text-center text-sm font-semibold text-red-100 transition-colors hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/35">
                   End Session (Don’t Save)
                 </button>
               </form>
@@ -365,6 +368,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   .map((exercise) => ({
                     id: exercise.id,
                     name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+                    targets: exercise.target_sets
+                      ? `${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
+                      : null,
                   })),
               }))}
               currentDayIndex={todayPayload.routine.dayIndex}
