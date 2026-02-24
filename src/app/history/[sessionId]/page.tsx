@@ -118,6 +118,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             weight: set.weight,
             reps: set.reps,
             duration_seconds: set.duration_seconds,
+            weight_unit: set.weight_unit,
           })),
         }))}
       />

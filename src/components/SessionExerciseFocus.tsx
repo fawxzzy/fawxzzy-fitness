@@ -41,11 +41,19 @@ type SyncQueuedSetLogsAction = (payload: {
   }>;
 }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
+type SessionExercisePrefill = {
+  weight?: number;
+  reps?: number;
+  durationSeconds?: number;
+  weightUnit?: "lbs" | "kg";
+};
+
 type SessionExerciseFocusItem = {
   id: string;
   name: string;
   isSkipped: boolean;
   goalText: string | null;
+  prefill?: SessionExercisePrefill;
   initialSets: SetRow[];
   loggedSetCount: number;
 };
@@ -58,6 +66,7 @@ export function SessionExerciseFocus({
   syncQueuedSetLogsAction,
   toggleSkipAction,
   removeExerciseAction,
+  deleteSetAction,
 }: {
   sessionId: string;
   unitLabel: string;
@@ -66,6 +75,7 @@ export function SessionExerciseFocus({
   syncQueuedSetLogsAction: SyncQueuedSetLogsAction;
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
+  deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
@@ -209,6 +219,8 @@ export function SessionExerciseFocus({
             syncQueuedSetLogsAction={syncQueuedSetLogsAction}
             unitLabel={unitLabel}
             initialSets={selectedExercise.initialSets}
+            prefill={selectedExercise.prefill}
+            deleteSetAction={deleteSetAction}
             onSetCountChange={(count) => {
               setLoggedSetCounts((current) => ({ ...current, [selectedExercise.id]: count }));
             }}
