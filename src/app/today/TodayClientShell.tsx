@@ -98,7 +98,10 @@ export function TodayClientShell({
 
       <ul className="space-y-1 text-sm">
         {display.exercises.map((exercise) => (
-          <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
+          <li key={exercise.id} className="flex items-center justify-between gap-3 rounded-md bg-surface-2-strong px-3 py-2 text-text">
+            <span className="truncate">{exercise.name}</span>
+            {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
+          </li>
         ))}
         {display.exercises.length === 0 ? (
           <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li>

@@ -136,12 +136,12 @@ export default async function RoutinesPage() {
               <li key={routine.id} className={listShellClasses.card}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
+                    <p className="truncate text-base font-semibold text-slate-900 underline decoration-slate-400/80 underline-offset-2">{routine.name}</p>
                   </div>
                   <div className="flex gap-2 text-sm">
                     <Link
                       href={`/routines/${routine.id}/edit`}
-                      className={`${listShellClasses.pillAction} border border-accent/40 bg-accent/10 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20`}
+                      className={`${listShellClasses.pillAction} border border-accent/40 bg-accent/10 text-accent/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20`}
                     >
                       Edit
                     </Link>

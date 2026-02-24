@@ -32,7 +32,7 @@ export function TodayStartButton({
           router.push(`/session/${result.data.sessionId}`);
         });
       }}
-      className="w-full rounded-lg bg-emerald-500 px-4 py-5 text-lg font-semibold text-white [color:rgb(236_253_245)] [-webkit-tap-highlight-color:transparent] transition-colors hover:bg-emerald-400 active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40 disabled:cursor-not-allowed disabled:bg-emerald-500/85 disabled:text-white"
+      className="w-full rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white [-webkit-tap-highlight-color:transparent] transition-colors hover:bg-accent-strong active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:bg-accent/80 disabled:text-white"
     >
       {isPending ? "Starting…" : "Start Workout"}
     </button>
