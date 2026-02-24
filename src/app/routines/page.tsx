@@ -196,38 +196,8 @@ export default async function RoutinesPage() {
             const isActive = profile.active_routine_id === routine.id;
 
             return (
-              <li key={routine.id} className={listShellClasses.card}>
-                <div className="flex items-stretch justify-between gap-3">
-                  <div className="flex flex-col justify-center gap-2">
-                    <form action={moveRoutineAction}>
-                      <input type="hidden" name="routineId" value={routine.id} />
-                      <button
-                        type="submit"
-                        name="direction"
-                        value="up"
-                        disabled={index === 0}
-                        className={`${listShellClasses.pillAction} border border-slate-300 bg-white/80 text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40`}
-                        aria-label={`Move ${routine.name} up`}
-                        title="Move up"
-                      >
-                        ↑
-                      </button>
-                    </form>
-                    <form action={moveRoutineAction}>
-                      <input type="hidden" name="routineId" value={routine.id} />
-                      <button
-                        type="submit"
-                        name="direction"
-                        value="down"
-                        disabled={index === routines.length - 1}
-                        className={`${listShellClasses.pillAction} border border-slate-300 bg-white/80 text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40`}
-                        aria-label={`Move ${routine.name} down`}
-                        title="Move down"
-                      >
-                        ↓
-                      </button>
-                    </form>
-                  </div>
+              <li key={routine.id} className={`${listShellClasses.card} p-3`}>
+                <div className="flex min-w-0 items-start justify-between gap-2.5">
                   <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
@@ -250,19 +220,51 @@ export default async function RoutinesPage() {
                     </form>
                   </div>
                 </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex flex-col justify-center gap-1.5">
+                      <form action={moveRoutineAction}>
+                        <input type="hidden" name="routineId" value={routine.id} />
+                        <button
+                          type="submit"
+                          name="direction"
+                          value="up"
+                          disabled={index === 0}
+                          className={`${listShellClasses.iconAction} border border-slate-300 bg-white/80 text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40`}
+                          aria-label={`Move ${routine.name} up`}
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                      </form>
+                      <form action={moveRoutineAction}>
+                        <input type="hidden" name="routineId" value={routine.id} />
+                        <button
+                          type="submit"
+                          name="direction"
+                          value="down"
+                          disabled={index === routines.length - 1}
+                          className={`${listShellClasses.iconAction} border border-slate-300 bg-white/80 text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40`}
+                          aria-label={`Move ${routine.name} down`}
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                      </form>
+                    </div>
+                    <form action={setActiveRoutineAction}>
+                      <input type="hidden" name="routineId" value={routine.id} />
+                      <button
+                        type="submit"
+                        disabled={isActive}
+                        className={`rounded-md px-3 py-2 text-sm ${
+                          isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
+                        }`}
+                      >
+                        {isActive ? "Active" : "Inactive"}
+                      </button>
+                    </form>
+                  </div>
                 </div>
-                <form action={setActiveRoutineAction}>
-                  <input type="hidden" name="routineId" value={routine.id} />
-                  <button
-                    type="submit"
-                    disabled={isActive}
-                    className={`mt-3 w-full rounded-md px-3 py-2 text-sm ${
-                      isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
-                    }`}
-                  >
-                    {isActive ? "Active" : "Inactive"}
-                  </button>
-                </form>
               </li>
             );
           })}

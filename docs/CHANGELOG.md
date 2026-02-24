@@ -593,3 +593,9 @@ WHAT:
 - Updated Today’s day-picker interaction to use a dedicated CHANGE DAY button that opens a centered single-select overlay with OK/Cancel confirmation, and aligned the button placement with the secondary session action slot under Start Workout.
 WHY:
 - This keeps Today’s action area visually stable between in-progress and not-started states while making day selection explicit, reversible, and more consistent with the app’s existing mobile interaction patterns.
+
+### Changed
+WHAT:
+- Reworked routines card action layout so reorder arrows now live in the same right-side action cluster as the Active/Inactive control, with slightly tighter card spacing and square-corner arrow buttons.
+WHY:
+- This improves action grouping/scannability on routine cards while preserving existing behavior, accessibility affordances, and tap-target clarity.
