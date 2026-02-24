@@ -540,3 +540,10 @@ WHAT:
 - Centralized repeated cache invalidation path usage behind shared revalidation helpers for session, history, and routines views, and updated route/server actions to call those helpers while preserving existing invalidation scope.
 WHY:
 - This reduces duplicated path literals and keeps invalidation behavior easier to audit and maintain without changing user-visible cache refresh behavior.
+
+### Changed
+WHAT:
+- Added a compact “Change day” button under Today’s Start Workout action and upgraded routine day exercise cards to expandable, inline-editable cards in the Edit Day flow.
+- Fixed session interaction continuity bugs: timer restore no longer double-counts after leaving/resuming, exercise-back navigation now closes the focused exercise first, exercise timer resets when backing out of a focused exercise, and local logged-set counters stay in sync when resuming a session.
+WHY:
+- These updates make day selection and day-exercise editing faster on mobile, while restoring deterministic session behavior so timers/navigation/set counts match user expectations during resume/back workflows.
