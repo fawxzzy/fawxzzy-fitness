@@ -614,3 +614,10 @@ WHAT:
 WHY:
 - Back navigation should be deterministic and never trap users on the session screen behind a second press.
 - Preserving panel cleanup while allowing immediate navigation maintains existing safety/reset behavior without degrading browser back expectations.
+
+### Fixed
+WHAT:
+- Stabilized the Today “Start Workout” CTA styling so its green treatment remains consistent across interaction states.
+- Updated Today’s day selection flow so choosing a day immediately updates the workout header and exercise preview to that selected day instead of showing only helper text.
+WHY:
+- This removes visual inconsistency on the primary CTA and makes Change Day behavior reflect the user’s selected workout context before starting a session.
