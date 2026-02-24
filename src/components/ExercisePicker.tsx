@@ -42,7 +42,18 @@ function MetaTag({ value }: { value: string | null }) {
 
 export function ExercisePicker({ exercises, name, initialSelectedId }: ExercisePickerProps) {
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState(initialSelectedId ?? exercises[0]?.id ?? "");
+
+  const uniqueExercises = useMemo(() => {
+    const seenNames = new Set<string>();
+    return exercises.filter((exercise) => {
+      const key = exercise.name.trim().toLowerCase();
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
+  }, [exercises]);
+
+  const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [activeDetails, setActiveDetails] = useState<ExerciseDetails | null>(null);
   const [detailsError, setDetailsError] = useState<string | null>(null);
@@ -50,12 +61,11 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
 
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return exercises;
-    return exercises.filter((exercise) => exercise.name.toLowerCase().includes(query));
-  }, [exercises, search]);
+    if (!query) return uniqueExercises;
+    return uniqueExercises.filter((exercise) => exercise.name.toLowerCase().includes(query));
+  }, [uniqueExercises, search]);
 
-  const globals = filteredExercises.filter((exercise) => exercise.is_global || exercise.user_id === null);
-  const customs = filteredExercises.filter((exercise) => !exercise.is_global && exercise.user_id !== null);
+  const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
 
   const openDetails = async (exerciseId: string) => {
     setIsInfoOpen(true);
@@ -94,41 +104,33 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
           </button>
         ) : null}
       </div>
-      <select
-        name={name}
-        value={selectedId}
-        onChange={(event) => setSelectedId(event.target.value)}
-        required
-        className="h-11 w-full rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))] focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-      >
-        {globals.length > 0 ? (
-          <optgroup label="Common / Global">
-            {globals.map((exercise) => (
-              <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
-            ))}
-          </optgroup>
-        ) : null}
-        {customs.length > 0 ? (
-          <optgroup label="Your Custom">
-            {customs.map((exercise) => (
-              <option key={exercise.id} value={exercise.id}>{exercise.name}</option>
-            ))}
-          </optgroup>
-        ) : null}
-      </select>
+      <input type="hidden" name={name} value={selectedId} required />
+      <div className="min-h-11 rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))]">
+        {selectedExercise ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate font-medium">{selectedExercise.name}</span>
+            <div className="flex flex-wrap justify-end gap-1">
+              <MetaTag value={selectedExercise.equipment} />
+              <MetaTag value={selectedExercise.movement_pattern} />
+            </div>
+          </div>
+        ) : (
+          <span className="text-muted">Select an exercise from the list below</span>
+        )}
+      </div>
 
       <ul className="max-h-52 space-y-2 overflow-y-auto pr-1">
         {filteredExercises.map((exercise) => {
           const isSelected = exercise.id === selectedId;
           return (
-            <li key={exercise.id} className={`rounded-lg border p-2 ${isSelected ? "border-accent/60 bg-accent/10" : "border-border bg-surface-2-soft"}`}>
+            <li key={exercise.id} className={`rounded-lg border p-2 ${isSelected ? "border-border bg-surface-2-soft" : "border-border bg-surface"}`}>
               <div className="flex items-start gap-2">
                 {exercise.image_howto_path ? (
-                  <Image src={exercise.image_howto_path} alt="" width={40} height={40} className="h-10 w-10 rounded-md border border-border object-cover" />
+                  <Image src={exercise.image_howto_path} alt="" width={48} height={48} className="h-12 w-12 rounded-md border border-border object-cover" />
                 ) : null}
                 <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 text-left">
                   <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
-                  <div className="mt-1 flex flex-wrap gap-1">
+                  <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>
                     <MetaTag value={exercise.equipment} />
                     <MetaTag value={exercise.movement_pattern} />
                   </div>
@@ -136,7 +138,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
                 <button
                   type="button"
                   onClick={() => openDetails(exercise.id)}
-                  className="rounded-md border border-border bg-surface-2-strong px-2 py-1 text-xs text-text"
+                  className="h-full min-h-10 rounded-md border border-border bg-surface-2-strong px-2 py-1 text-xs text-text"
                 >
                   Info
                 </button>
