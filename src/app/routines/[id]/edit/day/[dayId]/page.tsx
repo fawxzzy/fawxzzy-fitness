@@ -55,7 +55,7 @@ function formatExerciseTargetSummary(params: {
   repsFallback: number | null;
   weight: number | null;
   durationSeconds: number | null;
-  weightUnit: "lbs" | "kg";
+  weightUnit: "lbs" | "kg" | null;
 }) {
   const parts: string[] = [];
 
@@ -69,7 +69,7 @@ function formatExerciseTargetSummary(params: {
   }
 
   if (params.weight !== null) {
-    parts.push(`@ ${params.weight} ${params.weightUnit}`);
+    parts.push(`@ ${params.weight} ${params.weightUnit ?? "lbs"}`);
   }
 
   const durationText = formatTargetDuration(params.durationSeconds);
@@ -105,7 +105,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   const { data: exercises } = await supabase
     .from("routine_day_exercises")
-    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_duration_seconds, notes")
+    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, notes")
     .eq("routine_day_id", params.dayId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -192,7 +192,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                     repsFallback: exercise.target_reps,
                     weight: exercise.target_weight,
                     durationSeconds: exercise.target_duration_seconds,
-                    weightUnit: (routine as RoutineRow).weight_unit,
+                    weightUnit: exercise.target_weight_unit ?? (routine as RoutineRow).weight_unit,
                   }) || "No target"})
                 </span>
                 <form action={deleteRoutineDayExerciseAction}>
@@ -215,6 +215,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                 <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                 <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                 <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${(routine as RoutineRow).weight_unit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <select name="targetWeightUnit" defaultValue={(routine as RoutineRow).weight_unit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                  <option value="lbs">lbs</option>
+                  <option value="kg">kg</option>
+                </select>
                 <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               </div>
               <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>

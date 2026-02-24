@@ -5,6 +5,17 @@
 
 ### Changed
 WHAT:
+- Made active session timers resilient to app background/close by restoring running state from local session storage and persisting elapsed time when the app is hidden or closed.
+- Added per-exercise target weight unit selection (kg/lbs) when adding routine-day exercises, and surfaced that unit in day/session target text.
+- Added per-set weight unit selection (kg/lbs) in the current-session set logger and saved the chosen unit with each set log (including offline queue payloads).
+- Fixed current-session set-count badges so counts update immediately after logging sets instead of staying at initial values.
+- Fixed expanding a session exercise card after adding exercises by rendering only the selected expanded card, removing stacked hidden-card spacing gaps.
+WHY:
+- These updates address requested session reliability and correctness issues while preserving the existing server-action/RLS architecture and improving clarity for mixed-unit training logs.
+
+
+### Changed
+WHAT:
 - Removed the routine-day empty-state line in day editing so the exercise list no longer shows the extra "No exercises yet" placeholder block.
 - Added an inline clear (×) control to the exercise search field so users can reset filtering in one tap.
 - Slightly reduced the Routines list viewport height on mobile so the bottom edge sits cleaner within the screen.

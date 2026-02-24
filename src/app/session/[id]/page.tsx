@@ -46,7 +46,8 @@ function formatGoalLine(target: DisplayTarget, weightUnit: string | null) {
   }
 
   if (target.weight !== undefined) {
-    const unitSuffix = weightUnit ? ` ${weightUnit}` : "";
+    const resolvedWeightUnit = target.weightUnit ?? weightUnit;
+    const unitSuffix = resolvedWeightUnit ? ` ${resolvedWeightUnit}` : "";
     parts.push(`@ ${target.weight}${unitSuffix}`);
   }
 

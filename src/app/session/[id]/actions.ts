@@ -15,12 +15,13 @@ export async function addSetAction(payload: {
   isWarmup: boolean;
   rpe: number | null;
   notes: string | null;
+  weightUnit: "lbs" | "kg";
   clientLogId?: string;
 }) : Promise<ActionResult<{ set: SetRow }>> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, isWarmup, rpe, notes, clientLogId } = payload;
+  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, isWarmup, rpe, notes, weightUnit, clientLogId } = payload;
 
   if (!sessionId || !sessionExerciseId) {
     return { ok: false, error: "Missing session info" };
@@ -30,6 +31,10 @@ export async function addSetAction(payload: {
     return { ok: false, error: "Weight and reps must be 0 or greater" };
   }
 
+  if (weightUnit !== "lbs" && weightUnit !== "kg") {
+    return { ok: false, error: "Weight unit must be lbs or kg" };
+  }
+
   if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
     return { ok: false, error: "Time must be an integer in seconds" };
   }
@@ -37,7 +42,7 @@ export async function addSetAction(payload: {
   if (clientLogId) {
     const { data: existingByClientLogId, error: existingByClientLogIdError } = await supabase
       .from("sets")
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe, weight_unit")
       .eq("session_exercise_id", sessionExerciseId)
       .eq("user_id", user.id)
       .eq("client_log_id", clientLogId)
@@ -80,6 +85,7 @@ export async function addSetAction(payload: {
       is_warmup: isWarmup,
       rpe,
       notes,
+      weight_unit: weightUnit,
     } as Record<string, unknown>;
 
     if (clientLogId) {
@@ -89,7 +95,7 @@ export async function addSetAction(payload: {
     const { data: insertedSet, error } = await supabase
       .from("sets")
       .insert(insertPayload)
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe, weight_unit")
       .single();
 
     if (!error && insertedSet) {
@@ -117,6 +123,7 @@ export async function syncQueuedSetLogsAction(payload: {
       isWarmup: boolean;
       rpe: number | null;
       notes: string | null;
+      weightUnit: "lbs" | "kg";
     };
   }>;
 }) : Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>> {
@@ -131,6 +138,7 @@ export async function syncQueuedSetLogsAction(payload: {
         isWarmup: item.payload.isWarmup,
         rpe: item.payload.rpe,
         notes: item.payload.notes,
+        weightUnit: item.payload.weightUnit,
         clientLogId: item.clientLogId,
       });
 
