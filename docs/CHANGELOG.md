@@ -10,6 +10,13 @@ WHY:
 
 ### Changed
 WHAT:
+- Removed the helper sentence under Today’s `CHANGE DAY` action and made day cards in the chooser immediately selectable on tap, applying the chosen day for the next workout start without requiring an extra confirmation button.
+- Reverted Routines cards to the pre-reorder-arrow layout by removing up/down move controls and restoring the prior card action arrangement.
+WHY:
+- This matches requested day-picker interaction expectations (tap-to-select temporary day) and restores the preferred routines card UI without arrow-based ordering controls.
+
+### Changed
+WHAT:
 - Replaced Today's pre-start day selector dropdown with a `CHANGE DAY` button that opens a centered chooser overlay with single-select routine-day options plus `OK`/`Cancel`.
 WHY:
 - This keeps the start flow cleaner on mobile while preserving temporary day selection control before launching a workout session.

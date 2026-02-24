@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { Glass } from "@/components/ui/Glass";
 import type { ActionResult } from "@/lib/action-result";
@@ -23,9 +23,7 @@ export function TodayDayPicker({
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [pendingDayIndex, setPendingDayIndex] = useState<number>(currentDayIndex);
   const modalRef = useRef<HTMLDivElement | null>(null);
-  const selectedDay = useMemo(() => days.find((day) => day.dayIndex === selectedDayIndex) ?? null, [days, selectedDayIndex]);
 
   useEffect(() => {
     if (!isPickerOpen) {
@@ -83,7 +81,6 @@ export function TodayDayPicker({
         id="today-day-picker"
         type="button"
         onClick={() => {
-          setPendingDayIndex(selectedDayIndex);
           setIsPickerOpen(true);
         }}
         aria-haspopup="dialog"
@@ -92,10 +89,11 @@ export function TodayDayPicker({
       >
         CHANGE DAY
       </button>
-      <p className="text-xs text-muted">
-        Temporary selection only. Routine schedule stays unchanged.
-        {selectedDay && selectedDay.dayIndex !== currentDayIndex ? ` Starting ${selectedDay.name} for this workout.` : ""}
-      </p>
+      {selectedDayIndex !== currentDayIndex ? (
+        <p className="text-xs text-muted">
+          Starting {days.find((day) => day.dayIndex === selectedDayIndex)?.name ?? "selected day"} for this workout.
+        </p>
+      ) : null}
 
       {isPickerOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" aria-hidden={false}>
@@ -114,14 +112,17 @@ export function TodayDayPicker({
               <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
               <div role="radiogroup" aria-label="Routine days" className="space-y-2">
                 {days.map((day) => {
-                  const isSelected = pendingDayIndex === day.dayIndex;
+                  const isSelected = selectedDayIndex === day.dayIndex;
                   return (
                     <button
                       key={day.id}
                       type="button"
                       role="radio"
                       aria-checked={isSelected}
-                      onClick={() => setPendingDayIndex(day.dayIndex)}
+                      onClick={() => {
+                        setSelectedDayIndex(day.dayIndex);
+                        setIsPickerOpen(false);
+                      }}
                       className={`w-full rounded-md border px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
                         isSelected
                           ? "border-accent/60 bg-accent/20 text-text"
@@ -141,16 +142,6 @@ export function TodayDayPicker({
                   className="rounded-md border border-border bg-surface-2-soft px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-2-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 >
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedDayIndex(pendingDayIndex);
-                    setIsPickerOpen(false);
-                  }}
-                  className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-                >
-                  OK
                 </button>
               </div>
             </div>
