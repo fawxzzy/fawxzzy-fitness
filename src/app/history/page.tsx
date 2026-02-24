@@ -122,14 +122,14 @@ export default async function HistoryPage({
             return (
             <li key={session.id} className={listShellClasses.card}>
               <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <span className="rounded-md border border-slate-300 bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {(session.name || "Session")} Log #{sessions.length - index}: {resolvedDayName}
                 </span>
                 <form action={deleteSessionAction}>
                   <input type="hidden" name="sessionId" value={session.id} />
                   <button
                     type="submit"
-                    className={`${listShellClasses.rowAction} shrink-0 border border-red-300 bg-red-50/80 text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
+                    className={`${listShellClasses.pillAction} shrink-0 border border-red-200/80 bg-red-100/65 text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
                   >
                     Delete
                   </button>

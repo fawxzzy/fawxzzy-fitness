@@ -118,16 +118,16 @@ export default async function RoutinesPage() {
     <section className="space-y-4">
       <AppNav />
 
-      <Glass variant="base" className="p-2" interactive={false}>
-        <Link
-          href="/routines/new"
-          className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-        >
-          Create Routine
-        </Link>
-      </Glass>
+      <Glass variant="base" className="space-y-2 p-2" interactive={false}>
+        <div className="flex justify-end">
+          <Link
+            href="/routines/new"
+            className="inline-flex items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+          >
+            Create Routine
+          </Link>
+        </div>
 
-      <Glass variant="base" className="p-2" interactive={false}>
         <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
           {routines.map((routine) => {
             const isActive = profile.active_routine_id === routine.id;
@@ -135,9 +135,8 @@ export default async function RoutinesPage() {
             return (
               <li key={routine.id} className={listShellClasses.card}>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1">
+                  <div className="min-w-0">
                     <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
-                    <p className="text-xs text-slate-600">{routine.cycle_length_days} day cycle · {routine.weight_unit}</p>
                   </div>
                   <div className="flex gap-2 text-sm">
                     <Link

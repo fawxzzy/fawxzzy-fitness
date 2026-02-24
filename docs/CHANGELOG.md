@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+WHAT:
+- Updated the Routines list header layout to keep the main card aligned directly under top navigation and moved the Create Routine CTA into the list container header for clearer placement.
+- Removed cycle-length and weight-unit metadata lines from routine cards so each card focuses on routine name and actions.
+- Updated History log title labels to use a squared badge style and restyled History delete actions to match routine-card delete button treatment.
+WHY:
+- These refinements improve cross-screen alignment under the shared nav pattern, reduce card noise, and make destructive actions visually consistent across routines/history surfaces.
+
+
 
 ### Changed
 WHAT:
