@@ -33,6 +33,7 @@ export type SetRow = {
   notes: string | null;
   duration_seconds: number | null;
   rpe: number | null;
+  weight_unit: "lbs" | "kg" | null;
 };
 
 export type ProfileRow = {
@@ -73,6 +74,7 @@ export type RoutineDayExerciseRow = {
   target_reps_min: number | null;
   target_reps_max: number | null;
   target_weight: number | null;
+  target_weight_unit: "lbs" | "kg" | null;
   target_duration_seconds: number | null;
   notes: string | null;
 };

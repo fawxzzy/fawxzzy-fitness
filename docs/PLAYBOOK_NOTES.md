@@ -159,3 +159,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Mixed return/redirect error semantics increase UI adapter complexity and make action behavior less deterministic across features.
 - Evidence: src/lib/action-result.ts, src/app/session/[id]/actions.ts, src/components/SessionTimers.tsx, src/lib/offline/sync-engine.ts
 - Status: Proposed
+
+## 2026-02-23 — Persist long-running workout timers with restart-safe local state
+- Type: Pattern
+- Summary: For in-progress workout/session timers, persist `{elapsedSeconds, isRunning, runningStartedAt}` to local storage and restore from wall-clock delta so timers survive app backgrounding and process restarts.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Timer continuity is user-critical session state and should not reset when the app is closed or backgrounded.
+- Evidence: src/components/SessionTimers.tsx
+- Status: Proposed

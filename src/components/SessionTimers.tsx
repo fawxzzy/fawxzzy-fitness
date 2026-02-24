@@ -21,6 +21,7 @@ type AddSetPayload = {
   isWarmup: boolean;
   rpe: number | null;
   notes: string | null;
+  weightUnit: "lbs" | "kg";
   clientLogId?: string;
 };
 
@@ -51,6 +52,30 @@ export function SessionTimerCard({
   const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
+    const key = `session-timer:${sessionId}`;
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as { elapsedSeconds?: number; isRunning?: boolean; runningStartedAt?: number | null };
+      const baseElapsed = Number.isFinite(parsed.elapsedSeconds) ? Number(parsed.elapsedSeconds) : 0;
+      if (parsed.isRunning && Number.isFinite(parsed.runningStartedAt)) {
+        const deltaSeconds = Math.max(0, Math.floor((Date.now() - Number(parsed.runningStartedAt)) / 1000));
+        setElapsedSeconds(baseElapsed + deltaSeconds);
+        setIsRunning(true);
+        return;
+      }
+
+      setElapsedSeconds(baseElapsed);
+      setIsRunning(false);
+    } catch {
+      window.localStorage.removeItem(key);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
     onDurationChange(elapsedSeconds);
   }, [elapsedSeconds, onDurationChange]);
 
@@ -65,6 +90,40 @@ export function SessionTimerCard({
 
     return () => window.clearInterval(interval);
   }, [isRunning]);
+
+  useEffect(() => {
+    const key = `session-timer:${sessionId}`;
+    const payload = JSON.stringify({
+      elapsedSeconds,
+      isRunning,
+      runningStartedAt: isRunning ? Date.now() - (elapsedSeconds * 1000) : null,
+      updatedAt: Date.now(),
+    });
+    window.localStorage.setItem(key, payload);
+  }, [elapsedSeconds, isRunning, sessionId]);
+
+  useEffect(() => {
+    const handleBackgroundPersist = () => {
+      if (!isRunning) {
+        return;
+      }
+      void persistDurationAction({ sessionId, durationSeconds: elapsedSeconds });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleBackgroundPersist();
+      }
+    };
+
+    window.addEventListener("pagehide", handleBackgroundPersist);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", handleBackgroundPersist);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [elapsedSeconds, isRunning, persistDurationAction, sessionId]);
 
   return (
     <section className="space-y-2 rounded-md bg-white p-3 shadow-sm">
@@ -109,6 +168,7 @@ export function SetLoggerCard({
   syncQueuedSetLogsAction,
   unitLabel,
   initialSets,
+  onSetCountChange,
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -118,8 +178,10 @@ export function SetLoggerCard({
   }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
   unitLabel: string;
   initialSets: SetRow[];
+  onSetCountChange?: (count: number) => void;
 }) {
   const [weight, setWeight] = useState("");
+  const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(unitLabel === "kg" ? "kg" : "lbs");
   const [reps, setReps] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
   const [rpe, setRpe] = useState("");
@@ -135,6 +197,10 @@ export function SetLoggerCard({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const toast = useToast();
+
+  useEffect(() => {
+    onSetCountChange?.(sets.length);
+  }, [onSetCountChange, sets.length]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -224,6 +290,7 @@ export function SetLoggerCard({
                 is_warmup: item.payload.isWarmup,
                 notes: item.payload.notes,
                 rpe: item.payload.rpe,
+                weight_unit: item.payload.weightUnit,
                 pending: true,
                 queueStatus: item.status,
               }),
@@ -309,6 +376,7 @@ export function SetLoggerCard({
       is_warmup: isWarmup,
       notes: null,
       rpe: parsedRpe,
+      weight_unit: selectedWeightUnit,
       pending: true,
     };
 
@@ -327,6 +395,7 @@ export function SetLoggerCard({
           isWarmup,
           rpe: parsedRpe,
           notes: null,
+          weightUnit: selectedWeightUnit,
         },
       });
 
@@ -364,6 +433,7 @@ export function SetLoggerCard({
         isWarmup,
         rpe: parsedRpe,
         notes: null,
+        weightUnit: selectedWeightUnit,
       });
 
       if (!result.ok || !result.data?.set) {
@@ -377,6 +447,7 @@ export function SetLoggerCard({
             isWarmup,
             rpe: parsedRpe,
             notes: null,
+            weightUnit: selectedWeightUnit,
           },
         });
 
@@ -417,6 +488,7 @@ export function SetLoggerCard({
           isWarmup,
           rpe: parsedRpe,
           notes: null,
+          weightUnit: selectedWeightUnit,
         },
       });
       setSets((current) =>
@@ -519,9 +591,17 @@ export function SetLoggerCard({
           required
           value={weight}
           onChange={(event) => setWeight(event.target.value)}
-          placeholder={`Weight (${unitLabel})`}
+          placeholder={`Weight (${selectedWeightUnit})`}
           className="rounded-md border border-slate-300 px-2 py-2 text-sm"
         />
+        <select
+          value={selectedWeightUnit}
+          onChange={(event) => setSelectedWeightUnit(event.target.value === "kg" ? "kg" : "lbs")}
+          className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+        >
+          <option value="lbs">lbs</option>
+          <option value="kg">kg</option>
+        </select>
         <input
           type="number"
           ref={repsInputRef}
@@ -578,7 +658,7 @@ export function SetLoggerCard({
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
           >
-            Set {set.set_index + 1} · {set.weight} {unitLabel} × {set.reps} reps
+            Set {set.set_index + 1} · {set.weight} {set.weight_unit ?? unitLabel} × {set.reps} reps
             {set.duration_seconds !== null ? ` · ${set.duration_seconds} sec` : ""}
             {set.queueStatus ? ` · ${set.queueStatus}` : ""}
             {set.pending && !set.queueStatus ? " · saving..." : ""}

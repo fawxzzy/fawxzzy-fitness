@@ -76,6 +76,7 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
   const targetRepsMinRaw = String(formData.get("targetRepsMin") ?? "").trim();
   const targetRepsMaxRaw = String(formData.get("targetRepsMax") ?? "").trim();
   const targetWeightRaw = String(formData.get("targetWeight") ?? "").trim();
+  const targetWeightUnit = String(formData.get("targetWeightUnit") ?? "").trim();
   const targetDurationRaw = String(formData.get("targetDuration") ?? "").trim();
   const targetRepsMin = targetRepsMinRaw ? Number(targetRepsMinRaw) : null;
   const targetRepsMax = targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
@@ -107,6 +108,10 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
     redirect(`${returnTo}?error=${encodeURIComponent("Weight must be 0 or greater")}`);
   }
 
+  if (targetWeight !== null && targetWeightUnit && targetWeightUnit !== "lbs" && targetWeightUnit !== "kg") {
+    redirect(`${returnTo}?error=${encodeURIComponent("Weight unit must be lbs or kg")}`);
+  }
+
   if (Number.isNaN(targetDurationSeconds)) {
     redirect(`${returnTo}?error=${encodeURIComponent("Time must be seconds or mm:ss")}`);
   }
@@ -127,6 +132,7 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
     target_reps_max: targetRepsMax,
     target_reps: targetRepsMin ?? targetRepsMax,
     target_weight: targetWeight,
+    target_weight_unit: targetWeight === null ? null : (targetWeightUnit === "kg" ? "kg" : "lbs"),
     target_duration_seconds: targetDurationSeconds,
   });
 

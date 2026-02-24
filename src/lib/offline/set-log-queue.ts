@@ -1,7 +1,7 @@
-export const SET_LOG_QUEUE_SCHEMA_VERSION = 1;
+export const SET_LOG_QUEUE_SCHEMA_VERSION = 2;
 
 const OFFLINE_DB_NAME = "fawxzzy-fitness-offline";
-const OFFLINE_DB_VERSION = 2;
+const OFFLINE_DB_VERSION = 3;
 const SET_LOG_QUEUE_STORE = "set-log-queue";
 
 export type OfflineSetPayload = {
@@ -11,6 +11,7 @@ export type OfflineSetPayload = {
   rpe: number | null;
   isWarmup: boolean;
   notes: string | null;
+  weightUnit: "lbs" | "kg";
 };
 
 export type SetLogQueueStatus = "queued" | "syncing" | "failed" | "synced";
@@ -76,6 +77,7 @@ function buildDedupeKey(item: Omit<SetLogQueueItem, "dedupeKey">): string {
     item.payload.rpe ?? "",
     item.payload.isWarmup ? "1" : "0",
     item.payload.notes ?? "",
+    item.payload.weightUnit,
     item.createdAt,
   ].join("|");
 }
