@@ -194,6 +194,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   let activeRoutine: RoutineRow | null = null;
   let todayRoutineDay: RoutineDayRow | null = null;
   let dayExercises: RoutineDayExerciseRow[] = [];
+  let allDayExercises: RoutineDayExerciseRow[] = [];
   let todayDayIndex: number | null = null;
   let completedTodayCount = 0;
   let inProgressSession: SessionRow | null = null;
@@ -230,15 +231,19 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         routineDays = (routineDayRows ?? []) as RoutineDayRow[];
         todayRoutineDay = routineDays.find((day) => day.day_index === todayDayIndex) ?? null;
 
-        if (todayRoutineDay) {
-          const { data: exercises } = await supabase
+        if (routineDays.length > 0) {
+          const { data: allExercises } = await supabase
             .from("routine_day_exercises")
             .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
-            .eq("routine_day_id", todayRoutineDay.id)
+            .in("routine_day_id", routineDays.map((day) => day.id))
             .eq("user_id", user.id)
             .order("position", { ascending: true });
 
-          dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
+          allDayExercises = (allExercises ?? []) as RoutineDayExerciseRow[];
+        }
+
+        if (todayRoutineDay) {
+          dayExercises = allDayExercises.filter((exercise) => exercise.routine_day_id === todayRoutineDay?.id);
         }
 
         const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
@@ -325,20 +330,20 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       {todayPayload.routine && !fetchFailed ? (
         <Glass variant="base" className="space-y-3 p-4" interactive={false}>
           <OfflineSyncBadge />
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
-            {todayPayload.completedTodayCount > 0 && !todayPayload.inProgressSessionId ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
-          </div>
-
-          <ul className="space-y-1 text-sm">
-            {todayPayload.exercises.map((exercise) => (
-              <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
-            ))}
-            {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
-          </ul>
-
         {todayPayload.inProgressSessionId ? (
             <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
+                {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
+              </div>
+
+              <ul className="space-y-1 text-sm">
+                {todayPayload.exercises.map((exercise) => (
+                  <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
+                ))}
+                {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
+              </ul>
+
               <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Workout</Link>
               <form action={discardInProgressSessionAction}>
                 <input type="hidden" name="sessionId" value={todayPayload.inProgressSessionId} />
@@ -349,13 +354,21 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             </div>
           ) : (
             <TodayDayPicker
+              routineName={todayPayload.routine.name}
               days={routineDays.map((day) => ({
                 id: day.id,
                 dayIndex: day.day_index,
                 name: day.name || `Day ${day.day_index}`,
                 isRest: day.is_rest,
+                exercises: allDayExercises
+                  .filter((exercise) => exercise.routine_day_id === day.id)
+                  .map((exercise) => ({
+                    id: exercise.id,
+                    name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+                  })),
               }))}
               currentDayIndex={todayPayload.routine.dayIndex}
+              completedTodayCount={todayPayload.completedTodayCount}
               startSessionAction={startSessionAction}
             />
           )}

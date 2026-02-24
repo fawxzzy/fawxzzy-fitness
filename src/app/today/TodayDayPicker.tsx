@@ -1,29 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { Glass } from "@/components/ui/Glass";
 import type { ActionResult } from "@/lib/action-result";
+
+type TodayExercise = {
+  id: string;
+  name: string;
+};
 
 type TodayDay = {
   id: string;
   dayIndex: number;
   name: string;
   isRest: boolean;
+  exercises: TodayExercise[];
 };
 
 export function TodayDayPicker({
+  routineName,
   days,
   currentDayIndex,
+  completedTodayCount,
   startSessionAction,
 }: {
+  routineName: string;
   days: TodayDay[];
   currentDayIndex: number;
+  completedTodayCount: number;
   startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const modalRef = useRef<HTMLDivElement | null>(null);
+
+  const selectedDay = useMemo(
+    () => days.find((day) => day.dayIndex === selectedDayIndex) ?? days.find((day) => day.dayIndex === currentDayIndex) ?? null,
+    [currentDayIndex, days, selectedDayIndex],
+  );
 
   useEffect(() => {
     if (!isPickerOpen) {
@@ -75,7 +90,27 @@ export function TodayDayPicker({
   }, [isPickerOpen]);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {selectedDay ? (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-text">
+              {routineName}: {selectedDay.isRest ? `REST DAY — ${selectedDay.name}` : selectedDay.name}
+            </h2>
+            {completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? (
+              <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p>
+            ) : null}
+          </div>
+
+          <ul className="space-y-1 text-sm">
+            {selectedDay.exercises.map((exercise) => (
+              <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
+            ))}
+            {selectedDay.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned for this day.</li> : null}
+          </ul>
+        </>
+      ) : null}
+
       <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />
       <button
         id="today-day-picker"
@@ -89,11 +124,6 @@ export function TodayDayPicker({
       >
         CHANGE DAY
       </button>
-      {selectedDayIndex !== currentDayIndex ? (
-        <p className="text-xs text-muted">
-          Starting {days.find((day) => day.dayIndex === selectedDayIndex)?.name ?? "selected day"} for this workout.
-        </p>
-      ) : null}
 
       {isPickerOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" aria-hidden={false}>
