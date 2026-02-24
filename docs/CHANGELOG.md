@@ -4,6 +4,17 @@
 
 ### Changed
 WHAT:
+- Added visible routine-card reordering controls on the Routines list so routines can be moved up/down directly in-place.
+- Strengthened destructive action styling across routines/history/day-edit surfaces to use a clearer red treatment.
+- Improved Today flow clarity by making the pre-start day-change shortcut more prominent under Start Workout.
+- Fixed Today day-resolution/session-window logic to use the active routine timezone consistently, preventing post-workout day/date mismatches.
+- Added a day-save safeguard that preserves an existing day name if a save payload is accidentally blank.
+WHY:
+- These changes address reported usability and correctness issues around routine ordering, destructive affordances, day editing reliability, and deterministic day/date behavior after completing workouts.
+
+
+### Changed
+WHAT:
 - Updated the Routines list header layout to keep the main card aligned directly under top navigation and moved the Create Routine CTA into the list container header for clearer placement.
 - Removed cycle-length and weight-unit metadata lines from routine cards so each card focuses on routine name and actions.
 - Updated History log title labels to use a squared badge style and restyled History delete actions to match routine-card delete button treatment.

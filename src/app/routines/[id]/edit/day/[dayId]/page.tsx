@@ -155,7 +155,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                     <form action={deleteCustomExerciseAction}>
                       <input type="hidden" name="returnTo" value={returnTo} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <button type="submit" className="w-full rounded-md border border-red-300 px-2 py-1 text-xs text-red-700">Delete</button>
+                      <button type="submit" className="w-full rounded-md border border-red-600 bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700">Delete</button>
                     </form>
                   </div>
                 </li>
@@ -228,7 +228,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                           <button
                             type="submit"
                             formAction={deleteRoutineDayExerciseAction}
-                            className="text-xs text-red-600"
+                            className="text-xs font-medium text-red-700 hover:text-red-800"
                           >
                             Remove
                           </button>

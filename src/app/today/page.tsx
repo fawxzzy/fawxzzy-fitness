@@ -29,7 +29,7 @@ async function startSessionAction(): Promise<ActionResult<{ sessionId: string }>
 
   const { data: activeRoutine, error: routineError } = await supabase
     .from("routines")
-    .select("id, name, cycle_length_days, start_date")
+    .select("id, name, cycle_length_days, start_date, timezone")
     .eq("id", profile.active_routine_id)
     .eq("user_id", user.id)
     .single();
@@ -41,7 +41,7 @@ async function startSessionAction(): Promise<ActionResult<{ sessionId: string }>
   const { dayIndex: routineDayIndex } = getRoutineDayComputation({
     cycleLengthDays: activeRoutine.cycle_length_days,
     startDate: activeRoutine.start_date,
-    profileTimeZone: profile.timezone,
+    profileTimeZone: activeRoutine.timezone || profile.timezone,
   });
 
   const { data: routineDay, error: routineDayError } = await supabase
@@ -134,7 +134,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         const { dayIndex } = getRoutineDayComputation({
           cycleLengthDays: activeRoutine.cycle_length_days,
           startDate: activeRoutine.start_date,
-          profileTimeZone: profile.timezone,
+          profileTimeZone: activeRoutine.timezone || profile.timezone,
         });
 
         todayDayIndex = dayIndex;
@@ -160,7 +160,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
         }
 
-        const { startIso, endIso } = getTimeZoneDayWindow(profile.timezone);
+        const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
 
         const { count: completedTodayCountValue } = await supabase
           .from("sessions")
@@ -263,9 +263,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               <TodayStartButton startSessionAction={startSessionAction} />
               <Link
                 href={`/routines/${todayPayload.routine.routineId}/edit/day/${todayPayload.routine.routineDayId}`}
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-center text-xs font-medium text-text transition-colors hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+                className="block w-full rounded-md border border-border bg-surface-2-soft px-3 py-2 text-center text-sm font-medium text-text transition-colors hover:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
               >
-                Change day
+                Change day before starting
               </Link>
             </div>
           )}
