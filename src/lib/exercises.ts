@@ -23,11 +23,11 @@ function fallbackGlobalExercises(): ExerciseRow[] {
     name: exercise.name,
     user_id: null,
     is_global: true,
-    primary_muscle: null,
-    equipment: null,
-    movement_pattern: null,
+    primary_muscle: exercise.primary_muscle,
+    equipment: exercise.equipment,
+    movement_pattern: exercise.movement_pattern,
     image_howto_path: null,
-    how_to_short: null,
+    how_to_short: exercise.how_to_short,
     created_at: FALLBACK_CREATED_AT,
   }));
 }
