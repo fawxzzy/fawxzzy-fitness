@@ -4,6 +4,13 @@
 
 ### Changed
 WHAT:
+- Added a compact live clock above the top navigation card that shows local hour/minute with AM/PM in a subtle Apple-inspired style.
+WHY:
+- This provides an always-visible time reference at the top of the app without adding visual weight or disrupting the existing navigation layout.
+
+
+### Changed
+WHAT:
 - Added visible routine-card reordering controls on the Routines list so routines can be moved up/down directly in-place.
 - Strengthened destructive action styling across routines/history/day-edit surfaces to use a clearer red treatment.
 - Improved Today flow clarity by making the pre-start day-change shortcut more prominent under Start Workout.
