@@ -1,0 +1,35 @@
+"use client";
+
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { ActionResult } from "@/lib/action-result";
+import { useToast } from "@/components/ui/ToastProvider";
+
+type StartSessionAction = () => Promise<ActionResult<{ sessionId: string }>>;
+
+export function TodayStartButton({ startSessionAction }: { startSessionAction: StartSessionAction }) {
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const toast = useToast();
+
+  return (
+    <button
+      type="button"
+      disabled={isPending}
+      onClick={() => {
+        startTransition(async () => {
+          const result = await startSessionAction();
+          if (!result.ok || !result.data?.sessionId) {
+            toast.error(result.ok ? "Could not start session" : result.error);
+            return;
+          }
+
+          router.push(`/session/${result.data.sessionId}`);
+        });
+      }}
+      className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {isPending ? "Starting…" : "Start Workout"}
+    </button>
+  );
+}
