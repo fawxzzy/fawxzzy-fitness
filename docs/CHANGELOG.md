@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Renamed Today’s day-picker action label from “Change Day” to “Change Workout,” reverted the picker list to immediate single-tap selection, and removed the extra confirmation flow (checkboxes + OK) while keeping cancel/overlay-dismiss behavior.
+- Updated the routines “Create Routine” call-to-action to use the same secondary button visual treatment as history card “View” actions.
+WHY:
+- This restores the faster one-tap day switching behavior users expected and keeps high-visibility list actions visually consistent across routine/history surfaces.
+
+### Changed
+WHAT:
 - Enhanced the exercise picker summary row and exercise list cards to surface muscle-group tags alongside existing metadata when layout space allows.
 - Completed the fallback global exercise catalog metadata so each built-in exercise now has consistent primary muscle, equipment, movement pattern, and short how-to guidance.
 WHY:

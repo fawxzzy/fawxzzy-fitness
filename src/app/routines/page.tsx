@@ -123,7 +123,7 @@ export default async function RoutinesPage() {
         <div className="w-full">
           <Link
             href="/routines/new"
-            className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+            className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
           >
             Create Routine
           </Link>

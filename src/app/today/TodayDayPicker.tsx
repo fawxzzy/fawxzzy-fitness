@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
+import { SecondaryButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
 
 type TodayExercise = {
@@ -33,7 +33,6 @@ export function TodayDayPicker({
   startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
-  const [pendingDayIndexes, setPendingDayIndexes] = useState<number[]>([currentDayIndex]);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -87,13 +86,12 @@ export function TodayDayPicker({
         type="button"
         fullWidth
         onClick={() => {
-          setPendingDayIndexes([selectedDayIndex]);
           setIsPickerOpen(true);
         }}
         aria-expanded={isPickerOpen}
         className="font-light tracking-[0.2em]"
       >
-        CHANGE DAY
+        Change Workout
       </SecondaryButton>
 
       {isPickerOpen ? (
@@ -105,39 +103,24 @@ export function TodayDayPicker({
             <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
             <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
               {days.map((day) => {
-                const isSelected = pendingDayIndexes.includes(day.dayIndex);
+                const isSelected = selectedDayIndex === day.dayIndex;
                 return (
-                  <label key={day.id} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${isSelected ? "border-accent/60 bg-accent/20" : "border-border bg-surface-2-soft"}`}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => {
-                        setPendingDayIndexes((current) => (
-                          current.includes(day.dayIndex)
-                            ? current.filter((value) => value !== day.dayIndex)
-                            : [...current, day.dayIndex]
-                        ));
-                      }}
-                    />
+                  <button
+                    key={day.id}
+                    type="button"
+                    className={`flex w-full items-center rounded-md border px-3 py-2 text-left text-sm ${isSelected ? "border-accent/60 bg-accent/20" : "border-border bg-surface-2-soft"}`}
+                    onClick={() => {
+                      setSelectedDayIndex(day.dayIndex);
+                      setIsPickerOpen(false);
+                    }}
+                  >
                     <span>{day.name}{day.isRest ? " (Rest)" : ""}</span>
-                  </label>
+                  </button>
                 );
               })}
             </div>
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-end">
               <SecondaryButton type="button" onClick={() => setIsPickerOpen(false)}>Cancel</SecondaryButton>
-              <PrimaryButton
-                type="button"
-                onClick={() => {
-                  const nextDay = [...pendingDayIndexes].sort((a, b) => a - b)[0];
-                  if (nextDay) {
-                    setSelectedDayIndex(nextDay);
-                  }
-                  setIsPickerOpen(false);
-                }}
-              >
-                OK
-              </PrimaryButton>
             </div>
           </div>
         </div>
