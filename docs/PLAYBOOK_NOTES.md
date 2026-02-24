@@ -1,5 +1,13 @@
 # Playbook Notes (Local Inbox)
 
+## 2026-02-24 — Keep workout-day switching session-scoped on Today
+- Type: Guardrail
+- Summary: When users need to run a different routine day ad hoc, apply the selection as a temporary session-start override instead of mutating routine day order or start-date metadata.
+- Suggested Playbook File: patterns/frontend/mobile-session-flows.md
+- Rationale: Session-scoped overrides satisfy day-switch intent quickly while preserving deterministic routine structure and avoiding accidental long-term plan drift.
+- Evidence: src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx
+- Status: Proposed
+
 This file is a project-local inbox for suggestions that should be upstreamed into the central Playbook repository.
 
 ## YYYY-MM-DD — <short title>

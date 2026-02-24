@@ -197,11 +197,8 @@ export default async function RoutinesPage() {
 
             return (
               <li key={routine.id} className={listShellClasses.card}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
-                  </div>
-                  <div className="flex gap-2 text-sm">
+                <div className="flex items-stretch justify-between gap-3">
+                  <div className="flex flex-col justify-center gap-2">
                     <form action={moveRoutineAction}>
                       <input type="hidden" name="routineId" value={routine.id} />
                       <button
@@ -230,6 +227,12 @@ export default async function RoutinesPage() {
                         ↓
                       </button>
                     </form>
+                  </div>
+                  <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
+                  </div>
+                  <div className="flex gap-2 text-sm">
                     <Link
                       href={`/routines/${routine.id}/edit`}
                       className={`${listShellClasses.pillAction} border border-accent/40 bg-accent/10 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20`}
@@ -246,6 +249,7 @@ export default async function RoutinesPage() {
                       </button>
                     </form>
                   </div>
+                </div>
                 </div>
                 <form action={setActiveRoutineAction}>
                   <input type="hidden" name="routineId" value={routine.id} />

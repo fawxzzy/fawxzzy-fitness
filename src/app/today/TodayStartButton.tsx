@@ -5,9 +5,14 @@ import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/action-result";
 import { useToast } from "@/components/ui/ToastProvider";
 
-type StartSessionAction = () => Promise<ActionResult<{ sessionId: string }>>;
 
-export function TodayStartButton({ startSessionAction }: { startSessionAction: StartSessionAction }) {
+export function TodayStartButton({
+  startSessionAction,
+  selectedDayIndex,
+}: {
+  startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
+  selectedDayIndex?: number;
+}) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const toast = useToast();
@@ -18,7 +23,7 @@ export function TodayStartButton({ startSessionAction }: { startSessionAction: S
       disabled={isPending}
       onClick={() => {
         startTransition(async () => {
-          const result = await startSessionAction();
+          const result = await startSessionAction({ dayIndex: selectedDayIndex });
           if (!result.ok || !result.data?.sessionId) {
             toast.error(result.ok ? "Could not start session" : result.error);
             return;
