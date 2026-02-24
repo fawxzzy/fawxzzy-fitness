@@ -78,9 +78,7 @@ export function TodayDayPicker({
 
   return (
     <div className="space-y-2">
-      <label htmlFor="today-day-picker" className="block text-xs font-semibold uppercase tracking-wide text-muted">
-        Workout day for this session
-      </label>
+      <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />
       <button
         id="today-day-picker"
         type="button"
@@ -88,7 +86,9 @@ export function TodayDayPicker({
           setPendingDayIndex(selectedDayIndex);
           setIsPickerOpen(true);
         }}
-        className="block w-full rounded-md border border-border bg-surface-2-soft px-3 py-2 text-center text-sm font-medium text-text transition-colors hover:bg-surface-2-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+        aria-haspopup="dialog"
+        aria-expanded={isPickerOpen}
+        className="block w-full rounded-md border border-border bg-surface-2-soft px-3 py-2 text-center text-sm font-normal uppercase tracking-wide text-text transition-colors hover:bg-surface-2-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
       >
         CHANGE DAY
       </button>
@@ -96,7 +96,6 @@ export function TodayDayPicker({
         Temporary selection only. Routine schedule stays unchanged.
         {selectedDay && selectedDay.dayIndex !== currentDayIndex ? ` Starting ${selectedDay.name} for this workout.` : ""}
       </p>
-      <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />
 
       {isPickerOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" aria-hidden={false}>

@@ -587,3 +587,9 @@ WHAT:
 - Fixed session interaction continuity bugs: timer restore no longer double-counts after leaving/resuming, exercise-back navigation now closes the focused exercise first, exercise timer resets when backing out of a focused exercise, and local logged-set counters stay in sync when resuming a session.
 WHY:
 - These updates make day selection and day-exercise editing faster on mobile, while restoring deterministic session behavior so timers/navigation/set counts match user expectations during resume/back workflows.
+
+### Changed
+WHAT:
+- Updated Today’s day-picker interaction to use a dedicated CHANGE DAY button that opens a centered single-select overlay with OK/Cancel confirmation, and aligned the button placement with the secondary session action slot under Start Workout.
+WHY:
+- This keeps Today’s action area visually stable between in-progress and not-started states while making day selection explicit, reversible, and more consistent with the app’s existing mobile interaction patterns.
