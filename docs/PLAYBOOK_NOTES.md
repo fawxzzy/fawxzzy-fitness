@@ -207,3 +207,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Additive reconciliation can double-count elapsed time after navigation/resume and breaks deterministic timer continuity.
 - Evidence: src/components/SessionTimers.tsx
 - Status: Proposed
+
+## 2026-02-24 — Exercise-picker detail overlays should lazy-load metadata via strict server action
+- Type: Pattern
+- Summary: Keep exercise pickers fast by loading a minimal option list first (`id`, `name`, lightweight tags/thumb) and fetch full detail payload only when the user opens an info overlay.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: This preserves responsive search/select UX and keeps database access in authenticated server actions with explicit ActionResult contracts.
+- Evidence: src/components/ExercisePicker.tsx, src/app/actions/exercises.ts, src/lib/exercises.ts
+- Status: Proposed

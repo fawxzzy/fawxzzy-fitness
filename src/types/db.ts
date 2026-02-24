@@ -87,5 +87,8 @@ export type ExerciseRow = {
   is_global: boolean;
   primary_muscle: string | null;
   equipment: string | null;
+  movement_pattern: string | null;
+  image_howto_path: string | null;
+  how_to_short: string | null;
   created_at: string;
 };

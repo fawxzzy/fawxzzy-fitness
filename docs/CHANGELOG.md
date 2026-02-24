@@ -10,6 +10,15 @@ WHY:
 
 ### Changed
 WHAT:
+- Expanded exercise metadata support with how-to text, muscle focus fields, movement/equipment tags, and image path references designed to point at SVG placeholders now and Supabase Storage URLs later.
+- Updated exercise selection UX with searchable cards, metadata tags, and an on-demand info overlay that lazy-loads full exercise details from a strict server action.
+- Added placeholder SVG exercise media, binary-file guardrails (.gitignore + CI tracked-file size check), and documented binary-restricted asset policy expectations.
+WHY:
+- This enables richer exercise guidance in-picker without client-side database writes, preserves RLS-safe server/client boundaries, and prevents binary-asset review failures while keeping a clean upgrade path to hosted media.
+
+
+### Changed
+WHAT:
 - Removed the helper sentence under Today’s `CHANGE DAY` action and made day cards in the chooser immediately selectable on tap, applying the chosen day for the next workout start without requiring an extra confirmation button.
 - Reverted Routines cards to the pre-reorder-arrow layout by removing up/down move controls and restoring the prior card action arrangement.
 WHY:

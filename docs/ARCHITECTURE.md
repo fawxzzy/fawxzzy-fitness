@@ -44,3 +44,10 @@ Any future architectural change that alters boundaries, ownership, or data flow 
 - Verify requested changes align with this architecture contract before coding.
 - If a requested change conflicts with these boundaries, propose a compliant alternative first.
 - Keep diffs minimal and explicit; avoid speculative abstractions.
+
+
+## Asset & Binary File Policy
+- Prefer text-based assets (SVG/CSS) in product changes unless binary media is explicitly required.
+- Treat review environments as binary-restricted by default: avoid adding `.webp`, `.png`, `.jpg`, `.mp4`, or other binary payloads in normal feature PRs.
+- Store exercise media references as paths/URLs in the database (`image_*_path`) so real media can move to Supabase Storage without UI contract changes.
+- Keep placeholder asset paths stable and resolve missing paths gracefully in UI components.

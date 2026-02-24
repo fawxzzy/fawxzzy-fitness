@@ -1,12 +1,30 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
+import { getExerciseDetailsAction } from "@/app/actions/exercises";
+import { Glass } from "@/components/ui/Glass";
 
 type ExerciseOption = {
   id: string;
   name: string;
   user_id: string | null;
   is_global: boolean;
+  equipment: string | null;
+  movement_pattern: string | null;
+  image_howto_path: string | null;
+};
+
+type ExerciseDetails = {
+  id: string;
+  name: string;
+  how_to_short: string | null;
+  primary_muscles: string[];
+  secondary_muscles: string[];
+  movement_pattern: string | null;
+  equipment: string | null;
+  image_howto_path: string | null;
+  image_muscles_path: string | null;
 };
 
 type ExercisePickerProps = {
@@ -15,9 +33,20 @@ type ExercisePickerProps = {
   initialSelectedId?: string;
 };
 
+const tagClassName = "rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
+
+function MetaTag({ value }: { value: string | null }) {
+  if (!value) return null;
+  return <span className={tagClassName}>{value}</span>;
+}
+
 export function ExercisePicker({ exercises, name, initialSelectedId }: ExercisePickerProps) {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? exercises[0]?.id ?? "");
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [activeDetails, setActiveDetails] = useState<ExerciseDetails | null>(null);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -27,6 +56,23 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
 
   const globals = filteredExercises.filter((exercise) => exercise.is_global || exercise.user_id === null);
   const customs = filteredExercises.filter((exercise) => !exercise.is_global && exercise.user_id !== null);
+
+  const openDetails = async (exerciseId: string) => {
+    setIsInfoOpen(true);
+    setIsLoadingDetails(true);
+    setDetailsError(null);
+
+    const result = await getExerciseDetailsAction({ exerciseId });
+    if (!result.ok) {
+      setDetailsError(result.error);
+      setActiveDetails(null);
+      setIsLoadingDetails(false);
+      return;
+    }
+
+    setActiveDetails(result.data ?? null);
+    setIsLoadingDetails(false);
+  };
 
   return (
     <div className="space-y-2">
@@ -70,6 +116,90 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
           </optgroup>
         ) : null}
       </select>
+
+      <ul className="max-h-52 space-y-2 overflow-y-auto pr-1">
+        {filteredExercises.map((exercise) => {
+          const isSelected = exercise.id === selectedId;
+          return (
+            <li key={exercise.id} className={`rounded-lg border p-2 ${isSelected ? "border-accent/60 bg-accent/10" : "border-border bg-surface-2-soft"}`}>
+              <div className="flex items-start gap-2">
+                {exercise.image_howto_path ? (
+                  <Image src={exercise.image_howto_path} alt="" width={40} height={40} className="h-10 w-10 rounded-md border border-border object-cover" />
+                ) : null}
+                <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <MetaTag value={exercise.equipment} />
+                    <MetaTag value={exercise.movement_pattern} />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openDetails(exercise.id)}
+                  className="rounded-md border border-border bg-surface-2-strong px-2 py-1 text-xs text-text"
+                >
+                  Info
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {isInfoOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3" aria-hidden={false}>
+          <button type="button" aria-label="Close exercise info" className="absolute inset-0 bg-black/50" onClick={() => setIsInfoOpen(false)} />
+          <Glass variant="overlay" className="relative z-[1] w-full max-w-md rounded-xl border border-border p-4" interactive={false}>
+            <div role="dialog" aria-modal="true" aria-label="Exercise details" className="space-y-3">
+              {isLoadingDetails ? <p className="text-sm text-muted">Loading details…</p> : null}
+              {detailsError ? <p className="text-sm text-red-300">{detailsError}</p> : null}
+              {activeDetails ? (
+                <>
+                  <div>
+                    <p className="text-base font-semibold text-text">{activeDetails.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <MetaTag value={activeDetails.equipment} />
+                      <MetaTag value={activeDetails.movement_pattern} />
+                    </div>
+                  </div>
+
+                  {activeDetails.image_howto_path ? (
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+                      <Image src={activeDetails.image_howto_path} alt="How-to visual" width={640} height={360} className="w-full rounded-md border border-border" />
+                    </div>
+                  ) : null}
+
+                  {activeDetails.image_muscles_path ? (
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
+                      <Image src={activeDetails.image_muscles_path} alt="Muscles visual" width={640} height={360} className="w-full rounded-md border border-border" />
+                    </div>
+                  ) : null}
+
+                  {activeDetails.how_to_short ? <p className="text-sm text-text">{activeDetails.how_to_short}</p> : null}
+
+                  {activeDetails.primary_muscles.length > 0 ? (
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted">Primary muscles</p>
+                      <div className="mt-1 flex flex-wrap gap-1">{activeDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
+                    </div>
+                  ) : null}
+                  {activeDetails.secondary_muscles.length > 0 ? (
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted">Secondary muscles</p>
+                      <div className="mt-1 flex flex-wrap gap-1">{activeDetails.secondary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+              <div className="flex justify-end">
+                <button type="button" onClick={() => setIsInfoOpen(false)} className="rounded-md border border-border px-3 py-1.5 text-sm text-text">Close</button>
+              </div>
+            </div>
+          </Glass>
+        </div>
+      ) : null}
     </div>
   );
 }
