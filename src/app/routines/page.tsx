@@ -260,7 +260,7 @@ export default async function RoutinesPage() {
                       isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
                     }`}
                   >
-                    {isActive ? "Active" : "Set Active"}
+                    {isActive ? "Active" : "Inactive"}
                   </button>
                 </form>
               </li>
