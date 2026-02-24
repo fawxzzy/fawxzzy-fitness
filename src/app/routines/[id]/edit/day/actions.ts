@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getRoutineEditDayPath, getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
 
 function parseTargetDurationSeconds(value: string) {
   const trimmed = value.trim();
@@ -32,9 +33,9 @@ function parseTargetDurationSeconds(value: string) {
 }
 
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
-  revalidatePath(`/routines/${routineId}/edit`);
-  revalidatePath(`/routines/${routineId}/edit/day/${dayId}`);
-  revalidatePath("/today");
+  revalidatePath(getRoutineEditPath(routineId));
+  revalidatePath(getRoutineEditDayPath(routineId, dayId));
+  revalidatePath(getTodayPath());
 }
 
 export async function saveRoutineDayAction(formData: FormData) {
