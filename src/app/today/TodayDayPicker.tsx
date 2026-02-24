@@ -90,11 +90,11 @@ export function TodayDayPicker({
   }, [isPickerOpen]);
 
   return (
-    <div className="space-y-3">
+    <div className="flex min-h-0 flex-col gap-3">
       {selectedDay ? (
-        <>
+        <div className="min-h-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-text">
+            <h2 className="pr-1 text-lg font-semibold leading-tight text-text">
               {routineName}: {selectedDay.isRest ? `REST DAY — ${selectedDay.name}` : selectedDay.name}
             </h2>
             {completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? (
@@ -102,13 +102,13 @@ export function TodayDayPicker({
             ) : null}
           </div>
 
-          <ul className="space-y-1 text-sm">
+          <ul className="max-h-52 space-y-1 overflow-y-auto pr-1 text-sm">
             {selectedDay.exercises.map((exercise) => (
               <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
             ))}
             {selectedDay.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned for this day.</li> : null}
           </ul>
-        </>
+        </div>
       ) : null}
 
       <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />

@@ -628,3 +628,9 @@ WHAT:
 - Hardened the Today “Start Workout” button text color across interaction states so the CTA color treatment does not degrade to grey after taps.
 WHY:
 - These updates keep primary workout actions legible and reachable on small/mobile layouts, while preserving consistent visual affordance for the main start action.
+
+### Fixed
+WHAT:
+- Adjusted the Today selected-day preview layout so long day content uses a bounded, scrollable exercise list and keeps the CHANGE DAY control visible when the start-session card has less vertical space.
+WHY:
+- This prevents day-selection controls from being visually clipped on smaller mobile card layouts while preserving the existing Today workflow.
