@@ -5,6 +5,13 @@
 
 ### Changed
 WHAT:
+- Updated Today's workout-start flow to use an `ActionResult` server-action contract for non-navigation outcomes, with inline client toast feedback for failures and client-driven navigation on success.
+WHY:
+- This standardizes server-action semantics (return for data/errors, navigation only for route transitions), reducing mixed redirect/error handling complexity at the server/client boundary.
+
+
+### Changed
+WHAT:
 - Updated History cards and Log Details to resolve and display the current routine day name for each session (while still honoring manual day-name overrides), instead of relying only on originally-captured auto-generated names.
 - Switched History date/time rendering to client-local formatting for accurate local clock display.
 - Expanded History Edit mode so users can add and remove exercises from completed logs (in addition to existing set and note edits).

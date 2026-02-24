@@ -183,3 +183,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Mixed timezone sources can shift local-day boundaries and produce incorrect “current day” and saved-time displays.
 - Evidence: src/app/today/page.tsx, src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx
 - Status: Proposed
+
+## 2026-02-24 — Start-workout server action should return ActionResult for non-navigation failures
+- Type: Guardrail
+- Summary: For server actions that can fail in-place (like starting a workout from Today), return `ActionResult<T>` failures to the client and handle feedback in UI; navigate only on successful transition.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: Redirect-based error transport (`?error=...`) mixes navigation and failure semantics, while ActionResult keeps outcomes deterministic for client adapters.
+- Evidence: src/app/today/page.tsx, src/app/today/TodayStartButton.tsx
+- Status: Proposed

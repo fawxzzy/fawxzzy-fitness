@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
+import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { Glass } from "@/components/ui/Glass";
@@ -11,11 +11,12 @@ import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offli
 import { ensureProfile } from "@/lib/profile";
 import { formatRepTarget, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
+import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
-async function startSessionAction() {
+async function startSessionAction(): Promise<ActionResult<{ sessionId: string }>> {
   "use server";
 
   const user = await requireUser();
@@ -23,7 +24,7 @@ async function startSessionAction() {
   const profile = await ensureProfile(user.id);
 
   if (!profile.active_routine_id) {
-    redirect("/today?error=No%20active%20routine%20selected");
+    return { ok: false, error: "No active routine selected" };
   }
 
   const { data: activeRoutine, error: routineError } = await supabase
@@ -34,7 +35,7 @@ async function startSessionAction() {
     .single();
 
   if (routineError || !activeRoutine) {
-    redirect(`/today?error=${encodeURIComponent(routineError?.message ?? "Active routine not found")}`);
+    return { ok: false, error: routineError?.message ?? "Active routine not found" };
   }
 
   const { dayIndex: routineDayIndex } = getRoutineDayComputation({
@@ -52,7 +53,7 @@ async function startSessionAction() {
     .single();
 
   if (routineDayError || !routineDay) {
-    redirect(`/today?error=${encodeURIComponent(routineDayError?.message ?? "Routine day not found")}`);
+    return { ok: false, error: routineDayError?.message ?? "Routine day not found" };
   }
 
   const routineDayName = routineDay.name || `Day ${routineDayIndex}`;
@@ -65,7 +66,7 @@ async function startSessionAction() {
     .order("position", { ascending: true });
 
   if (templateError) {
-    redirect(`/today?error=${encodeURIComponent(templateError.message)}`);
+    return { ok: false, error: templateError.message };
   }
 
   const { data: session, error: sessionError } = await supabase
@@ -82,7 +83,7 @@ async function startSessionAction() {
     .single();
 
   if (sessionError || !session) {
-    redirect(`/today?error=${encodeURIComponent(sessionError?.message ?? "Could not create session")}`);
+    return { ok: false, error: sessionError?.message ?? "Could not create session" };
   }
 
   if ((templateExercises ?? []).length > 0) {
@@ -98,11 +99,11 @@ async function startSessionAction() {
     );
 
     if (exerciseError) {
-      redirect(`/today?error=${encodeURIComponent(exerciseError.message)}`);
+      return { ok: false, error: exerciseError.message };
     }
   }
 
-  redirect(`/session/${session.id}`);
+  return { ok: true, data: { sessionId: session.id } };
 }
 
 export default async function TodayPage({ searchParams }: { searchParams?: { error?: string } }) {
@@ -256,9 +257,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         {todayPayload.inProgressSessionId ? (
             <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Workout</Link>
           ) : (
-            <form action={startSessionAction}>
-              <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</button>
-            </form>
+            <TodayStartButton startSessionAction={startSessionAction} />
           )}
         </Glass>
       ) : (
