@@ -1,5 +1,5 @@
 import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
-import { BackButton } from "@/components/ui/BackButton";
+import { SessionBackButton } from "@/components/SessionBackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
@@ -122,7 +122,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     <section className="space-y-4 pt-[max(env(safe-area-inset-top),0.5rem)]">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{sessionRow.name || "Routine"}: {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}</h1>
-        <BackButton href="/today" label="Back" ariaLabel="Back to Today" />
+        <SessionBackButton />
       </div>
       <p className="rounded-md bg-white p-3 text-sm shadow-sm"><LocalDateTime value={sessionRow.performed_at} /></p>
 

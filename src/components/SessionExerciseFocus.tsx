@@ -119,13 +119,33 @@ export function SessionExerciseFocus({
       window.history.pushState({ ...state, sessionExerciseOpen: true }, "");
     }
 
-    const handlePopState = () => {
+    const closeSelectedExercise = () => {
       setSetLoggerResetSignal((value) => value + 1);
       setSelectedExerciseId(null);
     };
 
+    const handlePopState = () => {
+      closeSelectedExercise();
+    };
+
+    const handleCloseRequest = (event: Event) => {
+      const customEvent = event as CustomEvent<{ closed: boolean }>;
+      if (!selectedExerciseId) {
+        customEvent.detail.closed = false;
+        return;
+      }
+
+      closeSelectedExercise();
+      customEvent.detail.closed = true;
+    };
+
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    window.addEventListener("session-exercise-focus:close-request", handleCloseRequest);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("session-exercise-focus:close-request", handleCloseRequest);
+    };
   }, [selectedExerciseId]);
 
   return (
