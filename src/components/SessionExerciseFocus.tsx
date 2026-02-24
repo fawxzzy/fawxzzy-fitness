@@ -114,11 +114,6 @@ export function SessionExerciseFocus({
       return;
     }
 
-    const state = window.history.state as Record<string, unknown> | null;
-    if (!state?.sessionExerciseOpen) {
-      window.history.pushState({ ...state, sessionExerciseOpen: true }, "");
-    }
-
     const closeSelectedExercise = () => {
       setSetLoggerResetSignal((value) => value + 1);
       setSelectedExerciseId(null);
@@ -128,15 +123,8 @@ export function SessionExerciseFocus({
       closeSelectedExercise();
     };
 
-    const handleCloseRequest = (event: Event) => {
-      const customEvent = event as CustomEvent<{ closed: boolean }>;
-      if (!selectedExerciseId) {
-        customEvent.detail.closed = false;
-        return;
-      }
-
+    const handleCloseRequest = () => {
       closeSelectedExercise();
-      customEvent.detail.closed = true;
     };
 
     window.addEventListener("popstate", handlePopState);

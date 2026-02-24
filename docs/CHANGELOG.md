@@ -606,3 +606,11 @@ WHAT:
 - Reworked routines card action layout so reorder arrows now live in the same right-side action cluster as the Active/Inactive control, with slightly tighter card spacing and square-corner arrow buttons.
 WHY:
 - This improves action grouping/scannability on routine cards while preserving existing behavior, accessibility affordances, and tap-target clarity.
+
+### Fixed
+WHAT:
+- Updated session back behavior so a single back action now both closes an open exercise focus panel (including reset cleanup) and proceeds with navigation.
+- Removed the intermediate history state insertion that previously required an extra back press when an exercise panel was open.
+WHY:
+- Back navigation should be deterministic and never trap users on the session screen behind a second press.
+- Preserving panel cleanup while allowing immediate navigation maintains existing safety/reset behavior without degrading browser back expectations.
