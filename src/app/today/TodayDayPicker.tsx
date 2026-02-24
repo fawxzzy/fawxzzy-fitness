@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
+import { Glass } from "@/components/ui/Glass";
 import type { ActionResult } from "@/lib/action-result";
 
 type TodayDay = {
@@ -21,31 +22,142 @@ export function TodayDayPicker({
   startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [pendingDayIndex, setPendingDayIndex] = useState<number>(currentDayIndex);
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const selectedDay = useMemo(() => days.find((day) => day.dayIndex === selectedDayIndex) ?? null, [days, selectedDayIndex]);
+
+  useEffect(() => {
+    if (!isPickerOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsPickerOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !modalRef.current) {
+        return;
+      }
+
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) {
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      }
+    };
+
+    const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    firstFocusable?.focus();
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isPickerOpen]);
 
   return (
     <div className="space-y-2">
       <label htmlFor="today-day-picker" className="block text-xs font-semibold uppercase tracking-wide text-muted">
         Workout day for this session
       </label>
-      <select
+      <button
         id="today-day-picker"
-        value={selectedDayIndex}
-        onChange={(event) => setSelectedDayIndex(Number(event.target.value))}
-        className="w-full rounded-md border border-border bg-surface-2-soft px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+        type="button"
+        onClick={() => {
+          setPendingDayIndex(selectedDayIndex);
+          setIsPickerOpen(true);
+        }}
+        className="block w-full rounded-md border border-border bg-surface-2-soft px-3 py-2 text-center text-sm font-medium text-text transition-colors hover:bg-surface-2-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
       >
-        {days.map((day) => (
-          <option key={day.id} value={day.dayIndex}>
-            {day.name}
-            {day.isRest ? " (Rest)" : ""}
-          </option>
-        ))}
-      </select>
+        CHANGE DAY
+      </button>
       <p className="text-xs text-muted">
         Temporary selection only. Routine schedule stays unchanged.
         {selectedDay && selectedDay.dayIndex !== currentDayIndex ? ` Starting ${selectedDay.name} for this workout.` : ""}
       </p>
       <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />
+
+      {isPickerOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" aria-hidden={false}>
+          <button
+            type="button"
+            aria-label="Close day picker"
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setIsPickerOpen(false)}
+          />
+          <Glass
+            variant="overlay"
+            className="relative z-[1] w-full max-w-sm rounded-xl border border-border p-4"
+            interactive={false}
+          >
+            <div ref={modalRef} role="dialog" aria-modal="true" aria-label="Choose workout day" className="space-y-3">
+              <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
+              <div role="radiogroup" aria-label="Routine days" className="space-y-2">
+                {days.map((day) => {
+                  const isSelected = pendingDayIndex === day.dayIndex;
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setPendingDayIndex(day.dayIndex)}
+                      className={`w-full rounded-md border px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
+                        isSelected
+                          ? "border-accent/60 bg-accent/20 text-text"
+                          : "border-border bg-surface-2-soft text-text hover:bg-surface-2-strong"
+                      }`}
+                    >
+                      {day.name}
+                      {day.isRest ? " (Rest)" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPickerOpen(false)}
+                  className="rounded-md border border-border bg-surface-2-soft px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-2-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDayIndex(pendingDayIndex);
+                    setIsPickerOpen(false);
+                  }}
+                  className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </Glass>
+        </div>
+      ) : null}
     </div>
   );
 }

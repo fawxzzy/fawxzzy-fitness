@@ -10,6 +10,13 @@ WHY:
 
 ### Changed
 WHAT:
+- Replaced Today's pre-start day selector dropdown with a `CHANGE DAY` button that opens a centered chooser overlay with single-select routine-day options plus `OK`/`Cancel`.
+WHY:
+- This keeps the start flow cleaner on mobile while preserving temporary day selection control before launching a workout session.
+
+
+### Changed
+WHAT:
 - Added a compact live clock above the top navigation card that shows local hour/minute with AM/PM in a subtle Apple-inspired style.
 WHY:
 - This provides an always-visible time reference at the top of the app without adding visual weight or disrupting the existing navigation layout.
