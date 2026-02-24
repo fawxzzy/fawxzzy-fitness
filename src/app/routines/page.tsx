@@ -44,70 +44,6 @@ async function setActiveRoutineAction(formData: FormData) {
   revalidateRoutinesViews();
 }
 
-async function moveRoutineAction(formData: FormData) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-  const routineId = String(formData.get("routineId") ?? "");
-  const direction = String(formData.get("direction") ?? "");
-
-  if (!routineId || (direction !== "up" && direction !== "down")) {
-    throw new Error("Missing reorder info");
-  }
-
-  const { data: orderedRoutines, error: routinesError } = await supabase
-    .from("routines")
-    .select("id, updated_at")
-    .eq("user_id", user.id)
-    .order("updated_at", { ascending: false });
-
-  if (routinesError) {
-    throw new Error(routinesError.message);
-  }
-
-  const index = (orderedRoutines ?? []).findIndex((routine) => routine.id === routineId);
-  const targetIndex = direction === "up" ? index - 1 : index + 1;
-
-  if (index < 0 || targetIndex < 0 || targetIndex >= (orderedRoutines ?? []).length) {
-    return;
-  }
-
-  const targetRoutine = orderedRoutines?.[targetIndex];
-  if (!targetRoutine) {
-    return;
-  }
-
-  const timestampBase = Date.now();
-  const topTimestamp = new Date(timestampBase + 2000).toISOString();
-  const bottomTimestamp = new Date(timestampBase + 1000).toISOString();
-
-  const firstId = direction === "up" ? routineId : targetRoutine.id;
-  const secondId = direction === "up" ? targetRoutine.id : routineId;
-
-  const { error: firstUpdateError } = await supabase
-    .from("routines")
-    .update({ updated_at: topTimestamp })
-    .eq("id", firstId)
-    .eq("user_id", user.id);
-
-  if (firstUpdateError) {
-    throw new Error(firstUpdateError.message);
-  }
-
-  const { error: secondUpdateError } = await supabase
-    .from("routines")
-    .update({ updated_at: bottomTimestamp })
-    .eq("id", secondId)
-    .eq("user_id", user.id);
-
-  if (secondUpdateError) {
-    throw new Error(secondUpdateError.message);
-  }
-
-  revalidateRoutinesViews();
-}
-
 async function deleteRoutineAction(formData: FormData) {
   "use server";
 
@@ -139,6 +75,7 @@ async function deleteRoutineAction(formData: FormData) {
       throw new Error(clearActiveError.message);
     }
   }
+
 
   const { error: detachSessionError } = await supabase
     .from("sessions")
@@ -192,13 +129,12 @@ export default async function RoutinesPage() {
         </div>
 
         <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
-          {routines.map((routine, index) => {
+          {routines.map((routine) => {
             const isActive = profile.active_routine_id === routine.id;
 
             return (
-              <li key={routine.id} className={`${listShellClasses.card} p-3`}>
-                <div className="flex min-w-0 items-start justify-between gap-2.5">
-                  <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+              <li key={routine.id} className={listShellClasses.card}>
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
                   </div>
@@ -213,58 +149,25 @@ export default async function RoutinesPage() {
                       <input type="hidden" name="routineId" value={routine.id} />
                       <button
                         type="submit"
-                        className={`${listShellClasses.pillAction} border border-red-600/70 bg-red-600 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur transition-all hover:bg-red-700`}
+                        className={`${listShellClasses.pillAction} border border-red-200/80 bg-red-100/65 text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85`}
                       >
                         Delete
                       </button>
                     </form>
                   </div>
                 </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <div className="flex flex-col justify-center gap-1.5">
-                      <form action={moveRoutineAction}>
-                        <input type="hidden" name="routineId" value={routine.id} />
-                        <button
-                          type="submit"
-                          name="direction"
-                          value="up"
-                          disabled={index === 0}
-                          className={`${listShellClasses.iconAction} border border-slate-300 bg-white/80 text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40`}
-                          aria-label={`Move ${routine.name} up`}
-                          title="Move up"
-                        >
-                          ↑
-                        </button>
-                      </form>
-                      <form action={moveRoutineAction}>
-                        <input type="hidden" name="routineId" value={routine.id} />
-                        <button
-                          type="submit"
-                          name="direction"
-                          value="down"
-                          disabled={index === routines.length - 1}
-                          className={`${listShellClasses.iconAction} border border-slate-300 bg-white/80 text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40`}
-                          aria-label={`Move ${routine.name} down`}
-                          title="Move down"
-                        >
-                          ↓
-                        </button>
-                      </form>
-                    </div>
-                    <form action={setActiveRoutineAction}>
-                      <input type="hidden" name="routineId" value={routine.id} />
-                      <button
-                        type="submit"
-                        disabled={isActive}
-                        className={`rounded-md px-3 py-2 text-sm ${
-                          isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
-                        }`}
-                      >
-                        {isActive ? "Active" : "Inactive"}
-                      </button>
-                    </form>
-                  </div>
-                </div>
+                <form action={setActiveRoutineAction}>
+                  <input type="hidden" name="routineId" value={routine.id} />
+                  <button
+                    type="submit"
+                    disabled={isActive}
+                    className={`mt-3 w-full rounded-md px-3 py-2 text-sm ${
+                      isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
+                    }`}
+                  >
+                    {isActive ? "Active" : "Set Active"}
+                  </button>
+                </form>
               </li>
             );
           })}
