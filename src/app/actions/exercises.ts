@@ -3,7 +3,8 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { validateExerciseName } from "@/lib/exercises";
+import { validateExerciseEquipment, validateExerciseName } from "@/lib/exercises";
+import type { ActionResult } from "@/lib/action-result";
 import { supabaseServer } from "@/lib/supabase/server";
 
 function redirectWithMessage(returnTo: string, key: "error" | "success", message: string, exerciseId?: string) {
@@ -24,7 +25,7 @@ export async function createCustomExerciseAction(formData: FormData) {
   const returnTo = String(formData.get("returnTo") ?? "").trim();
   const name = validateExerciseName(String(formData.get("name") ?? ""));
   const primaryMuscle = String(formData.get("primaryMuscle") ?? "").trim() || null;
-  const equipment = String(formData.get("equipment") ?? "").trim() || null;
+  const equipment = validateExerciseEquipment(String(formData.get("equipment") ?? ""));
 
   const { data, error } = await supabase
     .from("exercises")
@@ -80,6 +81,57 @@ export async function renameCustomExerciseAction(formData: FormData) {
   }
 }
 
+
+
+export async function getExerciseDetailsAction(payload: { exerciseId: string }): Promise<ActionResult<{
+  id: string;
+  name: string;
+  how_to_short: string | null;
+  primary_muscles: string[];
+  secondary_muscles: string[];
+  movement_pattern: string | null;
+  equipment: string | null;
+  image_howto_path: string | null;
+  image_muscles_path: string | null;
+}>> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const exerciseId = payload.exerciseId.trim();
+
+  if (!exerciseId) {
+    return { ok: false, error: "Missing exercise id." };
+  }
+
+  const { data, error } = await supabase
+    .from("exercises")
+    .select("id, name, how_to_short, primary_muscles, secondary_muscles, movement_pattern, equipment, image_howto_path, image_muscles_path")
+    .eq("id", exerciseId)
+    .or(`user_id.is.null,user_id.eq.${user.id}`)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  if (!data) {
+    return { ok: false, error: "Exercise not found." };
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: data.id,
+      name: data.name,
+      how_to_short: data.how_to_short,
+      primary_muscles: data.primary_muscles ?? [],
+      secondary_muscles: data.secondary_muscles ?? [],
+      movement_pattern: data.movement_pattern,
+      equipment: data.equipment,
+      image_howto_path: data.image_howto_path,
+      image_muscles_path: data.image_muscles_path,
+    },
+  };
+}
 export async function deleteCustomExerciseAction(formData: FormData) {
   const user = await requireUser();
   const supabase = supabaseServer();

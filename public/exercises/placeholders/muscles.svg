@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
+  <title id="title">Muscles Image Placeholder</title>
+  <desc id="desc">Placeholder card for future exercise muscle map image.</desc>
+  <rect width="640" height="360" rx="28" fill="#0f172a"/>
+  <rect x="20" y="20" width="600" height="320" rx="22" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+  <text x="320" y="190" text-anchor="middle" fill="#cbd5e1" font-size="28" font-family="Inter, Arial, sans-serif" font-weight="600">Muscles Image Placeholder</text>
+</svg>
