@@ -1,8 +1,9 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
-import { InProgressSessionControls } from "@/app/today/InProgressSessionControls";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { Glass } from "@/components/ui/Glass";
 import { requireUser } from "@/lib/auth";
@@ -111,57 +112,78 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
 }
 
 
-async function changeInProgressSessionDayAction(payload: { sessionId: string; dayIndex: number }): Promise<ActionResult> {
+async function discardInProgressSessionAction(formData: FormData): Promise<void> {
   "use server";
 
   const user = await requireUser();
   const supabase = supabaseServer();
-  const sessionId = String(payload.sessionId ?? "").trim();
-  const dayIndex = Number(payload.dayIndex);
+  const sessionId = String(formData.get("sessionId") ?? "").trim();
 
-  if (!sessionId || !Number.isInteger(dayIndex)) {
-    return { ok: false, error: "Missing day change details." };
+  if (!sessionId) {
+    redirect(`/today?error=${encodeURIComponent("Missing session")}`);
   }
 
   const { data: session, error: sessionError } = await supabase
     .from("sessions")
-    .select("id, routine_id")
+    .select("id")
     .eq("id", sessionId)
     .eq("user_id", user.id)
     .eq("status", "in_progress")
     .maybeSingle();
 
-  if (sessionError || !session?.routine_id) {
-    return { ok: false, error: sessionError?.message ?? "In-progress session not found." };
+  if (sessionError) {
+    redirect(`/today?error=${encodeURIComponent(sessionError.message)}`);
   }
 
-  const { data: routineDay, error: routineDayError } = await supabase
-    .from("routine_days")
-    .select("id, name")
-    .eq("routine_id", session.routine_id)
-    .eq("day_index", dayIndex)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (routineDayError || !routineDay) {
-    return { ok: false, error: routineDayError?.message ?? "Routine day not found." };
+  if (!session) {
+    redirect(`/today?error=${encodeURIComponent("In-progress session not found")}`);
   }
 
-  const { error: updateError } = await supabase
+  const { data: sessionExerciseRows, error: sessionExerciseReadError } = await supabase
+    .from("session_exercises")
+    .select("id")
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id);
+
+  if (sessionExerciseReadError) {
+    redirect(`/today?error=${encodeURIComponent(sessionExerciseReadError.message)}`);
+  }
+
+  const sessionExerciseIds = (sessionExerciseRows ?? []).map((row) => row.id);
+  if (sessionExerciseIds.length > 0) {
+    const { error: setsDeleteError } = await supabase
+      .from("sets")
+      .delete()
+      .in("session_exercise_id", sessionExerciseIds)
+      .eq("user_id", user.id);
+
+    if (setsDeleteError) {
+      redirect(`/today?error=${encodeURIComponent(setsDeleteError.message)}`);
+    }
+
+    const { error: sessionExerciseDeleteError } = await supabase
+      .from("session_exercises")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("user_id", user.id);
+
+    if (sessionExerciseDeleteError) {
+      redirect(`/today?error=${encodeURIComponent(sessionExerciseDeleteError.message)}`);
+    }
+  }
+
+  const { error: sessionDeleteError } = await supabase
     .from("sessions")
-    .update({
-      routine_day_index: dayIndex,
-      routine_day_name: routineDay.name || `Day ${dayIndex}`,
-    })
+    .delete()
     .eq("id", sessionId)
     .eq("user_id", user.id)
     .eq("status", "in_progress");
 
-  if (updateError) {
-    return { ok: false, error: updateError.message };
+  if (sessionDeleteError) {
+    redirect(`/today?error=${encodeURIComponent(sessionDeleteError.message)}`);
   }
 
-  return { ok: true };
+  redirect("/today");
 }
 
 export default async function TodayPage({ searchParams }: { searchParams?: { error?: string } }) {
@@ -316,17 +338,15 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           </ul>
 
         {todayPayload.inProgressSessionId ? (
-            <InProgressSessionControls
-              sessionId={todayPayload.inProgressSessionId}
-              days={routineDays.map((day) => ({
-                id: day.id,
-                dayIndex: day.day_index,
-                name: day.name || `Day ${day.day_index}`,
-                isRest: day.is_rest,
-              }))}
-              currentDayIndex={todayPayload.routine.dayIndex}
-              changeSessionDayAction={changeInProgressSessionDayAction}
-            />
+            <div className="space-y-2">
+              <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Workout</Link>
+              <form action={discardInProgressSessionAction}>
+                <input type="hidden" name="sessionId" value={todayPayload.inProgressSessionId} />
+                <button type="submit" className="block w-full rounded-md border border-red-400/50 bg-red-500/10 px-3 py-2 text-center text-sm font-medium text-red-100 transition-colors hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/35">
+                  End Session (Don’t Save)
+                </button>
+              </form>
+            </div>
           ) : (
             <TodayDayPicker
               days={routineDays.map((day) => ({
