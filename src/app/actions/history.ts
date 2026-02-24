@@ -232,3 +232,74 @@ export async function deleteLogExerciseSetAction(payload: { logId: string; logEx
   revalidatePath(`/history/${logId}`);
   return { ok: true };
 }
+
+export async function addLogExerciseAction(payload: { logId: string; exerciseId: string }): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const logId = payload.logId.trim();
+  const exerciseId = payload.exerciseId.trim();
+
+  if (!logId || !exerciseId) {
+    return { ok: false, error: "Missing exercise details." };
+  }
+
+  const canEdit = await ensureCompletedLogOwner(logId, user.id);
+  if (!canEdit) {
+    return { ok: false, error: "Log not found." };
+  }
+
+  const { count } = await supabase
+    .from("session_exercises")
+    .select("id", { head: true, count: "exact" })
+    .eq("session_id", logId)
+    .eq("user_id", user.id);
+
+  const { error } = await supabase.from("session_exercises").insert({
+    session_id: logId,
+    user_id: user.id,
+    exercise_id: exerciseId,
+    position: count ?? 0,
+    is_skipped: false,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/history");
+  revalidatePath(`/history/${logId}`);
+  return { ok: true };
+}
+
+export async function deleteLogExerciseAction(payload: { logId: string; logExerciseId: string }): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const logId = payload.logId.trim();
+  const logExerciseId = payload.logExerciseId.trim();
+
+  if (!logId || !logExerciseId) {
+    return { ok: false, error: "Missing exercise details." };
+  }
+
+  const canEdit = await ensureCompletedLogOwner(logId, user.id);
+  if (!canEdit) {
+    return { ok: false, error: "Log not found." };
+  }
+
+  const { error } = await supabase
+    .from("session_exercises")
+    .delete()
+    .eq("id", logExerciseId)
+    .eq("session_id", logId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/history");
+  revalidatePath(`/history/${logId}`);
+  return { ok: true };
+}
