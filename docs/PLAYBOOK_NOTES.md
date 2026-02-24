@@ -167,3 +167,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Timer continuity is user-critical session state and should not reset when the app is closed or backgrounded.
 - Evidence: src/components/SessionTimers.tsx
 - Status: Proposed
+
+## 2026-02-24 — Tie resumable-session UI state to explicit local storage keys
+- Type: Pattern
+- Summary: For resumable workout flows, persist per-exercise logger state (`sets + form inputs`) under deterministic `sessionId + sessionExerciseId` keys and restore on mount before queue hydration.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Users expect “resume workout” continuity to include in-progress interaction state, not just server-fetched records.
+- Evidence: src/components/SessionTimers.tsx
+- Status: Proposed

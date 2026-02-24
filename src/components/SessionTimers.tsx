@@ -5,6 +5,7 @@ import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
   readQueuedSetLogsBySessionExerciseId,
+  removeSetLogQueueItem,
   type SetLogQueueItem,
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
@@ -169,6 +170,8 @@ export function SetLoggerCard({
   unitLabel,
   initialSets,
   onSetCountChange,
+  prefill,
+  deleteSetAction,
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -179,11 +182,18 @@ export function SetLoggerCard({
   unitLabel: string;
   initialSets: SetRow[];
   onSetCountChange?: (count: number) => void;
+  prefill?: {
+    weight?: number;
+    reps?: number;
+    durationSeconds?: number;
+    weightUnit?: "lbs" | "kg";
+  };
+  deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
-  const [weight, setWeight] = useState("");
-  const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(unitLabel === "kg" ? "kg" : "lbs");
-  const [reps, setReps] = useState("");
-  const [durationSeconds, setDurationSeconds] = useState("");
+  const [weight, setWeight] = useState(prefill?.weight !== undefined ? String(prefill.weight) : "");
+  const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
+  const [reps, setReps] = useState(prefill?.reps !== undefined ? String(prefill.reps) : "");
+  const [durationSeconds, setDurationSeconds] = useState(prefill?.durationSeconds !== undefined ? String(prefill.durationSeconds) : "");
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -201,6 +211,56 @@ export function SetLoggerCard({
   useEffect(() => {
     onSetCountChange?.(sets.length);
   }, [onSetCountChange, sets.length]);
+
+  useEffect(() => {
+    const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        sets?: DisplaySet[];
+        form?: { weight?: string; reps?: string; durationSeconds?: string; rpe?: string; isWarmup?: boolean; selectedWeightUnit?: "lbs" | "kg" };
+      };
+
+      if (Array.isArray(parsed.sets)) {
+        setSets(parsed.sets);
+      }
+
+      if (parsed.form) {
+        if (typeof parsed.form.weight === "string") setWeight(parsed.form.weight);
+        if (typeof parsed.form.reps === "string") setReps(parsed.form.reps);
+        if (typeof parsed.form.durationSeconds === "string") setDurationSeconds(parsed.form.durationSeconds);
+        if (typeof parsed.form.rpe === "string") setRpe(parsed.form.rpe);
+        if (typeof parsed.form.isWarmup === "boolean") setIsWarmup(parsed.form.isWarmup);
+        if (parsed.form.selectedWeightUnit === "kg" || parsed.form.selectedWeightUnit === "lbs") {
+          setSelectedWeightUnit(parsed.form.selectedWeightUnit);
+        }
+      }
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    }
+  }, [sessionExerciseId, sessionId]);
+
+  useEffect(() => {
+    const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
+    const payload = JSON.stringify({
+      sets,
+      form: {
+        weight,
+        reps,
+        durationSeconds,
+        rpe,
+        isWarmup,
+        selectedWeightUnit,
+      },
+      updatedAt: Date.now(),
+    });
+
+    window.localStorage.setItem(storageKey, payload);
+  }, [durationSeconds, isWarmup, reps, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -524,6 +584,30 @@ export function SetLoggerCard({
     setIsSubmitting(false);
   }
 
+
+  async function handleDeleteSet(set: DisplaySet) {
+    if (set.pending || set.queueStatus) {
+      await removeSetLogQueueItem(set.id);
+      setSets((current) => current.filter((item) => item.id !== set.id));
+      toast.success("Queued set removed.");
+      return;
+    }
+
+    const result = await deleteSetAction({
+      sessionId,
+      sessionExerciseId,
+      setId: set.id,
+    });
+
+    if (!result.ok) {
+      toast.error(result.error || "Could not remove set.");
+      return;
+    }
+
+    setSets((current) => current.filter((item) => item.id !== set.id));
+    toast.success("Set removed.");
+  }
+
   return (
     <div className="space-y-2">
       <section className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2">
@@ -649,7 +733,7 @@ export function SetLoggerCard({
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
       <ul className="space-y-1 text-sm">
-        {animatedSets.map((set) => (
+        {animatedSets.map((set, index) => (
           <li
             key={set.id}
             className={[
@@ -658,10 +742,23 @@ export function SetLoggerCard({
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
           >
-            Set {set.set_index + 1} · {set.weight} {set.weight_unit ?? unitLabel} × {set.reps} reps
-            {set.duration_seconds !== null ? ` · ${set.duration_seconds} sec` : ""}
-            {set.queueStatus ? ` · ${set.queueStatus}` : ""}
-            {set.pending && !set.queueStatus ? " · saving..." : ""}
+            <div className="flex items-center justify-between gap-2">
+              <span>
+                Set {index + 1} · {set.weight} {set.weight_unit ?? unitLabel} × {set.reps} reps
+                {set.duration_seconds !== null ? ` · ${set.duration_seconds} sec` : ""}
+                {set.queueStatus ? ` · ${set.queueStatus}` : ""}
+                {set.pending && !set.queueStatus ? " · saving..." : ""}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleDeleteSet(set);
+                }}
+                className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+              >
+                Remove
+              </button>
+            </div>
           </li>
         ))}
         {sets.length === 0 ? <li className="text-slate-500">No sets logged.</li> : null}

@@ -209,3 +209,22 @@ export async function updateSetLogQueueItem(item: SetLogQueueItem): Promise<void
     db.close();
   }
 }
+
+export async function removeSetLogQueueItem(id: string): Promise<void> {
+  if (!canUseIndexedDb()) {
+    return;
+  }
+
+  const db = await openOfflineDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(SET_LOG_QUEUE_STORE, "readwrite");
+      tx.objectStore(SET_LOG_QUEUE_STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("Unable to remove queued set log."));
+      tx.onabort = () => reject(tx.error ?? new Error("Queued set log remove aborted."));
+    });
+  } finally {
+    db.close();
+  }
+}

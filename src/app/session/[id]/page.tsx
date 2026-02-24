@@ -12,6 +12,7 @@ import {
   addSetAction,
   persistDurationAction,
   removeExerciseAction,
+  deleteSetAction,
   saveSessionAction,
   syncQueuedSetLogsAction,
   toggleSkipAction,
@@ -60,6 +61,37 @@ function formatGoalLine(target: DisplayTarget, weightUnit: string | null) {
   }
 
   return `Goal: ${parts.join(" • ")}`;
+}
+
+function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): {
+  weight?: number;
+  reps?: number;
+  durationSeconds?: number;
+  weightUnit?: "lbs" | "kg";
+} | undefined {
+  if (!target) {
+    return undefined;
+  }
+
+  const prefill: { weight?: number; reps?: number; durationSeconds?: number; weightUnit?: "lbs" | "kg" } = {};
+
+  if (target.weight !== undefined) {
+    prefill.weight = target.weight;
+    prefill.weightUnit = target.weightUnit ?? fallbackWeightUnit;
+  }
+
+  if (target.repsText) {
+    const repsMatch = target.repsText.match(/\d+/);
+    if (repsMatch) {
+      prefill.reps = Number(repsMatch[0]);
+    }
+  }
+
+  if (target.durationSeconds !== undefined) {
+    prefill.durationSeconds = target.durationSeconds;
+  }
+
+  return Object.keys(prefill).length > 0 ? prefill : undefined;
 }
 
 type PageProps = {
@@ -158,6 +190,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
               isSkipped: exercise.is_skipped,
               goalText: displayTarget ? formatGoalLine(displayTarget, routine?.weight_unit ?? null) : null,
+              prefill: getGoalPrefill(displayTarget, unitLabel),
               initialSets: setsByExercise.get(exercise.id) ?? [],
               loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,
             };
@@ -166,6 +199,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           syncQueuedSetLogsAction={syncQueuedSetLogsAction}
           toggleSkipAction={toggleSkipAction}
           removeExerciseAction={removeExerciseAction}
+          deleteSetAction={deleteSetAction}
         />
       ) : null}
 

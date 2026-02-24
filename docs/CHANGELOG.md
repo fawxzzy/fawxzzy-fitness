@@ -5,6 +5,16 @@
 
 ### Changed
 WHAT:
+- Added in-session set removal controls in the active workout logger, including removal of queued offline set logs from local queue storage.
+- Added goal-driven set logger prefill so target weight/reps/duration auto-populate when opening an exercise during an active session.
+- Persisted active-session logged-set state/form inputs to local storage so set logs survive app/device restarts for the same resumable workout session.
+- Expanded History log Edit mode to support adding, updating, and deleting individual sets (not just session/exercise notes).
+WHY:
+- These updates address requested workout continuity and editability gaps: users can correct live mistakes, recover in-progress logs after restart, and fully maintain completed history data from the existing Edit workflow.
+
+
+### Changed
+WHAT:
 - Made active session timers resilient to app background/close by restoring running state from local session storage and persisting elapsed time when the app is hidden or closed.
 - Added per-exercise target weight unit selection (kg/lbs) when adding routine-day exercises, and surfaced that unit in day/session target text.
 - Added per-set weight unit selection (kg/lbs) in the current-session set logger and saved the chosen unit with each set log (including offline queue payloads).

@@ -154,6 +154,47 @@ export async function syncQueuedSetLogsAction(payload: {
   return { ok: true, data: { results } };
 }
 
+export async function deleteSetAction(payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  setId: string;
+}): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = payload.sessionId.trim();
+  const sessionExerciseId = payload.sessionExerciseId.trim();
+  const setId = payload.setId.trim();
+
+  if (!sessionId || !sessionExerciseId || !setId) {
+    return { ok: false, error: "Missing set details" };
+  }
+
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("id, status")
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!session || session.status !== "in_progress") {
+    return { ok: false, error: "Can only remove sets from an active session" };
+  }
+
+  const { error } = await supabase
+    .from("sets")
+    .delete()
+    .eq("id", setId)
+    .eq("session_exercise_id", sessionExerciseId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true };
+}
+
 export async function toggleSkipAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
