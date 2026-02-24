@@ -6,6 +6,7 @@ import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
+import { getRoutineEditPath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
@@ -129,9 +130,8 @@ async function updateRoutineAction(formData: FormData) {
     }
   }
 
-  revalidatePath("/routines");
-  revalidatePath(`/routines/${routineId}/edit`);
-  revalidatePath("/today");
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineEditPath(routineId));
   redirect("/routines");
 }
 

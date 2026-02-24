@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
 
 type ActionResult = {
   ok: boolean;
@@ -34,8 +35,8 @@ export async function updateLogMetaAction(payload: { logId: string; dayNameOverr
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/history");
-  revalidatePath(`/history/${logId}`);
+  revalidateHistoryViews();
+  revalidatePath(getHistoryDetailPath(logId));
   return { ok: true };
 }
 
@@ -62,8 +63,8 @@ export async function updateLogExerciseNotesAction(payload: { logId: string; log
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/history");
-  revalidatePath(`/history/${logId}`);
+  revalidateHistoryViews();
+  revalidatePath(getHistoryDetailPath(logId));
   return { ok: true };
 }
 
@@ -141,8 +142,8 @@ export async function addLogExerciseSetAction(payload: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/history");
-  revalidatePath(`/history/${logId}`);
+  revalidateHistoryViews();
+  revalidatePath(getHistoryDetailPath(logId));
   return { ok: true };
 }
 
@@ -195,8 +196,8 @@ export async function updateLogExerciseSetAction(payload: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/history");
-  revalidatePath(`/history/${logId}`);
+  revalidateHistoryViews();
+  revalidatePath(getHistoryDetailPath(logId));
   return { ok: true };
 }
 
@@ -228,8 +229,8 @@ export async function deleteLogExerciseSetAction(payload: { logId: string; logEx
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/history");
-  revalidatePath(`/history/${logId}`);
+  revalidateHistoryViews();
+  revalidatePath(getHistoryDetailPath(logId));
   return { ok: true };
 }
 
@@ -267,8 +268,8 @@ export async function addLogExerciseAction(payload: { logId: string; exerciseId:
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/history");
-  revalidatePath(`/history/${logId}`);
+  revalidateHistoryViews();
+  revalidatePath(getHistoryDetailPath(logId));
   return { ok: true };
 }
 
@@ -299,7 +300,7 @@ export async function deleteLogExerciseAction(payload: { logId: string; logExerc
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/history");
-  revalidatePath(`/history/${logId}`);
+  revalidateHistoryViews();
+  revalidatePath(getHistoryDetailPath(logId));
   return { ok: true };
 }

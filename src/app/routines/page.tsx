@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
+import { revalidateHistoryViews, revalidateRoutinesViews } from "@/lib/revalidation";
 import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +41,7 @@ async function setActiveRoutineAction(formData: FormData) {
     throw new Error(profileError.message);
   }
 
-  revalidatePath("/routines");
-  revalidatePath("/today");
+  revalidateRoutinesViews();
 }
 
 async function deleteRoutineAction(formData: FormData) {
@@ -98,9 +97,8 @@ async function deleteRoutineAction(formData: FormData) {
     throw new Error(deleteError.message);
   }
 
-  revalidatePath("/routines");
-  revalidatePath("/today");
-  revalidatePath("/history");
+  revalidateRoutinesViews();
+  revalidateHistoryViews();
 }
 
 export default async function RoutinesPage() {

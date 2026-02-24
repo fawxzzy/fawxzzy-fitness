@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { revalidateHistoryViews } from "@/lib/revalidation";
 import type { SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +54,7 @@ async function deleteSessionAction(formData: FormData) {
     throw new Error(error.message);
   }
 
-  revalidatePath("/history");
+  revalidateHistoryViews();
 }
 
 
