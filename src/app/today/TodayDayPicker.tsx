@@ -33,13 +33,11 @@ export function TodayDayPicker({
   startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
-  const [pendingDayIndex, setPendingDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const closePicker = useCallback(() => {
-    setPendingDayIndex(selectedDayIndex);
     setIsPickerOpen(false);
-  }, [selectedDayIndex]);
+  }, []);
 
   useEffect(() => {
     if (!isPickerOpen) {
@@ -92,7 +90,6 @@ export function TodayDayPicker({
         type="button"
         fullWidth
         onClick={() => {
-          setPendingDayIndex(selectedDayIndex);
           setIsPickerOpen(true);
         }}
         aria-expanded={isPickerOpen}
@@ -109,14 +106,15 @@ export function TodayDayPicker({
             <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
             <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
               {days.map((day) => {
-                const isSelected = pendingDayIndex === day.dayIndex;
+                const isSelected = selectedDayIndex === day.dayIndex;
                 return (
                   <button
                     key={day.id}
                     type="button"
                     className={`flex w-full items-center rounded-md border px-3 py-2 text-left text-sm ${isSelected ? "border-accent/60 bg-accent/20" : "border-border bg-surface-2-soft"}`}
                     onClick={() => {
-                      setPendingDayIndex(day.dayIndex);
+                      setSelectedDayIndex(day.dayIndex);
+                      closePicker();
                     }}
                   >
                     <span>{day.name}{day.isRest ? " (Rest)" : ""}</span>
@@ -126,17 +124,6 @@ export function TodayDayPicker({
             </div>
             <div className="flex items-center justify-end gap-2">
               <SecondaryButton type="button" size="sm" onClick={closePicker}>Cancel</SecondaryButton>
-              <SecondaryButton
-                type="button"
-                size="sm"
-                state="active"
-                onClick={() => {
-                  setSelectedDayIndex(pendingDayIndex);
-                  closePicker();
-                }}
-              >
-                OK
-              </SecondaryButton>
             </div>
           </div>
         </div>
