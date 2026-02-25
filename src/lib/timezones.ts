@@ -58,3 +58,11 @@ export function normalizeRoutineTimezone(value: string | null | undefined) {
 
   return ROUTINE_TIMEZONE_ALIASES.get(value) ?? ("America/New_York" as const);
 }
+
+export function toCanonicalRoutineTimezone(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  return ROUTINE_TIMEZONE_ALIASES.get(value) ?? null;
+}

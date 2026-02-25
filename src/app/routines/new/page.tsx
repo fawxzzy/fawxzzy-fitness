@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { createRoutineDaySeedsFromStartDate, getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
-import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, isRoutineTimezone, normalizeRoutineTimezone } from "@/lib/timezones";
+import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, normalizeRoutineTimezone, toCanonicalRoutineTimezone } from "@/lib/timezones";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,9 @@ async function createRoutineAction(formData: FormData) {
     throw new Error("Name, timezone, and start date are required.");
   }
 
-  if (!isRoutineTimezone(timezone)) {
+  const canonicalTimezone = toCanonicalRoutineTimezone(timezone);
+
+  if (!canonicalTimezone) {
     throw new Error("Please select a supported timezone.");
   }
 
@@ -44,7 +46,7 @@ async function createRoutineAction(formData: FormData) {
       user_id: user.id,
       name,
       cycle_length_days: cycleLengthDays,
-      timezone,
+      timezone: canonicalTimezone,
       start_date: startDate,
       weight_unit: weightUnit,
     })
