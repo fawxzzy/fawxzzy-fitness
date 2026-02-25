@@ -332,8 +332,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
             <span className="truncate font-medium">{selectedExercise.name}</span>
             <div className="flex flex-wrap justify-end gap-1">
               <MetaTag value={selectedExercise.equipment} />
-              <MetaTag value={selectedExercise.movement_pattern} />
               <span className="hidden sm:inline-flex"><MetaTag value={selectedExercise.primary_muscle} /></span>
+              <MetaTag value={selectedExercise.movement_pattern} />
             </div>
           </div>
         ) : (
@@ -360,8 +360,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
                     <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
                     <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>
                       <MetaTag value={exercise.equipment} />
-                      <MetaTag value={exercise.movement_pattern} />
                       <span className="hidden sm:inline-flex"><MetaTag value={exercise.primary_muscle} /></span>
+                      <MetaTag value={exercise.movement_pattern} />
                     </div>
                   </button>
                   <Link
