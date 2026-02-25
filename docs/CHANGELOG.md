@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Added a canonical global exercise export JSON containing only `{name, primary_muscle, equipment, is_global}` rows derived from the latest exercise export.
+WHY:
+- Provides a normalized, reusable source for global exercise metadata while preserving exact exported names/equipment and global-only scope.
+
+### Changed
+WHAT:
 - Renamed app/web branding references to `FawxzzyFitness` across document title metadata, PWA manifest naming, Apple web app title fields, fallback in-app nav label text, icon source title text, and the package name identifier.
 WHY:
 - Ensures the installed app label and browser title consistently use your intended product name.
