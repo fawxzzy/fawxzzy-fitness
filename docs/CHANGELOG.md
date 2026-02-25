@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Updated the Add Exercise filter summary text to always show state, defaulting to "0 filters selected: All" and listing selected filter names when active.
+WHY:
+- This makes filter status clearer at a glance and confirms exactly which filters are applied.
+
+### Changed
+WHAT:
 - Updated Add Exercise tag chips so selected filters use a green-filled state for clearer visual selection feedback.
 - Tightened Add Exercise multi-tag filtering so results only include exercises that contain every selected tag (all-tags match).
 WHY:
