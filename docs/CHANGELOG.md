@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Canonicalized routine timezone writes in create/edit actions so submitted timezone aliases (for example device/legacy values) are normalized before persistence.
+WHY:
+- Timezone form UX can stay intentionally simple while server-side scheduling continues to read deterministic canonical timezone values from storage.
+
 ### Changed
 WHAT:
 - Reworked Today's day-switch interaction so Change Workout opens as an inline chooser card instead of a fixed overlay, preventing clipped content and reducing background rendering glitches.

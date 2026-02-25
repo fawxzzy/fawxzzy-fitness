@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
 import { getRoutineEditPath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, isRoutineTimezone, normalizeRoutineTimezone } from "@/lib/timezones";
+import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, normalizeRoutineTimezone, toCanonicalRoutineTimezone } from "@/lib/timezones";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +56,9 @@ async function updateRoutineAction(formData: FormData) {
     throw new Error("Missing required fields");
   }
 
-  if (!isRoutineTimezone(timezone)) {
+  const canonicalTimezone = toCanonicalRoutineTimezone(timezone);
+
+  if (!canonicalTimezone) {
     throw new Error("Please select a supported timezone.");
   }
 
@@ -83,7 +85,7 @@ async function updateRoutineAction(formData: FormData) {
     .from("routines")
     .update({
       name,
-      timezone,
+      timezone: canonicalTimezone,
       start_date: startDate,
       cycle_length_days: cycleLengthDays,
       weight_unit: weightUnit,
