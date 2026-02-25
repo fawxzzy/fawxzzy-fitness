@@ -178,6 +178,13 @@ WHY:
 
 ### Changed
 WHAT:
+- Extended the exercise logging data contract with measurement metadata (`measurement_type`, `default_unit`, optional calorie estimation method) and added set-level distance/calorie fields to support cardio distance tracking alongside existing reps/weight/time logs.
+- Propagated the new exercise contract fields through shared database types and server-loaded exercise option payloads used by session and routine exercise pickers.
+WHY:
+- Establishes schema-level support for measurement-type-driven logging (including distance and time+distance modes) without changing current UI behavior, so future cardio logging UX can ship on top of a stable, backward-compatible contract.
+
+### Changed
+WHAT:
 - Backfilled canonical global exercise metadata so every global exercise has validated how-to text, movement pattern, primary/secondary muscles, and placeholder image paths from the canonical JSON source.
 - Added a dedicated SQL backfill migration that updates global exercise metadata by normalized global exercise name and includes QA verification queries for Supabase SQL editor checks.
 WHY:
