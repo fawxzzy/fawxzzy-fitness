@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Added a text-based app icon source (`public/icon-source.svg`) and a build-time icon generation script that renders required PNG icon outputs into `public/icons/`.
+- Updated PWA manifest and Apple touch icon metadata paths to use the generated `/icons/*` assets.
+WHY:
+- Repository and PR policy reject committed binary assets; generating icons during build preserves diffable source control while still shipping proper install/app icons for PWA and iOS home-screen usage.
+
+### Changed
+WHAT:
 - Updated the Add Exercise filter summary text to always show state, defaulting to "0 filters selected: All" and listing selected filter names when active.
 WHY:
 - This makes filter status clearer at a glance and confirms exactly which filters are applied.
