@@ -2,6 +2,19 @@
 
 [Back to Index](./INDEX.md)
 
+## 2026-02-22 — Governance + Resilience Doctrine Patch
+
+### WHAT
+- Added Canonical Governance Contract doctrine.
+- Added Single Identity Authority doctrine.
+- Formalized Verification Tier model (Static, Build, Contract).
+- Added Orchestration Density Control pattern.
+- Added Resilient Client-State & Idempotent Sync pattern.
+- Strengthened Auth & Release checklists.
+
+### WHY
+- Audits across adopting repositories revealed governance ambiguity, auth authority drift, orchestration density risk, and verification expectations that were not codified as enforceable tiers; these changes formalize contract integrity and reduce systemic drift.
+
 ## 2026-02-20 — Initial Playbook Repository Bootstrap
 
 ### WHAT
@@ -30,3 +43,13 @@
 - Centralize cross-project lessons into reusable, evidence-backed engineering doctrine.
 - Reduce startup and decision friction for future projects by providing modular, source-attributed guidance.
 - Improve consistency of risky-change execution (schema/auth/offline/release) through stronger patterns, checklists, and prompt governance.
+
+## 2026-02-25 — Added local playbook-notes inbox for upstream candidate guidance
+
+### WHAT
+- Added `docs/PLAYBOOK_NOTES.md` as a structured local inbox for proposed guardrails/patterns/decisions captured from implementation work.
+- Linked Playbook Notes from `docs/INDEX.md` for discoverability.
+
+### WHY
+- Preserve candidate doctrine in one auditable place before promotion into canonical playbook patterns/decisions, reducing loss of field learnings and easing periodic distillation.
+

@@ -121,3 +121,35 @@
   - Introduce alternate terminology only as explicitly labeled examples.
   - Review copy changes for term consistency before release.
 - **Source:** Dump A — `2) Core Principles / Keep copy and domain language consistent`.
+
+## 13) Canonical Governance Contract
+- **Why it matters:**
+  - Ambiguous authority causes CI/doc/agent drift across adopting repositories.
+  - A single declared governance root keeps enforcement and documentation aligned.
+- **How to apply:**
+  - Declare one governance root per adopting repository.
+  - Maintain a normative document list that CI and review workflows can validate.
+  - Explicitly declare whether a vendored Playbook is **Normative** or **Reference** for that repository.
+  - Use this required Governance Scope Declaration block verbatim:
+
+```md
+This repository governs: [product/domain]
+Normative documents:
+  - docs/PROJECT_GOVERNANCE.md
+  - docs/ARCHITECTURE.md
+  - docs/CHANGELOG.md
+Playbook status: Normative | Reference
+```
+
+- **Source:** Cross-repository governance audits — authority ambiguity and CI/doc/agent drift findings (2026-02 doctrine patch request).
+
+## 14) Single Identity Authority
+- **Why it matters:**
+  - Parallel identity authorities create auth ambiguity and inconsistent authorization decisions.
+  - RLS correctness depends on one canonical identity model.
+- **How to apply:**
+  - Declare exactly one canonical identity/authz authority.
+  - Ensure RLS policies and ownership checks align with that canonical authority.
+  - If multiple auth mechanisms exist, mark non-canonical mechanisms as transitional/deprecated and document a migration path.
+  - Validate policy alignment with [CI Guardrails and Verification Tiers](./PATTERNS/ci-guardrails-and-verification-tiers.md) contract gates.
+- **Source:** Cross-repository auth drift audits — mixed authority and migration-gap findings (2026-02 doctrine patch request).

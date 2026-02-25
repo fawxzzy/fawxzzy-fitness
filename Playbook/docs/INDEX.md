@@ -6,6 +6,7 @@
 - [Principles](./PRINCIPLES.md)
 - [Decisions](./DECISIONS.md)
 - [Changelog](./CHANGELOG.md)
+- [Playbook Notes (Local Inbox)](./PLAYBOOK_NOTES.md)
 - [Agent Contract](./AGENT.md)
 - [Repo Contract](../CODEX.md)
 
@@ -14,8 +15,10 @@
 - [Deterministic, Reversible State](./PATTERNS/deterministic-reversible-state.md)
 - [Versioned Persistence](./PATTERNS/versioned-persistence.md)
 - [Orchestration vs Execution](./PATTERNS/orchestration-vs-execution.md)
+- [Orchestration Density Control](./PATTERNS/orchestration-density-control.md)
 - [Provider Adapters](./PATTERNS/provider-adapters.md)
 - [Offline-First Sync](./PATTERNS/offline-first-sync.md)
+- [Resilient Client-State & Idempotent Sync](./PATTERNS/resilient-client-state.md)
 - [Supabase Auth + RLS](./PATTERNS/supabase-auth-rls.md)
 - [CI Guardrails and Verification Tiers](./PATTERNS/ci-guardrails-and-verification-tiers.md)
 - [UI/Controller Separation](./PATTERNS/ui-controller-separation.md)
