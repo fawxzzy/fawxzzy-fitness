@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Made Day Editor’s existing exercise list read as a dedicated “Currently added workouts” section with clearer visual grouping and count context, and removed the redundant subtitle line under the page title.
+- Removed the extra “Back to day editor” button from Exercise info so only the top-right back arrow is shown.
+- Preserved Add Exercise context when opening Exercise info by returning with the picker expanded, selected exercise retained, and exercise-list scroll position restored.
+WHY:
+- This improves day-edit scanability, reduces duplicate navigation controls, and keeps users anchored in the add-exercise workflow after viewing exercise details.
+
+### Changed
+WHAT:
 - Replaced the exercise picker’s inline info overlay with navigation to a dedicated exercise details screen that has room for how-to text, tags, and media.
 - Updated exercise-picker Info actions to pass users to the new details route with a return link back to the current editor context.
 WHY:

@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
@@ -86,13 +85,6 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           </div>
         ) : null}
 
-        <div className="flex justify-end">
-          {returnHref ? (
-            <Link href={returnHref} className="rounded-md border border-border px-3 py-1.5 text-sm text-text">Back to day editor</Link>
-          ) : (
-            <TopRightBackButton />
-          )}
-        </div>
       </div>
     </section>
   );

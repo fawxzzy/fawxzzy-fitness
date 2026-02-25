@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 type ExerciseOption = {
@@ -33,6 +33,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
+  const scrollContainerRef = useRef<HTMLUListElement | null>(null);
 
   const uniqueExercises = useMemo(() => {
     const seenNames = new Set<string>();
@@ -45,11 +46,27 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
   }, [exercises]);
 
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
+  const [scrollTop, setScrollTop] = useState(() => {
+    const raw = Number(searchParams.get("exerciseListScroll"));
+    if (!Number.isFinite(raw) || raw < 0) return 0;
+    return Math.round(raw);
+  });
+
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+    if (!scrollTop) return;
+
+    scrollContainerRef.current.scrollTop = scrollTop;
+  }, [scrollTop]);
 
   const returnTo = useMemo(() => {
-    const query = searchParams.toString();
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("addExerciseOpen", "1");
+    nextParams.set("exerciseId", selectedId);
+    nextParams.set("exerciseListScroll", String(scrollTop));
+    const query = nextParams.toString();
     return query ? `${pathname}?${query}` : pathname;
-  }, [pathname, searchParams]);
+  }, [pathname, scrollTop, searchParams, selectedId]);
 
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -95,7 +112,11 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
         )}
       </div>
 
-      <ul className="max-h-52 space-y-2 overflow-y-auto pr-1">
+      <ul
+        ref={scrollContainerRef}
+        onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+        className="max-h-52 space-y-2 overflow-y-auto pr-1"
+      >
         {filteredExercises.map((exercise) => {
           const isSelected = exercise.id === selectedId;
           return (

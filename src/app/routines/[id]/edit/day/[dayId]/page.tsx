@@ -22,6 +22,7 @@ type PageProps = {
     error?: string;
     success?: string;
     exerciseId?: string;
+    addExerciseOpen?: string;
   };
 };
 
@@ -123,7 +124,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         <h1 className="text-2xl font-semibold">{dayTitle}</h1>
         <TopRightBackButton href={`/routines/${params.id}/edit`} />
       </div>
-      <p className="text-sm text-slate-600">{(routine as RoutineRow).name}: {dayTitle}</p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
@@ -179,8 +179,13 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Rest day enabled. Routine exercises stay saved but are ignored until you turn rest day off.</p>
       ) : (
         <>
-          <ul className="space-y-2">
-            {dayExercises.map((exercise) => {
+          <section className="space-y-2 rounded-xl border-2 border-accent/40 bg-accent/5 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-text">Currently added workouts</h2>
+              <span className="rounded-full border border-accent/30 bg-white px-2 py-0.5 text-xs font-medium text-text">{dayExercises.length}</span>
+            </div>
+            <ul className="space-y-2">
+              {dayExercises.map((exercise) => {
               const targetSummary = formatExerciseTargetSummary({
                 sets: exercise.target_sets,
                 repsMin: exercise.target_reps_min,
@@ -192,7 +197,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               }) || "No target";
 
               return (
-                <li key={exercise.id} className="rounded-md bg-white shadow-sm">
+                <li key={exercise.id} className="rounded-md border border-accent/15 bg-white shadow-sm">
                   <details>
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs [&::-webkit-details-marker]:hidden">
                       <span>
@@ -241,10 +246,11 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                   </details>
                 </li>
               );
-            })}
-          </ul>
+              })}
+            </ul>
+          </section>
 
-          <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={false}>
+          <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={searchParams?.addExerciseOpen === "1"}>
             <form action={addRoutineDayExerciseAction} className="space-y-2">
               <input type="hidden" name="routineId" value={params.id} />
               <input type="hidden" name="routineDayId" value={params.dayId} />
