@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Updated Add Exercise filter chips so selected tags use a bright outer highlight ring/border treatment (matching the high-contrast "Close" tag style direction) and automatically return to the neutral chip style when deselected.
+WHY:
+- This makes active filters immediately obvious while preserving a clear unselected state for faster scanning on mobile.
+
+### Changed
+WHAT:
 - Added a schema-safe exercise seed migration that updates global Bench Press metadata by `(is_global, name)` and inserts global Chest Press only when missing, with SQL variants for both `TEXT[]` and `JSONB` muscle columns.
 WHY:
 - Keeps global exercise metadata consistent across environments with different column representations while preventing duplicate Chest Press seed rows.

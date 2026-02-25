@@ -288,7 +288,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
             <button
               type="button"
               onClick={() => setSelectedTags([])}
-              className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-emerald-700 bg-emerald-600 text-white shadow-sm" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
+              className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-slate-100 bg-surface-2-soft text-[rgb(var(--text))] shadow-[0_0_0_1px_rgba(255,255,255,0.55)]" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
             >
               All
             </button>
@@ -311,7 +311,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
                             return [...prev, tag.value];
                           });
                         }}
-                        className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-emerald-700 bg-emerald-600 text-white shadow-sm" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
+                        className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-slate-100 bg-surface-2-soft text-[rgb(var(--text))] shadow-[0_0_0_1px_rgba(255,255,255,0.55)]" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
                       >
                         {tag.label}
                       </button>
