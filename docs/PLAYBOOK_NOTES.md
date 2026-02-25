@@ -247,3 +247,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: A short, predictable timezone list reduces decision friction and accidental misconfiguration while preserving deterministic day-window behavior.
 - Evidence: src/lib/timezones.ts, src/app/routines/new/page.tsx, src/app/routines/[id]/edit/page.tsx, src/components/RoutineLocalDefaults.tsx
 - Status: Proposed
+
+## 2026-02-25 — Prefer inline chooser cards over fixed overlays inside constrained glass surfaces
+- Type: Guardrail
+- Summary: When an interaction is scoped to a single card (like day selection before start), render the chooser inline in normal layout flow rather than as a fixed overlay layered above backdrop-filter surfaces.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Fixed overlays inside constrained/mobile cards can cause clipping and visual artifacts with layered translucent backgrounds.
+- Evidence: src/app/today/TodayDayPicker.tsx
+- Status: Proposed

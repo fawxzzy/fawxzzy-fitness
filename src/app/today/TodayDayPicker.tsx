@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
@@ -34,25 +34,6 @@ export function TodayDayPicker({
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-
-  const closePicker = useCallback(() => {
-    setIsPickerOpen(false);
-  }, []);
-
-  useEffect(() => {
-    if (!isPickerOpen) {
-      return;
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        closePicker();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [closePicker, isPickerOpen]);
 
   const selectedDay = useMemo(
     () => days.find((day) => day.dayIndex === selectedDayIndex) ?? days.find((day) => day.dayIndex === currentDayIndex) ?? null,
@@ -90,41 +71,33 @@ export function TodayDayPicker({
         type="button"
         fullWidth
         onClick={() => {
-          setIsPickerOpen(true);
+          setIsPickerOpen((previous) => !previous);
         }}
         aria-expanded={isPickerOpen}
       >
-        CHANGE DAY
+        {isPickerOpen ? "CLOSE DAY CHOOSER" : "CHANGE WORKOUT"}
       </SecondaryButton>
 
       {isPickerOpen ? (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4"
-          onClick={closePicker}
-        >
-          <div className="w-full max-w-xs space-y-3 rounded-lg border border-border bg-surface p-3" onClick={(event) => event.stopPropagation()}>
-            <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
-            <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
-              {days.map((day) => {
-                const isSelected = selectedDayIndex === day.dayIndex;
-                return (
-                  <button
-                    key={day.id}
-                    type="button"
-                    className={`flex w-full items-center rounded-md border px-3 py-2 text-left text-sm ${isSelected ? "border-accent/60 bg-accent/20" : "border-border bg-surface-2-soft"}`}
-                    onClick={() => {
-                      setSelectedDayIndex(day.dayIndex);
-                      closePicker();
-                    }}
-                  >
-                    <span>{day.name}{day.isRest ? " (Rest)" : ""}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-end gap-2">
-              <SecondaryButton type="button" size="sm" onClick={closePicker}>Cancel</SecondaryButton>
-            </div>
+        <div className="space-y-3 rounded-lg border border-border bg-surface p-3">
+          <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
+          <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
+            {days.map((day) => {
+              const isSelected = selectedDayIndex === day.dayIndex;
+              return (
+                <button
+                  key={day.id}
+                  type="button"
+                  className={`flex w-full items-center rounded-md border px-3 py-2 text-left text-sm ${isSelected ? "border-accent/60 bg-accent/20" : "border-border bg-surface-2-soft"}`}
+                  onClick={() => {
+                    setSelectedDayIndex(day.dayIndex);
+                    setIsPickerOpen(false);
+                  }}
+                >
+                  <span>{day.name}{day.isRest ? " (Rest)" : ""}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : null}
