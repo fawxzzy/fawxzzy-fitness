@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Renamed app/web branding references to `FawxzzyFitness` across document title metadata, PWA manifest naming, Apple web app title fields, fallback in-app nav label text, icon source title text, and the package name identifier.
+WHY:
+- Ensures the installed app label and browser title consistently use your intended product name.
+
+### Changed
+WHAT:
 - Added a text-based app icon source (`public/icon-source.svg`) and a build-time icon generation script that renders required PNG icon outputs into `public/icons/`.
 - Updated PWA manifest and Apple touch icon metadata paths to use the generated `/icons/*` assets.
 WHY:

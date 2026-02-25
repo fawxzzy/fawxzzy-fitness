@@ -6,11 +6,11 @@ import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Minimalist Gym Progression Engine",
+  title: "FawxzzyFitness",
   description: "Foundation app for logging gym sessions.",
   appleWebApp: {
     capable: true,
-    title: "Fawxzzy Fitness",
+    title: "FawxzzyFitness",
     statusBarStyle: "black-translucent",
   },
   icons: {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   other: {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",
-    "apple-mobile-web-app-title": "Fawxzzy Fitness",
+    "apple-mobile-web-app-title": "FawxzzyFitness",
   },
 };
 
