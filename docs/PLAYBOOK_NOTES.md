@@ -260,3 +260,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Context: Routine edit/discard protection produced disruptive native browser confirm dialogs.
 - Decision: Use scoped in-app confirmation modal for in-app navigation on dirty state, and avoid global/unscoped unload prompts unless strictly required.
 - Impact: Keeps navigation intent clear on mobile, reduces accidental prompt fatigue, and preserves clean client UX boundaries.
+
+## 2026-02-25 — Debounce persisted scroll state in dense interactive lists
+- Type: Guardrail
+- Summary: When list scroll position is only needed for return-navigation context, debounce persistence writes/state updates instead of updating React state on every scroll event.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Per-pixel state updates can cause visible scroll jank in long interactive lists on mobile.
+- Evidence: src/components/ExercisePicker.tsx
+- Status: Proposed
