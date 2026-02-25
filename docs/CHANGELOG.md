@@ -835,3 +835,9 @@ WHAT:
 - Updated the exercises metadata constraints migration to backfill missing required global metadata fields before adding global-only check constraints.
 WHY:
 - Prevents migration failure on existing global exercise rows that were missing required values while still enforcing completeness rules going forward.
+
+### Fixed
+WHAT:
+- Adjusted the global exercise metadata backfill fallback for `movement_pattern` to use an allowed canonical value before constraints are applied.
+WHY:
+- Prevents migration failures from violating the existing `exercises_movement_pattern_check` while preserving global metadata completeness enforcement.

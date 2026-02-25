@@ -22,7 +22,7 @@ WHERE is_global = true
   AND (how_to_short IS NULL OR btrim(how_to_short) = '');
 
 UPDATE public.exercises
-SET movement_pattern = 'unspecified'
+SET movement_pattern = 'push'
 WHERE is_global = true
   AND (movement_pattern IS NULL OR btrim(movement_pattern) = '');
 
