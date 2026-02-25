@@ -199,7 +199,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                         <span className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</span>
                         <span className="text-slate-500"> · {targetSummary}</span>
                       </span>
-                      <span className="rounded-md border border-slate-300 px-2 py-1 text-[11px]">Edit</span>
+                      <span className="rounded-md border border-slate-300 px-2 py-1 text-[11px]">
+                        <span className="details-edit-label">Edit</span>
+                        <span className="details-close-label">Close</span>
+                      </span>
                     </summary>
 
                     <div className="space-y-2 border-t border-slate-100 px-3 pb-3 pt-2">

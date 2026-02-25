@@ -1,5 +1,13 @@
 # Playbook Notes (Local Inbox)
 
+## 2026-02-25 — Prevent mobile focus-zoom and surface disclosure state in dense edit lists
+- Type: Guardrail
+- Summary: On mobile form-heavy screens, keep input/select/textarea font sizes at or above 16px to prevent Safari focus zoom, and ensure disclosure controls reflect open/closed state with explicit label swaps.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Focus-zoom jumps and ambiguous disclosure labels create avoidable navigation friction in touch workflows.
+- Evidence: src/app/globals.css, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
 ## 2026-02-24 — Keep workout-day switching session-scoped on Today
 - Type: Guardrail
 - Summary: When users need to run a different routine day ad hoc, apply the selection as a temporary session-start override instead of mutating routine day order or start-date metadata.
