@@ -12,3 +12,5 @@ pnpm-debug.log*
 public/icon-*.png
 public/apple-touch-icon*.png
 public/splash/*.png
+
+/public/icons/*.png
