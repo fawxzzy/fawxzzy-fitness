@@ -134,10 +134,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           <form action={createCustomExerciseAction} className="space-y-2">
             <input type="hidden" name="returnTo" value={returnTo} />
             <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <div className="grid grid-cols-2 gap-2">
-              <input name="primaryMuscle" placeholder="Primary muscle (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              <input name="equipment" placeholder="Equipment (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            </div>
             <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Custom Exercise</button>
           </form>
           {customExercises.length > 0 ? (

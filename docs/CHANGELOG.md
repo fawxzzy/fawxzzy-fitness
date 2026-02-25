@@ -1,5 +1,15 @@
 ### Changed
 WHAT:
+- Reworked Today's day-switch interaction so Change Workout opens as an inline chooser card instead of a fixed overlay, preventing clipped content and reducing background rendering glitches.
+- Added copy/paste day controls in Edit Routine so a day's planned exercises and targets can be copied onto another day in one step.
+- Simplified the Add custom exercise card to only require exercise name input, removing optional metadata fields from that UI.
+WHY:
+- The previous overlay could be cut off inside constrained cards and could interact poorly with the layered glass background effects.
+- Copy/paste speeds up routine editing when multiple days share similar programming.
+- Removing optional fields keeps custom exercise creation faster and less cluttered.
+
+### Changed
+WHAT:
 - Restored the Add Exercise picker's high-contrast scroll container and card treatment (including scroll affordance text/gradient and clearer row framing) while keeping the current dedicated Exercise Info navigation flow.
 WHY:
 - The recent styling simplification made the picker feel visually regressed on mobile; this brings back the cleaner, easier-to-scan list presentation users preferred.
