@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Added routine target support for cardio-driven plans by introducing optional distance, distance unit, and calorie targets in routine-day exercises, and updated routine day editing/forms to show target inputs based on each exercise `measurement_type` while always requiring sets.
+- Updated goal text formatting and history log set rendering so cardio logs display deterministic goal output and logged duration/distance/unit/calorie values without breaking existing set edit flows.
+WHY:
+- This keeps routine programming aligned with measurement-specific exercise contracts (reps/time/distance/time+distance), improves cardio target clarity, and ensures completed session history accurately reflects logged cardio metrics.
+
+### Changed
+WHAT:
 - Updated session set logging so each exercise row now renders and saves set inputs based on `exercises.measurement_type` (`reps`, `time`, `distance`, `time_distance`), including distance unit defaults from `exercises.default_unit` and optional calorie capture.
 - Extended session set save/sync paths to persist cardio metrics (`duration_seconds`, `distance`, `distance_unit`, `calories`) alongside existing strength fields while preserving queued/offline idempotent syncing behavior.
 WHY:

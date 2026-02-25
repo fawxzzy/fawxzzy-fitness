@@ -124,7 +124,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         unitLabel={unitLabel}
         exerciseNameMap={exerciseNameRecord}
         exerciseOptions={exerciseOptions}
-        exercises={sessionExercises.map((exercise) => ({
+      exercises={sessionExercises.map((exercise) => ({
           id: exercise.id,
           exercise_id: exercise.exercise_id,
           notes: exercise.notes,
@@ -134,6 +134,9 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             weight: set.weight,
             reps: set.reps,
             duration_seconds: set.duration_seconds,
+            distance: set.distance,
+            distance_unit: set.distance_unit,
+            calories: set.calories,
             weight_unit: set.weight_unit,
           })),
         }))}

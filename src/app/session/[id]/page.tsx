@@ -5,7 +5,7 @@ import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
-import type { DisplayTarget } from "@/lib/session-targets";
+import { formatGoalText, type DisplayTarget } from "@/lib/session-targets";
 import {
   addExerciseAction,
   addSetAction,
@@ -19,48 +19,6 @@ import {
 import { getSessionPageData } from "./queries";
 
 export const dynamic = "force-dynamic";
-
-function formatDurationText(durationSeconds: number) {
-  if (durationSeconds < 60) {
-    return `${durationSeconds}s`;
-  }
-
-  const minutes = Math.floor(durationSeconds / 60);
-  const seconds = durationSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function formatGoalLine(target: DisplayTarget, weightUnit: string | null) {
-  const parts: string[] = [];
-
-  if (target.sets !== undefined) {
-    parts.push(`${target.sets} sets`);
-  }
-
-  if (target.repsText) {
-    if (parts.length > 0) {
-      parts[parts.length - 1] = `${parts[parts.length - 1]} × ${target.repsText}`;
-    } else {
-      parts.push(target.repsText);
-    }
-  }
-
-  if (target.weight !== undefined) {
-    const resolvedWeightUnit = target.weightUnit ?? weightUnit;
-    const unitSuffix = resolvedWeightUnit ? ` ${resolvedWeightUnit}` : "";
-    parts.push(`@ ${target.weight}${unitSuffix}`);
-  }
-
-  if (target.durationSeconds !== undefined) {
-    parts.push(`Time: ${formatDurationText(target.durationSeconds)}`);
-  }
-
-  if (parts.length === 0) {
-    return null;
-  }
-
-  return `Goal: ${parts.join(" • ")}`;
-}
 
 function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): {
   weight?: number;
@@ -189,7 +147,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               isSkipped: exercise.is_skipped,
               measurementType: exercise.measurement_type ?? "reps",
               defaultUnit: exercise.default_unit ?? null,
-              goalText: displayTarget ? formatGoalLine(displayTarget, routine?.weight_unit ?? null) : null,
+              goalText: displayTarget ? formatGoalText(displayTarget, routine?.weight_unit ?? null) : null,
               prefill: getGoalPrefill(displayTarget, unitLabel),
               initialSets: setsByExercise.get(exercise.id) ?? [],
               loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,

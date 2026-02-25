@@ -1,4 +1,5 @@
 import "server-only";
+
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 
@@ -8,6 +9,10 @@ export type DisplayTarget = {
   weight?: number;
   weightUnit?: "lbs" | "kg";
   durationSeconds?: number;
+  distance?: number;
+  distanceUnit?: "mi" | "km" | "m";
+  calories?: number;
+  measurementType?: "reps" | "time" | "distance" | "time_distance";
   source: "engine" | "template";
 };
 
@@ -32,6 +37,61 @@ function getRepsText(minReps: number | null, maxReps: number | null, fallbackRep
   }
 
   return undefined;
+}
+
+function formatDurationText(durationSeconds: number) {
+  if (durationSeconds < 60) {
+    return `${durationSeconds}s`;
+  }
+
+  const minutes = Math.floor(durationSeconds / 60);
+  const seconds = durationSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string | null): string {
+  const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
+  const resolvedDistanceUnit = target.distanceUnit ?? "mi";
+  const hasAdditionalTarget = (
+    target.repsText
+    || target.weight !== undefined
+    || target.durationSeconds !== undefined
+    || target.distance !== undefined
+    || target.calories !== undefined
+  );
+
+  if (!hasAdditionalTarget) {
+    return "Goal: Open";
+  }
+
+  const parts: string[] = [];
+
+  if (target.sets !== undefined) {
+    parts.push(`${target.sets} sets`);
+  }
+
+  if (target.measurementType === "reps") {
+    if (target.repsText) parts.push(target.repsText);
+    if (target.weight !== undefined) parts.push(`@ ${target.weight}${resolvedWeightUnit ? ` ${resolvedWeightUnit}` : ""}`);
+  } else if (target.measurementType === "time") {
+    if (target.durationSeconds !== undefined) parts.push(`Time ${formatDurationText(target.durationSeconds)}`);
+  } else if (target.measurementType === "distance") {
+    if (target.distance !== undefined) parts.push(`Distance ${target.distance} ${resolvedDistanceUnit}`);
+  } else if (target.measurementType === "time_distance") {
+    if (target.durationSeconds !== undefined) parts.push(`Time ${formatDurationText(target.durationSeconds)}`);
+    if (target.distance !== undefined) parts.push(`Distance ${target.distance} ${resolvedDistanceUnit}`);
+  } else {
+    if (target.repsText) parts.push(target.repsText);
+    if (target.weight !== undefined) parts.push(`@ ${target.weight}${resolvedWeightUnit ? ` ${resolvedWeightUnit}` : ""}`);
+    if (target.durationSeconds !== undefined) parts.push(`Time ${formatDurationText(target.durationSeconds)}`);
+    if (target.distance !== undefined) parts.push(`Distance ${target.distance} ${resolvedDistanceUnit}`);
+  }
+
+  if (target.calories !== undefined) {
+    parts.push(`Calories ${target.calories}`);
+  }
+
+  return `Goal: ${parts.join(" • ")}`;
 }
 
 export async function getSessionTargets(sessionId: string) {
@@ -63,15 +123,31 @@ export async function getSessionTargets(sessionId: string) {
 
   const { data: routineDayExercises } = await supabase
     .from("routine_day_exercises")
-    .select("exercise_id, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds")
+    .select("exercise_id, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories")
     .eq("routine_day_id", routineDay.id)
     .eq("user_id", user.id);
+
+  const exerciseIds = Array.from(new Set((routineDayExercises ?? []).map((exercise) => exercise.exercise_id)));
+  const { data: exerciseMeasurements } = exerciseIds.length
+    ? await supabase
+        .from("exercises")
+        .select("id, measurement_type")
+        .in("id", exerciseIds)
+    : { data: [] };
+
+  const measurementTypeByExerciseId = new Map<string, "reps" | "time" | "distance" | "time_distance">();
+  for (const row of exerciseMeasurements ?? []) {
+    if (row.measurement_type === "reps" || row.measurement_type === "time" || row.measurement_type === "distance" || row.measurement_type === "time_distance") {
+      measurementTypeByExerciseId.set(row.id, row.measurement_type);
+    }
+  }
 
   const targetMap = new Map<string, DisplayTarget>();
 
   for (const exercise of routineDayExercises ?? []) {
     const target: DisplayTarget = {
       source: "template",
+      measurementType: measurementTypeByExerciseId.get(exercise.exercise_id),
     };
 
     if (exercise.target_sets !== null) {
@@ -92,6 +168,18 @@ export async function getSessionTargets(sessionId: string) {
 
     if (exercise.target_duration_seconds !== null) {
       target.durationSeconds = exercise.target_duration_seconds;
+    }
+
+    if (exercise.target_distance !== null) {
+      target.distance = Number(exercise.target_distance);
+    }
+
+    if (exercise.target_distance_unit === "mi" || exercise.target_distance_unit === "km" || exercise.target_distance_unit === "m") {
+      target.distanceUnit = exercise.target_distance_unit;
+    }
+
+    if (exercise.target_calories !== null) {
+      target.calories = Number(exercise.target_calories);
     }
 
     targetMap.set(exercise.exercise_id, target);

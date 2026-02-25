@@ -30,6 +30,9 @@ type ExercisePickerProps = {
   exercises: ExerciseOption[];
   name: string;
   initialSelectedId?: string;
+  routineTargetConfig?: {
+    weightUnit: "lbs" | "kg";
+  };
 };
 
 type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
@@ -107,7 +110,7 @@ function MetaTag({ value }: { value: string | null }) {
   return <span className={tagClassName}>{value}</span>;
 }
 
-export function ExercisePicker({ exercises, name, initialSelectedId }: ExercisePickerProps) {
+export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig }: ExercisePickerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
@@ -343,6 +346,39 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
           <span className="text-muted">Select an exercise from the list below</span>
         )}
       </div>
+
+      {routineTargetConfig && selectedExercise ? (
+        <>
+          <input type="hidden" name="measurementType" value={selectedExercise.measurement_type} />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {selectedExercise.measurement_type === "reps" ? (
+              <>
+                <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${routineTargetConfig.weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <select name="targetWeightUnit" defaultValue={routineTargetConfig.weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                  <option value="lbs">lbs</option>
+                  <option value="kg">kg</option>
+                </select>
+              </>
+            ) : null}
+            {(selectedExercise.measurement_type === "time" || selectedExercise.measurement_type === "time_distance") ? (
+              <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            ) : null}
+            {(selectedExercise.measurement_type === "distance" || selectedExercise.measurement_type === "time_distance") ? (
+              <>
+                <input type="number" min={0} step="0.01" name="targetDistance" placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <select name="targetDistanceUnit" defaultValue={selectedExercise.default_unit === "km" || selectedExercise.default_unit === "m" ? selectedExercise.default_unit : "mi"} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                  <option value="mi">mi</option>
+                  <option value="km">km</option>
+                  <option value="m">m</option>
+                </select>
+                <input type="number" min={0} step="1" name="targetCalories" placeholder="Calories (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              </>
+            ) : null}
+          </div>
+        </>
+      ) : null}
 
       <p className="text-xs text-muted">Scroll to see more exercises ↓</p>
       <div className="relative">
