@@ -1,0 +1,818 @@
+[
+  {
+    "name": "Ab Wheel Rollout",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Abductor Machine",
+    "primary_muscle": "abductors, glutes",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Adductor Machine",
+    "primary_muscle": "adductors",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Air Bike Sprint",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true
+  },
+  {
+    "name": "Alternating Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Arnold Press",
+    "primary_muscle": "front delts, side delts",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Back Extension",
+    "primary_muscle": "lower back",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Back Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "barbell",
+    "is_global": true
+  },
+  {
+    "name": "Barbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "barbell",
+    "is_global": true
+  },
+  {
+    "name": "Barbell Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Barbell Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "barbell",
+    "is_global": true
+  },
+  {
+    "name": "Bulgarian Split Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Cable Crunch",
+    "primary_muscle": "core",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Cable Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Cable Fly",
+    "primary_muscle": "chest",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Cable Kickback",
+    "primary_muscle": "glutes",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Cable Lateral Raise",
+    "primary_muscle": "side delts",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Cable Rear Delt Fly",
+    "primary_muscle": "rear delts",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Calf Raise (Seated)",
+    "primary_muscle": "calves",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Calf Raise (Standing)",
+    "primary_muscle": "calves",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Chest-Supported Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Chin-Up",
+    "primary_muscle": "lats, biceps",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Close-Grip Bench Press",
+    "primary_muscle": "triceps, chest",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Close-Grip Lat Pulldown",
+    "primary_muscle": "lats",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Close-Grip Push-Up",
+    "primary_muscle": "triceps, chest",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Concentration Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Cross-Body Hammer Curl",
+    "primary_muscle": "biceps, forearms",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Dead Bug",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Deadlift",
+    "primary_muscle": "glutes, hamstrings, lower back",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Decline Barbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Decline Dumbbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Deficit Push-Up",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Dips (Chest)",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Dips (Triceps)",
+    "primary_muscle": "triceps",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Donkey Calf Raise",
+    "primary_muscle": "calves",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Dumbbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Dumbbell Fly",
+    "primary_muscle": "chest",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Dumbbell Overhead Triceps Extension",
+    "primary_muscle": "triceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Dumbbell Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "EZ-Bar Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Face Pull",
+    "primary_muscle": "rear delts, upper back",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Front Raise",
+    "primary_muscle": "front delts",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Front Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Glute Bridge",
+    "primary_muscle": "glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Goblet Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Hack Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Hammer Curl",
+    "primary_muscle": "biceps, forearms",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Hanging Leg Raise",
+    "primary_muscle": "core, hip flexors",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "High-Bar Back Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "High-to-Low Cable Fly",
+    "primary_muscle": "chest",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Hip Thrust",
+    "primary_muscle": "glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Hollow Body Hold",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Incline Barbell Bench Press",
+    "primary_muscle": "chest, front delts",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Incline Dumbbell Bench Press",
+    "primary_muscle": "chest, front delts",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Incline Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Incline Dumbbell Fly",
+    "primary_muscle": "chest",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Incline Walk",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true
+  },
+  {
+    "name": "Jump Rope",
+    "primary_muscle": "cardio",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Lat Pulldown",
+    "primary_muscle": "lats",
+    "equipment": "cable",
+    "is_global": true
+  },
+  {
+    "name": "Lateral Raise",
+    "primary_muscle": "side delts",
+    "equipment": "dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Leaning Cable Lateral Raise",
+    "primary_muscle": "side delts",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Leg Extension",
+    "primary_muscle": "quads",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Leg Press",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Low-Bar Back Squat",
+    "primary_muscle": "glutes, quads",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Low-to-High Cable Fly",
+    "primary_muscle": "chest",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Lying Leg Curl",
+    "primary_muscle": "hamstrings",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Lying Leg Raise",
+    "primary_muscle": "core, hip flexors",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Machine Biceps Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Machine Crunch",
+    "primary_muscle": "core",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Machine Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Machine Shoulder Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Neutral-Grip Pull-Up",
+    "primary_muscle": "lats, upper back",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Nordic Curl",
+    "primary_muscle": "hamstrings",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Overhead Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Overhead Triceps Extension",
+    "primary_muscle": "triceps",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Pallof Press",
+    "primary_muscle": "core",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Paused Back Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Paused Barbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Paused Deadlift",
+    "primary_muscle": "glutes, hamstrings, lower back",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Paused Front Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Pec Deck",
+    "primary_muscle": "chest",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Pendlay Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Plate Front Raise",
+    "primary_muscle": "front delts",
+    "equipment": "Plate",
+    "is_global": true
+  },
+  {
+    "name": "Preacher Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Pull-Up",
+    "primary_muscle": "lats, upper back",
+    "equipment": "bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Push Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Push-Up",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Rack Pull",
+    "primary_muscle": "upper back, upper traps, glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Rear Delt Fly",
+    "primary_muscle": "rear delts",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Reverse Hyperextension",
+    "primary_muscle": "glutes, hamstrings, lower back",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Reverse Lunge",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Reverse Pec Deck",
+    "primary_muscle": "rear delts",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Reverse-Grip Pushdown",
+    "primary_muscle": "triceps",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Romanian Deadlift",
+    "primary_muscle": "hamstrings, glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Rope Pushdown",
+    "primary_muscle": "triceps",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Rowing Machine",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true
+  },
+  {
+    "name": "Russian Twist",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Seated Barbell Overhead Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Seated Cable Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Seated Dumbbell Shoulder Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Seated Leg Curl",
+    "primary_muscle": "hamstrings",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Side Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Single-Arm Cable Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Single-Arm Dumbbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Single-Arm Dumbbell Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Single-Arm Lat Pulldown",
+    "primary_muscle": "lats",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Single-Leg Hip Thrust",
+    "primary_muscle": "glutes",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Single-Leg Press",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Single-Leg Romanian Deadlift",
+    "primary_muscle": "hamstrings, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Skullcrusher",
+    "primary_muscle": "triceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Sled Push",
+    "primary_muscle": "cardio",
+    "equipment": "Sled",
+    "is_global": true
+  },
+  {
+    "name": "Smith Machine Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Smith Machine",
+    "is_global": true
+  },
+  {
+    "name": "Smith Machine Shoulder Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Smith Machine",
+    "is_global": true
+  },
+  {
+    "name": "Smith Machine Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Smith Machine",
+    "is_global": true
+  },
+  {
+    "name": "Snatch-Grip Deadlift",
+    "primary_muscle": "glutes, hamstrings, upper back",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Stair Climber",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true
+  },
+  {
+    "name": "Stationary Bike",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true
+  },
+  {
+    "name": "Step-Up",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Stiff-Leg Deadlift",
+    "primary_muscle": "hamstrings, glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Straight-Arm Pulldown",
+    "primary_muscle": "lats",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "T-Bar Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Machine",
+    "is_global": true
+  },
+  {
+    "name": "Tempo Back Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Tempo Barbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Tempo Deadlift",
+    "primary_muscle": "glutes, hamstrings, lower back",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Treadmill Run",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true
+  },
+  {
+    "name": "Triceps Pushdown",
+    "primary_muscle": "triceps",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Upright Row",
+    "primary_muscle": "upper traps, side delts",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Walking Lunge",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true
+  },
+  {
+    "name": "Weighted Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Weighted Pull-Up",
+    "primary_muscle": "lats, upper back",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Weighted Push-Up",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Bodyweight",
+    "is_global": true
+  },
+  {
+    "name": "Wide-Grip Lat Pulldown",
+    "primary_muscle": "lats, upper back",
+    "equipment": "Cable",
+    "is_global": true
+  },
+  {
+    "name": "Yates Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Barbell",
+    "is_global": true
+  },
+  {
+    "name": "Chest Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Machine",
+    "is_global": true
+  }
+]
