@@ -106,7 +106,7 @@ export function AppNav() {
         {timeFormatter.format(now)}
       </p>
       <Glass variant="raised" className="px-2 py-1.5" interactive={false}>
-        <p className="px-2 pb-1 text-center text-sm font-semibold text-text">{activeLink?.label ?? "Fawxzzy Fitness"}</p>
+        <p className="px-2 pb-1 text-center text-sm font-semibold text-text">{activeLink?.label ?? "FawxzzyFitness"}</p>
         <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
           {links.map((link) => {
             const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
