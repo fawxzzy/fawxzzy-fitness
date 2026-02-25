@@ -694,3 +694,9 @@ WHAT:
 - Updated CHANGE DAY to open a compact overlay with multi-select day options and explicit OK/Cancel controls while preserving existing day-switch workout behavior.
 WHY:
 - This keeps critical actions visually consistent and predictable across mobile flows, reduces style drift for future screens, and preserves existing navigation/data boundaries with a minimal UI-focused diff.
+
+### Fixed
+WHAT:
+- Removed the Today day-picker OK confirmation step so selecting a day now applies immediately and closes the chooser.
+WHY:
+- This restores the expected one-tap day-switch workflow and prevents regressions where users had to confirm selection with an extra action.
