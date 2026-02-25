@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { getExerciseDetailsAction } from "@/app/actions/exercises";
-import { Glass } from "@/components/ui/Glass";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type ExerciseOption = {
   id: string;
@@ -14,18 +14,6 @@ type ExerciseOption = {
   equipment: string | null;
   movement_pattern: string | null;
   image_howto_path: string | null;
-};
-
-type ExerciseDetails = {
-  id: string;
-  name: string;
-  how_to_short: string | null;
-  primary_muscles: string[];
-  secondary_muscles: string[];
-  movement_pattern: string | null;
-  equipment: string | null;
-  image_howto_path: string | null;
-  image_muscles_path: string | null;
 };
 
 type ExercisePickerProps = {
@@ -42,6 +30,8 @@ function MetaTag({ value }: { value: string | null }) {
 }
 
 export function ExercisePicker({ exercises, name, initialSelectedId }: ExercisePickerProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
 
   const uniqueExercises = useMemo(() => {
@@ -55,10 +45,11 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
   }, [exercises]);
 
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [activeDetails, setActiveDetails] = useState<ExerciseDetails | null>(null);
-  const [detailsError, setDetailsError] = useState<string | null>(null);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+  const returnTo = useMemo(() => {
+    const query = searchParams.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  }, [pathname, searchParams]);
 
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -67,23 +58,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
   }, [uniqueExercises, search]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
-
-  const openDetails = async (exerciseId: string) => {
-    setIsInfoOpen(true);
-    setIsLoadingDetails(true);
-    setDetailsError(null);
-
-    const result = await getExerciseDetailsAction({ exerciseId });
-    if (!result.ok) {
-      setDetailsError(result.error);
-      setActiveDetails(null);
-      setIsLoadingDetails(false);
-      return;
-    }
-
-    setActiveDetails(result.data ?? null);
-    setIsLoadingDetails(false);
-  };
 
   return (
     <div className="space-y-2">
@@ -121,9 +95,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
         )}
       </div>
 
-      <p className="text-xs text-muted">Scroll to see more exercises ↓</p>
-      <div className="relative">
-        <ul className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-slate-300/80 bg-[rgb(var(--bg)/0.25)] p-2 pr-1">
+      <ul className="max-h-52 space-y-2 overflow-y-auto pr-1">
         {filteredExercises.map((exercise) => {
           const isSelected = exercise.id === selectedId;
           return (
@@ -140,75 +112,17 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
                     <span className="hidden sm:inline-flex"><MetaTag value={exercise.primary_muscle} /></span>
                   </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => openDetails(exercise.id)}
-                  className="h-full min-h-10 rounded-md border border-border bg-surface-2-strong px-2 py-1 text-xs text-text"
+                <Link
+                  href={`/exercises/${exercise.id}?returnTo=${encodeURIComponent(returnTo)}`}
+                  className="inline-flex min-h-10 items-center rounded-md border border-border bg-surface-2-strong px-2 py-1 text-xs text-text"
                 >
                   Info
-                </button>
+                </Link>
               </div>
             </li>
           );
         })}
-        </ul>
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
-      </div>
-
-      {isInfoOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3" aria-hidden={false}>
-          <button type="button" aria-label="Close exercise info" className="absolute inset-0 bg-black/50" onClick={() => setIsInfoOpen(false)} />
-          <Glass variant="overlay" className="relative z-[1] w-full max-w-md rounded-xl border border-border p-4" interactive={false}>
-            <div role="dialog" aria-modal="true" aria-label="Exercise details" className="space-y-3">
-              {isLoadingDetails ? <p className="text-sm text-muted">Loading details…</p> : null}
-              {detailsError ? <p className="text-sm text-red-300">{detailsError}</p> : null}
-              {activeDetails ? (
-                <>
-                  <div>
-                    <p className="text-base font-semibold text-text">{activeDetails.name}</p>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      <MetaTag value={activeDetails.equipment} />
-                      <MetaTag value={activeDetails.movement_pattern} />
-                    </div>
-                  </div>
-
-                  {activeDetails.image_howto_path ? (
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-                      <Image src={activeDetails.image_howto_path} alt="How-to visual" width={640} height={360} className="w-full rounded-md border border-border" />
-                    </div>
-                  ) : null}
-
-                  {activeDetails.image_muscles_path ? (
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-                      <Image src={activeDetails.image_muscles_path} alt="Muscles visual" width={640} height={360} className="w-full rounded-md border border-border" />
-                    </div>
-                  ) : null}
-
-                  {activeDetails.how_to_short ? <p className="text-sm text-text">{activeDetails.how_to_short}</p> : null}
-
-                  {activeDetails.primary_muscles.length > 0 ? (
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted">Primary muscles</p>
-                      <div className="mt-1 flex flex-wrap gap-1">{activeDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
-                    </div>
-                  ) : null}
-                  {activeDetails.secondary_muscles.length > 0 ? (
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted">Secondary muscles</p>
-                      <div className="mt-1 flex flex-wrap gap-1">{activeDetails.secondary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-              <div className="flex justify-end">
-                <button type="button" onClick={() => setIsInfoOpen(false)} className="rounded-md border border-border px-3 py-1.5 text-sm text-text">Close</button>
-              </div>
-            </div>
-          </Glass>
-        </div>
-      ) : null}
+      </ul>
     </div>
   );
 }

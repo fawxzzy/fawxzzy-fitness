@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Replaced the exercise picker’s inline info overlay with navigation to a dedicated exercise details screen that has room for how-to text, tags, and media.
+- Updated exercise-picker Info actions to pass users to the new details route with a return link back to the current editor context.
+WHY:
+- A full-screen details layout resolves the cramped modal issues on mobile and makes exercise guidance easier to scan without nested overlay UI.
+
+### Changed
+WHAT:
 - Prevented mobile input-focus zoom jumps by enforcing a 16px minimum font size for form controls on small screens.
 - Updated routine day exercise cards so the right-side disclosure label now reads “Close” while a card is expanded and “Edit” when collapsed.
 - Improved add-exercise list affordance with explicit scroll cue text, a bordered scroll viewport, and a bottom gradient hint.

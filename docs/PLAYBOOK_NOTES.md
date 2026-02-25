@@ -1,5 +1,13 @@
 # Playbook Notes (Local Inbox)
 
+## 2026-02-25 — Prefer route-based detail screens over nested overlays for dense mobile content
+- Type: Guardrail
+- Summary: When an inline modal cannot comfortably present exercise/media metadata on small screens, move that content to a dedicated route with explicit return navigation.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Route-based detail pages reduce overlay stacking complexity and give dense instructional content enough layout space to stay readable.
+- Evidence: src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
+
 ## 2026-02-25 — Prevent mobile focus-zoom and surface disclosure state in dense edit lists
 - Type: Guardrail
 - Summary: On mobile form-heavy screens, keep input/select/textarea font sizes at or above 16px to prevent Safari focus zoom, and ensure disclosure controls reflect open/closed state with explicit label swaps.
