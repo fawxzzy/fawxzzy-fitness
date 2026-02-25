@@ -1,5 +1,29 @@
 # Playbook Notes (Local Inbox)
 
+## 2026-02-25 — Prefer route-based detail screens over nested overlays for dense mobile content
+- Type: Guardrail
+- Summary: When an inline modal cannot comfortably present exercise/media metadata on small screens, move that content to a dedicated route with explicit return navigation.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Route-based detail pages reduce overlay stacking complexity and give dense instructional content enough layout space to stay readable.
+- Evidence: src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
+
+## 2026-02-25 — Prevent mobile focus-zoom and surface disclosure state in dense edit lists
+- Type: Guardrail
+- Summary: On mobile form-heavy screens, keep input/select/textarea font sizes at or above 16px to prevent Safari focus zoom, and ensure disclosure controls reflect open/closed state with explicit label swaps.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Focus-zoom jumps and ambiguous disclosure labels create avoidable navigation friction in touch workflows.
+- Evidence: src/app/globals.css, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
+## 2026-02-24 — Keep workout-day switching session-scoped on Today
+- Type: Guardrail
+- Summary: When users need to run a different routine day ad hoc, apply the selection as a temporary session-start override instead of mutating routine day order or start-date metadata.
+- Suggested Playbook File: patterns/frontend/mobile-session-flows.md
+- Rationale: Session-scoped overrides satisfy day-switch intent quickly while preserving deterministic routine structure and avoiding accidental long-term plan drift.
+- Evidence: src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx
+- Status: Proposed
+
 This file is a project-local inbox for suggestions that should be upstreamed into the central Playbook repository.
 
 ## YYYY-MM-DD — <short title>
@@ -10,6 +34,13 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: <file paths in this repo that triggered the note>
 - Status: Proposed | Upstreamed | Rejected
 
+## 2026-02-23 — Reuse shared list-shell tokens across tabbed mobile feeds
+- Type: Pattern
+- Summary: For sibling list tabs (for example Routines and History), centralize shell-only classes (viewport height, overflow behavior, snap, card shell, and action tap-target sizing) in one tiny token module.
+- Suggested Playbook File: patterns/frontend/mobile-list-cards.md
+- Rationale: Shared shell tokens keep mobile list ergonomics consistent without introducing heavy component abstraction or visual redesign drift.
+- Evidence: src/components/ui/listShellClasses.ts, src/app/routines/page.tsx, src/app/history/page.tsx
+- Status: Proposed
 ## 2026-02-22 — Standardize mobile press feedback via shared class constant
 - Type: Pattern
 - Summary: Use a shared tap-feedback utility constant (`active` scale + opacity + short transition) for button-like controls in touch-heavy flows, and pair it with existing `focus-visible` rings.
@@ -142,4 +173,98 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: patterns/frontend/history-audit-views.md
 - Rationale: Completed records should communicate finality and avoid accidental “resume session” behavior while still allowing intentional note/day-name corrections.
 - Evidence: src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed
+
+
+## 2026-02-23 — Standardize server-action result semantics with navigation-only redirects
+- Type: Guardrail
+- Summary: Use a shared `ActionResult<T>` union (`ok + data` success, `ok + error` failure) for non-navigation server-action outcomes, and reserve redirects strictly for navigation transitions.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: Mixed return/redirect error semantics increase UI adapter complexity and make action behavior less deterministic across features.
+- Evidence: src/lib/action-result.ts, src/app/session/[id]/actions.ts, src/components/SessionTimers.tsx, src/lib/offline/sync-engine.ts
+- Status: Proposed
+
+## 2026-02-23 — Persist long-running workout timers with restart-safe local state
+- Type: Pattern
+- Summary: For in-progress workout/session timers, persist `{elapsedSeconds, isRunning, runningStartedAt}` to local storage and restore from wall-clock delta so timers survive app backgrounding and process restarts.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Timer continuity is user-critical session state and should not reset when the app is closed or backgrounded.
+- Evidence: src/components/SessionTimers.tsx
+- Status: Proposed
+
+## 2026-02-24 — Tie resumable-session UI state to explicit local storage keys
+- Type: Pattern
+- Summary: For resumable workout flows, persist per-exercise logger state (`sets + form inputs`) under deterministic `sessionId + sessionExerciseId` keys and restore on mount before queue hydration.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Users expect “resume workout” continuity to include in-progress interaction state, not just server-fetched records.
+- Evidence: src/components/SessionTimers.tsx
+- Status: Proposed
+
+## 2026-02-24 — Resolve local-day status and timestamps from one timezone source
+- Type: Guardrail
+- Summary: For day-scoped workout UX (today routing, completion badges, and history clocks), derive day windows and displayed timestamps from user-local timezone context instead of mixing routine/server timezone assumptions.
+- Suggested Playbook File: patterns/timezone-determinism.md
+- Rationale: Mixed timezone sources can shift local-day boundaries and produce incorrect “current day” and saved-time displays.
+- Evidence: src/app/today/page.tsx, src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
+
+## 2026-02-24 — Start-workout server action should return ActionResult for non-navigation failures
+- Type: Guardrail
+- Summary: For server actions that can fail in-place (like starting a workout from Today), return `ActionResult<T>` failures to the client and handle feedback in UI; navigate only on successful transition.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: Redirect-based error transport (`?error=...`) mixes navigation and failure semantics, while ActionResult keeps outcomes deterministic for client adapters.
+- Evidence: src/app/today/page.tsx, src/app/today/TodayStartButton.tsx
+- Status: Proposed
+
+## 2026-02-24 — Restore persisted running timers with non-additive wall-clock reconciliation
+- Type: Guardrail
+- Summary: When resuming persisted running timers, derive elapsed time from one authoritative source (`runningStartedAt`) or reconcile with stored elapsed using `max(...)`; do not add both values together.
+- Suggested Playbook File: patterns/frontend/offline-resilience.md
+- Rationale: Additive reconciliation can double-count elapsed time after navigation/resume and breaks deterministic timer continuity.
+- Evidence: src/components/SessionTimers.tsx
+- Status: Proposed
+
+## 2026-02-24 — Exercise-picker detail overlays should lazy-load metadata via strict server action
+- Type: Pattern
+- Summary: Keep exercise pickers fast by loading a minimal option list first (`id`, `name`, lightweight tags/thumb) and fetch full detail payload only when the user opens an info overlay.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: This preserves responsive search/select UX and keeps database access in authenticated server actions with explicit ActionResult contracts.
+- Evidence: src/components/ExercisePicker.tsx, src/app/actions/exercises.ts, src/lib/exercises.ts
+- Status: Proposed
+
+## 2026-02-24 — Use shared button tokens/components for primary cross-screen actions
+- Type: Pattern
+- Summary: Define app-level button design tokens once (size, colors, states, motion) and apply shared button primitives to high-frequency actions (start/resume/end/create/view/change-day/back).
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Shared primitives prevent action-style drift and preserve consistent touch feedback/accessibility without redesigning each screen.
+- Evidence: src/app/globals.css, src/components/ui/AppButton.tsx, src/components/ui/TopRightBackButton.tsx, src/app/today/TodayDayPicker.tsx
+- Status: Proposed
+
+## 2026-02-25 — Keep timezone UX simple while preserving canonical storage values
+- Type: Pattern
+- Summary: Expose a small set of user-friendly timezone choices in mobile forms, then normalize device/legacy timezone inputs to canonical values used by server-side scheduling logic.
+- Suggested Playbook File: patterns/timezone-determinism.md
+- Rationale: A short, predictable timezone list reduces decision friction and accidental misconfiguration while preserving deterministic day-window behavior.
+- Evidence: src/lib/timezones.ts, src/app/routines/new/page.tsx, src/app/routines/[id]/edit/page.tsx, src/components/RoutineLocalDefaults.tsx
+- Status: Proposed
+
+## 2026-02-25 — Prefer inline chooser cards over fixed overlays inside constrained glass surfaces
+- Type: Guardrail
+- Summary: When an interaction is scoped to a single card (like day selection before start), render the chooser inline in normal layout flow rather than as a fixed overlay layered above backdrop-filter surfaces.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Fixed overlays inside constrained/mobile cards can cause clipping and visual artifacts with layered translucent backgrounds.
+- Evidence: src/app/today/TodayDayPicker.tsx
+- Status: Proposed
+
+### 2026-02-25 — Prefer in-app dirty-navigation guards over browser-native prompts for routine editing
+- Context: Routine edit/discard protection produced disruptive native browser confirm dialogs.
+- Decision: Use scoped in-app confirmation modal for in-app navigation on dirty state, and avoid global/unscoped unload prompts unless strictly required.
+- Impact: Keeps navigation intent clear on mobile, reduces accidental prompt fatigue, and preserves clean client UX boundaries.
+
+## 2026-02-25 — Debounce persisted scroll state in dense interactive lists
+- Type: Guardrail
+- Summary: When list scroll position is only needed for return-navigation context, debounce persistence writes/state updates instead of updating React state on every scroll event.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Per-pixel state updates can cause visible scroll jank in long interactive lists on mobile.
+- Evidence: src/components/ExercisePicker.tsx
 - Status: Proposed

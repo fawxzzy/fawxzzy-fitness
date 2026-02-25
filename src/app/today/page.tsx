@@ -3,19 +3,23 @@ import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
+import { TodayDayPicker } from "@/app/today/TodayDayPicker";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { Glass } from "@/components/ui/Glass";
+import { DestructiveButton } from "@/components/ui/AppButton";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { formatRepTarget, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
+import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
-async function startSessionAction() {
+async function startSessionAction(payload?: { dayIndex?: number }): Promise<ActionResult<{ sessionId: string }>> {
   "use server";
 
   const user = await requireUser();
@@ -23,25 +27,29 @@ async function startSessionAction() {
   const profile = await ensureProfile(user.id);
 
   if (!profile.active_routine_id) {
-    redirect("/today?error=No%20active%20routine%20selected");
+    return { ok: false, error: "No active routine selected" };
   }
 
   const { data: activeRoutine, error: routineError } = await supabase
     .from("routines")
-    .select("id, name, cycle_length_days, start_date")
+    .select("id, name, cycle_length_days, start_date, timezone")
     .eq("id", profile.active_routine_id)
     .eq("user_id", user.id)
     .single();
 
   if (routineError || !activeRoutine) {
-    redirect(`/today?error=${encodeURIComponent(routineError?.message ?? "Active routine not found")}`);
+    return { ok: false, error: routineError?.message ?? "Active routine not found" };
   }
 
-  const { dayIndex: routineDayIndex } = getRoutineDayComputation({
+  const defaultDay = getRoutineDayComputation({
     cycleLengthDays: activeRoutine.cycle_length_days,
     startDate: activeRoutine.start_date,
-    profileTimeZone: profile.timezone,
+    profileTimeZone: activeRoutine.timezone || profile.timezone,
   });
+
+  const routineDayIndex = payload?.dayIndex && Number.isInteger(payload.dayIndex)
+    ? payload.dayIndex
+    : defaultDay.dayIndex;
 
   const { data: routineDay, error: routineDayError } = await supabase
     .from("routine_days")
@@ -52,7 +60,7 @@ async function startSessionAction() {
     .single();
 
   if (routineDayError || !routineDay) {
-    redirect(`/today?error=${encodeURIComponent(routineDayError?.message ?? "Routine day not found")}`);
+    return { ok: false, error: routineDayError?.message ?? "Routine day not found" };
   }
 
   const routineDayName = routineDay.name || `Day ${routineDayIndex}`;
@@ -65,7 +73,7 @@ async function startSessionAction() {
     .order("position", { ascending: true });
 
   if (templateError) {
-    redirect(`/today?error=${encodeURIComponent(templateError.message)}`);
+    return { ok: false, error: templateError.message };
   }
 
   const { data: session, error: sessionError } = await supabase
@@ -82,7 +90,7 @@ async function startSessionAction() {
     .single();
 
   if (sessionError || !session) {
-    redirect(`/today?error=${encodeURIComponent(sessionError?.message ?? "Could not create session")}`);
+    return { ok: false, error: sessionError?.message ?? "Could not create session" };
   }
 
   if ((templateExercises ?? []).length > 0) {
@@ -98,11 +106,86 @@ async function startSessionAction() {
     );
 
     if (exerciseError) {
-      redirect(`/today?error=${encodeURIComponent(exerciseError.message)}`);
+      return { ok: false, error: exerciseError.message };
     }
   }
 
-  redirect(`/session/${session.id}`);
+  return { ok: true, data: { sessionId: session.id } };
+}
+
+
+async function discardInProgressSessionAction(formData: FormData): Promise<void> {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const sessionId = String(formData.get("sessionId") ?? "").trim();
+
+  if (!sessionId) {
+    redirect(`/today?error=${encodeURIComponent("Missing session")}`);
+  }
+
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .select("id")
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .eq("status", "in_progress")
+    .maybeSingle();
+
+  if (sessionError) {
+    redirect(`/today?error=${encodeURIComponent(sessionError.message)}`);
+  }
+
+  if (!session) {
+    redirect(`/today?error=${encodeURIComponent("In-progress session not found")}`);
+  }
+
+  const { data: sessionExerciseRows, error: sessionExerciseReadError } = await supabase
+    .from("session_exercises")
+    .select("id")
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id);
+
+  if (sessionExerciseReadError) {
+    redirect(`/today?error=${encodeURIComponent(sessionExerciseReadError.message)}`);
+  }
+
+  const sessionExerciseIds = (sessionExerciseRows ?? []).map((row) => row.id);
+  if (sessionExerciseIds.length > 0) {
+    const { error: setsDeleteError } = await supabase
+      .from("sets")
+      .delete()
+      .in("session_exercise_id", sessionExerciseIds)
+      .eq("user_id", user.id);
+
+    if (setsDeleteError) {
+      redirect(`/today?error=${encodeURIComponent(setsDeleteError.message)}`);
+    }
+
+    const { error: sessionExerciseDeleteError } = await supabase
+      .from("session_exercises")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("user_id", user.id);
+
+    if (sessionExerciseDeleteError) {
+      redirect(`/today?error=${encodeURIComponent(sessionExerciseDeleteError.message)}`);
+    }
+  }
+
+  const { error: sessionDeleteError } = await supabase
+    .from("sessions")
+    .delete()
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .eq("status", "in_progress");
+
+  if (sessionDeleteError) {
+    redirect(`/today?error=${encodeURIComponent(sessionDeleteError.message)}`);
+  }
+
+  redirect("/today");
 }
 
 export default async function TodayPage({ searchParams }: { searchParams?: { error?: string } }) {
@@ -113,10 +196,12 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   let activeRoutine: RoutineRow | null = null;
   let todayRoutineDay: RoutineDayRow | null = null;
   let dayExercises: RoutineDayExerciseRow[] = [];
+  let allDayExercises: RoutineDayExerciseRow[] = [];
   let todayDayIndex: number | null = null;
   let completedTodayCount = 0;
   let inProgressSession: SessionRow | null = null;
   let fetchFailed = false;
+  let routineDays: RoutineDayRow[] = [];
 
   if (profile.active_routine_id) {
     try {
@@ -133,33 +218,37 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         const { dayIndex } = getRoutineDayComputation({
           cycleLengthDays: activeRoutine.cycle_length_days,
           startDate: activeRoutine.start_date,
-          profileTimeZone: profile.timezone,
+          profileTimeZone: activeRoutine.timezone || profile.timezone,
         });
 
         todayDayIndex = dayIndex;
 
-        const { data: routineDay } = await supabase
+        const { data: routineDayRows } = await supabase
           .from("routine_days")
           .select("id, user_id, routine_id, day_index, name, is_rest, notes")
           .eq("routine_id", activeRoutine.id)
-          .eq("day_index", todayDayIndex)
           .eq("user_id", user.id)
-          .single();
+          .order("day_index", { ascending: true });
 
-        todayRoutineDay = (routineDay as RoutineDayRow | null) ?? null;
+        routineDays = (routineDayRows ?? []) as RoutineDayRow[];
+        todayRoutineDay = routineDays.find((day) => day.day_index === todayDayIndex) ?? null;
 
-        if (todayRoutineDay) {
-          const { data: exercises } = await supabase
+        if (routineDays.length > 0) {
+          const { data: allExercises } = await supabase
             .from("routine_day_exercises")
             .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
-            .eq("routine_day_id", todayRoutineDay.id)
+            .in("routine_day_id", routineDays.map((day) => day.id))
             .eq("user_id", user.id)
             .order("position", { ascending: true });
 
-          dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
+          allDayExercises = (allExercises ?? []) as RoutineDayExerciseRow[];
         }
 
-        const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone);
+        if (todayRoutineDay) {
+          dayExercises = allDayExercises.filter((exercise) => exercise.routine_day_id === todayRoutineDay?.id);
+        }
+
+        const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
 
         const { count: completedTodayCountValue } = await supabase
           .from("sessions")
@@ -205,6 +294,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             dayIndex: todayDayIndex,
             dayName: routineDayName,
             isRest: todayRoutineDay.is_rest,
+            routineId: activeRoutine.id,
+            routineDayId: todayRoutineDay.id,
           }
         : null,
     exercises: dayExercises.map((exercise) => ({
@@ -241,24 +332,51 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       {todayPayload.routine && !fetchFailed ? (
         <Glass variant="base" className="space-y-3 p-4" interactive={false}>
           <OfflineSyncBadge />
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
-            {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
-          </div>
-
-          <ul className="space-y-1 text-sm">
-            {todayPayload.exercises.map((exercise) => (
-              <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
-            ))}
-            {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
-          </ul>
-
         {todayPayload.inProgressSessionId ? (
-            <Link href={`/session/${todayPayload.inProgressSessionId}`} className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Resume Workout</Link>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
+                {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
+              </div>
+
+              <ul className="space-y-1 text-sm">
+                {todayPayload.exercises.map((exercise) => (
+                  <li key={exercise.id} className="flex items-center justify-between gap-3 rounded-md bg-surface-2-strong px-3 py-2 text-text">
+                    <span className="truncate">{exercise.name}</span>
+                    {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
+                  </li>
+                ))}
+                {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
+              </ul>
+
+              <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>Resume Workout</Link>
+              <form action={discardInProgressSessionAction}>
+                <input type="hidden" name="sessionId" value={todayPayload.inProgressSessionId} />
+                <DestructiveButton type="submit" fullWidth>End Workout</DestructiveButton>
+              </form>
+            </div>
           ) : (
-            <form action={startSessionAction}>
-              <button type="submit" className="w-full rounded-lg bg-accent px-4 py-5 text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Start Workout</button>
-            </form>
+            <TodayDayPicker
+              routineName={todayPayload.routine.name}
+              days={routineDays.map((day) => ({
+                id: day.id,
+                dayIndex: day.day_index,
+                name: day.name || `Day ${day.day_index}`,
+                isRest: day.is_rest,
+                exercises: allDayExercises
+                  .filter((exercise) => exercise.routine_day_id === day.id)
+                  .map((exercise) => ({
+                    id: exercise.id,
+                    name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+                    targets: exercise.target_sets
+                      ? `${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
+                      : null,
+                  })),
+              }))}
+              currentDayIndex={todayPayload.routine.dayIndex}
+              completedTodayCount={todayPayload.completedTodayCount}
+              startSessionAction={startSessionAction}
+            />
           )}
         </Glass>
       ) : (

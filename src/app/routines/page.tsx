@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { AppNav } from "@/components/AppNav";
+import { DestructiveButton } from "@/components/ui/AppButton";
 import { Glass } from "@/components/ui/Glass";
+import { listShellClasses } from "@/components/ui/listShellClasses";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
+import { revalidateHistoryViews, revalidateRoutinesViews } from "@/lib/revalidation";
 import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +43,7 @@ async function setActiveRoutineAction(formData: FormData) {
     throw new Error(profileError.message);
   }
 
-  revalidatePath("/routines");
-  revalidatePath("/today");
+  revalidateRoutinesViews();
 }
 
 async function deleteRoutineAction(formData: FormData) {
@@ -97,9 +99,8 @@ async function deleteRoutineAction(formData: FormData) {
     throw new Error(deleteError.message);
   }
 
-  revalidatePath("/routines");
-  revalidatePath("/today");
-  revalidatePath("/history");
+  revalidateRoutinesViews();
+  revalidateHistoryViews();
 }
 
 export default async function RoutinesPage() {
@@ -119,42 +120,38 @@ export default async function RoutinesPage() {
     <section className="space-y-4">
       <AppNav />
 
-      <Glass variant="base" className="p-2" interactive={false}>
-        <Link
-          href="/routines/new"
-          className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-        >
-          Create Routine
-        </Link>
-      </Glass>
+      <Glass variant="base" className="space-y-2 p-2" interactive={false}>
+        <div className="w-full">
+          <Link
+            href="/routines/new"
+            className={getAppButtonClassName({ variant: "secondary", state: "active", fullWidth: true })}
+          >
+            Create Routine
+          </Link>
+        </div>
 
-      <Glass variant="base" className="p-2" interactive={false}>
-        <ul className="max-h-[58vh] space-y-3 overflow-y-auto overscroll-contain pr-1 scroll-py-2 snap-y snap-mandatory md:max-h-[68vh]">
+        <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
           {routines.map((routine) => {
             const isActive = profile.active_routine_id === routine.id;
 
             return (
-              <li key={routine.id} className="snap-start rounded-xl border border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] bg-[rgb(var(--glass-tint-rgb)/0.72)] p-4">
+              <li key={routine.id} className={listShellClasses.card}>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1">
-                    <p className="truncate text-base font-semibold text-slate-900">{routine.name}</p>
-                    <p className="text-xs text-slate-600">{routine.cycle_length_days} day cycle · {routine.weight_unit}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-slate-900 underline decoration-slate-400/80 underline-offset-2">{routine.name}</p>
                   </div>
                   <div className="flex gap-2 text-sm">
                     <Link
                       href={`/routines/${routine.id}/edit`}
-                      className="rounded-full border border-white/55 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur transition-all hover:bg-white/60"
+                      className={`${listShellClasses.pillAction} border border-accent/40 bg-accent/10 text-accent/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20`}
                     >
                       Edit
                     </Link>
                     <form action={deleteRoutineAction}>
                       <input type="hidden" name="routineId" value={routine.id} />
-                      <button
-                        type="submit"
-                        className="rounded-full border border-red-200/80 bg-red-100/65 px-3 py-1 text-xs font-semibold text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85"
-                      >
+                      <DestructiveButton type="submit" size="sm" className={listShellClasses.pillAction}>
                         Delete
-                      </button>
+                      </DestructiveButton>
                     </form>
                   </div>
                 </div>

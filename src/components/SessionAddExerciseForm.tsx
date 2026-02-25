@@ -4,19 +4,19 @@ import { useRouter } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
+import type { ActionResult } from "@/lib/action-result";
 
 type ExerciseOption = {
   id: string;
   name: string;
   user_id: string | null;
   is_global: boolean;
+  primary_muscle: string | null;
+  equipment: string | null;
+  movement_pattern: string | null;
+  image_howto_path: string | null;
 };
 
-type AddExerciseResult = {
-  ok: boolean;
-  error?: string;
-  message?: string;
-};
 
 export function SessionAddExerciseForm({
   sessionId,
@@ -27,7 +27,7 @@ export function SessionAddExerciseForm({
   sessionId: string;
   exercises: ExerciseOption[];
   initialSelectedId?: string;
-  addExerciseAction: (formData: FormData) => Promise<AddExerciseResult>;
+  addExerciseAction: (formData: FormData) => Promise<ActionResult>;
 }) {
   const toast = useToast();
   const router = useRouter();

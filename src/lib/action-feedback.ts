@@ -1,10 +1,8 @@
 "use client";
 
-type ActionResult = {
-  ok: boolean;
-  error?: string;
-  message?: string;
-};
+import type { ActionResult } from "@/lib/action-result";
+
+type ActionFeedbackResult = ActionResult | { ok: boolean; error?: string };
 
 type ToastApi = {
   success: (message: string) => void;
@@ -13,13 +11,13 @@ type ToastApi = {
 
 export function toastActionResult(
   toast: ToastApi,
-  result: ActionResult,
+  result: ActionFeedbackResult,
   messages: { success: string; error: string },
 ) {
   if (result.ok) {
-    toast.success(result.message ?? messages.success);
+    toast.success(messages.success);
     return;
   }
 
-  toast.error(result.error ?? messages.error);
+  toast.error(result.error || messages.error);
 }

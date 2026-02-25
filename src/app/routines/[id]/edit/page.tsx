@@ -5,9 +5,10 @@ import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
-import { createRoutineDaySeedsFromStartDate, getRoutineDayNamesFromStartDate } from "@/lib/routines";
+import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
+import { getRoutineEditPath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
+import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, normalizeRoutineTimezone, toCanonicalRoutineTimezone } from "@/lib/timezones";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ type PageProps = {
     error?: string;
     success?: string;
     exerciseId?: string;
+    copiedDayId?: string;
   };
 };
 
@@ -54,7 +56,9 @@ async function updateRoutineAction(formData: FormData) {
     throw new Error("Missing required fields");
   }
 
-  if (!isRoutineTimezone(timezone)) {
+  const canonicalTimezone = toCanonicalRoutineTimezone(timezone);
+
+  if (!canonicalTimezone) {
     throw new Error("Please select a supported timezone.");
   }
 
@@ -81,7 +85,7 @@ async function updateRoutineAction(formData: FormData) {
     .from("routines")
     .update({
       name,
-      timezone,
+      timezone: canonicalTimezone,
       start_date: startDate,
       cycle_length_days: cycleLengthDays,
       weight_unit: weightUnit,
@@ -129,37 +133,136 @@ async function updateRoutineAction(formData: FormData) {
     }
   }
 
-  const dayNameUpdates = getRoutineDayNamesFromStartDate(cycleLengthDays, startDate);
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineEditPath(routineId));
+  redirect("/routines");
+}
 
-  const { data: existingDayRows, error: existingDayRowsError } = await supabase
-    .from("routine_days")
-    .select("id, day_index")
-    .eq("routine_id", routineId)
-    .eq("user_id", user.id);
 
-  if (existingDayRowsError) {
-    throw new Error(existingDayRowsError.message);
+function buildRoutineEditQuery(params: { error?: string; success?: string; copiedDayId?: string }) {
+  const query = new URLSearchParams();
+
+  if (params.error) {
+    query.set("error", params.error);
   }
 
-  for (const day of existingDayRows ?? []) {
-    const nextName = dayNameUpdates[day.day_index - 1];
-    if (!nextName) continue;
+  if (params.success) {
+    query.set("success", params.success);
+  }
 
-    const { error: renameDayError } = await supabase
-      .from("routine_days")
-      .update({ name: nextName })
-      .eq("id", day.id)
-      .eq("user_id", user.id);
+  if (params.copiedDayId) {
+    query.set("copiedDayId", params.copiedDayId);
+  }
 
-    if (renameDayError) {
-      throw new Error(renameDayError.message);
+  const value = query.toString();
+  return value ? `?${value}` : "";
+}
+
+async function copyRoutineDayAction(formData: FormData) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const routineId = String(formData.get("routineId") ?? "");
+  const dayId = String(formData.get("dayId") ?? "");
+
+  if (!routineId || !dayId) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: "Missing day to copy." })}`);
+  }
+
+  const { data: day } = await supabase
+    .from("routine_days")
+    .select("id")
+    .eq("id", dayId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!day) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: "Day not found." })}`);
+  }
+
+  redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ success: "Day copied. Choose another day to paste it.", copiedDayId: dayId })}`);
+}
+
+async function pasteRoutineDayAction(formData: FormData) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const routineId = String(formData.get("routineId") ?? "");
+  const sourceDayId = String(formData.get("sourceDayId") ?? "");
+  const targetDayId = String(formData.get("targetDayId") ?? "");
+
+  if (!routineId || !sourceDayId || !targetDayId) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: "Missing day copy info.", copiedDayId: sourceDayId || undefined })}`);
+  }
+
+  if (sourceDayId === targetDayId) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: "Choose a different day to paste into.", copiedDayId: sourceDayId })}`);
+  }
+
+  const { data: routineDays, error: routineDaysError } = await supabase
+    .from("routine_days")
+    .select("id")
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id)
+    .in("id", [sourceDayId, targetDayId]);
+
+  if (routineDaysError || (routineDays?.length ?? 0) !== 2) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: "Unable to validate source/target day.", copiedDayId: sourceDayId })}`);
+  }
+
+  const { data: sourceExercises, error: sourceError } = await supabase
+    .from("routine_day_exercises")
+    .select("exercise_id, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, notes, position")
+    .eq("routine_day_id", sourceDayId)
+    .eq("user_id", user.id)
+    .order("position", { ascending: true });
+
+  if (sourceError) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: sourceError.message, copiedDayId: sourceDayId })}`);
+  }
+
+  const { error: clearError } = await supabase
+    .from("routine_day_exercises")
+    .delete()
+    .eq("routine_day_id", targetDayId)
+    .eq("user_id", user.id);
+
+  if (clearError) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: clearError.message, copiedDayId: sourceDayId })}`);
+  }
+
+  if ((sourceExercises ?? []).length > 0) {
+    const payload = (sourceExercises ?? []).map((exercise, index) => ({
+      user_id: user.id,
+      routine_day_id: targetDayId,
+      exercise_id: exercise.exercise_id,
+      target_sets: exercise.target_sets,
+      target_reps: exercise.target_reps,
+      target_reps_min: exercise.target_reps_min,
+      target_reps_max: exercise.target_reps_max,
+      target_weight: exercise.target_weight,
+      target_weight_unit: exercise.target_weight_unit,
+      target_duration_seconds: exercise.target_duration_seconds,
+      notes: exercise.notes,
+      position: index,
+    }));
+
+    const { error: insertError } = await supabase.from("routine_day_exercises").insert(payload);
+
+    if (insertError) {
+      redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: insertError.message, copiedDayId: sourceDayId })}`);
     }
   }
 
-  revalidatePath("/routines");
-  revalidatePath(`/routines/${routineId}/edit`);
-  revalidatePath("/today");
-  redirect("/routines");
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineEditPath(routineId));
+  revalidatePath(`/routines/${routineId}/edit/day/${targetDayId}`);
+  redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ success: "Day pasted.", copiedDayId: sourceDayId })}`);
 }
 
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
@@ -188,20 +291,37 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const { data: exercises } = routineDayIds.length
     ? await supabase
         .from("routine_day_exercises")
-        .select("id, user_id, routine_day_id")
+        .select("id, user_id, routine_day_id, exercise_id, position")
         .in("routine_day_id", routineDayIds)
         .eq("user_id", user.id)
+        .order("position", { ascending: true })
     : { data: [] };
 
-  const exerciseRows = (exercises ?? []) as Pick<RoutineDayExerciseRow, "id" | "routine_day_id">[];
+  const exerciseRows = (exercises ?? []) as Pick<RoutineDayExerciseRow, "id" | "routine_day_id" | "exercise_id">[];
+  const exerciseIds = Array.from(new Set(exerciseRows.map((row) => row.exercise_id)));
+
+  const { data: exerciseData } = exerciseIds.length
+    ? await supabase
+        .from("exercises")
+        .select("id, name")
+        .in("id", exerciseIds)
+    : { data: [] };
+
+  const exerciseNameById = new Map((exerciseData ?? []).map((exercise) => [exercise.id, exercise.name]));
   const dayExerciseCount = new Map<string, number>();
+  const dayExercisePreview = new Map<string, string[]>();
+
   for (const row of exerciseRows) {
     dayExerciseCount.set(row.routine_day_id, (dayExerciseCount.get(row.routine_day_id) ?? 0) + 1);
+    const preview = dayExercisePreview.get(row.routine_day_id) ?? [];
+    if (preview.length < 3) {
+      preview.push(exerciseNameById.get(row.exercise_id) ?? "Exercise");
+      dayExercisePreview.set(row.routine_day_id, preview);
+    }
   }
 
-  const routineTimezoneDefault = isRoutineTimezone((routine as RoutineRow).timezone)
-    ? (routine as RoutineRow).timezone
-    : "America/Toronto";
+  const routineTimezoneDefault = normalizeRoutineTimezone((routine as RoutineRow).timezone);
+  const copiedDayId = searchParams?.copiedDayId ?? "";
 
   return (
     <section className="space-y-4">
@@ -212,6 +332,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
+      {copiedDayId ? <p className="rounded-md border border-border bg-surface-2-soft px-3 py-2 text-xs text-muted">Day copy is ready. Tap “Paste day” on a target day card.</p> : null}
 
       <form action={updateRoutineAction} className="space-y-3">
         <input type="hidden" name="routineId" value={routine.id} />
@@ -225,6 +346,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
             </label>
             <label className="block text-sm">Cycle length (days)
+              <p className="mt-1 text-xs text-slate-500">Includes workout and rest days in the repeat cycle.</p>
               <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
             </label>
             <label className="block text-sm">Units
@@ -235,10 +357,11 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             </label>
             <label className="block text-sm">Timezone
               <select name="timezone" required defaultValue={routineTimezoneDefault} className={controlClassName}>
-                {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{timeZoneOption}</option>))}
+                {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{getRoutineTimezoneLabel(timeZoneOption)}</option>))}
               </select>
             </label>
             <label className="block text-sm">Start date
+              <p className="mt-1 text-xs text-slate-500">Sets which calendar day is Day 1 for this cycle.</p>
               <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
             </label>
           </div>
@@ -249,18 +372,50 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
       <div className="space-y-2">
         {routineDays.map((day) => {
           const count = dayExerciseCount.get(day.id) ?? 0;
+          const preview = dayExercisePreview.get(day.id) ?? [];
+
           return (
-            <Link
+            <div
               key={day.id}
-              href={`/routines/${params.id}/edit/day/${day.id}`}
-              className="block cursor-pointer rounded-md border border-slate-300 bg-surface-soft p-4 transition-colors hover:border-[rgb(var(--border)/0.8)] hover:bg-surface-2-soft active:bg-surface-2-active"
+              className="rounded-md border border-slate-300 bg-surface-soft p-4"
             >
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
-                <span className="text-xs text-slate-500">Tap to edit</span>
+              <Link
+                href={`/routines/${params.id}/edit/day/${day.id}`}
+                className="block cursor-pointer transition-colors hover:text-text"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
+                  <span className="text-xs text-slate-500">Tap to edit</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
+                {!day.is_rest && preview.length > 0 ? (
+                  <p className="mt-1 truncate text-xs text-slate-500">
+                    {preview.join(" • ")}
+                    {count > preview.length ? " • …" : ""}
+                  </p>
+                ) : null}
+              </Link>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <form action={copyRoutineDayAction}>
+                  <input type="hidden" name="routineId" value={params.id} />
+                  <input type="hidden" name="dayId" value={day.id} />
+                  <button type="submit" className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs">Copy day</button>
+                </form>
+                <form action={pasteRoutineDayAction}>
+                  <input type="hidden" name="routineId" value={params.id} />
+                  <input type="hidden" name="sourceDayId" value={copiedDayId} />
+                  <input type="hidden" name="targetDayId" value={day.id} />
+                  <button
+                    type="submit"
+                    disabled={!copiedDayId || copiedDayId === day.id}
+                    className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Paste day
+                  </button>
+                </form>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
-            </Link>
+            </div>
           );
         })}
       </div>

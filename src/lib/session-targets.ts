@@ -6,6 +6,7 @@ export type DisplayTarget = {
   sets?: number;
   repsText?: string;
   weight?: number;
+  weightUnit?: "lbs" | "kg";
   durationSeconds?: number;
   source: "engine" | "template";
 };
@@ -62,7 +63,7 @@ export async function getSessionTargets(sessionId: string) {
 
   const { data: routineDayExercises } = await supabase
     .from("routine_day_exercises")
-    .select("exercise_id, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_duration_seconds")
+    .select("exercise_id, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds")
     .eq("routine_day_id", routineDay.id)
     .eq("user_id", user.id);
 
@@ -84,6 +85,9 @@ export async function getSessionTargets(sessionId: string) {
 
     if (exercise.target_weight !== null) {
       target.weight = Number(exercise.target_weight);
+      if (exercise.target_weight_unit === "lbs" || exercise.target_weight_unit === "kg") {
+        target.weightUnit = exercise.target_weight_unit;
+      }
     }
 
     if (exercise.target_duration_seconds !== null) {

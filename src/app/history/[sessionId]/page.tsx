@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
+import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { requireUser } from "@/lib/auth";
-import { formatDateTime } from "@/lib/datetime";
 import { getExerciseNameMap } from "@/lib/exercises";
+import { listExercises } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { LogAuditClient } from "./LogAuditClient";
@@ -60,7 +61,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const { data: setsData } = sessionExerciseIds.length
     ? await supabase
         .from("sets")
-        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe")
+        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe, weight_unit")
         .in("session_exercise_id", sessionExerciseIds)
         .eq("user_id", user.id)
         .order("set_index", { ascending: true })
@@ -77,6 +78,16 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
   const sessionRow = session as SessionRow & { routines?: Array<{ name: string; weight_unit: "lbs" | "kg" | null }> | { name: string; weight_unit: "lbs" | "kg" | null } | null };
 
+  const { data: routineDay } = sessionRow.routine_id && sessionRow.routine_day_index
+    ? await supabase
+        .from("routine_days")
+        .select("name")
+        .eq("routine_id", sessionRow.routine_id)
+        .eq("day_index", sessionRow.routine_day_index)
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : { data: null };
+
   const exerciseNameMap = await getExerciseNameMap();
   const exerciseNameRecord = Object.fromEntries(exerciseNameMap.entries());
   const routineField = sessionRow.routines;
@@ -86,7 +97,11 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const unitLabel = Array.isArray(routineField)
     ? routineField[0]?.weight_unit ?? "kg"
     : routineField?.weight_unit ?? "kg";
-  const effectiveDayName = sessionRow.day_name_override ?? sessionRow.routine_day_name ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
+  const effectiveDayName = sessionRow.day_name_override
+    ?? routineDay?.name
+    ?? sessionRow.routine_day_name
+    ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
+  const exerciseOptions = await listExercises();
 
   return (
     <section className="space-y-4">
@@ -98,7 +113,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         </Link>
         <h1 className="text-2xl font-semibold">Log Details</h1>
         <p className="mt-1 text-sm text-slate-600">
-          {routineName} • {effectiveDayName} • {formatDateTime(sessionRow.performed_at)} • {formatDuration(sessionRow.duration_seconds)}
+          {routineName} • {effectiveDayName} • <LocalDateTime value={sessionRow.performed_at} /> • {formatDuration(sessionRow.duration_seconds)}
         </p>
       </Glass>
 
@@ -108,6 +123,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         initialNotes={sessionRow.notes}
         unitLabel={unitLabel}
         exerciseNameMap={exerciseNameRecord}
+        exerciseOptions={exerciseOptions}
         exercises={sessionExercises.map((exercise) => ({
           id: exercise.id,
           exercise_id: exercise.exercise_id,
@@ -118,6 +134,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             weight: set.weight,
             reps: set.reps,
             duration_seconds: set.duration_seconds,
+            weight_unit: set.weight_unit,
           })),
         }))}
       />

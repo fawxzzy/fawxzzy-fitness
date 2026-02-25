@@ -10,6 +10,9 @@ import type { ExerciseRow } from "@/types/db";
 const FALLBACK_CREATED_AT = "1970-01-01T00:00:00.000Z";
 let hasLoggedMissingExerciseId = false;
 
+const VALID_MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "carry", "rotation"] as const;
+const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight"] as const;
+
 function logExerciseLoaderEvent(event: string, details?: Record<string, unknown>) {
   console.info("[exercises]", event, details ?? {});
 }
@@ -20,8 +23,11 @@ function fallbackGlobalExercises(): ExerciseRow[] {
     name: exercise.name,
     user_id: null,
     is_global: true,
-    primary_muscle: null,
-    equipment: null,
+    primary_muscle: exercise.primary_muscle,
+    equipment: exercise.equipment,
+    movement_pattern: exercise.movement_pattern,
+    image_howto_path: null,
+    how_to_short: exercise.how_to_short,
     created_at: FALLBACK_CREATED_AT,
   }));
 }
@@ -38,6 +44,26 @@ export function validateExerciseName(name: string) {
   }
 
   return normalized;
+}
+
+export function validateExerciseEquipment(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+  if ((VALID_EQUIPMENT as readonly string[]).includes(normalized)) {
+    return normalized;
+  }
+
+  throw new Error(`Equipment must be one of: ${VALID_EQUIPMENT.join(", ")}.`);
+}
+
+export function validateMovementPattern(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+  if ((VALID_MOVEMENT_PATTERNS as readonly string[]).includes(normalized)) {
+    return normalized;
+  }
+
+  throw new Error(`Movement pattern must be one of: ${VALID_MOVEMENT_PATTERNS.join(", ")}.`);
 }
 
 export async function listExercises() {
@@ -75,7 +101,7 @@ async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
   const supabase = supabaseServer();
   const { data: customData, error: customError } = await supabase
     .from("exercises")
-    .select("id, name, user_id, is_global, primary_muscle, equipment, created_at")
+    .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, image_howto_path, how_to_short, created_at")
     .eq("user_id", userId)
     .order("name", { ascending: true });
 
@@ -95,7 +121,7 @@ const listGlobalExercisesCached = unstable_cache(
     const supabase = supabaseServerAnon();
     const { data, error } = await supabase
       .from("exercises")
-      .select("id, name, user_id, is_global, primary_muscle, equipment, created_at")
+      .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, image_howto_path, how_to_short, created_at")
       .is("user_id", null)
       .eq("is_global", true)
       .order("name", { ascending: true });

@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
+import { RoutineLocalDefaults } from "@/components/RoutineLocalDefaults";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { createRoutineDaySeedsFromStartDate, getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
-import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
+import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, normalizeRoutineTimezone, toCanonicalRoutineTimezone } from "@/lib/timezones";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,9 @@ async function createRoutineAction(formData: FormData) {
     throw new Error("Name, timezone, and start date are required.");
   }
 
-  if (!isRoutineTimezone(timezone)) {
+  const canonicalTimezone = toCanonicalRoutineTimezone(timezone);
+
+  if (!canonicalTimezone) {
     throw new Error("Please select a supported timezone.");
   }
 
@@ -43,7 +46,7 @@ async function createRoutineAction(formData: FormData) {
       user_id: user.id,
       name,
       cycle_length_days: cycleLengthDays,
-      timezone,
+      timezone: canonicalTimezone,
       start_date: startDate,
       weight_unit: weightUnit,
     })
@@ -62,14 +65,14 @@ async function createRoutineAction(formData: FormData) {
     throw new Error(daysError.message);
   }
 
-  redirect("/routines");
+  redirect(`/routines/${routine.id}/edit?success=${encodeURIComponent("Routine created")}`);
 }
 
 export default async function NewRoutinePage() {
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const startDateDefault = getTodayDateInTimeZone(profile.timezone);
-  const routineTimezoneDefault = isRoutineTimezone(profile.timezone) ? profile.timezone : "America/Toronto";
+  const routineTimezoneDefault = normalizeRoutineTimezone(profile.timezone);
 
   return (
     <section className="space-y-4">
@@ -78,6 +81,7 @@ export default async function NewRoutinePage() {
         <RoutineBackButton href="/routines" />
       </div>
       <form action={createRoutineAction} className="space-y-3 rounded-md bg-white p-4 shadow-sm">
+        <RoutineLocalDefaults timezoneOptions={ROUTINE_TIMEZONE_OPTIONS} />
         <label className="block text-sm">
           Name
           <input
@@ -90,6 +94,7 @@ export default async function NewRoutinePage() {
 
         <label className="block text-sm">
           Cycle length (days)
+          <p className="mt-1 text-xs text-slate-500">Includes all days in your repeating cycle, including rest days.</p>
           <input
             type="number"
             name="cycleLengthDays"
@@ -119,7 +124,7 @@ export default async function NewRoutinePage() {
           >
             {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (
               <option key={timeZoneOption} value={timeZoneOption}>
-                {timeZoneOption}
+                {getRoutineTimezoneLabel(timeZoneOption)}
               </option>
             ))}
           </select>
@@ -127,6 +132,7 @@ export default async function NewRoutinePage() {
 
         <label className="block text-sm">
           Start date
+          <p className="mt-1 text-xs text-slate-500">This anchors Day 1 of the cycle on your selected date.</p>
           <input
             type="date"
             name="startDate"

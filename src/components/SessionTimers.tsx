@@ -5,11 +5,14 @@ import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
   readQueuedSetLogsBySessionExerciseId,
+  removeSetLogQueueItem,
   type SetLogQueueItem,
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
+import { SecondaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
+import type { ActionResult } from "@/lib/action-result";
 
 type AddSetPayload = {
   sessionId: string;
@@ -20,14 +23,11 @@ type AddSetPayload = {
   isWarmup: boolean;
   rpe: number | null;
   notes: string | null;
+  weightUnit: "lbs" | "kg";
   clientLogId?: string;
 };
 
-type AddSetActionResult = {
-  ok: boolean;
-  error?: string;
-  set?: SetRow;
-};
+type AddSetActionResult = ActionResult<{ set: SetRow }>;
 
 function formatSeconds(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60)
@@ -48,10 +48,34 @@ export function SessionTimerCard({
   sessionId: string;
   initialDurationSeconds: number | null;
   onDurationChange: (value: number) => void;
-  persistDurationAction: (payload: { sessionId: string; durationSeconds: number }) => Promise<{ ok: boolean }>;
+  persistDurationAction: (payload: { sessionId: string; durationSeconds: number }) => Promise<ActionResult>;
 }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(initialDurationSeconds ?? 0);
   const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    const key = `session-timer:${sessionId}`;
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as { elapsedSeconds?: number; isRunning?: boolean; runningStartedAt?: number | null };
+      const baseElapsed = Number.isFinite(parsed.elapsedSeconds) ? Number(parsed.elapsedSeconds) : 0;
+      if (parsed.isRunning && Number.isFinite(parsed.runningStartedAt)) {
+        const elapsedFromStart = Math.max(0, Math.floor((Date.now() - Number(parsed.runningStartedAt)) / 1000));
+        setElapsedSeconds(Math.max(baseElapsed, elapsedFromStart));
+        setIsRunning(true);
+        return;
+      }
+
+      setElapsedSeconds(baseElapsed);
+      setIsRunning(false);
+    } catch {
+      window.localStorage.removeItem(key);
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     onDurationChange(elapsedSeconds);
@@ -69,12 +93,46 @@ export function SessionTimerCard({
     return () => window.clearInterval(interval);
   }, [isRunning]);
 
+  useEffect(() => {
+    const key = `session-timer:${sessionId}`;
+    const payload = JSON.stringify({
+      elapsedSeconds,
+      isRunning,
+      runningStartedAt: isRunning ? Date.now() - (elapsedSeconds * 1000) : null,
+      updatedAt: Date.now(),
+    });
+    window.localStorage.setItem(key, payload);
+  }, [elapsedSeconds, isRunning, sessionId]);
+
+  useEffect(() => {
+    const handleBackgroundPersist = () => {
+      if (!isRunning) {
+        return;
+      }
+      void persistDurationAction({ sessionId, durationSeconds: elapsedSeconds });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleBackgroundPersist();
+      }
+    };
+
+    window.addEventListener("pagehide", handleBackgroundPersist);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", handleBackgroundPersist);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [elapsedSeconds, isRunning, persistDurationAction, sessionId]);
+
   return (
     <section className="space-y-2 rounded-md bg-white p-3 shadow-sm">
-      <h2 className="text-sm font-semibold">Session Timer</h2>
+      <h2 className="text-sm font-semibold">Timer</h2>
       <p className="text-3xl font-semibold tabular-nums">{formatSeconds(elapsedSeconds)}</p>
       <div className="grid grid-cols-2 gap-2">
-        <button
+        <SecondaryButton
           type="button"
           onClick={async () => {
             if (isRunning) {
@@ -82,21 +140,21 @@ export function SessionTimerCard({
             }
             setIsRunning((value) => !value);
           }}
-          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+          className={tapFeedbackClass}
         >
           {isRunning ? "Pause" : "Start"}
-        </button>
-        <button
+        </SecondaryButton>
+        <SecondaryButton
           type="button"
           onClick={async () => {
             setIsRunning(false);
             setElapsedSeconds(0);
             await persistDurationAction({ sessionId, durationSeconds: 0 });
           }}
-          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+          className={tapFeedbackClass}
         >
           Reset
-        </button>
+        </SecondaryButton>
       </div>
     </section>
   );
@@ -112,19 +170,33 @@ export function SetLoggerCard({
   syncQueuedSetLogsAction,
   unitLabel,
   initialSets,
+  onSetCountChange,
+  prefill,
+  deleteSetAction,
+  resetSignal,
 }: {
   sessionId: string;
   sessionExerciseId: string;
   addSetAction: (payload: AddSetPayload) => Promise<AddSetActionResult>;
   syncQueuedSetLogsAction: (payload: {
     items: SetLogQueueItem[];
-  }) => Promise<{ ok: boolean; results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>;
+  }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
   unitLabel: string;
   initialSets: SetRow[];
+  onSetCountChange?: (count: number) => void;
+  prefill?: {
+    weight?: number;
+    reps?: number;
+    durationSeconds?: number;
+    weightUnit?: "lbs" | "kg";
+  };
+  deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
+  resetSignal?: number;
 }) {
-  const [weight, setWeight] = useState("");
-  const [reps, setReps] = useState("");
-  const [durationSeconds, setDurationSeconds] = useState("");
+  const [weight, setWeight] = useState(prefill?.weight !== undefined ? String(prefill.weight) : "");
+  const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
+  const [reps, setReps] = useState(prefill?.reps !== undefined ? String(prefill.reps) : "");
+  const [durationSeconds, setDurationSeconds] = useState(prefill?.durationSeconds !== undefined ? String(prefill.durationSeconds) : "");
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +210,60 @@ export function SetLoggerCard({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const toast = useToast();
+
+  useEffect(() => {
+    onSetCountChange?.(sets.length);
+  }, [onSetCountChange, sets.length]);
+
+  useEffect(() => {
+    const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        sets?: DisplaySet[];
+        form?: { weight?: string; reps?: string; durationSeconds?: string; rpe?: string; isWarmup?: boolean; selectedWeightUnit?: "lbs" | "kg" };
+      };
+
+      if (Array.isArray(parsed.sets)) {
+        setSets(parsed.sets);
+      }
+
+      if (parsed.form) {
+        if (typeof parsed.form.weight === "string") setWeight(parsed.form.weight);
+        if (typeof parsed.form.reps === "string") setReps(parsed.form.reps);
+        if (typeof parsed.form.durationSeconds === "string") setDurationSeconds(parsed.form.durationSeconds);
+        if (typeof parsed.form.rpe === "string") setRpe(parsed.form.rpe);
+        if (typeof parsed.form.isWarmup === "boolean") setIsWarmup(parsed.form.isWarmup);
+        if (parsed.form.selectedWeightUnit === "kg" || parsed.form.selectedWeightUnit === "lbs") {
+          setSelectedWeightUnit(parsed.form.selectedWeightUnit);
+        }
+      }
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    }
+  }, [sessionExerciseId, sessionId]);
+
+  useEffect(() => {
+    const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
+    const payload = JSON.stringify({
+      sets,
+      form: {
+        weight,
+        reps,
+        durationSeconds,
+        rpe,
+        isWarmup,
+        selectedWeightUnit,
+      },
+      updatedAt: Date.now(),
+    });
+
+    window.localStorage.setItem(storageKey, payload);
+  }, [durationSeconds, isWarmup, reps, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -227,6 +353,7 @@ export function SetLoggerCard({
                 is_warmup: item.payload.isWarmup,
                 notes: item.payload.notes,
                 rpe: item.payload.rpe,
+                weight_unit: item.payload.weightUnit,
                 pending: true,
                 queueStatus: item.status,
               }),
@@ -268,6 +395,22 @@ export function SetLoggerCard({
     }
     return (elapsedSeconds / tapReps).toFixed(1);
   }, [elapsedSeconds, tapReps]);
+
+  function resetTimerState() {
+    setIsRunning(false);
+    setElapsedSeconds(0);
+    setTapReps(0);
+    setDurationSeconds("");
+    setUseTimerRepCount(false);
+  }
+
+  useEffect(() => {
+    if (!resetSignal) {
+      return;
+    }
+
+    resetTimerState();
+  }, [resetSignal]);
 
   async function handleLogSet() {
     const parsedWeight = Number(weight);
@@ -312,6 +455,7 @@ export function SetLoggerCard({
       is_warmup: isWarmup,
       notes: null,
       rpe: parsedRpe,
+      weight_unit: selectedWeightUnit,
       pending: true,
     };
 
@@ -330,6 +474,7 @@ export function SetLoggerCard({
           isWarmup,
           rpe: parsedRpe,
           notes: null,
+          weightUnit: selectedWeightUnit,
         },
       });
 
@@ -367,9 +512,10 @@ export function SetLoggerCard({
         isWarmup,
         rpe: parsedRpe,
         notes: null,
+        weightUnit: selectedWeightUnit,
       });
 
-      if (!result.ok || !result.set) {
+      if (!result.ok || !result.data?.set) {
         const queued = await enqueueSetLog({
           sessionId,
           sessionExerciseId,
@@ -380,6 +526,7 @@ export function SetLoggerCard({
             isWarmup,
             rpe: parsedRpe,
             notes: null,
+            weightUnit: selectedWeightUnit,
           },
         });
 
@@ -396,7 +543,7 @@ export function SetLoggerCard({
               : item,
           ),
         );
-        const message = queued ? "Could not reach server. Set queued for sync." : result.error ?? "Could not log set.";
+        const message = queued ? "Could not reach server. Set queued for sync." : (!result.ok ? result.error : "Could not log set.");
         setError(message);
         if (queued) {
           toast.success(message);
@@ -407,7 +554,7 @@ export function SetLoggerCard({
         return;
       }
 
-      setSets((current) => current.map((item) => (item.id === pendingId ? result.set! : item)));
+      setSets((current) => current.map((item) => (item.id === pendingId ? result.data!.set : item)));
       toast.success("Set logged.");
     } catch {
       const queued = await enqueueSetLog({
@@ -420,6 +567,7 @@ export function SetLoggerCard({
           isWarmup,
           rpe: parsedRpe,
           notes: null,
+          weightUnit: selectedWeightUnit,
         },
       });
       setSets((current) =>
@@ -455,6 +603,30 @@ export function SetLoggerCard({
     setIsSubmitting(false);
   }
 
+
+  async function handleDeleteSet(set: DisplaySet) {
+    if (set.pending || set.queueStatus) {
+      await removeSetLogQueueItem(set.id);
+      setSets((current) => current.filter((item) => item.id !== set.id));
+      toast.success("Queued set removed.");
+      return;
+    }
+
+    const result = await deleteSetAction({
+      sessionId,
+      sessionExerciseId,
+      setId: set.id,
+    });
+
+    if (!result.ok) {
+      toast.error(result.error || "Could not remove set.");
+      return;
+    }
+
+    setSets((current) => current.filter((item) => item.id !== set.id));
+    toast.success("Set removed.");
+  }
+
   return (
     <div className="space-y-2">
       <section className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2">
@@ -476,11 +648,7 @@ export function SetLoggerCard({
           <button
             type="button"
             onClick={() => {
-              setIsRunning(false);
-              setElapsedSeconds(0);
-              setTapReps(0);
-              setDurationSeconds("");
-              setUseTimerRepCount(false);
+              resetTimerState();
             }}
             className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
           >
@@ -522,9 +690,17 @@ export function SetLoggerCard({
           required
           value={weight}
           onChange={(event) => setWeight(event.target.value)}
-          placeholder={`Weight (${unitLabel})`}
+          placeholder={`Weight (${selectedWeightUnit})`}
           className="rounded-md border border-slate-300 px-2 py-2 text-sm"
         />
+        <select
+          value={selectedWeightUnit}
+          onChange={(event) => setSelectedWeightUnit(event.target.value === "kg" ? "kg" : "lbs")}
+          className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+        >
+          <option value="lbs">lbs</option>
+          <option value="kg">kg</option>
+        </select>
         <input
           type="number"
           ref={repsInputRef}
@@ -572,7 +748,7 @@ export function SetLoggerCard({
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
       <ul className="space-y-1 text-sm">
-        {animatedSets.map((set) => (
+        {animatedSets.map((set, index) => (
           <li
             key={set.id}
             className={[
@@ -581,10 +757,23 @@ export function SetLoggerCard({
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
           >
-            #{set.set_index + 1} · {set.weight} {unitLabel} × {set.reps} reps
-            {set.duration_seconds !== null ? ` · ${set.duration_seconds} sec` : ""}
-            {set.queueStatus ? ` · ${set.queueStatus}` : ""}
-            {set.pending && !set.queueStatus ? " · saving..." : ""}
+            <div className="flex items-center justify-between gap-2">
+              <span>
+                Set {index + 1} · {set.weight} {set.weight_unit ?? unitLabel} × {set.reps} reps
+                {set.duration_seconds !== null ? ` · ${set.duration_seconds} sec` : ""}
+                {set.queueStatus ? ` · ${set.queueStatus}` : ""}
+                {set.pending && !set.queueStatus ? " · saving..." : ""}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleDeleteSet(set);
+                }}
+                className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+              >
+                Remove
+              </button>
+            </div>
           </li>
         ))}
         {sets.length === 0 ? <li className="text-slate-500">No sets logged.</li> : null}

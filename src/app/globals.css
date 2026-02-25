@@ -14,6 +14,44 @@
   --accent: 18 94 74;
   --accent-strong: 28 124 99;
 
+  --button-height: 2.75rem;
+  --button-height-sm: 2.125rem;
+  --button-padding-x: 1rem;
+  --button-padding-x-sm: 0.75rem;
+  --button-font-size: 0.9375rem;
+  --button-font-size-sm: 0.8125rem;
+  --button-font-weight: 600;
+  --button-letter-spacing: 0;
+  --button-radius: 0.625rem;
+
+  --button-primary-bg: var(--accent);
+  --button-primary-bg-hover: var(--accent-strong);
+  --button-primary-bg-active: 15 82 65;
+  --button-primary-text: 247 250 252;
+  --button-primary-border: 32 115 93;
+
+  --button-secondary-bg: 48 56 68;
+  --button-secondary-bg-hover: 58 68 83;
+  --button-secondary-bg-active: 42 50 62;
+  --button-secondary-text: var(--text);
+  --button-secondary-border: 86 99 116;
+
+  --button-ghost-bg: 0 0 0 / 0;
+  --button-ghost-bg-hover: 255 255 255 / 0.08;
+  --button-ghost-bg-active: 255 255 255 / 0.12;
+  --button-ghost-text: var(--text);
+  --button-ghost-border: 120 133 150;
+
+  --button-destructive-bg: 126 32 45;
+  --button-destructive-bg-hover: 146 40 55;
+  --button-destructive-bg-active: 108 28 40;
+  --button-destructive-text: 255 239 241;
+  --button-destructive-border: 168 58 72;
+
+  --button-focus-ring: rgb(var(--accent) / 0.3);
+  --button-transition: 140ms ease;
+  --button-press-scale: 0.98;
+
   --radius-sm: 0.625rem;
   --radius-md: 0.875rem;
   --radius-lg: 1.125rem;
@@ -47,6 +85,8 @@
   --glass-current-blur-base: var(--glass-blur-base-on);
   --glass-current-blur-raised: var(--glass-blur-raised-on);
   --glass-current-blur-overlay: var(--glass-blur-overlay-on);
+
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
 }
 
 :root[data-glass-effects="reduced"] {
@@ -88,6 +128,26 @@ textarea {
   color: rgb(var(--text));
 }
 
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+details > summary .details-close-label {
+  display: none;
+}
+
+details[open] > summary .details-edit-label {
+  display: none;
+}
+
+details[open] > summary .details-close-label {
+  display: inline;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: rgb(var(--faint));
@@ -100,6 +160,39 @@ button,
   background-color: rgb(var(--surface-2));
   border: 1px solid rgb(var(--border));
   color: rgb(var(--text));
+}
+
+.app-button {
+  border-radius: var(--button-radius);
+  font-weight: var(--button-font-weight);
+  letter-spacing: var(--button-letter-spacing);
+  transition: transform var(--button-transition), background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);
+}
+
+.app-button-md {
+  height: var(--button-height);
+  padding-inline: var(--button-padding-x);
+  font-size: var(--button-font-size);
+}
+
+.app-button-sm {
+  height: var(--button-height-sm);
+  padding-inline: var(--button-padding-x-sm);
+  font-size: var(--button-font-size-sm);
+}
+
+.app-button:active {
+  transform: scale(var(--button-press-scale));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-button {
+    transition: background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);
+  }
+
+  .app-button:active {
+    transform: none;
+  }
 }
 
 
@@ -252,4 +345,9 @@ a:focus-visible {
   .shadow-sm {
     box-shadow: none;
   }
+}
+
+
+.safe-area-main {
+  padding-top: calc(1.5rem + var(--safe-area-inset-top));
 }

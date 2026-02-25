@@ -1,3 +1,4 @@
+import type { ActionResult } from "@/lib/action-result";
 import { readPendingSetLogs, updateSetLogQueueItem, type SetLogQueueItem } from "@/lib/offline/set-log-queue";
 
 type SyncSetLogResult = {
@@ -11,7 +12,7 @@ const BASE_DELAY_MS = 2000;
 const MAX_DELAY_MS = 30000;
 
 type SetLogSyncEngineOptions = {
-  syncSetLogsAction: (payload: { items: SetLogQueueItem[] }) => Promise<{ ok: boolean; results: SyncSetLogResult[] }>;
+  syncSetLogsAction: (payload: { items: SetLogQueueItem[] }) => Promise<ActionResult<{ results: SyncSetLogResult[] }>>;
   onQueueUpdate?: () => void;
 };
 
@@ -36,7 +37,7 @@ export function createSetLogSyncEngine({ syncSetLogsAction, onQueueUpdate }: Set
     await updateSetLogQueueItem({ ...item, status: "syncing", lastAttemptAt: nowIso });
 
     const response = await syncSetLogsAction({ items: [{ ...item, status: "syncing", lastAttemptAt: nowIso }] });
-    const result = response.results[0];
+    const result = response.ok ? response.data?.results[0] : undefined;
 
     if (response.ok && result?.ok) {
       await updateSetLogQueueItem({

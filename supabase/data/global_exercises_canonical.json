@@ -1,0 +1,2300 @@
+[
+  {
+    "name": "Ab Wheel Rollout",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Kneel with the wheel under your shoulders, roll forward while bracing your trunk, then pull back to the start.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Abductor Machine",
+    "primary_muscle": "abductors, glutes",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Sit tall and press your knees outward against the pads, then return with control.",
+    "movement_pattern": "lunge",
+    "primary_muscles": [
+      "abductors",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Adductor Machine",
+    "primary_muscle": "adductors",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Sit upright and squeeze your legs inward against the pads, then return slowly.",
+    "movement_pattern": "lunge",
+    "primary_muscles": [
+      "adductors"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Air Bike Sprint",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true,
+    "how_to_short": "Drive hard with arms and legs together at a high effort, then ease down under control.",
+    "movement_pattern": "cardio",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "time_distance",
+    "default_unit": "m",
+    "calories_estimation_method": "machine_reported"
+  },
+  {
+    "name": "Alternating Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Arnold Press",
+    "primary_muscle": "front delts, side delts",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Back Extension",
+    "primary_muscle": "lower back",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Hinge over the pad, extend your hips and spine to neutral, then lower with control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "lower back"
+    ],
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Back Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "barbell",
+    "is_global": true,
+    "how_to_short": "Brace your torso, sit down between your hips, and stand by driving through mid-foot.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core",
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Barbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "barbell",
+    "is_global": true,
+    "how_to_short": "Lower the bar to mid-chest with control, press to lockout, and keep your shoulders set.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Barbell Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Keep elbows near your sides, curl the bar to shoulder height, and lower without swinging.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "forearms"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Barbell Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "barbell",
+    "is_global": true,
+    "how_to_short": "Hinge at the hips, row the bar toward your lower ribs, then lower while holding position.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "rear delts",
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Bulgarian Split Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Set your rear foot on a bench, drop your back knee down, and drive up through the front leg.",
+    "movement_pattern": "lunge",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Cable Crunch",
+    "primary_muscle": "core",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Kneel at the cable, flex your trunk down by bracing your abs, and return under control.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Cable Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Cable Fly",
+    "primary_muscle": "chest",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "With a soft elbow bend, bring the handles together in front of your chest and return slowly.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Cable Kickback",
+    "primary_muscle": "glutes",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Brace your torso, extend one leg straight back against the cable, and return with control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Cable Lateral Raise",
+    "primary_muscle": "side delts",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Raise your arm out to shoulder height with a slight elbow bend, then lower slowly.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "side delts"
+    ],
+    "secondary_muscles": [
+      "upper traps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Cable Rear Delt Fly",
+    "primary_muscle": "rear delts",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Pull the handles out and back at shoulder height, then return without shrugging.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "rear delts"
+    ],
+    "secondary_muscles": [
+      "upper back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Calf Raise (Seated)",
+    "primary_muscle": "calves",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Press through the balls of your feet to raise your heels high, then lower to a full stretch.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Calf Raise (Standing)",
+    "primary_muscle": "calves",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Rise onto your toes with control, pause at the top, and lower your heels slowly.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "calves"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Chest-Supported Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Keep your chest on the pad, pull elbows back, and lower the handles under control.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "rear delts",
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Chin-Up",
+    "primary_muscle": "lats, biceps",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Start from a dead hang, pull your chest up to the bar, and lower to full extension.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "biceps"
+    ],
+    "secondary_muscles": [
+      "upper back",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Close-Grip Bench Press",
+    "primary_muscle": "triceps, chest",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Close-Grip Lat Pulldown",
+    "primary_muscle": "lats",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Close-Grip Push-Up",
+    "primary_muscle": "triceps, chest",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Concentration Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Cross-Body Hammer Curl",
+    "primary_muscle": "biceps, forearms",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Dead Bug",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Brace your lower back to the floor, extend opposite arm and leg, and return without arching.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Deadlift",
+    "primary_muscle": "glutes, hamstrings, lower back",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Hinge to the bar with a neutral spine, stand tall by driving through the floor, and lower with control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "lower back",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Decline Barbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Decline Dumbbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Deficit Push-Up",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Dips (Chest)",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Dips (Triceps)",
+    "primary_muscle": "triceps",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Donkey Calf Raise",
+    "primary_muscle": "calves",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Dumbbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Dumbbell Fly",
+    "primary_muscle": "chest",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Dumbbell Overhead Triceps Extension",
+    "primary_muscle": "triceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Dumbbell Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "EZ-Bar Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Face Pull",
+    "primary_muscle": "rear delts, upper back",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Pull the rope toward your face with elbows high, squeeze your upper back, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "rear delts",
+      "upper back"
+    ],
+    "secondary_muscles": [
+      "upper traps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Front Raise",
+    "primary_muscle": "front delts",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Raise the weight in front to shoulder height with control, then lower slowly.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "front delts"
+    ],
+    "secondary_muscles": [
+      "upper traps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Front Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Keep elbows high, sit down between your hips, and stand while maintaining an upright torso.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core",
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Glute Bridge",
+    "primary_muscle": "glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Press through your heels to lift hips to full extension, squeeze glutes, and lower slowly.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Goblet Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Hold the weight at your chest, squat down between your hips, and stand tall with control.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core",
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Hack Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Lower under control until deep knee bend, then drive through mid-foot to stand.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Hammer Curl",
+    "primary_muscle": "biceps, forearms",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Hanging Leg Raise",
+    "primary_muscle": "core, hip flexors",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Hang from the bar, raise your legs by flexing at the hips, and lower without swinging.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "hip flexors",
+      "core"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "High-Bar Back Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Lower under control through a full range, then drive back up with stable trunk position.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "High-to-Low Cable Fly",
+    "primary_muscle": "chest",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Hip Thrust",
+    "primary_muscle": "glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Drive your hips up against the bench support, squeeze at lockout, and lower with control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Hollow Body Hold",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Press your lower back into the floor, hold arms and legs extended, and keep constant tension.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Incline Barbell Bench Press",
+    "primary_muscle": "chest, front delts",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Incline Dumbbell Bench Press",
+    "primary_muscle": "chest, front delts",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Incline Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Incline Dumbbell Fly",
+    "primary_muscle": "chest",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Incline Walk",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true,
+    "how_to_short": "Perform the movement at a steady effort for the prescribed pace or duration while maintaining controlled form.",
+    "movement_pattern": "cardio",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "time_distance",
+    "default_unit": "m",
+    "calories_estimation_method": "machine_reported"
+  },
+  {
+    "name": "Jump Rope",
+    "primary_muscle": "cardio",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Jump lightly on the balls of your feet while turning the rope in a steady rhythm.",
+    "movement_pattern": "cardio",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": "met_estimated"
+  },
+  {
+    "name": "Lat Pulldown",
+    "primary_muscle": "lats",
+    "equipment": "cable",
+    "is_global": true,
+    "how_to_short": "Pull the bar to your upper chest with a tall torso, then let it rise under control.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "upper back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Lateral Raise",
+    "primary_muscle": "side delts",
+    "equipment": "dumbbell",
+    "is_global": true,
+    "how_to_short": "Raise your arms out to shoulder height with soft elbows, then lower slowly.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "side delts"
+    ],
+    "secondary_muscles": [
+      "upper traps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Leaning Cable Lateral Raise",
+    "primary_muscle": "side delts",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Leg Extension",
+    "primary_muscle": "quads",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Extend your knees to lift the pad, squeeze at the top, and lower with control.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Leg Press",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Lower the sled until knees are deeply bent, then press back up through mid-foot.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Low-Bar Back Squat",
+    "primary_muscle": "glutes, quads",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Lower under control through a full range, then drive back up with stable trunk position.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Low-to-High Cable Fly",
+    "primary_muscle": "chest",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Lying Leg Curl",
+    "primary_muscle": "hamstrings",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Curl your heels toward your glutes, squeeze the hamstrings, and lower slowly.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Lying Leg Raise",
+    "primary_muscle": "core, hip flexors",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Keep your lower back braced as you raise your legs up, then lower without arching.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "hip flexors",
+      "core"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Machine Biceps Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Machine Crunch",
+    "primary_muscle": "core",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Curl your torso forward against resistance, squeeze your abs, and return slowly.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Machine Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Pull the handles toward your torso with elbows back, then return under control.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Machine Shoulder Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Neutral-Grip Pull-Up",
+    "primary_muscle": "lats, upper back",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Nordic Curl",
+    "primary_muscle": "hamstrings",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Lower your body forward from the knees with control, then pull back using your hamstrings.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Overhead Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Press the bar overhead in a straight path, lock out with control, and lower to the start.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "front delts",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "side delts",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Overhead Triceps Extension",
+    "primary_muscle": "triceps",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Pallof Press",
+    "primary_muscle": "core",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Press the cable straight out from your chest, resist trunk rotation, and return slowly.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "upper back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Paused Back Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Lower under control through a full range, then drive back up with stable trunk position.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Paused Barbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Paused Deadlift",
+    "primary_muscle": "glutes, hamstrings, lower back",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Hinge from the hips with a braced torso, complete the rep under control, and return smoothly.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "lower back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Paused Front Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Lower under control through a full range, then drive back up with stable trunk position.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Pec Deck",
+    "primary_muscle": "chest",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Pendlay Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Hold a straight line from shoulders to heels while bracing your trunk and breathing steadily.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Plate Front Raise",
+    "primary_muscle": "front delts",
+    "equipment": "Plate",
+    "is_global": true,
+    "how_to_short": "Raise the plate to shoulder height with control and lower slowly without swinging.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "front delts"
+    ],
+    "secondary_muscles": [
+      "upper traps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Preacher Curl",
+    "primary_muscle": "biceps",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Pull-Up",
+    "primary_muscle": "lats, upper back",
+    "equipment": "bodyweight",
+    "is_global": true,
+    "how_to_short": "Start from a dead hang, pull your chest toward the bar, and lower to full extension.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "upper back"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Push Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Dip slightly at the knees, drive the bar overhead explosively, and lower under control.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "front delts",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "quads",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Push-Up",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Keep a rigid plank, lower your chest toward the floor, and press back to full arm extension.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Rack Pull",
+    "primary_muscle": "upper back, upper traps, glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Start with the bar on pins, hinge into position, stand tall, and lower to the rack with control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "lower back",
+      "upper back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Rear Delt Fly",
+    "primary_muscle": "rear delts",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Hinge slightly, open your arms out and back at shoulder level, then lower slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "rear delts"
+    ],
+    "secondary_muscles": [
+      "upper back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Reverse Hyperextension",
+    "primary_muscle": "glutes, hamstrings, lower back",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Swing your legs up to hip level using glutes and hamstrings, then lower with control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "lower back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Reverse Lunge",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Step one leg back, lower both knees under control, and drive through the front foot to stand.",
+    "movement_pattern": "lunge",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Reverse Pec Deck",
+    "primary_muscle": "rear delts",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Reverse-Grip Pushdown",
+    "primary_muscle": "triceps",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Romanian Deadlift",
+    "primary_muscle": "hamstrings, glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Hinge at the hips with soft knees until hamstrings stretch, then stand tall by driving hips forward.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "lower back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Rope Pushdown",
+    "primary_muscle": "triceps",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Rowing Machine",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true,
+    "how_to_short": "Push through your legs, finish with a torso swing and arm pull, then recover smoothly.",
+    "movement_pattern": "cardio",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [
+      "lats",
+      "quads"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "time_distance",
+    "default_unit": "m",
+    "calories_estimation_method": "machine_reported"
+  },
+  {
+    "name": "Russian Twist",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Lean back with a braced trunk, rotate your torso side to side, and keep your ribcage controlled.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "hip flexors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Seated Barbell Overhead Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Seated Cable Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Sit tall, pull the handle toward your lower ribs, and return with shoulder control.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "rear delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Seated Dumbbell Shoulder Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Seated Leg Curl",
+    "primary_muscle": "hamstrings",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Curl your heels down and back under the pad, squeeze, and lower slowly.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "calves"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Side Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Stack your body sideways on one forearm, lift hips, and hold a straight line.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "abductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Single-Arm Cable Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Single-Arm Dumbbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Single-Arm Dumbbell Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Single-Arm Lat Pulldown",
+    "primary_muscle": "lats",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Single-Leg Hip Thrust",
+    "primary_muscle": "glutes",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Drive one heel into the floor to raise your hips, squeeze at the top, and lower slowly.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Single-Leg Press",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Press the sled with one leg through full range, then lower under control.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Single-Leg Romanian Deadlift",
+    "primary_muscle": "hamstrings, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Hinge on one leg with hips square, lower until tension builds, and stand tall with control.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Skullcrusher",
+    "primary_muscle": "triceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Sled Push",
+    "primary_muscle": "cardio",
+    "equipment": "Sled",
+    "is_global": true,
+    "how_to_short": "Lean into the sled and drive it forward with short powerful steps at a steady pace.",
+    "movement_pattern": "cardio",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "distance",
+    "default_unit": "m",
+    "calories_estimation_method": "met_estimated"
+  },
+  {
+    "name": "Smith Machine Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Smith Machine",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Smith Machine Shoulder Press",
+    "primary_muscle": "front delts, triceps",
+    "equipment": "Smith Machine",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Smith Machine Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Smith Machine",
+    "is_global": true,
+    "how_to_short": "Brace your torso, squat to depth on the fixed bar path, and stand by driving through mid-foot.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Snatch-Grip Deadlift",
+    "primary_muscle": "glutes, hamstrings, upper back",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Hinge from the hips with a braced torso, complete the rep under control, and return smoothly.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "lower back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Stair Climber",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true,
+    "how_to_short": "Maintain a steady stepping cadence while keeping your torso tall and core braced.",
+    "movement_pattern": "cardio",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "time",
+    "default_unit": "s",
+    "calories_estimation_method": "machine_reported"
+  },
+  {
+    "name": "Stationary Bike",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true,
+    "how_to_short": "Pedal smoothly at your target resistance and cadence while maintaining stable posture.",
+    "movement_pattern": "cardio",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [
+      "quads",
+      "hamstrings"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "time_distance",
+    "default_unit": "m",
+    "calories_estimation_method": "machine_reported"
+  },
+  {
+    "name": "Step-Up",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Place one foot on the box, drive through it to stand tall, and lower back with control.",
+    "movement_pattern": "lunge",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Stiff-Leg Deadlift",
+    "primary_muscle": "hamstrings, glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Hinge with mostly straight knees until hamstrings stretch, then extend hips to stand tall.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "hamstrings",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "lower back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Straight-Arm Pulldown",
+    "primary_muscle": "lats",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "With nearly straight elbows, pull the bar down to your thighs and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats"
+    ],
+    "secondary_muscles": [
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "T-Bar Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Tempo Back Squat",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Lower under control through a full range, then drive back up with stable trunk position.",
+    "movement_pattern": "squat",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "adductors"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Tempo Barbell Bench Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Tempo Deadlift",
+    "primary_muscle": "glutes, hamstrings, lower back",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Hinge from the hips with a braced torso, complete the rep under control, and return smoothly.",
+    "movement_pattern": "hinge",
+    "primary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "secondary_muscles": [
+      "lower back"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Treadmill Run",
+    "primary_muscle": "cardio",
+    "equipment": "Cardio Machine",
+    "is_global": true,
+    "how_to_short": "Run at your target pace with a light mid-foot strike and controlled arm swing.",
+    "movement_pattern": "cardio",
+    "primary_muscles": [
+      "cardio"
+    ],
+    "secondary_muscles": [
+      "quads",
+      "calves"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "time_distance",
+    "default_unit": "m",
+    "calories_estimation_method": "machine_reported"
+  },
+  {
+    "name": "Triceps Pushdown",
+    "primary_muscle": "triceps",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Upright Row",
+    "primary_muscle": "upper traps, side delts",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Pull the bar vertically to upper chest with elbows leading, then lower under control.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "side delts",
+      "upper traps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Walking Lunge",
+    "primary_muscle": "quads, glutes",
+    "equipment": "Dumbbell",
+    "is_global": true,
+    "how_to_short": "Step forward into a lunge, lower under control, and drive through the lead foot into the next step.",
+    "movement_pattern": "lunge",
+    "primary_muscles": [
+      "quads",
+      "glutes"
+    ],
+    "secondary_muscles": [
+      "hamstrings",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Weighted Plank",
+    "primary_muscle": "core",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Hold a rigid plank with added load while keeping your trunk braced and hips level.",
+    "movement_pattern": "core",
+    "primary_muscles": [
+      "core"
+    ],
+    "secondary_muscles": [
+      "glutes"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Weighted Pull-Up",
+    "primary_muscle": "lats, upper back",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Start from a dead hang with added load, pull your chest to the bar, and lower under control.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "upper back"
+    ],
+    "secondary_muscles": [
+      "biceps",
+      "core"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Weighted Push-Up",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Press or raise the load with a stable torso, control the lowering phase, and avoid momentum.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Wide-Grip Lat Pulldown",
+    "primary_muscle": "lats, upper back",
+    "equipment": "Cable",
+    "is_global": true,
+    "how_to_short": "Pull the bar to your upper chest with a wide grip, then return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "upper back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Yates Row",
+    "primary_muscle": "lats, mid back",
+    "equipment": "Barbell",
+    "is_global": true,
+    "how_to_short": "Pull the load toward your torso with controlled tempo, squeeze at peak contraction, and return slowly.",
+    "movement_pattern": "pull",
+    "primary_muscles": [
+      "lats",
+      "mid back"
+    ],
+    "secondary_muscles": [
+      "biceps"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  },
+  {
+    "name": "Chest Press",
+    "primary_muscle": "chest, triceps",
+    "equipment": "Machine",
+    "is_global": true,
+    "how_to_short": "Press the handles away from your chest to full extension, then lower with control.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "chest",
+      "triceps"
+    ],
+    "secondary_muscles": [
+      "front delts"
+    ],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg"
+  }
+]

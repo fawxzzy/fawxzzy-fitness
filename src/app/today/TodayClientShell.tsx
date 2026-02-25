@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { readTodayCache } from "@/lib/offline/today-cache";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
 type TodayPayload = {
   routine: {
@@ -98,7 +99,10 @@ export function TodayClientShell({
 
       <ul className="space-y-1 text-sm">
         {display.exercises.map((exercise) => (
-          <li key={exercise.id} className="rounded-md bg-surface-2-strong px-3 py-2 text-text">{exercise.name}</li>
+          <li key={exercise.id} className="flex items-center justify-between gap-3 rounded-md bg-surface-2-strong px-3 py-2 text-text">
+            <span className="truncate">{exercise.name}</span>
+            {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
+          </li>
         ))}
         {display.exercises.length === 0 ? (
           <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li>
@@ -108,7 +112,7 @@ export function TodayClientShell({
       {display.inProgressSessionId ? (
         <Link
           href={`/session/${display.inProgressSessionId}`}
-          className="block w-full rounded-lg bg-accent px-4 py-5 text-center text-lg font-semibold text-white transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+          className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
         >
           Resume Workout
         </Link>

@@ -1,6 +1,304 @@
+### Changed
+WHAT:
+- Enriched the canonical global exercise dataset so every exercise now includes standardized metadata fields: one-sentence `how_to_short`, normalized `movement_pattern`, normalized `primary_muscles` and `secondary_muscles`, and SVG placeholder image paths.
+- Added cardio-only metadata in the canonical dataset (`measurement_type`, `default_unit`, and `calories_estimation_method`) for exercises classified as cardio.
+WHY:
+- This makes exercise metadata immediately usable by downstream UI and logging flows with consistent field shapes and constrained values, including cardio-specific tracking defaults.
+
+### Changed
+WHAT:
+- Added a canonical global exercise export JSON containing only `{name, primary_muscle, equipment, is_global}` rows derived from the latest exercise export.
+WHY:
+- Provides a normalized, reusable source for global exercise metadata while preserving exact exported names/equipment and global-only scope.
+
+### Changed
+WHAT:
+- Renamed app/web branding references to `FawxzzyFitness` across document title metadata, PWA manifest naming, Apple web app title fields, fallback in-app nav label text, icon source title text, and the package name identifier.
+WHY:
+- Ensures the installed app label and browser title consistently use your intended product name.
+
+### Changed
+WHAT:
+- Added a text-based app icon source (`public/icon-source.svg`) and a build-time icon generation script that renders required PNG icon outputs into `public/icons/`.
+- Updated PWA manifest and Apple touch icon metadata paths to use the generated `/icons/*` assets.
+WHY:
+- Repository and PR policy reject committed binary assets; generating icons during build preserves diffable source control while still shipping proper install/app icons for PWA and iOS home-screen usage.
+
+### Changed
+WHAT:
+- Updated the Add Exercise filter summary text to always show state, defaulting to "0 filters selected: All" and listing selected filter names when active.
+WHY:
+- This makes filter status clearer at a glance and confirms exactly which filters are applied.
+
+### Changed
+WHAT:
+- Updated Add Exercise tag chips so selected filters use a green-filled state for clearer visual selection feedback.
+- Tightened Add Exercise multi-tag filtering so results only include exercises that contain every selected tag (all-tags match).
+WHY:
+- This makes filter state easier to scan and ensures combined tag filtering returns precise, expected exercise matches.
+
+### Changed
+WHAT:
+- Increased Add Exercise filter chip contrast so selected tags pop more strongly while unselected tags look clearly greyed out.
+- Made the filter card status pill visually consistent between Open and Close states (neutral styling in both states).
+- Reduced exercise-list scroll jank by debouncing scroll-position persistence updates and stabilizing scrollbar layout in the picker viewport.
+WHY:
+- This makes filter state easier to read at a glance, keeps control styling consistent, and improves scrolling smoothness while preserving return-to-position behavior from Exercise Info.
+
+### Changed
+WHAT:
+- Updated the exercise picker filter controls to use a dedicated clickable Filter card with an Open/Close status tag, expandable tag list visibility, and clearer selected/unselected tag states.
+- Kept tag filtering multi-select so users can combine multiple tags when narrowing the exercise list.
+WHY:
+- This improves filter discoverability and clarity on mobile while preserving fast, flexible exercise filtering behavior.
+
+### Changed
+WHAT:
+- Added exercise-tag filters to the Add Exercise picker with compact multi-select chips (including an All reset) that combine with text search using the already loaded exercise dataset.
+- Removed the History empty-state card and replaced it with minimal inline text when there are no completed sessions.
+- Added shared iOS safe-area top inset handling to the root app content container so headers/titles remain visible on notch/dynamic-island devices and home-screen PWAs.
+- Updated browser Supabase client auth initialization to explicitly persist and auto-refresh sessions with browser localStorage, plus lightweight development-only auth event logging.
+- Replaced the Edit Routine back-navigation native confirm prompt with an in-app discard-changes modal for in-app navigation.
+WHY:
+- These changes improve mobile UX clarity and reliability by making exercise discovery faster, reducing visual clutter in empty history states, preventing top-content overlap on iPhones, reducing unexpected auth sign-outs, and avoiding disruptive browser-native discard dialogs.
+
+### Fixed
+WHAT:
+- Canonicalized routine timezone writes in create/edit actions so submitted timezone aliases (for example device/legacy values) are normalized before persistence.
+WHY:
+- Timezone form UX can stay intentionally simple while server-side scheduling continues to read deterministic canonical timezone values from storage.
+
+### Changed
+WHAT:
+- Reworked Today's day-switch interaction so Change Workout opens as an inline chooser card instead of a fixed overlay, preventing clipped content and reducing background rendering glitches.
+- Added copy/paste day controls in Edit Routine so a day's planned exercises and targets can be copied onto another day in one step.
+- Simplified the Add custom exercise card to only require exercise name input, removing optional metadata fields from that UI.
+WHY:
+- The previous overlay could be cut off inside constrained cards and could interact poorly with the layered glass background effects.
+- Copy/paste speeds up routine editing when multiple days share similar programming.
+- Removing optional fields keeps custom exercise creation faster and less cluttered.
+
+### Changed
+WHAT:
+- Restored the Add Exercise picker's high-contrast scroll container and card treatment (including scroll affordance text/gradient and clearer row framing) while keeping the current dedicated Exercise Info navigation flow.
+WHY:
+- The recent styling simplification made the picker feel visually regressed on mobile; this brings back the cleaner, easier-to-scan list presentation users preferred.
+
+### Changed
+WHAT:
+- Made Day Editor’s existing exercise list read as a dedicated “Currently added workouts” section with clearer visual grouping and count context, and removed the redundant subtitle line under the page title.
+- Removed the extra “Back to day editor” button from Exercise info so only the top-right back arrow is shown.
+- Preserved Add Exercise context when opening Exercise info by returning with the picker expanded, selected exercise retained, and exercise-list scroll position restored.
+WHY:
+- This improves day-edit scanability, reduces duplicate navigation controls, and keeps users anchored in the add-exercise workflow after viewing exercise details.
+
+### Changed
+WHAT:
+- Replaced the exercise picker’s inline info overlay with navigation to a dedicated exercise details screen that has room for how-to text, tags, and media.
+- Updated exercise-picker Info actions to pass users to the new details route with a return link back to the current editor context.
+WHY:
+- A full-screen details layout resolves the cramped modal issues on mobile and makes exercise guidance easier to scan without nested overlay UI.
+
+### Changed
+WHAT:
+- Prevented mobile input-focus zoom jumps by enforcing a 16px minimum font size for form controls on small screens.
+- Updated routine day exercise cards so the right-side disclosure label now reads “Close” while a card is expanded and “Edit” when collapsed.
+- Improved add-exercise list affordance with explicit scroll cue text, a bordered scroll viewport, and a bottom gradient hint.
+WHY:
+- This removes disruptive focus zoom behavior on mobile, makes open/close state clearer in routine editing, and helps users discover that the exercise list is scrollable.
+
+### Changed
+WHAT:
+- Renamed Today’s day-picker action label from “Change Day” to “Change Workout,” reverted the picker list to immediate single-tap selection, and removed the extra confirmation flow (checkboxes + OK) while keeping cancel/overlay-dismiss behavior.
+- Updated the routines “Create Routine” call-to-action to use the same secondary button visual treatment as history card “View” actions.
+WHY:
+- This restores the faster one-tap day switching behavior users expected and keeps high-visibility list actions visually consistent across routine/history surfaces.
+
+### Changed
+WHAT:
+- Enhanced the exercise picker summary row and exercise list cards to surface muscle-group tags alongside existing metadata when layout space allows.
+- Completed the fallback global exercise catalog metadata so each built-in exercise now has consistent primary muscle, equipment, movement pattern, and short how-to guidance.
+WHY:
+- This improves exercise selection clarity without crowding constrained mobile layouts and keeps baseline exercise information consistent when fallback catalog data is used.
+
+### Changed
+WHAT:
+- Refined main-screen action styling for Today/Routines/History so key actions use a more consistent mid-weight button treatment, including Start Workout, Change Day, End Session, Create Routine, and View.
+- Updated Today day selection to tap-to-select day choices (with Cancel only), added right-aligned per-exercise goal targets in Today exercise rows, and adjusted routine-card typography (underlined routine titles plus lighter Edit text).
+WHY:
+- This improves cross-screen visual consistency and readability while speeding up day switching and making workout goals visible at a glance before users start sessions.
+
+### Fixed
+WHAT:
+- Updated the Add Exercise expanded-card picker to remove the legacy dropdown control, keep a selected-exercise summary box, increase list image/button fill, and deduplicate duplicate exercise-name entries in the scroll list (including duplicate Abductor Machine rows).
+- Reversed selection emphasis in the exercise list so parameter/meta emphasis is now tied to the selected item while unselected rows are visually de-emphasized.
+WHY:
+- This reduces clutter in the Add Exercise flow, improves scanability/tap ergonomics on mobile, and avoids confusing duplicate entries while keeping selection state clearer.
+
+### Changed
+WHAT:
+- Repositioned routine-card move controls to a left-side vertical stack, added a temporary Today day-picker for session start, added an explicit “End Session (Don't Save)” action for in-progress workouts, and updated session back behavior so an open exercise card closes before navigating away.
+WHY:
+- These updates make day/order controls easier to hit on mobile, let users run a different day without permanently changing routines, and reduce accidental session loss/navigation friction during active workouts.
+
+### Changed
+WHAT:
+- Updated Today's day-change interaction so tapping `CHANGE DAY` now swaps the Start Session content out for a dedicated inline chooser card instead of opening an overlay inside the same surface.
+- Added explicit `OK`/`Cancel` confirmation in that dedicated chooser card before applying a new pre-start day selection.
+WHY:
+- This keeps the Today UI cleaner and avoids cramped nested card layering while preserving temporary day selection before starting a workout.
+
 # Changelog
 
 ## [Unreleased]
+
+### Changed
+WHAT:
+- Introduced a richer shared app-button API (variant/size/active state), then normalized key actions to those shared styles across Today, Routines, History, and Session screens (Start Workout, Resume Workout, CHANGE DAY, End Workout, Create Routine, View, and destructive Delete actions).
+- Standardized top-right back controls through the shared back-button styling path and aligned Current Session UI copy/layout by renaming "Session Timer" to "Timer" and removing the standalone session date/time bar.
+- Updated Today’s CHANGE DAY overlay flow to use explicit day selection with OK/Cancel confirmation while preserving pre-start day switching behavior.
+WHY:
+- This removes visual drift for high-frequency actions, keeps active/destructive affordances consistent on glass surfaces, and improves session-screen clarity without changing underlying workout/timer persistence behavior.
+
+### Changed
+WHAT:
+- Expanded exercise metadata support with how-to text, muscle focus fields, movement/equipment tags, and image path references designed to point at SVG placeholders now and Supabase Storage URLs later.
+- Updated exercise selection UX with searchable cards, metadata tags, and an on-demand info overlay that lazy-loads full exercise details from a strict server action.
+- Added placeholder SVG exercise media, binary-file guardrails (.gitignore + CI tracked-file size check), and documented binary-restricted asset policy expectations.
+WHY:
+- This enables richer exercise guidance in-picker without client-side database writes, preserves RLS-safe server/client boundaries, and prevents binary-asset review failures while keeping a clean upgrade path to hosted media.
+
+
+### Changed
+WHAT:
+- Removed the helper sentence under Today’s `CHANGE DAY` action and made day cards in the chooser immediately selectable on tap, applying the chosen day for the next workout start without requiring an extra confirmation button.
+- Reverted Routines cards to the pre-reorder-arrow layout by removing up/down move controls and restoring the prior card action arrangement.
+WHY:
+- This matches requested day-picker interaction expectations (tap-to-select temporary day) and restores the preferred routines card UI without arrow-based ordering controls.
+
+### Changed
+WHAT:
+- Replaced Today's pre-start day selector dropdown with a `CHANGE DAY` button that opens a centered chooser overlay with single-select routine-day options plus `OK`/`Cancel`.
+WHY:
+- This keeps the start flow cleaner on mobile while preserving temporary day selection control before launching a workout session.
+
+
+### Changed
+WHAT:
+- Added a compact live clock above the top navigation card that shows local hour/minute with AM/PM in a subtle Apple-inspired style.
+WHY:
+- This provides an always-visible time reference at the top of the app without adding visual weight or disrupting the existing navigation layout.
+
+
+### Changed
+WHAT:
+- Added visible routine-card reordering controls on the Routines list so routines can be moved up/down directly in-place.
+- Strengthened destructive action styling across routines/history/day-edit surfaces to use a clearer red treatment.
+- Improved Today flow clarity by making the pre-start day-change shortcut more prominent under Start Workout.
+- Fixed Today day-resolution/session-window logic to use the active routine timezone consistently, preventing post-workout day/date mismatches.
+- Added a day-save safeguard that preserves an existing day name if a save payload is accidentally blank.
+WHY:
+- These changes address reported usability and correctness issues around routine ordering, destructive affordances, day editing reliability, and deterministic day/date behavior after completing workouts.
+
+
+### Changed
+WHAT:
+- Updated the Routines list header layout to keep the main card aligned directly under top navigation and moved the Create Routine CTA into the list container header for clearer placement.
+- Removed cycle-length and weight-unit metadata lines from routine cards so each card focuses on routine name and actions.
+- Updated History log title labels to use a squared badge style and restyled History delete actions to match routine-card delete button treatment.
+WHY:
+- These refinements improve cross-screen alignment under the shared nav pattern, reduce card noise, and make destructive actions visually consistent across routines/history surfaces.
+
+
+
+### Changed
+WHAT:
+- Updated Today's workout-start flow to use an `ActionResult` server-action contract for non-navigation outcomes, with inline client toast feedback for failures and client-driven navigation on success.
+WHY:
+- This standardizes server-action semantics (return for data/errors, navigation only for route transitions), reducing mixed redirect/error handling complexity at the server/client boundary.
+
+
+### Changed
+WHAT:
+- Updated History cards and Log Details to resolve and display the current routine day name for each session (while still honoring manual day-name overrides), instead of relying only on originally-captured auto-generated names.
+- Switched History date/time rendering to client-local formatting for accurate local clock display.
+- Expanded History Edit mode so users can add and remove exercises from completed logs (in addition to existing set and note edits).
+- Fixed Today’s day-window/session-completion logic to use the profile timezone consistently and hide the Completed badge while a new in-progress workout exists.
+- Stopped routine-level edits from auto-renaming all existing day names, preserving user-customized day labels.
+WHY:
+- These changes address reported correctness issues around day naming, timestamp trust, and daily-session status, while improving post-workout log maintenance without changing the server-action/RLS architecture.
+
+
+### Changed
+WHAT:
+- Added in-session set removal controls in the active workout logger, including removal of queued offline set logs from local queue storage.
+- Added goal-driven set logger prefill so target weight/reps/duration auto-populate when opening an exercise during an active session.
+- Persisted active-session logged-set state/form inputs to local storage so set logs survive app/device restarts for the same resumable workout session.
+- Expanded History log Edit mode to support adding, updating, and deleting individual sets (not just session/exercise notes).
+WHY:
+- These updates address requested workout continuity and editability gaps: users can correct live mistakes, recover in-progress logs after restart, and fully maintain completed history data from the existing Edit workflow.
+
+
+### Changed
+WHAT:
+- Made active session timers resilient to app background/close by restoring running state from local session storage and persisting elapsed time when the app is hidden or closed.
+- Added per-exercise target weight unit selection (kg/lbs) when adding routine-day exercises, and surfaced that unit in day/session target text.
+- Added per-set weight unit selection (kg/lbs) in the current-session set logger and saved the chosen unit with each set log (including offline queue payloads).
+- Fixed current-session set-count badges so counts update immediately after logging sets instead of staying at initial values.
+- Fixed expanding a session exercise card after adding exercises by rendering only the selected expanded card, removing stacked hidden-card spacing gaps.
+WHY:
+- These updates address requested session reliability and correctness issues while preserving the existing server-action/RLS architecture and improving clarity for mixed-unit training logs.
+
+
+### Changed
+WHAT:
+- Removed the routine-day empty-state line in day editing so the exercise list no longer shows the extra "No exercises yet" placeholder block.
+- Added an inline clear (×) control to the exercise search field so users can reset filtering in one tap.
+- Slightly reduced the Routines list viewport height on mobile so the bottom edge sits cleaner within the screen.
+WHY:
+- This matches requested UX cleanup for the routines flow, improves search ergonomics during exercise selection, and prevents the routines list from appearing to bleed off the bottom of the viewport.
+
+
+### Changed
+WHAT:
+- Added a shared list-shell class token set and applied it to both Routines and History list surfaces to standardize mobile scroll viewport sizing, snap behavior, and card shell spacing.
+- Increased list row action tap-target sizing for routine/history card controls using the shared shell tokens.
+WHY:
+- This keeps list behavior consistent across tabs while honoring the no-redesign request by limiting updates to shell ergonomics (scroll, padding, snap, and tap targets).
+- Updated History list fetching to use cursor-based pagination with a server-rendered "Load more" control while keeping the existing 20-item initial page size.
+WHY:
+- Cursor pagination keeps large history feeds bounded and responsive without changing the first-load behavior users already expect.
+
+
+### Fixed
+WHAT:
+- Softened the History card Delete action interaction state by removing the stronger hover/click highlight treatment.
+WHY:
+- The prior highlight drew too much attention during quick list interactions; a calmer state keeps destructive controls readable without visual flash.
+
+
+### Changed
+WHAT:
+- Documented the standard Playbook subtree sync workflow in governance docs, including `git subtree pull --prefix=Playbook ... --squash`, the `git sync-playbook` alias path, and a concise ongoing update sequence.
+WHY:
+- Keeping subtree update guidance in-repo makes Playbook governance repeatable, reduces sync ambiguity, and reinforces intentional doctrine versioning.
+
+
+### Changed
+WHAT:
+- Refined the bottom-nav Settings icon to a cleaner, sharper gear mark for improved small-size legibility.
+WHY:
+- The prior icon looked visually soft at mobile tab size; a simplified shape reads faster and feels crisper.
+
+### Changed
+WHAT:
+- Updated routine creation flow so saving a new routine now sends users directly to that routine’s edit screen.
+- Updated new-routine defaults and active-session date display to prefer device-local timezone/date when available.
+- Refined routine list Edit button coloring for more consistent accent contrast.
+- Added exercise count plus a short exercise-name preview on day cards in the routine edit screen.
+- Updated logged set labels in active sessions from shorthand hash format to explicit "Set N" wording.
+WHY:
+- These changes align routine/session UX with requested navigation and readability improvements while making time/date context reflect the user’s local device more reliably.
 
 ### Changed
 WHAT:
@@ -424,3 +722,98 @@ WHY:
 ### Why
 - These updates reduce visual noise, improve scanability, and make workout state (start/resume/completed) easier to understand at a glance while keeping core logging flows intact.
 - Consolidating top-level navigation and harmonizing card styling improves app-wide consistency and reduces context switching between main tabs.
+
+### Changed
+WHAT:
+- Updated governance and architecture contracts to require explicit pre-change Playbook compliance review, enforce strict server-action and boundary guardrails, and codify checklist/quality-gate expectations in local docs.
+WHY:
+- This reduces process drift, keeps architectural boundaries explicit, and makes repo-level execution standards consistent with the Playbook contract.
+
+### Changed
+WHAT:
+- Refactored `src/app/session/[id]/page.tsx` so route-owned server actions and session data-query assembly now live in adjacent `actions.ts` and `queries.ts` files, leaving the page focused on composition and rendering.
+WHY:
+- This reduces controller/query sprawl in the route page while preserving existing behavior and keeping server/client boundaries explicit with route-local ownership.
+
+
+### Changed
+WHAT:
+- Standardized session feature server-action outcomes to a single `ActionResult<T>` contract (`{ ok: true, data?: T } | { ok: false, error: string }`) and aligned session clients/offline sync adapters to consume the new shape.
+- Kept redirects scoped to navigation-only outcomes in the session flow; in-place mutations now return explicit error results instead of redirect-based error transport.
+WHY:
+- This creates a deterministic, consistent action contract for incremental rollout, reduces mixed result semantics, and keeps server/client interaction boundaries clearer without adding new structural layers.
+
+### Changed
+WHAT:
+- Centralized repeated cache invalidation path usage behind shared revalidation helpers for session, history, and routines views, and updated route/server actions to call those helpers while preserving existing invalidation scope.
+WHY:
+- This reduces duplicated path literals and keeps invalidation behavior easier to audit and maintain without changing user-visible cache refresh behavior.
+
+### Changed
+WHAT:
+- Added a compact “Change day” button under Today’s Start Workout action and upgraded routine day exercise cards to expandable, inline-editable cards in the Edit Day flow.
+- Fixed session interaction continuity bugs: timer restore no longer double-counts after leaving/resuming, exercise-back navigation now closes the focused exercise first, exercise timer resets when backing out of a focused exercise, and local logged-set counters stay in sync when resuming a session.
+WHY:
+- These updates make day selection and day-exercise editing faster on mobile, while restoring deterministic session behavior so timers/navigation/set counts match user expectations during resume/back workflows.
+
+### Changed
+WHAT:
+- Updated Today’s day-picker interaction to use a dedicated CHANGE DAY button that opens a centered single-select overlay with OK/Cancel confirmation, and aligned the button placement with the secondary session action slot under Start Workout.
+WHY:
+- This keeps Today’s action area visually stable between in-progress and not-started states while making day selection explicit, reversible, and more consistent with the app’s existing mobile interaction patterns.
+
+### Changed
+WHAT:
+- Reworked routines card action layout so reorder arrows now live in the same right-side action cluster as the Active/Inactive control, with slightly tighter card spacing and square-corner arrow buttons.
+WHY:
+- This improves action grouping/scannability on routine cards while preserving existing behavior, accessibility affordances, and tap-target clarity.
+
+### Fixed
+WHAT:
+- Updated session back behavior so a single back action now both closes an open exercise focus panel (including reset cleanup) and proceeds with navigation.
+- Removed the intermediate history state insertion that previously required an extra back press when an exercise panel was open.
+WHY:
+- Back navigation should be deterministic and never trap users on the session screen behind a second press.
+- Preserving panel cleanup while allowing immediate navigation maintains existing safety/reset behavior without degrading browser back expectations.
+
+### Fixed
+WHAT:
+- Stabilized the Today “Start Workout” CTA styling so its green treatment remains consistent across interaction states.
+- Updated Today’s day selection flow so choosing a day immediately updates the workout header and exercise preview to that selected day instead of showing only helper text.
+WHY:
+- This removes visual inconsistency on the primary CTA and makes Change Day behavior reflect the user’s selected workout context before starting a session.
+
+### Fixed
+WHAT:
+- Expanded the Today “Change Day” chooser overlay sizing/scroll behavior so all day options remain visible on smaller/rest-day card contexts, and widened the routines “Create Routine” CTA to fill its list row.
+- Hardened the Today “Start Workout” button text color across interaction states so the CTA color treatment does not degrade to grey after taps.
+WHY:
+- These updates keep primary workout actions legible and reachable on small/mobile layouts, while preserving consistent visual affordance for the main start action.
+
+### Fixed
+WHAT:
+- Adjusted the Today selected-day preview layout so long day content uses a bounded, scrollable exercise list and keeps the CHANGE DAY control visible when the start-session card has less vertical space.
+WHY:
+- This prevents day-selection controls from being visually clipped on smaller mobile card layouts while preserving the existing Today workflow.
+
+### Changed
+WHAT:
+- Standardized primary action buttons across Today, Session, Routines, and History using shared button tokens and reusable app button primitives, including label normalization for End Workout and CHANGE DAY.
+- Standardized top-right back controls behind one shared back-button component and replaced inconsistent per-screen variants.
+- Updated CHANGE DAY to open a compact overlay with multi-select day options and explicit OK/Cancel controls while preserving existing day-switch workout behavior.
+WHY:
+- This keeps critical actions visually consistent and predictable across mobile flows, reduces style drift for future screens, and preserves existing navigation/data boundaries with a minimal UI-focused diff.
+
+### Fixed
+WHAT:
+- Removed the Today day-picker OK confirmation step so selecting a day now applies immediately and closes the chooser.
+WHY:
+- This restores the expected one-tap day-switch workflow and prevents regressions where users had to confirm selection with an extra action.
+
+### Changed
+WHAT:
+- Simplified routine timezone selection in create/edit forms to a short, familiar set (Pacific, Mountain, Central, Eastern, UTC) while still accepting previously saved timezone values.
+- Added clearer helper copy for cycle length and start date so users understand that cycle days include rest days and that start date anchors Day 1.
+- Strengthened mobile input-focus behavior by enforcing non-scalable viewport defaults and resetting viewport constraints after form-field blur events.
+WHY:
+- This reduces setup friction in routine creation/editing, aligns timezone defaults with device-local context, and minimizes disruptive mobile zoom jumps when interacting with form inputs.

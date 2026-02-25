@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { validateExerciseName } from "@/lib/exercises";
+import { validateExerciseEquipment, validateExerciseName } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 
 function redirectWithMessage(returnTo: string, key: "error" | "success", message: string, exerciseId?: string) {
@@ -24,7 +24,7 @@ export async function createCustomExerciseAction(formData: FormData) {
   const returnTo = String(formData.get("returnTo") ?? "").trim();
   const name = validateExerciseName(String(formData.get("name") ?? ""));
   const primaryMuscle = String(formData.get("primaryMuscle") ?? "").trim() || null;
-  const equipment = String(formData.get("equipment") ?? "").trim() || null;
+  const equipment = validateExerciseEquipment(String(formData.get("equipment") ?? ""));
 
   const { data, error } = await supabase
     .from("exercises")
@@ -79,7 +79,6 @@ export async function renameCustomExerciseAction(formData: FormData) {
     redirectWithMessage(returnTo, "success", "Custom exercise renamed.", exerciseId);
   }
 }
-
 export async function deleteCustomExerciseAction(formData: FormData) {
   const user = await requireUser();
   const supabase = supabaseServer();
