@@ -823,3 +823,15 @@ WHAT:
 - Strengthened mobile input-focus behavior by enforcing non-scalable viewport defaults and resetting viewport constraints after form-field blur events.
 WHY:
 - This reduces setup friction in routine creation/editing, aligns timezone defaults with device-local context, and minimizes disruptive mobile zoom jumps when interacting with form inputs.
+
+### Changed
+WHAT:
+- Added a new exercises metadata migration that backfills missing placeholder image paths, sets image placeholder defaults for future rows, and enforces global-only completeness constraints (how-to text, movement pattern, primary muscles, and image paths), plus a normalized unique index for global exercise names.
+WHY:
+- Ensures global exercise records are consistently complete and prevents duplicate global naming while keeping custom exercises flexible.
+
+### Fixed
+WHAT:
+- Updated the exercises metadata constraints migration to backfill missing required global metadata fields before adding global-only check constraints.
+WHY:
+- Prevents migration failure on existing global exercise rows that were missing required values while still enforcing completeness rules going forward.
