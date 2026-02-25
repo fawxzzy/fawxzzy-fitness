@@ -185,6 +185,16 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
     });
   }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
 
+  const selectedTagSummary = useMemo(() => {
+    if (selectedTags.length === 0) {
+      return "0 filters selected: All";
+    }
+
+    const tagLabelsByValue = new Map(availableTags.map((tag) => [tag.value, tag.label]));
+    const labels = selectedTags.map((tag) => tagLabelsByValue.get(tag) ?? formatTagLabel(tag));
+    return `${selectedTags.length} filter${selectedTags.length === 1 ? "" : "s"} selected: ${labels.join(", ")}`;
+  }, [availableTags, selectedTags]);
+
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
 
   return (
@@ -253,9 +263,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
           </div>
         ) : null}
 
-        {selectedTags.length > 0 ? (
-          <p className="text-xs text-muted">{selectedTags.length} filter{selectedTags.length === 1 ? "" : "s"} selected</p>
-        ) : null}
+        <p className="text-xs text-muted">{selectedTagSummary}</p>
       </div>
       <input type="hidden" name={name} value={selectedId} required />
       <div className="min-h-11 rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))]">
