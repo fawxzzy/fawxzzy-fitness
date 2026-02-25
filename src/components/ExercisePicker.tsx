@@ -29,6 +29,15 @@ type ExercisePickerProps = {
   initialSelectedId?: string;
 };
 
+type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
+
+const tagGroupLabels: Record<TagFilterGroup, string> = {
+  muscle: "Muscle",
+  movement: "Movement",
+  equipment: "Equipment",
+  other: "Other",
+};
+
 const tagClassName = "rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
 
 function toTagArray(value: string[] | string | null | undefined) {
@@ -67,6 +76,19 @@ function normalizeExerciseTags(exercise: ExerciseOption) {
   }
 
   return deduped;
+}
+
+function appendTagsWithGroup(
+  groupedTags: Map<string, { label: string; group: TagFilterGroup }>,
+  rawValues: string[] | string | null | undefined,
+  group: TagFilterGroup,
+) {
+  for (const value of toTagArray(rawValues)) {
+    const normalized = value.toLowerCase();
+    if (!groupedTags.has(normalized)) {
+      groupedTags.set(normalized, { label: value, group });
+    }
+  }
 }
 
 function formatTagLabel(tag: string) {
@@ -154,22 +176,53 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
     return tagsById;
   }, [uniqueExercises]);
 
-  const availableTags = useMemo(() => {
-    const labelsByTag = new Map<string, string>();
+  const availableTagGroups = useMemo(() => {
+    const tagsByValue = new Map<string, { label: string; group: TagFilterGroup }>();
 
     for (const exercise of uniqueExercises) {
-      const tags = normalizeExerciseTags(exercise);
-      for (const [tag, label] of tags) {
-        if (!labelsByTag.has(tag)) {
-          labelsByTag.set(tag, label);
+      appendTagsWithGroup(tagsByValue, exercise.muscles, "muscle");
+      appendTagsWithGroup(tagsByValue, exercise.muscle, "muscle");
+      appendTagsWithGroup(tagsByValue, exercise.primary_muscle, "muscle");
+
+      appendTagsWithGroup(tagsByValue, exercise.movement_pattern, "movement");
+      appendTagsWithGroup(tagsByValue, exercise.equipment, "equipment");
+
+      appendTagsWithGroup(tagsByValue, exercise.tags, "other");
+      appendTagsWithGroup(tagsByValue, exercise.tag, "other");
+      appendTagsWithGroup(tagsByValue, exercise.categories, "other");
+      appendTagsWithGroup(tagsByValue, exercise.category, "other");
+
+      const normalizedTags = normalizeExerciseTags(exercise);
+      for (const [tag, label] of normalizedTags) {
+        if (!tagsByValue.has(tag)) {
+          tagsByValue.set(tag, { label, group: "other" });
         }
       }
     }
 
-    return [...labelsByTag.entries()]
-      .map(([value, label]) => ({ value, label: formatTagLabel(label) }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    const groupedTags: Record<TagFilterGroup, Array<{ value: string; label: string }>> = {
+      muscle: [],
+      movement: [],
+      equipment: [],
+      other: [],
+    };
+
+    for (const [value, { label, group }] of tagsByValue.entries()) {
+      groupedTags[group].push({ value, label: formatTagLabel(label) });
+    }
+
+    return (Object.keys(tagGroupLabels) as TagFilterGroup[])
+      .map((group) => ({
+        key: group,
+        label: tagGroupLabels[group],
+        tags: groupedTags[group].sort((a, b) => a.label.localeCompare(b.label)),
+      }))
+      .filter((group) => group.tags.length > 0);
   }, [uniqueExercises]);
+
+  const availableTags = useMemo(() => {
+    return availableTagGroups.flatMap((group) => group.tags);
+  }, [availableTagGroups]);
 
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -231,7 +284,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
         </button>
 
         {isFiltersOpen ? (
-          <div className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
+          <div className="space-y-2">
             <button
               type="button"
               onClick={() => setSelectedTags([])}
@@ -239,27 +292,34 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
             >
               All
             </button>
-            {availableTags.map((tag) => {
-              const isSelected = selectedTags.includes(tag.value);
-              return (
-                <button
-                  key={tag.value}
-                  type="button"
-                  onClick={() => {
-                    setSelectedTags((prev) => {
-                      if (prev.includes(tag.value)) {
-                        return prev.filter((value) => value !== tag.value);
-                      }
+            {availableTagGroups.map((group) => (
+              <div key={group.key} className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{group.label}</p>
+                <div className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
+                  {group.tags.map((tag) => {
+                    const isSelected = selectedTags.includes(tag.value);
+                    return (
+                      <button
+                        key={tag.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTags((prev) => {
+                            if (prev.includes(tag.value)) {
+                              return prev.filter((value) => value !== tag.value);
+                            }
 
-                      return [...prev, tag.value];
-                    });
-                  }}
-                  className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-emerald-700 bg-emerald-600 text-white shadow-sm" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
-                >
-                  {tag.label}
-                </button>
-              );
-            })}
+                            return [...prev, tag.value];
+                          });
+                        }}
+                        className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-emerald-700 bg-emerald-600 text-white shadow-sm" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
+                      >
+                        {tag.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         ) : null}
 
