@@ -848,3 +848,9 @@ WHAT:
 - Adjusted the global exercise metadata backfill fallback for `movement_pattern` to use an allowed canonical value before constraints are applied.
 WHY:
 - Prevents migration failures from violating the existing `exercises_movement_pattern_check` while preserving global metadata completeness enforcement.
+
+### Changed
+WHAT:
+- Organized Add Exercise tag filters into labeled category rows (Muscle, Movement, Equipment, and Other) while preserving the existing multi-select filter behavior.
+WHY:
+- This makes long filter lists easier to scan on mobile and reduces search friction when users are narrowing exercise results.
