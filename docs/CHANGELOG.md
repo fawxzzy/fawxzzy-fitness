@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Reordered exercise metadata tag display so Movement tags render last in Add Exercise picker rows and the selected-exercise summary.
+WHY:
+- Keeping Movement at the end ensures it is the first tag to be visually truncated when horizontal space is limited, preserving higher-priority context earlier in the tag list.
+
+### Changed
+WHAT:
 - Updated Add Exercise filter chips so selected tags use a bright outer highlight ring/border treatment (matching the high-contrast "Close" tag style direction) and automatically return to the neutral chip style when deselected.
 WHY:
 - This makes active filters immediately obvious while preserving a clear unselected state for faster scanning on mobile.
