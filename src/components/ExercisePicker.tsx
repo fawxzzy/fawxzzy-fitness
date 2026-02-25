@@ -112,38 +112,42 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
         )}
       </div>
 
-      <ul
-        ref={scrollContainerRef}
-        onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
-        className="max-h-52 space-y-2 overflow-y-auto pr-1"
-      >
-        {filteredExercises.map((exercise) => {
-          const isSelected = exercise.id === selectedId;
-          return (
-            <li key={exercise.id} className={`rounded-lg border p-2 ${isSelected ? "border-border bg-surface-2-soft" : "border-border bg-surface"}`}>
-              <div className="flex items-start gap-2">
-                {exercise.image_howto_path ? (
-                  <Image src={exercise.image_howto_path} alt="" width={48} height={48} className="h-12 w-12 rounded-md border border-border object-cover" />
-                ) : null}
-                <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 text-left">
-                  <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
-                  <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>
-                    <MetaTag value={exercise.equipment} />
-                    <MetaTag value={exercise.movement_pattern} />
-                    <span className="hidden sm:inline-flex"><MetaTag value={exercise.primary_muscle} /></span>
-                  </div>
-                </button>
-                <Link
-                  href={`/exercises/${exercise.id}?returnTo=${encodeURIComponent(returnTo)}`}
-                  className="inline-flex min-h-10 items-center rounded-md border border-border bg-surface-2-strong px-2 py-1 text-xs text-text"
-                >
-                  Info
-                </Link>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <p className="text-xs text-muted">Scroll to see more exercises ↓</p>
+      <div className="relative">
+        <ul
+          ref={scrollContainerRef}
+          onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+          className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-slate-300/80 bg-[rgb(var(--bg)/0.25)] p-2 pr-1"
+        >
+          {filteredExercises.map((exercise) => {
+            const isSelected = exercise.id === selectedId;
+            return (
+              <li key={exercise.id} className={`rounded-xl border p-2 ${isSelected ? "border-slate-200 bg-surface-2-soft" : "border-slate-300 bg-surface"}`}>
+                <div className="flex items-stretch gap-2">
+                  {exercise.image_howto_path ? (
+                    <Image src={exercise.image_howto_path} alt="" width={48} height={48} className="h-12 w-12 rounded-md border border-border object-cover" />
+                  ) : null}
+                  <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 rounded-md border border-border/50 bg-surface-2 px-2 py-1 text-left">
+                    <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
+                    <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>
+                      <MetaTag value={exercise.equipment} />
+                      <MetaTag value={exercise.movement_pattern} />
+                      <span className="hidden sm:inline-flex"><MetaTag value={exercise.primary_muscle} /></span>
+                    </div>
+                  </button>
+                  <Link
+                    href={`/exercises/${exercise.id}?returnTo=${encodeURIComponent(returnTo)}`}
+                    className="inline-flex min-h-10 items-center rounded-md border border-border bg-surface-2-strong px-3 py-1 text-xs text-accent"
+                  >
+                    Info
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
+      </div>
     </div>
   );
 }
