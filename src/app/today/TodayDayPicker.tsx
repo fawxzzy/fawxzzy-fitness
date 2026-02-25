@@ -75,7 +75,7 @@ export function TodayDayPicker({
         }}
         aria-expanded={isPickerOpen}
       >
-        {isPickerOpen ? "CLOSE DAY CHOOSER" : "CHANGE WORKOUT"}
+        {isPickerOpen ? "CLOSE" : "CHANGE WORKOUT"}
       </SecondaryButton>
 
       {isPickerOpen ? (
