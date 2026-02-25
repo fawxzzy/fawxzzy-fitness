@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Updated the exercise picker filter controls to use a dedicated clickable Filter card with an Open/Close status tag, expandable tag list visibility, and clearer selected/unselected tag states.
+- Kept tag filtering multi-select so users can combine multiple tags when narrowing the exercise list.
+WHY:
+- This improves filter discoverability and clarity on mobile while preserving fast, flexible exercise filtering behavior.
+
+### Changed
+WHAT:
 - Added exercise-tag filters to the Add Exercise picker with compact multi-select chips (including an All reset) that combine with text search using the already loaded exercise dataset.
 - Removed the History empty-state card and replaced it with minimal inline text when there are no completed sessions.
 - Added shared iOS safe-area top inset handling to the root app content container so headers/titles remain visible on notch/dynamic-island devices and home-screen PWAs.

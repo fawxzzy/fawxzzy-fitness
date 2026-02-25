@@ -87,6 +87,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLUListElement | null>(null);
 
   const uniqueExercises = useMemo(() => {
@@ -185,38 +186,55 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
           </button>
         ) : null}
       </div>
-      <div className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">Filters</p>
-        <div className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
-          <button
-            type="button"
-            onClick={() => setSelectedTags([])}
-            className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-accent bg-accent text-white" : "border-border bg-surface-2-soft text-muted hover:border-accent/70"}`}
-          >
-            All
-          </button>
-          {availableTags.map((tag) => {
-            const isSelected = selectedTags.includes(tag.value);
-            return (
-              <button
-                key={tag.value}
-                type="button"
-                onClick={() => {
-                  setSelectedTags((prev) => {
-                    if (prev.includes(tag.value)) {
-                      return prev.filter((value) => value !== tag.value);
-                    }
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setIsFiltersOpen((prev) => !prev)}
+          aria-expanded={isFiltersOpen}
+          className="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-left transition-colors hover:border-accent/70"
+        >
+          <span className="text-sm font-medium text-[rgb(var(--text))]">Filter</span>
+          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${isFiltersOpen ? "border-accent bg-accent text-white" : "border-border bg-surface-2-soft text-muted"}`}>
+            {isFiltersOpen ? "Close" : "Open"}
+          </span>
+        </button>
 
-                    return [...prev, tag.value];
-                  });
-                }}
-                className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-accent bg-accent text-white" : "border-border bg-surface-2-soft text-muted hover:border-accent/70"}`}
-              >
-                {tag.label}
-              </button>
-            );
-          })}
-        </div>
+        {isFiltersOpen ? (
+          <div className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
+            <button
+              type="button"
+              onClick={() => setSelectedTags([])}
+              className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-accent bg-accent text-white" : "border-slate-300 bg-slate-200 text-slate-600 hover:border-accent/70"}`}
+            >
+              All
+            </button>
+            {availableTags.map((tag) => {
+              const isSelected = selectedTags.includes(tag.value);
+              return (
+                <button
+                  key={tag.value}
+                  type="button"
+                  onClick={() => {
+                    setSelectedTags((prev) => {
+                      if (prev.includes(tag.value)) {
+                        return prev.filter((value) => value !== tag.value);
+                      }
+
+                      return [...prev, tag.value];
+                    });
+                  }}
+                  className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-accent bg-accent text-white" : "border-slate-300 bg-slate-200 text-slate-600 hover:border-accent/70"}`}
+                >
+                  {tag.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {selectedTags.length > 0 ? (
+          <p className="text-xs text-muted">{selectedTags.length} filter{selectedTags.length === 1 ? "" : "s"} selected</p>
+        ) : null}
       </div>
       <input type="hidden" name={name} value={selectedId} required />
       <div className="min-h-11 rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))]">
