@@ -37,7 +37,7 @@ export async function getSessionPageData(sessionId: string) {
   const { data: setsData } = exerciseIds.length
     ? await supabase
         .from("sets")
-        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe, weight_unit")
+        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
         .in("session_exercise_id", exerciseIds)
         .eq("user_id", user.id)
         .order("set_index", { ascending: true })

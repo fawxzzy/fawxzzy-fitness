@@ -32,6 +32,9 @@ export type SetRow = {
   is_warmup: boolean;
   notes: string | null;
   duration_seconds: number | null;
+  distance: number | null;
+  distance_unit: "mi" | "km" | "m" | null;
+  calories: number | null;
   rpe: number | null;
   weight_unit: "lbs" | "kg" | null;
 };
@@ -88,6 +91,9 @@ export type ExerciseRow = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
+  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  default_unit: string | null;
+  calories_estimation_method: string | null;
   image_howto_path: string | null;
   how_to_short: string | null;
   created_at: string;

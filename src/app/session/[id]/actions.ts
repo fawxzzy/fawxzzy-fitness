@@ -43,7 +43,7 @@ export async function addSetAction(payload: {
   if (clientLogId) {
     const { data: existingByClientLogId, error: existingByClientLogIdError } = await supabase
       .from("sets")
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe, weight_unit")
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
       .eq("session_exercise_id", sessionExerciseId)
       .eq("user_id", user.id)
       .eq("client_log_id", clientLogId)
@@ -96,7 +96,7 @@ export async function addSetAction(payload: {
     const { data: insertedSet, error } = await supabase
       .from("sets")
       .insert(insertPayload)
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, rpe, weight_unit")
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
       .single();
 
     if (!error && insertedSet) {
