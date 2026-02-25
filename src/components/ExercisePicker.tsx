@@ -121,7 +121,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
         )}
       </div>
 
-      <ul className="max-h-52 space-y-2 overflow-y-auto pr-1">
+      <p className="text-xs text-muted">Scroll to see more exercises ↓</p>
+      <div className="relative">
+        <ul className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-slate-300/80 bg-[rgb(var(--bg)/0.25)] p-2 pr-1">
         {filteredExercises.map((exercise) => {
           const isSelected = exercise.id === selectedId;
           return (
@@ -149,7 +151,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
             </li>
           );
         })}
-      </ul>
+        </ul>
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
+      </div>
 
       {isInfoOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3" aria-hidden={false}>

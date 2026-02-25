@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Prevented mobile input-focus zoom jumps by enforcing a 16px minimum font size for form controls on small screens.
+- Updated routine day exercise cards so the right-side disclosure label now reads “Close” while a card is expanded and “Edit” when collapsed.
+- Improved add-exercise list affordance with explicit scroll cue text, a bordered scroll viewport, and a bottom gradient hint.
+WHY:
+- This removes disruptive focus zoom behavior on mobile, makes open/close state clearer in routine editing, and helps users discover that the exercise list is scrollable.
+
+### Changed
+WHAT:
 - Renamed Today’s day-picker action label from “Change Day” to “Change Workout,” reverted the picker list to immediate single-tap selection, and removed the extra confirmation flow (checkboxes + OK) while keeping cancel/overlay-dismiss behavior.
 - Updated the routines “Create Routine” call-to-action to use the same secondary button visual treatment as history card “View” actions.
 WHY:

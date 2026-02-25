@@ -126,6 +126,26 @@ textarea {
   color: rgb(var(--text));
 }
 
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+details > summary .details-close-label {
+  display: none;
+}
+
+details[open] > summary .details-edit-label {
+  display: none;
+}
+
+details[open] > summary .details-close-label {
+  display: inline;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: rgb(var(--faint));
