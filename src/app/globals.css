@@ -85,6 +85,8 @@
   --glass-current-blur-base: var(--glass-blur-base-on);
   --glass-current-blur-raised: var(--glass-blur-raised-on);
   --glass-current-blur-overlay: var(--glass-blur-overlay-on);
+
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
 }
 
 :root[data-glass-effects="reduced"] {
@@ -343,4 +345,9 @@ a:focus-visible {
   .shadow-sm {
     box-shadow: none;
   }
+}
+
+
+.safe-area-main {
+  padding-top: calc(1.5rem + var(--safe-area-inset-top));
 }

@@ -113,47 +113,47 @@ export default async function HistoryPage({
     <section className="space-y-4">
       <AppNav />
 
-      <Glass variant="base" className="p-2" interactive={false}>
-        <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
-          {sessions.map((session, index) => {
-            const resolvedDayName = session.day_name_override
-              || (session.routine_id && session.routine_day_index ? routineDayNameByKey.get(`${session.routine_id}:${session.routine_day_index}`) : null)
-              || session.routine_day_name
-              || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day");
+      {sessions.length > 0 ? (
+        <Glass variant="base" className="p-2" interactive={false}>
+          <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
+            {sessions.map((session, index) => {
+              const resolvedDayName = session.day_name_override
+                || (session.routine_id && session.routine_day_index ? routineDayNameByKey.get(`${session.routine_id}:${session.routine_day_index}`) : null)
+                || session.routine_day_name
+                || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day");
 
-            return (
-            <li key={session.id} className={listShellClasses.card}>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="rounded-md border border-slate-300 bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  {(session.name || "Session")} Log #{sessions.length - index}: {resolvedDayName}
-                </span>
-                <form action={deleteSessionAction}>
-                  <input type="hidden" name="sessionId" value={session.id} />
-                  <DestructiveButton type="submit" size="sm" className={`${listShellClasses.pillAction} shrink-0`}>
-                    Delete
-                  </DestructiveButton>
-                </form>
-              </div>
+              return (
+              <li key={session.id} className={listShellClasses.card}>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="rounded-md border border-slate-300 bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    {(session.name || "Session")} Log #{sessions.length - index}: {resolvedDayName}
+                  </span>
+                  <form action={deleteSessionAction}>
+                    <input type="hidden" name="sessionId" value={session.id} />
+                    <DestructiveButton type="submit" size="sm" className={`${listShellClasses.pillAction} shrink-0`}>
+                      Delete
+                    </DestructiveButton>
+                  </form>
+                </div>
 
-              <p className="text-xs text-slate-500"><LocalDateTime value={session.performed_at} /></p>
+                <p className="text-xs text-slate-500"><LocalDateTime value={session.performed_at} /></p>
 
-              <div className="mt-3">
-                <Link
-                  href={`/history/${session.id}`}
-                  className={getAppButtonClassName({ variant: "secondary", state: "active", fullWidth: true })}
-                >
-                  View
-                </Link>
-              </div>
-            </li>
-            );
-          })}
-        </ul>
-      </Glass>
-
-      {sessions.length === 0 ? (
-        <Glass variant="base" className="border-dashed p-4 text-sm text-slate-500" interactive={false}>No sessions yet.</Glass>
-      ) : null}
+                <div className="mt-3">
+                  <Link
+                    href={`/history/${session.id}`}
+                    className={getAppButtonClassName({ variant: "secondary", state: "active", fullWidth: true })}
+                  >
+                    View
+                  </Link>
+                </div>
+              </li>
+              );
+            })}
+          </ul>
+        </Glass>
+      ) : (
+        <p className="px-1 text-sm text-muted">No sessions yet.</p>
+      )}
 
       {nextCursor ? (
         <div className="flex justify-center">
