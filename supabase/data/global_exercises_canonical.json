@@ -5,7 +5,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Kneel with the wheel under your shoulders, roll forward while bracing your trunk, then pull back to the start.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -21,7 +21,7 @@
     "equipment": "Machine",
     "is_global": true,
     "how_to_short": "Sit tall and press your knees outward against the pads, then return with control.",
-    "movement_pattern": "lunge",
+    "movement_pattern": "push",
     "primary_muscles": [
       "abductors",
       "glutes"
@@ -38,7 +38,7 @@
     "equipment": "Machine",
     "is_global": true,
     "how_to_short": "Sit upright and squeeze your legs inward against the pads, then return slowly.",
-    "movement_pattern": "lunge",
+    "movement_pattern": "push",
     "primary_muscles": [
       "adductors"
     ],
@@ -54,7 +54,7 @@
     "equipment": "Cardio Machine",
     "is_global": true,
     "how_to_short": "Drive hard with arms and legs together at a high effort, then ease down under control.",
-    "movement_pattern": "cardio",
+    "movement_pattern": "push",
     "primary_muscles": [
       "cardio"
     ],
@@ -191,7 +191,7 @@
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Set your rear foot on a bench, drop your back knee down, and drive up through the front leg.",
-    "movement_pattern": "lunge",
+    "movement_pattern": "push",
     "primary_muscles": [
       "quads",
       "glutes"
@@ -209,7 +209,7 @@
     "equipment": "Cable",
     "is_global": true,
     "how_to_short": "Kneel at the cable, flex your trunk down by bracing your abs, and return under control.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -456,7 +456,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Brace your lower back to the floor, extend opposite arm and leg, and return without arching.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -814,7 +814,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Hang from the bar, raise your legs by flexing at the hips, and lower without swinging.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "hip flexors",
       "core"
@@ -880,7 +880,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Press your lower back into the floor, hold arms and legs extended, and keep constant tension.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -964,7 +964,7 @@
     "equipment": "Cardio Machine",
     "is_global": true,
     "how_to_short": "Perform the movement at a steady effort for the prescribed pace or duration while maintaining controlled form.",
-    "movement_pattern": "cardio",
+    "movement_pattern": "push",
     "primary_muscles": [
       "cardio"
     ],
@@ -981,7 +981,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Jump lightly on the balls of your feet while turning the rope in a steady rhythm.",
-    "movement_pattern": "cardio",
+    "movement_pattern": "push",
     "primary_muscles": [
       "cardio"
     ],
@@ -1131,7 +1131,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Keep your lower back braced as you raise your legs up, then lower without arching.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "hip flexors",
       "core"
@@ -1163,7 +1163,7 @@
     "equipment": "Machine",
     "is_global": true,
     "how_to_short": "Curl your torso forward against resistance, squeeze your abs, and return slowly.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1282,7 +1282,7 @@
     "equipment": "Cable",
     "is_global": true,
     "how_to_short": "Press the cable straight out from your chest, resist trunk rotation, and return slowly.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1366,7 +1366,7 @@
     "equipment": "Machine",
     "is_global": true,
     "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1397,7 +1397,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Hold a straight line from shoulders to heels while bracing your trunk and breathing steadily.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1551,7 +1551,7 @@
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Step one leg back, lower both knees under control, and drive through the front foot to stand.",
-    "movement_pattern": "lunge",
+    "movement_pattern": "push",
     "primary_muscles": [
       "quads",
       "glutes"
@@ -1569,7 +1569,7 @@
     "equipment": "Machine",
     "is_global": true,
     "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1583,7 +1583,7 @@
     "equipment": "Cable",
     "is_global": true,
     "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1614,7 +1614,7 @@
     "equipment": "Cable",
     "is_global": true,
     "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1628,7 +1628,7 @@
     "equipment": "Cardio Machine",
     "is_global": true,
     "how_to_short": "Push through your legs, finish with a torso swing and arm pull, then recover smoothly.",
-    "movement_pattern": "cardio",
+    "movement_pattern": "push",
     "primary_muscles": [
       "cardio"
     ],
@@ -1648,7 +1648,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Lean back with a braced trunk, rotate your torso side to side, and keep your ribcage controlled.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1732,7 +1732,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Stack your body sideways on one forearm, lift hips, and hold a straight line.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1867,7 +1867,7 @@
     "equipment": "Barbell",
     "is_global": true,
     "how_to_short": "Perform each rep with controlled tempo and a braced trunk through full range of motion.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],
@@ -1881,7 +1881,7 @@
     "equipment": "Sled",
     "is_global": true,
     "how_to_short": "Lean into the sled and drive it forward with short powerful steps at a steady pace.",
-    "movement_pattern": "cardio",
+    "movement_pattern": "push",
     "primary_muscles": [
       "cardio"
     ],
@@ -1970,7 +1970,7 @@
     "equipment": "Cardio Machine",
     "is_global": true,
     "how_to_short": "Maintain a steady stepping cadence while keeping your torso tall and core braced.",
-    "movement_pattern": "cardio",
+    "movement_pattern": "push",
     "primary_muscles": [
       "cardio"
     ],
@@ -1990,7 +1990,7 @@
     "equipment": "Cardio Machine",
     "is_global": true,
     "how_to_short": "Pedal smoothly at your target resistance and cadence while maintaining stable posture.",
-    "movement_pattern": "cardio",
+    "movement_pattern": "push",
     "primary_muscles": [
       "cardio"
     ],
@@ -2010,7 +2010,7 @@
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Place one foot on the box, drive through it to stand tall, and lower back with control.",
-    "movement_pattern": "lunge",
+    "movement_pattern": "push",
     "primary_muscles": [
       "quads",
       "glutes"
@@ -2129,7 +2129,7 @@
     "equipment": "Cardio Machine",
     "is_global": true,
     "how_to_short": "Run at your target pace with a light mid-foot strike and controlled arm swing.",
-    "movement_pattern": "cardio",
+    "movement_pattern": "push",
     "primary_muscles": [
       "cardio"
     ],
@@ -2183,7 +2183,7 @@
     "equipment": "Dumbbell",
     "is_global": true,
     "how_to_short": "Step forward into a lunge, lower under control, and drive through the lead foot into the next step.",
-    "movement_pattern": "lunge",
+    "movement_pattern": "push",
     "primary_muscles": [
       "quads",
       "glutes"
@@ -2201,7 +2201,7 @@
     "equipment": "Bodyweight",
     "is_global": true,
     "how_to_short": "Hold a rigid plank with added load while keeping your trunk braced and hips level.",
-    "movement_pattern": "core",
+    "movement_pattern": "push",
     "primary_muscles": [
       "core"
     ],

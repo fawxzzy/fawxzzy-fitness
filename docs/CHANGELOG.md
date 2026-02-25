@@ -160,6 +160,13 @@ WHY:
 
 ### Changed
 WHAT:
+- Backfilled canonical global exercise metadata so every global exercise has validated how-to text, movement pattern, primary/secondary muscles, and placeholder image paths from the canonical JSON source.
+- Added a dedicated SQL backfill migration that updates global exercise metadata by normalized global exercise name and includes QA verification queries for Supabase SQL editor checks.
+WHY:
+- Ensures global exercise metadata stays complete and constraint-safe across environments while making the backfill repeatable and easy to verify against the canonical dataset.
+
+### Changed
+WHAT:
 - Introduced a richer shared app-button API (variant/size/active state), then normalized key actions to those shared styles across Today, Routines, History, and Session screens (Start Workout, Resume Workout, CHANGE DAY, End Workout, Create Routine, View, and destructive Delete actions).
 - Standardized top-right back controls through the shared back-button styling path and aligned Current Session UI copy/layout by renaming "Session Timer" to "Timer" and removing the standalone session date/time bar.
 - Updated Today’s CHANGE DAY overlay flow to use explicit day selection with OK/Cancel confirmation while preserving pre-start day switching behavior.
