@@ -239,3 +239,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Shared primitives prevent action-style drift and preserve consistent touch feedback/accessibility without redesigning each screen.
 - Evidence: src/app/globals.css, src/components/ui/AppButton.tsx, src/components/ui/TopRightBackButton.tsx, src/app/today/TodayDayPicker.tsx
 - Status: Proposed
+
+## 2026-02-25 — Keep timezone UX simple while preserving canonical storage values
+- Type: Pattern
+- Summary: Expose a small set of user-friendly timezone choices in mobile forms, then normalize device/legacy timezone inputs to canonical values used by server-side scheduling logic.
+- Suggested Playbook File: patterns/timezone-determinism.md
+- Rationale: A short, predictable timezone list reduces decision friction and accidental misconfiguration while preserving deterministic day-window behavior.
+- Evidence: src/lib/timezones.ts, src/app/routines/new/page.tsx, src/app/routines/[id]/edit/page.tsx, src/components/RoutineLocalDefaults.tsx
+- Status: Proposed

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
 import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,6 +25,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#0B1220",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -36,6 +42,7 @@ export default function RootLayout({
       <body className="relative overflow-x-hidden">
         <ToastProvider>
           <GlassEffectsBootstrap />
+          <MobileViewportGuard />
           <AnimatedBackground />
           <main className="relative z-10 mx-auto min-h-screen w-full max-w-md px-4 py-6">
             {children}
