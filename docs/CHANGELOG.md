@@ -729,3 +729,11 @@ WHAT:
 - Removed the Today day-picker OK confirmation step so selecting a day now applies immediately and closes the chooser.
 WHY:
 - This restores the expected one-tap day-switch workflow and prevents regressions where users had to confirm selection with an extra action.
+
+### Changed
+WHAT:
+- Simplified routine timezone selection in create/edit forms to a short, familiar set (Pacific, Mountain, Central, Eastern, UTC) while still accepting previously saved timezone values.
+- Added clearer helper copy for cycle length and start date so users understand that cycle days include rest days and that start date anchors Day 1.
+- Strengthened mobile input-focus behavior by enforcing non-scalable viewport defaults and resetting viewport constraints after form-field blur events.
+WHY:
+- This reduces setup friction in routine creation/editing, aligns timezone defaults with device-local context, and minimizes disruptive mobile zoom jumps when interacting with form inputs.

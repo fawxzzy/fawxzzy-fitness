@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { normalizeRoutineTimezone } from "@/lib/timezones";
 
 type RoutineLocalDefaultsProps = {
   timezoneOptions: readonly string[];
@@ -19,8 +20,11 @@ export function RoutineLocalDefaults({ timezoneOptions }: RoutineLocalDefaultsPr
     const startDateField = document.querySelector<HTMLInputElement>('input[name="startDate"]');
 
     const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (timezoneField && localTimeZone && timezoneOptions.includes(localTimeZone)) {
-      timezoneField.value = localTimeZone;
+    if (timezoneField && localTimeZone) {
+      const normalizedTimeZone = normalizeRoutineTimezone(localTimeZone);
+      if (timezoneOptions.includes(normalizedTimeZone)) {
+        timezoneField.value = normalizedTimeZone;
+      }
     }
 
     if (startDateField) {

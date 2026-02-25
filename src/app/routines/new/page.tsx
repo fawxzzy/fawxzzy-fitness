@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { createRoutineDaySeedsFromStartDate, getTodayDateInTimeZone } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
-import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
+import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, isRoutineTimezone, normalizeRoutineTimezone } from "@/lib/timezones";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +70,7 @@ export default async function NewRoutinePage() {
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const startDateDefault = getTodayDateInTimeZone(profile.timezone);
-  const routineTimezoneDefault = isRoutineTimezone(profile.timezone) ? profile.timezone : "America/Toronto";
+  const routineTimezoneDefault = normalizeRoutineTimezone(profile.timezone);
 
   return (
     <section className="space-y-4">
@@ -92,6 +92,7 @@ export default async function NewRoutinePage() {
 
         <label className="block text-sm">
           Cycle length (days)
+          <p className="mt-1 text-xs text-slate-500">Includes all days in your repeating cycle, including rest days.</p>
           <input
             type="number"
             name="cycleLengthDays"
@@ -121,7 +122,7 @@ export default async function NewRoutinePage() {
           >
             {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (
               <option key={timeZoneOption} value={timeZoneOption}>
-                {timeZoneOption}
+                {getRoutineTimezoneLabel(timeZoneOption)}
               </option>
             ))}
           </select>
@@ -129,6 +130,7 @@ export default async function NewRoutinePage() {
 
         <label className="block text-sm">
           Start date
+          <p className="mt-1 text-xs text-slate-500">This anchors Day 1 of the cycle on your selected date.</p>
           <input
             type="date"
             name="startDate"

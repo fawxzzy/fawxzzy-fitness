@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
 import { getRoutineEditPath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { ROUTINE_TIMEZONE_OPTIONS, isRoutineTimezone } from "@/lib/timezones";
+import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, isRoutineTimezone, normalizeRoutineTimezone } from "@/lib/timezones";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -190,9 +190,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
     }
   }
 
-  const routineTimezoneDefault = isRoutineTimezone((routine as RoutineRow).timezone)
-    ? (routine as RoutineRow).timezone
-    : "America/Toronto";
+  const routineTimezoneDefault = normalizeRoutineTimezone((routine as RoutineRow).timezone);
 
   return (
     <section className="space-y-4">
@@ -216,6 +214,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
             </label>
             <label className="block text-sm">Cycle length (days)
+              <p className="mt-1 text-xs text-slate-500">Includes workout and rest days in the repeat cycle.</p>
               <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
             </label>
             <label className="block text-sm">Units
@@ -226,10 +225,11 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             </label>
             <label className="block text-sm">Timezone
               <select name="timezone" required defaultValue={routineTimezoneDefault} className={controlClassName}>
-                {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{timeZoneOption}</option>))}
+                {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{getRoutineTimezoneLabel(timeZoneOption)}</option>))}
               </select>
             </label>
             <label className="block text-sm">Start date
+              <p className="mt-1 text-xs text-slate-500">Sets which calendar day is Day 1 for this cycle.</p>
               <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
             </label>
           </div>
