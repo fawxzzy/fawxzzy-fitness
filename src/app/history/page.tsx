@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
+import { DestructiveButton } from "@/components/ui/AppButton";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -128,12 +129,9 @@ export default async function HistoryPage({
                 </span>
                 <form action={deleteSessionAction}>
                   <input type="hidden" name="sessionId" value={session.id} />
-                  <button
-                    type="submit"
-                    className={`${listShellClasses.pillAction} shrink-0 border border-red-600/70 bg-red-600 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur transition-all hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30`}
-                  >
+                  <DestructiveButton type="submit" size="sm" className={`${listShellClasses.pillAction} shrink-0`}>
                     Delete
-                  </button>
+                  </DestructiveButton>
                 </form>
               </div>
 
@@ -142,7 +140,7 @@ export default async function HistoryPage({
               <div className="mt-3">
                 <Link
                   href={`/history/${session.id}`}
-                  className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
+                  className={getAppButtonClassName({ variant: "secondary", state: "active", fullWidth: true })}
                 >
                   View
                 </Link>

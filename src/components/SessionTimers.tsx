@@ -9,6 +9,7 @@ import {
   type SetLogQueueItem,
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
+import { SecondaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import type { ActionResult } from "@/lib/action-result";
@@ -128,10 +129,10 @@ export function SessionTimerCard({
 
   return (
     <section className="space-y-2 rounded-md bg-white p-3 shadow-sm">
-      <h2 className="text-sm font-semibold">Session Timer</h2>
+      <h2 className="text-sm font-semibold">Timer</h2>
       <p className="text-3xl font-semibold tabular-nums">{formatSeconds(elapsedSeconds)}</p>
       <div className="grid grid-cols-2 gap-2">
-        <button
+        <SecondaryButton
           type="button"
           onClick={async () => {
             if (isRunning) {
@@ -139,21 +140,21 @@ export function SessionTimerCard({
             }
             setIsRunning((value) => !value);
           }}
-          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+          className={tapFeedbackClass}
         >
           {isRunning ? "Pause" : "Start"}
-        </button>
-        <button
+        </SecondaryButton>
+        <SecondaryButton
           type="button"
           onClick={async () => {
             setIsRunning(false);
             setElapsedSeconds(0);
             await persistDurationAction({ sessionId, durationSeconds: 0 });
           }}
-          className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+          className={tapFeedbackClass}
         >
           Reset
-        </button>
+        </SecondaryButton>
       </div>
     </section>
   );

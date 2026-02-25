@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
+import { DestructiveButton } from "@/components/ui/AppButton";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -123,7 +124,7 @@ export default async function RoutinesPage() {
         <div className="w-full">
           <Link
             href="/routines/new"
-            className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}
+            className={getAppButtonClassName({ variant: "secondary", state: "active", fullWidth: true })}
           >
             Create Routine
           </Link>
@@ -148,12 +149,9 @@ export default async function RoutinesPage() {
                     </Link>
                     <form action={deleteRoutineAction}>
                       <input type="hidden" name="routineId" value={routine.id} />
-                      <button
-                        type="submit"
-                        className={`${listShellClasses.pillAction} border border-red-200/80 bg-red-100/65 text-red-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] backdrop-blur transition-all hover:bg-red-100/85`}
-                      >
+                      <DestructiveButton type="submit" size="sm" className={listShellClasses.pillAction}>
                         Delete
-                      </button>
+                      </DestructiveButton>
                     </form>
                   </div>
                 </div>

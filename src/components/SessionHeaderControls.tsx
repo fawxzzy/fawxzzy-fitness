@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { SessionTimerCard } from "@/components/SessionTimers";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { PrimaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
-import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -17,13 +17,14 @@ function SaveSessionButton() {
   const { pending } = useFormStatus();
 
   return (
-    <button
+    <PrimaryButton
       type="submit"
+      fullWidth
       disabled={pending}
-      className={`w-full rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/25 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto ${tapFeedbackClass}`}
+      className="sm:w-auto"
     >
       {pending ? "Saving..." : "Save Session"}
-    </button>
+    </PrimaryButton>
   );
 }
 

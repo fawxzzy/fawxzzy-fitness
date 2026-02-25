@@ -6,7 +6,6 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import type { DisplayTarget } from "@/lib/session-targets";
-import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import {
   addExerciseAction,
   addSetAction,
@@ -124,7 +123,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         <h1 className="text-2xl font-semibold">{sessionRow.name || "Routine"}: {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}</h1>
         <SessionBackButton />
       </div>
-      <p className="rounded-md bg-white p-3 text-sm shadow-sm"><LocalDateTime value={sessionRow.performed_at} /></p>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       <ActionFeedbackToasts />
