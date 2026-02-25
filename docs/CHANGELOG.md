@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Increased Add Exercise filter chip contrast so selected tags pop more strongly while unselected tags look clearly greyed out.
+- Made the filter card status pill visually consistent between Open and Close states (neutral styling in both states).
+- Reduced exercise-list scroll jank by debouncing scroll-position persistence updates and stabilizing scrollbar layout in the picker viewport.
+WHY:
+- This makes filter state easier to read at a glance, keeps control styling consistent, and improves scrolling smoothness while preserving return-to-position behavior from Exercise Info.
+
+### Changed
+WHAT:
 - Updated the exercise picker filter controls to use a dedicated clickable Filter card with an Open/Close status tag, expandable tag list visibility, and clearer selected/unselected tag states.
 - Kept tag filtering multi-select so users can combine multiple tags when narrowing the exercise list.
 WHY:
