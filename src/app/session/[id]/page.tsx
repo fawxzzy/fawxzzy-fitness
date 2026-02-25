@@ -187,6 +187,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               id: exercise.id,
               name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
               isSkipped: exercise.is_skipped,
+              measurementType: exercise.measurement_type ?? "reps",
+              defaultUnit: exercise.default_unit ?? null,
               goalText: displayTarget ? formatGoalLine(displayTarget, routine?.weight_unit ?? null) : null,
               prefill: getGoalPrefill(displayTarget, unitLabel),
               initialSets: setsByExercise.get(exercise.id) ?? [],

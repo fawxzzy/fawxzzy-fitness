@@ -20,6 +20,8 @@ export type SessionExerciseRow = {
   position: number;
   notes: string | null;
   is_skipped: boolean;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance";
+  default_unit?: "mi" | "km" | "m" | null;
 };
 
 export type SetRow = {

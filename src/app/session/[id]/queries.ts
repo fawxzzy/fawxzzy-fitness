@@ -26,12 +26,22 @@ export async function getSessionPageData(sessionId: string) {
 
   const { data: sessionExercisesData } = await supabase
     .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, position, notes, is_skipped")
+    .select("id, session_id, user_id, exercise_id, position, notes, is_skipped, exercise:exercises(name, measurement_type, default_unit)")
     .eq("session_id", sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
 
-  const sessionExercises = (sessionExercisesData ?? []) as SessionExerciseRow[];
+  const sessionExercises = ((sessionExercisesData ?? []) as Array<SessionExerciseRow & {
+    exercise?: {
+      name?: string | null;
+      measurement_type?: "reps" | "time" | "distance" | "time_distance";
+      default_unit?: "mi" | "km" | "m" | null;
+    } | null;
+  }>).map((item) => ({
+    ...item,
+    measurement_type: item.exercise?.measurement_type ?? "reps",
+    default_unit: item.exercise?.default_unit ?? null,
+  }));
   const exerciseIds = sessionExercises.map((exercise) => exercise.id);
 
   const { data: setsData } = exerciseIds.length
