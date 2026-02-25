@@ -13,6 +13,9 @@ export async function addSetAction(payload: {
   weight: number;
   reps: number;
   durationSeconds: number | null;
+  distance: number | null;
+  distanceUnit: "mi" | "km" | "m" | null;
+  calories: number | null;
   isWarmup: boolean;
   rpe: number | null;
   notes: string | null;
@@ -22,7 +25,7 @@ export async function addSetAction(payload: {
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, isWarmup, rpe, notes, weightUnit, clientLogId } = payload;
+  const { sessionId, sessionExerciseId, weight, reps, durationSeconds, distance, distanceUnit, calories, isWarmup, rpe, notes, weightUnit, clientLogId } = payload;
 
   if (!sessionId || !sessionExerciseId) {
     return { ok: false, error: "Missing session info" };
@@ -38,6 +41,18 @@ export async function addSetAction(payload: {
 
   if (durationSeconds !== null && (!Number.isInteger(durationSeconds) || durationSeconds < 0)) {
     return { ok: false, error: "Time must be an integer in seconds" };
+  }
+
+  if (distance !== null && (!Number.isFinite(distance) || distance < 0)) {
+    return { ok: false, error: "Distance must be 0 or greater" };
+  }
+
+  if (distanceUnit !== null && distanceUnit !== "mi" && distanceUnit !== "km" && distanceUnit !== "m") {
+    return { ok: false, error: "Distance unit must be mi, km, or m" };
+  }
+
+  if (calories !== null && (!Number.isFinite(calories) || calories < 0)) {
+    return { ok: false, error: "Calories must be 0 or greater" };
   }
 
   if (clientLogId) {
@@ -83,6 +98,9 @@ export async function addSetAction(payload: {
       weight,
       reps,
       duration_seconds: durationSeconds,
+      distance,
+      distance_unit: distanceUnit,
+      calories,
       is_warmup: isWarmup,
       rpe,
       notes,
@@ -121,6 +139,9 @@ export async function syncQueuedSetLogsAction(payload: {
       weight: number;
       reps: number;
       durationSeconds: number | null;
+      distance: number | null;
+      distanceUnit: "mi" | "km" | "m" | null;
+      calories: number | null;
       isWarmup: boolean;
       rpe: number | null;
       notes: string | null;
@@ -136,6 +157,9 @@ export async function syncQueuedSetLogsAction(payload: {
         weight: item.payload.weight,
         reps: item.payload.reps,
         durationSeconds: item.payload.durationSeconds,
+        distance: item.payload.distance,
+        distanceUnit: item.payload.distanceUnit,
+        calories: item.payload.calories,
         isWarmup: item.payload.isWarmup,
         rpe: item.payload.rpe,
         notes: item.payload.notes,

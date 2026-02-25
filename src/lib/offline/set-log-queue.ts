@@ -1,4 +1,4 @@
-export const SET_LOG_QUEUE_SCHEMA_VERSION = 2;
+export const SET_LOG_QUEUE_SCHEMA_VERSION = 3;
 
 const OFFLINE_DB_NAME = "fawxzzy-fitness-offline";
 const OFFLINE_DB_VERSION = 3;
@@ -8,6 +8,9 @@ export type OfflineSetPayload = {
   weight: number;
   reps: number;
   durationSeconds: number | null;
+  distance: number | null;
+  distanceUnit: "mi" | "km" | "m" | null;
+  calories: number | null;
   rpe: number | null;
   isWarmup: boolean;
   notes: string | null;
@@ -74,6 +77,9 @@ function buildDedupeKey(item: Omit<SetLogQueueItem, "dedupeKey">): string {
     item.payload.weight,
     item.payload.reps,
     item.payload.durationSeconds ?? "",
+    item.payload.distance ?? "",
+    item.payload.distanceUnit ?? "",
+    item.payload.calories ?? "",
     item.payload.rpe ?? "",
     item.payload.isWarmup ? "1" : "0",
     item.payload.notes ?? "",

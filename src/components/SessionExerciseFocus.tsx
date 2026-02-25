@@ -15,6 +15,9 @@ type AddSetPayload = {
   weight: number;
   reps: number;
   durationSeconds: number | null;
+  distance: number | null;
+  distanceUnit: "mi" | "km" | "m" | null;
+  calories: number | null;
   isWarmup: boolean;
   rpe: number | null;
   notes: string | null;
@@ -33,6 +36,9 @@ type SyncQueuedSetLogsAction = (payload: {
       weight: number;
       reps: number;
       durationSeconds: number | null;
+      distance: number | null;
+      distanceUnit: "mi" | "km" | "m" | null;
+      calories: number | null;
       isWarmup: boolean;
       rpe: number | null;
       notes: string | null;
@@ -52,6 +58,8 @@ type SessionExerciseFocusItem = {
   id: string;
   name: string;
   isSkipped: boolean;
+  measurementType: "reps" | "time" | "distance" | "time_distance";
+  defaultUnit: "mi" | "km" | "m" | null;
   goalText: string | null;
   prefill?: SessionExercisePrefill;
   initialSets: SetRow[];
@@ -257,6 +265,8 @@ export function SessionExerciseFocus({
             unitLabel={unitLabel}
             initialSets={selectedExercise.initialSets}
             prefill={selectedExercise.prefill}
+            measurementType={selectedExercise.measurementType}
+            defaultDistanceUnit={selectedExercise.defaultUnit}
             deleteSetAction={deleteSetAction}
             resetSignal={setLoggerResetSignal}
             onSetCountChange={(count) => {

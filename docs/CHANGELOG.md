@@ -1,3 +1,10 @@
+### Changed
+WHAT:
+- Updated session set logging so each exercise row now renders and saves set inputs based on `exercises.measurement_type` (`reps`, `time`, `distance`, `time_distance`), including distance unit defaults from `exercises.default_unit` and optional calorie capture.
+- Extended session set save/sync paths to persist cardio metrics (`duration_seconds`, `distance`, `distance_unit`, `calories`) alongside existing strength fields while preserving queued/offline idempotent syncing behavior.
+WHY:
+- This enables cardio-focused exercises to be logged with the correct metrics in `public.sets` without regressing existing strength workflows, and keeps online/offline logging behavior consistent.
+
 ### Fixed
 WHAT:
 - Added slight horizontal and vertical padding around Add Exercise filter-chip rows so chip border/highlight edges have breathing room and no longer render clipped at the row boundaries.
