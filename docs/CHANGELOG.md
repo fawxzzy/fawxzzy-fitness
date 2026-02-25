@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Added a schema-safe exercise seed migration that updates global Bench Press metadata by `(is_global, name)` and inserts global Chest Press only when missing, with SQL variants for both `TEXT[]` and `JSONB` muscle columns.
+WHY:
+- Keeps global exercise metadata consistent across environments with different column representations while preventing duplicate Chest Press seed rows.
+
+### Changed
+WHAT:
 - Enriched the canonical global exercise dataset so every exercise now includes standardized metadata fields: one-sentence `how_to_short`, normalized `movement_pattern`, normalized `primary_muscles` and `secondary_muscles`, and SVG placeholder image paths.
 - Added cardio-only metadata in the canonical dataset (`measurement_type`, `default_unit`, and `calories_estimation_method`) for exercises classified as cardio.
 WHY:
