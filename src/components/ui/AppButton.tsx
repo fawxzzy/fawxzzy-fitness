@@ -1,8 +1,15 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { getAppButtonClassName, type AppButtonVariant } from "@/components/ui/appButtonClasses";
+import {
+  getAppButtonClassName,
+  type AppButtonSize,
+  type AppButtonState,
+  type AppButtonVariant,
+} from "@/components/ui/appButtonClasses";
 
 type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: AppButtonVariant;
+  size?: AppButtonSize;
+  state?: AppButtonState;
   fullWidth?: boolean;
   loading?: boolean;
   icon?: ReactNode;
@@ -11,6 +18,8 @@ type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 export function AppButton({
   children,
   variant = "primary",
+  size = "md",
+  state = "default",
   fullWidth = false,
   loading = false,
   className,
@@ -23,7 +32,7 @@ export function AppButton({
       {...props}
       disabled={disabled || loading}
       aria-busy={loading}
-      className={getAppButtonClassName({ variant, fullWidth, className })}
+      className={getAppButtonClassName({ variant, size, state, fullWidth, className })}
     >
       {icon ? <span aria-hidden="true">{icon}</span> : null}
       <span>{children}</span>
@@ -41,4 +50,8 @@ export function SecondaryButton(props: Omit<AppButtonProps, "variant">) {
 
 export function DestructiveButton(props: Omit<AppButtonProps, "variant">) {
   return <AppButton variant="destructive" {...props} />;
+}
+
+export function GhostButton(props: Omit<AppButtonProps, "variant">) {
+  return <AppButton variant="ghost" {...props} />;
 }

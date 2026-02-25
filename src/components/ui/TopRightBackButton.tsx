@@ -14,8 +14,9 @@ type TopRightBackButtonProps = {
 export function TopRightBackButton({ href, ariaLabel = "Back", onClick }: TopRightBackButtonProps) {
   const router = useRouter();
   const className = getAppButtonClassName({
-    variant: "secondary",
-    className: "h-10 min-w-10 rounded-full px-3",
+    variant: "ghost",
+    size: "sm",
+    className: "min-w-10 rounded-full px-2",
   });
 
   const icon = (

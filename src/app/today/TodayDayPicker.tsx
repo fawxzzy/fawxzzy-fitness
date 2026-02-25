@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
@@ -33,7 +33,13 @@ export function TodayDayPicker({
   startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
+  const [pendingDayIndex, setPendingDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  const closePicker = useCallback(() => {
+    setPendingDayIndex(selectedDayIndex);
+    setIsPickerOpen(false);
+  }, [selectedDayIndex]);
 
   useEffect(() => {
     if (!isPickerOpen) {
@@ -42,13 +48,13 @@ export function TodayDayPicker({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsPickerOpen(false);
+        closePicker();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isPickerOpen]);
+  }, [closePicker, isPickerOpen]);
 
   const selectedDay = useMemo(
     () => days.find((day) => day.dayIndex === selectedDayIndex) ?? days.find((day) => day.dayIndex === currentDayIndex) ?? null,
@@ -86,32 +92,31 @@ export function TodayDayPicker({
         type="button"
         fullWidth
         onClick={() => {
+          setPendingDayIndex(selectedDayIndex);
           setIsPickerOpen(true);
         }}
         aria-expanded={isPickerOpen}
-        className="font-light tracking-[0.2em]"
       >
-        Change Workout
+        CHANGE DAY
       </SecondaryButton>
 
       {isPickerOpen ? (
         <div
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4"
-          onClick={() => setIsPickerOpen(false)}
+          onClick={closePicker}
         >
           <div className="w-full max-w-xs space-y-3 rounded-lg border border-border bg-surface p-3" onClick={(event) => event.stopPropagation()}>
             <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
             <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
               {days.map((day) => {
-                const isSelected = selectedDayIndex === day.dayIndex;
+                const isSelected = pendingDayIndex === day.dayIndex;
                 return (
                   <button
                     key={day.id}
                     type="button"
                     className={`flex w-full items-center rounded-md border px-3 py-2 text-left text-sm ${isSelected ? "border-accent/60 bg-accent/20" : "border-border bg-surface-2-soft"}`}
                     onClick={() => {
-                      setSelectedDayIndex(day.dayIndex);
-                      setIsPickerOpen(false);
+                      setPendingDayIndex(day.dayIndex);
                     }}
                   >
                     <span>{day.name}{day.isRest ? " (Rest)" : ""}</span>
@@ -119,8 +124,19 @@ export function TodayDayPicker({
                 );
               })}
             </div>
-            <div className="flex items-center justify-end">
-              <SecondaryButton type="button" onClick={() => setIsPickerOpen(false)}>Cancel</SecondaryButton>
+            <div className="flex items-center justify-end gap-2">
+              <SecondaryButton type="button" size="sm" onClick={closePicker}>Cancel</SecondaryButton>
+              <SecondaryButton
+                type="button"
+                size="sm"
+                state="active"
+                onClick={() => {
+                  setSelectedDayIndex(pendingDayIndex);
+                  closePicker();
+                }}
+              >
+                OK
+              </SecondaryButton>
             </div>
           </div>
         </div>

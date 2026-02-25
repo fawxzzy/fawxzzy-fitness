@@ -15,9 +15,13 @@
   --accent-strong: 28 124 99;
 
   --button-height: 2.75rem;
+  --button-height-sm: 2.125rem;
   --button-padding-x: 1rem;
+  --button-padding-x-sm: 0.75rem;
   --button-font-size: 0.9375rem;
+  --button-font-size-sm: 0.8125rem;
   --button-font-weight: 600;
+  --button-letter-spacing: 0;
   --button-radius: 0.625rem;
 
   --button-primary-bg: var(--accent);
@@ -31,6 +35,12 @@
   --button-secondary-bg-active: 42 50 62;
   --button-secondary-text: var(--text);
   --button-secondary-border: 86 99 116;
+
+  --button-ghost-bg: 0 0 0 / 0;
+  --button-ghost-bg-hover: 255 255 255 / 0.08;
+  --button-ghost-bg-active: 255 255 255 / 0.12;
+  --button-ghost-text: var(--text);
+  --button-ghost-border: 120 133 150;
 
   --button-destructive-bg: 126 32 45;
   --button-destructive-bg-hover: 146 40 55;
@@ -131,12 +141,22 @@ button,
 }
 
 .app-button {
-  height: var(--button-height);
   border-radius: var(--button-radius);
+  font-weight: var(--button-font-weight);
+  letter-spacing: var(--button-letter-spacing);
+  transition: transform var(--button-transition), background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);
+}
+
+.app-button-md {
+  height: var(--button-height);
   padding-inline: var(--button-padding-x);
   font-size: var(--button-font-size);
-  font-weight: var(--button-font-weight);
-  transition: transform var(--button-transition), background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);
+}
+
+.app-button-sm {
+  height: var(--button-height-sm);
+  padding-inline: var(--button-padding-x-sm);
+  font-size: var(--button-font-size-sm);
 }
 
 .app-button:active {
