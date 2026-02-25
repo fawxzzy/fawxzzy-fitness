@@ -179,7 +179,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   const { data: exercises } = await supabase
     .from("routine_day_exercises")
-    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, notes")
+    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
     .eq("routine_day_id", params.dayId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -257,10 +257,12 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             </div>
             <ul className="space-y-2">
               {dayExercises.map((exercise) => {
-              const measurementType = exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
-              const defaultDistanceUnit = exerciseUnitMap.get(exercise.exercise_id) === "km" || exerciseUnitMap.get(exercise.exercise_id) === "m"
-                ? (exerciseUnitMap.get(exercise.exercise_id) as "km" | "m")
-                : "mi";
+              const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
+              const defaultDistanceUnit = exercise.default_unit === "km" || exercise.default_unit === "m"
+                ? exercise.default_unit
+                : (exerciseUnitMap.get(exercise.exercise_id) === "km" || exerciseUnitMap.get(exercise.exercise_id) === "m"
+                  ? (exerciseUnitMap.get(exercise.exercise_id) as "km" | "m")
+                  : "mi");
               const targetSummary = formatExerciseTargetSummary({
                 sets: exercise.target_sets,
                 measurementType,
@@ -294,8 +296,22 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                         <input type="hidden" name="routineId" value={params.id} />
                         <input type="hidden" name="routineDayId" value={params.dayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                        <input type="hidden" name="measurementType" value={measurementType} />
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          <select name="measurementType" defaultValue={measurementType} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <option value="reps">Reps</option>
+                            <option value="time">Time</option>
+                            <option value="distance">Distance</option>
+                            <option value="time_distance">Time + Distance</option>
+                          </select>
+                          {(measurementType === "distance" || measurementType === "time_distance") ? (
+                            <select name="defaultUnit" defaultValue={defaultDistanceUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                              <option value="mi">mi</option>
+                              <option value="km">km</option>
+                              <option value="m">m</option>
+                            </select>
+                          ) : (
+                            <input type="hidden" name="defaultUnit" value="mi" />
+                          )}
                           <input type="number" min={1} name="targetSets" defaultValue={exercise.target_sets ?? 1} placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                           <RoutineTargetInputs
                             measurementType={measurementType}

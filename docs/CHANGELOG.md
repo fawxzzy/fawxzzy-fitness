@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Made measurement type and default distance unit configurable at the routine-day exercise level, and snapshot those effective values into session exercises so cardio logging uses per-plan/per-session settings instead of only exercise catalog defaults.
+- Updated routine editor, active session logging, and history rendering to consistently prefer snapshotted session exercise measurement/unit values with safe fallbacks (`routine override -> exercise default -> reps/mi`).
+WHY:
+- This lets users choose cardio logging mode per routine exercise (with `mi` as the default distance unit), keeps in-progress/completed sessions deterministic even if exercise definitions change later, and ensures cardio inputs/rendering stay correct across planning, logging, and history views.
+
+### Changed
+WHAT:
 - Added routine target support for cardio-driven plans by introducing optional distance, distance unit, and calorie targets in routine-day exercises, and updated routine day editing/forms to show target inputs based on each exercise `measurement_type` while always requiring sets.
 - Updated goal text formatting and history log set rendering so cardio logs display deterministic goal output and logged duration/distance/unit/calorie values without breaking existing set edit flows.
 WHY:

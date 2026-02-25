@@ -39,6 +39,21 @@ function parseOptionalNumeric(value: string) {
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
+function parseMeasurementType(value: FormDataEntryValue | null) {
+  const measurementType = String(value ?? "reps").trim();
+  if (measurementType === "reps" || measurementType === "time" || measurementType === "distance" || measurementType === "time_distance") {
+    return measurementType;
+  }
+
+  return null;
+}
+
+function parseDistanceUnit(value: FormDataEntryValue | null): "mi" | "km" | "m" {
+  const unit = String(value ?? "").trim();
+  if (unit === "km" || unit === "m") return unit;
+  return "mi";
+}
+
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineEditPath(routineId));
   revalidatePath(getRoutineEditDayPath(routineId, dayId));
@@ -103,7 +118,8 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
   const targetDistanceRaw = String(formData.get("targetDistance") ?? "").trim();
   const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? "").trim();
   const targetCaloriesRaw = String(formData.get("targetCalories") ?? "").trim();
-  const measurementType = String(formData.get("measurementType") ?? "reps").trim();
+  const measurementType = parseMeasurementType(formData.get("measurementType"));
+  const defaultUnit = parseDistanceUnit(formData.get("defaultUnit"));
   const targetRepsMin = targetRepsMinRaw ? Number(targetRepsMinRaw) : null;
   const targetRepsMax = targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
   const targetWeight = targetWeightRaw ? Number(targetWeightRaw) : null;
@@ -114,6 +130,10 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
 
   if (!routineId || !routineDayId || !exerciseId) {
     redirect(`${returnTo}?error=${encodeURIComponent("Missing exercise info")}`);
+  }
+
+  if (!measurementType) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Measurement type is invalid")}`);
   }
 
   if (!Number.isInteger(targetSets) || targetSets < 1) {
@@ -181,6 +201,8 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
     target_distance: useDistanceTarget ? targetDistance : null,
     target_distance_unit: useDistanceTarget && targetDistance !== null ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi") : null,
     target_calories: useDistanceTarget ? targetCalories : null,
+    measurement_type: measurementType,
+    default_unit: useDistanceTarget ? defaultUnit : null,
   });
 
   if (error) {
@@ -207,7 +229,8 @@ export async function updateRoutineDayExerciseAction(formData: FormData) {
   const targetDistanceRaw = String(formData.get("targetDistance") ?? "").trim();
   const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? "").trim();
   const targetCaloriesRaw = String(formData.get("targetCalories") ?? "").trim();
-  const measurementType = String(formData.get("measurementType") ?? "reps").trim();
+  const measurementType = parseMeasurementType(formData.get("measurementType"));
+  const defaultUnit = parseDistanceUnit(formData.get("defaultUnit"));
 
   const targetRepsMin = targetRepsMinRaw ? Number(targetRepsMinRaw) : null;
   const targetRepsMax = targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
@@ -219,6 +242,10 @@ export async function updateRoutineDayExerciseAction(formData: FormData) {
 
   if (!routineId || !routineDayId || !exerciseRowId) {
     redirect(`${returnTo}?error=${encodeURIComponent("Missing exercise info")}`);
+  }
+
+  if (!measurementType) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Measurement type is invalid")}`);
   }
 
   if (!Number.isInteger(targetSets) || targetSets < 1) {
@@ -278,6 +305,8 @@ export async function updateRoutineDayExerciseAction(formData: FormData) {
       target_distance: useDistanceTarget ? targetDistance : null,
       target_distance_unit: useDistanceTarget && targetDistance !== null ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi") : null,
       target_calories: useDistanceTarget ? targetCalories : null,
+      measurement_type: measurementType,
+      default_unit: useDistanceTarget ? defaultUnit : null,
     })
     .eq("id", exerciseRowId)
     .eq("routine_day_id", routineDayId)

@@ -26,7 +26,7 @@ export async function getSessionPageData(sessionId: string) {
 
   const { data: sessionExercisesData } = await supabase
     .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, position, notes, is_skipped, exercise:exercises(name, measurement_type, default_unit)")
+    .select("id, session_id, user_id, exercise_id, position, notes, is_skipped, measurement_type, default_unit, exercise:exercises(name, measurement_type, default_unit)")
     .eq("session_id", sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -39,8 +39,8 @@ export async function getSessionPageData(sessionId: string) {
     } | null;
   }>).map((item) => ({
     ...item,
-    measurement_type: item.exercise?.measurement_type ?? "reps",
-    default_unit: item.exercise?.default_unit ?? null,
+    measurement_type: item.measurement_type ?? item.exercise?.measurement_type ?? "reps",
+    default_unit: item.default_unit ?? item.exercise?.default_unit ?? "mi",
   }));
   const exerciseIds = sessionExercises.map((exercise) => exercise.id);
 

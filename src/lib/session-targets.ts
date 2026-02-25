@@ -123,7 +123,7 @@ export async function getSessionTargets(sessionId: string) {
 
   const { data: routineDayExercises } = await supabase
     .from("routine_day_exercises")
-    .select("exercise_id, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories")
+    .select("exercise_id, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit")
     .eq("routine_day_id", routineDay.id)
     .eq("user_id", user.id);
 
@@ -147,7 +147,9 @@ export async function getSessionTargets(sessionId: string) {
   for (const exercise of routineDayExercises ?? []) {
     const target: DisplayTarget = {
       source: "template",
-      measurementType: measurementTypeByExerciseId.get(exercise.exercise_id),
+      measurementType: exercise.measurement_type
+        ?? measurementTypeByExerciseId.get(exercise.exercise_id)
+        ?? "reps",
     };
 
     if (exercise.target_sets !== null) {
@@ -176,6 +178,8 @@ export async function getSessionTargets(sessionId: string) {
 
     if (exercise.target_distance_unit === "mi" || exercise.target_distance_unit === "km" || exercise.target_distance_unit === "m") {
       target.distanceUnit = exercise.target_distance_unit;
+    } else if (exercise.default_unit === "mi" || exercise.default_unit === "km" || exercise.default_unit === "m") {
+      target.distanceUnit = exercise.default_unit;
     }
 
     if (exercise.target_calories !== null) {

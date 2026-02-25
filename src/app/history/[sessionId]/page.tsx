@@ -50,12 +50,12 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
   const { data: sessionExercisesData } = await supabase
     .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, position, notes, is_skipped")
+    .select("id, session_id, user_id, exercise_id, position, notes, is_skipped, measurement_type, default_unit, exercise:exercises(measurement_type, default_unit)")
     .eq("session_id", params.sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
 
-  const sessionExercises = (sessionExercisesData ?? []) as SessionExerciseRow[];
+  const sessionExercises = (sessionExercisesData ?? []) as Array<SessionExerciseRow & { exercise?: { measurement_type?: "reps" | "time" | "distance" | "time_distance"; default_unit?: "mi" | "km" | "m" | null } | null }>;
   const sessionExerciseIds = sessionExercises.map((row) => row.id);
 
   const { data: setsData } = sessionExerciseIds.length
@@ -128,6 +128,8 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
           id: exercise.id,
           exercise_id: exercise.exercise_id,
           notes: exercise.notes,
+          measurement_type: exercise.measurement_type ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.measurement_type : exercise.exercise?.measurement_type) ?? "reps",
+          default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? "mi",
           sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
             id: set.id,
             set_index: set.set_index,

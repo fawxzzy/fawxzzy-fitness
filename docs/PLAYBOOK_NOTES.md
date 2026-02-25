@@ -268,3 +268,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Per-pixel state updates can cause visible scroll jank in long interactive lists on mobile.
 - Evidence: src/components/ExercisePicker.tsx
 - Status: Proposed
+
+## 2026-02-25 — Snapshot effective measurement contract onto session exercises
+- Type: Guardrail
+- Summary: When creating session exercise rows, persist effective measurement semantics (`measurement_type` + `default_unit`) from routine override or exercise fallback so active and historical logs do not depend on mutable catalog defaults.
+- Suggested Playbook File: patterns/versioned-persistence.md
+- Rationale: Session rendering should stay deterministic even if exercise metadata is later edited.
+- Evidence: src/app/today/page.tsx, src/app/session/[id]/actions.ts, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
