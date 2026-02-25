@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Added slight horizontal and vertical padding around Add Exercise filter-chip rows so chip border/highlight edges have breathing room and no longer render clipped at the row boundaries.
+WHY:
+- Prevents visual border cut-off artifacts on tag chips and keeps filter controls clean and readable on mobile-sized layouts.
+
 ### Changed
 WHAT:
 - Reordered exercise metadata tag display so Movement tags render last in Add Exercise picker rows and the selected-exercise summary.
