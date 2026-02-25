@@ -81,6 +81,9 @@ export type RoutineDayExerciseRow = {
   target_weight: number | null;
   target_weight_unit: "lbs" | "kg" | null;
   target_duration_seconds: number | null;
+  target_distance: number | null;
+  target_distance_unit: "mi" | "km" | "m" | null;
+  target_calories: number | null;
   notes: string | null;
 };
 

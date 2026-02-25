@@ -32,6 +32,13 @@ function parseTargetDurationSeconds(value: string) {
   return asSeconds;
 }
 
+function parseOptionalNumeric(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineEditPath(routineId));
   revalidatePath(getRoutineEditDayPath(routineId, dayId));
@@ -93,10 +100,16 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
   const targetWeightRaw = String(formData.get("targetWeight") ?? "").trim();
   const targetWeightUnit = String(formData.get("targetWeightUnit") ?? "").trim();
   const targetDurationRaw = String(formData.get("targetDuration") ?? "").trim();
+  const targetDistanceRaw = String(formData.get("targetDistance") ?? "").trim();
+  const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? "").trim();
+  const targetCaloriesRaw = String(formData.get("targetCalories") ?? "").trim();
+  const measurementType = String(formData.get("measurementType") ?? "reps").trim();
   const targetRepsMin = targetRepsMinRaw ? Number(targetRepsMinRaw) : null;
   const targetRepsMax = targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
   const targetWeight = targetWeightRaw ? Number(targetWeightRaw) : null;
   const targetDurationSeconds = parseTargetDurationSeconds(targetDurationRaw);
+  const targetDistance = parseOptionalNumeric(targetDistanceRaw);
+  const targetCalories = parseOptionalNumeric(targetCaloriesRaw);
   const returnTo = `/routines/${routineId}/edit/day/${routineDayId}`;
 
   if (!routineId || !routineDayId || !exerciseId) {
@@ -127,6 +140,18 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
     redirect(`${returnTo}?error=${encodeURIComponent("Weight unit must be lbs or kg")}`);
   }
 
+  if (targetDistance !== null && (!Number.isFinite(targetDistance) || targetDistance < 0)) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Distance must be 0 or greater")}`);
+  }
+
+  if (targetDistance !== null && targetDistanceUnit && targetDistanceUnit !== "mi" && targetDistanceUnit !== "km" && targetDistanceUnit !== "m") {
+    redirect(`${returnTo}?error=${encodeURIComponent("Distance unit must be mi, km, or m")}`);
+  }
+
+  if (targetCalories !== null && (!Number.isFinite(targetCalories) || targetCalories < 0)) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Calories must be 0 or greater")}`);
+  }
+
   if (Number.isNaN(targetDurationSeconds)) {
     redirect(`${returnTo}?error=${encodeURIComponent("Time must be seconds or mm:ss")}`);
   }
@@ -137,18 +162,25 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
     .eq("routine_day_id", routineDayId)
     .eq("user_id", user.id);
 
+  const useRepsTargets = measurementType === "reps";
+  const useTimeTarget = measurementType === "time" || measurementType === "time_distance";
+  const useDistanceTarget = measurementType === "distance" || measurementType === "time_distance";
+
   const { error } = await supabase.from("routine_day_exercises").insert({
     user_id: user.id,
     routine_day_id: routineDayId,
     exercise_id: exerciseId,
     position: count ?? 0,
     target_sets: targetSets,
-    target_reps_min: targetRepsMin,
-    target_reps_max: targetRepsMax,
-    target_reps: targetRepsMin ?? targetRepsMax,
-    target_weight: targetWeight,
-    target_weight_unit: targetWeight === null ? null : (targetWeightUnit === "kg" ? "kg" : "lbs"),
-    target_duration_seconds: targetDurationSeconds,
+    target_reps_min: useRepsTargets ? targetRepsMin : null,
+    target_reps_max: useRepsTargets ? targetRepsMax : null,
+    target_reps: useRepsTargets ? (targetRepsMin ?? targetRepsMax) : null,
+    target_weight: useRepsTargets ? targetWeight : null,
+    target_weight_unit: useRepsTargets && targetWeight !== null ? (targetWeightUnit === "kg" ? "kg" : "lbs") : null,
+    target_duration_seconds: useTimeTarget ? targetDurationSeconds : null,
+    target_distance: useDistanceTarget ? targetDistance : null,
+    target_distance_unit: useDistanceTarget && targetDistance !== null ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi") : null,
+    target_calories: useDistanceTarget ? targetCalories : null,
   });
 
   if (error) {
@@ -172,11 +204,17 @@ export async function updateRoutineDayExerciseAction(formData: FormData) {
   const targetWeightRaw = String(formData.get("targetWeight") ?? "").trim();
   const targetWeightUnit = String(formData.get("targetWeightUnit") ?? "").trim();
   const targetDurationRaw = String(formData.get("targetDuration") ?? "").trim();
+  const targetDistanceRaw = String(formData.get("targetDistance") ?? "").trim();
+  const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? "").trim();
+  const targetCaloriesRaw = String(formData.get("targetCalories") ?? "").trim();
+  const measurementType = String(formData.get("measurementType") ?? "reps").trim();
 
   const targetRepsMin = targetRepsMinRaw ? Number(targetRepsMinRaw) : null;
   const targetRepsMax = targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
   const targetWeight = targetWeightRaw ? Number(targetWeightRaw) : null;
   const targetDurationSeconds = parseTargetDurationSeconds(targetDurationRaw);
+  const targetDistance = parseOptionalNumeric(targetDistanceRaw);
+  const targetCalories = parseOptionalNumeric(targetCaloriesRaw);
   const returnTo = `/routines/${routineId}/edit/day/${routineDayId}`;
 
   if (!routineId || !routineDayId || !exerciseRowId) {
@@ -207,20 +245,39 @@ export async function updateRoutineDayExerciseAction(formData: FormData) {
     redirect(`${returnTo}?error=${encodeURIComponent("Weight unit must be lbs or kg")}`);
   }
 
+  if (targetDistance !== null && (!Number.isFinite(targetDistance) || targetDistance < 0)) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Distance must be 0 or greater")}`);
+  }
+
+  if (targetDistance !== null && targetDistanceUnit && targetDistanceUnit !== "mi" && targetDistanceUnit !== "km" && targetDistanceUnit !== "m") {
+    redirect(`${returnTo}?error=${encodeURIComponent("Distance unit must be mi, km, or m")}`);
+  }
+
+  if (targetCalories !== null && (!Number.isFinite(targetCalories) || targetCalories < 0)) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Calories must be 0 or greater")}`);
+  }
+
   if (Number.isNaN(targetDurationSeconds)) {
     redirect(`${returnTo}?error=${encodeURIComponent("Time must be seconds or mm:ss")}`);
   }
+
+  const useRepsTargets = measurementType === "reps";
+  const useTimeTarget = measurementType === "time" || measurementType === "time_distance";
+  const useDistanceTarget = measurementType === "distance" || measurementType === "time_distance";
 
   const { error } = await supabase
     .from("routine_day_exercises")
     .update({
       target_sets: targetSets,
-      target_reps_min: targetRepsMin,
-      target_reps_max: targetRepsMax,
-      target_reps: targetRepsMin ?? targetRepsMax,
-      target_weight: targetWeight,
-      target_weight_unit: targetWeight === null ? null : (targetWeightUnit === "kg" ? "kg" : "lbs"),
-      target_duration_seconds: targetDurationSeconds,
+      target_reps_min: useRepsTargets ? targetRepsMin : null,
+      target_reps_max: useRepsTargets ? targetRepsMax : null,
+      target_reps: useRepsTargets ? (targetRepsMin ?? targetRepsMax) : null,
+      target_weight: useRepsTargets ? targetWeight : null,
+      target_weight_unit: useRepsTargets && targetWeight !== null ? (targetWeightUnit === "kg" ? "kg" : "lbs") : null,
+      target_duration_seconds: useTimeTarget ? targetDurationSeconds : null,
+      target_distance: useDistanceTarget ? targetDistance : null,
+      target_distance_unit: useDistanceTarget && targetDistance !== null ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi") : null,
+      target_calories: useDistanceTarget ? targetCalories : null,
     })
     .eq("id", exerciseRowId)
     .eq("routine_day_id", routineDayId)

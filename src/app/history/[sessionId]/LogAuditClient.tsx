@@ -22,12 +22,16 @@ type AuditSet = {
   weight: number;
   reps: number;
   duration_seconds: number | null;
+  distance: number | null;
+  distance_unit: "mi" | "km" | "m" | null;
+  calories: number | null;
   weight_unit: "lbs" | "kg" | null;
 };
 
 
 type EditableSet = {
   id: string;
+  source: AuditSet;
   weight: string;
   reps: string;
   durationSeconds: string;
@@ -63,6 +67,30 @@ export function LogAuditClient({
     is_global: boolean;
   }>;
 }) {
+  const formatSetSummary = (set: EditableSet, index: number) => {
+    const parts: string[] = [];
+    const numericWeight = Number(set.weight);
+    const numericReps = Number(set.reps);
+
+    if (numericWeight > 0 || numericReps > 0) {
+      parts.push(`${set.weight}${set.weightUnit} × ${set.reps} reps`);
+    }
+
+    if (set.source.duration_seconds !== null) {
+      parts.push(`${set.source.duration_seconds} sec`);
+    }
+
+    if (set.source.distance !== null) {
+      parts.push(`${set.source.distance} ${set.source.distance_unit ?? "mi"}`);
+    }
+
+    if (set.source.calories !== null) {
+      parts.push(`${set.source.calories} cal`);
+    }
+
+    return `Set ${index + 1}: ${parts.join(" · ") || "No data"}`;
+  };
+
   const router = useRouter();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
@@ -81,6 +109,7 @@ export function LogAuditClient({
         exercise.id,
         exercise.sets.map((set) => ({
           id: set.id,
+          source: set,
           weight: String(set.weight),
           reps: String(set.reps),
           durationSeconds: set.duration_seconds === null ? "" : String(set.duration_seconds),
@@ -101,6 +130,7 @@ export function LogAuditClient({
           exercise.id,
           exercise.sets.map((set) => ({
             id: set.id,
+            source: set,
             weight: String(set.weight),
             reps: String(set.reps),
             durationSeconds: set.duration_seconds === null ? "" : String(set.duration_seconds),
@@ -327,9 +357,7 @@ export function LogAuditClient({
                       </div>
                     ) : (
                       <span>
-                        Set {index + 1}: {set.weight}
-                        {set.weightUnit} × {set.reps} reps
-                        {set.durationSeconds ? ` · ${set.durationSeconds} sec` : ""}
+                        {formatSetSummary(set, index)}
                       </span>
                     )}
                   </li>
