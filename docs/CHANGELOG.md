@@ -829,3 +829,9 @@ WHAT:
 - Added a new exercises metadata migration that backfills missing placeholder image paths, sets image placeholder defaults for future rows, and enforces global-only completeness constraints (how-to text, movement pattern, primary muscles, and image paths), plus a normalized unique index for global exercise names.
 WHY:
 - Ensures global exercise records are consistently complete and prevents duplicate global naming while keeping custom exercises flexible.
+
+### Fixed
+WHAT:
+- Updated the exercises metadata constraints migration to backfill missing required global metadata fields before adding global-only check constraints.
+WHY:
+- Prevents migration failure on existing global exercise rows that were missing required values while still enforcing completeness rules going forward.

@@ -15,6 +15,22 @@ ALTER TABLE public.exercises
   ALTER COLUMN image_howto_path SET DEFAULT '/exercises/placeholders/howto.svg',
   ALTER COLUMN image_muscles_path SET DEFAULT '/exercises/placeholders/muscles.svg';
 
+-- B.1) Backfill required global metadata so new constraints can be applied safely.
+UPDATE public.exercises
+SET how_to_short = 'How-to details coming soon.'
+WHERE is_global = true
+  AND (how_to_short IS NULL OR btrim(how_to_short) = '');
+
+UPDATE public.exercises
+SET movement_pattern = 'unspecified'
+WHERE is_global = true
+  AND (movement_pattern IS NULL OR btrim(movement_pattern) = '');
+
+UPDATE public.exercises
+SET primary_muscles = ARRAY['unspecified']::text[]
+WHERE is_global = true
+  AND (primary_muscles IS NULL OR cardinality(primary_muscles) = 0);
+
 -- C) Enforce complete metadata for global exercises only.
 DO $$
 BEGIN
