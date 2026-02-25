@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Updated Add Exercise tag chips so selected filters use a green-filled state for clearer visual selection feedback.
+- Tightened Add Exercise multi-tag filtering so results only include exercises that contain every selected tag (all-tags match).
+WHY:
+- This makes filter state easier to scan and ensures combined tag filtering returns precise, expected exercise matches.
+
+### Changed
+WHAT:
 - Increased Add Exercise filter chip contrast so selected tags pop more strongly while unselected tags look clearly greyed out.
 - Made the filter card status pill visually consistent between Open and Close states (neutral styling in both states).
 - Reduced exercise-list scroll jank by debouncing scroll-position persistence updates and stabilizing scrollbar layout in the picker viewport.

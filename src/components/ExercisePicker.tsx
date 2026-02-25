@@ -181,7 +181,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
       const tags = exerciseTagsById.get(exercise.id);
       if (!tags || tags.size === 0) return false;
 
-      return selectedTags.some((tag) => tags.has(tag));
+      return selectedTags.every((tag) => tags.has(tag));
     });
   }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
 
@@ -225,7 +225,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
             <button
               type="button"
               onClick={() => setSelectedTags([])}
-              className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-accent bg-accent text-white shadow-sm" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
+              className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-emerald-700 bg-emerald-600 text-white shadow-sm" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
             >
               All
             </button>
@@ -244,7 +244,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
                       return [...prev, tag.value];
                     });
                   }}
-                  className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-accent bg-accent text-white shadow-sm" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
+                  className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-emerald-700 bg-emerald-600 text-white shadow-sm" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
                 >
                   {tag.label}
                 </button>
