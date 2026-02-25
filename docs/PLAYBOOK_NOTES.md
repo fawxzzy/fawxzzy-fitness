@@ -255,3 +255,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Fixed overlays inside constrained/mobile cards can cause clipping and visual artifacts with layered translucent backgrounds.
 - Evidence: src/app/today/TodayDayPicker.tsx
 - Status: Proposed
+
+### 2026-02-25 — Prefer in-app dirty-navigation guards over browser-native prompts for routine editing
+- Context: Routine edit/discard protection produced disruptive native browser confirm dialogs.
+- Decision: Use scoped in-app confirmation modal for in-app navigation on dirty state, and avoid global/unscoped unload prompts unless strictly required.
+- Impact: Keeps navigation intent clear on mobile, reduces accidental prompt fatigue, and preserves clean client UX boundaries.

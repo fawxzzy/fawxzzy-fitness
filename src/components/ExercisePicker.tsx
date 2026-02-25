@@ -14,6 +14,13 @@ type ExerciseOption = {
   equipment: string | null;
   movement_pattern: string | null;
   image_howto_path: string | null;
+} & {
+  tags?: string[] | string | null;
+  tag?: string[] | string | null;
+  categories?: string[] | string | null;
+  category?: string[] | string | null;
+  muscles?: string[] | string | null;
+  muscle?: string[] | string | null;
 };
 
 type ExercisePickerProps = {
@@ -24,6 +31,52 @@ type ExercisePickerProps = {
 
 const tagClassName = "rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
 
+function toTagArray(value: string[] | string | null | undefined) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeExerciseTags(exercise: ExerciseOption) {
+  const candidates = [
+    ...toTagArray(exercise.tags),
+    ...toTagArray(exercise.tag),
+    ...toTagArray(exercise.categories),
+    ...toTagArray(exercise.category),
+    ...toTagArray(exercise.muscles),
+    ...toTagArray(exercise.muscle),
+    ...toTagArray(exercise.primary_muscle),
+    ...toTagArray(exercise.movement_pattern),
+    ...toTagArray(exercise.equipment),
+  ];
+
+  const deduped = new Map<string, string>();
+  for (const rawTag of candidates) {
+    const normalized = rawTag.toLowerCase();
+    if (!deduped.has(normalized)) {
+      deduped.set(normalized, rawTag);
+    }
+  }
+
+  return deduped;
+}
+
+function formatTagLabel(tag: string) {
+  return tag
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 function MetaTag({ value }: { value: string | null }) {
   if (!value) return null;
   return <span className={tagClassName}>{value}</span>;
@@ -33,6 +86,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const scrollContainerRef = useRef<HTMLUListElement | null>(null);
 
   const uniqueExercises = useMemo(() => {
@@ -68,11 +122,46 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
     return query ? `${pathname}?${query}` : pathname;
   }, [pathname, scrollTop, searchParams, selectedId]);
 
+  const exerciseTagsById = useMemo(() => {
+    const tagsById = new Map<string, Set<string>>();
+
+    for (const exercise of uniqueExercises) {
+      tagsById.set(exercise.id, new Set(normalizeExerciseTags(exercise).keys()));
+    }
+
+    return tagsById;
+  }, [uniqueExercises]);
+
+  const availableTags = useMemo(() => {
+    const labelsByTag = new Map<string, string>();
+
+    for (const exercise of uniqueExercises) {
+      const tags = normalizeExerciseTags(exercise);
+      for (const [tag, label] of tags) {
+        if (!labelsByTag.has(tag)) {
+          labelsByTag.set(tag, label);
+        }
+      }
+    }
+
+    return [...labelsByTag.entries()]
+      .map(([value, label]) => ({ value, label: formatTagLabel(label) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [uniqueExercises]);
+
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return uniqueExercises;
-    return uniqueExercises.filter((exercise) => exercise.name.toLowerCase().includes(query));
-  }, [uniqueExercises, search]);
+    return uniqueExercises.filter((exercise) => {
+      const matchesQuery = !query || exercise.name.toLowerCase().includes(query);
+      if (!matchesQuery) return false;
+
+      if (!selectedTags.length) return true;
+      const tags = exerciseTagsById.get(exercise.id);
+      if (!tags || tags.size === 0) return false;
+
+      return selectedTags.some((tag) => tags.has(tag));
+    });
+  }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
 
@@ -95,6 +184,39 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
             ×
           </button>
         ) : null}
+      </div>
+      <div className="space-y-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted">Filters</p>
+        <div className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
+          <button
+            type="button"
+            onClick={() => setSelectedTags([])}
+            className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-accent bg-accent text-white" : "border-border bg-surface-2-soft text-muted hover:border-accent/70"}`}
+          >
+            All
+          </button>
+          {availableTags.map((tag) => {
+            const isSelected = selectedTags.includes(tag.value);
+            return (
+              <button
+                key={tag.value}
+                type="button"
+                onClick={() => {
+                  setSelectedTags((prev) => {
+                    if (prev.includes(tag.value)) {
+                      return prev.filter((value) => value !== tag.value);
+                    }
+
+                    return [...prev, tag.value];
+                  });
+                }}
+                className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-accent bg-accent text-white" : "border-border bg-surface-2-soft text-muted hover:border-accent/70"}`}
+              >
+                {tag.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <input type="hidden" name={name} value={selectedId} required />
       <div className="min-h-11 rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))]">
