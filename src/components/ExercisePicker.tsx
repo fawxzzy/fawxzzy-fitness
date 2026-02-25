@@ -295,7 +295,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId }: ExerciseP
             {availableTagGroups.map((group) => (
               <div key={group.key} className="space-y-1">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{group.label}</p>
-                <div className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
+                <div className="flex gap-1 overflow-x-auto px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
                   {group.tags.map((tag) => {
                     const isSelected = selectedTags.includes(tag.value);
                     return (
