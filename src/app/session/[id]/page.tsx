@@ -152,7 +152,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         />
       </CollapsibleCard>
 
-      <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} />
+      <SessionHeaderControls
+        sessionId={params.id}
+        initialDurationSeconds={sessionRow.duration_seconds}
+        performedAt={sessionRow.performed_at}
+        saveSessionAction={saveSessionAction}
+      />
 
       {sessionExercises.length > 0 ? (
         <SessionExerciseFocus
