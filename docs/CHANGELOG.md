@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Increased ExerciseIcon visual scale and optical centering within the 48px tile, reduced internal icon padding, and strengthened equipment silhouette weight.
+WHY:
+- Icons felt undersized and weak inside the tile; increasing fill and weight improves visual strength and readability at 48px.
+
+### Changed
+WHAT:
 - Updated ExerciseIcon to render equipment-first glyph icons (barbell, dumbbell, cable, machine, cardio, bodyweight) with a subtle movement cue overlay per icon kind, replacing the tiny person silhouette for clearer 48px tiles.
 WHY:
 - Person silhouettes at small sizes felt clip-arty; equipment-first glyphs better match the app's minimal glass UI and read as a more premium, scalable text-only icon system.
