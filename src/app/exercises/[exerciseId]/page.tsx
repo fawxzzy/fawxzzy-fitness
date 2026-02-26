@@ -1,7 +1,8 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
+import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
+import { getExerciseHowToSrc } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -38,6 +39,10 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
   const returnHref = searchParams?.returnTo?.startsWith("/") ? searchParams.returnTo : undefined;
   const primaryMuscles = (data.primary_muscles ?? []) as string[];
   const secondaryMuscles = (data.secondary_muscles ?? []) as string[];
+  const howToImageSrc = getExerciseHowToSrc({
+    name: data.name,
+    image_howto_path: data.image_howto_path,
+  });
 
   return (
     <section className="space-y-4">
@@ -55,17 +60,15 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           </div>
         </div>
 
-        {data.image_howto_path ? (
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-            <Image src={data.image_howto_path} alt="How-to visual" width={640} height={360} className="w-full rounded-md border border-border" />
-          </div>
-        ) : null}
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+          <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="w-full rounded-md border border-border" />
+        </div>
 
         {data.image_muscles_path ? (
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-            <Image src={data.image_muscles_path} alt="Muscles visual" width={640} height={360} className="w-full rounded-md border border-border" />
+            <ExerciseAssetImage src={data.image_muscles_path} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
           </div>
         ) : null}
 
