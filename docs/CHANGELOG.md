@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Switched ExerciseIcon person rendering to a filled silhouette glyph style while keeping the text-only deterministic icon pipeline; implement remains accent-colored for contrast.
+WHY:
+- Stroke-based stick figures read as placeholders at small sizes; filled silhouettes improve perceived quality and readability in the picker.
+
+### Changed
+WHAT:
 - Polished ExerciseIcon tile styling to better match glass UI surfaces and refined the person glyph to a capsule-torso + segmented-limb silhouette for a more premium icon set.
 WHY:
 - Reduce the “sticker” look in the picker and improve icon readability/quality without introducing binary assets.
