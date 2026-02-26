@@ -98,6 +98,34 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
   const torsoHeight = Math.max(8, Math.abs(hip.y - torsoTopY));
   const torsoAngle = Math.atan2(hip.y - torsoTopY, hip.x - shoulder.x) * (180 / Math.PI);
 
+  const distance = (from: Point, to: Point) => Math.hypot(to.x - from.x, to.y - from.y);
+  const segmentRect = (from: Point, to: Point, thickness: number, key: string) => {
+    const length = Math.max(4, distance(from, to));
+    const angle = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI;
+    const center = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+
+    return (
+      <rect
+        key={key}
+        x={center.x - length / 2}
+        y={center.y - thickness / 2}
+        width={length}
+        height={thickness}
+        rx={thickness / 2}
+        ry={thickness / 2}
+        transform={`rotate(${angle} ${center.x} ${center.y})`}
+        fill="currentColor"
+      />
+    );
+  };
+
+  const torsoWidth =
+    spec.kind === "squat" ? 8.8 : spec.kind === "bench" || spec.kind === "hip_thrust" ? 8.2 : spec.kind === "hinge" || spec.kind === "row" ? 7.2 : 7.8;
+  const upperLimbThickness = spec.kind === "bench" || spec.kind === "hip_thrust" ? 4.2 : 3.8;
+  const lowerLimbThickness = spec.kind === "squat" || spec.kind === "lunge" ? 4.8 : 4.2;
+  const handAnchorLeft = { x: (leftElbow.x + leftHand.x) / 2, y: (leftElbow.y + leftHand.y) / 2 };
+  const handAnchorRight = { x: (rightElbow.x + rightHand.x) / 2, y: (rightElbow.y + rightHand.y) / 2 };
+
   const barConfigByGrip = {
     wide: { left: 14, right: 50 },
     close: { left: 24, right: 40 },
@@ -109,15 +137,15 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
   const handKey = spec.grip ?? "default";
   const handPositions = barConfigByGrip[handKey as keyof typeof barConfigByGrip] ?? barConfigByGrip.default;
   const barOverhang = spec.grip === "close" ? 6 : spec.grip === "wide" ? 10 : 8;
-  const barLeftX = Math.min(leftHand.x, handPositions.left) - barOverhang;
-  const barRightX = Math.max(rightHand.x, handPositions.right) + barOverhang;
-  const gripY = Math.round((leftHand.y + rightHand.y) / 2);
+  const barLeftX = Math.min(handAnchorLeft.x, handPositions.left) - barOverhang;
+  const barRightX = Math.max(handAnchorRight.x, handPositions.right) + barOverhang;
+  const gripY = Math.round((handAnchorLeft.y + handAnchorRight.y) / 2);
 
   const unilateralRight = (seed & 1) === 1;
-  const singleHandX = unilateralRight ? rightHand.x : leftHand.x;
-  const singleHandY = unilateralRight ? rightHand.y : leftHand.y;
+  const singleHandX = unilateralRight ? handAnchorRight.x : handAnchorLeft.x;
+  const singleHandY = unilateralRight ? handAnchorRight.y : handAnchorLeft.y;
 
-  const cableTargetX = spec.unilateral ? singleHandX : Math.round((leftHand.x + rightHand.x) / 2);
+  const cableTargetX = spec.unilateral ? singleHandX : Math.round((handAnchorLeft.x + handAnchorRight.x) / 2);
   const cableTargetY = spec.cablePath === "high_to_low" ? singleHandY - 1 : spec.cablePath === "low_to_high" ? singleHandY + 1 : singleHandY;
   const cableStartY = spec.cablePath === "high_to_low" ? 14 : spec.cablePath === "low_to_high" ? 50 : 28;
 
@@ -128,22 +156,38 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
       aria-hidden
     >
       <svg viewBox="0 0 64 64" width="100%" height="100%" className="h-full w-full">
-        <g className="text-[rgb(var(--text))]" stroke="currentColor" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx={shoulder.x} cy={headY} r="3.8" />
+        <g className="text-[rgb(var(--text))]" fill="currentColor">
+          {groundY ? <rect x="13" y={groundY - 1.2} width="38" height="2.4" rx="1.2" /> : null}
+          <circle cx={shoulder.x} cy={headY} r="4" />
           <rect
-            x={torsoCenterX - 3.2}
+            x={torsoCenterX - torsoWidth / 2}
             y={torsoCenterY - torsoHeight / 2}
-            width="6.4"
+            width={torsoWidth}
             height={torsoHeight}
-            rx="3.2"
+            rx={torsoWidth / 2}
+            ry={torsoWidth / 2}
             transform={`rotate(${torsoAngle} ${torsoCenterX} ${torsoCenterY})`}
           />
-          <path d={`M${shoulder.x - 0.6} ${shoulder.y} L${leftElbow.x} ${leftElbow.y} L${leftHand.x} ${leftHand.y}`} />
-          <path d={`M${shoulder.x + 0.6} ${shoulder.y} L${rightElbow.x} ${rightElbow.y} L${rightHand.x} ${rightHand.y}`} />
-          <path d={`M${hip.x - 0.6} ${hip.y} L${leftKnee.x} ${leftKnee.y} L${leftFoot.x} ${leftFoot.y}`} />
-          <path d={`M${hip.x + 0.6} ${hip.y} L${rightKnee.x} ${rightKnee.y} L${rightFoot.x} ${rightFoot.y}`} />
-          {groundY ? <path d={`M14 ${groundY} L50 ${groundY}`} /> : null}
-          {benchY ? <path d={`M16 ${benchY + (spec.angle === "decline" ? 2 : 0)} L48 ${benchY + (spec.angle === "incline" ? -2 : 0)}`} /> : null}
+          {segmentRect(shoulder, leftElbow, upperLimbThickness, "left-upper-arm")}
+          {segmentRect(leftElbow, leftHand, upperLimbThickness * 0.92, "left-lower-arm")}
+          {segmentRect(shoulder, rightElbow, upperLimbThickness, "right-upper-arm")}
+          {segmentRect(rightElbow, rightHand, upperLimbThickness * 0.92, "right-lower-arm")}
+          {segmentRect(hip, leftKnee, lowerLimbThickness, "left-upper-leg")}
+          {segmentRect(leftKnee, leftFoot, lowerLimbThickness * 0.95, "left-lower-leg")}
+          {segmentRect(hip, rightKnee, lowerLimbThickness, "right-upper-leg")}
+          {segmentRect(rightKnee, rightFoot, lowerLimbThickness * 0.95, "right-lower-leg")}
+          <circle cx={handAnchorLeft.x} cy={handAnchorLeft.y} r="1.8" />
+          <circle cx={handAnchorRight.x} cy={handAnchorRight.y} r="1.8" />
+          {benchY ? (
+            <rect
+              x="16"
+              y={benchY - 1.8 + (spec.angle === "decline" ? 1 : 0)}
+              width="32"
+              height="3.6"
+              rx="1.8"
+              transform={spec.angle === "incline" ? "rotate(-5 32 40)" : spec.angle === "decline" ? "rotate(5 32 40)" : undefined}
+            />
+          ) : null}
         </g>
 
         <g className="text-accent" stroke="currentColor" strokeWidth="2.8" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -187,10 +231,10 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
                 </>
               ) : (
                 <>
-                  <path d={`M50 ${cableStartY} L${rightHand.x} ${rightHand.y}`} />
-                  <path d={`M50 ${cableStartY} L${leftHand.x} ${leftHand.y}`} />
-                  <rect x={rightHand.x - 2} y={rightHand.y - 1.5} width="4" height="3" rx="1" fill="currentColor" />
-                  <rect x={leftHand.x - 2} y={leftHand.y - 1.5} width="4" height="3" rx="1" fill="currentColor" />
+                  <path d={`M50 ${cableStartY} L${handAnchorRight.x} ${handAnchorRight.y}`} />
+                  <path d={`M50 ${cableStartY} L${handAnchorLeft.x} ${handAnchorLeft.y}`} />
+                  <rect x={handAnchorRight.x - 2} y={handAnchorRight.y - 1.5} width="4" height="3" rx="1" fill="currentColor" />
+                  <rect x={handAnchorLeft.x - 2} y={handAnchorLeft.y - 1.5} width="4" height="3" rx="1" fill="currentColor" />
                 </>
               )}
             </>
