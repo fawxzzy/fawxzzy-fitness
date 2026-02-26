@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Polished ExerciseIcon tile styling to better match glass UI surfaces and refined the person glyph to a capsule-torso + segmented-limb silhouette for a more premium icon set.
+WHY:
+- Reduce the “sticker” look in the picker and improve icon readability/quality without introducing binary assets.
+
+### Changed
+WHAT:
 - Refined ExerciseIcon person silhouette and movement poses to a higher-quality glyph style (less stick-figure) while keeping text-only deterministic icons.
 WHY:
 - Improve perceived UI polish and make exercise icons more readable and movement-specific in the picker without introducing binary assets.
