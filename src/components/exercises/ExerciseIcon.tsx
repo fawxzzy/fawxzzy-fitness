@@ -78,48 +78,55 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
 
   return (
     <div
-      className={`inline-flex items-center justify-center rounded-md border border-border bg-[rgb(var(--bg)/0.18)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[1px] ${className ?? ""}`}
+      className={`inline-flex items-center justify-center rounded-md border border-border bg-[rgb(var(--bg)/0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[1px] ${className ?? ""}`}
       style={{ width: size, height: size }}
       aria-hidden
     >
       <svg viewBox="0 0 64 64" width="100%" height="100%" className="h-full w-full">
-        <g className="text-accent" fill="currentColor" stroke="currentColor" strokeLinejoin="round" strokeLinecap="round">
+        <g
+          className="text-accent"
+          fill="currentColor"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          transform="translate(-6 -10) scale(1.22)"
+        >
           {spec.equipment === "barbell" ? (
             <>
-              <rect x="14" y="30" width="36" height="4" rx="2" />
-              <rect x={10.5 - plateWidth} y="26" width={plateWidth} height="12" rx="1.2" />
-              <rect x="10.5" y="24" width={plateWidth + 0.8} height="16" rx="1.2" />
-              <rect x="49" y="26" width={plateWidth} height="12" rx="1.2" />
-              <rect x={52.5} y="24" width={plateWidth + 0.8} height="16" rx="1.2" />
+              <rect x="13" y="29" width="38" height="5.2" rx="2.4" />
+              <rect x={9.5 - plateWidth} y="24.4" width={plateWidth + 0.8} height="14" rx="1.4" />
+              <rect x="9.8" y="22" width={plateWidth + 1.8} height="18.8" rx="1.4" />
+              <rect x="48.7" y="24.4" width={plateWidth + 0.8} height="14" rx="1.4" />
+              <rect x={52.2} y="22" width={plateWidth + 1.8} height="18.8" rx="1.4" />
             </>
           ) : null}
 
           {spec.equipment === "dumbbell" ? (
             <>
-              <rect x={(64 - dumbbellHandle) / 2} y="30" width={dumbbellHandle} height="4" rx="2" />
-              <rect x={(64 - dumbbellHandle) / 2 - 4.2} y="27" width="3.2" height="10" rx="1" />
-              <rect x={(64 - dumbbellHandle) / 2 - 8} y="25.5" width="3.4" height="13" rx="1" />
-              <rect x={(64 + dumbbellHandle) / 2 + 1} y="27" width="3.2" height="10" rx="1" />
-              <rect x={(64 + dumbbellHandle) / 2 + 4.8} y="25.5" width="3.4" height="13" rx="1" />
+              <rect x={(64 - dumbbellHandle) / 2 - 0.2} y="29.2" width={dumbbellHandle + 0.4} height="5" rx="2.2" />
+              <rect x={(64 - dumbbellHandle) / 2 - 4.8} y="25.6" width="4" height="12.4" rx="1.2" />
+              <rect x={(64 - dumbbellHandle) / 2 - 9.2} y="23.8" width="4.2" height="16" rx="1.2" />
+              <rect x={(64 + dumbbellHandle) / 2 + 0.8} y="25.6" width="4" height="12.4" rx="1.2" />
+              <rect x={(64 + dumbbellHandle) / 2 + 5.4} y="23.8" width="4.2" height="16" rx="1.2" />
             </>
           ) : null}
 
           {spec.equipment === "cable" ? (
             <>
-              <circle cx="46" cy="16" r="4.5" fill="none" strokeWidth="2.6" />
-              <path d={`M46 20 L46 30 L26 ${33 + cableTilt}`} fill="none" strokeWidth="2.6" />
-              <rect x="22" y={31 + cableTilt} width="8" height="4.2" rx="1.4" strokeWidth="0" />
-              <rect x="44" y="9" width="4" height="5" rx="1" strokeWidth="0" />
+              <circle cx="46" cy="16" r="4.8" fill="none" strokeWidth="3.2" />
+              <path d={`M46 20.2 L46 30.6 L25.6 ${33 + cableTilt}`} fill="none" strokeWidth="3.2" />
+              <rect x="21.2" y={30.8 + cableTilt} width="9.8" height="5" rx="1.6" strokeWidth="0" />
+              <rect x="43.4" y="8.2" width="5" height="6" rx="1.2" strokeWidth="0" />
             </>
           ) : null}
 
           {spec.equipment === "machine" ? (
             <>
-              <rect x="14" y="12" width="6" height="34" rx="2" />
-              <rect x="14" y="12" width="36" height="4.4" rx="2" />
-              <rect x="43" y={40 - machineStackHeight} width="8" height={machineStackHeight} rx="1.8" />
-              <rect x="24" y="22" width="14" height="7" rx="2" />
-              <path d="M38 25 L43 25" fill="none" strokeWidth="2.4" />
+              <rect x="13" y="11" width="7" height="35" rx="2.2" />
+              <rect x="13" y="11" width="38" height="5.2" rx="2.2" />
+              <rect x="42.2" y={39 - machineStackHeight} width="9.6" height={machineStackHeight + 1.2} rx="2" />
+              <rect x="23.2" y="21.2" width="15.8" height="8" rx="2.2" />
+              <path d="M39 25.2 L44 25.2" fill="none" strokeWidth="3" />
             </>
           ) : null}
 
@@ -127,15 +134,15 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
             spec.variant?.includes("treadmill") ? (
               <>
                 <path d="M15 44 L50 44 L46 50 L19 50 Z" strokeWidth="0" />
-                <path d="M39 20 L47 20 L47 38" fill="none" strokeWidth="2.8" />
-                <path d="M22 44 L30 34 L39 34" fill="none" strokeWidth="2.8" />
+                <path d="M39 20 L47 20 L47 38" fill="none" strokeWidth="3.2" />
+                <path d="M22 44 L30 34 L39 34" fill="none" strokeWidth="3.2" />
               </>
             ) : (
               <>
-                <circle cx="22" cy="46" r="6" fill="none" strokeWidth="2.8" />
-                <circle cx="42" cy="46" r="4.6" fill="none" strokeWidth="2.8" />
-                <path d="M22 46 L31 32 L42 46" fill="none" strokeWidth="2.8" />
-                <path d="M31 32 L38 32" fill="none" strokeWidth="2.8" />
+                <circle cx="22" cy="46" r="6" fill="none" strokeWidth="3.2" />
+                <circle cx="42" cy="46" r="4.6" fill="none" strokeWidth="3.2" />
+                <path d="M22 46 L31 32 L42 46" fill="none" strokeWidth="3.2" />
+                <path d="M31 32 L38 32" fill="none" strokeWidth="3.2" />
               </>
             )
           ) : null}
@@ -143,13 +150,21 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
           {spec.equipment === "bodyweight" ? (
             <>
               <rect x="15" y="42" width="34" height="6" rx="3" />
-              {spec.kind === "core" ? <path d="M22 39 L30 34 L42 34" fill="none" strokeWidth="2.8" /> : null}
-              {spec.kind !== "core" ? <path d="M22 38 L42 38" fill="none" strokeWidth="2.8" /> : null}
+              {spec.kind === "core" ? <path d="M22 39 L30 34 L42 34" fill="none" strokeWidth="3.2" /> : null}
+              {spec.kind !== "core" ? <path d="M22 38 L42 38" fill="none" strokeWidth="3.2" /> : null}
             </>
           ) : null}
         </g>
 
-        <g className="text-[rgb(var(--text))]" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <g
+          className="text-[rgb(var(--text))]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          transform="translate(-6 -10) scale(1.22)"
+        >
           <rect x="21" y="48" width="22" height="12" rx="3" className="opacity-90" />
           {movementCue(spec.kind)}
           {spec.kind === "calf_raise" ? <circle cx="40" cy="58" r="1.2" stroke="none" fill="currentColor" /> : null}
