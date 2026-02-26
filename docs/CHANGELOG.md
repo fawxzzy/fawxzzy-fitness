@@ -1,3 +1,11 @@
+### Changed
+WHAT:
+- Polished the active session screen UX with consistent metric microcopy (including “Modify Metrics,” simplified input labels, and inline RPE tooltip text), refreshed timer presentation, and clearer visual hierarchy between exercise identity, plan goal line, and the logging action zone.
+- Updated session goal rendering to a stat-line format with compact separators, singular units, emphasized primary segment, muted secondary metrics, and an explicit “Goal: Open” fallback when no targets are defined.
+- Stabilized the measurement logger layout so metric groups keep consistent pairing/order and animate in/out within a fixed-height container while the Save button remains anchored without vertical jumping.
+WHY:
+- This improves scanability and input confidence on mobile during live logging, reduces copy/format inconsistency, and minimizes distracting layout shifts without changing workout business logic or data behavior.
+
 ### Fixed
 WHAT:
 - Added a nullable `session_exercises.routine_day_exercise_id` link and now stamp each seeded session exercise with its exact source routine-day exercise when starting from Today.

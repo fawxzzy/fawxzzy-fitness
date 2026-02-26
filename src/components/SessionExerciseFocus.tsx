@@ -69,7 +69,7 @@ type SessionExerciseFocusItem = {
   };
   routineDayExerciseId: string | null;
   planTargetsHash: string | null;
-  goalText: string | null;
+  goalStatLine: { primary: string; secondary: string[] } | null;
   prefill?: SessionExercisePrefill;
   initialSets: SetRow[];
   loggedSetCount: number;
@@ -183,7 +183,18 @@ export function SessionExerciseFocus({
                     </div>
                     <span className={`rounded-md border border-slate-300 px-2 py-1 text-xs ${tapFeedbackClass}`}>Open</span>
                   </div>
-                  {exercise.goalText ? <p className="text-xs text-slate-500">{exercise.goalText}</p> : null}
+                  {exercise.goalStatLine ? (
+                    <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
+                      <span className="font-semibold text-slate-700 whitespace-nowrap">{exercise.goalStatLine.primary || "Open"}</span>
+                      {exercise.goalStatLine.secondary.map((part) => (
+                        <span key={part} className="whitespace-nowrap text-slate-500">
+                          • {part}
+                        </span>
+                      ))}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-slate-500">Goal: Open</p>
+                  )}
                   {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-700">Skipped</p> : null}
                 </button>
               </li>
@@ -193,16 +204,19 @@ export function SessionExerciseFocus({
       ) : (
         <div className="rounded-md bg-white p-3 shadow-sm">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
+            <div className="space-y-0.5">
+              <p className="text-sm font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
+              <p className="text-xs text-slate-500">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
+            </div>
             <button type="button" onClick={() => setSelectedExerciseId(null)} className={`rounded-md border border-slate-300 px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Close</button>
           </div>
         </div>
       )}
 
       {selectedExercise ? (
-        <article ref={focusedRef} className="space-y-2 overflow-hidden rounded-md bg-white p-3 shadow-sm" aria-hidden={false}>
+        <article ref={focusedRef} className="space-y-3 overflow-hidden rounded-md bg-white p-3 shadow-sm" aria-hidden={false}>
           <div className="flex items-center justify-between gap-2">
-            <p className="font-semibold">{selectedExercise.name}</p>
+            <p className="text-base font-semibold">{selectedExercise.name}</p>
             <div className="flex gap-2">
               <form
                 action={async (formData) => {
@@ -263,7 +277,19 @@ export function SessionExerciseFocus({
             </div>
           </div>
 
-          {selectedExercise.goalText ? <p className="text-xs text-slate-500">{selectedExercise.goalText}</p> : null}
+          <p className="text-xs text-slate-500">Goal:</p>
+          {selectedExercise.goalStatLine ? (
+            <p className="-mt-1 flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
+              <span className="font-semibold text-slate-700 whitespace-nowrap">{selectedExercise.goalStatLine.primary || "Open"}</span>
+              {selectedExercise.goalStatLine.secondary.map((part) => (
+                <span key={part} className="whitespace-nowrap text-slate-500">
+                  • {part}
+                </span>
+              ))}
+            </p>
+          ) : (
+            <p className="-mt-1 text-sm text-slate-500">Open</p>
+          )}
           {selectedExercise.isSkipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
 
           <SetLoggerCard

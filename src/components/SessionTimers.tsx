@@ -256,7 +256,7 @@ export function SetLoggerCard({
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
   // - Routine cardio with distance target: logger defaults to distance + unit and saves distance fields.
   // - Routine cardio with time + distance targets: both show and both are required to save.
-  // - Open cardio exercise: defaults to time input and can add distance/reps/weight/calories via + Add Measurement.
+  // - Open cardio exercise: defaults to time input and can add distance/reps/weight/calories via + Modify Metrics.
   // - Strength exercise defaults remain reps + weight.
   // - History view behavior is out of scope for this step.
   const [weight, setWeight] = useState(prefill?.weight !== undefined ? String(prefill.weight) : "");
@@ -279,6 +279,7 @@ export function SetLoggerCard({
   const [hasUserModifiedMetrics, setHasUserModifiedMetrics] = useState(false);
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [showRpeTooltip, setShowRpeTooltip] = useState(false);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const toast = useToast();
 
@@ -798,9 +799,20 @@ export function SetLoggerCard({
 
   return (
     <div className="space-y-2">
-      <section className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">{isCardio ? "Interval Timer" : "Set Timer"}</h3>
-        <p className="text-xl font-semibold tabular-nums">{formatSeconds(elapsedSeconds)}</p>
+      {/* Manual QA checklist:
+          - Strength workout shows "Sets", not "Intervals"
+          - Cardio workout shows "Intervals"
+          - Goal displays stat-line format with bold primary metric
+          - No unit duplication in labels
+          - Weight/unit always paired
+          - Distance/unit always paired
+          - Min/Max reps always paired
+          - Save button does not jump when toggling metrics
+          - Timer visually distinct from metric inputs
+          - RPE tooltip displays and dismisses cleanly */}
+      <section className="space-y-2 rounded-md border border-slate-200 bg-slate-100/80 p-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">{isCardio ? "Interval Timer" : "Timer"}</h3>
+        <p className="text-2xl font-semibold tabular-nums text-slate-900">{formatSeconds(elapsedSeconds)}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -852,7 +864,7 @@ export function SetLoggerCard({
       {useTimerRepCount && activeMetrics.reps ? <p className="text-xs text-slate-600">Logging reps from timer taps ({tapReps}). Edit reps input to switch back.</p> : null}
 
       <details className="rounded-md border border-slate-200 bg-white px-2 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-slate-700">Modify Measurements</summary>
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">Modify Metrics</summary>
         <div className="mt-2 flex flex-wrap gap-2">
           {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
             <button
@@ -870,16 +882,33 @@ export function SetLoggerCard({
         </div>
       </details>
 
-      <div className="grid grid-cols-2 gap-2">
-        {activeMetrics.weight ? (
-          <>
+      <div className="flex min-h-[18.5rem] flex-col rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+          <input
+            type="number"
+            ref={repsInputRef}
+            min={0}
+            value={reps}
+            onChange={(event) => {
+              setReps(event.target.value);
+              setUseTimerRepCount(false);
+            }}
+            placeholder="Reps"
+            className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+          />
+        </div>
+
+        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.weight ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+          <div className="grid grid-cols-2 gap-2">
             <input
               type="number"
               min={0}
               step="0.5"
               value={weight}
               onChange={(event) => setWeight(event.target.value)}
-              placeholder={`Weight (${selectedWeightUnit})`}
+              placeholder="Weight"
               className="rounded-md border border-slate-300 px-2 py-2 text-sm"
             />
             <select
@@ -890,39 +919,22 @@ export function SetLoggerCard({
               <option value="lbs">lbs</option>
               <option value="kg">kg</option>
             </select>
-          </>
-        ) : null}
+          </div>
+        </div>
 
-        {activeMetrics.reps ? (
-          <>
-            <input
-              type="number"
-              ref={repsInputRef}
-              min={0}
-              value={reps}
-              onChange={(event) => {
-                setReps(event.target.value);
-                setUseTimerRepCount(false);
-              }}
-              placeholder="Reps (count)"
-              className="col-span-2 rounded-md border border-slate-300 px-2 py-2 text-sm"
-            />
-          </>
-        ) : null}
-
-        {activeMetrics.time ? (
+        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.time ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
           <input
             type="text"
             inputMode="numeric"
             value={durationInput}
             onChange={(event) => setDurationInput(event.target.value)}
             placeholder="Time (mm:ss)"
-            className={`rounded-md border border-slate-300 px-2 py-2 text-sm ${activeMetrics.distance ? "" : "col-span-2"}`}
+            className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
           />
-        ) : null}
+        </div>
 
-        {activeMetrics.distance ? (
-          <>
+        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.distance ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+          <div className="grid grid-cols-2 gap-2">
             <input
               type="number"
               min={0}
@@ -941,41 +953,58 @@ export function SetLoggerCard({
               <option value="km">km</option>
               <option value="m">m</option>
             </select>
-          </>
-        ) : null}
+          </div>
+        </div>
 
-        {activeMetrics.calories ? (
+        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.calories ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
           <input
             type="number"
             min={0}
             step="1"
             value={calories}
             onChange={(event) => setCalories(event.target.value)}
-            placeholder="Calories (optional)"
-            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
-          />
-        ) : null}
-        <div className="col-span-2 space-y-1">
-          <input
-            type="number"
-            min={0}
-            step="0.5"
-            value={rpe}
-            onChange={(event) => setRpe(event.target.value)}
-            placeholder="RPE"
+            placeholder="Calories"
             className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
           />
-          <p className="text-[11px] text-slate-500">RPE (1–10): perceived effort. 10 = all-out.</p>
         </div>
-        <label className="col-span-2 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={isWarmup} onChange={(event) => setIsWarmup(event.target.checked)} />
-          Warm-up set
-        </label>
+
+        <div className="col-span-2 grid grid-cols-[1fr_auto] items-end gap-3">
+          <div className="relative space-y-1">
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] font-medium text-slate-600">RPE (ⓘ)</span>
+              <button type="button" onClick={() => setShowRpeTooltip((value) => !value)} className="rounded-full border border-slate-300 px-1.5 py-0.5 text-[10px] text-slate-600">ⓘ</button>
+            </div>
+            {showRpeTooltip ? (
+              <div className="absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-slate-200 bg-white p-2 text-[11px] text-slate-600 shadow-sm">
+                <p className="font-medium text-slate-700">RPE (1–10)</p>
+                <p>10 = max effort</p>
+                <p>8 = ~2 reps left</p>
+                <p>6 = moderate effort</p>
+              </div>
+            ) : null}
+            <input
+              type="number"
+              min={0}
+              step="0.5"
+              value={rpe}
+              onChange={(event) => setRpe(event.target.value)}
+              placeholder="RPE"
+              className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+            />
+          </div>
+          <label className="flex items-center gap-2 pb-2 text-sm">
+            <input type="checkbox" checked={isWarmup} onChange={(event) => setIsWarmup(event.target.checked)} />
+            Warm-up
+          </label>
+        </div>
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={handleLogSet}
           disabled={isSaveDisabled}
-          className={`col-span-2 rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-60 ${tapFeedbackClass}`}
+          className={`mt-auto rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-60 ${tapFeedbackClass}`}
         >
           Save set
         </button>

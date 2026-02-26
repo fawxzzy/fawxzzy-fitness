@@ -5,7 +5,7 @@ import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
-import { formatGoalText, type DisplayTarget } from "@/lib/session-targets";
+import { formatGoalStatLine, type DisplayTarget } from "@/lib/session-targets";
 import {
   addExerciseAction,
   addSetAction,
@@ -195,7 +195,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
                 return { reps: true, weight: true, time: false, distance: false, calories: false };
               })(),
-              goalText: displayTarget ? formatGoalText(displayTarget, routine?.weight_unit ?? null) : null,
+              goalStatLine: displayTarget ? formatGoalStatLine(displayTarget, routine?.weight_unit ?? null) : null,
               prefill: getGoalPrefill(displayTarget, unitLabel),
               initialSets: setsByExercise.get(exercise.id) ?? [],
               loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,

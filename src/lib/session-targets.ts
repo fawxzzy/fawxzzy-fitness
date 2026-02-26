@@ -49,6 +49,59 @@ function formatDurationText(durationSeconds: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function toSingularUnit(unit: "lbs" | "kg" | "mi" | "km" | "m" | "cal") {
+  if (unit === "lbs") {
+    return "lb";
+  }
+
+  return unit;
+}
+
+export function formatGoalStatLine(target: DisplayTarget, fallbackWeightUnit: string | null): { primary: string; secondary: string[] } | null {
+  const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
+  const resolvedDistanceUnit = target.distanceUnit ?? "mi";
+  const hasMeasurementTarget = (
+    target.repsText
+    || target.weight !== undefined
+    || target.durationSeconds !== undefined
+    || target.distance !== undefined
+    || target.calories !== undefined
+  );
+
+  if (!hasMeasurementTarget) {
+    return null;
+  }
+
+  const firstSegmentParts: string[] = [];
+  if (target.sets !== undefined) {
+    firstSegmentParts.push(`${target.sets} ×`);
+  }
+  if (target.repsText) {
+    firstSegmentParts.push(target.repsText.replace(/\s+reps?$/, ""));
+  }
+  if (target.weight !== undefined) {
+    firstSegmentParts.push(`@ ${target.weight}${resolvedWeightUnit ? ` ${toSingularUnit(resolvedWeightUnit)}` : ""}`);
+  }
+
+  const primary = firstSegmentParts.join(" ").trim();
+  const secondary: string[] = [];
+
+  if (target.durationSeconds !== undefined) {
+    secondary.push(formatDurationText(target.durationSeconds));
+  }
+  if (target.distance !== undefined) {
+    secondary.push(`${target.distance} ${toSingularUnit(resolvedDistanceUnit)}`);
+  }
+  if (target.calories !== undefined) {
+    secondary.push(`${target.calories} ${toSingularUnit("cal")}`);
+  }
+
+  return {
+    primary,
+    secondary,
+  };
+}
+
 export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string | null): string {
   const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
   const resolvedDistanceUnit = target.distanceUnit ?? "mi";
