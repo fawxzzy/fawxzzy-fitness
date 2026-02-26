@@ -67,7 +67,7 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
 
   const { data: templateExercises, error: templateError } = await supabase
     .from("routine_day_exercises")
-    .select("exercise_id, position, notes, measurement_type, default_unit")
+    .select("id, exercise_id, position, notes, measurement_type, default_unit")
     .eq("routine_day_id", routineDay.id)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -117,6 +117,7 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
           session_id: session.id,
           user_id: user.id,
           exercise_id: exercise.exercise_id,
+          routine_day_exercise_id: exercise.id,
           position: exercise.position,
           notes: exercise.notes,
           is_skipped: false,

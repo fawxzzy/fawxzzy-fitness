@@ -1,5 +1,13 @@
 # Playbook Notes (Local Inbox)
 
+## 2026-02-26 — Persist session-to-plan exercise linkage for duplicate-safe target resolution
+- Type: Guardrail
+- Summary: When materializing sessions from routine templates, persist the originating `routine_day_exercises.id` on each `session_exercises` row and prefer that key for planned target lookup before position/exercise fallbacks.
+- Suggested Playbook File: patterns/versioned-persistence.md
+- Rationale: Explicit row linkage prevents duplicate planned exercises from collapsing onto shared target state and keeps logger defaults deterministic for each session row.
+- Evidence: supabase/migrations/024_session_exercises_routine_day_exercise_fk.sql, src/app/today/page.tsx, src/app/session/[id]/queries.ts, src/lib/session-targets.ts
+- Status: Proposed
+
 ## 2026-02-25 — Prefer route-based detail screens over nested overlays for dense mobile content
 - Type: Guardrail
 - Summary: When an inline modal cannot comfortably present exercise/media metadata on small screens, move that content to a dedicated route with explicit return navigation.

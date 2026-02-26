@@ -60,13 +60,15 @@ type SessionExerciseFocusItem = {
   isSkipped: boolean;
   defaultUnit: "mi" | "km" | "m" | null;
   isCardio: boolean;
-  enabledMetrics: {
+  initialEnabledMetrics: {
     reps: boolean;
     weight: boolean;
     time: boolean;
     distance: boolean;
     calories: boolean;
   };
+  routineDayExerciseId: string | null;
+  planTargetsHash: string | null;
   goalText: string | null;
   prefill?: SessionExercisePrefill;
   initialSets: SetRow[];
@@ -274,7 +276,9 @@ export function SessionExerciseFocus({
             prefill={selectedExercise.prefill}
             defaultDistanceUnit={selectedExercise.defaultUnit}
             isCardio={selectedExercise.isCardio}
-            enabledMetrics={selectedExercise.enabledMetrics}
+            initialEnabledMetrics={selectedExercise.initialEnabledMetrics}
+            routineDayExerciseId={selectedExercise.routineDayExerciseId}
+            planTargetsHash={selectedExercise.planTargetsHash}
             deleteSetAction={deleteSetAction}
             resetSignal={setLoggerResetSignal}
             onSetCountChange={(count) => {

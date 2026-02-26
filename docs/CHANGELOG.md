@@ -1,3 +1,11 @@
+### Fixed
+WHAT:
+- Added a nullable `session_exercises.routine_day_exercise_id` link and now stamp each seeded session exercise with its exact source routine-day exercise when starting from Today.
+- Updated session goal/metric resolution to prefer that explicit routine-row link (with legacy-safe fallbacks) so duplicate planned exercises keep distinct targets and logger defaults.
+- Fixed Set Logger metric initialization so plan-enabled metrics auto-render on open unless the user has already manually changed toggles, renamed the in-session control to “Modify Measurements,” added subtle RPE guidance text, and tightened measurement input pairing layout.
+WHY:
+- This preserves one-to-one plan-to-session integrity for duplicate exercises, eliminates missing planned metric inputs in active logging, and improves mobile clarity without changing routine-builder behavior or data ownership boundaries.
+
 ### Changed
 WHAT:
 - Reordered the Add Exercise picker layout so the exercise list appears before the Measurements controls, while preserving existing add/goal behavior.
