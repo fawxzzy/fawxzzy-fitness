@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
+import { ExerciseIcon } from "@/components/exercises/ExerciseIcon";
+import { slugifyExerciseName } from "@/lib/exercises/slug";
 
 type ExerciseOption = {
   id: string;
@@ -413,7 +415,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 <div className="flex items-stretch gap-2">
                   {exercise.image_howto_path ? (
                     <Image src={exercise.image_howto_path} alt="" width={48} height={48} className="h-12 w-12 rounded-md border border-border object-cover" />
-                  ) : null}
+                  ) : (
+                    <ExerciseIcon slug={slugifyExerciseName(exercise.name)} size={48} />
+                  )}
                   <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 rounded-md border border-border/50 bg-surface-2 px-2 py-1 text-left">
                     <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
                     <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>

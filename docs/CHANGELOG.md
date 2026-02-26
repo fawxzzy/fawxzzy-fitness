@@ -1,3 +1,10 @@
+### Changed
+WHAT:
+- Added a text-only exercise icon system with deterministic React SVG how-to icons for all 137 catalog exercises, plus slug-based icon lookup helpers/specs.
+- Updated ExercisePicker rows to always show an icon by rendering generated SVGs whenever an exercise does not have an `image_howto_path` override.
+WHY:
+- This removes the need for binary icon assets while guaranteeing complete visual coverage and maintaining consistent black-person/green-implement styling for faster exercise scanning.
+
 ### Fixed
 WHAT:
 - Restored a live session elapsed-time display in the session header while keeping the old Set Timer feature removed from logging inputs.
