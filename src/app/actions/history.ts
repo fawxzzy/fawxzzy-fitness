@@ -256,12 +256,20 @@ export async function addLogExerciseAction(payload: { logId: string; exerciseId:
     .eq("session_id", logId)
     .eq("user_id", user.id);
 
+  const { data: exerciseDefaults } = await supabase
+    .from("exercises")
+    .select("measurement_type, default_unit")
+    .eq("id", exerciseId)
+    .maybeSingle();
+
   const { error } = await supabase.from("session_exercises").insert({
     session_id: logId,
     user_id: user.id,
     exercise_id: exerciseId,
     position: count ?? 0,
     is_skipped: false,
+    measurement_type: exerciseDefaults?.measurement_type ?? "reps",
+    default_unit: exerciseDefaults?.default_unit ?? "mi",
   });
 
   if (error) {

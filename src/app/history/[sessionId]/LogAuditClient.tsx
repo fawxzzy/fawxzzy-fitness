@@ -42,6 +42,8 @@ type AuditExercise = {
   id: string;
   exercise_id: string;
   notes: string | null;
+  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  default_unit: "mi" | "km" | "m" | null;
   sets: AuditSet[];
 };
 
@@ -67,21 +69,32 @@ export function LogAuditClient({
     is_global: boolean;
   }>;
 }) {
-  const formatSetSummary = (set: EditableSet, index: number) => {
+  const formatSetSummary = (
+    set: EditableSet,
+    index: number,
+    measurementType: "reps" | "time" | "distance" | "time_distance",
+    defaultUnit: "mi" | "km" | "m" | null,
+  ) => {
     const parts: string[] = [];
     const numericWeight = Number(set.weight);
     const numericReps = Number(set.reps);
 
-    if (numericWeight > 0 || numericReps > 0) {
-      parts.push(`${set.weight}${set.weightUnit} × ${set.reps} reps`);
+    if (measurementType === "reps") {
+      if (numericWeight > 0 || numericReps > 0) {
+        parts.push(`${set.weight}${set.weightUnit} × ${set.reps} reps`);
+      }
+    } else {
+      if (numericReps > 0) {
+        parts.push(`${set.reps} reps`);
+      }
     }
 
-    if (set.source.duration_seconds !== null) {
+    if ((measurementType === "time" || measurementType === "time_distance") && set.source.duration_seconds !== null) {
       parts.push(`${set.source.duration_seconds} sec`);
     }
 
-    if (set.source.distance !== null) {
-      parts.push(`${set.source.distance} ${set.source.distance_unit ?? "mi"}`);
+    if ((measurementType === "distance" || measurementType === "time_distance") && set.source.distance !== null) {
+      parts.push(`${set.source.distance} ${set.source.distance_unit ?? defaultUnit ?? "mi"}`);
     }
 
     if (set.source.calories !== null) {
@@ -357,7 +370,7 @@ export function LogAuditClient({
                       </div>
                     ) : (
                       <span>
-                        {formatSetSummary(set, index)}
+                        {formatSetSummary(set, index, exercise.measurement_type, exercise.default_unit)}
                       </span>
                     )}
                   </li>

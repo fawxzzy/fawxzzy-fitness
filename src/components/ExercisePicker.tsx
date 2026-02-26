@@ -110,6 +110,15 @@ function MetaTag({ value }: { value: string | null }) {
   return <span className={tagClassName}>{value}</span>;
 }
 
+function getDefaultMeasurementType(exercise: ExerciseOption) {
+  const tags = normalizeExerciseTags(exercise);
+  if (tags.has("cardio")) {
+    return "time" as const;
+  }
+
+  return "reps" as const;
+}
+
 export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig }: ExercisePickerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -137,6 +146,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
   const [scrollTopSnapshot, setScrollTopSnapshot] = useState(initialScrollTop);
+  const [selectedMeasurementType, setSelectedMeasurementType] = useState<"reps" | "time" | "distance" | "time_distance">("reps");
+  const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
 
   useEffect(() => {
     if (!scrollContainerRef.current) return;
@@ -256,6 +267,20 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
 
+  useEffect(() => {
+    if (!selectedExercise || !routineTargetConfig) {
+      return;
+    }
+
+    const nextMeasurementType = getDefaultMeasurementType(selectedExercise);
+    const nextDefaultUnit = selectedExercise.default_unit === "km" || selectedExercise.default_unit === "m"
+      ? selectedExercise.default_unit
+      : "mi";
+
+    setSelectedMeasurementType(nextMeasurementType);
+    setSelectedDefaultUnit(nextDefaultUnit);
+  }, [routineTargetConfig, selectedExercise]);
+
   return (
     <div className="space-y-2">
       <div className="relative">
@@ -349,9 +374,28 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
       {routineTargetConfig && selectedExercise ? (
         <>
-          <input type="hidden" name="measurementType" value={selectedExercise.measurement_type} />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {selectedExercise.measurement_type === "reps" ? (
+            <select
+              name="measurementType"
+              value={selectedMeasurementType}
+              onChange={(event) => setSelectedMeasurementType(event.target.value as "reps" | "time" | "distance" | "time_distance")}
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="reps">Reps</option>
+              <option value="time">Time</option>
+              <option value="distance">Distance</option>
+              <option value="time_distance">Time + Distance</option>
+            </select>
+            {(selectedMeasurementType === "distance" || selectedMeasurementType === "time_distance") ? (
+              <select name="defaultUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                <option value="mi">mi</option>
+                <option value="km">km</option>
+                <option value="m">m</option>
+              </select>
+            ) : (
+              <input type="hidden" name="defaultUnit" value="mi" />
+            )}
+            {selectedMeasurementType === "reps" ? (
               <>
                 <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                 <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
@@ -362,13 +406,13 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 </select>
               </>
             ) : null}
-            {(selectedExercise.measurement_type === "time" || selectedExercise.measurement_type === "time_distance") ? (
+            {(selectedMeasurementType === "time" || selectedMeasurementType === "time_distance") ? (
               <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
             ) : null}
-            {(selectedExercise.measurement_type === "distance" || selectedExercise.measurement_type === "time_distance") ? (
+            {(selectedMeasurementType === "distance" || selectedMeasurementType === "time_distance") ? (
               <>
                 <input type="number" min={0} step="0.01" name="targetDistance" placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                <select name="targetDistanceUnit" defaultValue={selectedExercise.default_unit === "km" || selectedExercise.default_unit === "m" ? selectedExercise.default_unit : "mi"} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
                   <option value="mi">mi</option>
                   <option value="km">km</option>
                   <option value="m">m</option>

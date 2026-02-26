@@ -67,7 +67,7 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
 
   const { data: templateExercises, error: templateError } = await supabase
     .from("routine_day_exercises")
-    .select("exercise_id, position, notes")
+    .select("exercise_id, position, notes, measurement_type, default_unit")
     .eq("routine_day_id", routineDay.id)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -94,15 +94,36 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
   }
 
   if ((templateExercises ?? []).length > 0) {
+    const templateExerciseIds = Array.from(new Set((templateExercises ?? []).map((exercise) => exercise.exercise_id)));
+    const { data: exerciseRows } = templateExerciseIds.length
+      ? await supabase
+          .from("exercises")
+          .select("id, measurement_type, default_unit")
+          .in("id", templateExerciseIds)
+      : { data: [] };
+
+    const exerciseFallbackById = new Map((exerciseRows ?? []).map((exercise) => [exercise.id, {
+      measurement_type: exercise.measurement_type,
+      default_unit: exercise.default_unit,
+    }]));
+
     const { error: exerciseError } = await supabase.from("session_exercises").insert(
-      (templateExercises ?? []).map((exercise) => ({
-        session_id: session.id,
-        user_id: user.id,
-        exercise_id: exercise.exercise_id,
-        position: exercise.position,
-        notes: exercise.notes,
-        is_skipped: false,
-      })),
+      (templateExercises ?? []).map((exercise) => {
+        const fallback = exerciseFallbackById.get(exercise.exercise_id);
+        const measurementType = exercise.measurement_type ?? fallback?.measurement_type ?? "reps";
+        const defaultUnit = exercise.default_unit ?? fallback?.default_unit ?? "mi";
+
+        return {
+          session_id: session.id,
+          user_id: user.id,
+          exercise_id: exercise.exercise_id,
+          position: exercise.position,
+          notes: exercise.notes,
+          is_skipped: false,
+          measurement_type: measurementType,
+          default_unit: defaultUnit,
+        };
+      }),
     );
 
     if (exerciseError) {

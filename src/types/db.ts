@@ -84,6 +84,8 @@ export type RoutineDayExerciseRow = {
   target_distance: number | null;
   target_distance_unit: "mi" | "km" | "m" | null;
   target_calories: number | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  default_unit?: "mi" | "km" | "m" | null;
   notes: string | null;
 };
 
