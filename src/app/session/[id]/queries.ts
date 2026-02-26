@@ -5,6 +5,17 @@ import { getSessionTargets } from "@/lib/session-targets";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
+type MeasurementType = "reps" | "time" | "distance" | "time_distance";
+type DistanceUnit = "mi" | "km" | "m";
+
+function resolveMeasurementType(value: unknown): MeasurementType | null {
+  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" ? value : null;
+}
+
+function resolveDistanceUnit(value: unknown): DistanceUnit | null {
+  return value === "mi" || value === "km" || value === "m" ? value : null;
+}
+
 export async function getSessionPageData(sessionId: string) {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -31,17 +42,78 @@ export async function getSessionPageData(sessionId: string) {
     .eq("user_id", user.id)
     .order("position", { ascending: true });
 
+  const { data: routineDay } = session.routine_id && session.routine_day_index
+    ? await supabase
+        .from("routine_days")
+        .select("id")
+        .eq("routine_id", session.routine_id)
+        .eq("day_index", session.routine_day_index)
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : { data: null };
+
+  const { data: routineDayExercises } = routineDay?.id
+    ? await supabase
+        .from("routine_day_exercises")
+        .select("id, exercise_id, position, measurement_type, default_unit, target_reps, target_reps_min, target_reps_max, target_weight, target_duration_seconds, target_distance, target_calories")
+        .eq("routine_day_id", routineDay.id)
+        .eq("user_id", user.id)
+    : { data: [] };
+
+  const routineRows = routineDayExercises ?? [];
+  const routineRowsByPosition = new Map<number, typeof routineRows[number]>();
+  const routineRowsByExerciseId = new Map<string, Array<typeof routineRows[number]>>();
+
+  for (const row of routineRows) {
+    routineRowsByPosition.set(row.position, row);
+    const list = routineRowsByExerciseId.get(row.exercise_id) ?? [];
+    list.push(row);
+    routineRowsByExerciseId.set(row.exercise_id, list);
+  }
+
+  const consumedRoutineIds = new Set<string>();
+
   const sessionExercises = ((sessionExercisesData ?? []) as Array<SessionExerciseRow & {
     exercise?: {
       name?: string | null;
       measurement_type?: "reps" | "time" | "distance" | "time_distance";
       default_unit?: "mi" | "km" | "m" | null;
     } | null;
-  }>).map((item) => ({
-    ...item,
-    measurement_type: item.measurement_type ?? item.exercise?.measurement_type ?? "reps",
-    default_unit: item.default_unit ?? item.exercise?.default_unit ?? "mi",
-  }));
+  }>).map((item) => {
+    let matchedRoutine = routineRowsByPosition.get(item.position) ?? null;
+    if (matchedRoutine?.exercise_id !== item.exercise_id || consumedRoutineIds.has(matchedRoutine.id)) {
+      matchedRoutine = null;
+      const candidates = routineRowsByExerciseId.get(item.exercise_id) ?? [];
+      matchedRoutine = candidates.find((candidate) => !consumedRoutineIds.has(candidate.id)) ?? null;
+    }
+    if (matchedRoutine) {
+      consumedRoutineIds.add(matchedRoutine.id);
+    }
+
+    const effectiveMeasurementType = resolveMeasurementType(item.measurement_type)
+      ?? resolveMeasurementType(matchedRoutine?.measurement_type)
+      ?? resolveMeasurementType(item.exercise?.measurement_type)
+      ?? "reps";
+    const effectiveDefaultUnit = resolveDistanceUnit(item.default_unit)
+      ?? resolveDistanceUnit(matchedRoutine?.default_unit)
+      ?? resolveDistanceUnit(item.exercise?.default_unit)
+      ?? "mi";
+
+    const enabledMetrics = {
+      reps: matchedRoutine ? (matchedRoutine.target_reps !== null || matchedRoutine.target_reps_min !== null || matchedRoutine.target_reps_max !== null) : null,
+      weight: matchedRoutine ? matchedRoutine.target_weight !== null : null,
+      time: matchedRoutine ? matchedRoutine.target_duration_seconds !== null : null,
+      distance: matchedRoutine ? matchedRoutine.target_distance !== null : null,
+      calories: matchedRoutine ? matchedRoutine.target_calories !== null : null,
+    };
+
+    return {
+      ...item,
+      measurement_type: effectiveMeasurementType,
+      default_unit: effectiveDefaultUnit,
+      enabled_metrics: enabledMetrics,
+    };
+  });
   const exerciseIds = sessionExercises.map((exercise) => exercise.id);
 
   const { data: setsData } = exerciseIds.length

@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Updated active session logging to derive each session exercise’s effective measurement contract from session snapshots first, then routine-day plan metadata, then exercise defaults, and to use routine target presence as default metric enablement for logger inputs.
+- Updated Set Logger UI to support metric-driven input rendering (reps/weight/time/distance/calories), cardio “Intervals” labeling, client-side “+ Add Measurement” toggles, mm:ss duration entry, and persisted saving of all supported set metrics without hiding already-logged values.
+WHY:
+- This keeps session logging aligned with planned routine measurement selections while preserving open-workout flexibility and deterministic set persistence across online/offline flows.
+
+### Changed
+WHAT:
 - Made measurement type and default distance unit configurable at the routine-day exercise level, and snapshot those effective values into session exercises so cardio logging uses per-plan/per-session settings instead of only exercise catalog defaults.
 - Updated routine editor, active session logging, and history rendering to consistently prefer snapshotted session exercise measurement/unit values with safe fallbacks (`routine override -> exercise default -> reps/mi`).
 WHY:

@@ -51,6 +51,27 @@ function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "
   return Object.keys(prefill).length > 0 ? prefill : undefined;
 }
 
+
+function hasCardioTag(exercise: unknown) {
+  if (!exercise || typeof exercise !== "object") return false;
+  const rawValues = [
+    (exercise as { tags?: string[] | string | null }).tags,
+    (exercise as { tag?: string[] | string | null }).tag,
+    (exercise as { categories?: string[] | string | null }).categories,
+    (exercise as { category?: string[] | string | null }).category,
+  ];
+
+  return rawValues.some((value) => {
+    if (Array.isArray(value)) {
+      return value.some((tag) => tag.toLowerCase() === "cardio");
+    }
+    if (typeof value === "string") {
+      return value.split(",").some((tag) => tag.trim().toLowerCase() === "cardio");
+    }
+    return false;
+  });
+}
+
 type PageProps = {
   params: {
     id: string;
@@ -74,6 +95,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   } = await getSessionPageData(params.id);
 
   const unitLabel = routine?.weight_unit ?? "kg";
+
+  const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
   return (
     <section className="space-y-4 pt-[max(env(safe-area-inset-top),0.5rem)]">
@@ -145,8 +168,26 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               id: exercise.id,
               name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
               isSkipped: exercise.is_skipped,
-              measurementType: exercise.measurement_type ?? "reps",
               defaultUnit: exercise.default_unit ?? null,
+              isCardio: hasCardioTag(exerciseById.get(exercise.exercise_id)),
+              enabledMetrics: (() => {
+                const fromPlan = exercise.enabled_metrics;
+                if (fromPlan && [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories].some((value) => value === true)) {
+                  return {
+                    reps: fromPlan.reps === true,
+                    weight: fromPlan.weight === true,
+                    time: fromPlan.time === true,
+                    distance: fromPlan.distance === true,
+                    calories: fromPlan.calories === true,
+                  };
+                }
+
+                if (hasCardioTag(exerciseById.get(exercise.exercise_id))) {
+                  return { reps: false, weight: false, time: true, distance: false, calories: false };
+                }
+
+                return { reps: true, weight: true, time: false, distance: false, calories: false };
+              })(),
               goalText: displayTarget ? formatGoalText(displayTarget, routine?.weight_unit ?? null) : null,
               prefill: getGoalPrefill(displayTarget, unitLabel),
               initialSets: setsByExercise.get(exercise.id) ?? [],

@@ -37,16 +37,39 @@ function formatSetMetrics(set: SetRow, fallbackWeightUnit: string) {
   if (set.reps > 0 || set.weight > 0) {
     parts.push(`${set.weight} ${set.weight_unit ?? fallbackWeightUnit} × ${set.reps} reps`);
   }
-  if (set.duration_seconds !== null) {
-    parts.push(`${set.duration_seconds} sec`);
+  if (set.duration_seconds !== null && set.duration_seconds > 0) {
+    parts.push(formatSeconds(set.duration_seconds));
   }
-  if (set.distance !== null) {
+  if (set.distance !== null && set.distance > 0) {
     parts.push(`${set.distance} ${set.distance_unit ?? "mi"}`);
   }
-  if (set.calories !== null) {
+  if (set.calories !== null && set.calories > 0) {
     parts.push(`${set.calories} cal`);
   }
-  return parts.length > 0 ? parts.join(" · ") : "No metrics";
+  return parts.length > 0 ? parts.join(" • ") : "No metrics";
+}
+
+function parseDurationInput(rawValue: string): number | null {
+  const value = rawValue.trim();
+  if (!value) return null;
+
+  if (value.includes(":")) {
+    const [minutesRaw, secondsRaw] = value.split(":");
+    if (secondsRaw === undefined) return null;
+    const minutes = Number(minutesRaw);
+    const seconds = Number(secondsRaw);
+    if (!Number.isInteger(minutes) || !Number.isInteger(seconds) || minutes < 0 || seconds < 0 || seconds > 59) {
+      return null;
+    }
+    return minutes * 60 + seconds;
+  }
+
+  const totalSeconds = Number(value);
+  if (!Number.isInteger(totalSeconds) || totalSeconds < 0) {
+    return null;
+  }
+
+  return totalSeconds;
 }
 
 function formatSeconds(totalSeconds: number) {
@@ -192,8 +215,9 @@ export function SetLoggerCard({
   initialSets,
   onSetCountChange,
   prefill,
-  measurementType,
   defaultDistanceUnit,
+  isCardio,
+  enabledMetrics,
   deleteSetAction,
   resetSignal,
 }: {
@@ -212,15 +236,29 @@ export function SetLoggerCard({
     durationSeconds?: number;
     weightUnit?: "lbs" | "kg";
   };
-  measurementType: "reps" | "time" | "distance" | "time_distance";
   defaultDistanceUnit: "mi" | "km" | "m" | null;
+  isCardio: boolean;
+  enabledMetrics: {
+    reps: boolean;
+    weight: boolean;
+    time: boolean;
+    distance: boolean;
+    calories: boolean;
+  };
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
 }) {
+  // Manual QA checklist (Step 2 session logging contract)
+  // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
+  // - Routine cardio with distance target: logger defaults to distance + unit and saves distance fields.
+  // - Routine cardio with time + distance targets: both show and both are required to save.
+  // - Open cardio exercise: defaults to time input and can add distance/reps/weight/calories via + Add Measurement.
+  // - Strength exercise defaults remain reps + weight.
+  // - History view behavior is out of scope for this step.
   const [weight, setWeight] = useState(prefill?.weight !== undefined ? String(prefill.weight) : "");
   const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
   const [reps, setReps] = useState(prefill?.reps !== undefined ? String(prefill.reps) : "");
-  const [durationSeconds, setDurationSeconds] = useState(prefill?.durationSeconds !== undefined ? String(prefill.durationSeconds) : "");
+  const [durationInput, setDurationInput] = useState(prefill?.durationSeconds !== undefined ? formatSeconds(prefill.durationSeconds) : "");
   const [distance, setDistance] = useState("");
   const [distanceUnit, setDistanceUnit] = useState<"mi" | "km" | "m">(defaultDistanceUnit ?? "mi");
   const [calories, setCalories] = useState("");
@@ -233,10 +271,15 @@ export function SetLoggerCard({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [tapReps, setTapReps] = useState(0);
   const [useTimerRepCount, setUseTimerRepCount] = useState(false);
+  const [activeMetrics, setActiveMetrics] = useState(enabledMetrics);
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const toast = useToast();
+
+  useEffect(() => {
+    setActiveMetrics(enabledMetrics);
+  }, [enabledMetrics]);
 
   useEffect(() => {
     onSetCountChange?.(sets.length);
@@ -262,7 +305,7 @@ export function SetLoggerCard({
       if (parsed.form) {
         if (typeof parsed.form.weight === "string") setWeight(parsed.form.weight);
         if (typeof parsed.form.reps === "string") setReps(parsed.form.reps);
-        if (typeof parsed.form.durationSeconds === "string") setDurationSeconds(parsed.form.durationSeconds);
+        if (typeof parsed.form.durationSeconds === "string") setDurationInput(parsed.form.durationSeconds);
         if (typeof parsed.form.distance === "string") setDistance(parsed.form.distance);
         if (parsed.form.distanceUnit === "mi" || parsed.form.distanceUnit === "km" || parsed.form.distanceUnit === "m") setDistanceUnit(parsed.form.distanceUnit);
         if (typeof parsed.form.calories === "string") setCalories(parsed.form.calories);
@@ -284,7 +327,7 @@ export function SetLoggerCard({
       form: {
         weight,
         reps,
-        durationSeconds,
+        durationSeconds: durationInput,
         distance,
         distanceUnit,
         calories,
@@ -296,7 +339,7 @@ export function SetLoggerCard({
     });
 
     window.localStorage.setItem(storageKey, payload);
-  }, [calories, distance, distanceUnit, durationSeconds, isWarmup, reps, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
+  }, [calories, distance, distanceUnit, durationInput, isWarmup, reps, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -432,24 +475,27 @@ export function SetLoggerCard({
     return (elapsedSeconds / tapReps).toFixed(1);
   }, [elapsedSeconds, tapReps]);
 
-  const requiresReps = measurementType === "reps";
-  const requiresDuration = measurementType === "time" || measurementType === "time_distance";
-  const requiresDistance = measurementType === "distance" || measurementType === "time_distance";
+  const requiresReps = activeMetrics.reps;
+  const requiresDuration = activeMetrics.time;
+  const requiresDistance = activeMetrics.distance;
+  const parsedDurationForSave = parseDurationInput(durationInput);
+  const parsedDistanceForSave = distance.trim() ? Number(distance) : null;
+  const parsedRepsForSave = (useTimerRepCount ? String(tapReps) : reps).trim() ? Number(useTimerRepCount ? tapReps : reps) : 0;
   const isSaveDisabled = isSubmitting
-    || (requiresReps && !(useTimerRepCount ? String(tapReps) : reps).trim())
-    || (requiresDuration && !durationSeconds.trim())
-    || (requiresDistance && !distance.trim());
+    || (requiresReps && (!Number.isFinite(parsedRepsForSave) || parsedRepsForSave <= 0))
+    || (requiresDuration && (parsedDurationForSave === null || parsedDurationForSave <= 0))
+    || (requiresDistance && (!Number.isFinite(parsedDistanceForSave) || (parsedDistanceForSave ?? 0) <= 0));
 
   const resetTimerState = useCallback(() => {
     setIsRunning(false);
     setElapsedSeconds(0);
     setTapReps(0);
-    setDurationSeconds("");
+    setDurationInput("");
     setUseTimerRepCount(false);
-    if (measurementType === "reps") {
+    if (activeMetrics.reps) {
       setReps("");
     }
-  }, [measurementType]);
+  }, [activeMetrics.reps]);
 
   useEffect(() => {
     if (!resetSignal) {
@@ -462,40 +508,40 @@ export function SetLoggerCard({
   async function handleLogSet() {
     const parsedWeight = weight.trim() ? Number(weight) : 0;
     const parsedReps = (useTimerRepCount ? String(tapReps) : reps).trim() ? Number(useTimerRepCount ? tapReps : reps) : 0;
-    const parsedDuration = durationSeconds.trim() ? Number(durationSeconds) : null;
+    const parsedDuration = parseDurationInput(durationInput);
     const parsedDistance = distance.trim() ? Number(distance) : null;
     const parsedCalories = calories.trim() ? Number(calories) : null;
     const parsedRpe = rpe.trim() ? Number(rpe) : null;
 
-    if (requiresReps && !(useTimerRepCount ? String(tapReps) : reps).trim()) {
-      const message = "Reps are required for this exercise.";
+    if (requiresReps && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
+      const message = "Reps must be greater than 0 for this exercise.";
       setError(message);
       toast.error(message);
       return;
     }
 
-    if (requiresDuration && !durationSeconds.trim()) {
-      const message = "Time is required for this exercise.";
+    if (requiresDuration && (parsedDuration === null || parsedDuration <= 0)) {
+      const message = "Time must be greater than 0 for this exercise.";
       setError(message);
       toast.error(message);
       return;
     }
 
-    if (requiresDistance && !distance.trim()) {
-      const message = "Distance is required for this exercise.";
+    if (requiresDistance && (parsedDistance === null || parsedDistance <= 0)) {
+      const message = "Distance must be greater than 0 for this exercise.";
       setError(message);
       toast.error(message);
       return;
     }
 
-    if ((measurementType === "reps" || measurementType === "time_distance") && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
+    if (activeMetrics.weight && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
       const message = "Weight must be 0 or greater.";
       setError(message);
       toast.error(message);
       return;
     }
 
-    if (measurementType === "reps" && (!Number.isFinite(parsedReps) || parsedReps < 0)) {
+    if (activeMetrics.reps && (!Number.isFinite(parsedReps) || parsedReps < 0)) {
       const message = useTimerRepCount ? "Tapped reps must be 0 or greater." : "Reps must be 0 or greater.";
       setError(message);
       toast.error(message);
@@ -700,7 +746,7 @@ export function SetLoggerCard({
       return;
     }
 
-    setDurationSeconds("");
+    setDurationInput("");
     setDistance("");
     setCalories("");
     setWeight(String(parsedWeight));
@@ -738,14 +784,14 @@ export function SetLoggerCard({
   return (
     <div className="space-y-2">
       <section className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Set Timer</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">{isCardio ? "Interval Timer" : "Set Timer"}</h3>
         <p className="text-xl font-semibold tabular-nums">{formatSeconds(elapsedSeconds)}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => {
               if (isRunning) {
-                setDurationSeconds(String(elapsedSeconds));
+                setDurationInput(formatSeconds(elapsedSeconds));
               }
               setIsRunning((value) => !value);
             }}
@@ -765,7 +811,7 @@ export function SetLoggerCard({
         </div>
       </section>
 
-      {isRunning && measurementType === "reps" ? (
+      {isRunning && activeMetrics.reps ? (
         <div className="space-y-2 rounded-md bg-slate-50 p-2">
           <button
             type="button"
@@ -788,10 +834,28 @@ export function SetLoggerCard({
         </div>
       ) : null}
 
-      {useTimerRepCount && measurementType === "reps" ? <p className="text-xs text-slate-600">Logging reps from timer taps ({tapReps}). Edit reps input to switch back.</p> : null}
+      {useTimerRepCount && activeMetrics.reps ? <p className="text-xs text-slate-600">Logging reps from timer taps ({tapReps}). Edit reps input to switch back.</p> : null}
+
+      <details className="rounded-md border border-slate-200 bg-white px-2 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Add Measurement</summary>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
+            <button
+              key={metric}
+              type="button"
+              onClick={() => {
+                setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
+              }}
+              className={`rounded-md border px-2 py-1 text-xs ${activeMetrics[metric] ? "border-accent bg-accent/10 text-accent-strong" : "border-slate-300 text-slate-600"}`}
+            >
+              {activeMetrics[metric] ? "Hide" : "Show"} {metric}
+            </button>
+          ))}
+        </div>
+      </details>
 
       <div className="grid grid-cols-2 gap-2">
-        {measurementType === "reps" ? (
+        {activeMetrics.weight ? (
           <>
             <input
               type="number"
@@ -810,6 +874,11 @@ export function SetLoggerCard({
               <option value="lbs">lbs</option>
               <option value="kg">kg</option>
             </select>
+          </>
+        ) : null}
+
+        {activeMetrics.reps ? (
+          <>
             <input
               type="number"
               ref={repsInputRef}
@@ -825,18 +894,18 @@ export function SetLoggerCard({
           </>
         ) : null}
 
-        {(measurementType === "time" || measurementType === "time_distance") ? (
+        {activeMetrics.time ? (
           <input
-            type="number"
-            min={0}
-            value={durationSeconds}
-            onChange={(event) => setDurationSeconds(event.target.value)}
-            placeholder="Time (sec)"
-            className={`rounded-md border border-slate-300 px-2 py-2 text-sm ${measurementType === "time" ? "col-span-2" : ""}`}
+            type="text"
+            inputMode="numeric"
+            value={durationInput}
+            onChange={(event) => setDurationInput(event.target.value)}
+            placeholder="Time (mm:ss)"
+            className={`rounded-md border border-slate-300 px-2 py-2 text-sm ${activeMetrics.distance ? "" : "col-span-2"}`}
           />
         ) : null}
 
-        {(measurementType === "distance" || measurementType === "time_distance") ? (
+        {activeMetrics.distance ? (
           <>
             <input
               type="number"
@@ -859,15 +928,17 @@ export function SetLoggerCard({
           </>
         ) : null}
 
-        <input
-          type="number"
-          min={0}
-          step="1"
-          value={calories}
-          onChange={(event) => setCalories(event.target.value)}
-          placeholder="Calories (optional)"
-          className="rounded-md border border-slate-300 px-2 py-2 text-sm"
-        />
+        {activeMetrics.calories ? (
+          <input
+            type="number"
+            min={0}
+            step="1"
+            value={calories}
+            onChange={(event) => setCalories(event.target.value)}
+            placeholder="Calories (optional)"
+            className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+          />
+        ) : null}
         <input
           type="number"
           min={0}
@@ -905,7 +976,7 @@ export function SetLoggerCard({
           >
             <div className="flex items-center justify-between gap-2">
               <span>
-                Set {index + 1} · {formatSetMetrics(set, unitLabel)}
+                {isCardio ? "Interval" : "Set"} {index + 1} · {formatSetMetrics(set, unitLabel)}
                 {set.queueStatus ? ` · ${set.queueStatus}` : ""}
                 {set.pending && !set.queueStatus ? " · saving..." : ""}
               </span>
@@ -921,7 +992,7 @@ export function SetLoggerCard({
             </div>
           </li>
         ))}
-        {sets.length === 0 ? <li className="text-slate-500">No sets logged.</li> : null}
+        {sets.length === 0 ? <li className="text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
       </ul>
     </div>
   );
