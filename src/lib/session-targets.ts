@@ -52,7 +52,7 @@ function formatDurationText(durationSeconds: number) {
 export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string | null): string {
   const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
   const resolvedDistanceUnit = target.distanceUnit ?? "mi";
-  const hasAdditionalTarget = (
+  const hasMeasurementTarget = (
     target.repsText
     || target.weight !== undefined
     || target.durationSeconds !== undefined
@@ -60,7 +60,7 @@ export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string
     || target.calories !== undefined
   );
 
-  if (!hasAdditionalTarget) {
+  if (!hasMeasurementTarget) {
     return "Goal: Open";
   }
 
@@ -70,25 +70,34 @@ export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string
     parts.push(`${target.sets} sets`);
   }
 
-  if (target.measurementType === "reps") {
-    if (target.repsText) parts.push(target.repsText);
-    if (target.weight !== undefined) parts.push(`@ ${target.weight}${resolvedWeightUnit ? ` ${resolvedWeightUnit}` : ""}`);
+  const repsWeightParts: string[] = [];
+  if (target.repsText) repsWeightParts.push(target.repsText);
+  if (target.weight !== undefined) repsWeightParts.push(`@ ${target.weight}${resolvedWeightUnit ? ` ${resolvedWeightUnit}` : ""}`);
+
+  const timePart = target.durationSeconds !== undefined ? `Time ${formatDurationText(target.durationSeconds)}` : null;
+  const distancePart = target.distance !== undefined ? `Distance ${target.distance} ${resolvedDistanceUnit}` : null;
+  const caloriesPart = target.calories !== undefined ? `Calories ${target.calories}` : null;
+
+  if (target.measurementType === "time_distance") {
+    parts.push(...repsWeightParts);
+    if (timePart) parts.push(timePart);
+    if (distancePart) parts.push(distancePart);
   } else if (target.measurementType === "time") {
-    if (target.durationSeconds !== undefined) parts.push(`Time ${formatDurationText(target.durationSeconds)}`);
+    parts.push(...repsWeightParts);
+    if (timePart) parts.push(timePart);
+    if (distancePart) parts.push(distancePart);
   } else if (target.measurementType === "distance") {
-    if (target.distance !== undefined) parts.push(`Distance ${target.distance} ${resolvedDistanceUnit}`);
-  } else if (target.measurementType === "time_distance") {
-    if (target.durationSeconds !== undefined) parts.push(`Time ${formatDurationText(target.durationSeconds)}`);
-    if (target.distance !== undefined) parts.push(`Distance ${target.distance} ${resolvedDistanceUnit}`);
+    parts.push(...repsWeightParts);
+    if (timePart) parts.push(timePart);
+    if (distancePart) parts.push(distancePart);
   } else {
-    if (target.repsText) parts.push(target.repsText);
-    if (target.weight !== undefined) parts.push(`@ ${target.weight}${resolvedWeightUnit ? ` ${resolvedWeightUnit}` : ""}`);
-    if (target.durationSeconds !== undefined) parts.push(`Time ${formatDurationText(target.durationSeconds)}`);
-    if (target.distance !== undefined) parts.push(`Distance ${target.distance} ${resolvedDistanceUnit}`);
+    parts.push(...repsWeightParts);
+    if (timePart) parts.push(timePart);
+    if (distancePart) parts.push(distancePart);
   }
 
-  if (target.calories !== undefined) {
-    parts.push(`Calories ${target.calories}`);
+  if (caloriesPart) {
+    parts.push(caloriesPart);
   }
 
   return `Goal: ${parts.join(" • ")}`;

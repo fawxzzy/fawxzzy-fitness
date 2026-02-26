@@ -146,8 +146,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
   const [scrollTopSnapshot, setScrollTopSnapshot] = useState(initialScrollTop);
-  const [selectedMeasurementType, setSelectedMeasurementType] = useState<"reps" | "time" | "distance" | "time_distance">("reps");
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
+  const [selectedMeasurements, setSelectedMeasurements] = useState<Array<"reps" | "weight" | "time" | "distance" | "calories">>([]);
 
   useEffect(() => {
     if (!scrollContainerRef.current) return;
@@ -277,9 +277,15 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       ? selectedExercise.default_unit
       : "mi";
 
-    setSelectedMeasurementType(nextMeasurementType);
+    if (nextMeasurementType === "time") {
+      setSelectedMeasurements(["time"]);
+    } else {
+      setSelectedMeasurements(["reps", "weight"]);
+    }
     setSelectedDefaultUnit(nextDefaultUnit);
   }, [routineTargetConfig, selectedExercise]);
+
+  const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
 
   return (
     <div className="space-y-2">
@@ -374,52 +380,64 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
       {routineTargetConfig && selectedExercise ? (
         <>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <select
-              name="measurementType"
-              value={selectedMeasurementType}
-              onChange={(event) => setSelectedMeasurementType(event.target.value as "reps" | "time" | "distance" | "time_distance")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            >
-              <option value="reps">Reps</option>
-              <option value="time">Time</option>
-              <option value="distance">Distance</option>
-              <option value="time_distance">Time + Distance</option>
-            </select>
-            {(selectedMeasurementType === "distance" || selectedMeasurementType === "time_distance") ? (
-              <select name="defaultUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="mi">mi</option>
-                <option value="km">km</option>
-                <option value="m">m</option>
-              </select>
-            ) : (
-              <input type="hidden" name="defaultUnit" value="mi" />
-            )}
-            {selectedMeasurementType === "reps" ? (
-              <>
-                <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${routineTargetConfig.weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                <select name="targetWeightUnit" defaultValue={routineTargetConfig.weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                  <option value="lbs">lbs</option>
-                  <option value="kg">kg</option>
-                </select>
-              </>
-            ) : null}
-            {(selectedMeasurementType === "time" || selectedMeasurementType === "time_distance") ? (
-              <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            ) : null}
-            {(selectedMeasurementType === "distance" || selectedMeasurementType === "time_distance") ? (
-              <>
-                <input type="number" min={0} step="0.01" name="targetDistance" placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                  <option value="mi">mi</option>
-                  <option value="km">km</option>
-                  <option value="m">m</option>
-                </select>
-                <input type="number" min={0} step="1" name="targetCalories" placeholder="Calories (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </>
-            ) : null}
+          <div className="space-y-2 rounded-md border border-slate-200 p-3">
+            <input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <details className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+              <summary className="cursor-pointer text-sm font-medium">+ Add Measurement</summary>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
+                  <label key={metric} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="measurementSelections"
+                      value={metric}
+                      checked={selectedMeasurements.includes(metric)}
+                      onChange={(event) => {
+                        setSelectedMeasurements((current) => {
+                          if (event.target.checked) return [...current, metric];
+                          return current.filter((value) => value !== metric);
+                        });
+                      }}
+                    />
+                    {metric === "reps" ? "Reps" : metric === "weight" ? "Weight" : metric === "time" ? "Time (duration)" : metric === "distance" ? "Distance" : "Calories"}
+                  </label>
+                ))}
+              </div>
+            </details>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {selectedMeasurements.includes("reps") ? (
+                <>
+                  <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                </>
+              ) : null}
+              {selectedMeasurements.includes("weight") ? (
+                <>
+                  <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${routineTargetConfig.weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  <select name="targetWeightUnit" defaultValue={routineTargetConfig.weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <option value="lbs">lbs</option>
+                    <option value="kg">kg</option>
+                  </select>
+                </>
+              ) : null}
+              {selectedMeasurements.includes("time") ? (
+                <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              ) : null}
+              {selectedMeasurements.includes("distance") ? (
+                <>
+                  <input type="number" min={0} step="0.01" name="targetDistance" placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <option value="mi">mi</option>
+                    <option value="km">km</option>
+                    <option value="m">m</option>
+                  </select>
+                </>
+              ) : null}
+              {selectedMeasurements.includes("calories") ? (
+                <input type="number" min={0} step="1" name="targetCalories" placeholder="Calories" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              ) : null}
+            </div>
+            <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
           </div>
         </>
       ) : null}

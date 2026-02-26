@@ -68,15 +68,13 @@ function formatExerciseTargetSummary(params: {
     parts.push(`${params.sets} sets`);
   }
 
-  if (params.measurementType === "reps") {
-    const repsText = formatRepTarget(params.repsMin, params.repsMax, params.repsFallback).replace("Reps: ", "");
-    if (repsText !== "-") {
-      parts.push(`${repsText} reps`);
-    }
+  const repsText = formatRepTarget(params.repsMin, params.repsMax, params.repsFallback).replace("Reps: ", "");
+  if (repsText !== "-") {
+    parts.push(`${repsText} reps`);
+  }
 
-    if (params.weight !== null) {
-      parts.push(`@ ${params.weight} ${params.weightUnit ?? "lbs"}`);
-    }
+  if (params.weight !== null) {
+    parts.push(`@ ${params.weight} ${params.weightUnit ?? "lbs"}`);
   }
 
   const durationText = formatTargetDuration(params.durationSeconds);
@@ -97,15 +95,14 @@ function formatExerciseTargetSummary(params: {
 }
 
 function RoutineTargetInputs({
-  measurementType,
   weightUnit,
   distanceUnit,
   defaults,
 }: {
-  measurementType: "reps" | "time" | "distance" | "time_distance";
   weightUnit: "lbs" | "kg";
   distanceUnit: "mi" | "km" | "m";
   defaults?: {
+    targetReps?: number | null;
     targetRepsMin?: number | null;
     targetRepsMax?: number | null;
     targetWeight?: number | null;
@@ -116,42 +113,66 @@ function RoutineTargetInputs({
     targetCalories?: number | null;
   };
 }) {
+  const hasReps = defaults?.targetRepsMin !== null && defaults?.targetRepsMin !== undefined
+    || defaults?.targetRepsMax !== null && defaults?.targetRepsMax !== undefined
+    || defaults?.targetReps !== null && defaults?.targetReps !== undefined;
+  const hasWeight = defaults?.targetWeight !== null && defaults?.targetWeight !== undefined;
+  const hasTime = defaults?.targetDurationSeconds !== null && defaults?.targetDurationSeconds !== undefined;
+  const hasDistance = defaults?.targetDistance !== null && defaults?.targetDistance !== undefined;
+  const hasCalories = defaults?.targetCalories !== null && defaults?.targetCalories !== undefined;
+
   return (
-    <>
-      {measurementType === "reps" ? (
-        <>
-          <input type="number" min={1} name="targetRepsMin" defaultValue={defaults?.targetRepsMin ?? ""} placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+    <div className="space-y-2">
+      <details className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium">+ Add Measurement</summary>
+        <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="reps" defaultChecked={hasReps} />Reps</label>
+          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="weight" defaultChecked={hasWeight} />Weight</label>
+          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="time" defaultChecked={hasTime} />Time (duration)</label>
+          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="distance" defaultChecked={hasDistance} />Distance</label>
+          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="calories" defaultChecked={hasCalories} />Calories</label>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <input type="number" min={1} name="targetRepsMin" defaultValue={defaults?.targetRepsMin ?? defaults?.targetReps ?? ""} placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <input type="number" min={1} name="targetRepsMax" defaultValue={defaults?.targetRepsMax ?? ""} placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <input type="number" min={0} step="0.5" name="targetWeight" defaultValue={defaults?.targetWeight ?? ""} placeholder={`Weight (${weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <select name="targetWeightUnit" defaultValue={defaults?.targetWeightUnit ?? weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
             <option value="lbs">lbs</option>
             <option value="kg">kg</option>
           </select>
-        </>
-      ) : null}
-
-      {(measurementType === "time" || measurementType === "time_distance") ? (
-        <input
-          name="targetDuration"
-          defaultValue={defaults?.targetDurationSeconds ?? ""}
-          placeholder="Time (sec or mm:ss)"
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-      ) : null}
-
-      {(measurementType === "distance" || measurementType === "time_distance") ? (
-        <>
+          <input name="targetDuration" defaultValue={defaults?.targetDurationSeconds ?? ""} placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <input type="number" min={0} step="0.01" name="targetDistance" defaultValue={defaults?.targetDistance ?? ""} placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <select name="targetDistanceUnit" defaultValue={defaults?.targetDistanceUnit ?? distanceUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
             <option value="mi">mi</option>
             <option value="km">km</option>
             <option value="m">m</option>
           </select>
-          <input type="number" min={0} step="1" name="targetCalories" defaultValue={defaults?.targetCalories ?? ""} placeholder="Calories (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-        </>
-      ) : null}
-    </>
+          <input type="number" min={0} step="1" name="targetCalories" defaultValue={defaults?.targetCalories ?? ""} placeholder="Calories" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+      </details>
+      <input type="hidden" name="defaultUnit" value={hasDistance ? (defaults?.targetDistanceUnit ?? distanceUnit) : "mi"} />
+    </div>
   );
+}
+
+function hasCardioTag(exercise: unknown) {
+  if (!exercise || typeof exercise !== "object") return false;
+  const rawValues = [
+    (exercise as { tags?: string[] | string | null }).tags,
+    (exercise as { tag?: string[] | string | null }).tag,
+    (exercise as { categories?: string[] | string | null }).categories,
+    (exercise as { category?: string[] | string | null }).category,
+  ];
+
+  return rawValues.some((value) => {
+    if (Array.isArray(value)) {
+      return value.some((tag) => tag.toLowerCase() === "cardio");
+    }
+    if (typeof value === "string") {
+      return value.split(",").some((tag) => tag.trim().toLowerCase() === "cardio");
+    }
+    return false;
+  });
 }
 
 export default async function RoutineDayEditorPage({ params, searchParams }: PageProps) {
@@ -258,6 +279,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             <ul className="space-y-2">
               {dayExercises.map((exercise) => {
               const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
+              const matchingExercise = exerciseOptions.find((option) => option.id === exercise.exercise_id);
+              const isCardio = hasCardioTag(matchingExercise);
               const defaultDistanceUnit = exercise.default_unit === "km" || exercise.default_unit === "m"
                 ? exercise.default_unit
                 : (exerciseUnitMap.get(exercise.exercise_id) === "km" || exerciseUnitMap.get(exercise.exercise_id) === "m"
@@ -296,28 +319,13 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                         <input type="hidden" name="routineId" value={params.id} />
                         <input type="hidden" name="routineDayId" value={params.dayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                          <select name="measurementType" defaultValue={measurementType} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                            <option value="reps">Reps</option>
-                            <option value="time">Time</option>
-                            <option value="distance">Distance</option>
-                            <option value="time_distance">Time + Distance</option>
-                          </select>
-                          {(measurementType === "distance" || measurementType === "time_distance") ? (
-                            <select name="defaultUnit" defaultValue={defaultDistanceUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                              <option value="mi">mi</option>
-                              <option value="km">km</option>
-                              <option value="m">m</option>
-                            </select>
-                          ) : (
-                            <input type="hidden" name="defaultUnit" value="mi" />
-                          )}
-                          <input type="number" min={1} name="targetSets" defaultValue={exercise.target_sets ?? 1} placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                        <div className="space-y-2">
+                          <input type="number" min={1} name="targetSets" defaultValue={exercise.target_sets ?? 1} placeholder={isCardio ? "Intervals" : "Sets"} required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
                           <RoutineTargetInputs
-                            measurementType={measurementType}
                             weightUnit={(routine as RoutineRow).weight_unit}
                             distanceUnit={defaultDistanceUnit}
                             defaults={{
+                              targetReps: exercise.target_reps,
                               targetRepsMin: exercise.target_reps_min,
                               targetRepsMax: exercise.target_reps_max,
                               targetWeight: exercise.target_weight,
@@ -353,9 +361,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               <input type="hidden" name="routineId" value={params.id} />
               <input type="hidden" name="routineDayId" value={params.dayId} />
               <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} routineTargetConfig={{ weightUnit: (routine as RoutineRow).weight_unit }} />
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <input type="number" min={1} name="targetSets" placeholder="Sets" required className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </div>
               <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
             </form>
           </CollapsibleCard>
