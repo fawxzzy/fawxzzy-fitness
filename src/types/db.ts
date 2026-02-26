@@ -17,6 +17,7 @@ export type SessionExerciseRow = {
   session_id: string;
   user_id: string;
   exercise_id: string;
+  routine_day_exercise_id?: string | null;
   position: number;
   notes: string | null;
   is_skipped: boolean;

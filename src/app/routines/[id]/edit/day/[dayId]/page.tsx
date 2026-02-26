@@ -132,22 +132,28 @@ function RoutineTargetInputs({
           <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="distance" defaultChecked={hasDistance} />Distance</label>
           <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="calories" defaultChecked={hasCalories} />Calories</label>
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <input type="number" min={1} name="targetRepsMin" defaultValue={defaults?.targetRepsMin ?? defaults?.targetReps ?? ""} placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <input type="number" min={1} name="targetRepsMax" defaultValue={defaults?.targetRepsMax ?? ""} placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <input type="number" min={0} step="0.5" name="targetWeight" defaultValue={defaults?.targetWeight ?? ""} placeholder={`Weight (${weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <select name="targetWeightUnit" defaultValue={defaults?.targetWeightUnit ?? weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-            <option value="lbs">lbs</option>
-            <option value="kg">kg</option>
-          </select>
-          <input name="targetDuration" defaultValue={defaults?.targetDurationSeconds ?? ""} placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <input type="number" min={0} step="0.01" name="targetDistance" defaultValue={defaults?.targetDistance ?? ""} placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <select name="targetDistanceUnit" defaultValue={defaults?.targetDistanceUnit ?? distanceUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-            <option value="mi">mi</option>
-            <option value="km">km</option>
-            <option value="m">m</option>
-          </select>
-          <input type="number" min={0} step="1" name="targetCalories" defaultValue={defaults?.targetCalories ?? ""} placeholder="Calories" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="col-span-2 grid grid-cols-2 gap-2">
+            <input type="number" min={1} name="targetRepsMin" defaultValue={defaults?.targetRepsMin ?? defaults?.targetReps ?? ""} placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <input type="number" min={1} name="targetRepsMax" defaultValue={defaults?.targetRepsMax ?? ""} placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          </div>
+          <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <input type="number" min={0} step="0.5" name="targetWeight" defaultValue={defaults?.targetWeight ?? ""} placeholder={`Weight (${weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <select name="targetWeightUnit" defaultValue={defaults?.targetWeightUnit ?? weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="lbs">lbs</option>
+              <option value="kg">kg</option>
+            </select>
+          </div>
+          <input name="targetDuration" defaultValue={defaults?.targetDurationSeconds ?? ""} placeholder="Time (sec or mm:ss)" className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <input type="number" min={0} step="0.01" name="targetDistance" defaultValue={defaults?.targetDistance ?? ""} placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <select name="targetDistanceUnit" defaultValue={defaults?.targetDistanceUnit ?? distanceUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="mi">mi</option>
+              <option value="km">km</option>
+              <option value="m">m</option>
+            </select>
+          </div>
+          <input type="number" min={0} step="1" name="targetCalories" defaultValue={defaults?.targetCalories ?? ""} placeholder="Calories" className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
         </div>
       </details>
       <input type="hidden" name="defaultUnit" value={hasDistance ? (defaults?.targetDistanceUnit ?? distanceUnit) : "mi"} />

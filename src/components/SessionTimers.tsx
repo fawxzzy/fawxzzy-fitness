@@ -217,7 +217,9 @@ export function SetLoggerCard({
   prefill,
   defaultDistanceUnit,
   isCardio,
-  enabledMetrics,
+  initialEnabledMetrics,
+  routineDayExerciseId,
+  planTargetsHash,
   deleteSetAction,
   resetSignal,
 }: {
@@ -238,13 +240,15 @@ export function SetLoggerCard({
   };
   defaultDistanceUnit: "mi" | "km" | "m" | null;
   isCardio: boolean;
-  enabledMetrics: {
+  initialEnabledMetrics: {
     reps: boolean;
     weight: boolean;
     time: boolean;
     distance: boolean;
     calories: boolean;
   };
+  routineDayExerciseId?: string | null;
+  planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
 }) {
@@ -271,15 +275,26 @@ export function SetLoggerCard({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [tapReps, setTapReps] = useState(0);
   const [useTimerRepCount, setUseTimerRepCount] = useState(false);
-  const [activeMetrics, setActiveMetrics] = useState(enabledMetrics);
+  const [activeMetrics, setActiveMetrics] = useState(initialEnabledMetrics);
+  const [hasUserModifiedMetrics, setHasUserModifiedMetrics] = useState(false);
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const toast = useToast();
 
+  const planContractSignature = `${sessionExerciseId}:${routineDayExerciseId ?? ""}:${planTargetsHash ?? ""}`;
+
   useEffect(() => {
-    setActiveMetrics(enabledMetrics);
-  }, [enabledMetrics]);
+    if (hasUserModifiedMetrics) {
+      return;
+    }
+
+    setActiveMetrics(initialEnabledMetrics);
+  }, [hasUserModifiedMetrics, initialEnabledMetrics, planContractSignature]);
+
+  useEffect(() => {
+    setHasUserModifiedMetrics(false);
+  }, [planContractSignature]);
 
   useEffect(() => {
     onSetCountChange?.(sets.length);
@@ -837,13 +852,14 @@ export function SetLoggerCard({
       {useTimerRepCount && activeMetrics.reps ? <p className="text-xs text-slate-600">Logging reps from timer taps ({tapReps}). Edit reps input to switch back.</p> : null}
 
       <details className="rounded-md border border-slate-200 bg-white px-2 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Add Measurement</summary>
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">Modify Measurements</summary>
         <div className="mt-2 flex flex-wrap gap-2">
           {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
             <button
               key={metric}
               type="button"
               onClick={() => {
+                setHasUserModifiedMetrics(true);
                 setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
               }}
               className={`rounded-md border px-2 py-1 text-xs ${activeMetrics[metric] ? "border-accent bg-accent/10 text-accent-strong" : "border-slate-300 text-slate-600"}`}
@@ -939,15 +955,18 @@ export function SetLoggerCard({
             className="rounded-md border border-slate-300 px-2 py-2 text-sm"
           />
         ) : null}
-        <input
-          type="number"
-          min={0}
-          step="0.5"
-          value={rpe}
-          onChange={(event) => setRpe(event.target.value)}
-          placeholder="RPE"
-          className="rounded-md border border-slate-300 px-2 py-2 text-sm"
-        />
+        <div className="col-span-2 space-y-1">
+          <input
+            type="number"
+            min={0}
+            step="0.5"
+            value={rpe}
+            onChange={(event) => setRpe(event.target.value)}
+            placeholder="RPE"
+            className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+          />
+          <p className="text-[11px] text-slate-500">RPE (1–10): perceived effort. 10 = all-out.</p>
+        </div>
         <label className="col-span-2 flex items-center gap-2 text-sm">
           <input type="checkbox" checked={isWarmup} onChange={(event) => setIsWarmup(event.target.checked)} />
           Warm-up set

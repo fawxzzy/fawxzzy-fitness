@@ -440,37 +440,37 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
               ))}
             </div>
           </details>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2">
             {selectedMeasurements.includes("reps") ? (
-              <>
+              <div className="col-span-2 grid grid-cols-2 gap-2">
                 <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                 <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              </>
+              </div>
             ) : null}
             {selectedMeasurements.includes("weight") ? (
-              <>
+              <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                 <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${routineTargetConfig.weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                 <select name="targetWeightUnit" defaultValue={routineTargetConfig.weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
                   <option value="lbs">lbs</option>
                   <option value="kg">kg</option>
                 </select>
-              </>
+              </div>
             ) : null}
             {selectedMeasurements.includes("time") ? (
-              <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
             ) : null}
             {selectedMeasurements.includes("distance") ? (
-              <>
+              <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                 <input type="number" min={0} step="0.01" name="targetDistance" placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                 <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
                   <option value="mi">mi</option>
                   <option value="km">km</option>
                   <option value="m">m</option>
                 </select>
-              </>
+              </div>
             ) : null}
             {selectedMeasurements.includes("calories") ? (
-              <input type="number" min={0} step="1" name="targetCalories" placeholder="Calories" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input type="number" min={0} step="1" name="targetCalories" placeholder="Calories" className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
             ) : null}
           </div>
           <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />

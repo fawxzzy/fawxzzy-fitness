@@ -160,14 +160,24 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           sessionId={params.id}
           unitLabel={unitLabel}
           exercises={sessionExercises.map((exercise) => {
-            const displayTarget = sessionTargets.get(exercise.exercise_id);
+            const displayTarget = sessionTargets.get(exercise.id);
             return {
               id: exercise.id,
               name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
               isSkipped: exercise.is_skipped,
               defaultUnit: exercise.default_unit ?? null,
               isCardio: hasCardioTag(exerciseById.get(exercise.exercise_id)),
-              enabledMetrics: (() => {
+              routineDayExerciseId: exercise.routine_day_exercise_id ?? null,
+              planTargetsHash: (() => {
+                const fromPlan = exercise.enabled_metrics;
+                if (!fromPlan) {
+                  return null;
+                }
+                return [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories]
+                  .map((value) => (value ? "1" : "0"))
+                  .join("");
+              })(),
+              initialEnabledMetrics: (() => {
                 const fromPlan = exercise.enabled_metrics;
                 if (fromPlan && [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories].some((value) => value === true)) {
                   return {
