@@ -9,7 +9,6 @@ import { formatGoalStatLine, type DisplayTarget } from "@/lib/session-targets";
 import {
   addExerciseAction,
   addSetAction,
-  persistDurationAction,
   removeExerciseAction,
   deleteSetAction,
   saveSessionAction,
@@ -153,7 +152,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         />
       </CollapsibleCard>
 
-      <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
+      <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} />
 
       {sessionExercises.length > 0 ? (
         <SessionExerciseFocus

@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { InlineHintInput } from "@/components/ui/InlineHintInput";
 
 type ExerciseOption = {
   id: string;
@@ -148,6 +149,14 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [scrollTopSnapshot, setScrollTopSnapshot] = useState(initialScrollTop);
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
   const [selectedMeasurements, setSelectedMeasurements] = useState<Array<"reps" | "weight" | "time" | "distance" | "calories">>([]);
+  const [targetRepsMin, setTargetRepsMin] = useState("");
+  const [targetRepsMax, setTargetRepsMax] = useState("");
+  const [targetWeight, setTargetWeight] = useState("");
+  const [targetWeightUnit, setTargetWeightUnit] = useState<"lbs" | "kg">(routineTargetConfig?.weightUnit ?? "lbs");
+  const [targetDuration, setTargetDuration] = useState("");
+  const [targetDistance, setTargetDistance] = useState("");
+  const [targetCalories, setTargetCalories] = useState("");
+  const previousExerciseIdRef = useRef<string>(selectedId);
 
   useEffect(() => {
     if (!scrollContainerRef.current) return;
@@ -267,8 +276,18 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
 
+  const resetMeasurementFields = useCallback(() => {
+    setTargetRepsMin("");
+    setTargetRepsMax("");
+    setTargetWeight("");
+    setTargetWeightUnit(routineTargetConfig?.weightUnit ?? "lbs");
+    setTargetDuration("");
+    setTargetDistance("");
+    setTargetCalories("");
+  }, [routineTargetConfig?.weightUnit]);
+
   useEffect(() => {
-    if (!selectedExercise || !routineTargetConfig) {
+    if (!selectedExercise || !routineTargetConfig || previousExerciseIdRef.current === selectedExercise.id) {
       return;
     }
 
@@ -283,7 +302,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       setSelectedMeasurements(["reps", "weight"]);
     }
     setSelectedDefaultUnit(nextDefaultUnit);
-  }, [routineTargetConfig, selectedExercise]);
+    resetMeasurementFields();
+    previousExerciseIdRef.current = selectedExercise.id;
+  }, [resetMeasurementFields, routineTargetConfig, selectedExercise]);
 
   const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
 
@@ -418,6 +439,20 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       {routineTargetConfig && selectedExercise ? (
         <div className="space-y-2 rounded-md border border-slate-200 p-3">
           <input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="text-xs font-medium text-slate-600 underline"
+              onClick={() => {
+                const nextMeasurementType = selectedExercise ? getDefaultMeasurementType(selectedExercise) : "reps";
+                setSelectedMeasurements(nextMeasurementType === "time" ? ["time"] : ["reps", "weight"]);
+                setSelectedDefaultUnit("mi");
+                resetMeasurementFields();
+              }}
+            >
+              Reset measurements
+            </button>
+          </div>
           <details className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
             <summary className="cursor-pointer text-sm font-medium">+ Add Measurement</summary>
             <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
@@ -443,25 +478,25 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           <div className="grid grid-cols-2 gap-2">
             {selectedMeasurements.includes("reps") ? (
               <div className="col-span-2 grid grid-cols-2 gap-2">
-                <input type="number" min={1} name="targetRepsMin" placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                <input type="number" min={1} name="targetRepsMax" placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <InlineHintInput type="number" min={1} name="targetRepsMin" hint="min" value={targetRepsMin} onChange={(event) => setTargetRepsMin(event.target.value)} />
+                <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
               </div>
             ) : null}
             {selectedMeasurements.includes("weight") ? (
               <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <input type="number" min={0} step="0.5" name="targetWeight" placeholder={`Weight (${routineTargetConfig.weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-                <select name="targetWeightUnit" defaultValue={routineTargetConfig.weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                <InlineHintInput type="number" min={0} step="0.5" name="targetWeight" hint={routineTargetConfig.weightUnit} value={targetWeight} onChange={(event) => setTargetWeight(event.target.value)} />
+                <select name="targetWeightUnit" value={targetWeightUnit} onChange={(event) => setTargetWeightUnit(event.target.value === "kg" ? "kg" : "lbs")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
                   <option value="lbs">lbs</option>
                   <option value="kg">kg</option>
                 </select>
               </div>
             ) : null}
             {selectedMeasurements.includes("time") ? (
-              <input name="targetDuration" placeholder="Time (sec or mm:ss)" className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <InlineHintInput name="targetDuration" hint="mm:ss" value={targetDuration} onChange={(event) => setTargetDuration(event.target.value)} containerClassName="col-span-2" />
             ) : null}
             {selectedMeasurements.includes("distance") ? (
               <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <input type="number" min={0} step="0.01" name="targetDistance" placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                <InlineHintInput type="number" min={0} step="0.01" name="targetDistance" hint={selectedDefaultUnit} value={targetDistance} onChange={(event) => setTargetDistance(event.target.value)} />
                 <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
                   <option value="mi">mi</option>
                   <option value="km">km</option>
@@ -470,7 +505,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
               </div>
             ) : null}
             {selectedMeasurements.includes("calories") ? (
-              <input type="number" min={0} step="1" name="targetCalories" placeholder="Calories" className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <InlineHintInput type="number" min={0} step="1" name="targetCalories" hint="cal" value={targetCalories} onChange={(event) => setTargetCalories(event.target.value)} containerClassName="col-span-2" />
             ) : null}
           </div>
           <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />

@@ -15,6 +15,7 @@ import {
   updateLogExerciseSetAction,
   updateLogMetaAction,
 } from "@/app/actions/history";
+import { formatDurationClock } from "@/lib/duration";
 
 type AuditSet = {
   id: string;
@@ -90,7 +91,7 @@ export function LogAuditClient({
     }
 
     if ((measurementType === "time" || measurementType === "time_distance") && set.source.duration_seconds !== null) {
-      parts.push(`${set.source.duration_seconds} sec`);
+      parts.push(formatDurationClock(set.source.duration_seconds));
     }
 
     if ((measurementType === "distance" || measurementType === "time_distance") && set.source.distance !== null) {

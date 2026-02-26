@@ -1,3 +1,13 @@
+### Fixed
+WHAT:
+- Added faint right-aligned inline metric hints inside routine/session numeric inputs (reps, weight, duration mm:ss, distance unit, calories, and min/max reps) using a reusable input pattern that remains visible while typing.
+- Updated Add Exercise measurement behavior to preserve selected measurement toggles, entered targets, and distance-unit defaults after add; these values now reset only when the selected exercise changes or when the new Reset measurements control is used.
+- Saving a session now exits the active session flow and routes to History (session detail when available, otherwise list), and the legacy Set Timer UI/state was removed while keeping duration logging through metric inputs.
+- Fixed Today day display consistency so in-progress sessions drive the displayed day/exercises, keeping Change Day + Resume behavior aligned after navigation.
+- Removed extra blank space around the RPE tooltip when closed and aligned History duration display to session-style clock formatting (e.g., 90 seconds -> 1:30) across log detail/set summaries.
+WHY:
+- These changes tighten logging clarity and flow continuity, prevent accidental routine-add re-entry work, eliminate stale day-context confusion between Today and Resume, and ensure duration/readability consistency without changing data ownership or sync semantics.
+
 ### Changed
 WHAT:
 - Polished the active session screen UX with consistent metric microcopy (including “Modify Metrics,” simplified input labels, and inline RPE tooltip text), refreshed timer presentation, and clearer visual hierarchy between exercise identity, plan goal line, and the logging action zone.

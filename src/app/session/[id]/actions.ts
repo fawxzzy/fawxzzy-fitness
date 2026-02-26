@@ -314,29 +314,7 @@ export async function removeExerciseAction(formData: FormData): Promise<ActionRe
   return { ok: true };
 }
 
-export async function persistDurationAction(payload: { sessionId: string; durationSeconds: number }): Promise<ActionResult> {
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  if (!payload.sessionId || !Number.isInteger(payload.durationSeconds) || payload.durationSeconds < 0) {
-    return { ok: false, error: "Invalid session duration payload" };
-  }
-
-  const { error } = await supabase
-    .from("sessions")
-    .update({ duration_seconds: payload.durationSeconds })
-    .eq("id", payload.sessionId)
-    .eq("user_id", user.id)
-    .eq("status", "in_progress");
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  return { ok: true };
-}
-
-export async function saveSessionAction(formData: FormData): Promise<ActionResult> {
+export async function saveSessionAction(formData: FormData): Promise<ActionResult<{ sessionId: string }>> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -364,5 +342,5 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
 
   revalidatePath("/today");
   revalidateHistoryViews();
-  return { ok: true };
+  return { ok: true, data: { sessionId } };
 }
