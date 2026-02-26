@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Added an inline SVG archetype fallback in ExercisePicker thumbnails when slug-based local PNG icons are missing or fail to load, while keeping PNG icons as the preferred first path.
+- Updated exercise icon scaffold docs to clarify PNG-first behavior with SVG archetype fallback.
+WHY:
+- Ensures every exercise row has a consistent, readable 48x48 thumbnail without requiring a full binary icon set immediately.
+
+### Changed
+WHAT:
 - Removed the programmatic ExerciseIcon SVG icon system, including icon specs, slug-to-spec mappings, and related fallback placeholder detection logic.
 - Added local exercise icon scaffolding under `/public/exercise-icons` with a README and example manifest, plus a slug-based icon path helper.
 - Updated ExercisePicker thumbnails to load local repo icon files with a safe inline placeholder when an icon file is missing.

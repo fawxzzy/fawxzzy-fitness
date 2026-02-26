@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { ExerciseIcon, type ExerciseIconEquipment, type ExerciseIconKind } from "@/components/ExerciseIcon";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { getExerciseIconPath } from "@/lib/exercises/exerciseIconPaths";
 
@@ -132,7 +133,62 @@ function slugifyExerciseName(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-function ExerciseThumbnail({ slug, name }: { slug: string; name: string }) {
+type ExerciseIconArchetype = {
+  kind: ExerciseIconKind;
+  equipment: ExerciseIconEquipment;
+};
+
+function inferExerciseArchetype(exercise: ExerciseOption): ExerciseIconArchetype {
+  const normalizedName = exercise.name.toLowerCase();
+  const normalizedTags = new Set(normalizeExerciseTags(exercise).keys());
+  const equipmentValue = (exercise.equipment ?? "").toLowerCase();
+  const movementValue = (exercise.movement_pattern ?? "").toLowerCase();
+
+  const hasToken = (value: string) => normalizedName.includes(value) || normalizedTags.has(value);
+
+  const equipment: ExerciseIconEquipment = equipmentValue.includes("barbell") || hasToken("barbell")
+    ? "barbell"
+    : equipmentValue.includes("dumbbell") || hasToken("dumbbell")
+      ? "dumbbell"
+      : equipmentValue.includes("cable") || hasToken("cable") || hasToken("pulley")
+        ? "cable"
+        : equipmentValue.includes("machine") || hasToken("machine") || hasToken("smith")
+          ? "machine"
+          : hasToken("bike") || hasToken("treadmill") || hasToken("rower") || hasToken("jump-rope") || hasToken("stair") || hasToken("sled")
+            ? "cardio"
+            : hasToken("bodyweight")
+              ? "bodyweight"
+              : "other";
+
+  if (hasToken("squat")) return { kind: "squat", equipment };
+  if (hasToken("bench") || (hasToken("press") && normalizedName.includes("bench"))) return { kind: "bench", equipment };
+  if (hasToken("deadlift") || hasToken("hinge") || movementValue.includes("hinge")) return { kind: "hinge", equipment };
+  if (hasToken("row")) return { kind: "row", equipment };
+  if (hasToken("pulldown") || hasToken("pull-up") || hasToken("pullup") || hasToken("chin-up") || hasToken("chinup")) {
+    return { kind: "pulldown", equipment: equipment === "other" ? "cable" : equipment };
+  }
+  if (hasToken("curl")) return { kind: "curl", equipment };
+  if (hasToken("triceps") || hasToken("pushdown") || hasToken("skullcrusher")) {
+    return { kind: "triceps", equipment };
+  }
+  if (hasToken("fly") || hasToken("pec-deck") || hasToken("pec deck")) return { kind: "fly", equipment };
+  if (hasToken("lunge")) return { kind: "lunge", equipment };
+  if (hasToken("hip thrust")) return { kind: "hip_thrust", equipment };
+  if (hasToken("calf")) return { kind: "calf_raise", equipment };
+  if (hasToken("plank") || hasToken("ab") || hasToken("crunch") || hasToken("pallof")) return { kind: "core", equipment };
+  if (hasToken("bike") || hasToken("treadmill") || hasToken("rower") || hasToken("jump-rope") || hasToken("stair") || hasToken("sled") || normalizedTags.has("cardio")) {
+    return { kind: "cardio", equipment: equipment === "other" ? "cardio" : equipment };
+  }
+  if (hasToken("machine") || hasToken("smith")) return { kind: "machine_other", equipment: "machine" };
+  if (hasToken("overhead") || hasToken("shoulder press")) return { kind: "overhead_press", equipment };
+
+  if (movementValue.includes("push")) return { kind: "overhead_press", equipment };
+  if (movementValue.includes("pull")) return { kind: "row", equipment };
+
+  return { kind: "hinge", equipment };
+}
+
+function ExerciseThumbnail({ slug, name, archetype }: { slug: string; name: string; archetype: ExerciseIconArchetype }) {
   const [didFail, setDidFail] = useState(false);
   const iconPath = getExerciseIconPath(slug);
 
@@ -141,7 +197,11 @@ function ExerciseThumbnail({ slug, name }: { slug: string; name: string }) {
   }, [iconPath]);
 
   if (didFail) {
-    return <div aria-hidden className="h-12 w-12 rounded-md border border-border bg-surface-2" />;
+    return (
+      <div aria-hidden className="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-surface-2">
+        <ExerciseIcon kind={archetype.kind} equipment={archetype.equipment} size={48} className="h-12 w-12" />
+      </div>
+    );
   }
 
   return (
@@ -444,11 +504,12 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         >
           {filteredExercises.map((exercise) => {
             const isSelected = exercise.id === selectedId;
+            const archetype = inferExerciseArchetype(exercise);
 
             return (
               <li key={exercise.id} className={`rounded-xl border p-2 ${isSelected ? "border-slate-200 bg-surface-2-soft" : "border-slate-300 bg-surface"}`}>
                 <div className="flex items-stretch gap-2">
-                  <ExerciseThumbnail slug={slugifyExerciseName(exercise.name)} name={exercise.name} />
+                  <ExerciseThumbnail slug={slugifyExerciseName(exercise.name)} name={exercise.name} archetype={archetype} />
                   <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 rounded-md border border-border/50 bg-surface-2 px-2 py-1 text-left">
                     <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
                     <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>
