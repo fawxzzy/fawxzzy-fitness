@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Adjusted ExercisePicker thumbnail logic to treat placeholder `image_howto_path` values as missing so ExerciseIcon fallback tiles render for seeded placeholder entries.
+- Kept how-to thumbnails using Next `<Image>` when `image_howto_path` contains a usable image path/URL.
+WHY:
+- Seeded placeholder image path values were suppressing the new icon fallback, so users still saw placeholder tiles instead of the intended text-only icon system.
+
+### Changed
+WHAT:
 - Refined ExerciseIcon rendering for theming (currentColor), sizing via the `size` prop, and cleaner grip/unilateral differentiation through pose/equipment geometry instead of extra marker glyphs.
 - Corrected misclassified exercise icon mappings for arnold-press, face-pull, front-raise, lateral-raise, and rear-delt-fly.
 WHY:

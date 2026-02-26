@@ -1,5 +1,13 @@
 # Playbook Notes (Local Inbox)
 
+## 2026-02-26 — Treat seeded placeholder media paths as missing at render time
+- Type: Guardrail
+- Summary: UI media rendering should validate seeded/path fields and treat known placeholder sentinel values (`placeholder`, `n/a`, `null`, `about:blank`, etc.) as absent so deterministic fallbacks can render.
+- Suggested Playbook File: patterns/frontend/media-fallbacks.md
+- Rationale: Truthy-but-non-usable media strings silently suppress fallback UI and create stale placeholder tiles in production flows.
+- Evidence: src/components/ExercisePicker.tsx
+- Status: Proposed
+
 ## 2026-02-26 — Persist session-to-plan exercise linkage for duplicate-safe target resolution
 - Type: Guardrail
 - Summary: When materializing sessions from routine templates, persist the originating `routine_day_exercises.id` on each `session_exercises` row and prefer that key for planned target lookup before position/exercise fallbacks.
