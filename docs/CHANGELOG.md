@@ -1,5 +1,12 @@
 ### Fixed
 WHAT:
+- Restored a live session elapsed-time display in the session header while keeping the old Set Timer feature removed from logging inputs.
+- Updated session save submission to send the current elapsed duration derived from session start time so saved workout length matches what the header shows.
+WHY:
+- This brings back visible session timing context during workouts without reintroducing the removed set-level timer flow, matching the intended UX.
+
+### Fixed
+WHAT:
 - Added faint right-aligned inline metric hints inside routine/session numeric inputs (reps, weight, duration mm:ss, distance unit, calories, and min/max reps) using a reusable input pattern that remains visible while typing.
 - Updated Add Exercise measurement behavior to preserve selected measurement toggles, entered targets, and distance-unit defaults after add; these values now reset only when the selected exercise changes or when the new Reset measurements control is used.
 - Saving a session now exits the active session flow and routes to History (session detail when available, otherwise list), and the legacy Set Timer UI/state was removed while keeping duration logging through metric inputs.
