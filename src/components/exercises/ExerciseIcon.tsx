@@ -34,32 +34,33 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
   const headY = 11 + randomOffset(6, 1);
   const stanceSpread = spec.stance === "wide" ? 13 : spec.stance === "narrow" ? 8 : 10;
 
+  type Point = { x: number; y: number };
   type PosePreset = {
-    shoulder: { x: number; y: number };
-    hip: { x: number; y: number };
-    leftElbow: { x: number; y: number };
-    rightElbow: { x: number; y: number };
-    leftHand: { x: number; y: number };
-    rightHand: { x: number; y: number };
-    leftKnee: { x: number; y: number };
-    rightKnee: { x: number; y: number };
-    leftFoot: { x: number; y: number };
-    rightFoot: { x: number; y: number };
+    shoulder: Point;
+    hip: Point;
+    leftElbow: Point;
+    rightElbow: Point;
+    leftHand: Point;
+    rightHand: Point;
+    leftKnee: Point;
+    rightKnee: Point;
+    leftFoot: Point;
+    rightFoot: Point;
     benchY?: number;
     groundY?: number;
   };
 
   const poseByKind: Record<IconSpec["kind"], PosePreset> = {
-    squat: { shoulder: { x: centerX, y: 22 }, hip: { x: centerX, y: 33 }, leftElbow: { x: centerX - 9, y: 25 }, rightElbow: { x: centerX + 9, y: 25 }, leftHand: { x: centerX - 12, y: 27 }, rightHand: { x: centerX + 12, y: 27 }, leftKnee: { x: centerX - 8, y: 43 }, rightKnee: { x: centerX + 8, y: 43 }, leftFoot: { x: centerX - 12, y: 55 }, rightFoot: { x: centerX + 12, y: 55 } },
-    hinge: { shoulder: { x: centerX + 4, y: 24 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 4, y: 30 }, rightElbow: { x: centerX + 6, y: 30 }, leftHand: { x: centerX - 1, y: 35 }, rightHand: { x: centerX + 8, y: 35 }, leftKnee: { x: centerX - 6, y: 44 }, rightKnee: { x: centerX + 6, y: 44 }, leftFoot: { x: centerX - 10, y: 55 }, rightFoot: { x: centerX + 10, y: 55 } },
-    row: { shoulder: { x: centerX + 5, y: 24 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 2, y: 28 }, rightElbow: { x: centerX + 5, y: 28 }, leftHand: { x: centerX + 1, y: 31 }, rightHand: { x: centerX + 8, y: 31 }, leftKnee: { x: centerX - 7, y: 44 }, rightKnee: { x: centerX + 7, y: 44 }, leftFoot: { x: centerX - 11, y: 55 }, rightFoot: { x: centerX + 11, y: 55 } },
-    bench: { shoulder: { x: centerX + (spec.angle === "incline" ? 3 : spec.angle === "decline" ? -2 : 0), y: 32 }, hip: { x: centerX - (spec.angle === "incline" ? 3 : spec.angle === "decline" ? -2 : 0), y: 36 }, leftElbow: { x: centerX - 8, y: 30 }, rightElbow: { x: centerX + 8, y: 30 }, leftHand: { x: centerX - 10, y: 26 }, rightHand: { x: centerX + 10, y: 26 }, leftKnee: { x: centerX - 6, y: 44 }, rightKnee: { x: centerX + 6, y: 44 }, leftFoot: { x: centerX - 12, y: 54 }, rightFoot: { x: centerX + 12, y: 54 }, benchY: 40 },
-    pulldown: { shoulder: { x: centerX, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 7, y: 22 }, rightElbow: { x: centerX + 7, y: 22 }, leftHand: { x: centerX - 9, y: 19 }, rightHand: { x: centerX + 9, y: 19 }, leftKnee: { x: centerX - 6, y: 43 }, rightKnee: { x: centerX + 6, y: 43 }, leftFoot: { x: centerX - 9, y: 54 }, rightFoot: { x: centerX + 9, y: 54 } },
-    lunge: { shoulder: { x: centerX + 1, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 7, y: 27 }, rightElbow: { x: centerX + 7, y: 27 }, leftHand: { x: centerX - 8, y: 31 }, rightHand: { x: centerX + 8, y: 31 }, leftKnee: { x: centerX - 10, y: 42 }, rightKnee: { x: centerX + 5, y: 45 }, leftFoot: { x: centerX - 15, y: 54 }, rightFoot: { x: centerX + 12, y: 54 } },
-    hip_thrust: { shoulder: { x: centerX - 4, y: 35 }, hip: { x: centerX + 5, y: 35 }, leftElbow: { x: centerX - 8, y: 34 }, rightElbow: { x: centerX + 9, y: 34 }, leftHand: { x: centerX - 10, y: 34 }, rightHand: { x: centerX + 11, y: 34 }, leftKnee: { x: centerX - 1, y: 43 }, rightKnee: { x: centerX + 11, y: 43 }, leftFoot: { x: centerX - 4, y: 54 }, rightFoot: { x: centerX + 14, y: 54 }, benchY: 38 },
-    core: { shoulder: { x: centerX - 3, y: 34 }, hip: { x: centerX + 4, y: 36 }, leftElbow: { x: centerX - 8, y: 35 }, rightElbow: { x: centerX + 7, y: 35 }, leftHand: { x: centerX - 10, y: 36 }, rightHand: { x: centerX + 10, y: 36 }, leftKnee: { x: centerX - 2, y: 43 }, rightKnee: { x: centerX + 9, y: 43 }, leftFoot: { x: centerX - 5, y: 52 }, rightFoot: { x: centerX + 13, y: 52 }, groundY: 50 },
-    cardio: { shoulder: { x: centerX + 2, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 5, y: 28 }, rightElbow: { x: centerX + 7, y: 27 }, leftHand: { x: centerX - 7, y: 30 }, rightHand: { x: centerX + 9, y: 30 }, leftKnee: { x: centerX - 4, y: 43 }, rightKnee: { x: centerX + 9, y: 41 }, leftFoot: { x: centerX - 8, y: 54 }, rightFoot: { x: centerX + 12, y: 52 }, groundY: 53 },
-    overhead_press: { shoulder: { x: centerX, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 7, y: 20 }, rightElbow: { x: centerX + 7, y: 20 }, leftHand: { x: centerX - 8, y: 16 }, rightHand: { x: centerX + 8, y: 16 }, leftKnee: { x: centerX - 6, y: 43 }, rightKnee: { x: centerX + 6, y: 43 }, leftFoot: { x: centerX - 10, y: 55 }, rightFoot: { x: centerX + 10, y: 55 } },
+    squat: { shoulder: { x: centerX, y: 22 }, hip: { x: centerX, y: 33 }, leftElbow: { x: centerX - 9, y: 26 }, rightElbow: { x: centerX + 9, y: 26 }, leftHand: { x: centerX - 12, y: 28 }, rightHand: { x: centerX + 12, y: 28 }, leftKnee: { x: centerX - 9, y: 45 }, rightKnee: { x: centerX + 9, y: 45 }, leftFoot: { x: centerX - 13, y: 55 }, rightFoot: { x: centerX + 13, y: 55 } },
+    hinge: { shoulder: { x: centerX + 5, y: 24 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 3, y: 29 }, rightElbow: { x: centerX + 6, y: 30 }, leftHand: { x: centerX, y: 35 }, rightHand: { x: centerX + 9, y: 35 }, leftKnee: { x: centerX - 6, y: 43 }, rightKnee: { x: centerX + 6, y: 43 }, leftFoot: { x: centerX - 10, y: 55 }, rightFoot: { x: centerX + 10, y: 55 } },
+    row: { shoulder: { x: centerX + 5, y: 25 }, hip: { x: centerX, y: 35 }, leftElbow: { x: centerX + 1, y: 28 }, rightElbow: { x: centerX + 8, y: 28 }, leftHand: { x: centerX + 3, y: 31 }, rightHand: { x: centerX + 10, y: 31 }, leftKnee: { x: centerX - 7, y: 44 }, rightKnee: { x: centerX + 7, y: 44 }, leftFoot: { x: centerX - 11, y: 55 }, rightFoot: { x: centerX + 11, y: 55 } },
+    bench: { shoulder: { x: centerX + (spec.angle === "incline" ? 5 : spec.angle === "decline" ? -4 : 1), y: 33 }, hip: { x: centerX - (spec.angle === "incline" ? 5 : spec.angle === "decline" ? -4 : 1), y: 36 }, leftElbow: { x: centerX - 8, y: 31 }, rightElbow: { x: centerX + 8, y: 31 }, leftHand: { x: centerX - 11, y: 27 }, rightHand: { x: centerX + 11, y: 27 }, leftKnee: { x: centerX - 6, y: 44 }, rightKnee: { x: centerX + 6, y: 44 }, leftFoot: { x: centerX - 12, y: 54 }, rightFoot: { x: centerX + 12, y: 54 }, benchY: 40 },
+    pulldown: { shoulder: { x: centerX, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 8, y: 21 }, rightElbow: { x: centerX + 8, y: 21 }, leftHand: { x: centerX - 9, y: 18 }, rightHand: { x: centerX + 9, y: 18 }, leftKnee: { x: centerX - 6, y: 43 }, rightKnee: { x: centerX + 6, y: 43 }, leftFoot: { x: centerX - 9, y: 54 }, rightFoot: { x: centerX + 9, y: 54 } },
+    lunge: { shoulder: { x: centerX + 1, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 7, y: 27 }, rightElbow: { x: centerX + 7, y: 27 }, leftHand: { x: centerX - 9, y: 30 }, rightHand: { x: centerX + 9, y: 30 }, leftKnee: { x: centerX - 10, y: 42 }, rightKnee: { x: centerX + 4, y: 45 }, leftFoot: { x: centerX - 15, y: 54 }, rightFoot: { x: centerX + 12, y: 54 } },
+    hip_thrust: { shoulder: { x: centerX - 3, y: 35 }, hip: { x: centerX + 6, y: 35 }, leftElbow: { x: centerX - 8, y: 34 }, rightElbow: { x: centerX + 9, y: 34 }, leftHand: { x: centerX - 10, y: 34 }, rightHand: { x: centerX + 11, y: 34 }, leftKnee: { x: centerX, y: 43 }, rightKnee: { x: centerX + 12, y: 43 }, leftFoot: { x: centerX - 4, y: 54 }, rightFoot: { x: centerX + 15, y: 54 }, benchY: 38 },
+    core: { shoulder: { x: centerX - 2, y: 34 }, hip: { x: centerX + 5, y: 36 }, leftElbow: { x: centerX - 8, y: 35 }, rightElbow: { x: centerX + 7, y: 35 }, leftHand: { x: centerX - 10, y: 36 }, rightHand: { x: centerX + 10, y: 36 }, leftKnee: { x: centerX - 1, y: 43 }, rightKnee: { x: centerX + 9, y: 43 }, leftFoot: { x: centerX - 4, y: 52 }, rightFoot: { x: centerX + 13, y: 52 }, groundY: 50 },
+    cardio: { shoulder: { x: centerX + 2, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 5, y: 28 }, rightElbow: { x: centerX + 8, y: 27 }, leftHand: { x: centerX - 8, y: 30 }, rightHand: { x: centerX + 10, y: 30 }, leftKnee: { x: centerX - 5, y: 43 }, rightKnee: { x: centerX + 10, y: 41 }, leftFoot: { x: centerX - 10, y: 54 }, rightFoot: { x: centerX + 14, y: 52 }, groundY: 53 },
+    overhead_press: { shoulder: { x: centerX, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 8, y: 20 }, rightElbow: { x: centerX + 8, y: 20 }, leftHand: { x: centerX - 9, y: 16 }, rightHand: { x: centerX + 9, y: 16 }, leftKnee: { x: centerX - 6, y: 43 }, rightKnee: { x: centerX + 6, y: 43 }, leftFoot: { x: centerX - 10, y: 55 }, rightFoot: { x: centerX + 10, y: 55 } },
     curl: { shoulder: { x: centerX, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 6, y: 29 }, rightElbow: { x: centerX + 6, y: 29 }, leftHand: { x: centerX - 4, y: 27 }, rightHand: { x: centerX + 4, y: 27 }, leftKnee: { x: centerX - 6, y: 43 }, rightKnee: { x: centerX + 6, y: 43 }, leftFoot: { x: centerX - 10, y: 55 }, rightFoot: { x: centerX + 10, y: 55 } },
     triceps: { shoulder: { x: centerX + 1, y: 23 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 5, y: 26 }, rightElbow: { x: centerX + 7, y: 23 }, leftHand: { x: centerX - 5, y: 31 }, rightHand: { x: centerX + 9, y: 19 }, leftKnee: { x: centerX - 6, y: 43 }, rightKnee: { x: centerX + 6, y: 43 }, leftFoot: { x: centerX - 10, y: 55 }, rightFoot: { x: centerX + 10, y: 55 } },
     fly: { shoulder: { x: centerX, y: 25 }, hip: { x: centerX, y: 34 }, leftElbow: { x: centerX - 10, y: 26 }, rightElbow: { x: centerX + 10, y: 26 }, leftHand: { x: centerX - 13, y: 30 }, rightHand: { x: centerX + 13, y: 30 }, leftKnee: { x: centerX - 7, y: 43 }, rightKnee: { x: centerX + 7, y: 43 }, leftFoot: { x: centerX - 10, y: 55 }, rightFoot: { x: centerX + 10, y: 55 } },
@@ -91,6 +92,12 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
   const benchY = pose.benchY ? pose.benchY + randomOffset(42, 1) : undefined;
   const groundY = pose.groundY ? pose.groundY + randomOffset(44, 1) : undefined;
 
+  const torsoTopY = headY + 6;
+  const torsoCenterX = Math.round((shoulder.x + hip.x) / 2);
+  const torsoCenterY = Math.round((torsoTopY + hip.y) / 2);
+  const torsoHeight = Math.max(8, Math.abs(hip.y - torsoTopY));
+  const torsoAngle = Math.atan2(hip.y - torsoTopY, hip.x - shoulder.x) * (180 / Math.PI);
+
   const barConfigByGrip = {
     wide: { left: 14, right: 50 },
     close: { left: 24, right: 40 },
@@ -110,24 +117,31 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
   const singleHandX = unilateralRight ? rightHand.x : leftHand.x;
   const singleHandY = unilateralRight ? rightHand.y : leftHand.y;
 
-  const cableTargetX = spec.unilateral ? singleHandX : 42;
+  const cableTargetX = spec.unilateral ? singleHandX : Math.round((leftHand.x + rightHand.x) / 2);
   const cableTargetY = spec.cablePath === "high_to_low" ? singleHandY - 1 : spec.cablePath === "low_to_high" ? singleHandY + 1 : singleHandY;
   const cableStartY = spec.cablePath === "high_to_low" ? 14 : spec.cablePath === "low_to_high" ? 50 : 28;
 
   return (
     <div
-      className={`inline-flex items-center justify-center rounded-md border border-border bg-[rgb(var(--bg)/0.4)] ${className ?? ""}`}
+      className={`inline-flex items-center justify-center rounded-md border border-border bg-[rgb(var(--bg)/0.18)] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[1px] ${className ?? ""}`}
       style={{ width: size, height: size }}
       aria-hidden
     >
       <svg viewBox="0 0 64 64" width="100%" height="100%" className="h-full w-full">
-        <g className="text-[rgb(var(--text))]" stroke="currentColor" strokeWidth="3.4" fill="none" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx={shoulder.x} cy={headY} r="4" />
-          <path d={`M${shoulder.x} ${headY + 5} Q${(shoulder.x + hip.x) / 2} ${Math.round((shoulder.y + hip.y) / 2) - 1} ${hip.x} ${hip.y}`} strokeWidth="4.8" />
-          <path d={`M${shoulder.x - 0.5} ${shoulder.y} L${leftElbow.x} ${leftElbow.y} L${leftHand.x} ${leftHand.y}`} />
-          <path d={`M${shoulder.x + 0.5} ${shoulder.y} L${rightElbow.x} ${rightElbow.y} L${rightHand.x} ${rightHand.y}`} />
-          <path d={`M${hip.x - 0.5} ${hip.y} L${leftKnee.x} ${leftKnee.y} L${leftFoot.x} ${leftFoot.y}`} />
-          <path d={`M${hip.x + 0.5} ${hip.y} L${rightKnee.x} ${rightKnee.y} L${rightFoot.x} ${rightFoot.y}`} />
+        <g className="text-[rgb(var(--text))]" stroke="currentColor" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx={shoulder.x} cy={headY} r="3.8" />
+          <rect
+            x={torsoCenterX - 3.2}
+            y={torsoCenterY - torsoHeight / 2}
+            width="6.4"
+            height={torsoHeight}
+            rx="3.2"
+            transform={`rotate(${torsoAngle} ${torsoCenterX} ${torsoCenterY})`}
+          />
+          <path d={`M${shoulder.x - 0.6} ${shoulder.y} L${leftElbow.x} ${leftElbow.y} L${leftHand.x} ${leftHand.y}`} />
+          <path d={`M${shoulder.x + 0.6} ${shoulder.y} L${rightElbow.x} ${rightElbow.y} L${rightHand.x} ${rightHand.y}`} />
+          <path d={`M${hip.x - 0.6} ${hip.y} L${leftKnee.x} ${leftKnee.y} L${leftFoot.x} ${leftFoot.y}`} />
+          <path d={`M${hip.x + 0.6} ${hip.y} L${rightKnee.x} ${rightKnee.y} L${rightFoot.x} ${rightFoot.y}`} />
           {groundY ? <path d={`M14 ${groundY} L50 ${groundY}`} /> : null}
           {benchY ? <path d={`M16 ${benchY + (spec.angle === "decline" ? 2 : 0)} L48 ${benchY + (spec.angle === "incline" ? -2 : 0)}`} /> : null}
         </g>
@@ -135,7 +149,7 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
         <g className="text-accent" stroke="currentColor" strokeWidth="2.8" fill="none" strokeLinecap="round" strokeLinejoin="round">
           {spec.equipment === "barbell" ? (
             <>
-              <rect x={barLeftX} y={gripY - 1.5} width={barRightX - barLeftX} height="3" rx="1.5" />
+              <rect x={barLeftX} y={gripY - 1.4} width={barRightX - barLeftX} height="2.8" rx="1.4" />
               <rect x={barLeftX - 6} y={gripY - 4.5} width="4" height="9" rx="1.5" />
               <rect x={barLeftX - 11} y={gripY - 4} width="4" height="8" rx="1.5" />
               <rect x={barRightX + 2} y={gripY - 4.5} width="4" height="9" rx="1.5" />
@@ -145,7 +159,7 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
 
           {spec.equipment === "dumbbell" ? (
             spec.unilateral ? (
-                <>
+              <>
                 <rect x={singleHandX - 5} y={singleHandY - 2} width="10" height="4" rx="1.5" />
                 <rect x={singleHandX - 7} y={singleHandY - 3.5} width="2" height="7" rx="1" />
                 <rect x={singleHandX + 5} y={singleHandY - 3.5} width="2" height="7" rx="1" />
@@ -194,16 +208,16 @@ export function ExerciseIcon({ slug, size = 48, className }: ExerciseIconProps) 
           {spec.equipment === "cardio" ? (
             spec.kind === "cardio" && spec.variant?.includes("treadmill") ? (
               <>
-                <path d="M12 47 L50 47" />
-                <path d="M44 20 L52 20 L52 40" />
-                <path d="M20 47 L28 37 L38 37" />
+                <path d="M12 50 L50 50" />
+                <path d="M44 22 L52 22 L52 41" />
+                <path d="M20 50 L28 40 L38 40" />
               </>
             ) : (
               <>
-                <circle cx="20" cy="49" r="4.5" />
-                <circle cx="44" cy="49" r="4.5" />
-                <path d="M20 49 L32 35 L44 49" />
-                <path d="M32 35 L39 35" />
+                <circle cx="20" cy="50" r="4.5" />
+                <circle cx="44" cy="50" r="4.5" />
+                <path d="M20 50 L32 36 L44 50" />
+                <path d="M32 36 L39 36" />
               </>
             )
           ) : null}
