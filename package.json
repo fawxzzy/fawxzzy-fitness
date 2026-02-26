@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "prebuild": "node scripts/generate-icons.mjs",
-    "dev:assets": "node scripts/generate-icons.mjs"
+    "dev:assets": "node scripts/generate-icons.mjs",
+    "sync:exercise-icons": "node scripts/syncExerciseIcons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
