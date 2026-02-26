@@ -1034,3 +1034,11 @@ WHAT:
 - Updated goal text formatting to return `Goal: Open` for sets-only workouts and to render targets in deterministic metric order with backward-compatible fallback when `measurement_type` is missing.
 WHY:
 - This makes routine programming flexible for open workouts and mixed target styles while preserving deterministic target semantics at the routine-day exercise row level without changing session logging behavior in this step.
+
+### Changed
+WHAT:
+- Moved the exercise icon PNG set into `public/exercises/icons/` and normalized filenames to kebab-case slugs for deterministic static URL lookup.
+- Added shared exercise image helpers to resolve icon/how-to image URLs from DB path overrides when present, then slug/name-derived icon paths, with graceful placeholder fallback.
+- Updated the exercise picker list and exercise info how-to visual to use derived static icon paths and a safe placeholder instead of broken images.
+WHY:
+- This gives the app consistent exercise visuals without manual one-off icon mapping and keeps asset resolution deterministic using static `/public` paths.
