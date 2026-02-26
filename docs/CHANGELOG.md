@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Refined ExerciseIcon person silhouette and movement poses to a higher-quality glyph style (less stick-figure) while keeping text-only deterministic icons.
+WHY:
+- Improve perceived UI polish and make exercise icons more readable and movement-specific in the picker without introducing binary assets.
+
+### Changed
+WHAT:
 - Refined the ExerciseIcon renderer to use a more polished outlined glyph silhouette (less stick-figure) while keeping the existing text-only deterministic icon pipeline and icon mapping contracts unchanged.
 WHY:
 - Improves perceived UI quality and 48px readability in the exercise picker without introducing binary assets.
