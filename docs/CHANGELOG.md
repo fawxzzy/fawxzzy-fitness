@@ -900,3 +900,11 @@ WHAT:
 - Organized Add Exercise tag filters into labeled category rows (Muscle, Movement, Equipment, and Other) while preserving the existing multi-select filter behavior.
 WHY:
 - This makes long filter lists easier to scan on mobile and reduces search friction when users are narrowing exercise results.
+
+### Changed
+WHAT:
+- Updated routine day exercise planning so Sets (or Intervals for Cardio-tagged exercises) is the only required field, and added a “+ Add Measurement” workflow to optionally attach reps, weight, time, distance, and calorie targets.
+- Updated routine-day save/update server actions to derive and persist `measurement_type` from selected primary metrics (`time`, `distance`, `time_distance`, fallback `reps`), persist distance `default_unit` only when distance is selected, and clear removed target fields safely.
+- Updated goal text formatting to return `Goal: Open` for sets-only workouts and to render targets in deterministic metric order with backward-compatible fallback when `measurement_type` is missing.
+WHY:
+- This makes routine programming flexible for open workouts and mixed target styles while preserving deterministic target semantics at the routine-day exercise row level without changing session logging behavior in this step.
