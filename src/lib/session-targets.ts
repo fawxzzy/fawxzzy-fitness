@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseServer } from "@/lib/supabase/server";
+import { formatDurationClock } from "@/lib/duration";
 import { requireUser } from "@/lib/auth";
 
 export type DisplayTarget = {
@@ -40,13 +41,7 @@ function getRepsText(minReps: number | null, maxReps: number | null, fallbackRep
 }
 
 function formatDurationText(durationSeconds: number) {
-  if (durationSeconds < 60) {
-    return `${durationSeconds}s`;
-  }
-
-  const minutes = Math.floor(durationSeconds / 60);
-  const seconds = durationSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  return formatDurationClock(durationSeconds);
 }
 
 function toSingularUnit(unit: "lbs" | "kg" | "mi" | "km" | "m" | "cal") {

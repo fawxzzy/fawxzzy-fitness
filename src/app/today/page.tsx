@@ -304,23 +304,32 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   }
 
   const exerciseNameMap = await getExerciseNameMap();
+  // Manual QA checklist:
+  // - Change day on Today, start workout, leave, return: displayed day matches Resume target.
+  const effectiveDayIndex = inProgressSession?.routine_day_index ?? todayDayIndex;
+  const effectiveRoutineDay = effectiveDayIndex === null
+    ? todayRoutineDay
+    : routineDays.find((day) => day.day_index === effectiveDayIndex) ?? todayRoutineDay;
+  const effectiveDayExercises = effectiveRoutineDay
+    ? allDayExercises.filter((exercise) => exercise.routine_day_id === effectiveRoutineDay.id)
+    : dayExercises;
   const routineName = activeRoutine?.name ?? null;
-  const routineDayName = todayRoutineDay ? todayRoutineDay.name ?? `Day ${todayDayIndex ?? todayRoutineDay.day_index}` : null;
+  const routineDayName = effectiveRoutineDay ? effectiveRoutineDay.name ?? `Day ${effectiveDayIndex ?? effectiveRoutineDay.day_index}` : null;
 
   const todayPayload = {
     routine:
-      activeRoutine && todayRoutineDay && todayDayIndex !== null && routineDayName
+      activeRoutine && effectiveRoutineDay && effectiveDayIndex !== null && routineDayName
         ? {
             id: activeRoutine.id,
             name: routineName ?? "Routine",
-            dayIndex: todayDayIndex,
+            dayIndex: effectiveDayIndex,
             dayName: routineDayName,
-            isRest: todayRoutineDay.is_rest,
+            isRest: effectiveRoutineDay.is_rest,
             routineId: activeRoutine.id,
-            routineDayId: todayRoutineDay.id,
+            routineDayId: effectiveRoutineDay.id,
           }
         : null,
-    exercises: dayExercises.map((exercise) => ({
+    exercises: effectiveDayExercises.map((exercise) => ({
       id: exercise.id,
       name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
       targets: exercise.target_sets
@@ -343,7 +352,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           hints: {
             inProgressSessionId: todayPayload.inProgressSessionId,
             completedTodayCount,
-            recentExerciseIds: dayExercises.map((exercise) => exercise.exercise_id),
+            recentExerciseIds: effectiveDayExercises.map((exercise) => exercise.exercise_id),
           },
         };
 

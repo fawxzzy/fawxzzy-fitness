@@ -1,21 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
-import { SessionTimerCard } from "@/components/SessionTimers";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 
-type ServerAction = (formData: FormData) => Promise<ActionResult>;
-type PersistDurationAction = (payload: { sessionId: string; durationSeconds: number }) => Promise<ActionResult>;
+type ServerAction = (formData: FormData) => Promise<ActionResult<{ sessionId: string }>>;
 
 function SaveSessionButton() {
   const { pending } = useFormStatus();
 
+  // Manual QA checklist:
+  // - Save session redirects to History detail (or History list fallback) only after success.
   return (
     <PrimaryButton
       type="submit"
@@ -32,14 +31,12 @@ export function SessionHeaderControls({
   sessionId,
   initialDurationSeconds,
   saveSessionAction,
-  persistDurationAction,
 }: {
   sessionId: string;
   initialDurationSeconds: number | null;
   saveSessionAction: ServerAction;
-  persistDurationAction: PersistDurationAction;
 }) {
-  const [durationSeconds, setDurationSeconds] = useState(initialDurationSeconds ?? 0);
+  const durationSeconds = initialDurationSeconds ?? 0;
   const toast = useToast();
   const router = useRouter();
 
@@ -56,7 +53,7 @@ export function SessionHeaderControls({
             });
 
             if (result.ok) {
-              router.push("/today?completed=1");
+              router.push(result.data?.sessionId ? `/history/${result.data.sessionId}` : "/history");
             }
           }}
         >
@@ -66,12 +63,6 @@ export function SessionHeaderControls({
         </form>
       </div>
 
-      <SessionTimerCard
-        sessionId={sessionId}
-        initialDurationSeconds={initialDurationSeconds}
-        onDurationChange={setDurationSeconds}
-        persistDurationAction={persistDurationAction}
-      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { listExercises } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
+import { formatDurationClock } from "@/lib/duration";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { LogAuditClient } from "./LogAuditClient";
 
@@ -17,20 +18,6 @@ type PageProps = {
   params: { sessionId: string };
 };
 
-function formatDuration(durationSeconds: number | null): string {
-  if (!durationSeconds || durationSeconds <= 0) {
-    return "No timer";
-  }
-
-  const minutes = Math.round(durationSeconds / 60);
-  if (minutes < 60) {
-    return `${minutes} min`;
-  }
-
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `${hours}h ${remainingMinutes}m`;
-}
 
 export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const user = await requireUser();
@@ -103,6 +90,8 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
   const exerciseOptions = await listExercises();
 
+  // Manual QA checklist:
+  // - Log 90 seconds and verify History shows 1:30 formatting.
   return (
     <section className="space-y-4">
       <AppNav />
@@ -113,7 +102,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         </Link>
         <h1 className="text-2xl font-semibold">Log Details</h1>
         <p className="mt-1 text-sm text-slate-600">
-          {routineName} • {effectiveDayName} • <LocalDateTime value={sessionRow.performed_at} /> • {formatDuration(sessionRow.duration_seconds)}
+          {routineName} • {effectiveDayName} • <LocalDateTime value={sessionRow.performed_at} /> • {sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}
         </p>
       </Glass>
 

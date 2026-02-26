@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
@@ -9,9 +9,10 @@ import {
   type SetLogQueueItem,
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
-import { SecondaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
+import { InlineHintInput } from "@/components/ui/InlineHintInput";
+import { formatDurationClock } from "@/lib/duration";
 import type { ActionResult } from "@/lib/action-result";
 
 type AddSetPayload = {
@@ -38,7 +39,7 @@ function formatSetMetrics(set: SetRow, fallbackWeightUnit: string) {
     parts.push(`${set.weight} ${set.weight_unit ?? fallbackWeightUnit} × ${set.reps} reps`);
   }
   if (set.duration_seconds !== null && set.duration_seconds > 0) {
-    parts.push(formatSeconds(set.duration_seconds));
+    parts.push(formatDurationClock(set.duration_seconds));
   }
   if (set.distance !== null && set.distance > 0) {
     parts.push(`${set.distance} ${set.distance_unit ?? "mi"}`);
@@ -70,137 +71,6 @@ function parseDurationInput(rawValue: string): number | null {
   }
 
   return totalSeconds;
-}
-
-function formatSeconds(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const seconds = Math.floor(totalSeconds % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${minutes}:${seconds}`;
-}
-
-export function SessionTimerCard({
-  sessionId,
-  initialDurationSeconds,
-  onDurationChange,
-  persistDurationAction,
-}: {
-  sessionId: string;
-  initialDurationSeconds: number | null;
-  onDurationChange: (value: number) => void;
-  persistDurationAction: (payload: { sessionId: string; durationSeconds: number }) => Promise<ActionResult>;
-}) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(initialDurationSeconds ?? 0);
-  const [isRunning, setIsRunning] = useState(false);
-
-  useEffect(() => {
-    const key = `session-timer:${sessionId}`;
-    const raw = window.localStorage.getItem(key);
-    if (!raw) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as { elapsedSeconds?: number; isRunning?: boolean; runningStartedAt?: number | null };
-      const baseElapsed = Number.isFinite(parsed.elapsedSeconds) ? Number(parsed.elapsedSeconds) : 0;
-      if (parsed.isRunning && Number.isFinite(parsed.runningStartedAt)) {
-        const elapsedFromStart = Math.max(0, Math.floor((Date.now() - Number(parsed.runningStartedAt)) / 1000));
-        setElapsedSeconds(Math.max(baseElapsed, elapsedFromStart));
-        setIsRunning(true);
-        return;
-      }
-
-      setElapsedSeconds(baseElapsed);
-      setIsRunning(false);
-    } catch {
-      window.localStorage.removeItem(key);
-    }
-  }, [sessionId]);
-
-  useEffect(() => {
-    onDurationChange(elapsedSeconds);
-  }, [elapsedSeconds, onDurationChange]);
-
-  useEffect(() => {
-    if (!isRunning) {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setElapsedSeconds((value) => value + 1);
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [isRunning]);
-
-  useEffect(() => {
-    const key = `session-timer:${sessionId}`;
-    const payload = JSON.stringify({
-      elapsedSeconds,
-      isRunning,
-      runningStartedAt: isRunning ? Date.now() - (elapsedSeconds * 1000) : null,
-      updatedAt: Date.now(),
-    });
-    window.localStorage.setItem(key, payload);
-  }, [elapsedSeconds, isRunning, sessionId]);
-
-  useEffect(() => {
-    const handleBackgroundPersist = () => {
-      if (!isRunning) {
-        return;
-      }
-      void persistDurationAction({ sessionId, durationSeconds: elapsedSeconds });
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        handleBackgroundPersist();
-      }
-    };
-
-    window.addEventListener("pagehide", handleBackgroundPersist);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("pagehide", handleBackgroundPersist);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [elapsedSeconds, isRunning, persistDurationAction, sessionId]);
-
-  return (
-    <section className="space-y-2 rounded-md bg-white p-3 shadow-sm">
-      <h2 className="text-sm font-semibold">Timer</h2>
-      <p className="text-3xl font-semibold tabular-nums">{formatSeconds(elapsedSeconds)}</p>
-      <div className="grid grid-cols-2 gap-2">
-        <SecondaryButton
-          type="button"
-          onClick={async () => {
-            if (isRunning) {
-              await persistDurationAction({ sessionId, durationSeconds: elapsedSeconds });
-            }
-            setIsRunning((value) => !value);
-          }}
-          className={tapFeedbackClass}
-        >
-          {isRunning ? "Pause" : "Start"}
-        </SecondaryButton>
-        <SecondaryButton
-          type="button"
-          onClick={async () => {
-            setIsRunning(false);
-            setElapsedSeconds(0);
-            await persistDurationAction({ sessionId, durationSeconds: 0 });
-          }}
-          className={tapFeedbackClass}
-        >
-          Reset
-        </SecondaryButton>
-      </div>
-    </section>
-  );
 }
 
 type DisplaySet = SetRow & { pending?: boolean; queueStatus?: SetLogQueueItem["status"] };
@@ -262,7 +132,7 @@ export function SetLoggerCard({
   const [weight, setWeight] = useState(prefill?.weight !== undefined ? String(prefill.weight) : "");
   const [selectedWeightUnit, setSelectedWeightUnit] = useState<"lbs" | "kg">(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
   const [reps, setReps] = useState(prefill?.reps !== undefined ? String(prefill.reps) : "");
-  const [durationInput, setDurationInput] = useState(prefill?.durationSeconds !== undefined ? formatSeconds(prefill.durationSeconds) : "");
+  const [durationInput, setDurationInput] = useState(prefill?.durationSeconds !== undefined ? formatDurationClock(prefill.durationSeconds) : "");
   const [distance, setDistance] = useState("");
   const [distanceUnit, setDistanceUnit] = useState<"mi" | "km" | "m">(defaultDistanceUnit ?? "mi");
   const [calories, setCalories] = useState("");
@@ -271,16 +141,11 @@ export function SetLoggerCard({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sets, setSets] = useState<DisplaySet[]>(initialSets);
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [tapReps, setTapReps] = useState(0);
-  const [useTimerRepCount, setUseTimerRepCount] = useState(false);
   const [activeMetrics, setActiveMetrics] = useState(initialEnabledMetrics);
   const [hasUserModifiedMetrics, setHasUserModifiedMetrics] = useState(false);
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [showRpeTooltip, setShowRpeTooltip] = useState(false);
-  const repsInputRef = useRef<HTMLInputElement | null>(null);
   const toast = useToast();
 
   const planContractSignature = `${sessionExerciseId}:${routineDayExerciseId ?? ""}:${planTargetsHash ?? ""}`;
@@ -472,42 +337,20 @@ export function SetLoggerCard({
     };
   }, [sessionExerciseId]);
 
-  useEffect(() => {
-    if (!isRunning) {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setElapsedSeconds((value) => value + 1);
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [isRunning]);
-
-  const averageSecondsPerRep = useMemo(() => {
-    if (tapReps <= 0) {
-      return null;
-    }
-    return (elapsedSeconds / tapReps).toFixed(1);
-  }, [elapsedSeconds, tapReps]);
 
   const requiresReps = activeMetrics.reps;
   const requiresDuration = activeMetrics.time;
   const requiresDistance = activeMetrics.distance;
   const parsedDurationForSave = parseDurationInput(durationInput);
   const parsedDistanceForSave = distance.trim() ? Number(distance) : null;
-  const parsedRepsForSave = (useTimerRepCount ? String(tapReps) : reps).trim() ? Number(useTimerRepCount ? tapReps : reps) : 0;
+  const parsedRepsForSave = reps.trim() ? Number(reps) : 0;
   const isSaveDisabled = isSubmitting
     || (requiresReps && (!Number.isFinite(parsedRepsForSave) || parsedRepsForSave <= 0))
     || (requiresDuration && (parsedDurationForSave === null || parsedDurationForSave <= 0))
     || (requiresDistance && (!Number.isFinite(parsedDistanceForSave) || (parsedDistanceForSave ?? 0) <= 0));
 
-  const resetTimerState = useCallback(() => {
-    setIsRunning(false);
-    setElapsedSeconds(0);
-    setTapReps(0);
+  const resetLoggerState = useCallback(() => {
     setDurationInput("");
-    setUseTimerRepCount(false);
     if (activeMetrics.reps) {
       setReps("");
     }
@@ -518,12 +361,12 @@ export function SetLoggerCard({
       return;
     }
 
-    resetTimerState();
-  }, [resetSignal, resetTimerState]);
+    resetLoggerState();
+  }, [resetLoggerState, resetSignal]);
 
   async function handleLogSet() {
     const parsedWeight = weight.trim() ? Number(weight) : 0;
-    const parsedReps = (useTimerRepCount ? String(tapReps) : reps).trim() ? Number(useTimerRepCount ? tapReps : reps) : 0;
+    const parsedReps = reps.trim() ? Number(reps) : 0;
     const parsedDuration = parseDurationInput(durationInput);
     const parsedDistance = distance.trim() ? Number(distance) : null;
     const parsedCalories = calories.trim() ? Number(calories) : null;
@@ -558,7 +401,7 @@ export function SetLoggerCard({
     }
 
     if (activeMetrics.reps && (!Number.isFinite(parsedReps) || parsedReps < 0)) {
-      const message = useTimerRepCount ? "Tapped reps must be 0 or greater." : "Reps must be 0 or greater.";
+      const message = "Reps must be 0 or greater.";
       setError(message);
       toast.error(message);
       return;
@@ -769,7 +612,6 @@ export function SetLoggerCard({
     setReps(String(parsedReps));
     setRpe(parsedRpe === null ? "" : String(parsedRpe));
     setIsWarmup(isWarmup);
-    repsInputRef.current?.focus();
     setIsSubmitting(false);
   }
 
@@ -800,68 +642,10 @@ export function SetLoggerCard({
   return (
     <div className="space-y-2">
       {/* Manual QA checklist:
-          - Strength workout shows "Sets", not "Intervals"
-          - Cardio workout shows "Intervals"
-          - Goal displays stat-line format with bold primary metric
-          - No unit duplication in labels
-          - Weight/unit always paired
-          - Distance/unit always paired
-          - Min/Max reps always paired
-          - Save button does not jump when toggling metrics
-          - Timer visually distinct from metric inputs
-          - RPE tooltip displays and dismisses cleanly */}
-      <section className="space-y-2 rounded-md border border-slate-200 bg-slate-100/80 p-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">{isCardio ? "Interval Timer" : "Timer"}</h3>
-        <p className="text-2xl font-semibold tabular-nums text-slate-900">{formatSeconds(elapsedSeconds)}</p>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (isRunning) {
-                setDurationInput(formatSeconds(elapsedSeconds));
-              }
-              setIsRunning((value) => !value);
-            }}
-            className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
-          >
-            {isRunning ? "Pause" : "Start"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              resetTimerState();
-            }}
-            className={`rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
-          >
-            Reset
-          </button>
-        </div>
-      </section>
-
-      {isRunning && activeMetrics.reps ? (
-        <div className="space-y-2 rounded-md bg-slate-50 p-2">
-          <button
-            type="button"
-            onClick={() => {
-              setTapReps((value) => {
-                const nextValue = value + 1;
-                setReps(String(nextValue));
-                return nextValue;
-              });
-              setUseTimerRepCount(true);
-            }}
-            className={`w-full rounded-md bg-accent px-4 py-4 text-base font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
-          >
-            Tap Rep
-          </button>
-          <p className="text-sm">
-            Reps tapped: <span className="font-semibold">{tapReps} reps</span>
-            {averageSecondsPerRep ? <span> · Avg {averageSecondsPerRep} sec/rep</span> : null}
-          </p>
-        </div>
-      ) : null}
-
-      {useTimerRepCount && activeMetrics.reps ? <p className="text-xs text-slate-600">Logging reps from timer taps ({tapReps}). Edit reps input to switch back.</p> : null}
+          - Add/exercise metric hints are visible inside input boxes
+          - No Set Timer UI remains; duration logging still works via mm:ss
+          - RPE tooltip does not reserve blank space when closed
+          - Save button remains stable while toggling measurements */}
 
       <details className="rounded-md border border-slate-200 bg-white px-2 py-2">
         <summary className="cursor-pointer text-sm font-medium text-slate-700">Modify Metrics</summary>
@@ -882,34 +666,30 @@ export function SetLoggerCard({
         </div>
       </details>
 
-      <div className="flex min-h-[18.5rem] flex-col rounded-md border border-slate-200 bg-slate-50 p-3">
+      <div className="flex flex-col rounded-md border border-slate-200 bg-slate-50 p-3">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
         <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <input
+          <InlineHintInput
             type="number"
-            ref={repsInputRef}
             min={0}
             value={reps}
             onChange={(event) => {
               setReps(event.target.value);
-              setUseTimerRepCount(false);
             }}
-            placeholder="Reps"
-            className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+            hint="reps"
           />
         </div>
 
         <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.weight ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <InlineHintInput
               type="number"
               min={0}
               step="0.5"
               value={weight}
               onChange={(event) => setWeight(event.target.value)}
-              placeholder="Weight"
-              className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+              hint={selectedWeightUnit}
             />
             <select
               value={selectedWeightUnit}
@@ -923,26 +703,24 @@ export function SetLoggerCard({
         </div>
 
         <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.time ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <input
+          <InlineHintInput
             type="text"
             inputMode="numeric"
             value={durationInput}
             onChange={(event) => setDurationInput(event.target.value)}
-            placeholder="Time (mm:ss)"
-            className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+            hint="mm:ss"
           />
         </div>
 
         <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.distance ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <InlineHintInput
               type="number"
               min={0}
               step="0.01"
               value={distance}
               onChange={(event) => setDistance(event.target.value)}
-              placeholder="Distance"
-              className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+              hint={distanceUnit}
             />
             <select
               value={distanceUnit}
@@ -957,14 +735,13 @@ export function SetLoggerCard({
         </div>
 
         <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.calories ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <input
+          <InlineHintInput
             type="number"
             min={0}
             step="1"
             value={calories}
             onChange={(event) => setCalories(event.target.value)}
-            placeholder="Calories"
-            className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+            hint="cal"
           />
         </div>
 
