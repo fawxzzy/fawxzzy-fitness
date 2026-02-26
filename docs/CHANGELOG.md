@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Updated ExerciseIcon to render equipment-first glyph icons (barbell, dumbbell, cable, machine, cardio, bodyweight) with a subtle movement cue overlay per icon kind, replacing the tiny person silhouette for clearer 48px tiles.
+WHY:
+- Person silhouettes at small sizes felt clip-arty; equipment-first glyphs better match the app's minimal glass UI and read as a more premium, scalable text-only icon system.
+
+### Changed
+WHAT:
 - Increased ExerciseIcon glyph scale/centering and strengthened kind-specific silhouettes (squat/bench/row/curl/pulldown/cardio), plus improved implement weight for better 48px readability.
 WHY:
 - Improve icon clarity and perceived polish in the ExercisePicker list without adding binary assets.
