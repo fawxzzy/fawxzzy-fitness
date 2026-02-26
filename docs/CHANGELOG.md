@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Reordered the Add Exercise picker layout so the exercise list appears before the Measurements controls, while preserving existing add/goal behavior.
+- Replaced Current Session’s bespoke add-exercise block with the same add cards/pattern used in routine editing, including goal-setting controls in the add flow.
+WHY:
+- Keeping list-first ordering makes exercise selection flow consistent and easier to scan.
+- Reusing the routine add UI in Current Session unlocks goal entry there without duplicating UI patterns, while preserving session-only add behavior.
+
+### Changed
+WHAT:
 - Updated active session logging to derive each session exercise’s effective measurement contract from session snapshots first, then routine-day plan metadata, then exercise defaults, and to use routine target presence as default metric enablement for logger inputs.
 - Updated Set Logger UI to support metric-driven input rendering (reps/weight/time/distance/calories), cardio “Intervals” labeling, client-side “+ Add Measurement” toggles, mm:ss duration entry, and persisted saving of all supported set metrics without hiding already-logged values.
 WHY:

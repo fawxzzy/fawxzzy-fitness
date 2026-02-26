@@ -25,11 +25,13 @@ export function SessionAddExerciseForm({
   sessionId,
   exercises,
   initialSelectedId,
+  weightUnit,
   addExerciseAction,
 }: {
   sessionId: string;
   exercises: ExerciseOption[];
   initialSelectedId?: string;
+  weightUnit: "lbs" | "kg";
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
 }) {
   const toast = useToast();
@@ -51,8 +53,8 @@ export function SessionAddExerciseForm({
       className="space-y-2"
     >
       <input type="hidden" name="sessionId" value={sessionId} />
-      <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} />
-      <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Add</button>
+      <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} />
+      <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
     </form>
   );
 }

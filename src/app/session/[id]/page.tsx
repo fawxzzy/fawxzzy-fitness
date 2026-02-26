@@ -3,7 +3,7 @@ import { SessionBackButton } from "@/components/SessionBackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
-import { tapFeedbackClass } from "@/components/ui/interactionClasses";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { formatGoalText, type DisplayTarget } from "@/lib/session-targets";
 import {
@@ -79,6 +79,7 @@ type PageProps = {
   searchParams?: {
     error?: string;
     exerciseId?: string;
+    addExerciseOpen?: string;
   };
 };
 
@@ -108,26 +109,13 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       <ActionFeedbackToasts />
 
-      <details className="rounded-md">
-        <summary className="cursor-pointer list-none rounded-md bg-white px-4 py-3 text-sm font-semibold shadow-sm [&::-webkit-details-marker]:hidden">Add exercise</summary>
-        <div className="mt-2 rounded-md bg-white p-3 shadow-sm">
-        <div className="space-y-3">
-          <SessionAddExerciseForm
-            sessionId={params.id}
-            exercises={exerciseOptions}
-            initialSelectedId={searchParams?.exerciseId}
-            addExerciseAction={addExerciseAction}
-          />
-
-          <form action={createCustomExerciseAction} className="space-y-2 border-t border-slate-200 pt-3">
+      <details className="rounded-md border border-slate-300 bg-white transition-colors hover:border-[rgb(var(--border)/0.8)]">
+        <summary className="cursor-pointer list-none rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">+ Add custom exercise</summary>
+        <div className="space-y-3 px-4 pb-4">
+          <form action={createCustomExerciseAction} className="space-y-2">
             <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
-            <label className="text-sm font-semibold">+ Add custom exercise</label>
-            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25" />
-            <div className="grid grid-cols-2 gap-2">
-              <input name="primaryMuscle" placeholder="Primary muscle (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              <input name="equipment" placeholder="Equipment (optional)" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            </div>
-            <button type="submit" className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Save Custom Exercise</button>
+            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Custom Exercise</button>
           </form>
 
           {customExercises.length > 0 ? (
@@ -140,12 +128,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                       <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
                       <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
-                      <button type="submit" className={`rounded-md border border-slate-300 px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Rename</button>
+                      <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">Rename</button>
                     </form>
                     <form action={deleteCustomExerciseAction}>
                       <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <button type="submit" className={`w-full rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Delete</button>
+                      <button type="submit" className="w-full rounded-md border border-red-600 bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700">Delete</button>
                     </form>
                   </div>
                 </li>
@@ -153,8 +141,17 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             </ul>
           ) : null}
         </div>
-      </div>
       </details>
+
+      <CollapsibleCard title="Add exercises" summary={`${sessionExercises.length} added`} defaultOpen={searchParams?.addExerciseOpen === "1"}>
+        <SessionAddExerciseForm
+          sessionId={params.id}
+          exercises={exerciseOptions}
+          initialSelectedId={searchParams?.exerciseId}
+          weightUnit={unitLabel}
+          addExerciseAction={addExerciseAction}
+        />
+      </CollapsibleCard>
 
       <SessionHeaderControls sessionId={params.id} initialDurationSeconds={sessionRow.duration_seconds} saveSessionAction={saveSessionAction} persistDurationAction={persistDurationAction} />
 
