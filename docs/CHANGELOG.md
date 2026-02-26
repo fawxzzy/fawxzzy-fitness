@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Updated exercise info visuals so the How-to image always reuses the same deterministic source as the exercise list thumbnail icon.
+- Added a new `sync:exercise-icons` script to normalize PNG filenames from `exerciseIcons/` to kebab-case and sync them into `/public/exercises/icons/` for static serving.
+WHY:
+- Keeps exercise imagery consistent between list and info views, and streamlines onboarding of new icon assets with deterministic naming and less manual file prep.
+
+### Changed
+WHAT:
 - Added an inline SVG archetype fallback in ExercisePicker thumbnails when slug-based local PNG icons are missing or fail to load, while keeping PNG icons as the preferred first path.
 - Updated exercise icon scaffold docs to clarify PNG-first behavior with SVG archetype fallback.
 WHY:
