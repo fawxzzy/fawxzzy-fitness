@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Refined the ExerciseIcon renderer to use a more polished outlined glyph silhouette (less stick-figure) while keeping the existing text-only deterministic icon pipeline and icon mapping contracts unchanged.
+WHY:
+- Improves perceived UI quality and 48px readability in the exercise picker without introducing binary assets.
+
+### Changed
+WHAT:
 - Adjusted ExercisePicker thumbnail logic to treat placeholder `image_howto_path` values as missing so ExerciseIcon fallback tiles render for seeded placeholder entries.
 - Kept how-to thumbnails using Next `<Image>` when `image_howto_path` contains a usable image path/URL.
 WHY:
