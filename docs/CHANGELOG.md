@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Removed the programmatic ExerciseIcon SVG icon system, including icon specs, slug-to-spec mappings, and related fallback placeholder detection logic.
+- Added local exercise icon scaffolding under `/public/exercise-icons` with a README and example manifest, plus a slug-based icon path helper.
+- Updated ExercisePicker thumbnails to load local repo icon files with a safe inline placeholder when an icon file is missing.
+WHY:
+- We are moving to manually provided, higher-quality exercise icon files that are maintained directly in the repository without generated SVG pipelines.
+
+### Changed
+WHAT:
 - Increased ExerciseIcon visual scale and optical centering within the 48px tile, reduced internal icon padding, and strengthened equipment silhouette weight.
 WHY:
 - Icons felt undersized and weak inside the tile; increasing fill and weight improves visual strength and readability at 48px.
