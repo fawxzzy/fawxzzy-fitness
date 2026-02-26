@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Increased ExerciseIcon glyph scale/centering and strengthened kind-specific silhouettes (squat/bench/row/curl/pulldown/cardio), plus improved implement weight for better 48px readability.
+WHY:
+- Improve icon clarity and perceived polish in the ExercisePicker list without adding binary assets.
+
+### Changed
+WHAT:
 - Switched ExerciseIcon person rendering to a filled silhouette glyph style while keeping the text-only deterministic icon pipeline; implement remains accent-colored for contrast.
 WHY:
 - Stroke-based stick figures read as placeholders at small sizes; filled silhouettes improve perceived quality and readability in the picker.
