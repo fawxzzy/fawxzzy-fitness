@@ -276,3 +276,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Session rendering should stay deterministic even if exercise metadata is later edited.
 - Evidence: src/app/today/page.tsx, src/app/session/[id]/actions.ts, src/app/history/[sessionId]/page.tsx
 - Status: Proposed
+
+## 2026-02-26 — Derive logger defaults from planned targets while keeping client-side metric flexibility
+- Type: Pattern
+- Summary: Compute session logger metric defaults from routine-day target presence, but keep metric toggling local to the logger UI so users can add extra measurements during a session without mutating server-side contracts.
+- Suggested Playbook File: patterns/offline-first-sync.md
+- Rationale: Planned targets should shape default logging ergonomics while preserving flexible, resilient online/offline session capture.
+- Evidence: src/app/session/[id]/queries.ts, src/app/session/[id]/page.tsx, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx
+- Status: Proposed

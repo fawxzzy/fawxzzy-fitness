@@ -58,8 +58,15 @@ type SessionExerciseFocusItem = {
   id: string;
   name: string;
   isSkipped: boolean;
-  measurementType: "reps" | "time" | "distance" | "time_distance";
   defaultUnit: "mi" | "km" | "m" | null;
+  isCardio: boolean;
+  enabledMetrics: {
+    reps: boolean;
+    weight: boolean;
+    time: boolean;
+    distance: boolean;
+    calories: boolean;
+  };
   goalText: string | null;
   prefill?: SessionExercisePrefill;
   initialSets: SetRow[];
@@ -169,7 +176,7 @@ export function SessionExerciseFocus({
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">{exercise.name}</p>
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                        {setCount} set{setCount === 1 ? "" : "s"}
+                        {setCount} {exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}
                       </span>
                     </div>
                     <span className={`rounded-md border border-slate-300 px-2 py-1 text-xs ${tapFeedbackClass}`}>Open</span>
@@ -265,8 +272,9 @@ export function SessionExerciseFocus({
             unitLabel={unitLabel}
             initialSets={selectedExercise.initialSets}
             prefill={selectedExercise.prefill}
-            measurementType={selectedExercise.measurementType}
             defaultDistanceUnit={selectedExercise.defaultUnit}
+            isCardio={selectedExercise.isCardio}
+            enabledMetrics={selectedExercise.enabledMetrics}
             deleteSetAction={deleteSetAction}
             resetSignal={setLoggerResetSignal}
             onSetCountChange={(count) => {
