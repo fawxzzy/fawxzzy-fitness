@@ -1,3 +1,17 @@
+### Changed
+WHAT:
+- Refined ExerciseIcon rendering for theming (currentColor), sizing via the `size` prop, and cleaner grip/unilateral differentiation through pose/equipment geometry instead of extra marker glyphs.
+- Corrected misclassified exercise icon mappings for arnold-press, face-pull, front-raise, lateral-raise, and rear-delt-fly.
+WHY:
+- This ensures generated icons adapt consistently to app themes (including dark mode), are reusable at multiple tile sizes, reduce visual noise at 48px, and better match exercise equipment semantics.
+
+### Changed
+WHAT:
+- Added a text-only exercise icon system with deterministic React SVG how-to icons for all 137 catalog exercises, plus slug-based icon lookup helpers/specs.
+- Updated ExercisePicker rows to always show an icon by rendering generated SVGs whenever an exercise does not have an `image_howto_path` override.
+WHY:
+- This removes the need for binary icon assets while guaranteeing complete visual coverage and maintaining consistent black-person/green-implement styling for faster exercise scanning.
+
 ### Fixed
 WHAT:
 - Restored a live session elapsed-time display in the session header while keeping the old Set Timer feature removed from logging inputs.
