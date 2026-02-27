@@ -310,7 +310,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     };
   }, [info]);
 
-  const infoHowToSrc = infoDetails ? getExerciseHowToImageSrc(infoDetails) : "/exercises/icons/_placeholder.svg";
+  const exerciseDetailsOrRow = infoDetails ?? info?.exercise ?? null;
+  const infoHowToSrc = exerciseDetailsOrRow ? getExerciseHowToImageSrc(exerciseDetailsOrRow) : "/exercises/icons/_placeholder.svg";
   const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
 
   const resetMeasurementFields = useCallback(() => {
@@ -498,12 +499,14 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
                       <div className="space-y-1">
                         <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-                        <ExerciseAssetImage
-                          key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
-                          src={infoHowToSrc}
-                          alt="How-to visual"
-                          className="w-full rounded-md border border-border"
-                        />
+                        <div className="aspect-[4/3] overflow-hidden rounded-md border border-border">
+                          <ExerciseAssetImage
+                            key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
+                            src={infoHowToSrc}
+                            alt="How-to visual"
+                            className="h-full w-full object-contain object-center"
+                          />
+                        </div>
                       </div>
 
                       <div className="space-y-1">
