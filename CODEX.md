@@ -3,10 +3,16 @@
 Before implementing any non-trivial change:
 
 1. Read:
-   - docs/PROJECT.md
-   - docs/ENGINE.md
-   - docs/CHANGELOG.md
-   - docs/AGENT.md
+
+docs/ARCHITECTURE.md
+
+docs/PROJECT_GOVERNANCE.md
+
+docs/PLAYBOOK_CHECKLIST.md
+
+docs/PLAYBOOK_NOTES.md
+
+docs/CHANGELOG.md
 
 2. Respect product priorities:
    - Speed > polish
