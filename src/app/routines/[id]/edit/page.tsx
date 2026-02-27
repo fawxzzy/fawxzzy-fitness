@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
+import { AppButton } from "@/components/ui/AppButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
@@ -346,7 +347,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
             </label>
             <label className="block text-sm">Cycle length (days)
-              <p className="mt-1 text-xs text-slate-500">Includes workout and rest days in the repeat cycle.</p>
+              <p className="mt-1 text-xs text-muted">Includes workout and rest days in the repeat cycle.</p>
               <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
             </label>
             <label className="block text-sm">Units
@@ -361,12 +362,12 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               </select>
             </label>
             <label className="block text-sm">Start date
-              <p className="mt-1 text-xs text-slate-500">Sets which calendar day is Day 1 for this cycle.</p>
+              <p className="mt-1 text-xs text-muted">Sets which calendar day is Day 1 for this cycle.</p>
               <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
             </label>
           </div>
         </CollapsibleCard>
-        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Save Routine</button>
+        <AppButton type="submit" variant="primary" fullWidth>Save Routine</AppButton>
       </form>
 
       <div className="space-y-2">
@@ -377,7 +378,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
           return (
             <div
               key={day.id}
-              className="rounded-md border border-slate-300 bg-surface-soft p-4"
+              className="rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] p-4"
             >
               <Link
                 href={`/routines/${params.id}/edit/day/${day.id}`}
@@ -385,11 +386,11 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
-                  <span className="text-xs text-slate-500">Tap to edit</span>
+                  <span className="text-xs text-muted">Tap to edit</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
+                <p className="mt-1 text-xs text-muted">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
                 {!day.is_rest && preview.length > 0 ? (
-                  <p className="mt-1 truncate text-xs text-slate-500">
+                  <p className="mt-1 truncate text-xs text-muted">
                     {preview.join(" • ")}
                     {count > preview.length ? " • …" : ""}
                   </p>
@@ -400,19 +401,22 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                 <form action={copyRoutineDayAction}>
                   <input type="hidden" name="routineId" value={params.id} />
                   <input type="hidden" name="dayId" value={day.id} />
-                  <button type="submit" className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs">Copy day</button>
+                  <AppButton type="submit" variant="secondary" size="sm" fullWidth>Copy day</AppButton>
                 </form>
                 <form action={pasteRoutineDayAction}>
                   <input type="hidden" name="routineId" value={params.id} />
                   <input type="hidden" name="sourceDayId" value={copiedDayId} />
                   <input type="hidden" name="targetDayId" value={day.id} />
-                  <button
+                  <AppButton
                     type="submit"
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
                     disabled={!copiedDayId || copiedDayId === day.id}
-                    className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                    className="disabled:border-border/40 disabled:bg-[rgb(var(--bg)/0.25)]"
                   >
                     Paste day
-                  </button>
+                  </AppButton>
                 </form>
               </div>
             </div>

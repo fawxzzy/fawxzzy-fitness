@@ -21,7 +21,7 @@ export function CollapsibleCard({ title, summary, defaultOpen = false, children 
         aria-expanded={isOpen}
         aria-controls={panelId}
         onClick={() => setIsOpen((current) => !current)}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[rgb(255_255_255/0.05)] active:bg-[rgb(255_255_255/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none"
       >
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-[rgb(var(--text)/0.95)]">{title}</span>

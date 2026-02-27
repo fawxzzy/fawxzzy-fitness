@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
+import { AppButton } from "@/components/ui/AppButton";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { RoutineLocalDefaults } from "@/components/RoutineLocalDefaults";
 import { requireUser } from "@/lib/auth";
@@ -80,7 +81,7 @@ export default async function NewRoutinePage() {
         <h1 className="text-2xl font-semibold">New Routine</h1>
         <RoutineBackButton href="/routines" />
       </div>
-      <form action={createRoutineAction} className="space-y-3 rounded-md bg-white p-4 shadow-sm">
+      <form action={createRoutineAction} className="space-y-3 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.5)] p-4">
         <RoutineLocalDefaults timezoneOptions={ROUTINE_TIMEZONE_OPTIONS} />
         <label className="block text-sm">
           Name
@@ -94,7 +95,7 @@ export default async function NewRoutinePage() {
 
         <label className="block text-sm">
           Cycle length (days)
-          <p className="mt-1 text-xs text-slate-500">Includes all days in your repeating cycle, including rest days.</p>
+          <p className="mt-1 text-xs text-muted">Includes all days in your repeating cycle, including rest days.</p>
           <input
             type="number"
             name="cycleLengthDays"
@@ -132,7 +133,7 @@ export default async function NewRoutinePage() {
 
         <label className="block text-sm">
           Start date
-          <p className="mt-1 text-xs text-slate-500">This anchors Day 1 of the cycle on your selected date.</p>
+          <p className="mt-1 text-xs text-muted">This anchors Day 1 of the cycle on your selected date.</p>
           <input
             type="date"
             name="startDate"
@@ -142,9 +143,9 @@ export default async function NewRoutinePage() {
           />
         </label>
 
-        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
+        <AppButton type="submit" variant="primary" fullWidth>
           Save Routine
-        </button>
+        </AppButton>
       </form>
     </section>
   );

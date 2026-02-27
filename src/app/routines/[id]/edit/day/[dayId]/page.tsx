@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
+import { AppButton } from "@/components/ui/AppButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
+import { controlClassName } from "@/components/ui/formClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction, updateRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { requireUser } from "@/lib/auth";
@@ -123,8 +125,11 @@ function RoutineTargetInputs({
 
   return (
     <div className="space-y-2">
-      <details className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-        <summary className="cursor-pointer text-sm font-medium">+ Add Measurement</summary>
+      <details className="rounded-md border border-border/70 bg-[rgb(var(--bg)/0.35)] px-3 py-2">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          <span>Add Measurement</span>
+          <span aria-hidden="true" className="details-chevron text-xs text-muted">⌄</span>
+        </summary>
         <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="reps" defaultChecked={hasReps} />Reps</label>
           <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="weight" defaultChecked={hasWeight} />Weight</label>
@@ -134,26 +139,26 @@ function RoutineTargetInputs({
         </div>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div className="col-span-2 grid grid-cols-2 gap-2">
-            <input type="number" min={1} name="targetRepsMin" defaultValue={defaults?.targetRepsMin ?? defaults?.targetReps ?? ""} placeholder="Min reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <input type="number" min={1} name="targetRepsMax" defaultValue={defaults?.targetRepsMax ?? ""} placeholder="Max reps" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            <input type="number" min={1} name="targetRepsMin" defaultValue={defaults?.targetRepsMin ?? defaults?.targetReps ?? ""} placeholder="Min reps" className={controlClassName} />
+            <input type="number" min={1} name="targetRepsMax" defaultValue={defaults?.targetRepsMax ?? ""} placeholder="Max reps" className={controlClassName} />
           </div>
           <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-            <input type="number" min={0} step="0.5" name="targetWeight" defaultValue={defaults?.targetWeight ?? ""} placeholder={`Weight (${weightUnit})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <select name="targetWeightUnit" defaultValue={defaults?.targetWeightUnit ?? weightUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+            <input type="number" min={0} step="0.5" name="targetWeight" defaultValue={defaults?.targetWeight ?? ""} placeholder={`Weight (${weightUnit})`} className={controlClassName} />
+            <select name="targetWeightUnit" defaultValue={defaults?.targetWeightUnit ?? weightUnit} className={controlClassName}>
               <option value="lbs">lbs</option>
               <option value="kg">kg</option>
             </select>
           </div>
-          <input name="targetDuration" defaultValue={defaults?.targetDurationSeconds ?? ""} placeholder="Time (sec or mm:ss)" className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="targetDuration" defaultValue={defaults?.targetDurationSeconds ?? ""} placeholder="Time (sec or mm:ss)" className={`${controlClassName} col-span-2`} />
           <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-            <input type="number" min={0} step="0.01" name="targetDistance" defaultValue={defaults?.targetDistance ?? ""} placeholder="Distance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <select name="targetDistanceUnit" defaultValue={defaults?.targetDistanceUnit ?? distanceUnit} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+            <input type="number" min={0} step="0.01" name="targetDistance" defaultValue={defaults?.targetDistance ?? ""} placeholder="Distance" className={controlClassName} />
+            <select name="targetDistanceUnit" defaultValue={defaults?.targetDistanceUnit ?? distanceUnit} className={controlClassName}>
               <option value="mi">mi</option>
               <option value="km">km</option>
               <option value="m">m</option>
             </select>
           </div>
-          <input type="number" min={0} step="1" name="targetCalories" defaultValue={defaults?.targetCalories ?? ""} placeholder="Calories" className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input type="number" min={0} step="1" name="targetCalories" defaultValue={defaults?.targetCalories ?? ""} placeholder="Calories" className={`${controlClassName} col-span-2`} />
         </div>
       </details>
       <input type="hidden" name="defaultUnit" value={hasDistance ? (defaults?.targetDistanceUnit ?? distanceUnit) : "mi"} />
@@ -230,30 +235,33 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-      <details className="rounded-md border border-slate-300 bg-white transition-colors hover:border-[rgb(var(--border)/0.8)]">
-        <summary className="cursor-pointer list-none rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">+ Add custom exercise</summary>
+      <details className="rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)]">
+        <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2-soft active:bg-surface-2-active [&::-webkit-details-marker]:hidden">
+          <span>Add custom exercise</span>
+          <span aria-hidden="true" className="details-chevron text-xs text-muted">⌄</span>
+        </summary>
         <div className="space-y-3 px-4 pb-4">
           <form action={createCustomExerciseAction} className="space-y-2">
             <input type="hidden" name="returnTo" value={returnTo} />
-            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Custom Exercise</button>
+            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={controlClassName} />
+            <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
           </form>
           {customExercises.length > 0 ? (
             <ul className="space-y-2">
               {customExercises.map((exercise) => (
-                <li key={exercise.id} className="rounded-md bg-slate-50 p-2">
+                <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-2">
                   <p className="text-xs font-semibold">{exercise.name}</p>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <form action={renameCustomExerciseAction} className="flex gap-2">
                       <input type="hidden" name="returnTo" value={returnTo} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
-                      <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">Rename</button>
+                      <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={controlClassName} />
+                      <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
                     </form>
                     <form action={deleteCustomExerciseAction}>
                       <input type="hidden" name="returnTo" value={returnTo} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <button type="submit" className="w-full rounded-md border border-red-600 bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700">Delete</button>
+                      <AppButton type="submit" variant="destructive" size="sm" fullWidth>Delete</AppButton>
                     </form>
                   </div>
                 </li>
@@ -263,24 +271,24 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         </div>
       </details>
 
-      <form action={saveRoutineDayAction} className="space-y-3 rounded-md bg-white p-4 shadow-sm">
+      <form action={saveRoutineDayAction} className="space-y-3 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.5)] p-4">
         <input type="hidden" name="routineId" value={params.id} />
         <input type="hidden" name="routineDayId" value={params.dayId} />
         <label className="block text-sm">Day name
-          <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
         </label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />Rest day</label>
-        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Save Day</button>
+        <AppButton type="submit" variant="primary" fullWidth>Save Day</AppButton>
       </form>
 
       {(day as RoutineDayRow).is_rest ? (
-        <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Rest day enabled. Routine exercises stay saved but are ignored until you turn rest day off.</p>
+        <p className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-xs text-muted">Rest day enabled. Routine exercises stay saved but are ignored until you turn rest day off.</p>
       ) : (
         <>
-          <section className="space-y-2 rounded-xl border-2 border-accent/40 bg-accent/5 p-3">
+          <section className="space-y-2 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] p-3">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-text">Currently added workouts</h2>
-              <span className="rounded-full border border-accent/30 bg-white px-2 py-0.5 text-xs font-medium text-text">{dayExercises.length}</span>
+              <span className="rounded-full border border-border/60 bg-[rgb(var(--bg)/0.45)] px-2 py-0.5 text-xs font-medium text-text">{dayExercises.length}</span>
             </div>
             <ul className="space-y-2">
               {dayExercises.map((exercise) => {
@@ -307,26 +315,27 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               }) || "No target";
 
               return (
-                <li key={exercise.id} className="rounded-md border border-accent/15 bg-white shadow-sm">
+                <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)]">
                   <details>
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs [&::-webkit-details-marker]:hidden">
                       <span>
                         <span className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</span>
-                        <span className="text-slate-500"> · {targetSummary}</span>
+                        <span className="text-muted"> · {targetSummary}</span>
                       </span>
-                      <span className="rounded-md border border-slate-300 px-2 py-1 text-[11px]">
+                      <span className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] px-2 py-1 text-[11px]">
                         <span className="details-edit-label">Edit</span>
                         <span className="details-close-label">Close</span>
+                        <span aria-hidden="true" className="details-chevron ml-1 text-muted">⌄</span>
                       </span>
                     </summary>
 
-                    <div className="space-y-2 border-t border-slate-100 px-3 pb-3 pt-2">
+                    <div className="space-y-2 border-t border-border/50 px-3 pb-3 pt-2">
                       <form action={updateRoutineDayExerciseAction} className="space-y-2">
                         <input type="hidden" name="routineId" value={params.id} />
                         <input type="hidden" name="routineDayId" value={params.dayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
                         <div className="space-y-2">
-                          <input type="number" min={1} name="targetSets" defaultValue={exercise.target_sets ?? 1} placeholder={isCardio ? "Intervals" : "Sets"} required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                          <input type="number" min={1} name="targetSets" defaultValue={exercise.target_sets ?? 1} placeholder={isCardio ? "Intervals" : "Sets"} required className={controlClassName} />
                           <RoutineTargetInputs
                             weightUnit={(routine as RoutineRow).weight_unit}
                             distanceUnit={defaultDistanceUnit}
@@ -344,14 +353,16 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                           />
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <button type="submit" className="rounded-md border border-slate-300 px-3 py-1.5 text-xs">Save</button>
-                          <button
+                          <AppButton type="submit" variant="secondary" size="sm" className="h-8 px-3 text-xs">Save</AppButton>
+                          <AppButton
                             type="submit"
                             formAction={deleteRoutineDayExerciseAction}
-                            className="text-xs font-medium text-red-700 hover:text-red-800"
+                            variant="destructive"
+                            size="sm"
+                            className="h-8 px-3 text-xs"
                           >
                             Remove
-                          </button>
+                          </AppButton>
                         </div>
                       </form>
                     </div>
@@ -367,7 +378,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               <input type="hidden" name="routineId" value={params.id} />
               <input type="hidden" name="routineDayId" value={params.dayId} />
               <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} routineTargetConfig={{ weightUnit: (routine as RoutineRow).weight_unit }} />
-              <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
+              <AppButton type="submit" variant="primary" fullWidth>Add Exercise</AppButton>
             </form>
           </CollapsibleCard>
         </>

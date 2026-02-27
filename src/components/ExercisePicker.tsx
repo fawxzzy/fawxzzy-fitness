@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
 
@@ -317,7 +318,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [info]);
 
   const exerciseDetailsOrRow = infoDetails ?? info?.exercise ?? null;
-  const infoHowToSrc = exerciseDetailsOrRow ? getExerciseIconSrc(exerciseDetailsOrRow) : "/exercises/icons/_placeholder.svg";
+  const infoHowToSrc = exerciseDetailsOrRow ? getExerciseIconSrc(exerciseDetailsOrRow) : null;
+  const hasHowToImage = !!infoHowToSrc && infoHowToSrc !== "/exercises/icons/_placeholder.svg";
   const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
 
   const resetMeasurementFields = useCallback(() => {
@@ -366,7 +368,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             type="button"
             onClick={() => setSearch("")}
             aria-label="Clear exercise search"
-            className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+            className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text"
           >
             ×
           </button>
@@ -382,7 +384,12 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           className="w-full justify-between"
         >
           <span>Filters</span>
-          <Pill active={isFiltersOpen} className="text-[10px]">{isFiltersOpen ? "Open" : "Closed"}</Pill>
+          <span className="ml-auto inline-flex items-center gap-2">
+            <Pill active={isFiltersOpen} className="text-[10px]">{isFiltersOpen ? "Open" : "Closed"}</Pill>
+            <svg aria-hidden="true" viewBox="0 0 20 20" className={cn("h-4 w-4 text-muted transition-transform", isFiltersOpen ? "rotate-180" : "rotate-0")}>
+              <path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
         </Button>
 
         <p className="text-xs text-muted">{selectedTags.length} selected · {selectedTags.length ? "Filtered" : "All"}</p>
@@ -502,7 +509,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                   <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(env(safe-area-inset-top),0px)]">
                     <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
                       <h2 className="text-2xl font-semibold">Exercise info</h2>
-                      <Button type="button" variant="ghost" onClick={() => setInfo(null)} className="h-8 px-2 text-xs">Close</Button>
+                      <button type="button" onClick={() => setInfo(null)} className={getAppButtonClassName({ variant: "ghost", size: "sm" })}>Close</button>
                     </div>
                   </div>
 
@@ -517,17 +524,19 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-                        <div className="aspect-[4/3] overflow-hidden rounded-md border border-border">
-                          <ExerciseAssetImage
-                            key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
-                            src={infoHowToSrc}
-                            alt="How-to visual"
-                            className="h-full w-full object-contain object-center"
-                          />
+                      {hasHowToImage && infoHowToSrc ? (
+                        <div className="space-y-1">
+                          <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+                          <div className="aspect-[4/3] overflow-hidden rounded-md border border-border">
+                            <ExerciseAssetImage
+                              key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
+                              src={infoHowToSrc}
+                              alt="How-to visual"
+                              className="h-full w-full object-contain object-center"
+                            />
+                          </div>
                         </div>
-                      </div>
+                      ) : null}
 
                       <div className="space-y-1">
                         <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>

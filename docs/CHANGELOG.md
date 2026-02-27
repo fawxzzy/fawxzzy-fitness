@@ -1260,3 +1260,14 @@ WHAT:
 - Refined Set logging UI hierarchy by keeping Save set as the dominant green action, lightening Modify metrics and logged-set row controls, and reducing extra visual borders.
 WHY:
 - Reduces visual clutter, improves scanability and navigation clarity, and emphasizes the most important actions during active workout logging.
+
+
+### Changed
+WHAT:
+- Normalized the Routines flow UI (Routines list, New Routine, Edit Routine, Edit Day, and exercise picker/info surfaces) to use consistent dark-theme-safe cards, spacing, and button hierarchy with clearer primary/secondary/destructive actions.
+- Added explicit chevron affordances for routine/day editing disclosure controls (routine details, custom exercise, measurement, add exercises, and exercise filters) and tightened day-card/readability polish for edit and copy/paste interactions.
+- Updated Exercise Info overlay behavior so the How-to image appears only when a real exercise icon source exists, and otherwise omits the image frame.
+WHY:
+- Improves visual cohesion and scanability across routine management, removes harsh light-state styling in a dark UI, and makes expandable areas more obvious and predictable.
+- Prevents confusing empty/missing-image presentation in Exercise Info while keeping the experience robust when icon assets are unavailable.
+
