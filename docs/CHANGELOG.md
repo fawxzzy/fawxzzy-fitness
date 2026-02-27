@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Updated the ExercisePicker Info experience to open as a dedicated full-screen overlay with a persistent header and an internally scrolling content area.
+WHY:
+- This restores a true screen-like mobile/desktop detail experience while keeping Info open/close in local component state and preserving the current URL.
+
+### Changed
+WHAT:
 - Restored ExercisePicker’s Info action to open the full-screen Exercise Info experience (name/tags, how-to summary text, how-to image, muscles image, and muscle metadata) in-place instead of the placeholder-style overlay.
 - Standardized muscles-image resolution to use canonical safe fallback behavior so missing or invalid paths render placeholders cleanly.
 WHY:
