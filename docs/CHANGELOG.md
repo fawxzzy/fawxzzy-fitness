@@ -1,8 +1,8 @@
 ### Changed
 WHAT:
-- Improved exercise icon rendering to use a consistent placeholder fallback and an in-memory cache for missing icon URLs to prevent repeated 404 requests in the list and Info screen.
+- Stabilized exercise icon rendering with deterministic placeholder fallback and missing-src memoization so missing icon URLs are attempted once per browser session in both list thumbnails and Exercise Info how-to visuals.
 WHY:
-- Many icons are intentionally not present yet; previously the UI repeatedly requested missing files, causing console spam and unnecessary network overhead. Caching missing URLs keeps behavior deterministic and improves UX/performance while we gradually add assets.
+- Many icons are intentionally missing during asset rollout; previously the UI could repeatedly request missing files and trigger noisy error stacks, harming UX and performance.
 
 ### Fixed
 WHAT:
