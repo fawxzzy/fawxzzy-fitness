@@ -1099,3 +1099,9 @@ WHAT:
 - Updated the ExercisePicker Info modal so its How-to image always uses the same deterministic per-exercise icon source shown in the list thumbnail, and refreshes per selected exercise.
 WHY:
 - Prevents stale/sticky image rendering where the modal could incorrectly show the same How-to image across different exercise selections.
+
+### Fixed
+WHAT:
+- Restored the ExercisePicker Info action to open each exercise’s dedicated Exercise info screen instead of the in-picker shared modal overlay.
+WHY:
+- Brings back the unique per-exercise info-screen UI flow that was lost in a recent merge and removes the extra “Open details” step.

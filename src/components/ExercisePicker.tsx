@@ -169,7 +169,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [targetDuration, setTargetDuration] = useState("");
   const [targetDistance, setTargetDistance] = useState("");
   const [targetCalories, setTargetCalories] = useState("");
-  const [info, setInfo] = useState<{ exercise: ExerciseOption; iconSrc: string } | null>(null);
   const previousExerciseIdRef = useRef<string>(selectedId);
 
   useEffect(() => {
@@ -289,8 +288,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [availableTags, selectedTags]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
-  const infoMusclesSrc = "/exercises/placeholders/muscles.svg";
-
   const resetMeasurementFields = useCallback(() => {
     setTargetRepsMin("");
     setTargetRepsMax("");
@@ -437,63 +434,18 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                       <MetaTag value={exercise.movement_pattern} />
                     </div>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setInfo({ exercise, iconSrc })}
+                  <Link
+                    href={`/exercises/${exercise.id}?returnTo=${encodeURIComponent(returnTo)}`}
                     className="inline-flex min-h-10 items-center rounded-md border border-border bg-surface-2-strong px-3 py-1 text-xs text-accent"
                   >
                     Info
-                  </button>
+                  </Link>
                 </div>
               </li>
             );
           })}        </ul>
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
       </div>
-
-      {info ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-surface p-4">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-base font-semibold text-text">Exercise info</h2>
-              <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-2 py-1 text-xs text-muted">Close</button>
-            </div>
-
-            <div>
-              <p className="text-base font-semibold text-text">{info.exercise.name}</p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                <MetaTag value={info.exercise.equipment} />
-                <MetaTag value={info.exercise.primary_muscle} />
-                <MetaTag value={info.exercise.movement_pattern} />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-              <ExerciseAssetImage
-                key={info.exercise.id ?? info.exercise.slug ?? info.iconSrc}
-                src={info.iconSrc}
-                alt="How-to visual"
-                className="w-full rounded-md border border-border"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-              <ExerciseAssetImage src={infoMusclesSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
-            </div>
-
-            <div className="flex justify-end">
-              <Link
-                href={`/exercises/${info.exercise.id}?returnTo=${encodeURIComponent(returnTo)}`}
-                className="inline-flex items-center rounded-md border border-border bg-surface-2-strong px-3 py-1 text-xs text-accent"
-              >
-                Open details
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {routineTargetConfig && selectedExercise ? (
         <div className="space-y-2 rounded-md border border-slate-200 p-3">
