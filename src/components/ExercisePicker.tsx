@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc, getExerciseIconSrc } from "@/lib/exerciseImages";
 
 type ExerciseOption = {
   id: string;
@@ -133,8 +133,6 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
 }
 
 export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig }: ExercisePickerProps) {
-  const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -169,6 +167,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [targetDuration, setTargetDuration] = useState("");
   const [targetDistance, setTargetDistance] = useState("");
   const [targetCalories, setTargetCalories] = useState("");
+  const [info, setInfo] = useState<{ exercise: ExerciseOption } | null>(null);
   const previousExerciseIdRef = useRef<string>(selectedId);
 
   useEffect(() => {
@@ -185,15 +184,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       }
     };
   }, []);
-
-  const buildReturnToHref = useCallback((exerciseId: string, nextScrollTop: number) => {
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.set("addExerciseOpen", "1");
-    nextParams.set("exerciseId", exerciseId);
-    nextParams.set("exerciseListScroll", String(nextScrollTop));
-    const query = nextParams.toString();
-    return query ? `${pathname}?${query}` : pathname;
-  }, [pathname, searchParams]);
 
   const persistScrollTop = (nextScrollTop: number) => {
     if (scrollPersistTimeoutRef.current) {
@@ -288,6 +278,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [availableTags, selectedTags]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
+  const infoMusclesSrc = "/exercises/placeholders/muscles.svg";
+  const infoHowToSrc = info ? getExerciseHowToImageSrc(info.exercise) : "/exercises/icons/_placeholder.svg";
+
   const resetMeasurementFields = useCallback(() => {
     setTargetRepsMin("");
     setTargetRepsMax("");
@@ -436,12 +429,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      const nextScrollTop = Math.round(scrollContainerRef.current?.scrollTop ?? scrollTopSnapshot);
-                      persistScrollTop(nextScrollTop);
-                      const returnTo = buildReturnToHref(exercise.id, nextScrollTop);
-                      router.push(`/exercises/${exercise.id}?returnTo=${encodeURIComponent(returnTo)}`);
-                    }}
+                    onClick={() => setInfo({ exercise })}
                     className="inline-flex min-h-10 items-center rounded-md border border-border bg-surface-2-strong px-3 py-1 text-xs text-accent"
                   >
                     Info
@@ -452,6 +440,41 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           })}        </ul>
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
       </div>
+
+      {info ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+          <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-surface p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base font-semibold text-text">Exercise info</h2>
+              <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-2 py-1 text-xs text-muted">Close</button>
+            </div>
+
+            <div>
+              <p className="text-base font-semibold text-text">{info.exercise.name}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                <MetaTag value={info.exercise.equipment} />
+                <MetaTag value={info.exercise.primary_muscle} />
+                <MetaTag value={info.exercise.movement_pattern} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+              <ExerciseAssetImage
+                key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
+                src={infoHowToSrc}
+                alt="How-to visual"
+                className="w-full rounded-md border border-border"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
+              <ExerciseAssetImage src={infoMusclesSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {routineTargetConfig && selectedExercise ? (
         <div className="space-y-2 rounded-md border border-slate-200 p-3">
