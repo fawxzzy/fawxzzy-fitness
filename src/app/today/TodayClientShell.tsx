@@ -70,7 +70,7 @@ export function TodayClientShell({
 
   if (!display) {
     return (
-      <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
+      <div className="space-y-3 px-1 py-2">
         <p className="text-sm text-muted">No active routine selected.</p>
         <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">
           Go to Routines
@@ -80,7 +80,7 @@ export function TodayClientShell({
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-surface/95 p-4">
+    <div className="space-y-3 px-1 py-2">
       <OfflineSyncBadge />
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-text">
@@ -97,15 +97,15 @@ export function TodayClientShell({
         </p>
       ) : null}
 
-      <ul className="space-y-1 text-sm">
+      <ul className="divide-y divide-border/70 overflow-hidden rounded-lg bg-surface/70 text-sm">
         {display.exercises.map((exercise) => (
-          <li key={exercise.id} className="flex items-center justify-between gap-3 rounded-md bg-surface-2-strong px-3 py-2 text-text">
+          <li key={exercise.id} className="flex items-center justify-between gap-3 px-3 py-2 text-text">
             <span className="truncate">{exercise.name}</span>
             {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
           </li>
         ))}
         {display.exercises.length === 0 ? (
-          <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li>
+          <li className="px-3 py-2 text-muted">No routine exercises planned today.</li>
         ) : null}
       </ul>
 

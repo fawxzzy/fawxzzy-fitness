@@ -1237,3 +1237,11 @@ WHAT:
 - Reduced nested boxed styling in the logger area and fixed the RPE tooltip/layout spacing so closed tooltip state no longer leaves awkward empty space.
 WHY:
 - Improves perceived quality and input speed during active workouts while reducing visual noise and preserving existing set-logging behavior.
+
+### Changed
+WHAT:
+- Polished Today and Resume Workout surfaces to reduce nested framing, clarify button hierarchy (primary Start/Resume with secondary Change/End), and simplify planned exercise row styling.
+- Updated Current Session flow so session time is a lightweight text row, exercise list rows are fully tappable with subtle chevrons, and focused exercise close affordance uses a lighter icon-style back control.
+- Refined Set logging UI hierarchy by keeping Save set as the dominant green action, lightening Modify metrics and logged-set row controls, and reducing extra visual borders.
+WHY:
+- Reduces visual clutter, improves scanability and navigation clarity, and emphasizes the most important actions during active workout logging.
