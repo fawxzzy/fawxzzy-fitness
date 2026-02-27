@@ -316,3 +316,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: A single deterministic naming contract avoids case-sensitivity regressions and duplicate asset drift while keeping lookup logic mapping-free.
 - Evidence: scripts/normalizeExerciseIcons.mjs, src/lib/exerciseImages.ts, public/exercises/icons
 - Status: Proposed
+
+## 2026-02-27 — Use explicit slug alias maps for asset filename exceptions
+- Type: Guardrail
+- Summary: Keep `/exercises/icons/<slug>.png` as the canonical path contract and isolate unavoidable filename mismatches in a tiny versioned slug-to-filename map checked by the shared resolver.
+- Suggested Playbook File: patterns/asset-contracts.md
+- Rationale: Deterministic aliases fix real-world mismatches without scattering one-off conditionals or changing the base URL contract.
+- Evidence: src/lib/exerciseIconMap.json, src/lib/exerciseImages.ts
+- Status: Proposed

@@ -16,7 +16,7 @@ export function ExerciseAssetImage({ src, alt, className, fallbackSrc = DEFAULT_
 
   useEffect(() => {
     setErrored(false);
-  }, [src]);
+  }, [src, fallbackSrc]);
 
   const resolvedSrc = errored ? fallbackSrc : src;
 
