@@ -1,0 +1,5 @@
+{
+  "bench-press": "barbell-bench-press",
+  "squat": "back-squat",
+  "row": "barbell-row"
+}

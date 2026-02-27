@@ -1,3 +1,5 @@
+import iconMap from "@/lib/exerciseIconMap.json";
+
 export type ExerciseImageSource = {
   slug?: string | null;
   name: string;
@@ -24,7 +26,12 @@ export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
 
   const sourceSlug = exercise.slug?.trim();
   if (sourceSlug) {
-    return `/exercises/icons/${slugifyExerciseName(sourceSlug)}.png`;
+    const mappedIconBase = iconMap[sourceSlug as keyof typeof iconMap];
+    if (mappedIconBase) {
+      return `/exercises/icons/${mappedIconBase}.png`;
+    }
+
+    return `/exercises/icons/${sourceSlug}.png`;
   }
 
   const nameSlug = slugifyExerciseName(exercise.name);
