@@ -2,6 +2,14 @@
 
 [Back to Index](./INDEX.md)
 
+## 2026-02-27 — Added media-fallback guardrail candidate to local inbox
+
+### WHAT
+- Appended a new Playbook Notes entry proposing a session-scoped cache for known-missing media URLs in shared image components, including rationale, evidence paths, and suggested canonical destination.
+
+### WHY
+- Capture this frontend reliability guardrail in the local doctrine inbox so it can be reviewed and upstreamed into canonical media fallback guidance without losing context.
+
 ## 2026-02-27 — Upstreamed local inbox notes into canonical pattern docs
 
 ### WHAT
@@ -63,4 +71,3 @@
 
 ### WHY
 - Preserve candidate doctrine in one auditable place before promotion into canonical playbook patterns/decisions, reducing loss of field learnings and easing periodic distillation.
-

@@ -267,3 +267,11 @@ Project-local inbox for candidate principles, guardrails, and patterns to be ups
 - Rationale: Per-pixel state updates can cause visible scroll jank in long interactive lists on mobile.
 - Evidence: src/components/ExercisePicker.tsx
 - Status: Proposed
+
+## 2026-02-27 — Cache known-missing media URLs per session in shared image components
+- Type: Guardrail
+- Summary: Shared image components should keep an in-memory set of failed source URLs and immediately render deterministic fallbacks for repeat references during the same session.
+- Suggested Playbook File: patterns/frontend/media-fallbacks.md
+- Rationale: Prevents repeated 404 request spam and unnecessary network churn when placeholder-backed asset catalogs are intentionally incomplete.
+- Evidence: src/components/ExerciseAssetImage.tsx, src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
