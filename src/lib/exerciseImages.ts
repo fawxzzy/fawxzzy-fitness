@@ -2,7 +2,6 @@ export type ExerciseImageSource = {
   slug?: string | null;
   name: string;
   image_icon_path?: string | null;
-  image_howto_path?: string | null;
 };
 
 function toPublicSrc(path: string): string {
@@ -34,6 +33,3 @@ export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
   return `/exercises/icons/${slugifyExerciseName(exercise.name)}.png`;
 }
 
-export function getExerciseHowToSrc(exercise: ExerciseImageSource): string {
-  return getExerciseIconSrc(exercise);
-}
