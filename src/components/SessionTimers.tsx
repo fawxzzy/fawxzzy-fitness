@@ -640,15 +640,15 @@ export function SetLoggerCard({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {/* Manual QA checklist:
           - Add/exercise metric hints are visible inside input boxes
           - No Set Timer UI remains; duration logging still works via mm:ss
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <details className="rounded-md border border-slate-200 bg-white px-2 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-slate-700">Modify Metrics</summary>
+      <details className="rounded-md border border-slate-200 bg-slate-50/70 px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-slate-600">Modify Metrics</summary>
         <div className="mt-2 flex flex-wrap gap-2">
           {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
             <button
@@ -658,7 +658,7 @@ export function SetLoggerCard({
                 setHasUserModifiedMetrics(true);
                 setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
               }}
-              className={`rounded-md border px-2 py-1 text-xs ${activeMetrics[metric] ? "border-accent bg-accent/10 text-accent-strong" : "border-slate-300 text-slate-600"}`}
+              className={`rounded-md border px-2.5 py-1.5 text-xs ${activeMetrics[metric] ? "border-accent bg-accent/10 text-accent-strong" : "border-slate-200 bg-white text-slate-600"}`}
             >
               {activeMetrics[metric] ? "Hide" : "Show"} {metric}
             </button>
@@ -666,7 +666,7 @@ export function SetLoggerCard({
         </div>
       </details>
 
-      <div className="flex flex-col rounded-md border border-slate-200 bg-slate-50 p-3">
+      <div className="flex flex-col rounded-md border border-slate-200 bg-white p-3">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
         <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
@@ -694,7 +694,7 @@ export function SetLoggerCard({
             <select
               value={selectedWeightUnit}
               onChange={(event) => setSelectedWeightUnit(event.target.value === "kg" ? "kg" : "lbs")}
-              className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+              className="rounded-md border border-slate-200 px-2 py-2 text-sm"
             >
               <option value="lbs">lbs</option>
               <option value="kg">kg</option>
@@ -725,7 +725,7 @@ export function SetLoggerCard({
             <select
               value={distanceUnit}
               onChange={(event) => setDistanceUnit(event.target.value as "mi" | "km" | "m")}
-              className="rounded-md border border-slate-300 px-2 py-2 text-sm"
+              className="rounded-md border border-slate-200 px-2 py-2 text-sm"
             >
               <option value="mi">mi</option>
               <option value="km">km</option>
@@ -745,11 +745,11 @@ export function SetLoggerCard({
           />
         </div>
 
-        <div className="col-span-2 grid grid-cols-[1fr_auto] items-end gap-3">
+        <div className="col-span-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-3">
           <div className="relative space-y-1">
             <div className="flex items-center gap-1">
-              <span className="text-[11px] font-medium text-slate-600">RPE (ⓘ)</span>
-              <button type="button" onClick={() => setShowRpeTooltip((value) => !value)} className="rounded-full border border-slate-300 px-1.5 py-0.5 text-[10px] text-slate-600">ⓘ</button>
+              <span className="text-[11px] font-medium text-slate-600">RPE</span>
+              <button type="button" onClick={() => setShowRpeTooltip((value) => !value)} className="rounded-full border border-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600">ⓘ</button>
             </div>
             {showRpeTooltip ? (
               <div className="absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-slate-200 bg-white p-2 text-[11px] text-slate-600 shadow-sm">
@@ -766,11 +766,16 @@ export function SetLoggerCard({
               value={rpe}
               onChange={(event) => setRpe(event.target.value)}
               placeholder="RPE"
-              className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+              className="w-full rounded-md border border-slate-200 px-2 py-2 text-sm"
             />
           </div>
-          <label className="flex items-center gap-2 pb-2 text-sm">
-            <input type="checkbox" checked={isWarmup} onChange={(event) => setIsWarmup(event.target.checked)} />
+          <label className="flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm sm:mb-0 sm:min-h-9 sm:border-0 sm:px-0">
+            <input
+              type="checkbox"
+              checked={isWarmup}
+              onChange={(event) => setIsWarmup(event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-accent focus:ring-accent"
+            />
             Warm-up
           </label>
         </div>
@@ -781,7 +786,7 @@ export function SetLoggerCard({
           type="button"
           onClick={handleLogSet}
           disabled={isSaveDisabled}
-          className={`mt-auto rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-60 ${tapFeedbackClass}`}
+          className={`mt-auto min-h-11 rounded-md bg-accent px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60 ${tapFeedbackClass}`}
         >
           Save set
         </button>
@@ -789,12 +794,12 @@ export function SetLoggerCard({
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      <ul className="space-y-1 text-sm">
+      <ul className="divide-y divide-slate-100 overflow-hidden rounded-md border border-slate-100 bg-white text-sm">
         {animatedSets.map((set, index) => (
           <li
             key={set.id}
             className={[
-              "rounded-md bg-slate-50 px-2 py-1",
+              "bg-white px-3 py-2",
               "origin-top transition-all duration-150 motion-reduce:transition-none",
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
@@ -817,7 +822,7 @@ export function SetLoggerCard({
             </div>
           </li>
         ))}
-        {sets.length === 0 ? <li className="text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
+        {sets.length === 0 ? <li className="px-3 py-2 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
       </ul>
     </div>
   );
