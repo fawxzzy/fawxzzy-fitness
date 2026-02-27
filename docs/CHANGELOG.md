@@ -1223,3 +1223,10 @@ WHAT:
 - Expanded image error-state reset behavior to also react when fallback sources change.
 WHY:
 - This prevents widespread icon 404s when exercise slugs and PNG filenames diverge while keeping the canonical `/exercises/icons/<slug>.png` contract and stable fallback behavior.
+
+### Changed
+WHAT:
+- Polished the SetLoggerCard logging surface with a flatter single-card layout, tighter input alignment for reps/weight/unit/RPE/warm-up, and a clearer primary Save set call-to-action.
+- Reduced nested boxed styling in the logger area and fixed the RPE tooltip/layout spacing so closed tooltip state no longer leaves awkward empty space.
+WHY:
+- Improves perceived quality and input speed during active workouts while reducing visual noise and preserving existing set-logging behavior.

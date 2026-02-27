@@ -666,130 +666,138 @@ export function SetLoggerCard({
         </div>
       </details>
 
-      <div className="flex flex-col rounded-md border border-slate-200 bg-white p-3">
+      <div className="rounded-xl border border-slate-200/80 bg-white p-3.5">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <InlineHintInput
-            type="number"
-            min={0}
-            value={reps}
-            onChange={(event) => {
-              setReps(event.target.value);
-            }}
-            hint="reps"
-          />
-        </div>
-
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.weight ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <div className="grid grid-cols-2 gap-2">
-            <InlineHintInput
-              type="number"
-              min={0}
-              step="0.5"
-              value={weight}
-              onChange={(event) => setWeight(event.target.value)}
-              hint={selectedWeightUnit}
-            />
-            <select
-              value={selectedWeightUnit}
-              onChange={(event) => setSelectedWeightUnit(event.target.value === "kg" ? "kg" : "lbs")}
-              className="rounded-md border border-slate-200 px-2 py-2 text-sm"
-            >
-              <option value="lbs">lbs</option>
-              <option value="kg">kg</option>
-            </select>
-          </div>
-        </div>
-
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.time ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <InlineHintInput
-            type="text"
-            inputMode="numeric"
-            value={durationInput}
-            onChange={(event) => setDurationInput(event.target.value)}
-            hint="mm:ss"
-          />
-        </div>
-
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.distance ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <div className="grid grid-cols-2 gap-2">
-            <InlineHintInput
-              type="number"
-              min={0}
-              step="0.01"
-              value={distance}
-              onChange={(event) => setDistance(event.target.value)}
-              hint={distanceUnit}
-            />
-            <select
-              value={distanceUnit}
-              onChange={(event) => setDistanceUnit(event.target.value as "mi" | "km" | "m")}
-              className="rounded-md border border-slate-200 px-2 py-2 text-sm"
-            >
-              <option value="mi">mi</option>
-              <option value="km">km</option>
-              <option value="m">m</option>
-            </select>
-          </div>
-        </div>
-
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.calories ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <InlineHintInput
-            type="number"
-            min={0}
-            step="1"
-            value={calories}
-            onChange={(event) => setCalories(event.target.value)}
-            hint="cal"
-          />
-        </div>
-
-        <div className="col-span-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-3">
-          <div className="relative space-y-1">
-            <div className="flex items-center gap-1">
-              <span className="text-[11px] font-medium text-slate-600">RPE</span>
-              <button type="button" onClick={() => setShowRpeTooltip((value) => !value)} className="rounded-full border border-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600">ⓘ</button>
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <InlineHintInput
+                type="number"
+                min={0}
+                value={reps}
+                onChange={(event) => {
+                  setReps(event.target.value);
+                }}
+                hint="reps"
+              />
             </div>
-            {showRpeTooltip ? (
-              <div className="absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-slate-200 bg-white p-2 text-[11px] text-slate-600 shadow-sm">
-                <p className="font-medium text-slate-700">RPE (1–10)</p>
-                <p>10 = max effort</p>
-                <p>8 = ~2 reps left</p>
-                <p>6 = moderate effort</p>
+
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.weight ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <InlineHintInput
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={weight}
+                  onChange={(event) => setWeight(event.target.value)}
+                  hint={selectedWeightUnit}
+                />
+                <select
+                  value={selectedWeightUnit}
+                  onChange={(event) => setSelectedWeightUnit(event.target.value === "kg" ? "kg" : "lbs")}
+                  className="min-h-11 rounded-md border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="lbs">lbs</option>
+                  <option value="kg">kg</option>
+                </select>
               </div>
-            ) : null}
-            <input
-              type="number"
-              min={0}
-              step="0.5"
-              value={rpe}
-              onChange={(event) => setRpe(event.target.value)}
-              placeholder="RPE"
-              className="w-full rounded-md border border-slate-200 px-2 py-2 text-sm"
-            />
-          </div>
-          <label className="flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-sm sm:mb-0 sm:min-h-9 sm:border-0 sm:px-0">
-            <input
-              type="checkbox"
-              checked={isWarmup}
-              onChange={(event) => setIsWarmup(event.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-accent focus:ring-accent"
-            />
-            Warm-up
-          </label>
-        </div>
+            </div>
+
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.time ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <InlineHintInput
+                type="text"
+                inputMode="numeric"
+                value={durationInput}
+                onChange={(event) => setDurationInput(event.target.value)}
+                hint="mm:ss"
+              />
+            </div>
+
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.distance ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <InlineHintInput
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={distance}
+                  onChange={(event) => setDistance(event.target.value)}
+                  hint={distanceUnit}
+                />
+                <select
+                  value={distanceUnit}
+                  onChange={(event) => setDistanceUnit(event.target.value as "mi" | "km" | "m")}
+                  className="min-h-11 rounded-md border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="mi">mi</option>
+                  <option value="km">km</option>
+                  <option value="m">m</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.calories ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <InlineHintInput
+                type="number"
+                min={0}
+                step="1"
+                value={calories}
+                onChange={(event) => setCalories(event.target.value)}
+                hint="cal"
+              />
+            </div>
+
+            <div className="col-span-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div className="relative">
+                <div className="mb-1 flex items-center gap-1">
+                  <span className="text-[11px] font-medium text-slate-600">RPE</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRpeTooltip((value) => !value)}
+                    className="rounded-full border border-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600"
+                  >
+                    ⓘ
+                  </button>
+                </div>
+                {showRpeTooltip ? (
+                  <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-slate-200 bg-white p-2 text-[11px] text-slate-600 shadow-sm">
+                    <p className="font-medium text-slate-700">RPE (1–10)</p>
+                    <p>10 = max effort</p>
+                    <p>8 = ~2 reps left</p>
+                    <p>6 = moderate effort</p>
+                  </div>
+                ) : null}
+                <input
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={rpe}
+                  onChange={(event) => setRpe(event.target.value)}
+                  placeholder="RPE"
+                  className="min-h-11 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                />
+              </div>
+              <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={isWarmup}
+                  onChange={(event) => setIsWarmup(event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-accent focus:ring-accent"
+                />
+                Warm-up
+              </label>
+            </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleLogSet}
-          disabled={isSaveDisabled}
-          className={`mt-auto min-h-11 rounded-md bg-accent px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60 ${tapFeedbackClass}`}
-        >
-          Save set
-        </button>
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <button
+            type="button"
+            onClick={handleLogSet}
+            disabled={isSaveDisabled}
+            className={`w-full min-h-11 rounded-lg bg-accent px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:border disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 ${tapFeedbackClass}`}
+          >
+            Save set
+          </button>
+        </div>
       </div>
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
