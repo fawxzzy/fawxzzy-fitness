@@ -1,3 +1,9 @@
+### Changed
+WHAT:
+- Improved exercise icon rendering to use a consistent placeholder fallback and an in-memory cache for missing icon URLs to prevent repeated 404 requests in the list and Info screen.
+WHY:
+- Many icons are intentionally not present yet; previously the UI repeatedly requested missing files, causing console spam and unnecessary network overhead. Caching missing URLs keeps behavior deterministic and improves UX/performance while we gradually add assets.
+
 ### Fixed
 WHAT:
 - Restored the Exercise Info button to open the dedicated route-based Exercise info screen instead of the inline modal/overlay in ExercisePicker.
