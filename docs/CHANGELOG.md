@@ -1093,3 +1093,9 @@ WHAT:
 WHY:
 - This allows exercises that already have icons to populate the How-to image slot automatically while preserving placeholder fallback for exercises without icons.
 
+
+### Fixed
+WHAT:
+- Updated the ExercisePicker Info modal so its How-to image always uses the same deterministic per-exercise icon source shown in the list thumbnail, and refreshes per selected exercise.
+WHY:
+- Prevents stale/sticky image rendering where the modal could incorrectly show the same How-to image across different exercise selections.
