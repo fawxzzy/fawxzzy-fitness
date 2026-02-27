@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Restored the Exercise Info button to open the dedicated route-based Exercise info screen instead of the inline modal/overlay in ExercisePicker.
+WHY:
+- A recent merge regressed the prior standalone screen flow, reducing clarity and breaking the intended navigation experience for viewing exercise details.
+
 ### Changed
 WHAT:
 - Normalized all exercise icon PNG filenames under `/public/exercises/icons/` to a single kebab-case contract, and deterministically resolved filename collisions so only one kebab-case icon remains per exercise name variant.
