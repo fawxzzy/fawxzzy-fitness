@@ -27,10 +27,15 @@ export function getAppButtonClassName({
           : "border-[rgb(var(--button-secondary-border))] bg-[rgb(var(--button-secondary-bg))] text-[rgb(var(--button-secondary-text))] hover:bg-[rgb(var(--button-secondary-bg-hover))] active:bg-[rgb(var(--button-secondary-bg-active))]";
 
   const sizeClassName = size === "sm" ? "app-button-sm" : "app-button-md";
+  const focusRingClassName =
+    resolvedVariant === "destructive"
+      ? "focus-visible:ring-red-500/35"
+      : "focus-visible:ring-[var(--button-focus-ring)]";
 
   return [
-    "app-button inline-flex items-center justify-center gap-2 border text-center leading-none [-webkit-tap-highlight-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60",
+    "app-button inline-flex items-center justify-center gap-2 border text-center leading-none [-webkit-tap-highlight-color:transparent] focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60",
     sizeClassName,
+    focusRingClassName,
     fullWidth ? "w-full" : "",
     variantClassName,
     className ?? "",

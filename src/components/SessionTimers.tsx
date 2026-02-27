@@ -149,6 +149,7 @@ export function SetLoggerCard({
   const [showRpeTooltip, setShowRpeTooltip] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
   const metricsPanelId = useId();
+
   const toast = useToast();
 
   const planContractSignature = `${sessionExerciseId}:${routineDayExerciseId ?? ""}:${planTargetsHash ?? ""}`;
@@ -654,13 +655,13 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <div className="overflow-hidden rounded-lg border border-white/10 bg-[rgb(15_23_42/0.45)]">
+      <div className="overflow-hidden rounded-lg border border-border/60 bg-[rgb(15_23_42/0.45)]">
         <button
           type="button"
           aria-expanded={isMetricsExpanded}
           aria-controls={metricsPanelId}
           onClick={() => setIsMetricsExpanded((current) => !current)}
-          className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-white/5 active:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${tapFeedbackClass}`}
+          className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-surface-2-soft/80 active:bg-surface-2-active/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 [-webkit-tap-highlight-color:transparent] ${tapFeedbackClass}`}
         >
           <span className="text-sm font-semibold text-[rgb(var(--text)/0.92)]">Modify measurements</span>
           <svg
@@ -671,7 +672,7 @@ export function SetLoggerCard({
             <path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <div id={metricsPanelId} hidden={!isMetricsExpanded} className="mt-0 flex flex-wrap gap-2 border-t border-white/10 bg-[rgb(15_23_42/0.38)] p-2.5">
+        <div id={metricsPanelId} hidden={!isMetricsExpanded} className="mt-0 flex flex-wrap gap-2 border-t border-border/60 bg-[rgb(15_23_42/0.38)] p-2.5">
           {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
             <button
               key={metric}
