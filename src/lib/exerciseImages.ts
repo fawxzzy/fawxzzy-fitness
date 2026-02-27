@@ -73,3 +73,7 @@ export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
 export function getExerciseHowToImageSrc(exercise: ExerciseImageSource): string {
   return getLocalImagePath(exercise.image_howto_path) ?? getExerciseIconSrc(exercise);
 }
+
+export function getExerciseMusclesImageSrc(imagePath?: string | null): string {
+  return getLocalImagePath(imagePath) ?? "/exercises/placeholders/muscles.svg";
+}

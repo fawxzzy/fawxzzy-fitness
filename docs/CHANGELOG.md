@@ -1,3 +1,10 @@
+### Changed
+WHAT:
+- Restored ExercisePicker’s Info action to open the full-screen Exercise Info experience (name/tags, how-to summary text, how-to image, muscles image, and muscle metadata) in-place instead of the placeholder-style overlay.
+- Standardized muscles-image resolution to use canonical safe fallback behavior so missing or invalid paths render placeholders cleanly.
+WHY:
+- This brings back the intended instructional details UX without route navigation and ensures media failures degrade gracefully without noisy missing-asset behavior.
+
 ### Fixed
 WHAT:
 - Restored ExercisePicker Info interactions to open the in-place Exercise info modal/overlay again instead of navigating to `/exercises/[exerciseId]` routes.

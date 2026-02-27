@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
-import { getExerciseHowToImageSrc, getExerciseIconSrc } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc, getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
 
 type ExerciseOption = {
   id: string;
@@ -18,6 +18,8 @@ type ExerciseOption = {
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
+  image_muscles_path?: string | null;
+  how_to_short?: string | null;
   image_icon_path?: string | null;
   slug?: string | null;
 } & {
@@ -278,8 +280,21 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [availableTags, selectedTags]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
-  const infoMusclesSrc = "/exercises/placeholders/muscles.svg";
-  const infoHowToSrc = info ? getExerciseHowToImageSrc(info.exercise) : "/exercises/icons/_placeholder.svg";
+  const infoDetails = useMemo(() => {
+    if (!info) {
+      return null;
+    }
+
+    const primaryMuscles = info.exercise.primary_muscle ? [info.exercise.primary_muscle] : [];
+    return {
+      ...info.exercise,
+      primary_muscles: primaryMuscles,
+      secondary_muscles: [] as string[],
+    };
+  }, [info]);
+
+  const infoHowToSrc = infoDetails ? getExerciseHowToImageSrc(infoDetails) : "/exercises/icons/_placeholder.svg";
+  const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
 
   const resetMeasurementFields = useCallback(() => {
     setTargetRepsMin("");
@@ -442,37 +457,48 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       </div>
 
       {info ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-          <div className="w-full max-w-md space-y-3 rounded-xl border border-border bg-surface p-4">
+        <div className="fixed inset-0 z-50 bg-[rgb(var(--bg))]">
+          <section className="flex h-full flex-col overflow-y-auto p-4">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-base font-semibold text-text">Exercise info</h2>
-              <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-2 py-1 text-xs text-muted">Close</button>
+              <h2 className="text-2xl font-semibold">Exercise info</h2>
+              <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted">Close</button>
             </div>
 
-            <div>
-              <p className="text-base font-semibold text-text">{info.exercise.name}</p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                <MetaTag value={info.exercise.equipment} />
-                <MetaTag value={info.exercise.primary_muscle} />
-                <MetaTag value={info.exercise.movement_pattern} />
+            <div className="mt-4 space-y-3 rounded-xl border border-border bg-surface p-4">
+              <div>
+                <p className="text-base font-semibold text-text">{info.exercise.name}</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <MetaTag value={info.exercise.equipment} />
+                  <MetaTag value={info.exercise.primary_muscle} />
+                  <MetaTag value={info.exercise.movement_pattern} />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-              <ExerciseAssetImage
-                key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
-                src={infoHowToSrc}
-                alt="How-to visual"
-                className="w-full rounded-md border border-border"
-              />
-            </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+                <ExerciseAssetImage
+                  key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
+                  src={infoHowToSrc}
+                  alt="How-to visual"
+                  className="w-full rounded-md border border-border"
+                />
+              </div>
 
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-              <ExerciseAssetImage src={infoMusclesSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
+                <ExerciseAssetImage src={infoMusclesSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
+              </div>
+
+              {infoDetails?.how_to_short ? <p className="text-sm text-text">{infoDetails.how_to_short}</p> : null}
+
+              {infoDetails && infoDetails.primary_muscles.length > 0 ? (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted">Primary muscles</p>
+                  <div className="mt-1 flex flex-wrap gap-1">{infoDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
+                </div>
+              ) : null}
             </div>
-          </div>
+          </section>
         </div>
       ) : null}
 
