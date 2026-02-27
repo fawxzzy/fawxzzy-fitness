@@ -51,6 +51,7 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 };
 
 const tagClassName = "rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
+const rowTagClassName = "rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-muted";
 
 function toTagArray(value: string[] | string | null | undefined) {
   if (!value) return [];
@@ -130,7 +131,7 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
     <ExerciseAssetImage
       src={iconSrc}
       alt={`${exercise.name} icon`}
-      className="h-8 w-8 rounded-md border border-border object-cover"
+      className="h-10 w-10 rounded-md border border-white/10 object-cover"
     />
   );
 }
@@ -442,30 +443,40 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <ul
           ref={scrollContainerRef}
           onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-          className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-slate-300/80 bg-[rgb(var(--bg)/0.25)] p-2 pr-1 [scrollbar-gutter:stable]"
+          className="max-h-52 overflow-y-auto rounded-lg border border-slate-300/80 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
         >
           {filteredExercises.map((exercise) => {
             const isSelected = exercise.id === selectedId;
             const iconSrc = getExerciseIconSrc(exercise);
 
             return (
-              <li key={exercise.id} className={`rounded-xl border p-2 ${isSelected ? "border-slate-200 bg-surface-2-soft" : "border-slate-300 bg-surface"}`}>
-                <div className="flex items-stretch gap-2">
-                  <ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />
-                  <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 rounded-md border border-border/50 bg-surface-2 px-2 py-1 text-left">
-                    <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
-                    <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>
-                      <MetaTag value={exercise.equipment} />
-                      <span className="hidden sm:inline-flex"><MetaTag value={exercise.primary_muscle} /></span>
-                      <MetaTag value={exercise.movement_pattern} />
-                    </div>
+              <li key={exercise.id} className="border-b border-white/10 last:border-b-0">
+                <div className={`flex min-h-11 items-center gap-2 px-3 py-2.5 ${isSelected ? "bg-white/5" : "bg-transparent"}`}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(exercise.id)}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  >
+                    <ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />
+                    <span className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
+                      <span className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-70"}`}>
+                        {exercise.equipment ? <span className={rowTagClassName}>{exercise.equipment}</span> : null}
+                        {exercise.primary_muscle ? <span className={`hidden sm:inline-flex ${rowTagClassName}`}>{exercise.primary_muscle}</span> : null}
+                        {exercise.movement_pattern ? <span className={rowTagClassName}>{exercise.movement_pattern}</span> : null}
+                      </span>
+                    </span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setInfo({ exercise })}
-                    className="inline-flex min-h-10 items-center rounded-md border border-border bg-surface-2-strong px-3 py-1 text-xs text-accent"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setInfo({ exercise });
+                    }}
+                    aria-label="Exercise info"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/5 text-sm text-muted transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                   >
-                    Info
+                    ⓘ
                   </button>
                 </div>
               </li>

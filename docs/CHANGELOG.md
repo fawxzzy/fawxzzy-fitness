@@ -1125,6 +1125,12 @@ WHY:
 
 ### Changed
 WHAT:
+- Refined the Add Exercise list rows to a denser, flatter list style and replaced the boxed Info action with a compact info icon button.
+WHY:
+- Reduces visual clunk and excess negative space so exercises are faster to scan and interact with on mobile during workouts.
+
+### Changed
+WHAT:
 - Simplified routine timezone selection in create/edit forms to a short, familiar set (Pacific, Mountain, Central, Eastern, UTC) while still accepting previously saved timezone values.
 - Added clearer helper copy for cycle length and start date so users understand that cycle days include rest days and that start date anchors Day 1.
 - Strengthened mobile input-focus behavior by enforcing non-scalable viewport defaults and resetting viewport constraints after form-field blur events.
