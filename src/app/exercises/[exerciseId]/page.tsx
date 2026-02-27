@@ -3,7 +3,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
-import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -28,7 +28,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path, image_muscles_path")
+    .select("id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_icon_path, image_howto_path, image_muscles_path")
     .eq("id", params.exerciseId)
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .maybeSingle();
@@ -45,7 +45,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
         primary_muscles: data.primary_muscle ? [data.primary_muscle] : [],
         secondary_muscles: [] as string[],
         slug: data.slug ?? null,
-        image_icon_path: null,
+        image_icon_path: data.image_icon_path ?? null,
         image_muscles_path: data.image_muscles_path ?? null,
       }
     : fallbackExercise
@@ -59,6 +59,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           movement_pattern: fallbackExercise.movement_pattern,
           equipment: fallbackExercise.equipment,
           image_icon_path: null,
+          image_path: null,
           image_howto_path: null,
           image_muscles_path: null,
         }
@@ -71,12 +72,14 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
   const primaryMuscles = (exercise.primary_muscles ?? []) as string[];
   const secondaryMuscles = (exercise.secondary_muscles ?? []) as string[];
-  const howToImageSrc = getExerciseHowToImageSrc({
+  const detailsExercise: ExerciseImageSource = {
     name: exercise.name,
     slug: exercise.slug,
+    image_path: "image_path" in exercise ? exercise.image_path ?? null : null,
     image_icon_path: exercise.image_icon_path,
     image_howto_path: exercise.image_howto_path,
-  });
+  };
+  const howToImageSrc = getExerciseHowToImageSrc(detailsExercise);
   const musclesImageSrc = exercise.image_muscles_path ?? "/exercises/placeholders/muscles.svg";
 
   return (
