@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Updated the exercise info route to resolve built-in exercise IDs from the app’s canonical fallback exercise catalog when a matching database row is unavailable.
+WHY:
+- Prevents false 404 pages when users tap the Exercise “Info” button for selectable catalog exercises that are present in the picker but missing from the current database dataset.
+
 ### Changed
 WHAT:
 - Updated exercise info visuals so the How-to image always reuses the same deterministic source as the exercise list thumbnail icon.
