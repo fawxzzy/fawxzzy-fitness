@@ -7,6 +7,49 @@ import { revalidateHistoryViews, revalidateSessionViews } from "@/lib/revalidati
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
+async function ensurePerformedIndex(payload: {
+  sessionId: string;
+  sessionExerciseId: string;
+  userId: string;
+  supabase: ReturnType<typeof supabaseServer>;
+}): Promise<void> {
+  const { sessionId, sessionExerciseId, userId, supabase } = payload;
+
+  const { data: exerciseRow, error: sessionExerciseError } = await supabase
+    .from("session_exercises")
+    .select("id, performed_index")
+    .eq("id", sessionExerciseId)
+    .eq("session_id", sessionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (sessionExerciseError || !exerciseRow || exerciseRow.performed_index !== null) {
+    return;
+  }
+
+  const { data: latestPerformedExercise } = await supabase
+    .from("session_exercises")
+    .select("performed_index")
+    .eq("session_id", sessionId)
+    .eq("user_id", userId)
+    .not("performed_index", "is", null)
+    .order("performed_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextPerformedIndex = typeof latestPerformedExercise?.performed_index === "number"
+    ? latestPerformedExercise.performed_index + 1
+    : 0;
+
+  await supabase
+    .from("session_exercises")
+    .update({ performed_index: nextPerformedIndex })
+    .eq("id", sessionExerciseId)
+    .eq("session_id", sessionId)
+    .eq("user_id", userId)
+    .is("performed_index", null);
+}
+
 export async function addSetAction(payload: {
   sessionId: string;
   sessionExerciseId: string;
@@ -66,6 +109,12 @@ export async function addSetAction(payload: {
       .maybeSingle();
 
     if (!existingByClientLogIdError && existingByClientLogId) {
+      await ensurePerformedIndex({
+        sessionId,
+        sessionExerciseId,
+        userId: user.id,
+        supabase,
+      });
       return { ok: true, data: { set: existingByClientLogId as SetRow } };
     }
   }
@@ -118,6 +167,12 @@ export async function addSetAction(payload: {
       .single();
 
     if (!error && insertedSet) {
+      await ensurePerformedIndex({
+        sessionId,
+        sessionExerciseId,
+        userId: user.id,
+        supabase,
+      });
       return { ok: true, data: { set: insertedSet as SetRow } };
     }
 
