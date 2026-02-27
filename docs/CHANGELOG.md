@@ -1,5 +1,12 @@
 ### Fixed
 WHAT:
+- Updated exercise info image resolution so the How-to panel first uses a dedicated `image_howto_path` and then falls back to the same icon image used on the exercise list card.
+- Updated exercise detail loading to include `image_icon_path` so list thumbnails and detail How-to visuals stay aligned for exercises with uploaded images.
+WHY:
+- Exercise detail cards were not reusing available exercise images, causing How-to panels to show placeholder art even when the list view had a valid image.
+
+### Fixed
+WHAT:
 - Restored the Exercise info muscles visual block so each exercise shows the muscles placeholder image when no dedicated muscles asset is available.
 WHY:
 - The muscles section was conditionally hidden when `image_muscles_path` was absent, which removed the expected placeholder UI and made the info card feel incomplete.
