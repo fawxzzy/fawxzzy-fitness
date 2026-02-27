@@ -3,7 +3,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
-import { getExerciseHowToSrc } from "@/lib/exerciseImages";
+import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -70,7 +70,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
   const primaryMuscles = (exercise.primary_muscles ?? []) as string[];
   const secondaryMuscles = (exercise.secondary_muscles ?? []) as string[];
-  const howToImageSrc = getExerciseHowToSrc({
+  const howToImageSrc = getExerciseIconSrc({
     name: exercise.name,
     slug: exercise.slug,
     image_icon_path: exercise.image_icon_path,
