@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Pill, PillButton } from "@/components/ui/Pill";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
+import { cn } from "@/lib/cn";
 import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
 
 type ExerciseOption = {
@@ -50,8 +54,8 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
   other: "Other",
 };
 
-const tagClassName = "rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
-const rowTagClassName = "rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-muted";
+const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
+const rowTagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-xs text-muted";
 
 function toTagArray(value: string[] | string | null | undefined) {
   if (!value) return [];
@@ -131,7 +135,7 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
     <ExerciseAssetImage
       src={iconSrc}
       alt={`${exercise.name} icon`}
-      className="h-10 w-10 rounded-md border border-white/10 object-cover"
+      className="h-10 w-10 rounded-md border border-border/40 object-cover"
     />
   );
 }
@@ -142,6 +146,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLUListElement | null>(null);
   const scrollPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -348,13 +353,13 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="relative">
-        <input
+        <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search exercises"
-          className="h-11 w-full rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 pr-9 text-sm text-[rgb(var(--text))] focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+          className="pr-9"
         />
         {search ? (
           <button
@@ -367,28 +372,30 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           </button>
         ) : null}
       </div>
-      <div className="space-y-2">
-        <button
+
+      <div className="space-y-1.5">
+        <Button
           type="button"
+          variant="secondary"
           onClick={() => setIsFiltersOpen((prev) => !prev)}
           aria-expanded={isFiltersOpen}
-          className="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-left transition-colors hover:border-accent/70"
+          className="w-full justify-between"
         >
-          <span className="text-sm font-medium text-[rgb(var(--text))]">Filter</span>
-          <span className="rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">
-            {isFiltersOpen ? "Close" : "Open"}
-          </span>
-        </button>
+          <span>Filters</span>
+          <Pill active={isFiltersOpen} className="text-[10px]">{isFiltersOpen ? "Open" : "Closed"}</Pill>
+        </Button>
+
+        <p className="text-xs text-muted">{selectedTags.length} selected · {selectedTags.length ? "Filtered" : "All"}</p>
 
         {isFiltersOpen ? (
           <div className="space-y-2">
-            <button
+            <PillButton
               type="button"
+              active={selectedTags.length === 0}
               onClick={() => setSelectedTags([])}
-              className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-slate-100 bg-surface-2-soft text-[rgb(var(--text))] shadow-[0_0_0_1px_rgba(255,255,255,0.55)]" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
             >
               All
-            </button>
+            </PillButton>
             {availableTagGroups.map((group) => (
               <div key={group.key} className="space-y-1">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{group.label}</p>
@@ -396,9 +403,10 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                   {group.tags.map((tag) => {
                     const isSelected = selectedTags.includes(tag.value);
                     return (
-                      <button
+                      <PillButton
                         key={tag.value}
                         type="button"
+                        active={isSelected}
                         onClick={() => {
                           setSelectedTags((prev) => {
                             if (prev.includes(tag.value)) {
@@ -408,22 +416,22 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                             return [...prev, tag.value];
                           });
                         }}
-                        className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-slate-100 bg-surface-2-soft text-[rgb(var(--text))] shadow-[0_0_0_1px_rgba(255,255,255,0.55)]" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
                       >
                         {tag.label}
-                      </button>
+                      </PillButton>
                     );
                   })}
                 </div>
               </div>
             ))}
+            <p className="text-xs text-muted">{selectedTagSummary}</p>
           </div>
         ) : null}
-
-        <p className="text-xs text-muted">{selectedTagSummary}</p>
       </div>
       <input type="hidden" name={name} value={selectedId} required />
-      <div className="min-h-11 rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))]">
+      <input type="hidden" name="exerciseListScroll" value={scrollTopSnapshot} />
+
+      <div className="min-h-11 rounded-md bg-[rgb(var(--bg)/0.45)] px-3 py-2 text-sm text-[rgb(var(--text))]">
         {selectedExercise ? (
           <div className="flex items-center justify-between gap-2">
             <span className="truncate font-medium">{selectedExercise.name}</span>
@@ -438,20 +446,19 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         )}
       </div>
 
-      <p className="text-xs text-muted">Scroll to see more exercises ↓</p>
       <div className="relative">
         <ul
           ref={scrollContainerRef}
           onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-          className="max-h-52 overflow-y-auto rounded-lg border border-slate-300/80 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
+          className="max-h-52 overflow-y-auto rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
         >
           {filteredExercises.map((exercise) => {
             const isSelected = exercise.id === selectedId;
             const iconSrc = getExerciseIconSrc(exercise);
 
             return (
-              <li key={exercise.id} className="border-b border-white/10 last:border-b-0">
-                <div className={`flex min-h-11 items-center gap-2 px-3 py-2.5 ${isSelected ? "bg-white/5" : "bg-transparent"}`}>
+              <li key={exercise.id} className="border-b border-border/40 last:border-b-0">
+                <div className={cn("flex min-h-12 items-center gap-2 px-3 py-2", isSelected ? "bg-surface-2-soft" : "bg-transparent hover:bg-surface-2-soft/60")}>
                   <button
                     type="button"
                     onClick={() => setSelectedId(exercise.id)}
@@ -460,29 +467,31 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                     <ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />
                     <span className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
-                      <span className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-70"}`}>
+                      <span className={cn("mt-1 flex flex-wrap gap-1", isSelected ? "" : "opacity-70")}>
                         {exercise.equipment ? <span className={rowTagClassName}>{exercise.equipment}</span> : null}
-                        {exercise.primary_muscle ? <span className={`hidden sm:inline-flex ${rowTagClassName}`}>{exercise.primary_muscle}</span> : null}
+                        {exercise.primary_muscle ? <span className={cn("hidden sm:inline-flex", rowTagClassName)}>{exercise.primary_muscle}</span> : null}
                         {exercise.movement_pattern ? <span className={rowTagClassName}>{exercise.movement_pattern}</span> : null}
                       </span>
                     </span>
                   </button>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={(event) => {
                       event.stopPropagation();
                       setInfo({ exercise });
                     }}
                     aria-label="Exercise info"
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/5 text-sm text-muted transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                    className="h-9 w-9 rounded-full px-0 text-base"
                   >
                     ⓘ
-                  </button>
+                  </Button>
                 </div>
               </li>
             );
-          })}        </ul>
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
+          })}
+        </ul>
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
       </div>
 
       {info && hasMounted
@@ -493,7 +502,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                   <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(env(safe-area-inset-top),0px)]">
                     <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
                       <h2 className="text-2xl font-semibold">Exercise info</h2>
-                      <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted">Close</button>
+                      <Button type="button" variant="ghost" onClick={() => setInfo(null)} className="h-8 px-2 text-xs">Close</Button>
                     </div>
                   </div>
 
@@ -543,12 +552,21 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         : null}
 
       {routineTargetConfig && selectedExercise ? (
-        <div className="space-y-2 rounded-md border border-slate-200 p-3">
-          <input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <div className="flex justify-end">
+        <div className="space-y-2 border-t border-border/50 pt-2">
+          <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
+
+          <div className="flex items-center justify-between">
             <button
               type="button"
-              className="text-xs font-medium text-slate-600 underline"
+              className="text-sm font-medium text-text"
+              onClick={() => setIsMeasurementsOpen((prev) => !prev)}
+            >
+              Measurements {isMeasurementsOpen ? "−" : "+"}
+            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-7 px-1 text-xs"
               onClick={() => {
                 const nextMeasurementType = selectedExercise ? getDefaultMeasurementType(selectedExercise) : "reps";
                 setSelectedMeasurements(nextMeasurementType === "time" ? ["time"] : ["reps", "weight"]);
@@ -557,63 +575,65 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
               }}
             >
               Reset measurements
-            </button>
+            </Button>
           </div>
-          <details className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-            <summary className="cursor-pointer text-sm font-medium">+ Add Measurement</summary>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-              {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
-                <label key={metric} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name="measurementSelections"
-                    value={metric}
-                    checked={selectedMeasurements.includes(metric)}
-                    onChange={(event) => {
-                      setSelectedMeasurements((current) => {
-                        if (event.target.checked) return [...current, metric];
-                        return current.filter((value) => value !== metric);
-                      });
-                    }}
-                  />
-                  {metric === "reps" ? "Reps" : metric === "weight" ? "Weight" : metric === "time" ? "Time (duration)" : metric === "distance" ? "Distance" : "Calories"}
-                </label>
-              ))}
+
+          {isMeasurementsOpen ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
+                  <label key={metric} className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.35)] px-2 py-1">
+                    <input
+                      type="checkbox"
+                      name="measurementSelections"
+                      value={metric}
+                      checked={selectedMeasurements.includes(metric)}
+                      onChange={(event) => {
+                        setSelectedMeasurements((current) => {
+                          if (event.target.checked) return [...current, metric];
+                          return current.filter((value) => value !== metric);
+                        });
+                      }}
+                    />
+                    {metric === "reps" ? "Reps" : metric === "weight" ? "Weight" : metric === "time" ? "Time (duration)" : metric === "distance" ? "Distance" : "Calories"}
+                  </label>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {selectedMeasurements.includes("reps") ? (
+                  <div className="col-span-2 grid grid-cols-2 gap-2">
+                    <InlineHintInput type="number" min={1} name="targetRepsMin" hint="min" value={targetRepsMin} onChange={(event) => setTargetRepsMin(event.target.value)} />
+                    <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
+                  </div>
+                ) : null}
+                {selectedMeasurements.includes("weight") ? (
+                  <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                    <InlineHintInput type="number" min={0} step="0.5" name="targetWeight" hint={routineTargetConfig.weightUnit} value={targetWeight} onChange={(event) => setTargetWeight(event.target.value)} />
+                    <select name="targetWeightUnit" value={targetWeightUnit} onChange={(event) => setTargetWeightUnit(event.target.value === "kg" ? "kg" : "lbs")} className="h-11 rounded-md border border-border bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm">
+                      <option value="lbs">lbs</option>
+                      <option value="kg">kg</option>
+                    </select>
+                  </div>
+                ) : null}
+                {selectedMeasurements.includes("time") ? (
+                  <InlineHintInput name="targetDuration" hint="mm:ss" value={targetDuration} onChange={(event) => setTargetDuration(event.target.value)} containerClassName="col-span-2" />
+                ) : null}
+                {selectedMeasurements.includes("distance") ? (
+                  <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                    <InlineHintInput type="number" min={0} step="0.01" name="targetDistance" hint={selectedDefaultUnit} value={targetDistance} onChange={(event) => setTargetDistance(event.target.value)} />
+                    <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="h-11 rounded-md border border-border bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm">
+                      <option value="mi">mi</option>
+                      <option value="km">km</option>
+                      <option value="m">m</option>
+                    </select>
+                  </div>
+                ) : null}
+                {selectedMeasurements.includes("calories") ? (
+                  <InlineHintInput type="number" min={0} step="1" name="targetCalories" hint="cal" value={targetCalories} onChange={(event) => setTargetCalories(event.target.value)} containerClassName="col-span-2" />
+                ) : null}
+              </div>
             </div>
-          </details>
-          <div className="grid grid-cols-2 gap-2">
-            {selectedMeasurements.includes("reps") ? (
-              <div className="col-span-2 grid grid-cols-2 gap-2">
-                <InlineHintInput type="number" min={1} name="targetRepsMin" hint="min" value={targetRepsMin} onChange={(event) => setTargetRepsMin(event.target.value)} />
-                <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
-              </div>
-            ) : null}
-            {selectedMeasurements.includes("weight") ? (
-              <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <InlineHintInput type="number" min={0} step="0.5" name="targetWeight" hint={routineTargetConfig.weightUnit} value={targetWeight} onChange={(event) => setTargetWeight(event.target.value)} />
-                <select name="targetWeightUnit" value={targetWeightUnit} onChange={(event) => setTargetWeightUnit(event.target.value === "kg" ? "kg" : "lbs")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                  <option value="lbs">lbs</option>
-                  <option value="kg">kg</option>
-                </select>
-              </div>
-            ) : null}
-            {selectedMeasurements.includes("time") ? (
-              <InlineHintInput name="targetDuration" hint="mm:ss" value={targetDuration} onChange={(event) => setTargetDuration(event.target.value)} containerClassName="col-span-2" />
-            ) : null}
-            {selectedMeasurements.includes("distance") ? (
-              <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <InlineHintInput type="number" min={0} step="0.01" name="targetDistance" hint={selectedDefaultUnit} value={targetDistance} onChange={(event) => setTargetDistance(event.target.value)} />
-                <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                  <option value="mi">mi</option>
-                  <option value="km">km</option>
-                  <option value="m">m</option>
-                </select>
-              </div>
-            ) : null}
-            {selectedMeasurements.includes("calories") ? (
-              <InlineHintInput type="number" min={0} step="1" name="targetCalories" hint="cal" value={targetCalories} onChange={(event) => setTargetCalories(event.target.value)} containerClassName="col-span-2" />
-            ) : null}
-          </div>
+          ) : null}
           <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
         </div>
       ) : null}
