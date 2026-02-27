@@ -35,9 +35,5 @@ export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
 }
 
 export function getExerciseHowToSrc(exercise: ExerciseImageSource): string {
-  if (exercise.image_howto_path && exercise.image_howto_path.trim()) {
-    return toPublicSrc(exercise.image_howto_path.trim());
-  }
-
   return getExerciseIconSrc(exercise);
 }
