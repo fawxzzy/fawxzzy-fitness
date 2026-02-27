@@ -202,21 +202,25 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="rounded-md bg-white p-3 shadow-sm">
+        <div className="rounded-md border border-slate-200 bg-white p-3 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5">
-              <p className="text-sm font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
+              <p className="text-base font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
               <p className="text-xs text-slate-500">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
-            <button type="button" onClick={() => setSelectedExerciseId(null)} className={`rounded-md border border-slate-300 px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Close</button>
+            <button type="button" onClick={() => setSelectedExerciseId(null)} className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Close</button>
           </div>
         </div>
       )}
 
       {selectedExercise ? (
-        <article ref={focusedRef} className="space-y-3 overflow-hidden rounded-md bg-white p-3 shadow-sm" aria-hidden={false}>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-base font-semibold">{selectedExercise.name}</p>
+        <article
+          ref={focusedRef}
+          className="space-y-4 overflow-hidden rounded-md border border-slate-200 bg-white p-4 pt-[max(env(safe-area-inset-top),1rem)] shadow-sm"
+          aria-hidden={false}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-lg font-semibold leading-tight text-slate-900">{selectedExercise.name}</p>
             <div className="flex gap-2">
               <form
                 action={async (formData) => {
@@ -234,7 +238,7 @@ export function SessionExerciseFocus({
                 <input type="hidden" name="sessionId" value={sessionId} />
                 <input type="hidden" name="sessionExerciseId" value={selectedExercise.id} />
                 <input type="hidden" name="nextSkipped" value={String(!selectedExercise.isSkipped)} />
-                <button type="submit" className={`rounded-md border border-slate-300 px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>
+                <button type="submit" className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>
                   {selectedExercise.isSkipped ? "Unskip" : "Skip"}
                 </button>
               </form>
@@ -269,7 +273,7 @@ export function SessionExerciseFocus({
                 <button
                   type="submit"
                   disabled={removingExerciseIds.includes(selectedExercise.id)}
-                  className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 ${tapFeedbackClass}`}
+                  className={`rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 ${tapFeedbackClass}`}
                 >
                   {removingExerciseIds.includes(selectedExercise.id) ? "Removing..." : "Remove"}
                 </button>
@@ -277,19 +281,21 @@ export function SessionExerciseFocus({
             </div>
           </div>
 
-          <p className="text-xs text-slate-500">Goal:</p>
-          {selectedExercise.goalStatLine ? (
-            <p className="-mt-1 flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
-              <span className="font-semibold text-slate-700 whitespace-nowrap">{selectedExercise.goalStatLine.primary || "Open"}</span>
-              {selectedExercise.goalStatLine.secondary.map((part) => (
-                <span key={part} className="whitespace-nowrap text-slate-500">
-                  • {part}
-                </span>
-              ))}
-            </p>
-          ) : (
-            <p className="-mt-1 text-sm text-slate-500">Open</p>
-          )}
+          <div className="space-y-1 border-t border-slate-100 pt-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Goal</p>
+            {selectedExercise.goalStatLine ? (
+              <p className="flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
+                <span className="font-semibold text-slate-700 whitespace-nowrap">{selectedExercise.goalStatLine.primary || "Open"}</span>
+                {selectedExercise.goalStatLine.secondary.map((part) => (
+                  <span key={part} className="whitespace-nowrap text-slate-500">
+                    • {part}
+                  </span>
+                ))}
+              </p>
+            ) : (
+              <p className="text-sm text-slate-500">Open</p>
+            )}
+          </div>
           {selectedExercise.isSkipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
 
           <SetLoggerCard
