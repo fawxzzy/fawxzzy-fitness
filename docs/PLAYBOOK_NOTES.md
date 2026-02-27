@@ -337,3 +337,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Deterministic aliases fix real-world mismatches without scattering one-off conditionals or changing the base URL contract.
 - Evidence: src/lib/exerciseIconMap.json, src/lib/exerciseImages.ts
 - Status: Upstreamed (Playbook commit/PR link)
+
+
+## 2026-02-27 — Treat exercise image path metadata as schema-owned contract at read boundaries
+- Type: Guardrail
+- Summary: Keep exercise image resolution deterministic with this read order: explicit DB path (if absolute local path) -> slug path (`/exercises/icons/<slug>.png`) -> normalized name slug path -> shared SVG placeholder, while ensuring detail/read queries include schema-owned image metadata fields (including `image_muscles_path`) instead of reconstructing/nulling them in UI code.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: Image metadata belongs to schema/data contracts, and read-path omissions create hidden divergence that breaks single-source-of-truth assumptions during expansion.
+- Evidence: src/lib/exerciseImages.ts, src/app/exercises/[exerciseId]/page.tsx, src/lib/exercises.ts, src/types/db.ts
+- Status: Local (not yet upstreamed)

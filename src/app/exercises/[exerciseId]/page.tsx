@@ -28,7 +28,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path")
+    .select("id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path, image_muscles_path")
     .eq("id", params.exerciseId)
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .maybeSingle();
@@ -46,7 +46,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
         secondary_muscles: [] as string[],
         slug: data.slug ?? null,
         image_icon_path: null,
-        image_muscles_path: null,
+        image_muscles_path: data.image_muscles_path ?? null,
       }
     : fallbackExercise
       ? {

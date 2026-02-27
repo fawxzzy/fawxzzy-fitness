@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Completed an architecture and data-model compliance audit for exercise image resolution (runtime order, schema invariants, file-structure contracts, and offline/PWA behavior) and documented deterministic follow-up guardrails.
+- Aligned exercise detail data loading with the existing exercises schema by reading `image_muscles_path` from the database path contract instead of forcing a null placeholder source in-app.
+WHY:
+- The image system is being expanded; we need a single audited contract before adding more assets or metadata paths.
+- Keeping detail rendering aligned to database metadata preserves single-source-of-truth behavior and avoids silent drift between schema intent and runtime resolution.
+
+### Changed
+WHAT:
 - Improved exercise icon rendering to use a consistent placeholder fallback and an in-memory cache for missing icon URLs to prevent repeated 404 requests in the list and Info screen.
 WHY:
 - Many icons are intentionally not present yet; previously the UI repeatedly requested missing files, causing console spam and unnecessary network overhead. Caching missing URLs keeps behavior deterministic and improves UX/performance while we gradually add assets.
