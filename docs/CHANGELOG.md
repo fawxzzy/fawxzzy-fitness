@@ -1,5 +1,13 @@
 ### Fixed
 WHAT:
+- Restored ExercisePicker Info interactions to open the in-place Exercise info modal/overlay again instead of navigating to `/exercises/[exerciseId]` routes.
+- Updated the restored Info modal to resolve How-to imagery through the canonical exercise image helper and render it with the shared safe image component.
+WHY:
+- Route-based Info navigation was causing production route-level 404s for picker flows and regressed the earlier in-place detail UX.
+- Using the canonical image resolver plus safe image fallback preserves prior detail behavior while preventing missing-image 404 noise.
+
+### Fixed
+WHAT:
 - Fixed Exercise Info image resolution to reuse the canonical manifest-aware helper and safe fallback behavior used by ExercisePicker thumbnails.
 WHY:
 - This restores a single source of truth for exercise image paths, prevents Info-view 404 requests from divergent path logic, and keeps thumbnail and Info imagery consistent.
