@@ -1,5 +1,13 @@
 # Playbook Notes (Local Inbox)
 
+## 2026-02-27 — Detail routes should tolerate catalog/data rollout mismatch
+- Type: Guardrail
+- Summary: When list UIs can render from canonical fallback catalogs, linked detail routes should resolve the same canonical record before returning 404.
+- Suggested Playbook File: patterns/frontend/mobile-interactions.md
+- Rationale: Prevents broken “details/info” navigation during partial seeds, cache lag, or environment drift where list and detail data sources briefly diverge.
+- Evidence: src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
+
 ## 2026-02-26 — Treat seeded placeholder media paths as missing at render time
 - Type: Guardrail
 - Summary: UI media rendering should validate seeded/path fields and treat known placeholder sentinel values (`placeholder`, `n/a`, `null`, `about:blank`, etc.) as absent so deterministic fallbacks can render.

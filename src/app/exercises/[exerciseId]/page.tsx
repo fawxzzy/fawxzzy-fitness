@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
+import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseHowToSrc } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -32,17 +33,44 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .maybeSingle();
 
-  if (error || !data) {
+  const fallbackExercise = EXERCISE_OPTIONS.find((exercise) => exercise.id === params.exerciseId);
+
+  if (error || (!data && !fallbackExercise)) {
     notFound();
   }
 
+  const exercise = data
+    ? {
+        ...data,
+        primary_muscles: data.primary_muscles ?? [],
+        secondary_muscles: data.secondary_muscles ?? [],
+      }
+    : fallbackExercise
+      ? {
+          id: fallbackExercise.id,
+          name: fallbackExercise.name,
+          slug: null,
+          how_to_short: fallbackExercise.how_to_short,
+          primary_muscles: fallbackExercise.primary_muscle ? [fallbackExercise.primary_muscle] : [],
+          secondary_muscles: [],
+          movement_pattern: fallbackExercise.movement_pattern,
+          equipment: fallbackExercise.equipment,
+          image_icon_path: null,
+          image_muscles_path: null,
+        }
+      : null;
+
   const returnHref = searchParams?.returnTo?.startsWith("/") ? searchParams.returnTo : undefined;
-  const primaryMuscles = (data.primary_muscles ?? []) as string[];
-  const secondaryMuscles = (data.secondary_muscles ?? []) as string[];
+  if (!exercise) {
+    notFound();
+  }
+
+  const primaryMuscles = (exercise.primary_muscles ?? []) as string[];
+  const secondaryMuscles = (exercise.secondary_muscles ?? []) as string[];
   const howToImageSrc = getExerciseHowToSrc({
-    name: data.name,
-    slug: data.slug,
-    image_icon_path: data.image_icon_path,
+    name: exercise.name,
+    slug: exercise.slug,
+    image_icon_path: exercise.image_icon_path,
   });
 
   return (
@@ -54,10 +82,10 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
       <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
         <div>
-          <p className="text-base font-semibold text-text">{data.name}</p>
+          <p className="text-base font-semibold text-text">{exercise.name}</p>
           <div className="mt-1 flex flex-wrap gap-1">
-            <MetaTag value={data.equipment} />
-            <MetaTag value={data.movement_pattern} />
+            <MetaTag value={exercise.equipment} />
+            <MetaTag value={exercise.movement_pattern} />
           </div>
         </div>
 
@@ -66,14 +94,14 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="w-full rounded-md border border-border" />
         </div>
 
-        {data.image_muscles_path ? (
+        {exercise.image_muscles_path ? (
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-            <ExerciseAssetImage src={data.image_muscles_path} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
+            <ExerciseAssetImage src={exercise.image_muscles_path} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
           </div>
         ) : null}
 
-        {data.how_to_short ? <p className="text-sm text-text">{data.how_to_short}</p> : null}
+        {exercise.how_to_short ? <p className="text-sm text-text">{exercise.how_to_short}</p> : null}
 
         {primaryMuscles.length > 0 ? (
           <div>
