@@ -647,9 +647,11 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <details className="rounded-md border border-slate-200 bg-slate-50/70 px-3 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-slate-600">Modify Metrics</summary>
-        <div className="mt-2 flex flex-wrap gap-2">
+      <details className="rounded-md bg-slate-50/50 px-2 py-1.5">
+        <summary className="cursor-pointer list-none text-sm font-medium text-slate-600 [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex rounded-md px-2 py-1 text-xs text-slate-600 hover:bg-slate-100">Modify metrics</span>
+        </summary>
+        <div className="mt-2 flex flex-wrap gap-2 rounded-md bg-white/70 p-2">
           {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
             <button
               key={metric}
@@ -666,7 +668,7 @@ export function SetLoggerCard({
         </div>
       </details>
 
-      <div className="rounded-xl border border-slate-200/80 bg-white p-3.5">
+      <div className="rounded-xl bg-white p-3">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
@@ -793,7 +795,7 @@ export function SetLoggerCard({
             type="button"
             onClick={handleLogSet}
             disabled={isSaveDisabled}
-            className={`w-full min-h-11 rounded-lg bg-accent px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:border disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 ${tapFeedbackClass}`}
+            className={`w-full min-h-11 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:border disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 ${tapFeedbackClass}`}
           >
             Save set
           </button>
@@ -823,9 +825,10 @@ export function SetLoggerCard({
                 onClick={() => {
                   void handleDeleteSet(set);
                 }}
-                className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+                aria-label="Remove set"
+                className={`rounded-md px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
               >
-                Remove
+                ✕
               </button>
             </div>
           </li>

@@ -156,7 +156,7 @@ export function SessionExerciseFocus({
   return (
     <div className="space-y-3">
       {selectedExerciseId === null ? (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg bg-white">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
@@ -166,13 +166,14 @@ export function SessionExerciseFocus({
                 key={exercise.id}
                 className={[
                   "origin-top transition-all duration-150 motion-reduce:transition-none",
-                  isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-40 scale-100 opacity-100",
+                  isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-32 scale-100 opacity-100",
                 ].join(" ")}
               >
                 <button
                   type="button"
+                  aria-label={`Open ${exercise.name}`}
                   onClick={() => setSelectedExerciseId(exercise.id)}
-                  className={`w-full rounded-md bg-white p-3 text-left shadow-sm transition-all duration-150 motion-reduce:transition-none ${tapFeedbackClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
+                  className={`w-full bg-transparent p-3 text-left transition-colors duration-150 motion-reduce:transition-none ${tapFeedbackClass} hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -181,7 +182,7 @@ export function SessionExerciseFocus({
                         {setCount} {exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}
                       </span>
                     </div>
-                    <span className={`rounded-md border border-slate-300 px-2 py-1 text-xs ${tapFeedbackClass}`}>Open</span>
+                    <span aria-hidden="true" className="text-slate-400">›</span>
                   </div>
                   {exercise.goalStatLine ? (
                     <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
@@ -202,13 +203,13 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="rounded-md bg-slate-50/80 p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5">
               <p className="text-base font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
               <p className="text-xs text-slate-500">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
-            <button type="button" onClick={() => setSelectedExerciseId(null)} className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Close</button>
+            <button type="button" aria-label="Close exercise" onClick={() => setSelectedExerciseId(null)} className={`rounded-md px-2 py-1 text-lg leading-none text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>‹</button>
           </div>
         </div>
       )}
@@ -216,7 +217,7 @@ export function SessionExerciseFocus({
       {selectedExercise ? (
         <article
           ref={focusedRef}
-          className="space-y-4 overflow-hidden rounded-md border border-slate-200 bg-white p-4 pt-[max(env(safe-area-inset-top),1rem)] shadow-sm"
+          className="space-y-4 overflow-hidden rounded-md bg-white p-4 pt-[max(env(safe-area-inset-top),1rem)] shadow-sm"
           aria-hidden={false}
         >
           <div className="flex items-start justify-between gap-2">
@@ -238,7 +239,7 @@ export function SessionExerciseFocus({
                 <input type="hidden" name="sessionId" value={sessionId} />
                 <input type="hidden" name="sessionExerciseId" value={selectedExercise.id} />
                 <input type="hidden" name="nextSkipped" value={String(!selectedExercise.isSkipped)} />
-                <button type="submit" className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>
+                <button type="submit" className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>
                   {selectedExercise.isSkipped ? "Unskip" : "Skip"}
                 </button>
               </form>
@@ -273,7 +274,7 @@ export function SessionExerciseFocus({
                 <button
                   type="submit"
                   disabled={removingExerciseIds.includes(selectedExercise.id)}
-                  className={`rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 ${tapFeedbackClass}`}
+                  className={`rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 ${tapFeedbackClass}`}
                 >
                   {removingExerciseIds.includes(selectedExercise.id) ? "Removing..." : "Remove"}
                 </button>

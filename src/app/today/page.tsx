@@ -5,8 +5,6 @@ import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
-import { Glass } from "@/components/ui/Glass";
-import { DestructiveButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
@@ -361,7 +359,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       <AppNav />
 
       {todayPayload.routine && !fetchFailed ? (
-        <Glass variant="base" className="space-y-3 p-4" interactive={false}>
+        <div className="space-y-4 px-1">
           <OfflineSyncBadge />
         {todayPayload.inProgressSessionId ? (
             <div className="space-y-2">
@@ -370,20 +368,29 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
               </div>
 
-              <ul className="space-y-1 text-sm">
+              <ul className="divide-y divide-border/70 overflow-hidden rounded-lg bg-surface/70 text-sm">
                 {todayPayload.exercises.map((exercise) => (
-                  <li key={exercise.id} className="flex items-center justify-between gap-3 rounded-md bg-surface-2-strong px-3 py-2 text-text">
+                  <li key={exercise.id} className="flex items-center justify-between gap-3 px-3 py-2 text-text">
                     <span className="truncate">{exercise.name}</span>
                     {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
                   </li>
                 ))}
-                {todayPayload.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
+                {todayPayload.exercises.length === 0 ? <li className="px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
               </ul>
 
               <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>Resume Workout</Link>
               <form action={discardInProgressSessionAction}>
                 <input type="hidden" name="sessionId" value={todayPayload.inProgressSessionId} />
-                <DestructiveButton type="submit" fullWidth>End Workout</DestructiveButton>
+                <button
+                  type="submit"
+                  className={getAppButtonClassName({
+                    variant: "ghost",
+                    fullWidth: true,
+                    className: "border-red-300 text-red-700 hover:border-red-400 hover:bg-red-50/80",
+                  })}
+                >
+                  End Workout
+                </button>
               </form>
             </div>
           ) : (
@@ -409,7 +416,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               startSessionAction={startSessionAction}
             />
           )}
-        </Glass>
+        </div>
       ) : (
         <TodayClientShell payload={todayPayload} fetchFailed={fetchFailed} />
       )}

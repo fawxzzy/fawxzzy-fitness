@@ -51,10 +51,10 @@ export function SessionAddExerciseForm({
           router.refresh();
         }
       }}
-      className="space-y-2"
+      className="space-y-3"
     >
       <input type="hidden" name="sessionId" value={sessionId} />
-      <Card className="space-y-3">
+      <Card className="space-y-3 border-slate-200/70">
         <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} />
         <Button type="submit" variant="primary" className="w-full">Add Exercise</Button>
       </Card>
