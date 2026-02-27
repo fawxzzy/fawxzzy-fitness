@@ -10,27 +10,25 @@ type ExerciseAssetImageProps = {
 };
 
 const DEFAULT_FALLBACK_SRC = "/exercises/icons/_placeholder.svg";
+// Session-scoped cache prevents repeated network retries for known-missing icon URLs.
 const missingSrcCache = new Set<string>();
 
 export function ExerciseAssetImage({ src, alt, className, fallbackSrc = DEFAULT_FALLBACK_SRC }: ExerciseAssetImageProps) {
-  const [errored, setErrored] = useState(false);
+  const [renderSrc, setRenderSrc] = useState(() => (missingSrcCache.has(src) && src !== fallbackSrc ? fallbackSrc : src));
 
   useEffect(() => {
-    setErrored(false);
-  }, [src]);
-
-  const shouldUseFallback = errored || missingSrcCache.has(src);
-  const resolvedSrc = shouldUseFallback ? fallbackSrc : src;
+    setRenderSrc(missingSrcCache.has(src) && src !== fallbackSrc ? fallbackSrc : src);
+  }, [src, fallbackSrc]);
 
   return (
     <img
-      src={resolvedSrc}
+      src={renderSrc}
       alt={alt}
       className={className}
       onError={() => {
-        if (src !== fallbackSrc) {
+        if (renderSrc !== fallbackSrc && src !== fallbackSrc) {
           missingSrcCache.add(src);
-          setErrored(true);
+          setRenderSrc(fallbackSrc);
         }
       }}
     />

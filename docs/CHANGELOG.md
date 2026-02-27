@@ -1,5 +1,6 @@
 ### Changed
 WHAT:
+- Stabilized exercise icon rendering with deterministic placeholder fallback and missing-src memoization so missing icon URLs are attempted once per browser session in both list thumbnails and Exercise Info how-to visuals.
 - Completed an architecture and data-model compliance audit for exercise image resolution (runtime order, schema invariants, file-structure contracts, and offline/PWA behavior) and documented deterministic follow-up guardrails.
 - Aligned exercise detail data loading with the existing exercises schema by reading `image_muscles_path` from the database path contract instead of forcing a null placeholder source in-app.
 WHY:
@@ -10,7 +11,7 @@ WHY:
 WHAT:
 - Improved exercise icon rendering to use a consistent placeholder fallback and an in-memory cache for missing icon URLs to prevent repeated 404 requests in the list and Info screen.
 WHY:
-- Many icons are intentionally not present yet; previously the UI repeatedly requested missing files, causing console spam and unnecessary network overhead. Caching missing URLs keeps behavior deterministic and improves UX/performance while we gradually add assets.
+- Many icons are intentionally missing during asset rollout; previously the UI could repeatedly request missing files and trigger noisy error stacks, harming UX and performance.
 
 ### Fixed
 WHAT:
