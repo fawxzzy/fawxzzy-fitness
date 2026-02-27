@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-02-27 — Cache known-missing media URLs per session in shared image components
+- Type: Guardrail
+- Summary: Shared image components should keep an in-memory set of failed source URLs and immediately render deterministic fallbacks for repeat references during the same session.
+- Suggested Playbook File: patterns/frontend/media-fallbacks.md
+- Rationale: Prevents repeated 404 request spam and unnecessary network churn when placeholder-backed asset catalogs are intentionally incomplete.
+- Evidence: src/components/ExerciseAssetImage.tsx, src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
+
 # Playbook Notes (Local Inbox)
 
 ## UPSTREAMED (keep for traceability)
