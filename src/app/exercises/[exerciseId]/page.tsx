@@ -3,7 +3,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
-import { getExerciseHowToImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc, getExerciseMusclesImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -80,7 +80,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
     image_howto_path: exercise.image_howto_path,
   };
   const howToImageSrc = getExerciseHowToImageSrc(detailsExercise);
-  const musclesImageSrc = exercise.image_muscles_path ?? "/exercises/placeholders/muscles.svg";
+  const musclesImageSrc = getExerciseMusclesImageSrc(exercise.image_muscles_path);
 
   return (
     <section className="space-y-4">
