@@ -308,3 +308,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Planned targets should shape default logging ergonomics while preserving flexible, resilient online/offline session capture.
 - Evidence: src/app/session/[id]/queries.ts, src/app/session/[id]/page.tsx, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx
 - Status: Proposed
+
+## 2026-02-27 — Enforce kebab-case static asset contracts for exercise icon lookup
+- Type: Guardrail
+- Summary: Keep static exercise icon filenames normalized to kebab-case and resolve runtime icon paths from the same slugification rules (slug-first, name fallback) with only tiny explicit aliases for true naming exceptions.
+- Suggested Playbook File: patterns/asset-contracts.md
+- Rationale: A single deterministic naming contract avoids case-sensitivity regressions and duplicate asset drift while keeping lookup logic mapping-free.
+- Evidence: scripts/normalizeExerciseIcons.mjs, src/lib/exerciseImages.ts, public/exercises/icons
+- Status: Proposed

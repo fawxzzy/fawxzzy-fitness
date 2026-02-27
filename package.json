@@ -10,7 +10,8 @@
     "prebuild": "node scripts/generate-icons.mjs",
     "dev:assets": "node scripts/generate-icons.mjs",
     "sync:exercise-icons": "node scripts/syncExerciseIcons.mjs",
-    "sync:assets": "npm run sync:exercise-icons"
+    "sync:assets": "npm run sync:exercise-icons",
+    "icons:normalize": "node scripts/normalizeExerciseIcons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
