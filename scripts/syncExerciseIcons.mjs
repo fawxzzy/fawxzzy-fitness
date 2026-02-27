@@ -5,6 +5,7 @@ const rootDir = process.cwd();
 const sourceDir = path.join(rootDir, "exerciseIcons");
 const destDir = path.join(rootDir, "public", "exercises", "icons");
 
+// Sync strategy: skip when destination already exists (never overwrite existing icons).
 function toKebabCase(input) {
   return input
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
@@ -16,12 +17,32 @@ function toKebabCase(input) {
     .toLowerCase();
 }
 
+async function findPngFiles(dir) {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const nested = await findPngFiles(fullPath);
+      files.push(...nested);
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.toLowerCase().endsWith(".png")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
 async function main() {
   await fs.mkdir(destDir, { recursive: true });
 
-  let entries;
+  let pngFiles;
   try {
-    entries = await fs.readdir(sourceDir, { withFileTypes: true });
+    pngFiles = await findPngFiles(sourceDir);
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       console.log("No exerciseIcons/ directory found. Nothing to sync.");
@@ -30,27 +51,26 @@ async function main() {
     throw error;
   }
 
-  const pngFiles = entries.filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".png"));
-
   let added = 0;
   let skipped = 0;
   let renamed = 0;
+  let errors = 0;
 
-  for (const file of pngFiles) {
-    const parsed = path.parse(file.name);
+  for (const sourcePath of pngFiles) {
+    const sourceFilename = path.basename(sourcePath);
+    const parsed = path.parse(sourceFilename);
     const normalizedBaseName = toKebabCase(parsed.name);
 
     if (!normalizedBaseName) {
       skipped += 1;
-      console.log(`skip: ${file.name} (empty normalized filename)`);
+      console.log(`skipped: ${sourceFilename} (empty normalized filename)`);
       continue;
     }
 
     const targetFilename = `${normalizedBaseName}.png`;
-    const sourcePath = path.join(sourceDir, file.name);
     const targetPath = path.join(destDir, targetFilename);
 
-    if (file.name !== targetFilename) {
+    if (sourceFilename !== targetFilename) {
       renamed += 1;
     }
 
@@ -64,20 +84,29 @@ async function main() {
 
     if (targetExists) {
       skipped += 1;
-      console.log(`skip: ${file.name} -> ${targetFilename} (already exists)`);
+      console.log(`skipped: ${sourceFilename} -> ${targetFilename} (already exists)`);
       continue;
     }
 
-    await fs.copyFile(sourcePath, targetPath);
-    added += 1;
-    if (file.name === targetFilename) {
-      console.log(`add: ${targetFilename}`);
-    } else {
-      console.log(`add: ${file.name} -> ${targetFilename}`);
+    try {
+      await fs.copyFile(sourcePath, targetPath);
+      added += 1;
+      if (sourceFilename === targetFilename) {
+        console.log(`added: ${targetFilename}`);
+      } else {
+        console.log(`added: ${sourceFilename} -> ${targetFilename}`);
+      }
+    } catch (error) {
+      errors += 1;
+      console.error(`error: ${sourceFilename} -> ${targetFilename}`, error);
     }
   }
 
-  console.log(`summary: added=${added} skipped=${skipped} renamed=${renamed}`);
+  console.log(`summary: added=${added} skipped=${skipped} renamed=${renamed} errors=${errors}`);
+
+  if (errors > 0) {
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {

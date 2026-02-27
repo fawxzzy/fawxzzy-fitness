@@ -1049,3 +1049,9 @@ WHAT:
 - Updated the exercise picker list and exercise info how-to visual to use derived static icon paths and a safe placeholder instead of broken images.
 WHY:
 - This gives the app consistent exercise visuals without manual one-off icon mapping and keeps asset resolution deterministic using static `/public` paths.
+
+### Changed
+WHAT:
+- Added an icon sync workflow and npm commands to import and normalize new PNG exercise icons from `exerciseIcons/` into `/public/exercises/icons/` using deterministic kebab-case filenames.
+WHY:
+- Eliminates manual icon moving/renaming, preserves the static `/exercises/icons/<slug>.png` asset contract, and speeds up adding new exercise icons.
