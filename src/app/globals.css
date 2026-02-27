@@ -194,6 +194,10 @@ button,
   transform: scale(var(--button-press-scale));
 }
 
+.app-button:focus-visible {
+  box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-button {
     transition: background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);

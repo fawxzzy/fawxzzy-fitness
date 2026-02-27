@@ -386,6 +386,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   className={getAppButtonClassName({
                     variant: "destructive",
                     fullWidth: true,
+                    className: "active:border-red-900/90 active:bg-[rgb(92_24_35)] focus-visible:ring-red-500/35",
                   })}
                 >
                   End Workout

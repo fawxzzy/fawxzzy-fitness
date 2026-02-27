@@ -1271,3 +1271,12 @@ WHY:
 - Improves visual cohesion and scanability across routine management, removes harsh light-state styling in a dark UI, and makes expandable areas more obvious and predictable.
 - Prevents confusing empty/missing-image presentation in Exercise Info while keeping the experience robust when icon assets are unavailable.
 
+
+### Changed
+WHAT:
+- Updated Current Session logging polish so "Modify measurements" in set logging starts collapsed per exercise and now uses a clear rotating chevron disclosure affordance.
+- Replaced light/slate-focused exercise header surfaces and text accents with consistent dark glass-safe styling in the Today + Current Session focus flow.
+- Tuned destructive End Workout interaction styling to remove light flash behavior and keep pressed/focus feedback intentionally dark/red.
+- Normalized the embedded Add exercises panel styling in Current Session (layout framing, borders, spacing, collapsible measurement header affordances, and section consistency).
+WHY:
+- This improves visual cohesion and tap clarity across workout flows, removes harsh light-state regressions in the dark theme, and makes collapsible controls more predictable and readable on mobile.

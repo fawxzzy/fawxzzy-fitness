@@ -186,29 +186,29 @@ export function SessionExerciseFocus({
                     <span aria-hidden="true" className="text-muted">›</span>
                   </div>
                   {exercise.goalStatLine ? (
-                    <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
-                      <span className="font-semibold text-slate-700 whitespace-nowrap">{exercise.goalStatLine.primary || "Open"}</span>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-muted">
+                      <span className="whitespace-nowrap font-semibold text-text">{exercise.goalStatLine.primary || "Open"}</span>
                       {exercise.goalStatLine.secondary.map((part) => (
-                        <span key={part} className="whitespace-nowrap text-slate-500">
+                        <span key={part} className="whitespace-nowrap text-muted">
                           • {part}
                         </span>
                       ))}
                     </p>
                   ) : (
-                    <p className="mt-1 text-xs text-slate-500">Goal: Open</p>
+                    <p className="mt-1 text-xs text-muted">Goal: Open</p>
                   )}
-                  {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-700">Skipped</p> : null}
+                  {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-300">Skipped</p> : null}
                 </button>
               </li>
             );
           })}
         </ul>
       ) : (
-        <div className="rounded-md border border-border/70 bg-surface/70 p-2">
+        <div className="glass-surface glass-sheen rounded-md p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5">
               <p className="text-base font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
-              <p className="text-xs text-slate-500">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
+              <p className="text-xs text-muted">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
             <button type="button" aria-label="Close exercise" onClick={() => setSelectedExerciseId(null)} className={`rounded-md px-2 py-1 text-lg leading-none text-muted hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>‹</button>
           </div>
@@ -222,7 +222,7 @@ export function SessionExerciseFocus({
           aria-hidden={false}
         >
           <div className="flex items-start justify-between gap-2">
-            <p className="text-lg font-semibold leading-tight text-slate-900">{selectedExercise.name}</p>
+            <p className="text-lg font-semibold leading-tight text-text">{selectedExercise.name}</p>
             <div className="flex gap-2">
               <form
                 action={async (formData) => {
@@ -285,22 +285,22 @@ export function SessionExerciseFocus({
             </div>
           </div>
 
-          <div className="space-y-1 border-t border-slate-100 pt-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Goal</p>
+          <div className="space-y-1 border-t border-border/60 pt-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">Goal</p>
             {selectedExercise.goalStatLine ? (
-              <p className="flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
-                <span className="font-semibold text-slate-700 whitespace-nowrap">{selectedExercise.goalStatLine.primary || "Open"}</span>
+              <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted">
+                <span className="whitespace-nowrap font-semibold text-text">{selectedExercise.goalStatLine.primary || "Open"}</span>
                 {selectedExercise.goalStatLine.secondary.map((part) => (
-                  <span key={part} className="whitespace-nowrap text-slate-500">
+                  <span key={part} className="whitespace-nowrap text-muted">
                     • {part}
                   </span>
                 ))}
               </p>
             ) : (
-              <p className="text-sm text-slate-500">Open</p>
+              <p className="text-sm text-muted">Open</p>
             )}
           </div>
-          {selectedExercise.isSkipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
+          {selectedExercise.isSkipped ? <p className="text-sm text-amber-300">Marked skipped for this session.</p> : null}
 
           <SetLoggerCard
             sessionId={sessionId}
