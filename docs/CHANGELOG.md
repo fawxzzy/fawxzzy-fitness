@@ -1,4 +1,10 @@
 ### Fixed
+WHAT:
+- Corrected the exercise info detail query to use the current exercises schema fields so tapping **Info** opens the exercise detail page instead of returning a 404.
+WHY:
+- The detail route was selecting metadata columns that are not present in the current database shape, which caused query errors and forced a not-found response for valid exercises.
+
+### Fixed
 
 ### Changed
 WHAT:
