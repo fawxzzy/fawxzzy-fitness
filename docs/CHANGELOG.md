@@ -1114,3 +1114,9 @@ WHAT:
 - Updated the ExercisePicker Info modal so its How-to image always uses the same deterministic per-exercise icon source shown in the list thumbnail, and refreshes per selected exercise.
 WHY:
 - Prevents stale/sticky image rendering where the modal could incorrectly show the same How-to image across different exercise selections.
+
+### Fixed
+WHAT:
+- Unified exercise icon URL resolution to the canonical `/exercises/icons/<slug>.png` path and updated icon rendering to use the shared resolver with consistent fallback behavior.
+WHY:
+- A path contract mismatch was causing widespread icon 404s and unnecessary placeholder rendering; standardizing resolver behavior prevents broken images and reduces regression risk.

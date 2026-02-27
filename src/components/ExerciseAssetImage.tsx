@@ -12,11 +12,13 @@ type ExerciseAssetImageProps = {
 const DEFAULT_FALLBACK_SRC = "/exercises/icons/_placeholder.svg";
 
 export function ExerciseAssetImage({ src, alt, className, fallbackSrc = DEFAULT_FALLBACK_SRC }: ExerciseAssetImageProps) {
-  const [resolvedSrc, setResolvedSrc] = useState(src);
+  const [errored, setErrored] = useState(false);
 
   useEffect(() => {
-    setResolvedSrc(src);
+    setErrored(false);
   }, [src]);
+
+  const resolvedSrc = errored ? fallbackSrc : src;
 
   return (
     <img
@@ -25,7 +27,7 @@ export function ExerciseAssetImage({ src, alt, className, fallbackSrc = DEFAULT_
       className={className}
       onError={() => {
         if (resolvedSrc !== fallbackSrc) {
-          setResolvedSrc(fallbackSrc);
+          setErrored(true);
         }
       }}
     />
