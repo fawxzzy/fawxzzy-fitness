@@ -24,6 +24,8 @@
 - [UI/Controller Separation](./PATTERNS/ui-controller-separation.md)
 - [Server/Client Boundaries](./PATTERNS/server-client-boundaries.md)
 - [Timezone Determinism](./PATTERNS/timezone-determinism.md)
+- [Mobile Interactions, List Shells, and Navigation Performance](./PATTERNS/mobile-interactions-and-navigation.md)
+- [Theming and Dark-Mode Guardrails](./PATTERNS/theming-dark-mode.md)
 - [Cache and Revalidation](./PATTERNS/cache-and-revalidation.md)
 
 ## Checklists

@@ -2,6 +2,17 @@
 
 [Back to Index](./INDEX.md)
 
+## 2026-02-27 — Upstreamed local inbox notes into canonical pattern docs
+
+### WHAT
+- Added `docs/PATTERNS/mobile-interactions-and-navigation.md` to consolidate reusable mobile interaction, list-shell, history-audit, action-feedback, and navigation-performance guardrails.
+- Added `docs/PATTERNS/theming-dark-mode.md` for dark-theme surface/token/glass guardrails and merged-branch visual verification guidance.
+- Expanded existing patterns (`server-client-boundaries`, `offline-first-sync`, `resilient-client-state`, `versioned-persistence`, `timezone-determinism`) with actionable sections derived from proposed local notes, including Problem → Guideline → Example → Pitfalls where applicable.
+- Updated `docs/INDEX.md` to link new pattern docs.
+
+### WHY
+- Convert project-local lessons into reusable central doctrine with minimal, actionable guidance and stronger cross-links between offline sync, idempotency, server action contracts, and timezone determinism.
+
 ## 2026-02-22 — Governance + Resilience Doctrine Patch
 
 ### WHAT
