@@ -187,6 +187,17 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     };
   }, []);
 
+  useEffect(() => {
+    if (!info) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [info]);
+
   const persistScrollTop = (nextScrollTop: number) => {
     if (scrollPersistTimeoutRef.current) {
       clearTimeout(scrollPersistTimeoutRef.current);
@@ -457,15 +468,17 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       </div>
 
       {info ? (
-        <div className="fixed inset-0 z-50 h-[100dvh] bg-[rgb(var(--bg))]">
-          <section className="flex h-[100dvh] flex-col">
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-[rgb(var(--bg))] px-4 py-3">
-              <h2 className="text-2xl font-semibold">Exercise info</h2>
-              <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted">Close</button>
+        <div className="fixed inset-0 z-50 w-full h-[100dvh] bg-[rgb(var(--bg))]">
+          <section className="flex h-[100dvh] w-full flex-col">
+            <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] px-4 py-3">
+              <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2">
+                <h2 className="text-2xl font-semibold">Exercise info</h2>
+                <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted">Close</button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3">
-              <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+              <div className="mx-auto w-full max-w-xl space-y-3 rounded-xl border border-border bg-surface p-4">
               <div>
                 <p className="text-base font-semibold text-text">{info.exercise.name}</p>
                 <div className="mt-1 flex flex-wrap gap-1">
