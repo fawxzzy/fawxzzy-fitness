@@ -44,15 +44,15 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
         ...data,
         primary_muscles: data.primary_muscle ? [data.primary_muscle] : [],
         secondary_muscles: [] as string[],
-        slug: null,
-        image_icon_path: data.image_howto_path,
+        slug: data.id,
+        image_icon_path: null,
         image_muscles_path: null,
       }
     : fallbackExercise
       ? {
           id: fallbackExercise.id,
           name: fallbackExercise.name,
-          slug: null,
+          slug: fallbackExercise.id,
           how_to_short: fallbackExercise.how_to_short,
           primary_muscles: fallbackExercise.primary_muscle ? [fallbackExercise.primary_muscle] : [],
           secondary_muscles: [],

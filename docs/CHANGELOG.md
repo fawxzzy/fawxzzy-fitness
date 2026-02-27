@@ -1080,3 +1080,10 @@ WHAT:
 - Added an icon sync workflow and npm commands to import and normalize new PNG exercise icons from `exerciseIcons/` into `/public/exercises/icons/` using deterministic kebab-case filenames.
 WHY:
 - Eliminates manual icon moving/renaming, preserves the static `/exercises/icons/<slug>.png` asset contract, and speeds up adding new exercise icons.
+
+### Fixed
+WHAT:
+- Updated the Exercise info “How-to” visual to derive from each exercise’s icon slug/path contract instead of binding directly to the how-to placeholder asset field.
+WHY:
+- This allows exercises that already have icons to populate the How-to image slot automatically while preserving placeholder fallback for exercises without icons.
+
