@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Updated the Exercise Info overlay shell to a true full-screen takeover panel with an in-panel sticky header and a scrollable content region.
+- Applied desktop width constraints only within an inner wrapper so the outer overlay remains full-bleed across viewport sizes.
+WHY:
+- This enforces a consistent screen-level detail experience and prevents background interaction while Exercise Info is open.
+
+### Changed
+WHAT:
 - Updated the ExercisePicker Info experience to open as a dedicated full-screen overlay with a persistent header and an internally scrolling content area.
 WHY:
 - This restores a true screen-like mobile/desktop detail experience while keeping Info open/close in local component state and preserving the current URL.
