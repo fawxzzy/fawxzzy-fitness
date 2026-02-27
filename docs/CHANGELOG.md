@@ -1,4 +1,11 @@
 ### Fixed
+
+### Changed
+WHAT:
+- History log details now preserve the performed exercise order from the active session, showing exercises first by first logged-set order and appending untouched exercises afterward in their existing stable order.
+WHY:
+- This better reflects real workout flow during review and improves post-session accuracy when users log exercises out of planned routine order.
+
 WHAT:
 - Updated the exercise info route to resolve built-in exercise IDs from the app’s canonical fallback exercise catalog when a matching database row is unavailable.
 WHY:

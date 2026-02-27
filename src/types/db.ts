@@ -19,6 +19,7 @@ export type SessionExerciseRow = {
   exercise_id: string;
   routine_day_exercise_id?: string | null;
   position: number;
+  performed_index?: number | null;
   notes: string | null;
   is_skipped: boolean;
   measurement_type?: "reps" | "time" | "distance" | "time_distance";

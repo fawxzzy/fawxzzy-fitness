@@ -37,13 +37,20 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
   const { data: sessionExercisesData } = await supabase
     .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, position, notes, is_skipped, measurement_type, default_unit, exercise:exercises(measurement_type, default_unit)")
+    .select("id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit, exercise:exercises(measurement_type, default_unit)")
     .eq("session_id", params.sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
 
   const sessionExercises = (sessionExercisesData ?? []) as Array<SessionExerciseRow & { exercise?: { measurement_type?: "reps" | "time" | "distance" | "time_distance"; default_unit?: "mi" | "km" | "m" | null } | null }>;
-  const sessionExerciseIds = sessionExercises.map((row) => row.id);
+  const orderedSessionExercises = (() => {
+    const performed = sessionExercises
+      .filter((exercise) => typeof exercise.performed_index === "number")
+      .sort((a, b) => (a.performed_index ?? 0) - (b.performed_index ?? 0));
+    const untouched = sessionExercises.filter((exercise) => typeof exercise.performed_index !== "number");
+    return [...performed, ...untouched];
+  })();
+  const sessionExerciseIds = orderedSessionExercises.map((row) => row.id);
 
   const { data: setsData } = sessionExerciseIds.length
     ? await supabase
@@ -113,7 +120,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         unitLabel={unitLabel}
         exerciseNameMap={exerciseNameRecord}
         exerciseOptions={exerciseOptions}
-      exercises={sessionExercises.map((exercise) => ({
+        exercises={orderedSessionExercises.map((exercise) => ({
           id: exercise.id,
           exercise_id: exercise.exercise_id,
           notes: exercise.notes,
