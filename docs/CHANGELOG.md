@@ -1,5 +1,14 @@
 ### Changed
 WHAT:
+- Normalized all exercise icon PNG filenames under `/public/exercises/icons/` to a single kebab-case contract, and deterministically resolved filename collisions so only one kebab-case icon remains per exercise name variant.
+- Added an `icons:normalize` maintenance script to audit current icon state, report already-normalized vs pending files, and apply deterministic normalization/overwrite cleanup.
+- Aligned runtime exercise icon resolution to the same kebab-case normalization behavior, with slug-first/name-fallback lookup and a tiny documented alias for known naming mismatch (`pull-up` -> `pullup`).
+WHY:
+- A single deterministic asset naming contract prevents case-sensitive path breakage and duplicate drift, while making icon onboarding predictable.
+- Matching runtime resolution to the normalization contract guarantees exercise thumbnails and info how-to images resolve consistently without per-exercise manual mapping.
+
+### Changed
+WHAT:
 - Unified exercise image rendering so the Info modal “How-To” image now uses the same deterministic icon source as the Exercise list thumbnail.
 WHY:
 - Previously, separate how-to image resolution introduced duplication and unnecessary complexity. Since exercise icons are manually curated and slug-based, using a single deterministic image source ensures consistency, reduces surface area for bugs, and simplifies future asset management.
