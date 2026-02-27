@@ -75,6 +75,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
     slug: exercise.slug,
     image_icon_path: exercise.image_icon_path,
   });
+  const musclesImageSrc = exercise.image_muscles_path ?? "/exercises/placeholders/muscles.svg";
 
   return (
     <section className="space-y-4">
@@ -97,12 +98,10 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="w-full rounded-md border border-border" />
         </div>
 
-        {exercise.image_muscles_path ? (
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-            <ExerciseAssetImage src={exercise.image_muscles_path} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
-          </div>
-        ) : null}
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
+          <ExerciseAssetImage src={musclesImageSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
+        </div>
 
         {exercise.how_to_short ? <p className="text-sm text-text">{exercise.how_to_short}</p> : null}
 
