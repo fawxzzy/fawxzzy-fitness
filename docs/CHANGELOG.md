@@ -1,3 +1,10 @@
+### Fixed
+WHAT:
+- Added a build-generated exercise icon manifest and switched runtime icon resolution to only request known icon files (with extension-aware paths), while falling back to the shared placeholder for unknown slugs.
+- Added dev-only missing-icon warnings (logged once per slug) and aligned Exercise Info “How-to” image selection to use the same canonical icon source unless a dedicated how-to asset path is provided.
+WHY:
+- Production was issuing repeated 404 requests for non-existent `/exercises/icons/<slug>.png` files; constraining requests to known assets removes 404 spam and keeps list/detail imagery deterministic.
+
 ### Changed
 WHAT:
 - Stabilized exercise icon rendering with deterministic placeholder fallback and missing-src memoization so missing icon URLs are attempted once per browser session in both list thumbnails and Exercise Info how-to visuals.
