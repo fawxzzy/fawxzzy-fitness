@@ -10,6 +10,7 @@ import {
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
+import { AppButton } from "@/components/ui/AppButton";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { formatDurationClock } from "@/lib/duration";
@@ -163,6 +164,10 @@ export function SetLoggerCard({
   useEffect(() => {
     setHasUserModifiedMetrics(false);
   }, [planContractSignature]);
+
+  useEffect(() => {
+    setIsMetricsExpanded(false);
+  }, [sessionExerciseId]);
 
   useEffect(() => {
     onSetCountChange?.(sets.length);
@@ -683,7 +688,7 @@ export function SetLoggerCard({
         </div>
       </div>
 
-      <div className="rounded-xl bg-white p-3">
+      <div className="rounded-xl border border-border/70 bg-surface/70 p-3">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
@@ -711,7 +716,7 @@ export function SetLoggerCard({
                 <select
                   value={selectedWeightUnit}
                   onChange={(event) => setSelectedWeightUnit(event.target.value === "kg" ? "kg" : "lbs")}
-                  className="min-h-11 rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  className="min-h-11 rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
                 >
                   <option value="lbs">lbs</option>
                   <option value="kg">kg</option>
@@ -742,7 +747,7 @@ export function SetLoggerCard({
                 <select
                   value={distanceUnit}
                   onChange={(event) => setDistanceUnit(event.target.value as "mi" | "km" | "m")}
-                  className="min-h-11 rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  className="min-h-11 rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
                 >
                   <option value="mi">mi</option>
                   <option value="km">km</option>
@@ -769,14 +774,14 @@ export function SetLoggerCard({
                   <button
                     type="button"
                     onClick={() => setShowRpeTooltip((value) => !value)}
-                    className="rounded-full border border-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600"
+                    className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] text-muted"
                   >
                     ⓘ
                   </button>
                 </div>
                 {showRpeTooltip ? (
-                  <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-slate-200 bg-white p-2 text-[11px] text-slate-600 shadow-sm">
-                    <p className="font-medium text-slate-700">RPE (1–10)</p>
+                  <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
+                    <p className="font-medium text-text">RPE (1–10)</p>
                     <p>10 = max effort</p>
                     <p>8 = ~2 reps left</p>
                     <p>6 = moderate effort</p>
@@ -789,15 +794,15 @@ export function SetLoggerCard({
                   value={rpe}
                   onChange={(event) => setRpe(event.target.value)}
                   placeholder="RPE"
-                  className="min-h-11 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  className="min-h-11 w-full rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
                 />
               </div>
-              <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+              <label className="flex min-h-11 items-center gap-2 text-sm text-text">
                 <input
                   type="checkbox"
                   checked={isWarmup}
                   onChange={(event) => setIsWarmup(event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-accent focus:ring-accent"
+                  className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                 />
                 Warm-up
               </label>
@@ -806,25 +811,20 @@ export function SetLoggerCard({
         </div>
 
         <div className="mt-3 border-t border-slate-100 pt-3">
-          <button
-            type="button"
-            onClick={handleLogSet}
-            disabled={isSaveDisabled}
-            className={`w-full min-h-11 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:border disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 ${tapFeedbackClass}`}
-          >
+          <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
             Save set
-          </button>
+          </AppButton>
         </div>
       </div>
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      <ul className="divide-y divide-slate-100 overflow-hidden rounded-md border border-slate-100 bg-white text-sm">
+      <ul className="divide-y divide-border/70 overflow-hidden rounded-md border border-border/70 bg-surface/70 text-sm">
         {animatedSets.map((set, index) => (
           <li
             key={set.id}
             className={[
-              "bg-white px-3 py-2",
+              "bg-surface/70 px-3 py-2",
               "origin-top transition-all duration-150 motion-reduce:transition-none",
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
@@ -841,7 +841,7 @@ export function SetLoggerCard({
                   void handleDeleteSet(set);
                 }}
                 aria-label="Remove set"
-                className={`rounded-md px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+                className={`rounded-md px-1.5 py-1 text-xs text-muted hover:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
               >
                 ✕
               </button>

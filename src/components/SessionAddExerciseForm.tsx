@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
-import { Button } from "@/components/ui/Button";
+import { AppButton } from "@/components/ui/AppButton";
 import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -54,9 +54,9 @@ export function SessionAddExerciseForm({
       className="space-y-3"
     >
       <input type="hidden" name="sessionId" value={sessionId} />
-      <Card className="space-y-3 border-slate-200/70">
+      <Card className="space-y-3 border-border/70 bg-surface/70 p-3">
         <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} />
-        <Button type="submit" variant="primary" className="w-full">Add Exercise</Button>
+        <AppButton type="submit" variant="primary" fullWidth>Add Exercise</AppButton>
       </Card>
     </form>
   );
