@@ -1,3 +1,10 @@
+### Changed
+WHAT:
+- Standardized the Add Exercise experience with shared UI tokens/primitives, flatter list styling, muted filled filter pills, and a clearer visual hierarchy for search/filter/list content.
+- Updated Add Exercise controls to use a clear primary Add Exercise CTA and a collapsible Measurements section that is closed by default.
+WHY:
+- Reduces visual noise from nested boxed treatments, improves scanability and action clarity on mobile, and keeps the add-exercise flow visually consistent with the rest of the app.
+
 ### Fixed
 WHAT:
 - Updated the fullscreen Exercise Info overlay so every HOW-TO image now uses each exercise’s canonical icon source with manifest-aware placeholder fallback.

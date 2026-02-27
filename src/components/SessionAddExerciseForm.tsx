@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -19,7 +21,6 @@ type ExerciseOption = {
   calories_estimation_method: string | null;
   image_howto_path: string | null;
 };
-
 
 export function SessionAddExerciseForm({
   sessionId,
@@ -53,8 +54,10 @@ export function SessionAddExerciseForm({
       className="space-y-2"
     >
       <input type="hidden" name="sessionId" value={sessionId} />
-      <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} />
-      <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
+      <Card className="space-y-3">
+        <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} />
+        <Button type="submit" variant="primary" className="w-full">Add Exercise</Button>
+      </Card>
     </form>
   );
 }
