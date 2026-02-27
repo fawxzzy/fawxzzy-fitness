@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
@@ -146,6 +146,8 @@ export function SetLoggerCard({
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [showRpeTooltip, setShowRpeTooltip] = useState(false);
+  const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
+  const metricsPanelId = useId();
   const toast = useToast();
 
   const planContractSignature = `${sessionExerciseId}:${routineDayExerciseId ?? ""}:${planTargetsHash ?? ""}`;
@@ -647,11 +649,24 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <details className="rounded-md bg-slate-50/50 px-2 py-1.5">
-        <summary className="cursor-pointer list-none text-sm font-medium text-slate-600 [&::-webkit-details-marker]:hidden">
-          <span className="inline-flex rounded-md px-2 py-1 text-xs text-slate-600 hover:bg-slate-100">Modify metrics</span>
-        </summary>
-        <div className="mt-2 flex flex-wrap gap-2 rounded-md bg-white/70 p-2">
+      <div className="overflow-hidden rounded-lg border border-white/10 bg-[rgb(15_23_42/0.45)]">
+        <button
+          type="button"
+          aria-expanded={isMetricsExpanded}
+          aria-controls={metricsPanelId}
+          onClick={() => setIsMetricsExpanded((current) => !current)}
+          className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-white/5 active:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${tapFeedbackClass}`}
+        >
+          <span className="text-sm font-semibold text-[rgb(var(--text)/0.92)]">Modify measurements</span>
+          <svg
+            viewBox="0 0 20 20"
+            aria-hidden="true"
+            className={`h-4 w-4 shrink-0 text-[rgb(var(--text)/0.72)] transition-transform ${isMetricsExpanded ? "rotate-180" : "rotate-0"}`}
+          >
+            <path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <div id={metricsPanelId} hidden={!isMetricsExpanded} className="mt-0 flex flex-wrap gap-2 border-t border-white/10 bg-[rgb(15_23_42/0.38)] p-2.5">
           {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
             <button
               key={metric}
@@ -660,13 +675,13 @@ export function SetLoggerCard({
                 setHasUserModifiedMetrics(true);
                 setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
               }}
-              className={`rounded-md border px-2.5 py-1.5 text-xs ${activeMetrics[metric] ? "border-accent bg-accent/10 text-accent-strong" : "border-slate-200 bg-white text-slate-600"}`}
+              className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${activeMetrics[metric] ? "border-emerald-300/45 bg-emerald-400/15 text-emerald-100" : "border-white/15 bg-[rgb(15_23_42/0.55)] text-[rgb(var(--text)/0.85)]"}`}
             >
               {activeMetrics[metric] ? "Hide" : "Show"} {metric}
             </button>
           ))}
         </div>
-      </details>
+      </div>
 
       <div className="rounded-xl bg-white p-3">
         <div className="space-y-3">

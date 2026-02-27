@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Refined the Set Logger “Modify measurements” control in Session Exercise Focus with a clearer expandable header treatment, explicit chevron affordance, and dark-mode-first visual hierarchy.
+- Replaced the expanded measurements panel and metric chips with dark elevated surfaces and subtle borders to remove the prior bright/abrasive light block appearance.
+WHY:
+- Makes expand/collapse behavior obvious at a glance and improves tap confidence while preserving a consistent dark workout UI during active logging.
+
+### Changed
+WHAT:
 - Refined History list cards so each card now acts as the primary navigation target to the same session detail destination, while the explicit View CTA is removed.
 - Demoted per-card delete affordance to a compact icon action and standardized card row styling with subtler borders/separators and cleaner text hierarchy.
 WHY:
