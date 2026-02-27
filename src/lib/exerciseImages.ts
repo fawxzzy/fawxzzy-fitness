@@ -1,19 +1,9 @@
 export type ExerciseImageSource = {
   slug?: string | null;
   name: string;
+  image_path?: string | null;
   image_icon_path?: string | null;
 };
-
-// Keep aliases minimal: only canonical slug mismatches against existing icon filenames.
-const ICON_ALIASES: Record<string, string> = {
-  "pull-up": "pullup",
-};
-
-function toPublicSrc(path: string): string {
-  if (path.startsWith("http")) return path;
-  if (path.startsWith("/")) return path;
-  return `/${path}`;
-}
 
 export function slugifyExerciseName(name: string): string {
   return name
@@ -26,17 +16,21 @@ export function slugifyExerciseName(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-function applyIconAlias(slug: string): string {
-  return ICON_ALIASES[slug] ?? slug;
-}
-
 export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
-  if (exercise.image_icon_path && exercise.image_icon_path.trim()) {
-    return toPublicSrc(exercise.image_icon_path.trim());
+  const explicitPath = exercise.image_path?.trim() || exercise.image_icon_path?.trim();
+  if (explicitPath?.startsWith("/")) {
+    return explicitPath;
   }
 
-  const sourceSlug = exercise.slug?.trim() ? exercise.slug.trim() : slugifyExerciseName(exercise.name);
-  const iconSlug = applyIconAlias(slugifyExerciseName(sourceSlug));
+  const sourceSlug = exercise.slug?.trim();
+  if (sourceSlug) {
+    return `/exercises/icons/${slugifyExerciseName(sourceSlug)}.png`;
+  }
 
-  return `/exercises/icons/${iconSlug}.png`;
+  const nameSlug = slugifyExerciseName(exercise.name);
+  if (nameSlug) {
+    return `/exercises/icons/${nameSlug}.png`;
+  }
+
+  return "/exercises/icons/_placeholder.svg";
 }
