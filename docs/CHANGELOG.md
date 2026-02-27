@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Updated the Exercise Info overlay HOW-TO visual slot to always render the canonical exercise how-to/icon image inside the existing framed area.
+WHY:
+- This removes placeholder-only presentation, preserves graceful fallback behavior, and keeps missing media from generating repeated noisy requests.
+
+### Changed
+WHAT:
 - Updated ExercisePicker's Exercise Info overlay to render as a true fullscreen takeover panel with an internal scrolling body and interaction lockout behind the overlay.
 - Added safe-area-aware top/bottom spacing for the overlay chrome/content so header controls remain clear of iOS notch/dynamic island regions.
 WHY:
