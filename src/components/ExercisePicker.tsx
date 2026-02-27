@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
@@ -136,6 +137,7 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
 
 export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig }: ExercisePickerProps) {
   const searchParams = useSearchParams();
+  const [hasMounted, setHasMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -197,6 +199,10 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       document.body.style.overflow = previousOverflow;
     };
   }, [info]);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const persistScrollTop = (nextScrollTop: number) => {
     if (scrollPersistTimeoutRef.current) {
@@ -467,55 +473,60 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
       </div>
 
-      {info ? (
-        <div className="fixed inset-0 z-50 w-full h-[100dvh] bg-[rgb(var(--bg))]">
-          <section className="flex h-[100dvh] w-full flex-col">
-            <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] px-4 py-3">
-              <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2">
-                <h2 className="text-2xl font-semibold">Exercise info</h2>
-                <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted">Close</button>
-              </div>
-            </div>
+      {info && hasMounted
+        ? createPortal(
+            <div className="fixed inset-0 z-50 pointer-events-auto" role="dialog" aria-modal="true" aria-label="Exercise info">
+              <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
+                <section className="flex h-full w-full flex-col">
+                  <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(env(safe-area-inset-top),0px)]">
+                    <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
+                      <h2 className="text-2xl font-semibold">Exercise info</h2>
+                      <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted">Close</button>
+                    </div>
+                  </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3">
-              <div className="mx-auto w-full max-w-xl space-y-3 rounded-xl border border-border bg-surface p-4">
-              <div>
-                <p className="text-base font-semibold text-text">{info.exercise.name}</p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <MetaTag value={info.exercise.equipment} />
-                  <MetaTag value={info.exercise.primary_muscle} />
-                  <MetaTag value={info.exercise.movement_pattern} />
-                </div>
-              </div>
+                  <div className="flex-1 overflow-y-auto overscroll-contain">
+                    <div className="mx-auto w-full max-w-xl space-y-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+                      <div>
+                        <p className="text-base font-semibold text-text">{info.exercise.name}</p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <MetaTag value={info.exercise.equipment} />
+                          <MetaTag value={info.exercise.primary_muscle} />
+                          <MetaTag value={info.exercise.movement_pattern} />
+                        </div>
+                      </div>
 
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-                <ExerciseAssetImage
-                  key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
-                  src={infoHowToSrc}
-                  alt="How-to visual"
-                  className="w-full rounded-md border border-border"
-                />
-              </div>
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+                        <ExerciseAssetImage
+                          key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
+                          src={infoHowToSrc}
+                          alt="How-to visual"
+                          className="w-full rounded-md border border-border"
+                        />
+                      </div>
 
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-                <ExerciseAssetImage src={infoMusclesSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
-              </div>
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
+                        <ExerciseAssetImage src={infoMusclesSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
+                      </div>
 
-              {infoDetails?.how_to_short ? <p className="text-sm text-text">{infoDetails.how_to_short}</p> : null}
+                      {infoDetails?.how_to_short ? <p className="text-sm text-text">{infoDetails.how_to_short}</p> : null}
 
-              {infoDetails && infoDetails.primary_muscles.length > 0 ? (
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted">Primary muscles</p>
-                  <div className="mt-1 flex flex-wrap gap-1">{infoDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
-                </div>
-              ) : null}
+                      {infoDetails && infoDetails.primary_muscles.length > 0 ? (
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-muted">Primary muscles</p>
+                          <div className="mt-1 flex flex-wrap gap-1">{infoDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </section>
               </div>
-            </div>
-          </section>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
 
       {routineTargetConfig && selectedExercise ? (
         <div className="space-y-2 rounded-md border border-slate-200 p-3">

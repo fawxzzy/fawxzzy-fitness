@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Updated ExercisePicker's Exercise Info overlay to render as a true fullscreen takeover panel with an internal scrolling body and interaction lockout behind the overlay.
+- Added safe-area-aware top/bottom spacing for the overlay chrome/content so header controls remain clear of iOS notch/dynamic island regions.
+WHY:
+- This removes the modal-card presentation on mobile, prevents clipping within overflow-hidden mount contexts, and ensures a consistent full-screen detail experience.
+
+### Changed
+WHAT:
 - Updated the Exercise Info overlay shell to a true full-screen takeover panel with an in-panel sticky header and a scrollable content region.
 - Applied desktop width constraints only within an inner wrapper so the outer overlay remains full-bleed across viewport sizes.
 WHY:
