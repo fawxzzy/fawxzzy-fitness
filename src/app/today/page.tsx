@@ -384,9 +384,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 <button
                   type="submit"
                   className={getAppButtonClassName({
-                    variant: "ghost",
+                    variant: "destructive",
                     fullWidth: true,
-                    className: "border-red-300 text-red-700 hover:border-red-400 hover:bg-red-50/80",
                   })}
                 >
                   End Workout

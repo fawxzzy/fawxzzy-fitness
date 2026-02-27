@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
+import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -156,7 +157,7 @@ export function SessionExerciseFocus({
   return (
     <div className="space-y-3">
       {selectedExerciseId === null ? (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg bg-white">
+        <ul className="divide-y divide-border/70 overflow-hidden rounded-lg border border-border/70 bg-surface/70">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
@@ -173,16 +174,16 @@ export function SessionExerciseFocus({
                   type="button"
                   aria-label={`Open ${exercise.name}`}
                   onClick={() => setSelectedExerciseId(exercise.id)}
-                  className={`w-full bg-transparent p-3 text-left transition-colors duration-150 motion-reduce:transition-none ${tapFeedbackClass} hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
+                  className={`w-full bg-transparent p-3 text-left transition-colors duration-150 motion-reduce:transition-none ${tapFeedbackClass} hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">{exercise.name}</p>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                      <span className="rounded-full border border-border/70 bg-surface-2-soft px-2 py-0.5 text-xs font-medium text-text">
                         {setCount} {exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}
                       </span>
                     </div>
-                    <span aria-hidden="true" className="text-slate-400">›</span>
+                    <span aria-hidden="true" className="text-muted">›</span>
                   </div>
                   {exercise.goalStatLine ? (
                     <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
@@ -203,13 +204,13 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="rounded-md bg-slate-50/80 p-2">
+        <div className="rounded-md border border-border/70 bg-surface/70 p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5">
               <p className="text-base font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
               <p className="text-xs text-slate-500">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
-            <button type="button" aria-label="Close exercise" onClick={() => setSelectedExerciseId(null)} className={`rounded-md px-2 py-1 text-lg leading-none text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>‹</button>
+            <button type="button" aria-label="Close exercise" onClick={() => setSelectedExerciseId(null)} className={`rounded-md px-2 py-1 text-lg leading-none text-muted hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>‹</button>
           </div>
         </div>
       )}
@@ -217,7 +218,7 @@ export function SessionExerciseFocus({
       {selectedExercise ? (
         <article
           ref={focusedRef}
-          className="space-y-4 overflow-hidden rounded-md bg-white p-4 pt-[max(env(safe-area-inset-top),1rem)] shadow-sm"
+          className="space-y-4 overflow-hidden rounded-md border border-border/70 bg-surface p-4 pt-[max(env(safe-area-inset-top),1rem)]"
           aria-hidden={false}
         >
           <div className="flex items-start justify-between gap-2">
@@ -239,9 +240,9 @@ export function SessionExerciseFocus({
                 <input type="hidden" name="sessionId" value={sessionId} />
                 <input type="hidden" name="sessionExerciseId" value={selectedExercise.id} />
                 <input type="hidden" name="nextSkipped" value={String(!selectedExercise.isSkipped)} />
-                <button type="submit" className={`rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>
+                <AppButton type="submit" variant="secondary" size="sm" className={tapFeedbackClass}>
                   {selectedExercise.isSkipped ? "Unskip" : "Skip"}
-                </button>
+                </AppButton>
               </form>
               <form
                 action={async (formData) => {
@@ -271,13 +272,15 @@ export function SessionExerciseFocus({
               >
                 <input type="hidden" name="sessionId" value={sessionId} />
                 <input type="hidden" name="sessionExerciseId" value={selectedExercise.id} />
-                <button
+                <AppButton
                   type="submit"
+                  variant="destructive"
+                  size="sm"
                   disabled={removingExerciseIds.includes(selectedExercise.id)}
-                  className={`rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 ${tapFeedbackClass}`}
+                  className={tapFeedbackClass}
                 >
                   {removingExerciseIds.includes(selectedExercise.id) ? "Removing..." : "Remove"}
-                </button>
+                </AppButton>
               </form>
             </div>
           </div>

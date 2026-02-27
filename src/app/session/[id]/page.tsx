@@ -4,6 +4,7 @@ import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
+import { AppButton } from "@/components/ui/AppButton";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { formatGoalStatLine, type DisplayTarget } from "@/lib/session-targets";
 import {
@@ -108,13 +109,18 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       <ActionFeedbackToasts />
 
-      <details className="rounded-md border border-slate-300 bg-white transition-colors hover:border-[rgb(var(--border)/0.8)]">
-        <summary className="cursor-pointer list-none rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">+ Add custom exercise</summary>
+      <details className="group rounded-md border border-border/70 bg-surface/70 transition-colors hover:border-border">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">
+          <span>+ Add custom exercise</span>
+          <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180">
+            <path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </summary>
         <div className="space-y-3 px-4 pb-4">
           <form action={createCustomExerciseAction} className="space-y-2">
             <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
             <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <button type="submit" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">Save Custom Exercise</button>
+            <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
           </form>
 
           {customExercises.length > 0 ? (
@@ -127,12 +133,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                       <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
                       <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
-                      <button type="submit" className="rounded-md border border-slate-300 px-2 py-1 text-xs">Rename</button>
+                      <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
                     </form>
                     <form action={deleteCustomExerciseAction}>
                       <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
                       <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <button type="submit" className="w-full rounded-md border border-red-600 bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700">Delete</button>
+                      <AppButton type="submit" variant="destructive" size="sm" fullWidth>Delete</AppButton>
                     </form>
                   </div>
                 </li>
@@ -213,7 +219,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         />
       ) : null}
 
-      {sessionExercises.length === 0 ? <p className="rounded-md bg-white p-3 text-sm text-slate-500 shadow-sm">No exercises in this session yet.</p> : null}
+      {sessionExercises.length === 0 ? <p className="rounded-md border border-border/70 bg-surface/70 p-3 text-sm text-muted">No exercises in this session yet.</p> : null}
 
     </section>
   );
