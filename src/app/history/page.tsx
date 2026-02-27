@@ -3,7 +3,6 @@ import { AppNav } from "@/components/AppNav";
 import { DestructiveButton } from "@/components/ui/AppButton";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -123,28 +122,37 @@ export default async function HistoryPage({
                 || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day");
 
               return (
-              <li key={session.id} className={listShellClasses.card}>
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="rounded-md border border-slate-300 bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    {(session.name || "Session")} Log #{sessions.length - index}: {resolvedDayName}
-                  </span>
-                  <form action={deleteSessionAction}>
-                    <input type="hidden" name="sessionId" value={session.id} />
-                    <DestructiveButton type="submit" size="sm" className={`${listShellClasses.pillAction} shrink-0`}>
-                      Delete
-                    </DestructiveButton>
-                  </form>
-                </div>
+              <li key={session.id} className={`${listShellClasses.card} relative overflow-hidden border-[rgb(var(--glass-tint-rgb)/0.2)] bg-[rgb(var(--glass-tint-rgb)/0.58)] p-0`}>
+                <Link
+                  href={`/history/${session.id}`}
+                  aria-label={`View session log ${sessions.length - index} details`}
+                  className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+                >
+                  <span className="sr-only">View session details</span>
+                </Link>
 
-                <p className="text-xs text-slate-500"><LocalDateTime value={session.performed_at} /></p>
+                <div className="relative z-10 pointer-events-none p-4">
+                  <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
+                    <span className="rounded-md border border-slate-300/65 bg-slate-100/80 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                      {(session.name || "Session")} Log #{sessions.length - index}: {resolvedDayName}
+                    </span>
 
-                <div className="mt-3">
-                  <Link
-                    href={`/history/${session.id}`}
-                    className={getAppButtonClassName({ variant: "secondary", state: "active", fullWidth: true })}
-                  >
-                    View
-                  </Link>
+                    <form action={deleteSessionAction} className="pointer-events-auto">
+                      <input type="hidden" name="sessionId" value={session.id} />
+                      <DestructiveButton
+                        type="submit"
+                        size="sm"
+                        aria-label="Delete session"
+                        className={`${listShellClasses.iconAction} h-8 w-8 shrink-0 border border-rose-300/45 !bg-transparent !px-0 !py-0 !text-rose-500 hover:!bg-rose-50/50`}
+                      >
+                        🗑
+                      </DestructiveButton>
+                    </form>
+                  </div>
+
+                  <p className="mt-3 text-xs text-slate-500"><LocalDateTime value={session.performed_at} /></p>
+
+                  <p className="mt-2 text-sm text-slate-400">Tap anywhere to open details</p>
                 </div>
               </li>
               );

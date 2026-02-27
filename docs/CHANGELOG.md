@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Refined History list cards so each card now acts as the primary navigation target to the same session detail destination, while the explicit View CTA is removed.
+- Demoted per-card delete affordance to a compact icon action and standardized card row styling with subtler borders/separators and cleaner text hierarchy.
+WHY:
+- Improves navigation speed and tap confidence, reduces visual clutter from competing actions, and keeps destructive actions de-emphasized without changing behavior.
+
+### Changed
+WHAT:
 - Polished the Current Session Exercise Focus and set-logging UI to reduce nested boxed styling, improve section hierarchy, and better align action/input spacing with the design system.
 - Clarified action emphasis so Save set remains the dominant primary action while Skip/Remove and Modify Metrics read as secondary controls, and refined logged-set rows to a flatter, less boxy presentation.
 - Tightened RPE + warm-up layout spacing and applied safe-area-aware top padding in the focused exercise container.
