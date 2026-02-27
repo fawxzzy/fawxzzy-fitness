@@ -457,14 +457,15 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       </div>
 
       {info ? (
-        <div className="fixed inset-0 z-50 bg-[rgb(var(--bg))]">
-          <section className="flex h-full flex-col overflow-y-auto p-4">
-            <div className="flex items-center justify-between gap-2">
+        <div className="fixed inset-0 z-50 h-[100dvh] bg-[rgb(var(--bg))]">
+          <section className="flex h-[100dvh] flex-col">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-[rgb(var(--bg))] px-4 py-3">
               <h2 className="text-2xl font-semibold">Exercise info</h2>
               <button type="button" onClick={() => setInfo(null)} className="rounded-md border border-border px-3 py-1.5 text-xs text-muted">Close</button>
             </div>
 
-            <div className="mt-4 space-y-3 rounded-xl border border-border bg-surface p-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3">
+              <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
               <div>
                 <p className="text-base font-semibold text-text">{info.exercise.name}</p>
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -497,6 +498,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                   <div className="mt-1 flex flex-wrap gap-1">{infoDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
                 </div>
               ) : null}
+              </div>
             </div>
           </section>
         </div>
