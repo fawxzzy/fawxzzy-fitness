@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
-import { getExerciseHowToImageSrc, getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
+import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
 
 type ExerciseOption = {
   id: string;
@@ -311,7 +311,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [info]);
 
   const exerciseDetailsOrRow = infoDetails ?? info?.exercise ?? null;
-  const infoHowToSrc = exerciseDetailsOrRow ? getExerciseHowToImageSrc(exerciseDetailsOrRow) : "/exercises/icons/_placeholder.svg";
+  const infoHowToSrc = exerciseDetailsOrRow ? getExerciseIconSrc(exerciseDetailsOrRow) : "/exercises/icons/_placeholder.svg";
   const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
 
   const resetMeasurementFields = useCallback(() => {
