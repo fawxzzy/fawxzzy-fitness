@@ -3,7 +3,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -59,6 +59,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           movement_pattern: fallbackExercise.movement_pattern,
           equipment: fallbackExercise.equipment,
           image_icon_path: null,
+          image_howto_path: null,
           image_muscles_path: null,
         }
       : null;
@@ -70,10 +71,11 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
   const primaryMuscles = (exercise.primary_muscles ?? []) as string[];
   const secondaryMuscles = (exercise.secondary_muscles ?? []) as string[];
-  const howToImageSrc = getExerciseIconSrc({
+  const howToImageSrc = getExerciseHowToImageSrc({
     name: exercise.name,
     slug: exercise.slug,
     image_icon_path: exercise.image_icon_path,
+    image_howto_path: exercise.image_howto_path,
   });
   const musclesImageSrc = exercise.image_muscles_path ?? "/exercises/placeholders/muscles.svg";
 

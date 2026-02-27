@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-02-27 — Generate runtime media manifests from public assets for deterministic lookups
+- Type: Guardrail
+- Summary: When UI code resolves static media by slug, generate a build-time manifest from the asset directory and only request files declared in that manifest.
+- Suggested Playbook File: patterns/frontend/media-fallbacks.md
+- Rationale: Prevents noisy production 404 spam caused by optimistic path construction when catalog slugs outpace available assets.
+- Evidence: scripts/generate-exercise-icon-manifest.mjs, src/generated/exerciseIconManifest.ts, src/lib/exerciseImages.ts
+- Status: Proposed
+
 
 
 # Playbook Notes (Local Inbox)
