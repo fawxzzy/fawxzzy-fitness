@@ -15,6 +15,7 @@ import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseIm
 
 type ExerciseOption = {
   id: string;
+  exercise_id?: string | null;
   name: string;
   user_id: string | null;
   is_global: boolean;
@@ -40,6 +41,7 @@ type ExerciseOption = {
 
 type ExerciseStatsOption = {
   exerciseId: string;
+  statsExerciseId?: string;
   lastWeight: number | null;
   lastReps: number | null;
   lastUnit: string | null;
@@ -337,7 +339,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [availableTags, selectedTags]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
-  const selectedStats = selectedExercise ? statsByExerciseId.get(selectedExercise.id) : undefined;
+  const selectedCanonicalExerciseId = selectedExercise ? (selectedExercise.exercise_id ?? selectedExercise.id) : null;
+  const statsQueryExerciseId = selectedCanonicalExerciseId;
+  const selectedStats = statsQueryExerciseId ? statsByExerciseId.get(statsQueryExerciseId) : undefined;
   const infoDetails = useMemo(() => {
     if (!info) {
       return null;
@@ -468,7 +472,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           </div>
         ) : null}
       </div>
-      <input type="hidden" name={name} value={selectedId} required />
+      <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
       <input type="hidden" name="exerciseListScroll" value={scrollTopSnapshot} />
 
       <div className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] px-3 py-2 text-sm text-[rgb(var(--text))]">
@@ -629,15 +633,20 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
               </Button>
             </div>
 
-            {selectedStats && (selectedStats.lastWeight !== null || selectedStats.prWeight !== null) ? (
+            {selectedStats ? (
               <div className={cn("space-y-1 rounded-md border border-border/50 bg-[rgb(var(--bg)/0.2)] px-2 py-1.5 text-xs text-muted", didApplyLast ? "border-accent/40" : "")}>
-                {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit) && selectedStats.lastPerformedAt ? (
+                {process.env.NODE_ENV === "development" ? (
+                  <p className="font-mono text-[10px] text-muted/90">
+                    DEBUG stats selectedCanonicalId={selectedCanonicalExerciseId ?? "none"} queryExerciseId={statsQueryExerciseId ?? "none"} statsFound={selectedStats ? "yes" : "no"} stats.exercise_id={selectedStats.statsExerciseId ?? "none"}
+                  </p>
+                ) : null}
+                {selectedStats.lastWeight != null && selectedStats.lastReps != null && selectedStats.lastPerformedAt ? (
                   <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)} · {formatStatDate(selectedStats.lastPerformedAt)}</p>
                 ) : null}
-                {formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) ? (
+                {selectedStats.prWeight != null && selectedStats.prReps != null ? (
                   <p>PR: {formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null)}</p>
                 ) : null}
-                {selectedStats.lastWeight !== null && selectedStats.lastReps !== null ? (
+                {selectedStats.lastWeight != null && selectedStats.lastReps != null ? (
                   <div className="flex justify-start">
                     <Button
                       type="button"

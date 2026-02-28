@@ -177,7 +177,9 @@ export async function getSessionPageData(sessionId: string) {
   const exerciseOptions = await listExercises();
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
-  const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
+  // exercise_stats is keyed by canonical exercises.id UUIDs (never session_exercises.id / routine_day_exercises.id / slug).
+  const canonicalExerciseIds = exerciseOptions.map((exercise) => exercise.id);
+  const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, canonicalExerciseIds);
 
   return {
     sessionRow: session as SessionRow,
