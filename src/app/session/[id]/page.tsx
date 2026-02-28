@@ -120,17 +120,24 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           initialSelectedId={searchParams?.exerciseId}
           weightUnit={unitLabel}
           addExerciseAction={addExerciseAction}
-          exerciseStats={exerciseOptions.map((exercise) => ({
-            exerciseId: exercise.id,
-            statsExerciseId: exerciseStatsByExerciseId.get(exercise.id)?.exercise_id ?? undefined,
-            lastWeight: exerciseStatsByExerciseId.get(exercise.id)?.last_weight ?? null,
-            lastReps: exerciseStatsByExerciseId.get(exercise.id)?.last_reps ?? null,
-            lastUnit: exerciseStatsByExerciseId.get(exercise.id)?.last_unit ?? null,
-            lastPerformedAt: exerciseStatsByExerciseId.get(exercise.id)?.last_performed_at ?? null,
-            prWeight: exerciseStatsByExerciseId.get(exercise.id)?.pr_weight ?? null,
-            prReps: exerciseStatsByExerciseId.get(exercise.id)?.pr_reps ?? null,
-            prEst1rm: exerciseStatsByExerciseId.get(exercise.id)?.pr_est_1rm ?? null,
-          }))}
+          exerciseStats={exerciseOptions.map((exercise) => {
+            const canonicalExerciseId = "exercise_id" in exercise && typeof exercise.exercise_id === "string"
+              ? exercise.exercise_id
+              : exercise.id;
+            const stats = exerciseStatsByExerciseId.get(canonicalExerciseId);
+
+            return {
+              exerciseId: canonicalExerciseId,
+              statsExerciseId: stats?.exercise_id ?? undefined,
+              lastWeight: stats?.last_weight ?? null,
+              lastReps: stats?.last_reps ?? null,
+              lastUnit: stats?.last_unit ?? null,
+              lastPerformedAt: stats?.last_performed_at ?? null,
+              prWeight: stats?.pr_weight ?? null,
+              prReps: stats?.pr_reps ?? null,
+              prEst1rm: stats?.pr_est_1rm ?? null,
+            };
+          })}
           customExerciseSection={
             <CollapsibleCard
               title="Add custom exercise"

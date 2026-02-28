@@ -179,11 +179,25 @@ export async function getExerciseStatsForExercises(userId: string, exerciseIds: 
   }
 
   const supabase = supabaseServer();
+  if (process.env.NODE_ENV === "development") {
+    console.log("[exercise-stats:getExerciseStatsForExercises] querying", {
+      userId,
+      exerciseCount: exerciseIds.length,
+      sampleExerciseId: exerciseIds[0] ?? null,
+    });
+  }
   const { data } = await supabase
     .from("exercise_stats")
     .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at")
     .eq("user_id", userId)
     .in("exercise_id", exerciseIds);
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[exercise-stats:getExerciseStatsForExercises] fetched", {
+      rowCount: (data ?? []).length,
+      sampleExerciseId: (data ?? [])[0]?.exercise_id ?? null,
+    });
+  }
 
   return new Map(((data ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
 }
@@ -192,12 +206,23 @@ export async function getExerciseStatsForExercise(userId: string, exerciseId: st
   noStore();
 
   const supabase = supabaseServer();
+  if (process.env.NODE_ENV === "development") {
+    console.log("[exercise-stats:getExerciseStatsForExercise] querying", { userId, exerciseId });
+  }
   const { data } = await supabase
     .from("exercise_stats")
     .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at")
     .eq("user_id", userId)
     .eq("exercise_id", exerciseId)
     .maybeSingle();
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[exercise-stats:getExerciseStatsForExercise] fetched", {
+      exerciseId,
+      found: Boolean(data),
+      statsExerciseId: (data as ExerciseStatsRow | null)?.exercise_id ?? null,
+    });
+  }
 
   return (data as ExerciseStatsRow | null) ?? null;
 }

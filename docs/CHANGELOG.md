@@ -1,3 +1,10 @@
+### Fixed
+WHAT:
+- Restored Last/PR visibility in Add Exercise Measurements and Exercise Info by ensuring stats resolve against the selected exercise's canonical ID and by rendering stats when either Last or PR data exists.
+- Added development-gated diagnostics around exercise stats fetch/query and render wiring for faster verification of query ID to stats ID matching.
+WHY:
+- Existing exercise_stats rows could be hidden when custom exercise IDs diverged from canonical IDs or when strict render guards suppressed partial valid stats, making personal history appear missing.
+
 ### Added
 WHAT:
 - Added cached per-exercise personal stats (Last performed + PR based on best estimated 1RM set) and surfaced them in Add Exercise measurements and Exercise info.

@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-02-28 — Resolve cached/aggregated stats by canonical entity ID at render boundaries
+- Type: Guardrail
+- Summary: Any derived stats keyed by canonical entity IDs must be threaded and queried using canonical IDs across list selection, detail routes, and custom-item wrappers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Mixed ID domains (custom wrapper IDs vs canonical IDs) silently hide valid derived data even when the backing rows exist.
+- Evidence: src/app/session/[id]/page.tsx, src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
+
 
 ## 2026-02-28 — Recompute derived performance caches after both additive and destructive history mutations
 - Type: Guardrail
