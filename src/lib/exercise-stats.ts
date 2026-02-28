@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server";
+import { unstable_noStore as noStore } from "next/cache";
 
 type HistoricalSetRow = {
   set_index: number;
@@ -171,6 +172,8 @@ export async function recomputeExerciseStatsForExercises(userId: string, exercis
 }
 
 export async function getExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<Map<string, ExerciseStatsRow>> {
+  noStore();
+
   if (!exerciseIds.length) {
     return new Map();
   }
@@ -186,6 +189,8 @@ export async function getExerciseStatsForExercises(userId: string, exerciseIds: 
 }
 
 export async function getExerciseStatsForExercise(userId: string, exerciseId: string): Promise<ExerciseStatsRow | null> {
+  noStore();
+
   const supabase = supabaseServer();
   const { data } = await supabase
     .from("exercise_stats")

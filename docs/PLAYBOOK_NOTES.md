@@ -387,3 +387,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Inline event handlers in Server Component trees can trigger production render/runtime failures and blur execution boundaries.
 - Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/RestDayToggleCheckbox.tsx
 - Status: Proposed
+
+## 2026-02-28 — Keep workout stats lookups keyed strictly by canonical exercise UUIDs
+- Type: Guardrail
+- Summary: For selection-driven stats UI, always query/map `exercise_stats` by canonical `exercises.id` (or `exercise_id` on join rows) and never by join-table row IDs or slug-like identifiers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Mismatched identifiers silently hide valid stats rows and create hard-to-debug UI drift in measurement panels.
+- Evidence: src/app/session/[id]/queries.ts, src/components/ExercisePicker.tsx, src/lib/exercise-stats.ts
+- Status: Proposed

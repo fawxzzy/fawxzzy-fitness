@@ -122,6 +122,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           addExerciseAction={addExerciseAction}
           exerciseStats={exerciseOptions.map((exercise) => ({
             exerciseId: exercise.id,
+            statsExerciseId: exerciseStatsByExerciseId.get(exercise.id)?.exercise_id ?? undefined,
             lastWeight: exerciseStatsByExerciseId.get(exercise.id)?.last_weight ?? null,
             lastReps: exerciseStatsByExerciseId.get(exercise.id)?.last_reps ?? null,
             lastUnit: exerciseStatsByExerciseId.get(exercise.id)?.last_unit ?? null,

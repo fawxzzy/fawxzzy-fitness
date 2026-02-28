@@ -10,6 +10,7 @@ import type { ActionResult } from "@/lib/action-result";
 
 type ExerciseStatsOption = {
   exerciseId: string;
+  statsExerciseId?: string;
   lastWeight: number | null;
   lastReps: number | null;
   lastUnit: string | null;

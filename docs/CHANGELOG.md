@@ -1394,3 +1394,11 @@ WHAT:
 - Refined Settings sign-out presentation by placing it in a subtle Danger zone section and switching the button to a lower-emphasis destructive outline style.
 WHY:
 - Improves visual hierarchy and aligns Today + Settings with the cleaner glass UI language while reducing visual noise without changing behavior.
+
+### Fixed
+WHAT:
+- Corrected Add Exercise measurement stats wiring so Last/PR always resolves against the selected exercise’s canonical `exercises.id` and reliably appears when an `exercise_stats` row exists.
+- Added development-only diagnostics in the Measurements panel to show selected canonical ID, query ID, and matched stats row ID during selection.
+- Updated stats reads to bypass stale caching for this path.
+WHY:
+- The stats UI could miss existing rows when identifier wiring or stale reads diverged from canonical exercise IDs; this restores deterministic stats visibility and debugging confidence.
