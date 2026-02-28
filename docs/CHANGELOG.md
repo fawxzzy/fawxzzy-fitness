@@ -1,3 +1,11 @@
+### Added
+WHAT:
+- Added cached per-exercise personal stats (Last performed + PR based on best estimated 1RM set) and surfaced them in Add Exercise measurements and Exercise info.
+- Added a “Use last” action in Add Exercise measurements so users can tap to populate measurement fields from their latest logged set.
+- Added deterministic stat recomputation on session save and completed-session delete so Last/PR always reflect remaining history.
+WHY:
+- Reduces friction while adding exercises, improves motivation with immediate personal context, and preserves trust by preventing stale PR/Last values after history changes.
+
 ### Fixed
 WHAT:
 - Moved the Edit Routine day-card Rest day checkbox auto-submit interaction into a dedicated client component while keeping the server action mutation flow unchanged.

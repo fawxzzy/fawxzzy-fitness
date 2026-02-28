@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { recomputeExerciseStatsForSession } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateHistoryViews, revalidateSessionViews } from "@/lib/revalidation";
 import type { ActionResult } from "@/lib/action-result";
@@ -394,6 +395,8 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
   if (error) {
     return { ok: false, error: error.message };
   }
+
+  await recomputeExerciseStatsForSession(user.id, sessionId);
 
   revalidatePath("/today");
   revalidateHistoryViews();

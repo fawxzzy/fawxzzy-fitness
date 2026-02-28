@@ -38,10 +38,22 @@ type ExerciseOption = {
   muscle?: string[] | string | null;
 };
 
+type ExerciseStatsOption = {
+  exerciseId: string;
+  lastWeight: number | null;
+  lastReps: number | null;
+  lastUnit: string | null;
+  lastPerformedAt: string | null;
+  prWeight: number | null;
+  prReps: number | null;
+  prEst1rm: number | null;
+};
+
 type ExercisePickerProps = {
   exercises: ExerciseOption[];
   name: string;
   initialSelectedId?: string;
+  exerciseStats?: ExerciseStatsOption[];
   routineTargetConfig?: {
     weightUnit: "lbs" | "kg";
   };
@@ -132,6 +144,23 @@ function getDefaultMeasurementType(exercise: ExerciseOption) {
   return "reps" as const;
 }
 
+
+function formatMeasurementStat(weight: number | null, reps: number | null, unit: string | null) {
+  if (weight === null || reps === null) {
+    return null;
+  }
+
+  const weightLabel = Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
+  return `${weightLabel}${unit ? ` ${unit}` : ""} × ${reps}`;
+}
+
+function formatStatDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; iconSrc: string }) {
   return (
     <ExerciseAssetImage
@@ -142,7 +171,7 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
   );
 }
 
-export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig }: ExercisePickerProps) {
+export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig, exerciseStats = [] }: ExercisePickerProps) {
   const searchParams = useSearchParams();
   const [hasMounted, setHasMounted] = useState(false);
   const [search, setSearch] = useState("");
@@ -168,6 +197,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     });
   }, [exercises]);
 
+  const statsByExerciseId = useMemo(() => new Map(exerciseStats.map((row) => [row.exerciseId, row])), [exerciseStats]);
+
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
   const [scrollTopSnapshot, setScrollTopSnapshot] = useState(initialScrollTop);
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
@@ -179,6 +210,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [targetDuration, setTargetDuration] = useState("");
   const [targetDistance, setTargetDistance] = useState("");
   const [targetCalories, setTargetCalories] = useState("");
+  const [didApplyLast, setDidApplyLast] = useState(false);
   const [info, setInfo] = useState<{ exercise: ExerciseOption } | null>(null);
   const previousExerciseIdRef = useRef<string>(selectedId);
 
@@ -305,6 +337,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [availableTags, selectedTags]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
+  const selectedStats = selectedExercise ? statsByExerciseId.get(selectedExercise.id) : undefined;
   const infoDetails = useMemo(() => {
     if (!info) {
       return null;
@@ -350,6 +383,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     }
     setSelectedDefaultUnit(nextDefaultUnit);
     resetMeasurementFields();
+    setDidApplyLast(false);
     previousExerciseIdRef.current = selectedExercise.id;
   }, [resetMeasurementFields, routineTargetConfig, selectedExercise]);
 
@@ -594,6 +628,44 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 Reset measurements
               </Button>
             </div>
+
+            {selectedStats && (selectedStats.lastWeight !== null || selectedStats.prWeight !== null) ? (
+              <div className={cn("space-y-1 rounded-md border border-border/50 bg-[rgb(var(--bg)/0.2)] px-2 py-1.5 text-xs text-muted", didApplyLast ? "border-accent/40" : "")}>
+                {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit) && selectedStats.lastPerformedAt ? (
+                  <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)} · {formatStatDate(selectedStats.lastPerformedAt)}</p>
+                ) : null}
+                {formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) ? (
+                  <p>PR: {formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null)}</p>
+                ) : null}
+                {selectedStats.lastWeight !== null && selectedStats.lastReps !== null ? (
+                  <div className="flex justify-start">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-7 px-1 text-xs"
+                      onClick={() => {
+                        setTargetWeight(String(selectedStats.lastWeight));
+                        setTargetRepsMin(String(selectedStats.lastReps));
+                        setTargetRepsMax(String(selectedStats.lastReps));
+                        if (selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs") {
+                          setTargetWeightUnit(selectedStats.lastUnit);
+                        }
+                        setSelectedMeasurements((current) => {
+                          const next = new Set(current);
+                          next.add("weight");
+                          next.add("reps");
+                          return Array.from(next);
+                        });
+                        setDidApplyLast(true);
+                        setTimeout(() => setDidApplyLast(false), 1200);
+                      }}
+                    >
+                      Use last
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {isMeasurementsOpen ? (
               <div className="grid grid-cols-2 gap-2 text-sm">

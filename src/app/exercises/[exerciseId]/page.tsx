@@ -3,6 +3,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
+import { getExerciseStatsForExercise } from "@/lib/exercise-stats";
 import { getExerciseHowToImageSrc, getExerciseMusclesImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -16,6 +17,20 @@ type PageProps = {
 };
 
 const tagClassName = "rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
+
+
+function formatWeightReps(weight: number | null, reps: number | null, unit: string | null) {
+  if (weight === null || reps === null) return null;
+  const weightLabel = Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
+  return `${weightLabel}${unit ? ` ${unit}` : ""} × ${reps}`;
+}
+
+function formatShortDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
 function MetaTag({ value }: { value: string | null }) {
   if (!value) return null;
@@ -66,6 +81,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
       : null;
 
   const returnHref = searchParams?.returnTo?.startsWith("/") ? searchParams.returnTo : undefined;
+  const stats = await getExerciseStatsForExercise(user.id, params.exerciseId);
   if (!exercise) {
     notFound();
   }
@@ -109,6 +125,19 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
         </div>
 
         {exercise.how_to_short ? <p className="text-sm text-text">{exercise.how_to_short}</p> : null}
+
+
+        {stats && (stats.last_weight !== null || stats.pr_weight !== null) ? (
+          <div className="space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] p-2">
+            <p className="text-xs uppercase tracking-wide text-muted">Personal</p>
+            {formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) && stats.last_performed_at ? (
+              <p className="text-sm text-text">Last: {formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit)} · {formatShortDate(stats.last_performed_at)}</p>
+            ) : null}
+            {formatWeightReps(stats.pr_weight, stats.pr_reps, null) ? (
+              <p className="text-sm text-text">PR: {formatWeightReps(stats.pr_weight, stats.pr_reps, null)}{stats.pr_est_1rm ? ` · Est 1RM ${Math.round(stats.pr_est_1rm)}` : ""}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         {primaryMuscles.length > 0 ? (
           <div>

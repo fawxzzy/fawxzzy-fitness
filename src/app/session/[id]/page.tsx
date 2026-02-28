@@ -96,6 +96,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     exerciseOptions,
     exerciseNameMap,
     customExercises,
+    exerciseStatsByExerciseId,
   } = await getSessionPageData(params.id);
 
   const unitLabel = routine?.weight_unit ?? "kg";
@@ -119,6 +120,16 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           initialSelectedId={searchParams?.exerciseId}
           weightUnit={unitLabel}
           addExerciseAction={addExerciseAction}
+          exerciseStats={exerciseOptions.map((exercise) => ({
+            exerciseId: exercise.id,
+            lastWeight: exerciseStatsByExerciseId.get(exercise.id)?.last_weight ?? null,
+            lastReps: exerciseStatsByExerciseId.get(exercise.id)?.last_reps ?? null,
+            lastUnit: exerciseStatsByExerciseId.get(exercise.id)?.last_unit ?? null,
+            lastPerformedAt: exerciseStatsByExerciseId.get(exercise.id)?.last_performed_at ?? null,
+            prWeight: exerciseStatsByExerciseId.get(exercise.id)?.pr_weight ?? null,
+            prReps: exerciseStatsByExerciseId.get(exercise.id)?.pr_reps ?? null,
+            prEst1rm: exerciseStatsByExerciseId.get(exercise.id)?.pr_est_1rm ?? null,
+          }))}
           customExerciseSection={
             <CollapsibleCard
               title="Add custom exercise"

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import { getSessionTargets } from "@/lib/session-targets";
+import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
@@ -176,6 +177,7 @@ export async function getSessionPageData(sessionId: string) {
   const exerciseOptions = await listExercises();
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
+  const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
 
   return {
     sessionRow: session as SessionRow,
@@ -186,5 +188,6 @@ export async function getSessionPageData(sessionId: string) {
     exerciseOptions,
     exerciseNameMap,
     customExercises,
+    exerciseStatsByExerciseId,
   };
 }

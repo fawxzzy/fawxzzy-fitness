@@ -1,0 +1,198 @@
+import { supabaseServer } from "@/lib/supabase/server";
+
+type HistoricalSetRow = {
+  set_index: number;
+  weight: number | null;
+  reps: number | null;
+  weight_unit: "lbs" | "kg" | null;
+  session_exercise:
+    | {
+        session_id: string;
+        session:
+          | {
+              performed_at: string;
+              status: "in_progress" | "completed";
+            }
+          | Array<{
+              performed_at: string;
+              status: "in_progress" | "completed";
+            }>
+          | null;
+      }
+    | Array<{
+        session_id: string;
+        session:
+          | {
+              performed_at: string;
+              status: "in_progress" | "completed";
+            }
+          | Array<{
+              performed_at: string;
+              status: "in_progress" | "completed";
+            }>
+          | null;
+      }>
+    | null;
+};
+
+type ExerciseStatsRow = {
+  exercise_id: string;
+  last_weight: number | null;
+  last_reps: number | null;
+  last_unit: string | null;
+  last_performed_at: string | null;
+  pr_weight: number | null;
+  pr_reps: number | null;
+  pr_est_1rm: number | null;
+  pr_achieved_at: string | null;
+};
+
+function computeEstimated1rm(weight: number, reps: number) {
+  return weight * (1 + reps / 30);
+}
+
+function normalizeSessionExercise(set: HistoricalSetRow) {
+  const sessionExercise = Array.isArray(set.session_exercise)
+    ? (set.session_exercise[0] ?? null)
+    : (set.session_exercise ?? null);
+  const session = sessionExercise?.session;
+  const normalizedSession = Array.isArray(session) ? (session[0] ?? null) : (session ?? null);
+
+  return {
+    sessionId: sessionExercise?.session_id ?? "",
+    performedAt: normalizedSession?.performed_at ?? "",
+    status: normalizedSession?.status ?? null,
+  };
+}
+
+function performedAtValue(set: HistoricalSetRow) {
+  return normalizeSessionExercise(set).performedAt;
+}
+
+async function getExerciseIdsForSession(userId: string, sessionId: string): Promise<string[]> {
+  const supabase = supabaseServer();
+  const { data, error } = await supabase
+    .from("session_exercises")
+    .select("exercise_id")
+    .eq("user_id", userId)
+    .eq("session_id", sessionId);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return Array.from(new Set(data.map((row) => row.exercise_id)));
+}
+
+export async function recomputeExerciseStatsForSession(userId: string, sessionId: string): Promise<void> {
+  const exerciseIds = await getExerciseIdsForSession(userId, sessionId);
+  if (!exerciseIds.length) return;
+  await recomputeExerciseStatsForExercises(userId, exerciseIds);
+}
+
+export async function recomputeExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<void> {
+  if (!exerciseIds.length) {
+    return;
+  }
+
+  const uniqueExerciseIds = Array.from(new Set(exerciseIds));
+  const supabase = supabaseServer();
+
+  for (const exerciseId of uniqueExerciseIds) {
+    const { data: historySets, error } = await supabase
+      .from("sets")
+      .select("set_index, weight, reps, weight_unit, session_exercise:session_exercises!inner(session_id, session:sessions!inner(performed_at, status))")
+      .eq("user_id", userId)
+      .eq("session_exercise.user_id", userId)
+      .eq("session_exercise.exercise_id", exerciseId)
+      .eq("session_exercise.session.status", "completed");
+
+    if (error) {
+      continue;
+    }
+
+    const sets = ((historySets ?? []) as unknown as HistoricalSetRow[])
+      .filter((set) => normalizeSessionExercise(set).status === "completed")
+      .sort((a, b) => {
+        if (performedAtValue(b) !== performedAtValue(a)) {
+          return performedAtValue(b).localeCompare(performedAtValue(a));
+        }
+        return b.set_index - a.set_index;
+      });
+
+    const lastSet = sets[0] ?? null;
+
+    const prSet = sets
+      .filter((set) => {
+        const weight = typeof set.weight === "number" ? set.weight : 0;
+        const reps = typeof set.reps === "number" ? set.reps : 0;
+        return weight > 0 && reps > 0;
+      })
+      .map((set) => ({
+        set,
+        est1rm: computeEstimated1rm(set.weight ?? 0, set.reps ?? 0),
+        performedAt: performedAtValue(set),
+      }))
+      .sort((a, b) => {
+        if (b.est1rm !== a.est1rm) return b.est1rm - a.est1rm;
+        if (b.performedAt !== a.performedAt) {
+          return b.performedAt.localeCompare(a.performedAt);
+        }
+        return b.set.set_index - a.set.set_index;
+      })[0] ?? null;
+
+    const hasAnySet = Boolean(lastSet || prSet);
+
+    if (!hasAnySet) {
+      await supabase
+        .from("exercise_stats")
+        .delete()
+        .eq("user_id", userId)
+        .eq("exercise_id", exerciseId);
+      continue;
+    }
+
+    await supabase
+      .from("exercise_stats")
+      .upsert({
+        user_id: userId,
+        exercise_id: exerciseId,
+        last_weight: lastSet && typeof lastSet.weight === "number" && lastSet.weight > 0 ? lastSet.weight : null,
+        last_reps: lastSet && typeof lastSet.reps === "number" && lastSet.reps > 0 ? lastSet.reps : null,
+        last_unit: lastSet?.weight_unit ?? null,
+        last_performed_at: lastSet ? performedAtValue(lastSet) : null,
+        pr_weight: prSet?.set.weight ?? null,
+        pr_reps: prSet?.set.reps ?? null,
+        pr_est_1rm: prSet?.est1rm ?? null,
+        pr_achieved_at: prSet?.performedAt ?? null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id,exercise_id" });
+  }
+}
+
+export async function getExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<Map<string, ExerciseStatsRow>> {
+  if (!exerciseIds.length) {
+    return new Map();
+  }
+
+  const supabase = supabaseServer();
+  const { data } = await supabase
+    .from("exercise_stats")
+    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at")
+    .eq("user_id", userId)
+    .in("exercise_id", exerciseIds);
+
+  return new Map(((data ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
+}
+
+export async function getExerciseStatsForExercise(userId: string, exerciseId: string): Promise<ExerciseStatsRow | null> {
+  const supabase = supabaseServer();
+  const { data } = await supabase
+    .from("exercise_stats")
+    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at")
+    .eq("user_id", userId)
+    .eq("exercise_id", exerciseId)
+    .maybeSingle();
+
+  return (data as ExerciseStatsRow | null) ?? null;
+}

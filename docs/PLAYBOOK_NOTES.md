@@ -11,6 +11,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 ## PROPOSED
 
 
+## 2026-02-28 — Recompute derived performance caches after both additive and destructive history mutations
+- Type: Guardrail
+- Summary: Any cached per-entity performance snapshot (e.g., Last performed, PR) must be recomputed deterministically after session completion and session deletion for only the affected entities.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Prevents stale “best/last” claims after destructive history edits while keeping recomputation bounded and predictable.
+- Evidence: src/lib/exercise-stats.ts, src/app/session/[id]/actions.ts, src/app/history/page.tsx
+- Status: Proposed
+
 ## 2026-02-28 — Render destructive confirmations in a body-level portal with full-viewport isolation
 - Type: Guardrail
 - Summary: Destructive confirmations launched from scrollable/tinted card lists should mount through `document.body` (or shared Dialog portal) with fixed full-viewport backdrop + blur to avoid stacking-context bleed-through.
