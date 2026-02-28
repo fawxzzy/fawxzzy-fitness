@@ -85,8 +85,6 @@ export default async function RoutinesPage() {
       <AppNav />
 
       <Glass variant="base" className="space-y-3 p-3" interactive={false}>
-        <h1 className="text-lg font-semibold text-text">Routines</h1>
-
         {routines.length === 0 ? (
           <div className="space-y-4 rounded-xl border border-border/70 bg-surface/65 p-4">
             <p className="text-sm text-muted">No routines yet.</p>
@@ -99,7 +97,7 @@ export default async function RoutinesPage() {
           </div>
         ) : (
           <>
-            <details className="group rounded-xl border border-border/70 bg-surface/65">
+            <details className="group mt-1 rounded-xl border border-border/45 bg-surface/65">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm text-text marker:content-none">
                 <span className="truncate font-medium">{activeRoutine?.name ?? "Select routine"}</span>
                 <span className="text-xs text-muted transition-transform group-open:rotate-180">⌄</span>
