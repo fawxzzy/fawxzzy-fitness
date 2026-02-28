@@ -1,3 +1,11 @@
+### Fixed
+WHAT:
+- Added missing `session_exercises` goal target columns for reps, weight, time (seconds), distance, and calories so Current Session add-exercise goal reads/writes align with the live schema.
+- Fixed Exercise Info personal stats lookup to query `exercise_stats` with the exercise’s canonical ID and render Last/PR when either stat exists.
+WHY:
+- Prevents runtime schema-cache errors when Add Exercise includes supported goal metrics like distance/time/calories and ensures session goals persist after reload.
+- Surfaces derived personal stats consistently on Exercise Info instead of dropping Last/PR when route-level IDs differ from canonical exercise IDs.
+
 ### Added
 WHAT:
 - Restored a destructive “Delete Routine” control on the Edit Routine screen with an explicit confirmation dialog and safer danger-zone placement.
