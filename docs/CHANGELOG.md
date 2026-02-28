@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Fixed Exercise Info overlay scroll locking so body/page scrolling is fully restored immediately after closing the overlay.
+WHY:
+- Prevents the Add Exercise screen from becoming non-scrollable after viewing Exercise Info, especially on iOS Safari/PWA.
+
 ### Changed
 WHAT:
 - Added a left-side Info button on each “Currently added workouts” exercise row in the Edit Day list and wired it to open the existing Exercise Info overlay for that exercise.

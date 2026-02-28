@@ -222,17 +222,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, []);
 
   useEffect(() => {
-    if (!info) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [info]);
-
-  useEffect(() => {
     setHasMounted(true);
   }, []);
 
