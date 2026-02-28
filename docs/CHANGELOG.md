@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Removed the chevron from History cards so only the trash affordance remains on the right edge.
+WHY:
+- Reduces redundant visual noise and avoids implying a second right-side action while keeping the existing card-open and delete interactions clear.
+
+### Changed
+WHAT:
 - Removed chevron icon from Change Workout button on Today screen.
 WHY:
 - The chevron implied dropdown/accordion behavior and added unnecessary visual noise. Removing it clarifies that this is a direct action button and improves UI consistency.
