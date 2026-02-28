@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Refactored the Routines page into a Current Active Routine overview with a routine switcher dropdown, compact active-day preview, and a single primary Edit Routine action.
+- Moved routine creation into the switcher menu as “+ Create New Routine” when routines already exist, and replaced the previous list view with a dedicated empty-state CTA when no routines exist.
+- Removed Active and Delete controls from the Routines overview screen.
+WHY:
+- Reduces CRUD-heavy screen complexity, aligns the page to the one-active-routine model, and makes routine management faster with a cleaner, overview-first UX.
+
+### Changed
+WHAT:
 - Standardized destructive UX across routines, today, history, session, and routine-day editing flows with explicit destructive confirmations for high-risk deletions and clearer destructive wording (including “Discard Workout” and “Replace Day”).
 - Added reusable destructive confirmation and undo-toast patterns, and applied undo affordances to active-session set and exercise removals where state can be safely restored.
 - Applied confirmation for medium-risk deletions that are not safely undoable (completed-log exercise removal and custom exercise deletion).
