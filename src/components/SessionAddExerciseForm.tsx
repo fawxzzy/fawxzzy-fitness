@@ -6,19 +6,9 @@ import { ExercisePicker } from "@/components/ExercisePicker";
 import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
+import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import type { ActionResult } from "@/lib/action-result";
 
-type ExerciseStatsOption = {
-  exerciseId: string;
-  statsExerciseId?: string;
-  lastWeight: number | null;
-  lastReps: number | null;
-  lastUnit: string | null;
-  lastPerformedAt: string | null;
-  prWeight: number | null;
-  prReps: number | null;
-  prEst1rm: number | null;
-};
 
 type ExerciseOption = {
   id: string;

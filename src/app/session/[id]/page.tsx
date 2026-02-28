@@ -8,6 +8,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { formatGoalStatLine, type DisplayTarget } from "@/lib/session-targets";
+import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import {
   addExerciseAction,
   addSetAction,
@@ -120,24 +121,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           initialSelectedId={searchParams?.exerciseId}
           weightUnit={unitLabel}
           addExerciseAction={addExerciseAction}
-          exerciseStats={exerciseOptions.map((exercise) => {
-            const canonicalExerciseId = "exercise_id" in exercise && typeof exercise.exercise_id === "string"
-              ? exercise.exercise_id
-              : exercise.id;
-            const stats = exerciseStatsByExerciseId.get(canonicalExerciseId);
-
-            return {
-              exerciseId: canonicalExerciseId,
-              statsExerciseId: stats?.exercise_id ?? undefined,
-              lastWeight: stats?.last_weight ?? null,
-              lastReps: stats?.last_reps ?? null,
-              lastUnit: stats?.last_unit ?? null,
-              lastPerformedAt: stats?.last_performed_at ?? null,
-              prWeight: stats?.pr_weight ?? null,
-              prReps: stats?.pr_reps ?? null,
-              prEst1rm: stats?.pr_est_1rm ?? null,
-            };
-          })}
+          exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
           customExerciseSection={
             <CollapsibleCard
               title="Add custom exercise"
