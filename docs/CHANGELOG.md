@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Removed chevron icon from Change Workout button on Today screen.
+WHY:
+- The chevron implied dropdown/accordion behavior and added unnecessary visual noise. Removing it clarifies that this is a direct action button and improves UI consistency.
+
+### Changed
+WHAT:
 - Redesigned the History tab list into compact performance timeline cards with clearer hierarchy (session, day + duration, timestamp), subdued destructive controls, and a themed empty state.
 - Refined Log Details and in-place edit UI to be denser and calmer in dark glass mode, including cleaner set presentation, explicit edit-state signaling, and normalized action buttons across Back/Edit/Cancel/Save/Delete/Add/Remove flows.
 - Removed filler/empty-value text in History surfaces so optional notes only render when present.
