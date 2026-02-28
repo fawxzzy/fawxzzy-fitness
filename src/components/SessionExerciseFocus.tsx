@@ -204,13 +204,22 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="glass-surface glass-sheen rounded-md p-2">
+        <div className="rounded-lg border border-border/70 bg-surface/70 p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5">
               <p className="text-base font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
               <p className="text-xs text-muted">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
-            <button type="button" aria-label="Close exercise" onClick={() => setSelectedExerciseId(null)} className={`rounded-md px-2 py-1 text-lg leading-none text-muted hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>‹</button>
+            <AppButton
+              type="button"
+              aria-label="Close exercise"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedExerciseId(null)}
+              className={tapFeedbackClass}
+            >
+              Back
+            </AppButton>
           </div>
         </div>
       )}

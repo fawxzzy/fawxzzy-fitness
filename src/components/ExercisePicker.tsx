@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
+import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
@@ -375,7 +376,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         ) : null}
       </div>
 
-      <div className="space-y-1.5 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.22)] p-2">
+      <div className="space-y-1.5 rounded-md border border-border/70 bg-[rgb(var(--bg)/0.28)] p-2.5">
         <Button
           type="button"
           variant="secondary"
@@ -385,10 +386,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         >
           <span>Filters</span>
           <span className="ml-auto inline-flex items-center gap-2">
-            <Pill active={isFiltersOpen} className="text-[10px]">{isFiltersOpen ? "Open" : "Closed"}</Pill>
-            <svg aria-hidden="true" viewBox="0 0 20 20" className={cn("h-4 w-4 text-muted transition-transform", isFiltersOpen ? "rotate-180" : "rotate-0")}>
-              <path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Pill active={isFiltersOpen} className="text-[10px] uppercase">{isFiltersOpen ? "Open" : "Closed"}</Pill>
+            {isFiltersOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
           </span>
         </Button>
 
@@ -457,7 +456,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <ul
           ref={scrollContainerRef}
           onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-          className="max-h-52 overflow-y-auto rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
+          className="max-h-64 overflow-y-auto overscroll-contain rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
         >
           {filteredExercises.map((exercise) => {
             const isSelected = exercise.id === selectedId;
@@ -572,9 +571,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
               className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm font-medium text-text transition-colors hover:bg-surface-2-soft/80 active:bg-surface-2-active/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [-webkit-tap-highlight-color:transparent]"
             >
               <span>Modify measurements</span>
-              <svg aria-hidden="true" viewBox="0 0 20 20" className={cn("h-4 w-4 text-muted transition-transform", isMeasurementsOpen ? "rotate-180" : "rotate-0")}>
-                <path d="M5.5 7.5 10 12l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              {isMeasurementsOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
             </button>
             <div className="flex justify-end">
               <Button

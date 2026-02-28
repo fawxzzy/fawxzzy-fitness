@@ -120,7 +120,7 @@ export default async function RoutinesPage() {
     <section className="space-y-4">
       <AppNav />
 
-      <Glass variant="base" className="space-y-2 p-2" interactive={false}>
+      <Glass variant="base" className="space-y-3 p-3" interactive={false}>
         <div className="w-full">
           <Link
             href="/routines/new"
@@ -130,26 +130,27 @@ export default async function RoutinesPage() {
           </Link>
         </div>
 
-        <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
+        <ul className={`${listShellClasses.viewport} ${listShellClasses.list} gap-2`}>
           {routines.map((routine) => {
             const isActive = profile.active_routine_id === routine.id;
 
             return (
-              <li key={routine.id} className={listShellClasses.card}>
+              <li key={routine.id} className={`${listShellClasses.card} space-y-3 border-border/70 bg-surface/70 p-3`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-text underline decoration-border underline-offset-2">{routine.name}</p>
+                    <p className="truncate text-base font-semibold text-text">{routine.name}</p>
+                    <p className="mt-1 text-xs text-muted">{routine.cycle_length_days}-day cycle</p>
                   </div>
                   <div className="flex gap-2 text-sm">
                     <Link
                       href={`/routines/${routine.id}/edit`}
-                      className={getAppButtonClassName({ variant: "secondary", size: "sm", className: listShellClasses.pillAction })}
+                      className={getAppButtonClassName({ variant: "secondary", size: "sm", className: `h-8 px-3 ${listShellClasses.pillAction}` })}
                     >
                       Edit
                     </Link>
                     <form action={deleteRoutineAction}>
                       <input type="hidden" name="routineId" value={routine.id} />
-                      <DestructiveButton type="submit" size="sm" className={listShellClasses.pillAction}>
+                      <DestructiveButton type="submit" size="sm" className={`h-8 px-3 ${listShellClasses.pillAction}`}>
                         Delete
                       </DestructiveButton>
                     </form>
@@ -162,7 +163,7 @@ export default async function RoutinesPage() {
                     disabled={isActive}
                     variant={isActive ? "primary" : "secondary"}
                     size="sm"
-                    className="mt-3 w-full"
+                    className={`w-full ${isActive ? "border-emerald-400/45 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/20 active:bg-emerald-500/25" : ""}`}
                   >
                     {isActive ? "Active" : "Set Active"}
                   </AppButton>

@@ -383,11 +383,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 <input type="hidden" name="sessionId" value={todayPayload.inProgressSessionId} />
                 <button
                   type="submit"
-                  className={getAppButtonClassName({
-                    variant: "destructive",
-                    fullWidth: true,
-                    className: "active:border-red-900/90 active:bg-[rgb(92_24_35)] focus-visible:ring-red-500/35",
-                  })}
+                  className={getAppButtonClassName({ variant: "destructive", fullWidth: true })}
                 >
                   End Workout
                 </button>

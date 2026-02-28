@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { SecondaryButton } from "@/components/ui/AppButton";
+import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import type { ActionResult } from "@/lib/action-result";
 
 type TodayExercise = {
@@ -75,7 +76,8 @@ export function TodayDayPicker({
         }}
         aria-expanded={isPickerOpen}
       >
-        {isPickerOpen ? "Hide options" : "Change Workout"}
+        <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
+        {isPickerOpen ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
       </SecondaryButton>
 
       {isPickerOpen ? (

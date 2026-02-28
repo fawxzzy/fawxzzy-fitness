@@ -338,19 +338,24 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </section>
 
           <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={searchParams?.addExerciseOpen === "1"}>
-            <div className="space-y-3 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-3">
-              <p className="text-sm font-semibold text-text">Add custom exercise</p>
+            <CollapsibleCard
+              title="Add custom exercise"
+              summary={`${customExercises.length} saved`}
+              defaultOpen={false}
+              className="border border-border/60"
+              bodyClassName="bg-[rgb(var(--bg)/0.35)]"
+            >
               <form action={createCustomExerciseAction} className="space-y-2">
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={controlClassName} />
                 <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
               </form>
               {customExercises.length > 0 ? (
-                <ul className="space-y-2 border-t border-border/50 pt-3">
+                <ul className="mt-3 space-y-2 border-t border-border/50 pt-3">
                   {customExercises.map((exercise) => (
                     <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-2">
                       <p className="text-xs font-semibold">{exercise.name}</p>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
+                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <form action={renameCustomExerciseAction} className="flex gap-2">
                           <input type="hidden" name="returnTo" value={returnTo} />
                           <input type="hidden" name="exerciseId" value={exercise.id} />
@@ -367,7 +372,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                   ))}
                 </ul>
               ) : null}
-            </div>
+            </CollapsibleCard>
 
             <form action={addRoutineDayExerciseAction} className="space-y-2">
               <input type="hidden" name="routineId" value={params.id} />
