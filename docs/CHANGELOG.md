@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Merged “Add custom exercise” into the expanded “Add exercises” panel on both the Edit Routine day screen and the Current Session screen so each flow now has a single exercise-add section.
+WHY:
+- Reduces UI clutter, improves discoverability, and keeps one consistent mental model for adding exercises in both planning and in-session workflows.
+
+### Changed
+WHAT:
 - Normalized Today and Current Session interaction surfaces to remove bright light/grey press and container states in favor of consistent dark-theme surfaces.
 - Updated Current Session disclosure controls so “Modify measurements” defaults closed per exercise focus, includes a clear chevron indicator, and preserves reliable open/close toggling.
 - Standardized scoped session controls onto the shared app button system for Save set, Add Exercise, Save Custom Exercise, Rename/Delete custom exercise, Skip/Remove exercise, and End Workout.

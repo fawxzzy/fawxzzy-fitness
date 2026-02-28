@@ -235,42 +235,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-      <details className="rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)]">
-        <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2-soft active:bg-surface-2-active [&::-webkit-details-marker]:hidden">
-          <span>Add custom exercise</span>
-          <span aria-hidden="true" className="details-chevron text-xs text-muted">⌄</span>
-        </summary>
-        <div className="space-y-3 px-4 pb-4">
-          <form action={createCustomExerciseAction} className="space-y-2">
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={controlClassName} />
-            <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
-          </form>
-          {customExercises.length > 0 ? (
-            <ul className="space-y-2">
-              {customExercises.map((exercise) => (
-                <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-2">
-                  <p className="text-xs font-semibold">{exercise.name}</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <form action={renameCustomExerciseAction} className="flex gap-2">
-                      <input type="hidden" name="returnTo" value={returnTo} />
-                      <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={controlClassName} />
-                      <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
-                    </form>
-                    <form action={deleteCustomExerciseAction}>
-                      <input type="hidden" name="returnTo" value={returnTo} />
-                      <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <AppButton type="submit" variant="destructive" size="sm" fullWidth>Delete</AppButton>
-                    </form>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      </details>
-
       <form action={saveRoutineDayAction} className="space-y-3 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.5)] p-4">
         <input type="hidden" name="routineId" value={params.id} />
         <input type="hidden" name="routineDayId" value={params.dayId} />
@@ -374,6 +338,37 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </section>
 
           <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={searchParams?.addExerciseOpen === "1"}>
+            <div className="space-y-3 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-3">
+              <p className="text-sm font-semibold text-text">Add custom exercise</p>
+              <form action={createCustomExerciseAction} className="space-y-2">
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={controlClassName} />
+                <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
+              </form>
+              {customExercises.length > 0 ? (
+                <ul className="space-y-2 border-t border-border/50 pt-3">
+                  {customExercises.map((exercise) => (
+                    <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-2">
+                      <p className="text-xs font-semibold">{exercise.name}</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <form action={renameCustomExerciseAction} className="flex gap-2">
+                          <input type="hidden" name="returnTo" value={returnTo} />
+                          <input type="hidden" name="exerciseId" value={exercise.id} />
+                          <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={controlClassName} />
+                          <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
+                        </form>
+                        <form action={deleteCustomExerciseAction}>
+                          <input type="hidden" name="returnTo" value={returnTo} />
+                          <input type="hidden" name="exerciseId" value={exercise.id} />
+                          <AppButton type="submit" variant="destructive" size="sm" fullWidth>Delete</AppButton>
+                        </form>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+
             <form action={addRoutineDayExerciseAction} className="space-y-2">
               <input type="hidden" name="routineId" value={params.id} />
               <input type="hidden" name="routineDayId" value={params.dayId} />
