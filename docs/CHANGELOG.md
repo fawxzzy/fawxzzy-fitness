@@ -1286,3 +1286,11 @@ WHAT:
 - Normalized the embedded Add exercises panel styling in Current Session (layout framing, borders, spacing, collapsible measurement header affordances, and section consistency).
 WHY:
 - This improves visual cohesion and tap clarity across workout flows, removes harsh light-state regressions in the dark theme, and makes collapsible controls more predictable and readable on mobile.
+
+### Changed
+WHAT:
+- Polished Today, Current Session, Edit Routine, and Routines home UI surfaces to remove harsh light fills, normalize accordion/dropdown affordances with chevrons, and align destructive/button interaction styling with the dark theme system.
+- Updated exercise-adding flows so "Add custom exercise" now lives as a collapsed sub-section inside "Add exercises" in both Session and Routine Day editor screens.
+- Refined current-session focus/list and routines front-page card layouts for clearer hierarchy, cleaner spacing, and more consistent action controls.
+WHY:
+- Improves readability and interaction consistency on mobile, removes distracting bright pressed states, and keeps related workflows grouped where users expect them.

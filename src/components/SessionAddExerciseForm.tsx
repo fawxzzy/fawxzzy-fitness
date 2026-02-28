@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -27,12 +28,14 @@ export function SessionAddExerciseForm({
   initialSelectedId,
   weightUnit,
   addExerciseAction,
+  customExerciseSection,
 }: {
   sessionId: string;
   exercises: ExerciseOption[];
   initialSelectedId?: string;
   weightUnit: "lbs" | "kg";
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
+  customExerciseSection?: ReactNode;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -54,9 +57,10 @@ export function SessionAddExerciseForm({
     >
       <input type="hidden" name="sessionId" value={sessionId} />
       <div className="space-y-3 rounded-lg border border-border/70 bg-surface/60 p-3">
+        {customExerciseSection}
         <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} />
       </div>
-      <div className="border-t border-border/60 pt-2">
+      <div className="border-t border-border/70 pt-2">
         <AppButton type="submit" variant="primary" fullWidth>
           Add Exercise
         </AppButton>

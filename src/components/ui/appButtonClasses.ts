@@ -21,7 +21,7 @@ export function getAppButtonClassName({
     resolvedVariant === "primary"
       ? "border-[rgb(var(--button-primary-border))] bg-[rgb(var(--button-primary-bg))] text-[rgb(var(--button-primary-text))] hover:bg-[rgb(var(--button-primary-bg-hover))] active:bg-[rgb(var(--button-primary-bg-active))]"
       : resolvedVariant === "destructive"
-        ? "border-[rgb(var(--button-destructive-border))] bg-[rgb(var(--button-destructive-bg))] text-[rgb(var(--button-destructive-text))] hover:bg-[rgb(var(--button-destructive-bg-hover))] active:bg-[rgb(var(--button-destructive-bg-active))]"
+        ? "border-[rgb(var(--button-destructive-border))] bg-[rgb(var(--button-destructive-bg))] text-[rgb(var(--button-destructive-text))] hover:bg-[rgb(var(--button-destructive-bg-hover))] active:border-[rgb(var(--button-destructive-border))] active:bg-[rgb(var(--button-destructive-bg-active))] active:shadow-[0_0_0_1px_rgb(var(--button-destructive-border)/0.35)]"
         : resolvedVariant === "ghost"
           ? "border-[rgb(var(--button-ghost-border))] bg-[rgb(var(--button-ghost-bg))] text-[rgb(var(--button-ghost-text))] hover:bg-[rgb(var(--button-ghost-bg-hover))] active:bg-[rgb(var(--button-ghost-bg-active))]"
           : "border-[rgb(var(--button-secondary-border))] bg-[rgb(var(--button-secondary-bg))] text-[rgb(var(--button-secondary-text))] hover:bg-[rgb(var(--button-secondary-bg-hover))] active:bg-[rgb(var(--button-secondary-bg-active))]";

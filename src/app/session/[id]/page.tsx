@@ -20,6 +20,8 @@ import { getSessionPageData } from "./queries";
 
 export const dynamic = "force-dynamic";
 
+const customExerciseInputClass = "w-full rounded-md border border-border/70 bg-[rgb(var(--bg)/0.45)] px-3 py-2 text-sm text-text";
+
 function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): {
   weight?: number;
   reps?: number;
@@ -110,44 +112,50 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       <ActionFeedbackToasts />
 
       <CollapsibleCard title="Add exercises" summary={`${sessionExercises.length} added`} defaultOpen={searchParams?.addExerciseOpen === "1"}>
-        <div className="space-y-3 rounded-md border border-border/70 bg-surface/70 p-3">
-          <p className="text-sm font-semibold">Add custom exercise</p>
-          <form action={createCustomExerciseAction} className="space-y-2">
-            <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
-            <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
-          </form>
-
-          {customExercises.length > 0 ? (
-            <ul className="space-y-2 border-t border-slate-200 pt-3">
-              {customExercises.map((exercise) => (
-                <li key={exercise.id} className="rounded-md bg-slate-50 p-2">
-                  <p className="text-xs font-semibold">{exercise.name}</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <form action={renameCustomExerciseAction} className="flex gap-2">
-                      <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
-                      <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs" />
-                      <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
-                    </form>
-                    <form action={deleteCustomExerciseAction}>
-                      <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
-                      <input type="hidden" name="exerciseId" value={exercise.id} />
-                      <AppButton type="submit" variant="destructive" size="sm" fullWidth>Delete</AppButton>
-                    </form>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-
         <SessionAddExerciseForm
           sessionId={params.id}
           exercises={exerciseOptions}
           initialSelectedId={searchParams?.exerciseId}
           weightUnit={unitLabel}
           addExerciseAction={addExerciseAction}
+          customExerciseSection={
+            <CollapsibleCard
+              title="Add custom exercise"
+              summary={`${customExercises.length} saved`}
+              defaultOpen={false}
+              className="border border-border/60"
+              bodyClassName="bg-[rgb(var(--bg)/0.35)]"
+            >
+              <form action={createCustomExerciseAction} className="space-y-2">
+                <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
+                <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={customExerciseInputClass} />
+                <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
+              </form>
+
+              {customExercises.length > 0 ? (
+                <ul className="mt-3 space-y-2 border-t border-border/60 pt-3">
+                  {customExercises.map((exercise) => (
+                    <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] p-2">
+                      <p className="text-xs font-semibold text-text">{exercise.name}</p>
+                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <form action={renameCustomExerciseAction} className="flex gap-2">
+                          <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
+                          <input type="hidden" name="exerciseId" value={exercise.id} />
+                          <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={customExerciseInputClass} />
+                          <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
+                        </form>
+                        <form action={deleteCustomExerciseAction}>
+                          <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
+                          <input type="hidden" name="exerciseId" value={exercise.id} />
+                          <AppButton type="submit" variant="destructive" size="sm" fullWidth>Delete</AppButton>
+                        </form>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </CollapsibleCard>
+          }
         />
       </CollapsibleCard>
 
