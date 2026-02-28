@@ -1,5 +1,14 @@
 ### Changed
 WHAT:
+- Redesigned the History tab list into compact performance timeline cards with clearer hierarchy (session, day + duration, timestamp), subdued destructive controls, and a themed empty state.
+- Refined Log Details and in-place edit UI to be denser and calmer in dark glass mode, including cleaner set presentation, explicit edit-state signaling, and normalized action buttons across Back/Edit/Cancel/Save/Delete/Add/Remove flows.
+- Removed filler/empty-value text in History surfaces so optional notes only render when present.
+WHY:
+- Improves scanability and reduces visual noise while preserving existing history behaviors and data workflows.
+- Aligns History interactions with the app’s normalized dark glass + green accent UI system for more consistent tap confidence across screens.
+
+### Changed
+WHAT:
 - Merged “Add custom exercise” into the expanded “Add exercises” panel on both the Edit Routine day screen and the Current Session screen so each flow now has a single exercise-add section.
 WHY:
 - Reduces UI clutter, improves discoverability, and keeps one consistent mental model for adding exercises in both planning and in-session workflows.
