@@ -1474,3 +1474,10 @@ WHAT:
 - Refreshed app-level DB typing for `session_exercises` goal fields to reflect set-range columns.
 WHY:
 - Prevents Add Exercise schema-cache failures caused by selecting/writing a non-existent legacy set target column and keeps session goal behavior consistent with the range-target model.
+
+### Fixed
+WHAT:
+- Corrected Current Session goal resolution so session-level `session_exercises` range goals are used as source of truth, with routine-template fallback only when all session goal ranges are empty.
+- Updated Goal rendering to show full range-aware output for sets, reps, and weight (including unit) when present, while still handling partial goals cleanly.
+WHY:
+- Prevents recently-added exercises from showing incomplete Goal text (for example only sets) after the range-column migration, and keeps displayed goals consistent with persisted session values.

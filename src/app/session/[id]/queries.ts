@@ -124,7 +124,19 @@ export async function getSessionPageData(sessionId: string) {
       ?? resolveDistanceUnit(exerciseRow?.default_unit)
       ?? "mi";
 
-    const goalSource = matchedRoutine ?? item;
+    const hasSessionGoal = item.target_sets_min !== null
+      || item.target_sets_max !== null
+      || item.target_reps_min !== null
+      || item.target_reps_max !== null
+      || item.target_weight_min !== null
+      || item.target_weight_max !== null
+      || item.target_time_seconds_min !== null
+      || item.target_time_seconds_max !== null
+      || item.target_distance_min !== null
+      || item.target_distance_max !== null
+      || item.target_calories_min !== null
+      || item.target_calories_max !== null;
+    const goalSource = hasSessionGoal ? item : matchedRoutine ?? item;
     const hasSetsTarget = ("target_sets_min" in goalSource && goalSource.target_sets_min !== null) || ("target_sets_max" in goalSource && goalSource.target_sets_max !== null) || ("target_sets" in goalSource && goalSource.target_sets !== null);
     const enabledMetrics = {
       reps: ("target_reps_min" in goalSource && goalSource.target_reps_min !== null) || ("target_reps_max" in goalSource && goalSource.target_reps_max !== null) || ("target_reps" in goalSource && goalSource.target_reps !== null),

@@ -36,16 +36,15 @@ function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "
 
   const prefill: { weight?: number; reps?: number; durationSeconds?: number; weightUnit?: "lbs" | "kg" } = {};
 
-  if (target.weight !== undefined) {
-    prefill.weight = target.weight;
+  const prefillWeight = target.weightMin ?? target.weightMax;
+  if (prefillWeight !== undefined) {
+    prefill.weight = prefillWeight;
     prefill.weightUnit = target.weightUnit ?? fallbackWeightUnit;
   }
 
-  if (target.repsText) {
-    const repsMatch = target.repsText.match(/\d+/);
-    if (repsMatch) {
-      prefill.reps = Number(repsMatch[0]);
-    }
+  const prefillReps = target.repsMin ?? target.repsMax;
+  if (prefillReps !== undefined) {
+    prefill.reps = prefillReps;
   }
 
   if (target.durationSeconds !== undefined) {
