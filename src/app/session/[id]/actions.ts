@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { recomputeExerciseStatsForSession } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateHistoryViews, revalidateSessionViews } from "@/lib/revalidation";
+import { parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
@@ -320,11 +321,28 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     .eq("session_id", sessionId)
     .eq("user_id", user.id);
 
+  const parsedGoals = parseExerciseGoalPayload(formData, { requireSets: false });
+  if (!parsedGoals.ok) {
+    return { ok: false, error: parsedGoals.error };
+  }
+
   const { data: exerciseDefaults } = await supabase
     .from("exercises")
     .select("measurement_type, default_unit")
     .eq("id", exerciseId)
     .maybeSingle();
+
+  const fallbackMeasurementType = exerciseDefaults?.measurement_type === "time"
+    || exerciseDefaults?.measurement_type === "distance"
+    || exerciseDefaults?.measurement_type === "time_distance"
+    || exerciseDefaults?.measurement_type === "reps"
+    ? exerciseDefaults.measurement_type
+    : "reps";
+  const fallbackDefaultUnit = exerciseDefaults?.default_unit === "mi"
+    || exerciseDefaults?.default_unit === "km"
+    || exerciseDefaults?.default_unit === "m"
+    ? exerciseDefaults.default_unit
+    : "mi";
 
   const { error } = await supabase.from("session_exercises").insert({
     session_id: sessionId,
@@ -332,8 +350,9 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     exercise_id: exerciseId,
     position: count ?? 0,
     is_skipped: false,
-    measurement_type: exerciseDefaults?.measurement_type ?? "reps",
-    default_unit: exerciseDefaults?.default_unit ?? "mi",
+    ...parsedGoals.payload,
+    measurement_type: parsedGoals.payload.measurement_type ?? fallbackMeasurementType,
+    default_unit: parsedGoals.payload.default_unit ?? fallbackDefaultUnit,
   });
 
   if (error) {

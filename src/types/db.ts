@@ -24,6 +24,16 @@ export type SessionExerciseRow = {
   is_skipped: boolean;
   measurement_type?: "reps" | "time" | "distance" | "time_distance";
   default_unit?: "mi" | "km" | "m" | null;
+  target_sets?: number | null;
+  target_reps?: number | null;
+  target_reps_min?: number | null;
+  target_reps_max?: number | null;
+  target_weight?: number | null;
+  target_weight_unit?: "lbs" | "kg" | null;
+  target_duration_seconds?: number | null;
+  target_distance?: number | null;
+  target_distance_unit?: "mi" | "km" | "m" | null;
+  target_calories?: number | null;
 };
 
 export type SetRow = {

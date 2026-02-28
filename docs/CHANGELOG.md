@@ -4,6 +4,12 @@ WHAT:
 - Added development-gated diagnostics around exercise stats fetch/query and render wiring for faster verification of query ID to stats ID matching.
 WHY:
 - Existing exercise_stats rows could be hidden when custom exercise IDs diverged from canonical IDs or when strict render guards suppressed partial valid stats, making personal history appear missing.
+- Fixed Current Session “Add Exercise” so measurement inputs (reps/weight/time/distance/calories) are saved as the new session exercise’s goal fields when the exercise is created.
+- Aligned measurement-to-goal mapping between Edit Routine add-exercise and Current Session add-exercise flows.
+- Updated session goal resolution to prefer saved session-exercise goals (including ad-hoc/non-template exercises) so goals remain visible immediately and after refresh.
+WHY:
+- The Current Session add path was not persisting measurement goal values, so created session exercises lost targets that users had entered in the Add Exercise UI.
+- Using one shared mapping contract prevents payload drift between routine editing and active-session exercise creation.
 
 ### Added
 WHAT:
