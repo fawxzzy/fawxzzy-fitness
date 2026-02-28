@@ -20,7 +20,22 @@ function parseRoutineExercisePayload(formData: FormData, returnTo: string) {
     redirect(`${returnTo}?error=${encodeURIComponent(parsed.error)}`);
   }
 
-  return parsed.payload;
+  const payload = parsed.payload;
+
+  return {
+    target_sets: payload.target_sets,
+    target_reps_min: payload.target_reps_min,
+    target_reps_max: payload.target_reps_max,
+    target_reps: payload.target_reps_min ?? payload.target_reps_max,
+    target_weight: payload.target_weight_min ?? payload.target_weight_max,
+    target_weight_unit: payload.target_weight_unit,
+    target_duration_seconds: payload.target_time_seconds_min ?? payload.target_time_seconds_max,
+    target_distance: payload.target_distance_min ?? payload.target_distance_max,
+    target_distance_unit: payload.target_distance_unit,
+    target_calories: payload.target_calories_min ?? payload.target_calories_max,
+    measurement_type: payload.measurement_type,
+    default_unit: payload.default_unit,
+  };
 }
 
 export async function saveRoutineDayAction(formData: FormData) {

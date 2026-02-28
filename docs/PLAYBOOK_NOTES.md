@@ -417,3 +417,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Nested forms can cause implicit submit bubbling and React/Next runtime submit errors during destructive actions.
 - Evidence: src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/components/destructive/ConfirmedServerFormButton.tsx
 - Status: Proposed
+
+## 2026-02-28 — Treat mutable DB columns as additive during contract migrations and move reads first
+- Type: Guardrail
+- Summary: For evolving DB contracts, ship additive migrations that introduce the new columns and immediately align read/query projections to the new contract before any cleanup of legacy columns.
+- Suggested Playbook File: Playbook/docs/PATTERNS/versioned-persistence.md
+- Rationale: Querying legacy columns during partial rollout can trip schema-cache/runtime errors; additive-first plus read alignment keeps deployments safe and reversible.
+- Evidence: supabase/migrations/029_session_exercises_range_goal_columns.sql, src/app/session/[id]/queries.ts, src/lib/session-targets.ts, src/lib/exercise-goal-payload.ts
+- Status: Proposed

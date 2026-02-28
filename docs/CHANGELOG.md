@@ -1452,3 +1452,11 @@ WHAT:
 - Updated the Edit Day exercise row actions so delete confirmation is no longer rendered inside the exercise update form.
 WHY:
 - Prevents unintended nested form submission when deleting an exercise, eliminating the React "unexpectedly submitted" runtime error in Edit Day.
+
+### Fixed
+WHAT:
+- Standardized `session_exercises` goal persistence and reads on the range contract (`*_min` / `*_max`) and removed legacy single-value target column usage from active session query paths.
+- Added a safe additive database migration for missing `session_exercises` range-goal columns (reps, weight, time seconds, distance, calories) with non-negative and NULL-safe min/max checks.
+- Kept Exercise Info Last/PR rendering bound to canonical exercise ID lookups with guard-based display for available stats.
+WHY:
+- Prevents recurring runtime/schema-cache failures caused by selecting or writing mismatched legacy goal columns and keeps session goal behavior deterministic across schema evolution.

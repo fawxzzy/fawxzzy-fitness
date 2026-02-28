@@ -25,15 +25,18 @@ export type SessionExerciseRow = {
   measurement_type?: "reps" | "time" | "distance" | "time_distance";
   default_unit?: "mi" | "km" | "m" | null;
   target_sets?: number | null;
-  target_reps?: number | null;
   target_reps_min?: number | null;
   target_reps_max?: number | null;
-  target_weight?: number | null;
+  target_weight_min?: number | null;
+  target_weight_max?: number | null;
   target_weight_unit?: "lbs" | "kg" | null;
-  target_duration_seconds?: number | null;
-  target_distance?: number | null;
+  target_time_seconds_min?: number | null;
+  target_time_seconds_max?: number | null;
+  target_distance_min?: number | null;
+  target_distance_max?: number | null;
   target_distance_unit?: "mi" | "km" | "m" | null;
-  target_calories?: number | null;
+  target_calories_min?: number | null;
+  target_calories_max?: number | null;
 };
 
 export type SetRow = {
