@@ -144,15 +144,14 @@ export default async function HistoryPage({
                         <p className="text-xs text-slate-400"><LocalDateTime value={session.performed_at} /></p>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <span aria-hidden="true" className="text-sm text-slate-500">›</span>
+                      <div className="flex items-center">
                         <form action={deleteSessionAction} className="pointer-events-auto">
                           <input type="hidden" name="sessionId" value={session.id} />
                           <DestructiveButton
                             type="submit"
                             size="sm"
                             aria-label="Delete session"
-                            className={`${listShellClasses.iconAction} h-7 w-7 shrink-0 !rounded-md !bg-transparent !px-0 !py-0 !text-rose-400 hover:!text-rose-200`}
+                            className={`${listShellClasses.iconAction} h-11 w-11 shrink-0 !rounded-md !bg-transparent !px-0 !py-0 !text-rose-400 hover:!text-rose-200`}
                           >
                             🗑
                           </DestructiveButton>
