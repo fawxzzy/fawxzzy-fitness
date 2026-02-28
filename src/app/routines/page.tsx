@@ -71,7 +71,32 @@ export default async function RoutinesPage() {
     activeRoutineDays = (routineDays ?? []) as RoutineDayRow[];
   }
 
-  const sortedActiveRoutineDays = [...activeRoutineDays].sort((a, b) => a.day_index - b.day_index);
+  const sortedActiveRoutineDays = activeRoutineDays
+    .map((day, index) => ({ day, index }))
+    .sort((a, b) => {
+      const left = Number.isFinite(a.day.day_index) ? a.day.day_index : null;
+      const right = Number.isFinite(b.day.day_index) ? b.day.day_index : null;
+
+      if (left !== null && right !== null) {
+        return left - right;
+      }
+
+      if (left !== null) {
+        return -1;
+      }
+
+      if (right !== null) {
+        return 1;
+      }
+
+      return a.index - b.index;
+    })
+    .map(({ day }) => day);
+
+  const totalDays = sortedActiveRoutineDays.length;
+  const restDays = sortedActiveRoutineDays.filter((day) => day.is_rest).length;
+  const trainingDays = Math.max(totalDays - restDays, 0);
+  const cycleLength = activeRoutine?.cycle_length_days ?? totalDays;
 
   if (process.env.NODE_ENV !== "production" && sortedActiveRoutineDays.length > 0 && sortedActiveRoutineDays[0]?.day_index !== 1) {
     console.warn("[routines] Active routine days are missing Day 1 in overview preview", {
@@ -134,25 +159,32 @@ export default async function RoutinesPage() {
               <div className="space-y-3 rounded-xl border border-border/70 bg-surface/65 p-4">
                 <div className="space-y-1">
                   <h2 className="text-lg font-semibold text-text">{activeRoutine.name}</h2>
-                  <p className="text-xs text-muted">{activeRoutine.cycle_length_days}-day cycle</p>
+                  <p className="text-xs text-muted/90">
+                    {cycleLength}-day cycle · {trainingDays} training · {restDays} rest
+                  </p>
                 </div>
 
-                <ul className="space-y-1 text-sm text-muted">
-                  {sortedActiveRoutineDays.slice(0, 5).map((day) => (
-                    <li key={day.id} className="truncate">
-                      Day {day.day_index}: {day.name?.trim() || (day.is_rest ? "Rest" : "Workout")}
-                    </li>
-                  ))}
-                  {sortedActiveRoutineDays.length > 5 ? <li>+{sortedActiveRoutineDays.length - 5} more days</li> : null}
-                  {sortedActiveRoutineDays.length === 0 ? <li>{activeRoutine.cycle_length_days} days</li> : null}
+                <ul className="space-y-0.5 text-xs leading-5 text-muted">
+                  {sortedActiveRoutineDays.map((day, index) => {
+                    const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+
+                    return (
+                      <li key={day.id} className="truncate">
+                        Day {dayNumber} · {day.name?.trim() || (day.is_rest ? "Rest" : "Workout")}
+                      </li>
+                    );
+                  })}
+                  {sortedActiveRoutineDays.length === 0 ? <li>No days configured yet</li> : null}
                 </ul>
 
-                <Link
-                  href={`/routines/${activeRoutine.id}/edit`}
-                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-                >
-                  Edit Routine
-                </Link>
+                <div className="border-t border-border/40 pt-3">
+                  <Link
+                    href={`/routines/${activeRoutine.id}/edit`}
+                    className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                  >
+                    Edit Routine
+                  </Link>
+                </div>
               </div>
             ) : null}
           </>

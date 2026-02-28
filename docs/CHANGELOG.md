@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Updated the Routines active overview card to display every configured day for the selected routine and added a compact summary row showing cycle length, training-day count, and rest-day count.
+WHY:
+- Better uses available space and improves at-a-glance understanding of routine structure without requiring extra navigation.
+
+### Changed
+WHAT:
 - Simplified the Routines overview layout by removing the duplicate in-content “Routines” label and reducing border noise between the routine switcher and overview card.
 WHY:
 - Improves visual hierarchy and the glass aesthetic by avoiding stacked wireframe-like outlines while keeping the same behavior.
