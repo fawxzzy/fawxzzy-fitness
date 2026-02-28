@@ -71,6 +71,15 @@ export default async function RoutinesPage() {
     activeRoutineDays = (routineDays ?? []) as RoutineDayRow[];
   }
 
+  const sortedActiveRoutineDays = [...activeRoutineDays].sort((a, b) => a.day_index - b.day_index);
+
+  if (process.env.NODE_ENV !== "production" && sortedActiveRoutineDays.length > 0 && sortedActiveRoutineDays[0]?.day_index !== 1) {
+    console.warn("[routines] Active routine days are missing Day 1 in overview preview", {
+      routineId: activeRoutine?.id,
+      dayIndexes: sortedActiveRoutineDays.map((day) => day.day_index),
+    });
+  }
+
   return (
     <section className="space-y-4">
       <AppNav />
@@ -131,13 +140,13 @@ export default async function RoutinesPage() {
                 </div>
 
                 <ul className="space-y-1 text-sm text-muted">
-                  {activeRoutineDays.slice(0, 5).map((day) => (
+                  {sortedActiveRoutineDays.slice(0, 5).map((day) => (
                     <li key={day.id} className="truncate">
-                      Day {day.day_index + 1}: {day.name?.trim() || (day.is_rest ? "Rest" : "Workout")}
+                      Day {day.day_index}: {day.name?.trim() || (day.is_rest ? "Rest" : "Workout")}
                     </li>
                   ))}
-                  {activeRoutineDays.length > 5 ? <li>+{activeRoutineDays.length - 5} more days</li> : null}
-                  {activeRoutineDays.length === 0 ? <li>{activeRoutine.cycle_length_days} days</li> : null}
+                  {sortedActiveRoutineDays.length > 5 ? <li>+{sortedActiveRoutineDays.length - 5} more days</li> : null}
+                  {sortedActiveRoutineDays.length === 0 ? <li>{activeRoutine.cycle_length_days} days</li> : null}
                 </ul>
 
                 <Link

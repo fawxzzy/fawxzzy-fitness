@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Fixed routine overview day numbering so active routine preview rows start at Day 1 and follow the routine’s canonical day order without skipping labels.
+WHY:
+- Prevents misleading routine previews (for example showing Monday as Day 2) and reduces confusion when reviewing the active routine at a glance.
+
+### Fixed
+WHAT:
 - Refined the History screen destructive confirmation modal with stronger viewport backdrop isolation, cleaner centered dialog hierarchy, and contextual session details for the delete prompt.
 WHY:
 - The prior modal allowed underlying card content to visually compete with confirmation content, reducing clarity and confidence for destructive actions on iOS.
