@@ -8,6 +8,17 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 
+type ExerciseStatsOption = {
+  exerciseId: string;
+  lastWeight: number | null;
+  lastReps: number | null;
+  lastUnit: string | null;
+  lastPerformedAt: string | null;
+  prWeight: number | null;
+  prReps: number | null;
+  prEst1rm: number | null;
+};
+
 type ExerciseOption = {
   id: string;
   name: string;
@@ -28,6 +39,7 @@ export function SessionAddExerciseForm({
   initialSelectedId,
   weightUnit,
   addExerciseAction,
+  exerciseStats,
   customExerciseSection,
 }: {
   sessionId: string;
@@ -35,6 +47,7 @@ export function SessionAddExerciseForm({
   initialSelectedId?: string;
   weightUnit: "lbs" | "kg";
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
+  exerciseStats: ExerciseStatsOption[];
   customExerciseSection?: ReactNode;
 }) {
   const toast = useToast();
@@ -58,7 +71,7 @@ export function SessionAddExerciseForm({
       <input type="hidden" name="sessionId" value={sessionId} />
       <div className="space-y-3 rounded-lg border border-border/70 bg-surface/60 p-3">
         {customExerciseSection}
-        <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} />
+        <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} exerciseStats={exerciseStats} />
       </div>
       <div className="border-t border-border/70 pt-2">
         <AppButton type="submit" variant="primary" fullWidth>

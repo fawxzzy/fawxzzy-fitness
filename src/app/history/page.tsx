@@ -5,6 +5,7 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
+import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { requireUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/datetime";
 import { formatDurationClock } from "@/lib/duration";
@@ -47,6 +48,18 @@ async function deleteSessionAction(formData: FormData) {
     throw new Error("Missing session ID");
   }
 
+  const { data: affectedExerciseRows, error: affectedExerciseError } = await supabase
+    .from("session_exercises")
+    .select("exercise_id")
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id);
+
+  if (affectedExerciseError) {
+    throw new Error(affectedExerciseError.message);
+  }
+
+  const affectedExerciseIds = Array.from(new Set((affectedExerciseRows ?? []).map((row) => row.exercise_id)));
+
   const { error } = await supabase
     .from("sessions")
     .delete()
@@ -56,6 +69,10 @@ async function deleteSessionAction(formData: FormData) {
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (affectedExerciseIds.length > 0) {
+    await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds);
   }
 
   revalidateHistoryViews();
