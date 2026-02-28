@@ -4,6 +4,7 @@ import { AppNav } from "@/components/AppNav";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -379,15 +380,15 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               </ul>
 
               <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>Resume Workout</Link>
-              <form action={discardInProgressSessionAction}>
-                <input type="hidden" name="sessionId" value={todayPayload.inProgressSessionId} />
-                <button
-                  type="submit"
-                  className={getAppButtonClassName({ variant: "destructive", fullWidth: true })}
-                >
-                  End Workout
-                </button>
-              </form>
+              <ConfirmedServerFormButton
+                action={discardInProgressSessionAction}
+                hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
+                triggerLabel="Discard Workout"
+                triggerClassName="w-full"
+                modalTitle="Discard workout?"
+                modalDescription="This will delete your in-progress workout, including exercises and sets."
+                confirmLabel="Discard"
+              />
             </div>
           ) : (
             <TodayDayPicker

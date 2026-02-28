@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { AppButton } from "@/components/ui/AppButton";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
@@ -333,9 +335,9 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
-      {copiedDayId ? <p className="rounded-md border border-border bg-surface-2-soft px-3 py-2 text-xs text-muted">Day copy is ready. Tap “Paste day” on a target day card.</p> : null}
+      {copiedDayId ? <p className="rounded-md border border-border bg-surface-2-soft px-3 py-2 text-xs text-muted">Day copy is ready. Tap “Replace Day” on a target day card.</p> : null}
 
-      <form action={updateRoutineAction} className="space-y-3">
+      <form id="routine-update-form" action={updateRoutineAction} className="space-y-3">
         <input type="hidden" name="routineId" value={routine.id} />
         <CollapsibleCard
           title="Routine details"
@@ -367,7 +369,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             </label>
           </div>
         </CollapsibleCard>
-        <AppButton type="submit" variant="primary" fullWidth>Save Routine</AppButton>
+        <RoutineSaveButton formId="routine-update-form" originalCycleLength={(routine as RoutineRow).cycle_length_days} />
       </form>
 
       <div className="space-y-2">
@@ -403,21 +405,18 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                   <input type="hidden" name="dayId" value={day.id} />
                   <AppButton type="submit" variant="secondary" size="sm" fullWidth>Copy day</AppButton>
                 </form>
-                <form action={pasteRoutineDayAction}>
-                  <input type="hidden" name="routineId" value={params.id} />
-                  <input type="hidden" name="sourceDayId" value={copiedDayId} />
-                  <input type="hidden" name="targetDayId" value={day.id} />
-                  <AppButton
-                    type="submit"
-                    variant="secondary"
-                    size="sm"
-                    fullWidth
-                    disabled={!copiedDayId || copiedDayId === day.id}
-                    className="disabled:border-border/40 disabled:bg-[rgb(var(--bg)/0.25)]"
-                  >
-                    Paste day
-                  </AppButton>
-                </form>
+                <ConfirmedServerFormButton
+                  action={pasteRoutineDayAction}
+                  hiddenFields={{ routineId: params.id, sourceDayId: copiedDayId, targetDayId: day.id }}
+                  triggerLabel="Replace Day"
+                  triggerClassName="w-full disabled:border-border/40 disabled:bg-[rgb(var(--bg)/0.25)]"
+                  modalTitle="Replace target day?"
+                  modalDescription="Replacing this day will delete the exercises currently on the target day."
+                  confirmLabel="Replace"
+                  details={`${dayExerciseCount.get(day.id) ?? 0} exercises currently on target day.`}
+                  size="sm"
+                  disabled={!copiedDayId || copiedDayId === day.id}
+                />
               </div>
             </div>
           );

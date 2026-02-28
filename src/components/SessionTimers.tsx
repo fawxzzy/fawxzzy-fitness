@@ -11,6 +11,7 @@ import {
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
+import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
@@ -152,6 +153,7 @@ export function SetLoggerCard({
   const metricsPanelId = useId();
 
   const toast = useToast();
+  const queueUndo = useUndoAction(6000);
 
   const planContractSignature = `${sessionExerciseId}:${routineDayExerciseId ?? ""}:${planTargetsHash ?? ""}`;
 
@@ -633,19 +635,39 @@ export function SetLoggerCard({
       return;
     }
 
-    const result = await deleteSetAction({
-      sessionId,
-      sessionExerciseId,
-      setId: set.id,
-    });
-
-    if (!result.ok) {
-      toast.error(result.error || "Could not remove set.");
-      return;
-    }
+    const removalIndex = sets.findIndex((item) => item.id === set.id);
+    if (removalIndex === -1) return;
 
     setSets((current) => current.filter((item) => item.id !== set.id));
-    toast.success("Set removed.");
+
+    queueUndo({
+      message: "Removed set",
+      onUndo: () => {
+        setSets((current) => {
+          if (current.some((item) => item.id === set.id)) return current;
+          const next = [...current];
+          next.splice(removalIndex, 0, set);
+          return next;
+        });
+      },
+      onCommit: async () => {
+        const result = await deleteSetAction({
+          sessionId,
+          sessionExerciseId,
+          setId: set.id,
+        });
+
+        if (!result.ok) {
+          setSets((current) => {
+            if (current.some((item) => item.id === set.id)) return current;
+            const next = [...current];
+            next.splice(removalIndex, 0, set);
+            return next;
+          });
+          toast.error(result.error || "Could not remove set.");
+        }
+      },
+    });
   }
 
   return (

@@ -5,6 +5,7 @@ import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppButton } from "@/components/ui/AppButton";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { formatGoalStatLine, type DisplayTarget } from "@/lib/session-targets";
 import {
@@ -144,11 +145,16 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                           <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={customExerciseInputClass} />
                           <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
                         </form>
-                        <form action={deleteCustomExerciseAction}>
-                          <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
-                          <input type="hidden" name="exerciseId" value={exercise.id} />
-                          <AppButton type="submit" variant="destructive" size="sm" fullWidth>Delete</AppButton>
-                        </form>
+                        <ConfirmedServerFormButton
+                          action={deleteCustomExerciseAction}
+                          hiddenFields={{ returnTo: `/session/${params.id}`, exerciseId: exercise.id }}
+                          triggerLabel="Delete"
+                          triggerClassName="w-full"
+                          modalTitle="Delete custom exercise?"
+                          modalDescription="This permanently deletes this custom exercise from your library."
+                          confirmLabel="Delete"
+                          details={`Exercise: ${exercise.name}`}
+                        />
                       </div>
                     </li>
                   ))}

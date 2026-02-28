@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AppButton, DestructiveButton, GhostButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { Glass } from "@/components/ui/Glass";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
@@ -110,6 +111,7 @@ export function LogAuditClient({
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
 
   const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseOptions[0]?.id ?? "");
+  const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
   const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>(
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])),
   );
@@ -249,7 +251,10 @@ export function LogAuditClient({
     startTransition(async () => {
       const result = await deleteLogExerciseAction({ logId, logExerciseId });
       toastActionResult(toast, result, { success: "Exercise removed.", error: "Unable to remove exercise." });
-      if (result.ok) router.refresh();
+      if (result.ok) {
+        setExerciseToDelete(null);
+        router.refresh();
+      }
     });
   };
 
@@ -337,8 +342,8 @@ export function LogAuditClient({
                 <div className="flex items-center gap-2">
                   <span className="rounded-full border border-white/15 bg-black/10 px-2 py-1 text-[11px] font-semibold text-slate-300">{setsForExercise.length} sets</span>
                   {isEditing ? (
-                    <DestructiveButton type="button" size="sm" onClick={() => handleDeleteExercise(exercise.id)}>
-                      Remove Exercise
+                    <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>
+                      Delete Exercise
                     </DestructiveButton>
                   ) : null}
                 </div>
@@ -394,6 +399,18 @@ export function LogAuditClient({
           );
         })}
       </div>
+      <ConfirmDestructiveModal
+        open={exerciseToDelete !== null}
+        title="Delete exercise from completed log?"
+        description="This will remove the exercise and all logged sets from this completed session."
+        confirmLabel="Delete"
+        details={exerciseToDelete ? `Exercise: ${exerciseToDelete.name}` : undefined}
+        onCancel={() => setExerciseToDelete(null)}
+        onConfirm={() => {
+          if (!exerciseToDelete) return;
+          handleDeleteExercise(exerciseToDelete.id);
+        }}
+      />
     </>
   );
 }

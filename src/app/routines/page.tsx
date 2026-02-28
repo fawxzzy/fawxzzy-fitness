@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
-import { AppButton, DestructiveButton } from "@/components/ui/AppButton";
+import { AppButton } from "@/components/ui/AppButton";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -148,12 +149,15 @@ export default async function RoutinesPage() {
                     >
                       Edit
                     </Link>
-                    <form action={deleteRoutineAction}>
-                      <input type="hidden" name="routineId" value={routine.id} />
-                      <DestructiveButton type="submit" size="sm" className={`h-8 px-3 ${listShellClasses.pillAction}`}>
-                        Delete
-                      </DestructiveButton>
-                    </form>
+                    <ConfirmedServerFormButton
+                      action={deleteRoutineAction}
+                      hiddenFields={{ routineId: routine.id }}
+                      triggerLabel="Delete"
+                      triggerClassName={`h-8 px-3 ${listShellClasses.pillAction}`}
+                      modalTitle="Delete routine?"
+                      modalDescription="This will delete this routine and its days/exercises."
+                      confirmLabel="Delete"
+                    />
                   </div>
                 </div>
                 <form action={setActiveRoutineAction}>

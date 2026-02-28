@@ -8,11 +8,15 @@ type ToastItem = {
   id: string;
   message: string;
   tone: ToastTone;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 };
 
 type ToastContextValue = {
-  success: (message: string) => void;
-  error: (message: string) => void;
+  success: (message: string, options?: { durationMs?: number; action?: ToastItem["action"] }) => void;
+  error: (message: string, options?: { durationMs?: number; action?: ToastItem["action"] }) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -32,16 +36,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
-  const push = useCallback((tone: ToastTone, message: string) => {
+  const push = useCallback((tone: ToastTone, message: string, options?: { durationMs?: number; action?: ToastItem["action"] }) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    setToasts((current) => [...current, { id, tone, message }]);
-    window.setTimeout(() => dismiss(id), 2800);
+    setToasts((current) => [...current, { id, tone, message, action: options?.action }]);
+    window.setTimeout(() => dismiss(id), options?.durationMs ?? 2800);
   }, [dismiss]);
 
   const value = useMemo<ToastContextValue>(
     () => ({
-      success: (message: string) => push("success", message),
-      error: (message: string) => push("error", message),
+      success: (message: string, options?: { durationMs?: number; action?: ToastItem["action"] }) => push("success", message, options),
+      error: (message: string, options?: { durationMs?: number; action?: ToastItem["action"] }) => push("error", message, options),
     }),
     [push],
   );
@@ -52,7 +56,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div className="pointer-events-none fixed inset-x-0 top-[max(env(safe-area-inset-top),0.75rem)] z-50 flex flex-col items-center gap-2 px-3">
         {toasts.map((toast) => (
           <div key={toast.id} className={`pointer-events-auto w-full max-w-md rounded-md border px-3 py-2 text-sm shadow ${toneClassName(toast.tone)}`}>
-            {toast.message}
+            <div className="flex items-center justify-between gap-3">
+              <span>{toast.message}</span>
+              {toast.action ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.action?.onClick();
+                    dismiss(toast.id);
+                  }}
+                  className="rounded border border-current/35 px-2 py-0.5 text-xs font-semibold"
+                >
+                  {toast.action.label}
+                </button>
+              ) : null}
+            </div>
           </div>
         ))}
       </div>

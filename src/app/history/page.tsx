@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
-import { DestructiveButton } from "@/components/ui/AppButton";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
@@ -145,17 +145,19 @@ export default async function HistoryPage({
                       </div>
 
                       <div className="flex items-center">
-                        <form action={deleteSessionAction} className="pointer-events-auto">
-                          <input type="hidden" name="sessionId" value={session.id} />
-                          <DestructiveButton
-                            type="submit"
-                            size="sm"
-                            aria-label="Delete session"
-                            className={`${listShellClasses.iconAction} h-11 w-11 shrink-0 !rounded-md !bg-transparent !px-0 !py-0 !text-rose-400 hover:!text-rose-200`}
-                          >
-                            🗑
-                          </DestructiveButton>
-                        </form>
+                        <div className="pointer-events-auto">
+                          <ConfirmedServerFormButton
+                            action={deleteSessionAction}
+                            hiddenFields={{ sessionId: session.id }}
+                            triggerLabel="🗑"
+                            triggerAriaLabel="Delete session"
+                            triggerClassName={`${listShellClasses.iconAction} h-11 w-11 shrink-0 !rounded-md !bg-transparent !px-0 !py-0 !text-rose-400 hover:!text-rose-200`}
+                            modalTitle="Delete session?"
+                            modalDescription="This will delete this workout session and all logged sets."
+                            confirmLabel="Delete"
+                            details={session.name ? `Session: ${session.name}` : undefined}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

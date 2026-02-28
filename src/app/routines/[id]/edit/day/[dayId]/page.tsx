@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { AppButton } from "@/components/ui/AppButton";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName } from "@/components/ui/formClasses";
@@ -318,15 +319,16 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                         </div>
                         <div className="flex items-center justify-between gap-2">
                           <AppButton type="submit" variant="secondary" size="sm" className="h-8 px-3 text-xs">Save</AppButton>
-                          <AppButton
-                            type="submit"
-                            formAction={deleteRoutineDayExerciseAction}
-                            variant="destructive"
-                            size="sm"
-                            className="h-8 px-3 text-xs"
-                          >
-                            Remove
-                          </AppButton>
+                          <ConfirmedServerFormButton
+                            action={deleteRoutineDayExerciseAction}
+                            hiddenFields={{ routineId: params.id, routineDayId: params.dayId, exerciseRowId: exercise.id }}
+                            triggerLabel="Delete"
+                            triggerClassName="h-8 px-3 text-xs"
+                            modalTitle="Delete routine day exercise?"
+                            modalDescription="This will remove this exercise from the routine day."
+                            confirmLabel="Delete"
+                            details={`Exercise: ${exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}`}
+                          />
                         </div>
                       </form>
                     </div>
@@ -362,11 +364,16 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                           <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={controlClassName} />
                           <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
                         </form>
-                        <form action={deleteCustomExerciseAction}>
-                          <input type="hidden" name="returnTo" value={returnTo} />
-                          <input type="hidden" name="exerciseId" value={exercise.id} />
-                          <AppButton type="submit" variant="destructive" size="sm" fullWidth>Delete</AppButton>
-                        </form>
+                        <ConfirmedServerFormButton
+                          action={deleteCustomExerciseAction}
+                          hiddenFields={{ returnTo: returnTo, exerciseId: exercise.id }}
+                          triggerLabel="Delete"
+                          triggerClassName="w-full"
+                          modalTitle="Delete custom exercise?"
+                          modalDescription="This permanently deletes this custom exercise from your library."
+                          confirmLabel="Delete"
+                          details={`Exercise: ${exercise.name}`}
+                        />
                       </div>
                     </li>
                   ))}

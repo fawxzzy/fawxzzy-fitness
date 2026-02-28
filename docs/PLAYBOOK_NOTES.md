@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-02-28 — Pair risk-tiered destructive safeguards with reversible undo where feasible
+- Type: Pattern
+- Summary: Use a shared destructive confirmation modal for high-risk irreversible actions, and a short undo toast window for low/medium removals only when full client state is available for deterministic restore.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Prevents accidental destructive loss while preserving fast workflows by reserving undo only for safely reversible operations.
+- Evidence: src/components/ui/ConfirmDestructiveModal.tsx, src/components/ui/useUndoAction.ts, src/components/SessionTimers.tsx, src/components/SessionExerciseFocus.tsx
+- Status: Proposed
+
 ## 2026-02-27 — Generate runtime media manifests from public assets for deterministic lookups
 - Type: Guardrail
 - Summary: When UI code resolves static media by slug, generate a build-time manifest from the asset directory and only request files declared in that manifest.
