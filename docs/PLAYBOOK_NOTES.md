@@ -409,3 +409,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Mismatched identifiers silently hide valid stats rows and create hard-to-debug UI drift in measurement panels.
 - Evidence: src/app/session/[id]/queries.ts, src/components/ExercisePicker.tsx, src/lib/exercise-stats.ts
 - Status: Proposed
+
+## 2026-02-28 — Avoid nested server-action forms for row-level destructive actions
+- Type: Guardrail
+- Summary: On edit screens with per-row save and delete controls, keep destructive server-action forms as siblings (or external via `form=`) rather than nesting them inside another `<form>`.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Nested forms can cause implicit submit bubbling and React/Next runtime submit errors during destructive actions.
+- Evidence: src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/components/destructive/ConfirmedServerFormButton.tsx
+- Status: Proposed

@@ -323,20 +323,20 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                             }}
                           />
                         </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <AppButton type="submit" variant="secondary" size="sm" className="h-8 px-3 text-xs">Save</AppButton>
-                          <ConfirmedServerFormButton
-                            action={deleteRoutineDayExerciseAction}
-                            hiddenFields={{ routineId: params.id, routineDayId: params.dayId, exerciseRowId: exercise.id }}
-                            triggerLabel="Delete"
-                            triggerClassName="h-8 px-3 text-xs"
-                            modalTitle="Delete routine day exercise?"
-                            modalDescription="This will remove this exercise from the routine day."
-                            confirmLabel="Delete"
-                            details={`Exercise: ${exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}`}
-                          />
-                        </div>
+                        <AppButton type="submit" variant="secondary" size="sm" className="h-8 px-3 text-xs">Save</AppButton>
                       </form>
+                      <div className="flex justify-end">
+                        <ConfirmedServerFormButton
+                          action={deleteRoutineDayExerciseAction}
+                          hiddenFields={{ routineId: params.id, routineDayId: params.dayId, exerciseRowId: exercise.id }}
+                          triggerLabel="Delete"
+                          triggerClassName="h-8 px-3 text-xs"
+                          modalTitle="Delete routine day exercise?"
+                          modalDescription="This will remove this exercise from the routine day."
+                          confirmLabel="Delete"
+                          details={`Exercise: ${exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}`}
+                        />
+                      </div>
                     </div>
                   </details>
                 </li>

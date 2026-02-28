@@ -1430,3 +1430,9 @@ WHAT:
 - Updated stats reads to bypass stale caching for this path.
 WHY:
 - The stats UI could miss existing rows when identifier wiring or stale reads diverged from canonical exercise IDs; this restores deterministic stats visibility and debugging confidence.
+
+### Fixed
+WHAT:
+- Updated the Edit Day exercise row actions so delete confirmation is no longer rendered inside the exercise update form.
+WHY:
+- Prevents unintended nested form submission when deleting an exercise, eliminating the React "unexpectedly submitted" runtime error in Edit Day.
