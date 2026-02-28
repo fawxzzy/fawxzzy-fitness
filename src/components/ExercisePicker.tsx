@@ -11,6 +11,7 @@ import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { cn } from "@/lib/cn";
+import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
 
 type ExerciseOption = {
@@ -39,17 +40,6 @@ type ExerciseOption = {
   muscle?: string[] | string | null;
 };
 
-type ExerciseStatsOption = {
-  exerciseId: string;
-  statsExerciseId?: string;
-  lastWeight: number | null;
-  lastReps: number | null;
-  lastUnit: string | null;
-  lastPerformedAt: string | null;
-  prWeight: number | null;
-  prReps: number | null;
-  prEst1rm: number | null;
-};
 
 type ExercisePickerProps = {
   exercises: ExerciseOption[];
@@ -339,7 +329,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [availableTags, selectedTags]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
-  const selectedCanonicalExerciseId = selectedExercise ? (selectedExercise.exercise_id ?? selectedExercise.id) : null;
+  const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
   const statsQueryExerciseId = selectedCanonicalExerciseId;
   const selectedStats = statsQueryExerciseId ? statsByExerciseId.get(statsQueryExerciseId) : undefined;
   const hasLast = selectedStats ? (selectedStats.lastWeight != null && selectedStats.lastReps != null) : false;

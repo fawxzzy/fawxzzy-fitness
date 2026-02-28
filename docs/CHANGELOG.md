@@ -1,5 +1,13 @@
 ### Fixed
 WHAT:
+- Fixed the session exercise goals schema contract by adding support for `target_calories` on session exercises and aligned add-exercise goal persistence/loading with that column.
+- Unified Add Exercise measurement guidance so both Current Session and Edit Routine → Edit Day show the same Last/PR stats and “Use last” behavior.
+WHY:
+- Prevents runtime schema-cache failures when session exercise goal payloads include calories.
+- Keeps exercise add flows consistent so users get the same historical guidance and faster input wherever they add exercises.
+
+### Fixed
+WHAT:
 - Restored Last/PR visibility in Add Exercise Measurements and Exercise Info by ensuring stats resolve against the selected exercise's canonical ID and by rendering stats when either Last or PR data exists.
 - Added development-gated diagnostics around exercise stats fetch/query and render wiring for faster verification of query ID to stats ID matching.
 WHY:

@@ -10,6 +10,8 @@ import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExe
 import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction, updateRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
+import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { formatRepTarget } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
@@ -224,6 +226,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   const exerciseMeasurementMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.measurement_type]));
   const exerciseUnitMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.default_unit]));
+  const exerciseStatsByExerciseId = await getExerciseStatsForExercises(
+    user.id,
+    exerciseOptions.map((exercise) => exercise.id),
+  );
   const returnTo = `/routines/${params.id}/edit/day/${params.dayId}`;
 
   return (
@@ -384,7 +390,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             <form action={addRoutineDayExerciseAction} className="space-y-2">
               <input type="hidden" name="routineId" value={params.id} />
               <input type="hidden" name="routineDayId" value={params.dayId} />
-              <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} routineTargetConfig={{ weightUnit: (routine as RoutineRow).weight_unit }} />
+              <ExercisePicker exercises={exerciseOptions} name="exerciseId" initialSelectedId={searchParams?.exerciseId} routineTargetConfig={{ weightUnit: (routine as RoutineRow).weight_unit }} exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)} />
               <AppButton type="submit" variant="primary" fullWidth>Add Exercise</AppButton>
             </form>
           </CollapsibleCard>
