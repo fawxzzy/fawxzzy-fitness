@@ -1,18 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Pill, PillButton } from "@/components/ui/Pill";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
-import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
+import { getExerciseIconSrc } from "@/lib/exerciseImages";
 
 type ExerciseOption = {
   id: string;
@@ -121,6 +120,7 @@ function formatTagLabel(tag: string) {
     .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 }
+
 
 function MetaTag({ value }: { value: string | null }) {
   if (!value) return null;
@@ -334,24 +334,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const selectedStats = statsQueryExerciseId ? statsByExerciseId.get(statsQueryExerciseId) : undefined;
   const hasLast = selectedStats ? (selectedStats.lastWeight != null && selectedStats.lastReps != null) : false;
   const hasPR = selectedStats ? ((selectedStats.prWeight != null && selectedStats.prReps != null) || selectedStats.prEst1rm != null) : false;
-  const infoDetails = useMemo(() => {
-    if (!info) {
-      return null;
-    }
-
-    const primaryMuscles = info.exercise.primary_muscle ? [info.exercise.primary_muscle] : [];
-    return {
-      ...info.exercise,
-      primary_muscles: primaryMuscles,
-      secondary_muscles: [] as string[],
-    };
-  }, [info]);
-
-  const exerciseDetailsOrRow = infoDetails ?? info?.exercise ?? null;
-  const infoHowToSrc = exerciseDetailsOrRow ? getExerciseIconSrc(exerciseDetailsOrRow) : null;
-  const hasHowToImage = !!infoHowToSrc && infoHowToSrc !== "/exercises/icons/_placeholder.svg";
-  const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
-
   const resetMeasurementFields = useCallback(() => {
     setTargetRepsMin("");
     setTargetRepsMax("");
@@ -551,64 +533,11 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
       </div>
 
-      {info && hasMounted
-        ? createPortal(
-            <div className="fixed inset-0 z-50 pointer-events-auto" role="dialog" aria-modal="true" aria-label="Exercise info">
-              <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
-                <section className="flex h-full w-full flex-col">
-                  <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(env(safe-area-inset-top),0px)]">
-                    <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
-                      <h2 className="text-2xl font-semibold">Exercise info</h2>
-                      <button type="button" onClick={() => setInfo(null)} className={getAppButtonClassName({ variant: "ghost", size: "sm" })}>Close</button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto overscroll-contain">
-                    <div className="mx-auto w-full max-w-xl space-y-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-                      <div>
-                        <p className="text-base font-semibold text-text">{info.exercise.name}</p>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          <MetaTag value={info.exercise.equipment} />
-                          <MetaTag value={info.exercise.primary_muscle} />
-                          <MetaTag value={info.exercise.movement_pattern} />
-                        </div>
-                      </div>
-
-                      {hasHowToImage && infoHowToSrc ? (
-                        <div className="space-y-1">
-                          <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-                          <div className="aspect-[4/3] overflow-hidden rounded-md border border-border">
-                            <ExerciseAssetImage
-                              key={info.exercise.id ?? info.exercise.slug ?? infoHowToSrc ?? undefined}
-                              src={infoHowToSrc}
-                              alt="How-to visual"
-                              className="h-full w-full object-contain object-center"
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <div className="space-y-1">
-                        <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-                        <ExerciseAssetImage src={infoMusclesSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
-                      </div>
-
-                      {infoDetails?.how_to_short ? <p className="text-sm text-text">{infoDetails.how_to_short}</p> : null}
-
-                      {infoDetails && infoDetails.primary_muscles.length > 0 ? (
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-muted">Primary muscles</p>
-                          <div className="mt-1 flex flex-wrap gap-1">{infoDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </section>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      <ExerciseInfoSheet exercise={info?.exercise ?? null} open={!!info && hasMounted} onOpenChange={(open) => {
+        if (!open) {
+          setInfo(null);
+        }
+      }} />
 
       {routineTargetConfig && selectedExercise ? (
         <div className="space-y-2 border-t border-border/50 pt-2">

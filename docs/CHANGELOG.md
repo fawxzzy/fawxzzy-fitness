@@ -1,3 +1,11 @@
+### Changed
+WHAT:
+- Added a left-side Info button on each “Currently added workouts” exercise row in the Edit Day list and wired it to open the existing Exercise Info overlay for that exercise.
+- Kept the row layout stable by preserving right-side Edit controls and tightening left text truncation behavior for long exercise summaries.
+WHY:
+- Gives users fast in-context access to exercise guidance/details while editing a day without navigating away.
+- Prevents control collisions and awkward wrapping on smaller screens while retaining the existing quick-edit workflow.
+
 ### Fixed
 WHAT:
 - Added missing `session_exercises` goal target columns for reps, weight, time (seconds), distance, and calories so Current Session add-exercise goal reads/writes align with the live schema.

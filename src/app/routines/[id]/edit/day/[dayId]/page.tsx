@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
+import { ExerciseInfoIconButton } from "@/components/ExerciseInfoIconButton";
 import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -289,11 +290,24 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                 <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)]">
                   <details>
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs [&::-webkit-details-marker]:hidden">
-                      <span>
-                        <span className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</span>
-                        <span className="text-muted"> · {targetSummary}</span>
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
+                        <ExerciseInfoIconButton
+                          exercise={{
+                            id: exercise.exercise_id,
+                            name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+                            primary_muscle: matchingExercise?.primary_muscle ?? null,
+                            equipment: matchingExercise?.equipment ?? null,
+                            movement_pattern: matchingExercise?.movement_pattern ?? null,
+                            image_muscles_path: matchingExercise?.image_muscles_path ?? null,
+                            how_to_short: matchingExercise?.how_to_short ?? null,
+                          }}
+                        />
+                        <span className="min-w-0 truncate">
+                          <span className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</span>
+                          <span className="text-muted"> · {targetSummary}</span>
+                        </span>
                       </span>
-                      <span className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] px-2 py-1 text-[11px]">
+                      <span className="shrink-0 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] px-2 py-1 text-[11px]">
                         <span className="details-edit-label">Edit</span>
                         <span className="details-close-label">Close</span>
                         <span aria-hidden="true" className="details-chevron ml-1 text-muted">⌄</span>
