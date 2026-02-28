@@ -5,6 +5,7 @@ import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
+import { RestDayToggleCheckbox } from "@/app/routines/[id]/edit/RestDayToggleCheckbox";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
@@ -268,6 +269,37 @@ async function pasteRoutineDayAction(formData: FormData) {
   redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ success: "Day pasted.", copiedDayId: sourceDayId })}`);
 }
 
+async function toggleRoutineDayRestAction(formData: FormData) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const routineId = String(formData.get("routineId") ?? "");
+  const dayId = String(formData.get("dayId") ?? "");
+  const isRest = formData.get("isRest") === "on";
+
+  if (!routineId || !dayId) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: "Missing day info." })}`);
+  }
+
+  const { error } = await supabase
+    .from("routine_days")
+    .update({ is_rest: isRest })
+    .eq("id", dayId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: error.message })}`);
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineEditPath(routineId));
+  revalidatePath(`/routines/${routineId}/edit/day/${dayId}`);
+  redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ success: "Rest day updated." })}`);
+}
+
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -398,6 +430,15 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                   </p>
                 ) : null}
               </Link>
+
+              <form action={toggleRoutineDayRestAction} className="mt-3">
+                <input type="hidden" name="routineId" value={params.id} />
+                <input type="hidden" name="dayId" value={day.id} />
+                <label className="inline-flex items-center gap-2 text-xs text-muted">
+                  <RestDayToggleCheckbox defaultChecked={day.is_rest} />
+                  Rest day
+                </label>
+              </form>
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <form action={copyRoutineDayAction}>
