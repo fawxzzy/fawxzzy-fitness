@@ -12,6 +12,12 @@ WHY:
 
 ### Changed
 WHAT:
+- Added a Rest day toggle directly on each Edit Routine day card so rest status can be updated without opening the day editor.
+WHY:
+- Reduces taps for frequent routine adjustments and makes rest-day management faster from the routine overview.
+
+### Changed
+WHAT:
 - Updated the Routines active overview card to display every configured day for the selected routine and added a compact summary row showing cycle length, training-day count, and rest-day count.
 WHY:
 - Better uses available space and improves at-a-glance understanding of routine structure without requiring extra navigation.
