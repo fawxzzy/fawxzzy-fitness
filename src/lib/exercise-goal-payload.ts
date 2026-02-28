@@ -7,7 +7,8 @@ type ParseOptions = {
 };
 
 type ParsedGoalPayload = {
-  target_sets: number | null;
+  target_sets_min: number | null;
+  target_sets_max: number | null;
   target_reps_min: number | null;
   target_reps_max: number | null;
   target_weight_min: number | null;
@@ -163,7 +164,8 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   return {
     ok: true,
     payload: {
-      target_sets: options.requireSets ? targetSets : null,
+      target_sets_min: targetSets,
+      target_sets_max: targetSets,
       target_reps_min: useRepsTargets ? targetRepsMin : null,
       target_reps_max: useRepsTargets ? targetRepsMax : null,
       target_weight_min: useWeightTarget ? targetWeight : null,

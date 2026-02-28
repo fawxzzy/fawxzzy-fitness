@@ -23,7 +23,7 @@ function parseRoutineExercisePayload(formData: FormData, returnTo: string) {
   const payload = parsed.payload;
 
   return {
-    target_sets: payload.target_sets,
+    target_sets: payload.target_sets_min,
     target_reps_min: payload.target_reps_min,
     target_reps_max: payload.target_reps_max,
     target_reps: payload.target_reps_min ?? payload.target_reps_max,

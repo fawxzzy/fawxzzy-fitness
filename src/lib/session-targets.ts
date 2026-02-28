@@ -89,7 +89,8 @@ function resolveDistanceUnit(value: unknown): "mi" | "km" | "m" | null {
 function buildDisplayTargetFromGoalFields(fields: {
   source: "engine" | "template";
   measurementType?: unknown;
-  sets?: number | null;
+  setsMin?: number | null;
+  setsMax?: number | null;
   repsMin?: number | null;
   repsMax?: number | null;
   repsFallback?: number | null;
@@ -114,8 +115,9 @@ function buildDisplayTargetFromGoalFields(fields: {
     measurementType: resolveMeasurementType(fields.measurementType) ?? "reps",
   };
 
-  if (fields.sets !== null && fields.sets !== undefined) {
-    target.sets = fields.sets;
+  const resolvedSets = resolveRangeValue(fields.setsMin, fields.setsMax, null);
+  if (resolvedSets !== null) {
+    target.sets = resolvedSets;
   }
 
   const repsText = getRepsText(fields.repsMin ?? null, fields.repsMax ?? null, fields.repsFallback ?? null);
@@ -152,7 +154,8 @@ function buildDisplayTargetFromGoalFields(fields: {
     target.calories = Number(resolvedCalories);
   }
 
-  const hasMeasurementTarget = target.repsText
+  const hasMeasurementTarget = target.sets !== undefined
+    || target.repsText
     || target.weight !== undefined
     || target.durationSeconds !== undefined
     || target.distance !== undefined
@@ -169,7 +172,8 @@ export function formatGoalStatLine(target: DisplayTarget, fallbackWeightUnit: st
   const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
   const resolvedDistanceUnit = target.distanceUnit ?? "mi";
   const hasMeasurementTarget = (
-    target.repsText
+    target.sets !== undefined
+    || target.repsText
     || target.weight !== undefined
     || target.durationSeconds !== undefined
     || target.distance !== undefined
@@ -214,7 +218,8 @@ export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string
   const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
   const resolvedDistanceUnit = target.distanceUnit ?? "mi";
   const hasMeasurementTarget = (
-    target.repsText
+    target.sets !== undefined
+    || target.repsText
     || target.weight !== undefined
     || target.durationSeconds !== undefined
     || target.distance !== undefined
@@ -281,7 +286,7 @@ export async function getSessionTargets(sessionId: string) {
 
   const { data: sessionExercises } = await supabase
     .from("session_exercises")
-    .select("id, exercise_id, position, routine_day_exercise_id, target_sets, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, measurement_type, default_unit")
+    .select("id, exercise_id, position, routine_day_exercise_id, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, measurement_type, default_unit")
     .eq("session_id", sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -292,7 +297,8 @@ export async function getSessionTargets(sessionId: string) {
     const sessionTarget = buildDisplayTargetFromGoalFields({
       source: "engine",
       measurementType: sessionExercise.measurement_type,
-      sets: sessionExercise.target_sets,
+      setsMin: sessionExercise.target_sets_min,
+      setsMax: sessionExercise.target_sets_max,
       repsMin: sessionExercise.target_reps_min,
       repsMax: sessionExercise.target_reps_max,
       weightMin: sessionExercise.target_weight_min,
@@ -391,7 +397,8 @@ export async function getSessionTargets(sessionId: string) {
     const templateTarget = buildDisplayTargetFromGoalFields({
       source: "template",
       measurementType: matchedRoutine.measurement_type ?? measurementTypeByExerciseId.get(matchedRoutine.exercise_id),
-      sets: matchedRoutine.target_sets,
+      setsMin: matchedRoutine.target_sets,
+      setsMax: matchedRoutine.target_sets,
       repsMin: matchedRoutine.target_reps_min,
       repsMax: matchedRoutine.target_reps_max,
       repsFallback: matchedRoutine.target_reps,

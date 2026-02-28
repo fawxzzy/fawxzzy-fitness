@@ -1460,3 +1460,11 @@ WHAT:
 - Kept Exercise Info Last/PR rendering bound to canonical exercise ID lookups with guard-based display for available stats.
 WHY:
 - Prevents recurring runtime/schema-cache failures caused by selecting or writing mismatched legacy goal columns and keeps session goal behavior deterministic across schema evolution.
+
+### Fixed
+WHAT:
+- Added additive `session_exercises` set-range schema support with `target_sets_min` / `target_sets_max` and NULL-safe non-negative/range checks.
+- Updated current-session goal parsing, persistence, projections, and normalization paths to use set-range fields and stop referencing legacy `session_exercises.target_sets`.
+- Refreshed app-level DB typing for `session_exercises` goal fields to reflect set-range columns.
+WHY:
+- Prevents Add Exercise schema-cache failures caused by selecting/writing a non-existent legacy set target column and keeps session goal behavior consistent with the range-target model.
