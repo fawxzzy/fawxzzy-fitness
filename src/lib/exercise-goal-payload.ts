@@ -10,13 +10,16 @@ type ParsedGoalPayload = {
   target_sets: number | null;
   target_reps_min: number | null;
   target_reps_max: number | null;
-  target_reps: number | null;
-  target_weight: number | null;
+  target_weight_min: number | null;
+  target_weight_max: number | null;
   target_weight_unit: "lbs" | "kg" | null;
-  target_duration_seconds: number | null;
-  target_distance: number | null;
+  target_time_seconds_min: number | null;
+  target_time_seconds_max: number | null;
+  target_distance_min: number | null;
+  target_distance_max: number | null;
   target_distance_unit: "mi" | "km" | "m" | null;
-  target_calories: number | null;
+  target_calories_min: number | null;
+  target_calories_max: number | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance";
   default_unit: "mi" | "km" | "m" | null;
 };
@@ -163,13 +166,16 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
       target_sets: options.requireSets ? targetSets : null,
       target_reps_min: useRepsTargets ? targetRepsMin : null,
       target_reps_max: useRepsTargets ? targetRepsMax : null,
-      target_reps: useRepsTargets ? (targetRepsMin ?? targetRepsMax) : null,
-      target_weight: useWeightTarget ? targetWeight : null,
+      target_weight_min: useWeightTarget ? targetWeight : null,
+      target_weight_max: useWeightTarget ? targetWeight : null,
       target_weight_unit: useWeightTarget && targetWeight !== null ? (targetWeightUnit === "kg" ? "kg" : "lbs") : null,
-      target_duration_seconds: useTimeTarget ? targetDurationSeconds : null,
-      target_distance: useDistanceTarget ? targetDistance : null,
+      target_time_seconds_min: useTimeTarget ? targetDurationSeconds : null,
+      target_time_seconds_max: useTimeTarget ? targetDurationSeconds : null,
+      target_distance_min: useDistanceTarget ? targetDistance : null,
+      target_distance_max: useDistanceTarget ? targetDistance : null,
       target_distance_unit: useDistanceTarget && targetDistance !== null ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi") : null,
-      target_calories: useCaloriesTarget ? targetCalories : null,
+      target_calories_min: useCaloriesTarget ? targetCalories : null,
+      target_calories_max: useCaloriesTarget ? targetCalories : null,
       measurement_type: measurementType,
       default_unit: useDistanceTarget ? defaultUnit : null,
     },

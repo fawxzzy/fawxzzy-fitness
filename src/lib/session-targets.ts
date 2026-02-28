@@ -40,6 +40,27 @@ function getRepsText(minReps: number | null, maxReps: number | null, fallbackRep
   return undefined;
 }
 
+
+function resolveRangeValue(minValue: number | null | undefined, maxValue: number | null | undefined, fallbackValue: number | null | undefined) {
+  if (minValue !== null && minValue !== undefined && maxValue !== null && maxValue !== undefined && minValue === maxValue) {
+    return minValue;
+  }
+
+  if (minValue !== null && minValue !== undefined) {
+    return minValue;
+  }
+
+  if (maxValue !== null && maxValue !== undefined) {
+    return maxValue;
+  }
+
+  if (fallbackValue !== null && fallbackValue !== undefined) {
+    return fallbackValue;
+  }
+
+  return null;
+}
+
 function formatDurationText(durationSeconds: number) {
   return formatDurationClock(durationSeconds);
 }
@@ -72,13 +93,21 @@ function buildDisplayTargetFromGoalFields(fields: {
   repsMin?: number | null;
   repsMax?: number | null;
   repsFallback?: number | null;
-  weight?: number | null;
+  weightMin?: number | null;
+  weightMax?: number | null;
+  weightFallback?: number | null;
   weightUnit?: unknown;
-  durationSeconds?: number | null;
-  distance?: number | null;
+  timeSecondsMin?: number | null;
+  timeSecondsMax?: number | null;
+  durationFallback?: number | null;
+  distanceMin?: number | null;
+  distanceMax?: number | null;
+  distanceFallback?: number | null;
   distanceUnit?: unknown;
   defaultUnit?: unknown;
-  calories?: number | null;
+  caloriesMin?: number | null;
+  caloriesMax?: number | null;
+  caloriesFallback?: number | null;
 }): DisplayTarget | null {
   const target: DisplayTarget = {
     source: fields.source,
@@ -94,20 +123,23 @@ function buildDisplayTargetFromGoalFields(fields: {
     target.repsText = repsText;
   }
 
-  if (fields.weight !== null && fields.weight !== undefined) {
-    target.weight = Number(fields.weight);
+  const resolvedWeight = resolveRangeValue(fields.weightMin, fields.weightMax, fields.weightFallback);
+  if (resolvedWeight !== null) {
+    target.weight = Number(resolvedWeight);
     const weightUnit = resolveWeightUnit(fields.weightUnit);
     if (weightUnit) {
       target.weightUnit = weightUnit;
     }
   }
 
-  if (fields.durationSeconds !== null && fields.durationSeconds !== undefined) {
-    target.durationSeconds = fields.durationSeconds;
+  const resolvedDurationSeconds = resolveRangeValue(fields.timeSecondsMin, fields.timeSecondsMax, fields.durationFallback);
+  if (resolvedDurationSeconds !== null) {
+    target.durationSeconds = resolvedDurationSeconds;
   }
 
-  if (fields.distance !== null && fields.distance !== undefined) {
-    target.distance = Number(fields.distance);
+  const resolvedDistance = resolveRangeValue(fields.distanceMin, fields.distanceMax, fields.distanceFallback);
+  if (resolvedDistance !== null) {
+    target.distance = Number(resolvedDistance);
   }
 
   const distanceUnit = resolveDistanceUnit(fields.distanceUnit) ?? resolveDistanceUnit(fields.defaultUnit);
@@ -115,8 +147,9 @@ function buildDisplayTargetFromGoalFields(fields: {
     target.distanceUnit = distanceUnit;
   }
 
-  if (fields.calories !== null && fields.calories !== undefined) {
-    target.calories = Number(fields.calories);
+  const resolvedCalories = resolveRangeValue(fields.caloriesMin, fields.caloriesMax, fields.caloriesFallback);
+  if (resolvedCalories !== null) {
+    target.calories = Number(resolvedCalories);
   }
 
   const hasMeasurementTarget = target.repsText
@@ -248,7 +281,7 @@ export async function getSessionTargets(sessionId: string) {
 
   const { data: sessionExercises } = await supabase
     .from("session_exercises")
-    .select("id, exercise_id, position, routine_day_exercise_id, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit")
+    .select("id, exercise_id, position, routine_day_exercise_id, target_sets, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, measurement_type, default_unit")
     .eq("session_id", sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -262,14 +295,17 @@ export async function getSessionTargets(sessionId: string) {
       sets: sessionExercise.target_sets,
       repsMin: sessionExercise.target_reps_min,
       repsMax: sessionExercise.target_reps_max,
-      repsFallback: sessionExercise.target_reps,
-      weight: sessionExercise.target_weight,
+      weightMin: sessionExercise.target_weight_min,
+      weightMax: sessionExercise.target_weight_max,
       weightUnit: sessionExercise.target_weight_unit,
-      durationSeconds: sessionExercise.target_duration_seconds,
-      distance: sessionExercise.target_distance,
+      timeSecondsMin: sessionExercise.target_time_seconds_min,
+      timeSecondsMax: sessionExercise.target_time_seconds_max,
+      distanceMin: sessionExercise.target_distance_min,
+      distanceMax: sessionExercise.target_distance_max,
       distanceUnit: sessionExercise.target_distance_unit,
       defaultUnit: sessionExercise.default_unit,
-      calories: sessionExercise.target_calories,
+      caloriesMin: sessionExercise.target_calories_min,
+      caloriesMax: sessionExercise.target_calories_max,
     });
 
     if (sessionTarget) {
@@ -359,13 +395,13 @@ export async function getSessionTargets(sessionId: string) {
       repsMin: matchedRoutine.target_reps_min,
       repsMax: matchedRoutine.target_reps_max,
       repsFallback: matchedRoutine.target_reps,
-      weight: matchedRoutine.target_weight,
+      weightFallback: matchedRoutine.target_weight,
       weightUnit: matchedRoutine.target_weight_unit,
-      durationSeconds: matchedRoutine.target_duration_seconds,
-      distance: matchedRoutine.target_distance,
+      durationFallback: matchedRoutine.target_duration_seconds,
+      distanceFallback: matchedRoutine.target_distance,
       distanceUnit: matchedRoutine.target_distance_unit,
       defaultUnit: matchedRoutine.default_unit,
-      calories: matchedRoutine.target_calories,
+      caloriesFallback: matchedRoutine.target_calories,
     });
 
     if (templateTarget) {
