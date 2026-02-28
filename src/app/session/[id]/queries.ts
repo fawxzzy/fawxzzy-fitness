@@ -38,7 +38,7 @@ export async function getSessionPageData(sessionId: string) {
 
   const { data: sessionExercisesData } = await supabase
     .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, routine_day_exercise_id, position, notes, is_skipped, measurement_type, default_unit, exercise:exercises(name, measurement_type, default_unit), routine_day_exercise:routine_day_exercises(id, exercise_id, position, measurement_type, default_unit, target_reps, target_reps_min, target_reps_max, target_weight, target_duration_seconds, target_distance, target_calories)")
+    .select("id, session_id, user_id, exercise_id, routine_day_exercise_id, position, notes, is_skipped, measurement_type, default_unit, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, exercise:exercises(name, measurement_type, default_unit), routine_day_exercise:routine_day_exercises(id, exercise_id, position, measurement_type, default_unit, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories)")
     .eq("session_id", sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -56,7 +56,7 @@ export async function getSessionPageData(sessionId: string) {
   const { data: routineDayExercises } = routineDay?.id
     ? await supabase
         .from("routine_day_exercises")
-        .select("id, exercise_id, position, measurement_type, default_unit, target_reps, target_reps_min, target_reps_max, target_weight, target_duration_seconds, target_distance, target_calories")
+        .select("id, exercise_id, position, measurement_type, default_unit, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories")
         .eq("routine_day_id", routineDay.id)
         .eq("user_id", user.id)
     : { data: [] };
@@ -91,12 +91,15 @@ export async function getSessionPageData(sessionId: string) {
       position: number;
       measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
       default_unit: "mi" | "km" | "m" | null;
+      target_sets: number | null;
       target_reps: number | null;
       target_reps_min: number | null;
       target_reps_max: number | null;
       target_weight: number | null;
+      target_weight_unit: "lbs" | "kg" | null;
       target_duration_seconds: number | null;
       target_distance: number | null;
+      target_distance_unit: "mi" | "km" | "m" | null;
       target_calories: number | null;
     } | null | Array<{
       id: string;
@@ -104,12 +107,15 @@ export async function getSessionPageData(sessionId: string) {
       position: number;
       measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
       default_unit: "mi" | "km" | "m" | null;
+      target_sets: number | null;
       target_reps: number | null;
       target_reps_min: number | null;
       target_reps_max: number | null;
       target_weight: number | null;
+      target_weight_unit: "lbs" | "kg" | null;
       target_duration_seconds: number | null;
       target_distance: number | null;
+      target_distance_unit: "mi" | "km" | "m" | null;
       target_calories: number | null;
     }>;
   }>).map((item) => {
@@ -138,12 +144,13 @@ export async function getSessionPageData(sessionId: string) {
       ?? resolveDistanceUnit(exerciseRow?.default_unit)
       ?? "mi";
 
+    const goalSource = matchedRoutine ?? item;
     const enabledMetrics = {
-      reps: matchedRoutine ? (matchedRoutine.target_reps !== null || matchedRoutine.target_reps_min !== null || matchedRoutine.target_reps_max !== null) : null,
-      weight: matchedRoutine ? matchedRoutine.target_weight !== null : null,
-      time: matchedRoutine ? matchedRoutine.target_duration_seconds !== null : null,
-      distance: matchedRoutine ? matchedRoutine.target_distance !== null : null,
-      calories: matchedRoutine ? matchedRoutine.target_calories !== null : null,
+      reps: goalSource.target_reps !== null || goalSource.target_reps_min !== null || goalSource.target_reps_max !== null,
+      weight: goalSource.target_weight !== null,
+      time: goalSource.target_duration_seconds !== null,
+      distance: goalSource.target_distance !== null,
+      calories: goalSource.target_calories !== null,
     };
 
     return {
