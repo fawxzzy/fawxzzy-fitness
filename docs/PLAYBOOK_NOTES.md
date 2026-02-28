@@ -425,3 +425,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Querying legacy columns during partial rollout can trip schema-cache/runtime errors; additive-first plus read alignment keeps deployments safe and reversible.
 - Evidence: supabase/migrations/029_session_exercises_range_goal_columns.sql, src/app/session/[id]/queries.ts, src/lib/session-targets.ts, src/lib/exercise-goal-payload.ts
 - Status: Proposed
+
+## 2026-02-28 — Keep session goal range-column parity across all tracked metrics
+- Type: Guardrail
+- Summary: When session goal persistence is standardized on `*_min/*_max`, keep every metric (including sets) on the same range-column contract in schema, payload mapping, and query projections.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Partial migrations where one metric still uses legacy single-value columns can trigger schema-cache/runtime failures and silent goal persistence gaps.
+- Evidence: src/lib/exercise-goal-payload.ts, src/app/session/[id]/queries.ts, src/lib/session-targets.ts, supabase/migrations/030_session_exercises_target_sets_range_columns.sql
+- Status: Proposed
