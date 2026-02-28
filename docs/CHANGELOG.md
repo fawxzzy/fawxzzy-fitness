@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Refined the History screen destructive confirmation modal with stronger viewport backdrop isolation, cleaner centered dialog hierarchy, and contextual session details for the delete prompt.
+WHY:
+- The prior modal allowed underlying card content to visually compete with confirmation content, reducing clarity and confidence for destructive actions on iOS.
+
 ### Changed
 WHAT:
 - Refactored the Routines page into a Current Active Routine overview with a routine switcher dropdown, compact active-day preview, and a single primary Edit Routine action.

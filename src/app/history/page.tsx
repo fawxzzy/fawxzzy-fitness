@@ -6,6 +6,7 @@ import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { requireUser } from "@/lib/auth";
+import { formatDateTime } from "@/lib/datetime";
 import { formatDurationClock } from "@/lib/duration";
 import { revalidateHistoryViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -153,9 +154,12 @@ export default async function HistoryPage({
                             triggerAriaLabel="Delete session"
                             triggerClassName={`${listShellClasses.iconAction} h-11 w-11 shrink-0 !rounded-md !bg-transparent !px-0 !py-0 !text-rose-400 hover:!text-rose-200`}
                             modalTitle="Delete session?"
-                            modalDescription="This will delete this workout session and all logged sets."
+                            modalDescription="This will permanently delete this workout session and all logged sets."
                             confirmLabel="Delete"
-                            details={session.name ? `Session: ${session.name}` : undefined}
+                            contextLines={[
+                              `Session: ${session.name || "Session"}`,
+                              `${formatDateTime(session.performed_at)} • ${duration}`,
+                            ]}
                           />
                         </div>
                       </div>

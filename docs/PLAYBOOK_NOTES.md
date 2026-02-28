@@ -10,6 +10,15 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+
+## 2026-02-28 — Render destructive confirmations in a body-level portal with full-viewport isolation
+- Type: Guardrail
+- Summary: Destructive confirmations launched from scrollable/tinted card lists should mount through `document.body` (or shared Dialog portal) with fixed full-viewport backdrop + blur to avoid stacking-context bleed-through.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Inline-mounted overlays can inherit card/list stacking and clipping behavior, causing text bleed and weaker destructive affordance clarity on mobile.
+- Evidence: src/components/ui/ConfirmDestructiveModal.tsx, src/app/history/page.tsx
+- Status: Proposed
+
 ## 2026-02-28 — Pair risk-tiered destructive safeguards with reversible undo where feasible
 - Type: Pattern
 - Summary: Use a shared destructive confirmation modal for high-risk irreversible actions, and a short undo toast window for low/medium removals only when full client state is available for deterministic restore.

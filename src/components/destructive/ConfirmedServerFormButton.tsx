@@ -13,6 +13,7 @@ export function ConfirmedServerFormButton({
   modalTitle,
   modalDescription,
   confirmLabel,
+  contextLines,
   details,
   bullets,
   size = "sm",
@@ -26,6 +27,7 @@ export function ConfirmedServerFormButton({
   modalTitle: string;
   modalDescription: string;
   confirmLabel: string;
+  contextLines?: string[];
   details?: string;
   bullets?: string[];
   size?: "sm" | "md";
@@ -66,6 +68,7 @@ export function ConfirmedServerFormButton({
         title={modalTitle}
         description={modalDescription}
         confirmLabel={confirmLabel}
+        contextLines={contextLines}
         details={details}
         bullets={bullets}
         isLoading={isLoading}
