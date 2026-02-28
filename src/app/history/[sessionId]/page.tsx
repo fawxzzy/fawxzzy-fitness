@@ -1,14 +1,13 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { Glass } from "@/components/ui/Glass";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
-import { tapFeedbackClass } from "@/components/ui/interactionClasses";
+import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
-import { getExerciseNameMap } from "@/lib/exercises";
-import { listExercises } from "@/lib/exercises";
-import { supabaseServer } from "@/lib/supabase/server";
 import { formatDurationClock } from "@/lib/duration";
+import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { LogAuditClient } from "./LogAuditClient";
 
@@ -17,7 +16,6 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: { sessionId: string };
 };
-
 
 export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const user = await requireUser();
@@ -97,18 +95,16 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
   const exerciseOptions = await listExercises();
 
-  // Manual QA checklist:
-  // - Log 90 seconds and verify History shows 1:30 formatting.
   return (
     <section className="space-y-4">
       <AppNav />
 
-      <Glass variant="base" className="p-4" interactive={false}>
-        <Link href="/history" className={`mb-3 inline-flex rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 ${tapFeedbackClass}`}>
+      <Glass variant="base" className="space-y-2 p-4" interactive={false}>
+        <Link href="/history" className={getAppButtonClassName({ variant: "secondary", size: "sm" })}>
           ← Back to history
         </Link>
-        <h1 className="text-2xl font-semibold">Log Details</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-slate-100">Log Details</h1>
+        <p className="text-sm text-slate-300">
           {routineName} • {effectiveDayName} • <LocalDateTime value={sessionRow.performed_at} /> • {sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}
         </p>
       </Glass>
