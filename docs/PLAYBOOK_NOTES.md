@@ -10,6 +10,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-02-28 — Resolve cached/aggregated stats by canonical entity ID at render boundaries
+- Type: Guardrail
+- Summary: Any derived stats keyed by canonical entity IDs must be threaded and queried using canonical IDs across list selection, detail routes, and custom-item wrappers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Mixed ID domains (custom wrapper IDs vs canonical IDs) silently hide valid derived data even when the backing rows exist.
+- Evidence: src/app/session/[id]/page.tsx, src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
 ## 2026-02-28 — Reuse one measurement-to-goal payload mapper across create flows
 - Type: Guardrail
 - Summary: Flows that create exercise rows from the same measurement UI contract (e.g., routine editor and active session add-exercise) should use one shared parser/mapper for target payload serialization.

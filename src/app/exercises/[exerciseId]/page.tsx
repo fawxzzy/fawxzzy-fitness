@@ -43,7 +43,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_icon_path, image_howto_path, image_muscles_path")
+    .select("id, exercise_id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_icon_path, image_howto_path, image_muscles_path")
     .eq("id", params.exerciseId)
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .maybeSingle();
@@ -80,8 +80,9 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
         }
       : null;
 
+  const statsQueryExerciseId = data?.exercise_id ?? params.exerciseId;
   const returnHref = searchParams?.returnTo?.startsWith("/") ? searchParams.returnTo : undefined;
-  const stats = await getExerciseStatsForExercise(user.id, params.exerciseId);
+  const stats = await getExerciseStatsForExercise(user.id, statsQueryExerciseId);
   if (!exercise) {
     notFound();
   }
@@ -97,6 +98,20 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
   };
   const howToImageSrc = getExerciseHowToImageSrc(detailsExercise);
   const musclesImageSrc = getExerciseMusclesImageSrc(exercise.image_muscles_path);
+  const hasLast = stats ? (stats.last_weight != null && stats.last_reps != null) : false;
+  const hasPR = stats ? ((stats.pr_weight != null && stats.pr_reps != null) || stats.pr_est_1rm != null) : false;
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[ExerciseDetailsPage:Stats]", {
+      exerciseId: params.exerciseId,
+      exercise,
+      queryId: statsQueryExerciseId,
+      stats,
+      hasStats: Boolean(stats),
+      hasLast,
+      hasPR,
+    });
+  }
 
   return (
     <section className="space-y-4">
@@ -127,14 +142,19 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
         {exercise.how_to_short ? <p className="text-sm text-text">{exercise.how_to_short}</p> : null}
 
 
-        {stats && (stats.last_weight !== null || stats.pr_weight !== null) ? (
+        {stats && (hasLast || hasPR) ? (
           <div className="space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] p-2">
             <p className="text-xs uppercase tracking-wide text-muted">Personal</p>
-            {formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) && stats.last_performed_at ? (
-              <p className="text-sm text-text">Last: {formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit)} · {formatShortDate(stats.last_performed_at)}</p>
+            {process.env.NODE_ENV === "development" ? (
+              <p className="font-mono text-[10px] text-muted/90">
+                dbg: queryId={statsQueryExerciseId ?? "none"} statsFound={stats ? "yes" : "no"} statsExerciseId={stats?.exercise_id ?? "none"}
+              </p>
             ) : null}
-            {formatWeightReps(stats.pr_weight, stats.pr_reps, null) ? (
-              <p className="text-sm text-text">PR: {formatWeightReps(stats.pr_weight, stats.pr_reps, null)}{stats.pr_est_1rm ? ` · Est 1RM ${Math.round(stats.pr_est_1rm)}` : ""}</p>
+            {hasLast ? (
+              <p className="text-sm text-text">Last: {formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit)}{stats.last_performed_at ? ` · ${formatShortDate(stats.last_performed_at)}` : ""}</p>
+            ) : null}
+            {hasPR ? (
+              <p className="text-sm text-text">PR: {formatWeightReps(stats.pr_weight, stats.pr_reps, null)}{stats.pr_est_1rm != null ? `${stats.pr_weight != null && stats.pr_reps != null ? " · " : ""}Est 1RM ${Math.round(stats.pr_est_1rm)}` : ""}</p>
             ) : null}
           </div>
         ) : null}

@@ -342,6 +342,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const selectedCanonicalExerciseId = selectedExercise ? (selectedExercise.exercise_id ?? selectedExercise.id) : null;
   const statsQueryExerciseId = selectedCanonicalExerciseId;
   const selectedStats = statsQueryExerciseId ? statsByExerciseId.get(statsQueryExerciseId) : undefined;
+  const hasLast = selectedStats ? (selectedStats.lastWeight != null && selectedStats.lastReps != null) : false;
+  const hasPR = selectedStats ? ((selectedStats.prWeight != null && selectedStats.prReps != null) || selectedStats.prEst1rm != null) : false;
   const infoDetails = useMemo(() => {
     if (!info) {
       return null;
@@ -390,6 +392,21 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     setDidApplyLast(false);
     previousExerciseIdRef.current = selectedExercise.id;
   }, [resetMeasurementFields, routineTargetConfig, selectedExercise]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") {
+      return;
+    }
+
+    console.log("[ExercisePicker:MeasurementsStats]", {
+      selectedExercise,
+      queryId: statsQueryExerciseId,
+      stats: selectedStats ?? null,
+      hasStats: Boolean(selectedStats),
+      hasLast,
+      hasPR,
+    });
+  }, [hasLast, hasPR, selectedExercise, selectedStats, statsQueryExerciseId]);
 
   const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
 
@@ -633,20 +650,26 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
               </Button>
             </div>
 
-            {selectedStats ? (
+            {selectedStats && (hasLast || hasPR) ? (
               <div className={cn("space-y-1 rounded-md border border-border/50 bg-[rgb(var(--bg)/0.2)] px-2 py-1.5 text-xs text-muted", didApplyLast ? "border-accent/40" : "")}>
                 {process.env.NODE_ENV === "development" ? (
                   <p className="font-mono text-[10px] text-muted/90">
                     DEBUG stats selectedCanonicalId={selectedCanonicalExerciseId ?? "none"} queryExerciseId={statsQueryExerciseId ?? "none"} statsFound={selectedStats ? "yes" : "no"} stats.exercise_id={selectedStats.statsExerciseId ?? "none"}
                   </p>
                 ) : null}
-                {selectedStats.lastWeight != null && selectedStats.lastReps != null && selectedStats.lastPerformedAt ? (
-                  <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)} · {formatStatDate(selectedStats.lastPerformedAt)}</p>
+                {hasLast ? (
+                  <p>
+                    Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}
+                    {selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}
+                  </p>
                 ) : null}
-                {selectedStats.prWeight != null && selectedStats.prReps != null ? (
-                  <p>PR: {formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null)}</p>
+                {hasPR ? (
+                  <p>
+                    PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}
+                    {selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " · " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}
+                  </p>
                 ) : null}
-                {selectedStats.lastWeight != null && selectedStats.lastReps != null ? (
+                {hasLast ? (
                   <div className="flex justify-start">
                     <Button
                       type="button"
