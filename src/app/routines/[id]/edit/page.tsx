@@ -5,6 +5,7 @@ import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
+import { RestDayToggleCheckbox } from "@/app/routines/[id]/edit/RestDayToggleCheckbox";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
@@ -434,12 +435,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                 <input type="hidden" name="routineId" value={params.id} />
                 <input type="hidden" name="dayId" value={day.id} />
                 <label className="inline-flex items-center gap-2 text-xs text-muted">
-                  <input
-                    type="checkbox"
-                    name="isRest"
-                    defaultChecked={day.is_rest}
-                    onChange={(event) => event.currentTarget.form?.requestSubmit()}
-                  />
+                  <RestDayToggleCheckbox defaultChecked={day.is_rest} />
                   Rest day
                 </label>
               </form>

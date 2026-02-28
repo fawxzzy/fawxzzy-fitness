@@ -1,3 +1,15 @@
+### Fixed
+WHAT:
+- Moved the Edit Routine day-card Rest day checkbox auto-submit interaction into a dedicated client component while keeping the server action mutation flow unchanged.
+WHY:
+- Prevents Server Components render/runtime failures in production while preserving quick rest-day toggling from the routine overview.
+
+### Changed
+WHAT:
+- Added a Rest day toggle directly on each Edit Routine day card so rest status can be updated without opening the day editor.
+WHY:
+- Reduces taps for frequent routine adjustments and makes rest-day management faster from the routine overview.
+
 ### Changed
 WHAT:
 - Added a Rest day toggle directly on each Edit Routine day card so rest status can be updated without opening the day editor.

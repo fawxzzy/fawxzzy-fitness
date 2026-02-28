@@ -371,3 +371,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Image metadata belongs to schema/data contracts, and read-path omissions create hidden divergence that breaks single-source-of-truth assumptions during expansion.
 - Evidence: src/lib/exerciseImages.ts, src/app/exercises/[exerciseId]/page.tsx, src/lib/exercises.ts, src/types/db.ts
 - Status: Local (not yet upstreamed)
+
+## 2026-02-28 — Keep event handlers out of Server Components for form auto-submit controls
+- Type: Guardrail
+- Summary: If a server-rendered page needs auto-submit behavior (for example checkbox-on-toggle), encapsulate the handler in a tiny client component and keep the mutation in a strict server action.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Inline event handlers in Server Component trees can trigger production render/runtime failures and blur execution boundaries.
+- Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/RestDayToggleCheckbox.tsx
+- Status: Proposed
