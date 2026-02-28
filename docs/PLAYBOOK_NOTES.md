@@ -433,3 +433,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Partial migrations where one metric still uses legacy single-value columns can trigger schema-cache/runtime failures and silent goal persistence gaps.
 - Evidence: src/lib/exercise-goal-payload.ts, src/app/session/[id]/queries.ts, src/lib/session-targets.ts, supabase/migrations/030_session_exercises_target_sets_range_columns.sql
 - Status: Proposed
+
+## 2026-02-28 — Centralize fullscreen overlay scroll-lock in a single lifecycle with guaranteed cleanup
+- Type: Guardrail
+- Summary: For mobile fullscreen overlays, apply body/html scroll lock in one dedicated hook and always restore prior styles in effect cleanup; avoid stacking independent scroll-lock effects in both parent picker and child overlay.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Nested lock handlers can restore stale `overflow` values and leave the underlying page non-scrollable after close, especially on iOS/PWA.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExercisePicker.tsx, src/lib/useBodyScrollLock.ts
+- Status: Proposed

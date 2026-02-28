@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
+import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
   id: string;
@@ -35,16 +36,20 @@ export function ExerciseInfoSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  useBodyScrollLock(open);
+
   useEffect(() => {
     if (!open) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onOpenChange(false);
+      }
     };
-  }, [open]);
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onOpenChange, open]);
 
   const infoDetails = useMemo(() => {
     if (!exercise) {
@@ -65,7 +70,17 @@ export function ExerciseInfoSheet({
   if (!open || !exercise) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 pointer-events-auto" role="dialog" aria-modal="true" aria-label="Exercise info">
+    <div
+      className="fixed inset-0 z-50 pointer-events-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Exercise info"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onOpenChange(false);
+        }
+      }}
+    >
       <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
         <section className="flex h-full w-full flex-col">
           <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(env(safe-area-inset-top),0px)]">
