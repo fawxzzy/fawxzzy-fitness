@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Standardized destructive UX across routines, today, history, session, and routine-day editing flows with explicit destructive confirmations for high-risk deletions and clearer destructive wording (including “Discard Workout” and “Replace Day”).
+- Added reusable destructive confirmation and undo-toast patterns, and applied undo affordances to active-session set and exercise removals where state can be safely restored.
+- Applied confirmation for medium-risk deletions that are not safely undoable (completed-log exercise removal and custom exercise deletion).
+WHY:
+- The destructive-action audit identified inconsistent and ambiguous deletion behavior; users need predictable, explicit safeguards to prevent accidental data loss while keeping fast recovery available for reversible actions.
+
+### Changed
+WHAT:
 - Grouped Add Exercise search and filter controls into one shared container, added a clear “Selected exercise” header with multiline name support, and made measurement input fields always visible in the Measurements section.
 WHY:
 - Reduces nested-card clutter, improves selected-exercise clarity for long names, and lowers interaction friction by removing extra taps to edit measurements.

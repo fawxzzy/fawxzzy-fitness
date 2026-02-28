@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -108,11 +109,40 @@ export function SessionExerciseFocus({
   );
   const toast = useToast();
   const router = useRouter();
+  const queueUndo = useUndoAction(6000);
 
   useEffect(() => {
     if (!selectedExerciseId || !focusedRef.current) return;
     focusedRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedExerciseId]);
+
+  const handleRemoveExercise = (exerciseId: string) => {
+    if (removingExerciseIds.includes(exerciseId)) return;
+
+    setRemovingExerciseIds((current) => [...current, exerciseId]);
+    setSelectedExerciseId(null);
+
+    queueUndo({
+      message: "Removed exercise",
+      onUndo: () => {
+        setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
+      },
+      onCommit: async () => {
+        const formData = new FormData();
+        formData.set("sessionId", sessionId);
+        formData.set("sessionExerciseId", exerciseId);
+        const result = await removeExerciseAction(formData);
+
+        if (!result.ok) {
+          setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
+          toast.error(result.error || "Could not remove exercise.");
+          return;
+        }
+
+        router.refresh();
+      },
+    });
+  };
 
   useEffect(() => {
     setLoggedSetCounts((current) => {
@@ -253,44 +283,16 @@ export function SessionExerciseFocus({
                   {selectedExercise.isSkipped ? "Unskip" : "Skip"}
                 </AppButton>
               </form>
-              <form
-                action={async (formData) => {
-                  if (removingExerciseIds.includes(selectedExercise.id)) {
-                    return;
-                  }
-
-                  setRemovingExerciseIds((current) => [...current, selectedExercise.id]);
-                  try {
-                    const result = await removeExerciseAction(formData);
-                    toastActionResult(toast, result, {
-                      success: "Exercise removed.",
-                      error: "Could not remove exercise.",
-                    });
-
-                    if (result.ok) {
-                      setSelectedExerciseId(null);
-                      router.refresh();
-                      return;
-                    }
-                  } catch {
-                    toast.error("Could not remove exercise.");
-                  }
-
-                  setRemovingExerciseIds((current) => current.filter((id) => id !== selectedExercise.id));
-                }}
+              <AppButton
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={removingExerciseIds.includes(selectedExercise.id)}
+                className={tapFeedbackClass}
+                onClick={() => handleRemoveExercise(selectedExercise.id)}
               >
-                <input type="hidden" name="sessionId" value={sessionId} />
-                <input type="hidden" name="sessionExerciseId" value={selectedExercise.id} />
-                <AppButton
-                  type="submit"
-                  variant="destructive"
-                  size="sm"
-                  disabled={removingExerciseIds.includes(selectedExercise.id)}
-                  className={tapFeedbackClass}
-                >
-                  {removingExerciseIds.includes(selectedExercise.id) ? "Removing..." : "Remove"}
-                </AppButton>
-              </form>
+                {removingExerciseIds.includes(selectedExercise.id) ? "Removing..." : "Delete"}
+              </AppButton>
             </div>
           </div>
 
