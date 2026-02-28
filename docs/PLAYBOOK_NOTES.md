@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-02-28 — Reuse one measurement-to-goal payload mapper across create flows
+- Type: Guardrail
+- Summary: Flows that create exercise rows from the same measurement UI contract (e.g., routine editor and active session add-exercise) should use one shared parser/mapper for target payload serialization.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Prevents drift where one flow silently drops target fields while another persists them, causing inconsistent saved goals for identical UI input.
+- Evidence: src/lib/exercise-goal-payload.ts, src/app/routines/[id]/edit/day/actions.ts, src/app/session/[id]/actions.ts
+- Status: Proposed
+
 
 ## 2026-02-28 — Recompute derived performance caches after both additive and destructive history mutations
 - Type: Guardrail

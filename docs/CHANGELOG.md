@@ -1,3 +1,12 @@
+### Fixed
+WHAT:
+- Fixed Current Session “Add Exercise” so measurement inputs (reps/weight/time/distance/calories) are saved as the new session exercise’s goal fields when the exercise is created.
+- Aligned measurement-to-goal mapping between Edit Routine add-exercise and Current Session add-exercise flows.
+- Updated session goal resolution to prefer saved session-exercise goals (including ad-hoc/non-template exercises) so goals remain visible immediately and after refresh.
+WHY:
+- The Current Session add path was not persisting measurement goal values, so created session exercises lost targets that users had entered in the Add Exercise UI.
+- Using one shared mapping contract prevents payload drift between routine editing and active-session exercise creation.
+
 ### Added
 WHAT:
 - Added cached per-exercise personal stats (Last performed + PR based on best estimated 1RM set) and surfaced them in Add Exercise measurements and Exercise info.
