@@ -41,7 +41,7 @@ export function TodayDayPicker({
   );
 
   return (
-    <div className="flex min-h-0 flex-col gap-3">
+    <div className="flex min-h-0 flex-col gap-2.5">
       {selectedDay ? (
         <div className="min-h-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
@@ -70,6 +70,7 @@ export function TodayDayPicker({
         id="today-day-picker"
         type="button"
         fullWidth
+        className="border-white/20 bg-white/[0.03] text-muted shadow-none hover:bg-white/[0.07]"
         onClick={() => {
           setIsPickerOpen((previous) => !previous);
         }}

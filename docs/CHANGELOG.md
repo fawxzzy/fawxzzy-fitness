@@ -1355,3 +1355,10 @@ WHAT:
 - Refined current-session focus/list and routines front-page card layouts for clearer hierarchy, cleaner spacing, and more consistent action controls.
 WHY:
 - Improves readability and interaction consistency on mobile, removes distracting bright pressed states, and keeps related workflows grouped where users expect them.
+
+### Changed
+WHAT:
+- Adjusted Today screen action hierarchy so Start Workout remains the dominant primary CTA while Change Workout uses a lighter secondary treatment with tighter vertical spacing.
+- Refined Settings sign-out presentation by placing it in a subtle Danger zone section and switching the button to a lower-emphasis destructive outline style.
+WHY:
+- Improves visual hierarchy and aligns Today + Settings with the cleaner glass UI language while reducing visual noise without changing behavior.
