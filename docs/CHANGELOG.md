@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Grouped Add Exercise search and filter controls into one shared container, added a clear “Selected exercise” header with multiline name support, and made measurement input fields always visible in the Measurements section.
+WHY:
+- Reduces nested-card clutter, improves selected-exercise clarity for long names, and lowers interaction friction by removing extra taps to edit measurements.
+
+### Changed
+WHAT:
 - Removed the chevron from History cards so only the trash affordance remains on the right edge.
 WHY:
 - Reduces redundant visual noise and avoids implying a second right-side action while keeping the existing card-open and delete interactions clear.
