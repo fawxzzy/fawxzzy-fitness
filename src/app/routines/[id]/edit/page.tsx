@@ -6,6 +6,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
 import { RestDayToggleCheckbox } from "@/app/routines/[id]/edit/RestDayToggleCheckbox";
+import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
@@ -462,6 +463,12 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             </div>
           );
         })}
+      </div>
+
+      <div className="space-y-2 rounded-xl border border-red-500/35 bg-red-950/20 p-4">
+        <h2 className="text-sm font-semibold text-red-200">Danger Zone</h2>
+        <p className="text-xs text-red-100/80">Delete this routine permanently. This removes all routine days and exercises and cannot be undone.</p>
+        <DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />
       </div>
     </section>
   );

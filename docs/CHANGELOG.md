@@ -1,3 +1,10 @@
+### Added
+WHAT:
+- Restored a destructive “Delete Routine” control on the Edit Routine screen with an explicit confirmation dialog and safer danger-zone placement.
+- Added post-delete feedback handling so successful deletion routes users back to Routines with a success notice, while failures keep users on the edit screen with an error message.
+WHY:
+- Restores routine deletion from the place users edit a specific routine while reducing accidental data loss risk through explicit confirmation and clear destructive UX.
+
 ### Fixed
 WHAT:
 - Fixed the session exercise goals schema contract by adding support for `target_calories` on session exercises and aligned add-exercise goal persistence/loading with that column.
