@@ -118,7 +118,6 @@ export type ExerciseRow = {
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
-  image_muscles_path: string | null;
   how_to_short: string | null;
   created_at: string;
 };

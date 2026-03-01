@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Removed the Exercise Info “Muscles” image section and consolidated both Info surfaces to a single canonical How-to image slot.
+- Removed application-layer usage of `image_muscles_path` and deleted muscle-image resolver code paths so how-to media resolution is now the only image fallback chain.
+WHY:
+- Reduces duplicate media surface area, simplifies deterministic fallback behavior, and gives the remaining image slot more useful space in the existing dark-theme layout.
+
+### Changed
+WHAT:
 - Expanded History → Exercises cards so each exercise row uses the full card footprint with larger visual treatment for names and thumbnails.
 WHY:
 - Improves readability for long exercise names and gives exercise images more useful space when scanning progress history.

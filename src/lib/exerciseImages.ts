@@ -79,16 +79,3 @@ export function getExerciseHowToImageSrc(exercise: ExerciseImageSource): string 
 
   return getExerciseIconSrc(exercise);
 }
-
-export function getExerciseHowToImageSrcOrNull(exercise: ExerciseImageSource): string | null {
-  const src = getExerciseHowToImageSrc(exercise);
-  if (src === PLACEHOLDER_ICON_SRC || HOWTO_PLACEHOLDER_PATHS.has(src)) {
-    return null;
-  }
-
-  return src;
-}
-
-export function getExerciseMusclesImageSrc(imagePath?: string | null): string {
-  return getLocalImagePath(imagePath) ?? "/exercises/placeholders/muscles.svg";
-}

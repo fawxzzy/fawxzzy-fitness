@@ -228,7 +228,6 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
           primary_muscle: selectedRow.primary_muscle,
           equipment: selectedRow.equipment,
           movement_pattern: selectedRow.movement_pattern,
-          image_muscles_path: selectedRow.image_muscles_path,
           image_icon_path: selectedRow.image_icon_path,
           image_howto_path: selectedRow.image_howto_path,
           how_to_short: selectedRow.how_to_short,
