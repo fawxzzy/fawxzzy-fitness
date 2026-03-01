@@ -5,9 +5,12 @@ import { formatDurationClock } from "@/lib/duration";
 import { requireUser } from "@/lib/auth";
 
 export type DisplayTarget = {
-  sets?: number;
-  repsText?: string;
-  weight?: number;
+  setsMin?: number;
+  setsMax?: number;
+  repsMin?: number;
+  repsMax?: number;
+  weightMin?: number;
+  weightMax?: number;
   weightUnit?: "lbs" | "kg";
   durationSeconds?: number;
   distance?: number;
@@ -17,27 +20,35 @@ export type DisplayTarget = {
   source: "engine" | "template";
 };
 
-function getRepsText(minReps: number | null, maxReps: number | null, fallbackReps: number | null) {
-  const resolvedMin = minReps ?? fallbackReps ?? null;
-  const resolvedMax = maxReps ?? fallbackReps ?? null;
+function formatRangeWithLabel(minValue: number | undefined, maxValue: number | undefined, label: string) {
+  if (minValue === undefined && maxValue === undefined) return null;
+  if (minValue !== undefined && maxValue !== undefined) {
+    if (minValue === maxValue) return `${minValue} ${label}`;
+    return `${minValue}–${maxValue} ${label}`;
+  }
+  if (minValue !== undefined) return `${minValue} ${label}`;
+  return `${maxValue} ${label}`;
+}
 
-  if (resolvedMin !== null && resolvedMax !== null) {
-    if (resolvedMin === resolvedMax) {
-      return `${resolvedMin} reps`;
-    }
 
-    return `${resolvedMin}–${resolvedMax} reps`;
+function resolveRangeValue(minValue: number | null | undefined, maxValue: number | null | undefined, fallbackValue: number | null | undefined) {
+  if (minValue !== null && minValue !== undefined && maxValue !== null && maxValue !== undefined && minValue === maxValue) {
+    return minValue;
   }
 
-  if (resolvedMin !== null) {
-    return `${resolvedMin} reps`;
+  if (minValue !== null && minValue !== undefined) {
+    return minValue;
   }
 
-  if (resolvedMax !== null) {
-    return `${resolvedMax} reps`;
+  if (maxValue !== null && maxValue !== undefined) {
+    return maxValue;
   }
 
-  return undefined;
+  if (fallbackValue !== null && fallbackValue !== undefined) {
+    return fallbackValue;
+  }
+
+  return null;
 }
 
 function formatDurationText(durationSeconds: number) {
@@ -52,12 +63,121 @@ function toSingularUnit(unit: "lbs" | "kg" | "mi" | "km" | "m" | "cal") {
   return unit;
 }
 
+
+function resolveMeasurementType(value: unknown): "reps" | "time" | "distance" | "time_distance" | null {
+  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" ? value : null;
+}
+
+function resolveWeightUnit(value: unknown): "lbs" | "kg" | null {
+  return value === "lbs" || value === "kg" ? value : null;
+}
+
+function resolveDistanceUnit(value: unknown): "mi" | "km" | "m" | null {
+  return value === "mi" || value === "km" || value === "m" ? value : null;
+}
+
+function buildDisplayTargetFromGoalFields(fields: {
+  source: "engine" | "template";
+  measurementType?: unknown;
+  setsMin?: number | null;
+  setsMax?: number | null;
+  repsMin?: number | null;
+  repsMax?: number | null;
+  repsFallback?: number | null;
+  weightMin?: number | null;
+  weightMax?: number | null;
+  weightFallback?: number | null;
+  weightUnit?: unknown;
+  timeSecondsMin?: number | null;
+  timeSecondsMax?: number | null;
+  durationFallback?: number | null;
+  distanceMin?: number | null;
+  distanceMax?: number | null;
+  distanceFallback?: number | null;
+  distanceUnit?: unknown;
+  defaultUnit?: unknown;
+  caloriesMin?: number | null;
+  caloriesMax?: number | null;
+  caloriesFallback?: number | null;
+}): DisplayTarget | null {
+  const target: DisplayTarget = {
+    source: fields.source,
+    measurementType: resolveMeasurementType(fields.measurementType) ?? "reps",
+  };
+
+  const resolvedSetsMin = fields.setsMin ?? null;
+  const resolvedSetsMax = fields.setsMax ?? null;
+  const fallbackSets = fields.setsMin ?? fields.setsMax ?? null;
+  const displaySets = resolveRangeValue(resolvedSetsMin, resolvedSetsMax, fallbackSets);
+  if (displaySets !== null) {
+    target.setsMin = resolvedSetsMin ?? displaySets;
+    target.setsMax = resolvedSetsMax ?? displaySets;
+  }
+
+  const resolvedRepsMin = fields.repsMin ?? fields.repsFallback ?? null;
+  const resolvedRepsMax = fields.repsMax ?? fields.repsFallback ?? null;
+  if (resolvedRepsMin !== null || resolvedRepsMax !== null) {
+    target.repsMin = resolvedRepsMin ?? undefined;
+    target.repsMax = resolvedRepsMax ?? undefined;
+  }
+
+  const resolvedWeight = resolveRangeValue(fields.weightMin, fields.weightMax, fields.weightFallback);
+  if (resolvedWeight !== null) {
+    target.weightMin = (fields.weightMin ?? resolvedWeight);
+    target.weightMax = (fields.weightMax ?? resolvedWeight);
+    const weightUnit = resolveWeightUnit(fields.weightUnit);
+    if (weightUnit) {
+      target.weightUnit = weightUnit;
+    }
+  }
+
+  const resolvedDurationSeconds = resolveRangeValue(fields.timeSecondsMin, fields.timeSecondsMax, fields.durationFallback);
+  if (resolvedDurationSeconds !== null) {
+    target.durationSeconds = resolvedDurationSeconds;
+  }
+
+  const resolvedDistance = resolveRangeValue(fields.distanceMin, fields.distanceMax, fields.distanceFallback);
+  if (resolvedDistance !== null) {
+    target.distance = Number(resolvedDistance);
+  }
+
+  const distanceUnit = resolveDistanceUnit(fields.distanceUnit) ?? resolveDistanceUnit(fields.defaultUnit);
+  if (distanceUnit) {
+    target.distanceUnit = distanceUnit;
+  }
+
+  const resolvedCalories = resolveRangeValue(fields.caloriesMin, fields.caloriesMax, fields.caloriesFallback);
+  if (resolvedCalories !== null) {
+    target.calories = Number(resolvedCalories);
+  }
+
+  const hasMeasurementTarget = target.setsMin !== undefined
+    || target.setsMax !== undefined
+    || target.repsMin !== undefined
+    || target.repsMax !== undefined
+    || target.weightMin !== undefined
+    || target.weightMax !== undefined
+    || target.durationSeconds !== undefined
+    || target.distance !== undefined
+    || target.calories !== undefined;
+
+  if (!hasMeasurementTarget) {
+    return null;
+  }
+
+  return target;
+}
+
 export function formatGoalStatLine(target: DisplayTarget, fallbackWeightUnit: string | null): { primary: string; secondary: string[] } | null {
   const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
   const resolvedDistanceUnit = target.distanceUnit ?? "mi";
   const hasMeasurementTarget = (
-    target.repsText
-    || target.weight !== undefined
+    target.setsMin !== undefined
+    || target.setsMax !== undefined
+    || target.repsMin !== undefined
+    || target.repsMax !== undefined
+    || target.weightMin !== undefined
+    || target.weightMax !== undefined
     || target.durationSeconds !== undefined
     || target.distance !== undefined
     || target.calories !== undefined
@@ -68,17 +188,14 @@ export function formatGoalStatLine(target: DisplayTarget, fallbackWeightUnit: st
   }
 
   const firstSegmentParts: string[] = [];
-  if (target.sets !== undefined) {
-    firstSegmentParts.push(`${target.sets} ×`);
-  }
-  if (target.repsText) {
-    firstSegmentParts.push(target.repsText.replace(/\s+reps?$/, ""));
-  }
-  if (target.weight !== undefined) {
-    firstSegmentParts.push(`@ ${target.weight}${resolvedWeightUnit ? ` ${toSingularUnit(resolvedWeightUnit)}` : ""}`);
-  }
+  const setsPart = formatRangeWithLabel(target.setsMin, target.setsMax, "sets");
+  if (setsPart) firstSegmentParts.push(setsPart);
+  const repsPart = formatRangeWithLabel(target.repsMin, target.repsMax, "reps");
+  if (repsPart) firstSegmentParts.push(repsPart);
+  const weightPart = formatRangeWithLabel(target.weightMin, target.weightMax, resolvedWeightUnit ? toSingularUnit(resolvedWeightUnit) : "");
+  if (weightPart) firstSegmentParts.push(`@ ${weightPart.trim()}`);
 
-  const primary = firstSegmentParts.join(" ").trim();
+  const primary = firstSegmentParts.join(" · ").trim();
   const secondary: string[] = [];
 
   if (target.durationSeconds !== undefined) {
@@ -101,8 +218,12 @@ export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string
   const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
   const resolvedDistanceUnit = target.distanceUnit ?? "mi";
   const hasMeasurementTarget = (
-    target.repsText
-    || target.weight !== undefined
+    target.setsMin !== undefined
+    || target.setsMax !== undefined
+    || target.repsMin !== undefined
+    || target.repsMax !== undefined
+    || target.weightMin !== undefined
+    || target.weightMax !== undefined
     || target.durationSeconds !== undefined
     || target.distance !== undefined
     || target.calories !== undefined
@@ -114,13 +235,16 @@ export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string
 
   const parts: string[] = [];
 
-  if (target.sets !== undefined) {
-    parts.push(`${target.sets} sets`);
+  const setsPart = formatRangeWithLabel(target.setsMin, target.setsMax, "sets");
+  if (setsPart) {
+    parts.push(setsPart);
   }
 
   const repsWeightParts: string[] = [];
-  if (target.repsText) repsWeightParts.push(target.repsText);
-  if (target.weight !== undefined) repsWeightParts.push(`@ ${target.weight}${resolvedWeightUnit ? ` ${resolvedWeightUnit}` : ""}`);
+  const repsPart = formatRangeWithLabel(target.repsMin, target.repsMax, "reps");
+  if (repsPart) repsWeightParts.push(repsPart);
+  const weightPart = formatRangeWithLabel(target.weightMin, target.weightMax, resolvedWeightUnit ?? "");
+  if (weightPart) repsWeightParts.push(`@ ${weightPart.trim()}`);
 
   const timePart = target.durationSeconds !== undefined ? `Time ${formatDurationText(target.durationSeconds)}` : null;
   const distancePart = target.distance !== undefined ? `Distance ${target.distance} ${resolvedDistanceUnit}` : null;
@@ -162,16 +286,48 @@ export async function getSessionTargets(sessionId: string) {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!session?.routine_id || !session.routine_day_index) {
+  if (!session) {
     return new Map<string, DisplayTarget>();
   }
 
   const { data: sessionExercises } = await supabase
     .from("session_exercises")
-    .select("id, exercise_id, position, routine_day_exercise_id")
+    .select("id, exercise_id, position, routine_day_exercise_id, target_sets_min, target_sets_max, target_reps_min, target_reps_max, target_weight_min, target_weight_max, target_weight_unit, target_time_seconds_min, target_time_seconds_max, target_distance_min, target_distance_max, target_distance_unit, target_calories_min, target_calories_max, measurement_type, default_unit")
     .eq("session_id", sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
+
+  const targetMap = new Map<string, DisplayTarget>();
+
+  for (const sessionExercise of sessionExercises ?? []) {
+    const sessionTarget = buildDisplayTargetFromGoalFields({
+      source: "engine",
+      measurementType: sessionExercise.measurement_type,
+      setsMin: sessionExercise.target_sets_min,
+      setsMax: sessionExercise.target_sets_max,
+      repsMin: sessionExercise.target_reps_min,
+      repsMax: sessionExercise.target_reps_max,
+      weightMin: sessionExercise.target_weight_min,
+      weightMax: sessionExercise.target_weight_max,
+      weightUnit: sessionExercise.target_weight_unit,
+      timeSecondsMin: sessionExercise.target_time_seconds_min,
+      timeSecondsMax: sessionExercise.target_time_seconds_max,
+      distanceMin: sessionExercise.target_distance_min,
+      distanceMax: sessionExercise.target_distance_max,
+      distanceUnit: sessionExercise.target_distance_unit,
+      defaultUnit: sessionExercise.default_unit,
+      caloriesMin: sessionExercise.target_calories_min,
+      caloriesMax: sessionExercise.target_calories_max,
+    });
+
+    if (sessionTarget) {
+      targetMap.set(sessionExercise.id, sessionTarget);
+    }
+  }
+
+  if (!session.routine_id || !session.routine_day_index) {
+    return targetMap;
+  }
 
   const { data: routineDay } = await supabase
     .from("routine_days")
@@ -182,7 +338,7 @@ export async function getSessionTargets(sessionId: string) {
     .maybeSingle();
 
   if (!routineDay) {
-    return new Map<string, DisplayTarget>();
+    return targetMap;
   }
 
   const { data: routineDayExercises } = await supabase
@@ -219,9 +375,12 @@ export async function getSessionTargets(sessionId: string) {
   }
 
   const consumedRoutineIds = new Set<string>();
-  const targetMap = new Map<string, DisplayTarget>();
 
   for (const sessionExercise of sessionExercises ?? []) {
+    if (targetMap.has(sessionExercise.id)) {
+      continue;
+    }
+
     let matchedRoutine = sessionExercise.routine_day_exercise_id
       ? (routineRowsById.get(sessionExercise.routine_day_exercise_id) ?? null)
       : null;
@@ -241,48 +400,26 @@ export async function getSessionTargets(sessionId: string) {
 
     consumedRoutineIds.add(matchedRoutine.id);
 
-    const target: DisplayTarget = {
+    const templateTarget = buildDisplayTargetFromGoalFields({
       source: "template",
-      measurementType: matchedRoutine.measurement_type
-        ?? measurementTypeByExerciseId.get(matchedRoutine.exercise_id)
-        ?? "reps",
-    };
+      measurementType: matchedRoutine.measurement_type ?? measurementTypeByExerciseId.get(matchedRoutine.exercise_id),
+      setsMin: matchedRoutine.target_sets,
+      setsMax: matchedRoutine.target_sets,
+      repsMin: matchedRoutine.target_reps_min,
+      repsMax: matchedRoutine.target_reps_max,
+      repsFallback: matchedRoutine.target_reps,
+      weightFallback: matchedRoutine.target_weight,
+      weightUnit: matchedRoutine.target_weight_unit,
+      durationFallback: matchedRoutine.target_duration_seconds,
+      distanceFallback: matchedRoutine.target_distance,
+      distanceUnit: matchedRoutine.target_distance_unit,
+      defaultUnit: matchedRoutine.default_unit,
+      caloriesFallback: matchedRoutine.target_calories,
+    });
 
-    if (matchedRoutine.target_sets !== null) {
-      target.sets = matchedRoutine.target_sets;
+    if (templateTarget) {
+      targetMap.set(sessionExercise.id, templateTarget);
     }
-
-    const repsText = getRepsText(matchedRoutine.target_reps_min, matchedRoutine.target_reps_max, matchedRoutine.target_reps);
-    if (repsText) {
-      target.repsText = repsText;
-    }
-
-    if (matchedRoutine.target_weight !== null) {
-      target.weight = Number(matchedRoutine.target_weight);
-      if (matchedRoutine.target_weight_unit === "lbs" || matchedRoutine.target_weight_unit === "kg") {
-        target.weightUnit = matchedRoutine.target_weight_unit;
-      }
-    }
-
-    if (matchedRoutine.target_duration_seconds !== null) {
-      target.durationSeconds = matchedRoutine.target_duration_seconds;
-    }
-
-    if (matchedRoutine.target_distance !== null) {
-      target.distance = Number(matchedRoutine.target_distance);
-    }
-
-    if (matchedRoutine.target_distance_unit === "mi" || matchedRoutine.target_distance_unit === "km" || matchedRoutine.target_distance_unit === "m") {
-      target.distanceUnit = matchedRoutine.target_distance_unit;
-    } else if (matchedRoutine.default_unit === "mi" || matchedRoutine.default_unit === "km" || matchedRoutine.default_unit === "m") {
-      target.distanceUnit = matchedRoutine.default_unit;
-    }
-
-    if (matchedRoutine.target_calories !== null) {
-      target.calories = Number(matchedRoutine.target_calories);
-    }
-
-    targetMap.set(sessionExercise.id, target);
   }
 
   return targetMap;

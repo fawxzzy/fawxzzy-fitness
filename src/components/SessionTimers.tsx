@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
@@ -10,6 +10,9 @@ import {
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
+import { AppButton } from "@/components/ui/AppButton";
+import { useUndoAction } from "@/components/ui/useUndoAction";
+import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { formatDurationClock } from "@/lib/duration";
@@ -146,7 +149,11 @@ export function SetLoggerCard({
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [showRpeTooltip, setShowRpeTooltip] = useState(false);
+  const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
+  const metricsPanelId = useId();
+
   const toast = useToast();
+  const queueUndo = useUndoAction(6000);
 
   const planContractSignature = `${sessionExerciseId}:${routineDayExerciseId ?? ""}:${planTargetsHash ?? ""}`;
 
@@ -161,6 +168,10 @@ export function SetLoggerCard({
   useEffect(() => {
     setHasUserModifiedMetrics(false);
   }, [planContractSignature]);
+
+  useEffect(() => {
+    setIsMetricsExpanded(false);
+  }, [sessionExerciseId]);
 
   useEffect(() => {
     onSetCountChange?.(sets.length);
@@ -624,177 +635,220 @@ export function SetLoggerCard({
       return;
     }
 
-    const result = await deleteSetAction({
-      sessionId,
-      sessionExerciseId,
-      setId: set.id,
-    });
-
-    if (!result.ok) {
-      toast.error(result.error || "Could not remove set.");
-      return;
-    }
+    const removalIndex = sets.findIndex((item) => item.id === set.id);
+    if (removalIndex === -1) return;
 
     setSets((current) => current.filter((item) => item.id !== set.id));
-    toast.success("Set removed.");
+
+    queueUndo({
+      message: "Removed set",
+      onUndo: () => {
+        setSets((current) => {
+          if (current.some((item) => item.id === set.id)) return current;
+          const next = [...current];
+          next.splice(removalIndex, 0, set);
+          return next;
+        });
+      },
+      onCommit: async () => {
+        const result = await deleteSetAction({
+          sessionId,
+          sessionExerciseId,
+          setId: set.id,
+        });
+
+        if (!result.ok) {
+          setSets((current) => {
+            if (current.some((item) => item.id === set.id)) return current;
+            const next = [...current];
+            next.splice(removalIndex, 0, set);
+            return next;
+          });
+          toast.error(result.error || "Could not remove set.");
+        }
+      },
+    });
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {/* Manual QA checklist:
           - Add/exercise metric hints are visible inside input boxes
           - No Set Timer UI remains; duration logging still works via mm:ss
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <details className="rounded-md border border-slate-200 bg-white px-2 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-slate-700">Modify Metrics</summary>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
-            <button
-              key={metric}
-              type="button"
-              onClick={() => {
-                setHasUserModifiedMetrics(true);
-                setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
-              }}
-              className={`rounded-md border px-2 py-1 text-xs ${activeMetrics[metric] ? "border-accent bg-accent/10 text-accent-strong" : "border-slate-300 text-slate-600"}`}
-            >
-              {activeMetrics[metric] ? "Hide" : "Show"} {metric}
-            </button>
-          ))}
-        </div>
-      </details>
-
-      <div className="flex flex-col rounded-md border border-slate-200 bg-slate-50 p-3">
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <InlineHintInput
-            type="number"
-            min={0}
-            value={reps}
-            onChange={(event) => {
-              setReps(event.target.value);
-            }}
-            hint="reps"
-          />
-        </div>
-
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.weight ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <div className="grid grid-cols-2 gap-2">
-            <InlineHintInput
-              type="number"
-              min={0}
-              step="0.5"
-              value={weight}
-              onChange={(event) => setWeight(event.target.value)}
-              hint={selectedWeightUnit}
-            />
-            <select
-              value={selectedWeightUnit}
-              onChange={(event) => setSelectedWeightUnit(event.target.value === "kg" ? "kg" : "lbs")}
-              className="rounded-md border border-slate-300 px-2 py-2 text-sm"
-            >
-              <option value="lbs">lbs</option>
-              <option value="kg">kg</option>
-            </select>
-          </div>
-        </div>
-
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.time ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <InlineHintInput
-            type="text"
-            inputMode="numeric"
-            value={durationInput}
-            onChange={(event) => setDurationInput(event.target.value)}
-            hint="mm:ss"
-          />
-        </div>
-
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.distance ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <div className="grid grid-cols-2 gap-2">
-            <InlineHintInput
-              type="number"
-              min={0}
-              step="0.01"
-              value={distance}
-              onChange={(event) => setDistance(event.target.value)}
-              hint={distanceUnit}
-            />
-            <select
-              value={distanceUnit}
-              onChange={(event) => setDistanceUnit(event.target.value as "mi" | "km" | "m")}
-              className="rounded-md border border-slate-300 px-2 py-2 text-sm"
-            >
-              <option value="mi">mi</option>
-              <option value="km">km</option>
-              <option value="m">m</option>
-            </select>
-          </div>
-        </div>
-
-        <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.calories ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-          <InlineHintInput
-            type="number"
-            min={0}
-            step="1"
-            value={calories}
-            onChange={(event) => setCalories(event.target.value)}
-            hint="cal"
-          />
-        </div>
-
-        <div className="col-span-2 grid grid-cols-[1fr_auto] items-end gap-3">
-          <div className="relative space-y-1">
-            <div className="flex items-center gap-1">
-              <span className="text-[11px] font-medium text-slate-600">RPE (ⓘ)</span>
-              <button type="button" onClick={() => setShowRpeTooltip((value) => !value)} className="rounded-full border border-slate-300 px-1.5 py-0.5 text-[10px] text-slate-600">ⓘ</button>
-            </div>
-            {showRpeTooltip ? (
-              <div className="absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-slate-200 bg-white p-2 text-[11px] text-slate-600 shadow-sm">
-                <p className="font-medium text-slate-700">RPE (1–10)</p>
-                <p>10 = max effort</p>
-                <p>8 = ~2 reps left</p>
-                <p>6 = moderate effort</p>
-              </div>
-            ) : null}
-            <input
-              type="number"
-              min={0}
-              step="0.5"
-              value={rpe}
-              onChange={(event) => setRpe(event.target.value)}
-              placeholder="RPE"
-              className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
-            />
-          </div>
-          <label className="flex items-center gap-2 pb-2 text-sm">
-            <input type="checkbox" checked={isWarmup} onChange={(event) => setIsWarmup(event.target.checked)} />
-            Warm-up
-          </label>
-        </div>
-          </div>
-        </div>
-
+      <div className="overflow-hidden rounded-lg border border-border/80 bg-surface-2-soft/70">
         <button
           type="button"
-          onClick={handleLogSet}
-          disabled={isSaveDisabled}
-          className={`mt-auto rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-60 ${tapFeedbackClass}`}
+          aria-expanded={isMetricsExpanded}
+          aria-controls={metricsPanelId}
+          onClick={() => setIsMetricsExpanded((current) => !current)}
+          className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 [-webkit-tap-highlight-color:transparent] ${tapFeedbackClass}`}
         >
-          Save set
+          <span className="text-sm font-semibold text-[rgb(var(--text)/0.92)]">Modify measurements</span>
+          {isMetricsExpanded ? (
+            <ChevronUpIcon className="h-4 w-4 shrink-0 text-[rgb(var(--text)/0.72)]" />
+          ) : (
+            <ChevronDownIcon className="h-4 w-4 shrink-0 text-[rgb(var(--text)/0.72)]" />
+          )}
         </button>
+        {isMetricsExpanded ? (
+          <div id={metricsPanelId} className="flex flex-wrap gap-2 border-t border-border/70 bg-surface/65 p-2.5">
+            {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
+              <button
+                key={metric}
+                type="button"
+                onClick={() => {
+                  setHasUserModifiedMetrics(true);
+                  setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
+                }}
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${activeMetrics[metric] ? "border-emerald-300/45 bg-emerald-400/15 text-emerald-100" : "border-white/15 bg-surface-2-soft text-[rgb(var(--text)/0.85)]"}`}
+              >
+                {activeMetrics[metric] ? "Hide" : "Show"} {metric}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="rounded-xl border border-border/70 bg-surface/70 p-3">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <InlineHintInput
+                type="number"
+                min={0}
+                value={reps}
+                onChange={(event) => {
+                  setReps(event.target.value);
+                }}
+                hint="reps"
+              />
+            </div>
+
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.weight ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <InlineHintInput
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={weight}
+                  onChange={(event) => setWeight(event.target.value)}
+                  hint={selectedWeightUnit}
+                />
+                <select
+                  value={selectedWeightUnit}
+                  onChange={(event) => setSelectedWeightUnit(event.target.value === "kg" ? "kg" : "lbs")}
+                  className="min-h-11 rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
+                >
+                  <option value="lbs">lbs</option>
+                  <option value="kg">kg</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.time ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <InlineHintInput
+                type="text"
+                inputMode="numeric"
+                value={durationInput}
+                onChange={(event) => setDurationInput(event.target.value)}
+                hint="mm:ss"
+              />
+            </div>
+
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.distance ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <InlineHintInput
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={distance}
+                  onChange={(event) => setDistance(event.target.value)}
+                  hint={distanceUnit}
+                />
+                <select
+                  value={distanceUnit}
+                  onChange={(event) => setDistanceUnit(event.target.value as "mi" | "km" | "m")}
+                  className="min-h-11 rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
+                >
+                  <option value="mi">mi</option>
+                  <option value="km">km</option>
+                  <option value="m">m</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.calories ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
+              <InlineHintInput
+                type="number"
+                min={0}
+                step="1"
+                value={calories}
+                onChange={(event) => setCalories(event.target.value)}
+                hint="cal"
+              />
+            </div>
+
+            <div className="col-span-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div className="relative">
+                <div className="mb-1 flex items-center gap-1">
+                  <span className="text-[11px] font-medium text-slate-600">RPE</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRpeTooltip((value) => !value)}
+                    className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] text-muted"
+                  >
+                    ⓘ
+                  </button>
+                </div>
+                {showRpeTooltip ? (
+                  <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
+                    <p className="font-medium text-text">RPE (1–10)</p>
+                    <p>10 = max effort</p>
+                    <p>8 = ~2 reps left</p>
+                    <p>6 = moderate effort</p>
+                  </div>
+                ) : null}
+                <input
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={rpe}
+                  onChange={(event) => setRpe(event.target.value)}
+                  placeholder="RPE"
+                  className="min-h-11 w-full rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
+                />
+              </div>
+              <label className="flex min-h-11 items-center gap-2 text-sm text-text">
+                <input
+                  type="checkbox"
+                  checked={isWarmup}
+                  onChange={(event) => setIsWarmup(event.target.checked)}
+                  className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                />
+                Warm-up
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
+            Save set
+          </AppButton>
+        </div>
       </div>
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      <ul className="space-y-1 text-sm">
+      <ul className="divide-y divide-border/70 overflow-hidden rounded-md border border-border/70 bg-surface/70 text-sm">
         {animatedSets.map((set, index) => (
           <li
             key={set.id}
             className={[
-              "rounded-md bg-slate-50 px-2 py-1",
+              "bg-surface/70 px-3 py-2",
               "origin-top transition-all duration-150 motion-reduce:transition-none",
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
@@ -810,14 +864,15 @@ export function SetLoggerCard({
                 onClick={() => {
                   void handleDeleteSet(set);
                 }}
-                className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+                aria-label="Remove set"
+                className={`rounded-md px-1.5 py-1 text-xs text-muted hover:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
               >
-                Remove
+                ✕
               </button>
             </div>
           </li>
         ))}
-        {sets.length === 0 ? <li className="text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
+        {sets.length === 0 ? <li className="px-3 py-2 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
       </ul>
     </div>
   );

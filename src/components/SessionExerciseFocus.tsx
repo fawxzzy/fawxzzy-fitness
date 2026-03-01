@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
+import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -107,11 +109,40 @@ export function SessionExerciseFocus({
   );
   const toast = useToast();
   const router = useRouter();
+  const queueUndo = useUndoAction(6000);
 
   useEffect(() => {
     if (!selectedExerciseId || !focusedRef.current) return;
     focusedRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedExerciseId]);
+
+  const handleRemoveExercise = (exerciseId: string) => {
+    if (removingExerciseIds.includes(exerciseId)) return;
+
+    setRemovingExerciseIds((current) => [...current, exerciseId]);
+    setSelectedExerciseId(null);
+
+    queueUndo({
+      message: "Removed exercise",
+      onUndo: () => {
+        setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
+      },
+      onCommit: async () => {
+        const formData = new FormData();
+        formData.set("sessionId", sessionId);
+        formData.set("sessionExerciseId", exerciseId);
+        const result = await removeExerciseAction(formData);
+
+        if (!result.ok) {
+          setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
+          toast.error(result.error || "Could not remove exercise.");
+          return;
+        }
+
+        router.refresh();
+      },
+    });
+  };
 
   useEffect(() => {
     setLoggedSetCounts((current) => {
@@ -156,7 +187,7 @@ export function SessionExerciseFocus({
   return (
     <div className="space-y-3">
       {selectedExerciseId === null ? (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-border/70 overflow-hidden rounded-lg border border-border/70 bg-surface/70">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
@@ -166,57 +197,71 @@ export function SessionExerciseFocus({
                 key={exercise.id}
                 className={[
                   "origin-top transition-all duration-150 motion-reduce:transition-none",
-                  isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-40 scale-100 opacity-100",
+                  isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-32 scale-100 opacity-100",
                 ].join(" ")}
               >
                 <button
                   type="button"
+                  aria-label={`Open ${exercise.name}`}
                   onClick={() => setSelectedExerciseId(exercise.id)}
-                  className={`w-full rounded-md bg-white p-3 text-left shadow-sm transition-all duration-150 motion-reduce:transition-none ${tapFeedbackClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
+                  className={`w-full bg-transparent p-3 text-left transition-colors duration-150 motion-reduce:transition-none ${tapFeedbackClass} hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">{exercise.name}</p>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                      <span className="rounded-full border border-border/70 bg-surface-2-soft px-2 py-0.5 text-xs font-medium text-text">
                         {setCount} {exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}
                       </span>
                     </div>
-                    <span className={`rounded-md border border-slate-300 px-2 py-1 text-xs ${tapFeedbackClass}`}>Open</span>
+                    <span aria-hidden="true" className="text-muted">›</span>
                   </div>
                   {exercise.goalStatLine ? (
-                    <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
-                      <span className="font-semibold text-slate-700 whitespace-nowrap">{exercise.goalStatLine.primary || "Open"}</span>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-muted">
+                      <span className="whitespace-nowrap font-semibold text-text">{exercise.goalStatLine.primary || "Open"}</span>
                       {exercise.goalStatLine.secondary.map((part) => (
-                        <span key={part} className="whitespace-nowrap text-slate-500">
+                        <span key={part} className="whitespace-nowrap text-muted">
                           • {part}
                         </span>
                       ))}
                     </p>
                   ) : (
-                    <p className="mt-1 text-xs text-slate-500">Goal: Open</p>
+                    <p className="mt-1 text-xs text-muted">Goal: Open</p>
                   )}
-                  {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-700">Skipped</p> : null}
+                  {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-300">Skipped</p> : null}
                 </button>
               </li>
             );
           })}
         </ul>
       ) : (
-        <div className="rounded-md bg-white p-3 shadow-sm">
+        <div className="rounded-lg border border-border/70 bg-surface/70 p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5">
-              <p className="text-sm font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
-              <p className="text-xs text-slate-500">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
+              <p className="text-base font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
+              <p className="text-xs text-muted">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
-            <button type="button" onClick={() => setSelectedExerciseId(null)} className={`rounded-md border border-slate-300 px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>Close</button>
+            <AppButton
+              type="button"
+              aria-label="Close exercise"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedExerciseId(null)}
+              className={tapFeedbackClass}
+            >
+              Back
+            </AppButton>
           </div>
         </div>
       )}
 
       {selectedExercise ? (
-        <article ref={focusedRef} className="space-y-3 overflow-hidden rounded-md bg-white p-3 shadow-sm" aria-hidden={false}>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-base font-semibold">{selectedExercise.name}</p>
+        <article
+          ref={focusedRef}
+          className="space-y-4 overflow-hidden rounded-md border border-border/70 bg-surface p-4 pt-[max(env(safe-area-inset-top),1rem)]"
+          aria-hidden={false}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-lg font-semibold leading-tight text-text">{selectedExercise.name}</p>
             <div className="flex gap-2">
               <form
                 action={async (formData) => {
@@ -234,63 +279,39 @@ export function SessionExerciseFocus({
                 <input type="hidden" name="sessionId" value={sessionId} />
                 <input type="hidden" name="sessionExerciseId" value={selectedExercise.id} />
                 <input type="hidden" name="nextSkipped" value={String(!selectedExercise.isSkipped)} />
-                <button type="submit" className={`rounded-md border border-slate-300 px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}>
+                <AppButton type="submit" variant="secondary" size="sm" className={tapFeedbackClass}>
                   {selectedExercise.isSkipped ? "Unskip" : "Skip"}
-                </button>
+                </AppButton>
               </form>
-              <form
-                action={async (formData) => {
-                  if (removingExerciseIds.includes(selectedExercise.id)) {
-                    return;
-                  }
-
-                  setRemovingExerciseIds((current) => [...current, selectedExercise.id]);
-                  try {
-                    const result = await removeExerciseAction(formData);
-                    toastActionResult(toast, result, {
-                      success: "Exercise removed.",
-                      error: "Could not remove exercise.",
-                    });
-
-                    if (result.ok) {
-                      setSelectedExerciseId(null);
-                      router.refresh();
-                      return;
-                    }
-                  } catch {
-                    toast.error("Could not remove exercise.");
-                  }
-
-                  setRemovingExerciseIds((current) => current.filter((id) => id !== selectedExercise.id));
-                }}
+              <AppButton
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={removingExerciseIds.includes(selectedExercise.id)}
+                className={tapFeedbackClass}
+                onClick={() => handleRemoveExercise(selectedExercise.id)}
               >
-                <input type="hidden" name="sessionId" value={sessionId} />
-                <input type="hidden" name="sessionExerciseId" value={selectedExercise.id} />
-                <button
-                  type="submit"
-                  disabled={removingExerciseIds.includes(selectedExercise.id)}
-                  className={`rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:opacity-50 ${tapFeedbackClass}`}
-                >
-                  {removingExerciseIds.includes(selectedExercise.id) ? "Removing..." : "Remove"}
-                </button>
-              </form>
+                {removingExerciseIds.includes(selectedExercise.id) ? "Removing..." : "Delete"}
+              </AppButton>
             </div>
           </div>
 
-          <p className="text-xs text-slate-500">Goal:</p>
-          {selectedExercise.goalStatLine ? (
-            <p className="-mt-1 flex flex-wrap items-center gap-x-1 text-xs text-slate-500">
-              <span className="font-semibold text-slate-700 whitespace-nowrap">{selectedExercise.goalStatLine.primary || "Open"}</span>
-              {selectedExercise.goalStatLine.secondary.map((part) => (
-                <span key={part} className="whitespace-nowrap text-slate-500">
-                  • {part}
-                </span>
-              ))}
-            </p>
-          ) : (
-            <p className="-mt-1 text-sm text-slate-500">Open</p>
-          )}
-          {selectedExercise.isSkipped ? <p className="text-sm text-amber-700">Marked skipped for this session.</p> : null}
+          <div className="space-y-1 border-t border-border/60 pt-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">Goal</p>
+            {selectedExercise.goalStatLine ? (
+              <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted">
+                <span className="whitespace-nowrap font-semibold text-text">{selectedExercise.goalStatLine.primary || "Open"}</span>
+                {selectedExercise.goalStatLine.secondary.map((part) => (
+                  <span key={part} className="whitespace-nowrap text-muted">
+                    • {part}
+                  </span>
+                ))}
+              </p>
+            ) : (
+              <p className="text-sm text-muted">Open</p>
+            )}
+          </div>
+          {selectedExercise.isSkipped ? <p className="text-sm text-amber-300">Marked skipped for this session.</p> : null}
 
           <SetLoggerCard
             sessionId={sessionId}

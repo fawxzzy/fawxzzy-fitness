@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 export function SignOutButton() {
@@ -17,7 +18,11 @@ export function SignOutButton() {
   return (
     <button
       onClick={handleSignOut}
-      className="rounded-md bg-red-600 px-4 py-2 text-white"
+      className={getAppButtonClassName({
+        variant: "destructive",
+        fullWidth: true,
+        className: "bg-red-500/10 text-red-200 border-red-400/35 shadow-none hover:bg-red-500/16",
+      })}
     >
       Sign out
     </button>

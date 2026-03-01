@@ -148,6 +148,15 @@ details[open] > summary .details-close-label {
   display: inline;
 }
 
+
+details > summary .details-chevron {
+  transition: transform 160ms ease;
+}
+
+details[open] > summary .details-chevron {
+  transform: rotate(180deg);
+}
+
 input::placeholder,
 textarea::placeholder {
   color: rgb(var(--faint));
@@ -183,6 +192,10 @@ button,
 
 .app-button:active {
   transform: scale(var(--button-press-scale));
+}
+
+.app-button:focus-visible {
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

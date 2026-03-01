@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
-import { PrimaryButton } from "@/components/ui/AppButton";
+import { SecondaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -24,14 +24,14 @@ function SaveSessionButton() {
   // Manual QA checklist:
   // - Save session redirects to History detail (or History list fallback) only after success.
   return (
-    <PrimaryButton
+    <SecondaryButton
       type="submit"
       fullWidth
       disabled={pending}
       className="sm:w-auto"
     >
       {pending ? "Saving..." : "Save Session"}
-    </PrimaryButton>
+    </SecondaryButton>
   );
 }
 
@@ -77,8 +77,8 @@ export function SessionHeaderControls({
     <div className="space-y-3">
       <div className="sticky top-2 z-10 space-y-2">
         <OfflineSyncBadge />
-        <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-          Session time: <span className="font-semibold tabular-nums">{formatDurationClock(durationSeconds)}</span>
+        <p className="px-1 text-sm text-slate-500">
+          Session time · <span className="font-semibold tabular-nums text-slate-700">{formatDurationClock(durationSeconds)}</span>
         </p>
         <form
           action={async (formData) => {

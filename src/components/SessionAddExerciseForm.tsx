@@ -1,10 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { ExercisePicker } from "@/components/ExercisePicker";
+import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
+import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import type { ActionResult } from "@/lib/action-result";
+
 
 type ExerciseOption = {
   id: string;
@@ -20,19 +24,22 @@ type ExerciseOption = {
   image_howto_path: string | null;
 };
 
-
 export function SessionAddExerciseForm({
   sessionId,
   exercises,
   initialSelectedId,
   weightUnit,
   addExerciseAction,
+  exerciseStats,
+  customExerciseSection,
 }: {
   sessionId: string;
   exercises: ExerciseOption[];
   initialSelectedId?: string;
   weightUnit: "lbs" | "kg";
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
+  exerciseStats: ExerciseStatsOption[];
+  customExerciseSection?: ReactNode;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -50,11 +57,18 @@ export function SessionAddExerciseForm({
           router.refresh();
         }
       }}
-      className="space-y-2"
+      className="space-y-3"
     >
       <input type="hidden" name="sessionId" value={sessionId} />
-      <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} />
-      <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Add Exercise</button>
+      <div className="space-y-3 rounded-lg border border-border/70 bg-surface/60 p-3">
+        {customExerciseSection}
+        <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} exerciseStats={exerciseStats} />
+      </div>
+      <div className="border-t border-border/70 pt-2">
+        <AppButton type="submit" variant="primary" fullWidth>
+          Add Exercise
+        </AppButton>
+      </div>
     </form>
   );
 }

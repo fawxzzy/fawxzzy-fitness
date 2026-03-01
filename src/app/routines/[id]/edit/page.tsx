@@ -2,6 +2,11 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
+import { AppButton } from "@/components/ui/AppButton";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
+import { RestDayToggleCheckbox } from "@/app/routines/[id]/edit/RestDayToggleCheckbox";
+import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
@@ -265,6 +270,37 @@ async function pasteRoutineDayAction(formData: FormData) {
   redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ success: "Day pasted.", copiedDayId: sourceDayId })}`);
 }
 
+async function toggleRoutineDayRestAction(formData: FormData) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const routineId = String(formData.get("routineId") ?? "");
+  const dayId = String(formData.get("dayId") ?? "");
+  const isRest = formData.get("isRest") === "on";
+
+  if (!routineId || !dayId) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: "Missing day info." })}`);
+  }
+
+  const { error } = await supabase
+    .from("routine_days")
+    .update({ is_rest: isRest })
+    .eq("id", dayId)
+    .eq("routine_id", routineId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: error.message })}`);
+  }
+
+  revalidateRoutinesViews();
+  revalidatePath(getRoutineEditPath(routineId));
+  revalidatePath(`/routines/${routineId}/edit/day/${dayId}`);
+  redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ success: "Rest day updated." })}`);
+}
+
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -332,9 +368,9 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
-      {copiedDayId ? <p className="rounded-md border border-border bg-surface-2-soft px-3 py-2 text-xs text-muted">Day copy is ready. Tap “Paste day” on a target day card.</p> : null}
+      {copiedDayId ? <p className="rounded-md border border-border bg-surface-2-soft px-3 py-2 text-xs text-muted">Day copy is ready. Tap “Replace Day” on a target day card.</p> : null}
 
-      <form action={updateRoutineAction} className="space-y-3">
+      <form id="routine-update-form" action={updateRoutineAction} className="space-y-3">
         <input type="hidden" name="routineId" value={routine.id} />
         <CollapsibleCard
           title="Routine details"
@@ -346,7 +382,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
             </label>
             <label className="block text-sm">Cycle length (days)
-              <p className="mt-1 text-xs text-slate-500">Includes workout and rest days in the repeat cycle.</p>
+              <p className="mt-1 text-xs text-muted">Includes workout and rest days in the repeat cycle.</p>
               <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
             </label>
             <label className="block text-sm">Units
@@ -361,12 +397,12 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               </select>
             </label>
             <label className="block text-sm">Start date
-              <p className="mt-1 text-xs text-slate-500">Sets which calendar day is Day 1 for this cycle.</p>
+              <p className="mt-1 text-xs text-muted">Sets which calendar day is Day 1 for this cycle.</p>
               <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
             </label>
           </div>
         </CollapsibleCard>
-        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">Save Routine</button>
+        <RoutineSaveButton formId="routine-update-form" originalCycleLength={(routine as RoutineRow).cycle_length_days} />
       </form>
 
       <div className="space-y-2">
@@ -377,7 +413,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
           return (
             <div
               key={day.id}
-              className="rounded-md border border-slate-300 bg-surface-soft p-4"
+              className="rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] p-4"
             >
               <Link
                 href={`/routines/${params.id}/edit/day/${day.id}`}
@@ -385,39 +421,54 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
-                  <span className="text-xs text-slate-500">Tap to edit</span>
+                  <span className="text-xs text-muted">Tap to edit</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
+                <p className="mt-1 text-xs text-muted">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
                 {!day.is_rest && preview.length > 0 ? (
-                  <p className="mt-1 truncate text-xs text-slate-500">
+                  <p className="mt-1 truncate text-xs text-muted">
                     {preview.join(" • ")}
                     {count > preview.length ? " • …" : ""}
                   </p>
                 ) : null}
               </Link>
 
+              <form action={toggleRoutineDayRestAction} className="mt-3">
+                <input type="hidden" name="routineId" value={params.id} />
+                <input type="hidden" name="dayId" value={day.id} />
+                <label className="inline-flex items-center gap-2 text-xs text-muted">
+                  <RestDayToggleCheckbox defaultChecked={day.is_rest} />
+                  Rest day
+                </label>
+              </form>
+
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <form action={copyRoutineDayAction}>
                   <input type="hidden" name="routineId" value={params.id} />
                   <input type="hidden" name="dayId" value={day.id} />
-                  <button type="submit" className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs">Copy day</button>
+                  <AppButton type="submit" variant="secondary" size="sm" fullWidth>Copy day</AppButton>
                 </form>
-                <form action={pasteRoutineDayAction}>
-                  <input type="hidden" name="routineId" value={params.id} />
-                  <input type="hidden" name="sourceDayId" value={copiedDayId} />
-                  <input type="hidden" name="targetDayId" value={day.id} />
-                  <button
-                    type="submit"
-                    disabled={!copiedDayId || copiedDayId === day.id}
-                    className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Paste day
-                  </button>
-                </form>
+                <ConfirmedServerFormButton
+                  action={pasteRoutineDayAction}
+                  hiddenFields={{ routineId: params.id, sourceDayId: copiedDayId, targetDayId: day.id }}
+                  triggerLabel="Replace Day"
+                  triggerClassName="w-full disabled:border-border/40 disabled:bg-[rgb(var(--bg)/0.25)]"
+                  modalTitle="Replace target day?"
+                  modalDescription="Replacing this day will delete the exercises currently on the target day."
+                  confirmLabel="Replace"
+                  details={`${dayExerciseCount.get(day.id) ?? 0} exercises currently on target day.`}
+                  size="sm"
+                  disabled={!copiedDayId || copiedDayId === day.id}
+                />
               </div>
             </div>
           );
         })}
+      </div>
+
+      <div className="space-y-2 rounded-xl border border-red-500/35 bg-red-950/20 p-4">
+        <h2 className="text-sm font-semibold text-red-200">Danger Zone</h2>
+        <p className="text-xs text-red-100/80">Delete this routine permanently. This removes all routine days and exercises and cannot be undone.</p>
+        <DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />
       </div>
     </section>
   );

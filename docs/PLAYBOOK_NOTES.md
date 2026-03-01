@@ -11,10 +11,57 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 ## PROPOSED
 
 
-
 # Playbook Notes (Local Inbox)
 
 ## UPSTREAMED (keep for traceability)
+
+## 2026-02-28 — Resolve cached/aggregated stats by canonical entity ID at render boundaries
+- Type: Guardrail
+- Summary: Any derived stats keyed by canonical entity IDs must be threaded and queried using canonical IDs across list selection, detail routes, and custom-item wrappers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Mixed ID domains (custom wrapper IDs vs canonical IDs) silently hide valid derived data even when the backing rows exist.
+- Evidence: src/app/session/[id]/page.tsx, src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
+## 2026-02-28 — Reuse one measurement-to-goal payload mapper across create flows
+- Type: Guardrail
+- Summary: Flows that create exercise rows from the same measurement UI contract (e.g., routine editor and active session add-exercise) should use one shared parser/mapper for target payload serialization.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Prevents drift where one flow silently drops target fields while another persists them, causing inconsistent saved goals for identical UI input.
+- Evidence: src/lib/exercise-goal-payload.ts, src/app/routines/[id]/edit/day/actions.ts, src/app/session/[id]/actions.ts
+- Status: Proposed
+
+
+## 2026-02-28 — Recompute derived performance caches after both additive and destructive history mutations
+- Type: Guardrail
+- Summary: Any cached per-entity performance snapshot (e.g., Last performed, PR) must be recomputed deterministically after session completion and session deletion for only the affected entities.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Prevents stale “best/last” claims after destructive history edits while keeping recomputation bounded and predictable.
+- Evidence: src/lib/exercise-stats.ts, src/app/session/[id]/actions.ts, src/app/history/page.tsx
+- Status: Proposed
+
+## 2026-02-28 — Render destructive confirmations in a body-level portal with full-viewport isolation
+- Type: Guardrail
+- Summary: Destructive confirmations launched from scrollable/tinted card lists should mount through `document.body` (or shared Dialog portal) with fixed full-viewport backdrop + blur to avoid stacking-context bleed-through.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Inline-mounted overlays can inherit card/list stacking and clipping behavior, causing text bleed and weaker destructive affordance clarity on mobile.
+- Evidence: src/components/ui/ConfirmDestructiveModal.tsx, src/app/history/page.tsx
+- Status: Proposed
+
+## 2026-02-28 — Pair risk-tiered destructive safeguards with reversible undo where feasible
+- Type: Pattern
+- Summary: Use a shared destructive confirmation modal for high-risk irreversible actions, and a short undo toast window for low/medium removals only when full client state is available for deterministic restore.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Prevents accidental destructive loss while preserving fast workflows by reserving undo only for safely reversible operations.
+- Evidence: src/components/ui/ConfirmDestructiveModal.tsx, src/components/ui/useUndoAction.ts, src/components/SessionTimers.tsx, src/components/SessionExerciseFocus.tsx
+- Status: Proposed
+
+## 2026-02-27 — Generate runtime media manifests from public assets for deterministic lookups
+- Type: Guardrail
+- Summary: When UI code resolves static media by slug, generate a build-time manifest from the asset directory and only request files declared in that manifest.
+- Suggested Playbook File: patterns/frontend/media-fallbacks.md
+- Rationale: Prevents noisy production 404 spam caused by optimistic path construction when catalog slugs outpace available assets.
+- Evidence: scripts/generate-exercise-icon-manifest.mjs, src/generated/exerciseIconManifest.ts, src/lib/exerciseImages.ts
+- Status: Proposed
+
 ## 2026-02-27 — Cache known-missing media URLs per session in shared image components
 - Type: Guardrail
 - Summary: Shared image components should keep an in-memory set of failed source URLs and immediately render deterministic fallbacks for repeat references during the same session.
@@ -337,3 +384,60 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Deterministic aliases fix real-world mismatches without scattering one-off conditionals or changing the base URL contract.
 - Evidence: src/lib/exerciseIconMap.json, src/lib/exerciseImages.ts
 - Status: Upstreamed (Playbook commit/PR link)
+
+
+## 2026-02-27 — Treat exercise image path metadata as schema-owned contract at read boundaries
+- Type: Guardrail
+- Summary: Keep exercise image resolution deterministic with this read order: explicit DB path (if absolute local path) -> slug path (`/exercises/icons/<slug>.png`) -> normalized name slug path -> shared SVG placeholder, while ensuring detail/read queries include schema-owned image metadata fields (including `image_muscles_path`) instead of reconstructing/nulling them in UI code.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: Image metadata belongs to schema/data contracts, and read-path omissions create hidden divergence that breaks single-source-of-truth assumptions during expansion.
+- Evidence: src/lib/exerciseImages.ts, src/app/exercises/[exerciseId]/page.tsx, src/lib/exercises.ts, src/types/db.ts
+- Status: Local (not yet upstreamed)
+
+## 2026-02-28 — Keep event handlers out of Server Components for form auto-submit controls
+- Type: Guardrail
+- Summary: If a server-rendered page needs auto-submit behavior (for example checkbox-on-toggle), encapsulate the handler in a tiny client component and keep the mutation in a strict server action.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Inline event handlers in Server Component trees can trigger production render/runtime failures and blur execution boundaries.
+- Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/RestDayToggleCheckbox.tsx
+- Status: Proposed
+
+## 2026-02-28 — Keep workout stats lookups keyed strictly by canonical exercise UUIDs
+- Type: Guardrail
+- Summary: For selection-driven stats UI, always query/map `exercise_stats` by canonical `exercises.id` (or `exercise_id` on join rows) and never by join-table row IDs or slug-like identifiers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Mismatched identifiers silently hide valid stats rows and create hard-to-debug UI drift in measurement panels.
+- Evidence: src/app/session/[id]/queries.ts, src/components/ExercisePicker.tsx, src/lib/exercise-stats.ts
+- Status: Proposed
+
+## 2026-02-28 — Avoid nested server-action forms for row-level destructive actions
+- Type: Guardrail
+- Summary: On edit screens with per-row save and delete controls, keep destructive server-action forms as siblings (or external via `form=`) rather than nesting them inside another `<form>`.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Nested forms can cause implicit submit bubbling and React/Next runtime submit errors during destructive actions.
+- Evidence: src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/components/destructive/ConfirmedServerFormButton.tsx
+- Status: Proposed
+
+## 2026-02-28 — Treat mutable DB columns as additive during contract migrations and move reads first
+- Type: Guardrail
+- Summary: For evolving DB contracts, ship additive migrations that introduce the new columns and immediately align read/query projections to the new contract before any cleanup of legacy columns.
+- Suggested Playbook File: Playbook/docs/PATTERNS/versioned-persistence.md
+- Rationale: Querying legacy columns during partial rollout can trip schema-cache/runtime errors; additive-first plus read alignment keeps deployments safe and reversible.
+- Evidence: supabase/migrations/029_session_exercises_range_goal_columns.sql, src/app/session/[id]/queries.ts, src/lib/session-targets.ts, src/lib/exercise-goal-payload.ts
+- Status: Proposed
+
+## 2026-02-28 — Keep session goal range-column parity across all tracked metrics
+- Type: Guardrail
+- Summary: When session goal persistence is standardized on `*_min/*_max`, keep every metric (including sets) on the same range-column contract in schema, payload mapping, and query projections.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Partial migrations where one metric still uses legacy single-value columns can trigger schema-cache/runtime failures and silent goal persistence gaps.
+- Evidence: src/lib/exercise-goal-payload.ts, src/app/session/[id]/queries.ts, src/lib/session-targets.ts, supabase/migrations/030_session_exercises_target_sets_range_columns.sql
+- Status: Proposed
+
+## 2026-02-28 — Centralize fullscreen overlay scroll-lock in a single lifecycle with guaranteed cleanup
+- Type: Guardrail
+- Summary: For mobile fullscreen overlays, apply body/html scroll lock in one dedicated hook and always restore prior styles in effect cleanup; avoid stacking independent scroll-lock effects in both parent picker and child overlay.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Nested lock handlers can restore stale `overflow` values and leave the underlying page non-scrollable after close, especially on iOS/PWA.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExercisePicker.tsx, src/lib/useBodyScrollLock.ts
+- Status: Proposed

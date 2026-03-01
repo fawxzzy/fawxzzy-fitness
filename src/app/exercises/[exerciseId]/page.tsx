@@ -3,7 +3,8 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { getExerciseStatsForExercise } from "@/lib/exercise-stats";
+import { getExerciseHowToImageSrc, getExerciseMusclesImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -17,6 +18,20 @@ type PageProps = {
 
 const tagClassName = "rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
 
+
+function formatWeightReps(weight: number | null, reps: number | null, unit: string | null) {
+  if (weight === null || reps === null) return null;
+  const weightLabel = Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
+  return `${weightLabel}${unit ? ` ${unit}` : ""} × ${reps}`;
+}
+
+function formatShortDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 function MetaTag({ value }: { value: string | null }) {
   if (!value) return null;
   return <span className={tagClassName}>{value}</span>;
@@ -28,7 +43,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path")
+    .select("id, exercise_id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_icon_path, image_howto_path, image_muscles_path")
     .eq("id", params.exerciseId)
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .maybeSingle();
@@ -45,8 +60,8 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
         primary_muscles: data.primary_muscle ? [data.primary_muscle] : [],
         secondary_muscles: [] as string[],
         slug: data.slug ?? null,
-        image_icon_path: null,
-        image_muscles_path: null,
+        image_icon_path: data.image_icon_path ?? null,
+        image_muscles_path: data.image_muscles_path ?? null,
       }
     : fallbackExercise
       ? {
@@ -59,23 +74,45 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           movement_pattern: fallbackExercise.movement_pattern,
           equipment: fallbackExercise.equipment,
           image_icon_path: null,
+          image_path: null,
+          image_howto_path: null,
           image_muscles_path: null,
         }
       : null;
 
-  const returnHref = searchParams?.returnTo?.startsWith("/") ? searchParams.returnTo : undefined;
   if (!exercise) {
     notFound();
   }
 
+  const canonicalExerciseId = data?.exercise_id ?? data?.id ?? exercise.id;
+  const returnHref = searchParams?.returnTo?.startsWith("/") ? searchParams.returnTo : undefined;
+  const stats = await getExerciseStatsForExercise(user.id, canonicalExerciseId);
+
   const primaryMuscles = (exercise.primary_muscles ?? []) as string[];
   const secondaryMuscles = (exercise.secondary_muscles ?? []) as string[];
-  const howToImageSrc = getExerciseIconSrc({
+  const detailsExercise: ExerciseImageSource = {
     name: exercise.name,
     slug: exercise.slug,
+    image_path: "image_path" in exercise ? exercise.image_path ?? null : null,
     image_icon_path: exercise.image_icon_path,
-  });
-  const musclesImageSrc = exercise.image_muscles_path ?? "/exercises/placeholders/muscles.svg";
+    image_howto_path: exercise.image_howto_path,
+  };
+  const howToImageSrc = getExerciseHowToImageSrc(detailsExercise);
+  const musclesImageSrc = getExerciseMusclesImageSrc(exercise.image_muscles_path);
+  const hasLast = stats ? (stats.last_weight != null && stats.last_reps != null) : false;
+  const hasPR = stats ? ((stats.pr_weight != null && stats.pr_reps != null) || stats.pr_est_1rm != null) : false;
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[ExerciseDetailsPage:Stats]", {
+      exerciseId: params.exerciseId,
+      exercise,
+      queryId: canonicalExerciseId,
+      stats,
+      hasStats: Boolean(stats),
+      hasLast,
+      hasPR,
+    });
+  }
 
   return (
     <section className="space-y-4">
@@ -92,6 +129,23 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
             <MetaTag value={exercise.movement_pattern} />
           </div>
         </div>
+
+        {stats && (hasLast || hasPR) ? (
+          <div className="space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] p-2">
+            <p className="text-xs uppercase tracking-wide text-muted">Personal</p>
+            {process.env.NODE_ENV === "development" ? (
+              <p className="font-mono text-[10px] text-muted/90">
+                dbg: canonicalExerciseId={canonicalExerciseId ?? "none"} statsFound={stats ? "yes" : "no"} statsExerciseId={stats?.exercise_id ?? "none"}
+              </p>
+            ) : null}
+            {hasLast ? (
+              <p className="text-sm text-text">Last: {formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit)}{stats.last_performed_at ? ` · ${formatShortDate(stats.last_performed_at)}` : ""}</p>
+            ) : null}
+            {hasPR ? (
+              <p className="text-sm text-text">PR: {formatWeightReps(stats.pr_weight, stats.pr_reps, null)}{stats.pr_est_1rm != null ? `${stats.pr_weight != null && stats.pr_reps != null ? " · " : ""}Est 1RM ${Math.round(stats.pr_est_1rm)}` : ""}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-muted">How-to</p>

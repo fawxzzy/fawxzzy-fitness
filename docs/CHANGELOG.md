@@ -1,8 +1,276 @@
+### Added
+WHAT:
+- Added an Exercise Browser under History with a dedicated `/history/exercises` view, searchable compact exercise rows, and Last/PR stat previews sourced from the existing `exercise_stats` cache.
+- Added a lightweight Sessions/Exercises switch on History so users can move between the existing Sessions timeline and the new Exercise Browser.
+WHY:
+- Makes exercise progress discoverable without digging through session history, while keeping the experience fast and glanceable.
+
+### Changed
+WHAT:
+- Showed per-exercise Personal stats (Last performed + PR) directly on the Exercise Info overlay opened from Add Exercise, using canonical exercise UUID mapping from `exercise.exercise_id ?? exercise.id`.
+WHY:
+- Makes progress visible anywhere users inspect exercise details, reducing friction and reinforcing motivation without requiring navigation to Measurements.
+
+### Fixed
+WHAT:
+- Fixed Exercise Info overlay scroll locking so body/page scrolling is fully restored immediately after closing the overlay.
+WHY:
+- Prevents the Add Exercise screen from becoming non-scrollable after viewing Exercise Info, especially on iOS Safari/PWA.
+
+### Changed
+WHAT:
+- Added a left-side Info button on each “Currently added workouts” exercise row in the Edit Day list and wired it to open the existing Exercise Info overlay for that exercise.
+- Kept the row layout stable by preserving right-side Edit controls and tightening left text truncation behavior for long exercise summaries.
+WHY:
+- Gives users fast in-context access to exercise guidance/details while editing a day without navigating away.
+- Prevents control collisions and awkward wrapping on smaller screens while retaining the existing quick-edit workflow.
+
+### Fixed
+WHAT:
+- Added missing `session_exercises` goal target columns for reps, weight, time (seconds), distance, and calories so Current Session add-exercise goal reads/writes align with the live schema.
+- Fixed Exercise Info personal stats lookup to query `exercise_stats` with the exercise’s canonical ID and render Last/PR when either stat exists.
+WHY:
+- Prevents runtime schema-cache errors when Add Exercise includes supported goal metrics like distance/time/calories and ensures session goals persist after reload.
+- Surfaces derived personal stats consistently on Exercise Info instead of dropping Last/PR when route-level IDs differ from canonical exercise IDs.
+
+### Added
+WHAT:
+- Restored a destructive “Delete Routine” control on the Edit Routine screen with an explicit confirmation dialog and safer danger-zone placement.
+- Added post-delete feedback handling so successful deletion routes users back to Routines with a success notice, while failures keep users on the edit screen with an error message.
+WHY:
+- Restores routine deletion from the place users edit a specific routine while reducing accidental data loss risk through explicit confirmation and clear destructive UX.
+
+### Fixed
+WHAT:
+- Fixed the session exercise goals schema contract by adding support for `target_calories` on session exercises and aligned add-exercise goal persistence/loading with that column.
+- Unified Add Exercise measurement guidance so both Current Session and Edit Routine → Edit Day show the same Last/PR stats and “Use last” behavior.
+WHY:
+- Prevents runtime schema-cache failures when session exercise goal payloads include calories.
+- Keeps exercise add flows consistent so users get the same historical guidance and faster input wherever they add exercises.
+
+### Fixed
+WHAT:
+- Restored Last/PR visibility in Add Exercise Measurements and Exercise Info by ensuring stats resolve against the selected exercise's canonical ID and by rendering stats when either Last or PR data exists.
+- Added development-gated diagnostics around exercise stats fetch/query and render wiring for faster verification of query ID to stats ID matching.
+WHY:
+- Existing exercise_stats rows could be hidden when custom exercise IDs diverged from canonical IDs or when strict render guards suppressed partial valid stats, making personal history appear missing.
+- Fixed Current Session “Add Exercise” so measurement inputs (reps/weight/time/distance/calories) are saved as the new session exercise’s goal fields when the exercise is created.
+- Aligned measurement-to-goal mapping between Edit Routine add-exercise and Current Session add-exercise flows.
+- Updated session goal resolution to prefer saved session-exercise goals (including ad-hoc/non-template exercises) so goals remain visible immediately and after refresh.
+WHY:
+- The Current Session add path was not persisting measurement goal values, so created session exercises lost targets that users had entered in the Add Exercise UI.
+- Using one shared mapping contract prevents payload drift between routine editing and active-session exercise creation.
+
+### Added
+WHAT:
+- Added cached per-exercise personal stats (Last performed + PR based on best estimated 1RM set) and surfaced them in Add Exercise measurements and Exercise info.
+- Added a “Use last” action in Add Exercise measurements so users can tap to populate measurement fields from their latest logged set.
+- Added deterministic stat recomputation on session save and completed-session delete so Last/PR always reflect remaining history.
+WHY:
+- Reduces friction while adding exercises, improves motivation with immediate personal context, and preserves trust by preventing stale PR/Last values after history changes.
+
+### Fixed
+WHAT:
+- Moved the Edit Routine day-card Rest day checkbox auto-submit interaction into a dedicated client component while keeping the server action mutation flow unchanged.
+WHY:
+- Prevents Server Components render/runtime failures in production while preserving quick rest-day toggling from the routine overview.
+
+### Changed
+WHAT:
+- Added a Rest day toggle directly on each Edit Routine day card so rest status can be updated without opening the day editor.
+WHY:
+- Reduces taps for frequent routine adjustments and makes rest-day management faster from the routine overview.
+
+### Changed
+WHAT:
+- Added a Rest day toggle directly on each Edit Routine day card so rest status can be updated without opening the day editor.
+WHY:
+- Reduces taps for frequent routine adjustments and makes rest-day management faster from the routine overview.
+
+### Changed
+WHAT:
+- Updated the Routines active overview card to display every configured day for the selected routine and added a compact summary row showing cycle length, training-day count, and rest-day count.
+WHY:
+- Better uses available space and improves at-a-glance understanding of routine structure without requiring extra navigation.
+
+### Changed
+WHAT:
+- Simplified the Routines overview layout by removing the duplicate in-content “Routines” label and reducing border noise between the routine switcher and overview card.
+WHY:
+- Improves visual hierarchy and the glass aesthetic by avoiding stacked wireframe-like outlines while keeping the same behavior.
+
+### Fixed
+WHAT:
+- Fixed routine overview day numbering so active routine preview rows start at Day 1 and follow the routine’s canonical day order without skipping labels.
+WHY:
+- Prevents misleading routine previews (for example showing Monday as Day 2) and reduces confusion when reviewing the active routine at a glance.
+
+### Fixed
+WHAT:
+- Refined the History screen destructive confirmation modal with stronger viewport backdrop isolation, cleaner centered dialog hierarchy, and contextual session details for the delete prompt.
+WHY:
+- The prior modal allowed underlying card content to visually compete with confirmation content, reducing clarity and confidence for destructive actions on iOS.
+
+### Changed
+WHAT:
+- Refactored the Routines page into a Current Active Routine overview with a routine switcher dropdown, compact active-day preview, and a single primary Edit Routine action.
+- Moved routine creation into the switcher menu as “+ Create New Routine” when routines already exist, and replaced the previous list view with a dedicated empty-state CTA when no routines exist.
+- Removed Active and Delete controls from the Routines overview screen.
+WHY:
+- Reduces CRUD-heavy screen complexity, aligns the page to the one-active-routine model, and makes routine management faster with a cleaner, overview-first UX.
+
+### Changed
+WHAT:
+- Standardized destructive UX across routines, today, history, session, and routine-day editing flows with explicit destructive confirmations for high-risk deletions and clearer destructive wording (including “Discard Workout” and “Replace Day”).
+- Added reusable destructive confirmation and undo-toast patterns, and applied undo affordances to active-session set and exercise removals where state can be safely restored.
+- Applied confirmation for medium-risk deletions that are not safely undoable (completed-log exercise removal and custom exercise deletion).
+WHY:
+- The destructive-action audit identified inconsistent and ambiguous deletion behavior; users need predictable, explicit safeguards to prevent accidental data loss while keeping fast recovery available for reversible actions.
+
+### Changed
+WHAT:
+- Grouped Add Exercise search and filter controls into one shared container, added a clear “Selected exercise” header with multiline name support, and made measurement input fields always visible in the Measurements section.
+WHY:
+- Reduces nested-card clutter, improves selected-exercise clarity for long names, and lowers interaction friction by removing extra taps to edit measurements.
+
+### Changed
+WHAT:
+- Removed the chevron from History cards so only the trash affordance remains on the right edge.
+WHY:
+- Reduces redundant visual noise and avoids implying a second right-side action while keeping the existing card-open and delete interactions clear.
+
+### Changed
+WHAT:
+- Removed chevron icon from Change Workout button on Today screen.
+WHY:
+- The chevron implied dropdown/accordion behavior and added unnecessary visual noise. Removing it clarifies that this is a direct action button and improves UI consistency.
+
+### Changed
+WHAT:
+- Redesigned the History tab list into compact performance timeline cards with clearer hierarchy (session, day + duration, timestamp), subdued destructive controls, and a themed empty state.
+- Refined Log Details and in-place edit UI to be denser and calmer in dark glass mode, including cleaner set presentation, explicit edit-state signaling, and normalized action buttons across Back/Edit/Cancel/Save/Delete/Add/Remove flows.
+- Removed filler/empty-value text in History surfaces so optional notes only render when present.
+WHY:
+- Improves scanability and reduces visual noise while preserving existing history behaviors and data workflows.
+- Aligns History interactions with the app’s normalized dark glass + green accent UI system for more consistent tap confidence across screens.
+
+### Changed
+WHAT:
+- Merged “Add custom exercise” into the expanded “Add exercises” panel on both the Edit Routine day screen and the Current Session screen so each flow now has a single exercise-add section.
+WHY:
+- Reduces UI clutter, improves discoverability, and keeps one consistent mental model for adding exercises in both planning and in-session workflows.
+
+### Changed
+WHAT:
+- Normalized Today and Current Session interaction surfaces to remove bright light/grey press and container states in favor of consistent dark-theme surfaces.
+- Updated Current Session disclosure controls so “Modify measurements” defaults closed per exercise focus, includes a clear chevron indicator, and preserves reliable open/close toggling.
+- Standardized scoped session controls onto the shared app button system for Save set, Add Exercise, Save Custom Exercise, Rename/Delete custom exercise, Skip/Remove exercise, and End Workout.
+WHY:
+- Improves clarity and confidence for expandable controls, prevents abrasive flash states during high-frequency taps, and keeps action styling deterministic across the Today → Current Session flow.
+
+### Changed
+WHAT:
+- Refined the Set Logger “Modify measurements” control in Session Exercise Focus with a clearer expandable header treatment, explicit chevron affordance, and dark-mode-first visual hierarchy.
+- Replaced the expanded measurements panel and metric chips with dark elevated surfaces and subtle borders to remove the prior bright/abrasive light block appearance.
+WHY:
+- Makes expand/collapse behavior obvious at a glance and improves tap confidence while preserving a consistent dark workout UI during active logging.
+
+### Changed
+WHAT:
+- Refined History list cards so each card now acts as the primary navigation target to the same session detail destination, while the explicit View CTA is removed.
+- Demoted per-card delete affordance to a compact icon action and standardized card row styling with subtler borders/separators and cleaner text hierarchy.
+WHY:
+- Improves navigation speed and tap confidence, reduces visual clutter from competing actions, and keeps destructive actions de-emphasized without changing behavior.
+
+### Changed
+WHAT:
+- Polished the Current Session Exercise Focus and set-logging UI to reduce nested boxed styling, improve section hierarchy, and better align action/input spacing with the design system.
+- Clarified action emphasis so Save set remains the dominant primary action while Skip/Remove and Modify Metrics read as secondary controls, and refined logged-set rows to a flatter, less boxy presentation.
+- Tightened RPE + warm-up layout spacing and applied safe-area-aware top padding in the focused exercise container.
+WHY:
+- Improves scanability and tap confidence during active workouts, reduces visual noise, and makes rapid set logging feel faster and more premium without changing behavior.
+
+### Changed
+WHAT:
+- Standardized the Add Exercise experience with shared UI tokens/primitives, flatter list styling, muted filled filter pills, and a clearer visual hierarchy for search/filter/list content.
+- Updated Add Exercise controls to use a clear primary Add Exercise CTA and a collapsible Measurements section that is closed by default.
+WHY:
+- Reduces visual noise from nested boxed treatments, improves scanability and action clarity on mobile, and keeps the add-exercise flow visually consistent with the rest of the app.
+
+### Fixed
+WHAT:
+- Updated the fullscreen Exercise Info overlay so every HOW-TO image now uses each exercise’s canonical icon source with manifest-aware placeholder fallback.
+WHY:
+- This ensures the HOW-TO slot always shows the exercise-specific visual when available and safely degrades to the placeholder without noisy missing-asset requests.
+
+### Changed
+WHAT:
+- Updated the Exercise Info overlay HOW-TO visual slot to always render the canonical exercise how-to/icon image inside the existing framed area.
+WHY:
+- This removes placeholder-only presentation, preserves graceful fallback behavior, and keeps missing media from generating repeated noisy requests.
+
+### Changed
+WHAT:
+- Updated ExercisePicker's Exercise Info overlay to render as a true fullscreen takeover panel with an internal scrolling body and interaction lockout behind the overlay.
+- Added safe-area-aware top/bottom spacing for the overlay chrome/content so header controls remain clear of iOS notch/dynamic island regions.
+WHY:
+- This removes the modal-card presentation on mobile, prevents clipping within overflow-hidden mount contexts, and ensures a consistent full-screen detail experience.
+
+### Changed
+WHAT:
+- Updated the Exercise Info overlay shell to a true full-screen takeover panel with an in-panel sticky header and a scrollable content region.
+- Applied desktop width constraints only within an inner wrapper so the outer overlay remains full-bleed across viewport sizes.
+WHY:
+- This enforces a consistent screen-level detail experience and prevents background interaction while Exercise Info is open.
+
+### Changed
+WHAT:
+- Updated the ExercisePicker Info experience to open as a dedicated full-screen overlay with a persistent header and an internally scrolling content area.
+WHY:
+- This restores a true screen-like mobile/desktop detail experience while keeping Info open/close in local component state and preserving the current URL.
+
+### Changed
+WHAT:
+- Restored ExercisePicker’s Info action to open the full-screen Exercise Info experience (name/tags, how-to summary text, how-to image, muscles image, and muscle metadata) in-place instead of the placeholder-style overlay.
+- Standardized muscles-image resolution to use canonical safe fallback behavior so missing or invalid paths render placeholders cleanly.
+WHY:
+- This brings back the intended instructional details UX without route navigation and ensures media failures degrade gracefully without noisy missing-asset behavior.
+
+### Fixed
+WHAT:
+- Restored ExercisePicker Info interactions to open the in-place Exercise info modal/overlay again instead of navigating to `/exercises/[exerciseId]` routes.
+- Updated the restored Info modal to resolve How-to imagery through the canonical exercise image helper and render it with the shared safe image component.
+WHY:
+- Route-based Info navigation was causing production route-level 404s for picker flows and regressed the earlier in-place detail UX.
+- Using the canonical image resolver plus safe image fallback preserves prior detail behavior while preventing missing-image 404 noise.
+
+### Fixed
+WHAT:
+- Fixed Exercise Info image resolution to reuse the canonical manifest-aware helper and safe fallback behavior used by ExercisePicker thumbnails.
+WHY:
+- This restores a single source of truth for exercise image paths, prevents Info-view 404 requests from divergent path logic, and keeps thumbnail and Info imagery consistent.
+
+### Fixed
+WHAT:
+- Added a build-generated exercise icon manifest and switched runtime icon resolution to only request known icon files (with extension-aware paths), while falling back to the shared placeholder for unknown slugs.
+- Added dev-only missing-icon warnings (logged once per slug) and aligned Exercise Info “How-to” image selection to use the same canonical icon source unless a dedicated how-to asset path is provided.
+WHY:
+- Production was issuing repeated 404 requests for non-existent `/exercises/icons/<slug>.png` files; constraining requests to known assets removes 404 spam and keeps list/detail imagery deterministic.
+
+### Changed
+WHAT:
+- Stabilized exercise icon rendering with deterministic placeholder fallback and missing-src memoization so missing icon URLs are attempted once per browser session in both list thumbnails and Exercise Info how-to visuals.
+- Completed an architecture and data-model compliance audit for exercise image resolution (runtime order, schema invariants, file-structure contracts, and offline/PWA behavior) and documented deterministic follow-up guardrails.
+- Aligned exercise detail data loading with the existing exercises schema by reading `image_muscles_path` from the database path contract instead of forcing a null placeholder source in-app.
+WHY:
+- The image system is being expanded; we need a single audited contract before adding more assets or metadata paths.
+- Keeping detail rendering aligned to database metadata preserves single-source-of-truth behavior and avoids silent drift between schema intent and runtime resolution.
+
 ### Changed
 WHAT:
 - Improved exercise icon rendering to use a consistent placeholder fallback and an in-memory cache for missing icon URLs to prevent repeated 404 requests in the list and Info screen.
 WHY:
-- Many icons are intentionally not present yet; previously the UI repeatedly requested missing files, causing console spam and unnecessary network overhead. Caching missing URLs keeps behavior deterministic and improves UX/performance while we gradually add assets.
+- Many icons are intentionally missing during asset rollout; previously the UI could repeatedly request missing files and trigger noisy error stacks, harming UX and performance.
 
 ### Fixed
 WHAT:
@@ -1056,6 +1324,12 @@ WHY:
 
 ### Changed
 WHAT:
+- Refined the Add Exercise list rows to a denser, flatter list style and replaced the boxed Info action with a compact info icon button.
+WHY:
+- Reduces visual clunk and excess negative space so exercises are faster to scan and interact with on mobile during workouts.
+
+### Changed
+WHAT:
 - Simplified routine timezone selection in create/edit forms to a short, familiar set (Pacific, Mountain, Central, Eastern, UTC) while still accepting previously saved timezone values.
 - Added clearer helper copy for cycle length and start date so users understand that cycle days include rest days and that start date anchors Day 1.
 - Strengthened mobile input-focus behavior by enforcing non-scalable viewport defaults and resetting viewport constraints after form-field blur events.
@@ -1133,3 +1407,90 @@ WHAT:
 - Expanded image error-state reset behavior to also react when fallback sources change.
 WHY:
 - This prevents widespread icon 404s when exercise slugs and PNG filenames diverge while keeping the canonical `/exercises/icons/<slug>.png` contract and stable fallback behavior.
+
+### Changed
+WHAT:
+- Polished the SetLoggerCard logging surface with a flatter single-card layout, tighter input alignment for reps/weight/unit/RPE/warm-up, and a clearer primary Save set call-to-action.
+- Reduced nested boxed styling in the logger area and fixed the RPE tooltip/layout spacing so closed tooltip state no longer leaves awkward empty space.
+WHY:
+- Improves perceived quality and input speed during active workouts while reducing visual noise and preserving existing set-logging behavior.
+
+### Changed
+WHAT:
+- Polished Today and Resume Workout surfaces to reduce nested framing, clarify button hierarchy (primary Start/Resume with secondary Change/End), and simplify planned exercise row styling.
+- Updated Current Session flow so session time is a lightweight text row, exercise list rows are fully tappable with subtle chevrons, and focused exercise close affordance uses a lighter icon-style back control.
+- Refined Set logging UI hierarchy by keeping Save set as the dominant green action, lightening Modify metrics and logged-set row controls, and reducing extra visual borders.
+WHY:
+- Reduces visual clutter, improves scanability and navigation clarity, and emphasizes the most important actions during active workout logging.
+
+
+### Changed
+WHAT:
+- Normalized the Routines flow UI (Routines list, New Routine, Edit Routine, Edit Day, and exercise picker/info surfaces) to use consistent dark-theme-safe cards, spacing, and button hierarchy with clearer primary/secondary/destructive actions.
+- Added explicit chevron affordances for routine/day editing disclosure controls (routine details, custom exercise, measurement, add exercises, and exercise filters) and tightened day-card/readability polish for edit and copy/paste interactions.
+- Updated Exercise Info overlay behavior so the How-to image appears only when a real exercise icon source exists, and otherwise omits the image frame.
+WHY:
+- Improves visual cohesion and scanability across routine management, removes harsh light-state styling in a dark UI, and makes expandable areas more obvious and predictable.
+- Prevents confusing empty/missing-image presentation in Exercise Info while keeping the experience robust when icon assets are unavailable.
+
+
+### Changed
+WHAT:
+- Updated Current Session logging polish so "Modify measurements" in set logging starts collapsed per exercise and now uses a clear rotating chevron disclosure affordance.
+- Replaced light/slate-focused exercise header surfaces and text accents with consistent dark glass-safe styling in the Today + Current Session focus flow.
+- Tuned destructive End Workout interaction styling to remove light flash behavior and keep pressed/focus feedback intentionally dark/red.
+- Normalized the embedded Add exercises panel styling in Current Session (layout framing, borders, spacing, collapsible measurement header affordances, and section consistency).
+WHY:
+- This improves visual cohesion and tap clarity across workout flows, removes harsh light-state regressions in the dark theme, and makes collapsible controls more predictable and readable on mobile.
+
+### Changed
+WHAT:
+- Polished Today, Current Session, Edit Routine, and Routines home UI surfaces to remove harsh light fills, normalize accordion/dropdown affordances with chevrons, and align destructive/button interaction styling with the dark theme system.
+- Updated exercise-adding flows so "Add custom exercise" now lives as a collapsed sub-section inside "Add exercises" in both Session and Routine Day editor screens.
+- Refined current-session focus/list and routines front-page card layouts for clearer hierarchy, cleaner spacing, and more consistent action controls.
+WHY:
+- Improves readability and interaction consistency on mobile, removes distracting bright pressed states, and keeps related workflows grouped where users expect them.
+
+### Changed
+WHAT:
+- Adjusted Today screen action hierarchy so Start Workout remains the dominant primary CTA while Change Workout uses a lighter secondary treatment with tighter vertical spacing.
+- Refined Settings sign-out presentation by placing it in a subtle Danger zone section and switching the button to a lower-emphasis destructive outline style.
+WHY:
+- Improves visual hierarchy and aligns Today + Settings with the cleaner glass UI language while reducing visual noise without changing behavior.
+
+### Fixed
+WHAT:
+- Corrected Add Exercise measurement stats wiring so Last/PR always resolves against the selected exercise’s canonical `exercises.id` and reliably appears when an `exercise_stats` row exists.
+- Added development-only diagnostics in the Measurements panel to show selected canonical ID, query ID, and matched stats row ID during selection.
+- Updated stats reads to bypass stale caching for this path.
+WHY:
+- The stats UI could miss existing rows when identifier wiring or stale reads diverged from canonical exercise IDs; this restores deterministic stats visibility and debugging confidence.
+
+### Fixed
+WHAT:
+- Updated the Edit Day exercise row actions so delete confirmation is no longer rendered inside the exercise update form.
+WHY:
+- Prevents unintended nested form submission when deleting an exercise, eliminating the React "unexpectedly submitted" runtime error in Edit Day.
+
+### Fixed
+WHAT:
+- Standardized `session_exercises` goal persistence and reads on the range contract (`*_min` / `*_max`) and removed legacy single-value target column usage from active session query paths.
+- Added a safe additive database migration for missing `session_exercises` range-goal columns (reps, weight, time seconds, distance, calories) with non-negative and NULL-safe min/max checks.
+- Kept Exercise Info Last/PR rendering bound to canonical exercise ID lookups with guard-based display for available stats.
+WHY:
+- Prevents recurring runtime/schema-cache failures caused by selecting or writing mismatched legacy goal columns and keeps session goal behavior deterministic across schema evolution.
+
+### Fixed
+WHAT:
+- Added additive `session_exercises` set-range schema support with `target_sets_min` / `target_sets_max` and NULL-safe non-negative/range checks.
+- Updated current-session goal parsing, persistence, projections, and normalization paths to use set-range fields and stop referencing legacy `session_exercises.target_sets`.
+- Refreshed app-level DB typing for `session_exercises` goal fields to reflect set-range columns.
+WHY:
+- Prevents Add Exercise schema-cache failures caused by selecting/writing a non-existent legacy set target column and keeps session goal behavior consistent with the range-target model.
+
+### Fixed
+WHAT:
+- Corrected Current Session goal resolution so session-level `session_exercises` range goals are used as source of truth, with routine-template fallback only when all session goal ranges are empty.
+- Updated Goal rendering to show full range-aware output for sets, reps, and weight (including unit) when present, while still handling partial goals cleanly.
+WHY:
+- Prevents recently-added exercises from showing incomplete Goal text (for example only sets) after the range-column migration, and keeps displayed goals consistent with persisted session values.

@@ -1,13 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Pill, PillButton } from "@/components/ui/Pill";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
+import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
+import { cn } from "@/lib/cn";
+import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 
 type ExerciseOption = {
   id: string;
+  exercise_id?: string | null;
   name: string;
   user_id: string | null;
   is_global: boolean;
@@ -18,6 +26,8 @@ type ExerciseOption = {
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
+  image_muscles_path?: string | null;
+  how_to_short?: string | null;
   image_icon_path?: string | null;
   slug?: string | null;
 } & {
@@ -29,10 +39,12 @@ type ExerciseOption = {
   muscle?: string[] | string | null;
 };
 
+
 type ExercisePickerProps = {
   exercises: ExerciseOption[];
   name: string;
   initialSelectedId?: string;
+  exerciseStats?: ExerciseStatsOption[];
   routineTargetConfig?: {
     weightUnit: "lbs" | "kg";
   };
@@ -47,7 +59,8 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
   other: "Other",
 };
 
-const tagClassName = "rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
+const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
+const rowTagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-xs text-muted";
 
 function toTagArray(value: string[] | string | null | undefined) {
   if (!value) return [];
@@ -108,6 +121,7 @@ function formatTagLabel(tag: string) {
     .join(" ");
 }
 
+
 function MetaTag({ value }: { value: string | null }) {
   if (!value) return null;
   return <span className={tagClassName}>{value}</span>;
@@ -122,23 +136,40 @@ function getDefaultMeasurementType(exercise: ExerciseOption) {
   return "reps" as const;
 }
 
+
+function formatMeasurementStat(weight: number | null, reps: number | null, unit: string | null) {
+  if (weight === null || reps === null) {
+    return null;
+  }
+
+  const weightLabel = Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
+  return `${weightLabel}${unit ? ` ${unit}` : ""} × ${reps}`;
+}
+
+function formatStatDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; iconSrc: string }) {
   return (
     <ExerciseAssetImage
       src={iconSrc}
       alt={`${exercise.name} icon`}
-      className="h-8 w-8 rounded-md border border-border object-cover"
+      className="h-10 w-10 rounded-md border border-border/40 object-cover"
     />
   );
 }
 
-export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig }: ExercisePickerProps) {
-  const pathname = usePathname();
-  const router = useRouter();
+export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig, exerciseStats = [] }: ExercisePickerProps) {
   const searchParams = useSearchParams();
+  const [hasMounted, setHasMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLUListElement | null>(null);
   const scrollPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -158,6 +189,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     });
   }, [exercises]);
 
+  const statsByExerciseId = useMemo(() => new Map(exerciseStats.map((row) => [row.exerciseId, row])), [exerciseStats]);
+
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
   const [scrollTopSnapshot, setScrollTopSnapshot] = useState(initialScrollTop);
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
@@ -169,6 +202,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [targetDuration, setTargetDuration] = useState("");
   const [targetDistance, setTargetDistance] = useState("");
   const [targetCalories, setTargetCalories] = useState("");
+  const [didApplyLast, setDidApplyLast] = useState(false);
+  const [info, setInfo] = useState<{ exercise: ExerciseOption; stats: ExerciseStatsOption | null } | null>(null);
   const previousExerciseIdRef = useRef<string>(selectedId);
 
   useEffect(() => {
@@ -186,14 +221,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     };
   }, []);
 
-  const buildReturnToHref = useCallback((exerciseId: string, nextScrollTop: number) => {
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.set("addExerciseOpen", "1");
-    nextParams.set("exerciseId", exerciseId);
-    nextParams.set("exerciseListScroll", String(nextScrollTop));
-    const query = nextParams.toString();
-    return query ? `${pathname}?${query}` : pathname;
-  }, [pathname, searchParams]);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const persistScrollTop = (nextScrollTop: number) => {
     if (scrollPersistTimeoutRef.current) {
@@ -288,6 +318,11 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [availableTags, selectedTags]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
+  const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
+  const statsQueryExerciseId = selectedCanonicalExerciseId;
+  const selectedStats = statsQueryExerciseId ? statsByExerciseId.get(statsQueryExerciseId) : undefined;
+  const hasLast = selectedStats ? (selectedStats.lastWeight != null && selectedStats.lastReps != null) : false;
+  const hasPR = selectedStats ? ((selectedStats.prWeight != null && selectedStats.prReps != null) || selectedStats.prEst1rm != null) : false;
   const resetMeasurementFields = useCallback(() => {
     setTargetRepsMin("");
     setTargetRepsMax("");
@@ -315,53 +350,74 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     }
     setSelectedDefaultUnit(nextDefaultUnit);
     resetMeasurementFields();
+    setDidApplyLast(false);
     previousExerciseIdRef.current = selectedExercise.id;
   }, [resetMeasurementFields, routineTargetConfig, selectedExercise]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") {
+      return;
+    }
+
+    console.log("[ExercisePicker:MeasurementsStats]", {
+      selectedExercise,
+      queryId: statsQueryExerciseId,
+      stats: selectedStats ?? null,
+      hasStats: Boolean(selectedStats),
+      hasLast,
+      hasPR,
+    });
+  }, [hasLast, hasPR, selectedExercise, selectedStats, statsQueryExerciseId]);
 
   const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
 
   return (
-    <div className="space-y-2">
-      <div className="relative">
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search exercises"
-          className="h-11 w-full rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 pr-9 text-sm text-[rgb(var(--text))] focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-        />
-        {search ? (
-          <button
-            type="button"
-            onClick={() => setSearch("")}
-            aria-label="Clear exercise search"
-            className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
-          >
-            ×
-          </button>
-        ) : null}
-      </div>
-      <div className="space-y-2">
-        <button
+    <div className="space-y-3">
+      <div className="space-y-2 rounded-md border border-border/70 bg-[rgb(var(--bg)/0.28)] p-2.5">
+        <div className="relative">
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search exercises"
+            className="pr-9"
+          />
+          {search ? (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Clear exercise search"
+              className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text"
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
+
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => setIsFiltersOpen((prev) => !prev)}
           aria-expanded={isFiltersOpen}
-          className="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-left transition-colors hover:border-accent/70"
+          className="w-full justify-between border border-border/60 bg-[rgb(var(--bg)/0.4)] [-webkit-tap-highlight-color:transparent]"
         >
-          <span className="text-sm font-medium text-[rgb(var(--text))]">Filter</span>
-          <span className="rounded-full border border-border bg-surface-2-soft px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">
-            {isFiltersOpen ? "Close" : "Open"}
+          <span>Filters</span>
+          <span className="ml-auto inline-flex items-center gap-2">
+            <Pill active={isFiltersOpen} className="text-[10px] uppercase">{isFiltersOpen ? "Open" : "Closed"}</Pill>
+            {isFiltersOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
           </span>
-        </button>
+        </Button>
+
+        <p className="text-xs text-muted">{selectedTags.length} selected · {selectedTags.length ? "Filtered" : "All"}</p>
 
         {isFiltersOpen ? (
           <div className="space-y-2">
-            <button
+            <PillButton
               type="button"
+              active={selectedTags.length === 0}
               onClick={() => setSelectedTags([])}
-              className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${selectedTags.length === 0 ? "border-slate-100 bg-surface-2-soft text-[rgb(var(--text))] shadow-[0_0_0_1px_rgba(255,255,255,0.55)]" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
             >
               All
-            </button>
+            </PillButton>
             {availableTagGroups.map((group) => (
               <div key={group.key} className="space-y-1">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{group.label}</p>
@@ -369,9 +425,10 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                   {group.tags.map((tag) => {
                     const isSelected = selectedTags.includes(tag.value);
                     return (
-                      <button
+                      <PillButton
                         key={tag.value}
                         type="button"
+                        active={isSelected}
                         onClick={() => {
                           setSelectedTags((prev) => {
                             if (prev.includes(tag.value)) {
@@ -381,28 +438,34 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                             return [...prev, tag.value];
                           });
                         }}
-                        className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors ${isSelected ? "border-slate-100 bg-surface-2-soft text-[rgb(var(--text))] shadow-[0_0_0_1px_rgba(255,255,255,0.55)]" : "border-slate-400/90 bg-slate-200/65 text-slate-500 hover:border-slate-500 hover:bg-slate-200"}`}
                       >
                         {tag.label}
-                      </button>
+                      </PillButton>
                     );
                   })}
                 </div>
               </div>
             ))}
+            <p className="text-xs text-muted">{selectedTagSummary}</p>
           </div>
         ) : null}
-
-        <p className="text-xs text-muted">{selectedTagSummary}</p>
       </div>
-      <input type="hidden" name={name} value={selectedId} required />
-      <div className="min-h-11 rounded-lg border border-slate-300 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm text-[rgb(var(--text))]">
+      <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
+      <input type="hidden" name="exerciseListScroll" value={scrollTopSnapshot} />
+
+      <div className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] px-3 py-2 text-sm text-[rgb(var(--text))]">
         {selectedExercise ? (
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate font-medium">{selectedExercise.name}</span>
-            <div className="flex flex-wrap justify-end gap-1">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Selected exercise</p>
+            <p
+              className="overflow-hidden font-medium leading-5 text-text"
+              style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+            >
+              {selectedExercise.name}
+            </p>
+            <div className="flex flex-wrap gap-1">
               <MetaTag value={selectedExercise.equipment} />
-              <span className="hidden sm:inline-flex"><MetaTag value={selectedExercise.primary_muscle} /></span>
+              <MetaTag value={selectedExercise.primary_muscle} />
               <MetaTag value={selectedExercise.movement_pattern} />
             </div>
           </div>
@@ -411,122 +474,215 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         )}
       </div>
 
-      <p className="text-xs text-muted">Scroll to see more exercises ↓</p>
       <div className="relative">
         <ul
           ref={scrollContainerRef}
           onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-          className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-slate-300/80 bg-[rgb(var(--bg)/0.25)] p-2 pr-1 [scrollbar-gutter:stable]"
+          className="max-h-64 overflow-y-auto overscroll-contain rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
         >
           {filteredExercises.map((exercise) => {
             const isSelected = exercise.id === selectedId;
             const iconSrc = getExerciseIconSrc(exercise);
 
             return (
-              <li key={exercise.id} className={`rounded-xl border p-2 ${isSelected ? "border-slate-200 bg-surface-2-soft" : "border-slate-300 bg-surface"}`}>
-                <div className="flex items-stretch gap-2">
-                  <ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />
-                  <button type="button" onClick={() => setSelectedId(exercise.id)} className="min-w-0 flex-1 rounded-md border border-border/50 bg-surface-2 px-2 py-1 text-left">
-                    <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
-                    <div className={`mt-1 flex flex-wrap gap-1 ${isSelected ? "" : "opacity-60"}`}>
-                      <MetaTag value={exercise.equipment} />
-                      <span className="hidden sm:inline-flex"><MetaTag value={exercise.primary_muscle} /></span>
-                      <MetaTag value={exercise.movement_pattern} />
-                    </div>
-                  </button>
+              <li key={exercise.id} className="border-b border-border/40 last:border-b-0">
+                <div className={cn("flex min-h-12 items-center gap-2 px-3 py-2", isSelected ? "bg-surface-2-soft" : "bg-transparent hover:bg-surface-2-soft/60")}>
                   <button
                     type="button"
-                    onClick={() => {
-                      const nextScrollTop = Math.round(scrollContainerRef.current?.scrollTop ?? scrollTopSnapshot);
-                      persistScrollTop(nextScrollTop);
-                      const returnTo = buildReturnToHref(exercise.id, nextScrollTop);
-                      router.push(`/exercises/${exercise.id}?returnTo=${encodeURIComponent(returnTo)}`);
-                    }}
-                    className="inline-flex min-h-10 items-center rounded-md border border-border bg-surface-2-strong px-3 py-1 text-xs text-accent"
+                    onClick={() => setSelectedId(exercise.id)}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
-                    Info
+                    <ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />
+                    <span className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
+                      <span className={cn("mt-1 flex flex-wrap gap-1", isSelected ? "" : "opacity-70")}>
+                        {exercise.equipment ? <span className={rowTagClassName}>{exercise.equipment}</span> : null}
+                        {exercise.primary_muscle ? <span className={cn("hidden sm:inline-flex", rowTagClassName)}>{exercise.primary_muscle}</span> : null}
+                        {exercise.movement_pattern ? <span className={rowTagClassName}>{exercise.movement_pattern}</span> : null}
+                      </span>
+                    </span>
                   </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      const canonicalExerciseId = resolveCanonicalExerciseId(exercise);
+                      setInfo({
+                        exercise,
+                        stats: statsByExerciseId.get(canonicalExerciseId) ?? null,
+                      });
+                    }}
+                    aria-label="Exercise info"
+                    className="h-9 w-9 rounded-full px-0 text-base"
+                  >
+                    ⓘ
+                  </Button>
                 </div>
               </li>
             );
-          })}        </ul>
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-lg bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
+          })}
+        </ul>
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
       </div>
 
+      <ExerciseInfoSheet
+        exercise={info?.exercise ?? null}
+        stats={info ? {
+          exercise_id: info.stats?.statsExerciseId,
+          last_weight: info.stats?.lastWeight ?? null,
+          last_reps: info.stats?.lastReps ?? null,
+          last_unit: info.stats?.lastUnit ?? null,
+          last_performed_at: info.stats?.lastPerformedAt ?? null,
+          pr_weight: info.stats?.prWeight ?? null,
+          pr_reps: info.stats?.prReps ?? null,
+          pr_est_1rm: info.stats?.prEst1rm ?? null,
+        } : null}
+        open={!!info && hasMounted}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInfo(null);
+          }
+        }}
+      />
+
       {routineTargetConfig && selectedExercise ? (
-        <div className="space-y-2 rounded-md border border-slate-200 p-3">
-          <input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <div className="flex justify-end">
+        <div className="space-y-2 border-t border-border/50 pt-2">
+          <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
+
+          <div className="space-y-2 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-2">
             <button
               type="button"
-              className="text-xs font-medium text-slate-600 underline"
-              onClick={() => {
-                const nextMeasurementType = selectedExercise ? getDefaultMeasurementType(selectedExercise) : "reps";
-                setSelectedMeasurements(nextMeasurementType === "time" ? ["time"] : ["reps", "weight"]);
-                setSelectedDefaultUnit("mi");
-                resetMeasurementFields();
-              }}
+              aria-expanded={isMeasurementsOpen}
+              onClick={() => setIsMeasurementsOpen((prev) => !prev)}
+              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm font-medium text-text transition-colors hover:bg-surface-2-soft/80 active:bg-surface-2-active/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [-webkit-tap-highlight-color:transparent]"
             >
-              Reset measurements
+              <span>Measurements</span>
+              {isMeasurementsOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
             </button>
-          </div>
-          <details className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-            <summary className="cursor-pointer text-sm font-medium">+ Add Measurement</summary>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-              {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
-                <label key={metric} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name="measurementSelections"
-                    value={metric}
-                    checked={selectedMeasurements.includes(metric)}
-                    onChange={(event) => {
-                      setSelectedMeasurements((current) => {
-                        if (event.target.checked) return [...current, metric];
-                        return current.filter((value) => value !== metric);
-                      });
-                    }}
-                  />
-                  {metric === "reps" ? "Reps" : metric === "weight" ? "Weight" : metric === "time" ? "Time (duration)" : metric === "distance" ? "Distance" : "Calories"}
-                </label>
-              ))}
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-7 px-1 text-xs"
+                onClick={() => {
+                  const nextMeasurementType = selectedExercise ? getDefaultMeasurementType(selectedExercise) : "reps";
+                  setSelectedMeasurements(nextMeasurementType === "time" ? ["time"] : ["reps", "weight"]);
+                  setSelectedDefaultUnit("mi");
+                  resetMeasurementFields();
+                }}
+              >
+                Reset measurements
+              </Button>
             </div>
-          </details>
-          <div className="grid grid-cols-2 gap-2">
-            {selectedMeasurements.includes("reps") ? (
-              <div className="col-span-2 grid grid-cols-2 gap-2">
-                <InlineHintInput type="number" min={1} name="targetRepsMin" hint="min" value={targetRepsMin} onChange={(event) => setTargetRepsMin(event.target.value)} />
-                <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
+
+            {selectedStats && (hasLast || hasPR) ? (
+              <div className={cn("space-y-1 rounded-md border border-border/50 bg-[rgb(var(--bg)/0.2)] px-2 py-1.5 text-xs text-muted", didApplyLast ? "border-accent/40" : "")}>
+                {process.env.NODE_ENV === "development" ? (
+                  <p className="font-mono text-[10px] text-muted/90">
+                    DEBUG stats selectedCanonicalId={selectedCanonicalExerciseId ?? "none"} queryExerciseId={statsQueryExerciseId ?? "none"} statsFound={selectedStats ? "yes" : "no"} stats.exercise_id={selectedStats.statsExerciseId ?? "none"}
+                  </p>
+                ) : null}
+                {hasLast ? (
+                  <p>
+                    Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}
+                    {selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}
+                  </p>
+                ) : null}
+                {hasPR ? (
+                  <p>
+                    PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}
+                    {selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " · " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}
+                  </p>
+                ) : null}
+                {hasLast ? (
+                  <div className="flex justify-start">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-7 px-1 text-xs"
+                      onClick={() => {
+                        setTargetWeight(String(selectedStats.lastWeight));
+                        setTargetRepsMin(String(selectedStats.lastReps));
+                        setTargetRepsMax(String(selectedStats.lastReps));
+                        if (selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs") {
+                          setTargetWeightUnit(selectedStats.lastUnit);
+                        }
+                        setSelectedMeasurements((current) => {
+                          const next = new Set(current);
+                          next.add("weight");
+                          next.add("reps");
+                          return Array.from(next);
+                        });
+                        setDidApplyLast(true);
+                        setTimeout(() => setDidApplyLast(false), 1200);
+                      }}
+                    >
+                      Use last
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
-            {selectedMeasurements.includes("weight") ? (
-              <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <InlineHintInput type="number" min={0} step="0.5" name="targetWeight" hint={routineTargetConfig.weightUnit} value={targetWeight} onChange={(event) => setTargetWeight(event.target.value)} />
-                <select name="targetWeightUnit" value={targetWeightUnit} onChange={(event) => setTargetWeightUnit(event.target.value === "kg" ? "kg" : "lbs")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                  <option value="lbs">lbs</option>
-                  <option value="kg">kg</option>
-                </select>
+
+            {isMeasurementsOpen ? (
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
+                  <label key={metric} className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.35)] px-2 py-1">
+                    <input
+                      type="checkbox"
+                      name="measurementSelections"
+                      value={metric}
+                      checked={selectedMeasurements.includes(metric)}
+                      onChange={(event) => {
+                        setSelectedMeasurements((current) => {
+                          if (event.target.checked) return [...current, metric];
+                          return current.filter((value) => value !== metric);
+                        });
+                      }}
+                    />
+                    {metric === "reps" ? "Reps" : metric === "weight" ? "Weight" : metric === "time" ? "Time (duration)" : metric === "distance" ? "Distance" : "Calories"}
+                  </label>
+                ))}
               </div>
             ) : null}
-            {selectedMeasurements.includes("time") ? (
-              <InlineHintInput name="targetDuration" hint="mm:ss" value={targetDuration} onChange={(event) => setTargetDuration(event.target.value)} containerClassName="col-span-2" />
-            ) : null}
-            {selectedMeasurements.includes("distance") ? (
-              <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <InlineHintInput type="number" min={0} step="0.01" name="targetDistance" hint={selectedDefaultUnit} value={targetDistance} onChange={(event) => setTargetDistance(event.target.value)} />
-                <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                  <option value="mi">mi</option>
-                  <option value="km">km</option>
-                  <option value="m">m</option>
-                </select>
-              </div>
-            ) : null}
-            {selectedMeasurements.includes("calories") ? (
-              <InlineHintInput type="number" min={0} step="1" name="targetCalories" hint="cal" value={targetCalories} onChange={(event) => setTargetCalories(event.target.value)} containerClassName="col-span-2" />
-            ) : null}
-          </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {selectedMeasurements.includes("reps") ? (
+                <div className="col-span-2 grid grid-cols-2 gap-2">
+                  <InlineHintInput type="number" min={1} name="targetRepsMin" hint="min" value={targetRepsMin} onChange={(event) => setTargetRepsMin(event.target.value)} />
+                  <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
+                </div>
+              ) : null}
+              {selectedMeasurements.includes("weight") ? (
+                <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <InlineHintInput type="number" min={0} step="0.5" name="targetWeight" hint={routineTargetConfig.weightUnit} value={targetWeight} onChange={(event) => setTargetWeight(event.target.value)} />
+                  <select name="targetWeightUnit" value={targetWeightUnit} onChange={(event) => setTargetWeightUnit(event.target.value === "kg" ? "kg" : "lbs")} className="h-11 rounded-md border border-border bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm">
+                    <option value="lbs">lbs</option>
+                    <option value="kg">kg</option>
+                  </select>
+                </div>
+              ) : null}
+              {selectedMeasurements.includes("time") ? (
+                <InlineHintInput name="targetDuration" hint="mm:ss" value={targetDuration} onChange={(event) => setTargetDuration(event.target.value)} containerClassName="col-span-2" />
+              ) : null}
+              {selectedMeasurements.includes("distance") ? (
+                <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <InlineHintInput type="number" min={0} step="0.01" name="targetDistance" hint={selectedDefaultUnit} value={targetDistance} onChange={(event) => setTargetDistance(event.target.value)} />
+                  <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="h-11 rounded-md border border-border bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm">
+                    <option value="mi">mi</option>
+                    <option value="km">km</option>
+                    <option value="m">m</option>
+                  </select>
+                </div>
+              ) : null}
+              {selectedMeasurements.includes("calories") ? (
+                <InlineHintInput type="number" min={0} step="1" name="targetCalories" hint="cal" value={targetCalories} onChange={(event) => setTargetCalories(event.target.value)} containerClassName="col-span-2" />
+              ) : null}
+            </div>
           <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
         </div>
+      </div>
       ) : null}
     </div>
   );

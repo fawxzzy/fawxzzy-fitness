@@ -41,7 +41,7 @@ export function TodayDayPicker({
   );
 
   return (
-    <div className="flex min-h-0 flex-col gap-3">
+    <div className="flex min-h-0 flex-col gap-2.5">
       {selectedDay ? (
         <div className="min-h-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
@@ -53,14 +53,14 @@ export function TodayDayPicker({
             ) : null}
           </div>
 
-          <ul className="max-h-52 space-y-1 overflow-y-auto pr-1 text-sm">
+          <ul className="max-h-52 divide-y divide-border/70 overflow-y-auto rounded-lg bg-surface/70 pr-1 text-sm">
             {selectedDay.exercises.map((exercise) => (
-              <li key={exercise.id} className="flex items-center justify-between gap-3 rounded-md bg-surface-2-strong px-3 py-2 text-text">
+              <li key={exercise.id} className="flex items-center justify-between gap-3 px-3 py-2 text-text">
                 <span className="truncate">{exercise.name}</span>
                 {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
               </li>
             ))}
-            {selectedDay.exercises.length === 0 ? <li className="rounded-md bg-surface-2-strong px-3 py-2 text-muted">No routine exercises planned for this day.</li> : null}
+            {selectedDay.exercises.length === 0 ? <li className="px-3 py-2 text-muted">No routine exercises planned for this day.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -70,17 +70,18 @@ export function TodayDayPicker({
         id="today-day-picker"
         type="button"
         fullWidth
+        className="border-white/20 bg-white/[0.03] text-muted shadow-none hover:bg-white/[0.07]"
         onClick={() => {
           setIsPickerOpen((previous) => !previous);
         }}
         aria-expanded={isPickerOpen}
       >
-        {isPickerOpen ? "CLOSE" : "CHANGE WORKOUT"}
+        <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
       </SecondaryButton>
 
       {isPickerOpen ? (
-        <div className="space-y-3 rounded-lg border border-border bg-surface p-3">
-          <p className="text-sm font-semibold uppercase tracking-wide text-muted">Choose workout day</p>
+        <div className="space-y-3 rounded-lg bg-surface/60 p-2">
+          <p className="text-sm font-semibold text-muted">Choose workout day</p>
           <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
             {days.map((day) => {
               const isSelected = selectedDayIndex === day.dayIndex;

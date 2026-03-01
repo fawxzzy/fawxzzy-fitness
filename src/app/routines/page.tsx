@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
-import { DestructiveButton } from "@/components/ui/AppButton";
 import { Glass } from "@/components/ui/Glass";
-import { listShellClasses } from "@/components/ui/listShellClasses";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
-import { revalidateHistoryViews, revalidateRoutinesViews } from "@/lib/revalidation";
-import type { RoutineRow } from "@/types/db";
+import { revalidateRoutinesViews } from "@/lib/revalidation";
+import type { RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -46,63 +44,6 @@ async function setActiveRoutineAction(formData: FormData) {
   revalidateRoutinesViews();
 }
 
-async function deleteRoutineAction(formData: FormData) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-  const routineId = String(formData.get("routineId") ?? "");
-
-  if (!routineId) {
-    throw new Error("Missing routine ID");
-  }
-
-  const { data: profile, error: profileLoadError } = await supabase
-    .from("profiles")
-    .select("active_routine_id")
-    .eq("id", user.id)
-    .single();
-
-  if (profileLoadError) {
-    throw new Error(profileLoadError.message);
-  }
-
-  if (profile.active_routine_id === routineId) {
-    const { error: clearActiveError } = await supabase
-      .from("profiles")
-      .update({ active_routine_id: null })
-      .eq("id", user.id);
-
-    if (clearActiveError) {
-      throw new Error(clearActiveError.message);
-    }
-  }
-
-
-  const { error: detachSessionError } = await supabase
-    .from("sessions")
-    .update({ routine_id: null })
-    .eq("routine_id", routineId)
-    .eq("user_id", user.id);
-
-  if (detachSessionError) {
-    throw new Error(detachSessionError.message);
-  }
-
-  const { error: deleteError } = await supabase
-    .from("routines")
-    .delete()
-    .eq("id", routineId)
-    .eq("user_id", user.id);
-
-  if (deleteError) {
-    throw new Error(deleteError.message);
-  }
-
-  revalidateRoutinesViews();
-  revalidateHistoryViews();
-}
-
 export default async function RoutinesPage() {
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
@@ -115,62 +56,139 @@ export default async function RoutinesPage() {
     .order("updated_at", { ascending: false });
 
   const routines = (data ?? []) as RoutineRow[];
+  const activeRoutine = routines.find((routine) => routine.id === profile.active_routine_id) ?? routines[0] ?? null;
+
+  let activeRoutineDays: RoutineDayRow[] = [];
+
+  if (activeRoutine) {
+    const { data: routineDays } = await supabase
+      .from("routine_days")
+      .select("id, user_id, routine_id, day_index, name, is_rest, notes")
+      .eq("routine_id", activeRoutine.id)
+      .eq("user_id", user.id)
+      .order("day_index", { ascending: true });
+
+    activeRoutineDays = (routineDays ?? []) as RoutineDayRow[];
+  }
+
+  const sortedActiveRoutineDays = activeRoutineDays
+    .map((day, index) => ({ day, index }))
+    .sort((a, b) => {
+      const left = Number.isFinite(a.day.day_index) ? a.day.day_index : null;
+      const right = Number.isFinite(b.day.day_index) ? b.day.day_index : null;
+
+      if (left !== null && right !== null) {
+        return left - right;
+      }
+
+      if (left !== null) {
+        return -1;
+      }
+
+      if (right !== null) {
+        return 1;
+      }
+
+      return a.index - b.index;
+    })
+    .map(({ day }) => day);
+
+  const totalDays = sortedActiveRoutineDays.length;
+  const restDays = sortedActiveRoutineDays.filter((day) => day.is_rest).length;
+  const trainingDays = Math.max(totalDays - restDays, 0);
+  const cycleLength = activeRoutine?.cycle_length_days ?? totalDays;
+
+  if (process.env.NODE_ENV !== "production" && sortedActiveRoutineDays.length > 0 && sortedActiveRoutineDays[0]?.day_index !== 1) {
+    console.warn("[routines] Active routine days are missing Day 1 in overview preview", {
+      routineId: activeRoutine?.id,
+      dayIndexes: sortedActiveRoutineDays.map((day) => day.day_index),
+    });
+  }
 
   return (
     <section className="space-y-4">
       <AppNav />
 
-      <Glass variant="base" className="space-y-2 p-2" interactive={false}>
-        <div className="w-full">
-          <Link
-            href="/routines/new"
-            className={getAppButtonClassName({ variant: "secondary", state: "active", fullWidth: true })}
-          >
-            Create Routine
-          </Link>
-        </div>
+      <Glass variant="base" className="space-y-3 p-3" interactive={false}>
+        {routines.length === 0 ? (
+          <div className="space-y-4 rounded-xl border border-border/70 bg-surface/65 p-4">
+            <p className="text-sm text-muted">No routines yet.</p>
+            <Link
+              href="/routines/new"
+              className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+            >
+              Create your first routine
+            </Link>
+          </div>
+        ) : (
+          <>
+            <details className="group mt-1 rounded-xl border border-border/45 bg-surface/65">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm text-text marker:content-none">
+                <span className="truncate font-medium">{activeRoutine?.name ?? "Select routine"}</span>
+                <span className="text-xs text-muted transition-transform group-open:rotate-180">⌄</span>
+              </summary>
 
-        <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
-          {routines.map((routine) => {
-            const isActive = profile.active_routine_id === routine.id;
+              <div className="space-y-1 border-t border-border/60 p-2">
+                {routines.map((routine) => {
+                  const isCurrent = activeRoutine?.id === routine.id;
 
-            return (
-              <li key={routine.id} className={listShellClasses.card}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-slate-900 underline decoration-slate-400/80 underline-offset-2">{routine.name}</p>
-                  </div>
-                  <div className="flex gap-2 text-sm">
-                    <Link
-                      href={`/routines/${routine.id}/edit`}
-                      className={`${listShellClasses.pillAction} border border-accent/40 bg-accent/10 text-accent/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur transition-all hover:bg-accent/20`}
-                    >
-                      Edit
-                    </Link>
-                    <form action={deleteRoutineAction}>
+                  return (
+                    <form key={routine.id} action={setActiveRoutineAction}>
                       <input type="hidden" name="routineId" value={routine.id} />
-                      <DestructiveButton type="submit" size="sm" className={listShellClasses.pillAction}>
-                        Delete
-                      </DestructiveButton>
+                      <button
+                        type="submit"
+                        className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm ${isCurrent ? "bg-accent/20 text-text" : "text-muted hover:bg-surface-2-soft hover:text-text"}`}
+                      >
+                        <span className="truncate">{routine.name}</span>
+                        <span className={`ml-3 text-xs ${isCurrent ? "text-emerald-300" : "text-transparent"}`}>✓</span>
+                      </button>
                     </form>
-                  </div>
+                  );
+                })}
+
+                <Link
+                  href="/routines/new"
+                  className="block rounded-md px-3 py-2 text-sm text-muted hover:bg-surface-2-soft hover:text-text"
+                >
+                  + Create New Routine
+                </Link>
+              </div>
+            </details>
+
+            {activeRoutine ? (
+              <div className="space-y-3 rounded-xl border border-border/70 bg-surface/65 p-4">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-text">{activeRoutine.name}</h2>
+                  <p className="text-xs text-muted/90">
+                    {cycleLength}-day cycle · {trainingDays} training · {restDays} rest
+                  </p>
                 </div>
-                <form action={setActiveRoutineAction}>
-                  <input type="hidden" name="routineId" value={routine.id} />
-                  <button
-                    type="submit"
-                    disabled={isActive}
-                    className={`mt-3 w-full rounded-md px-3 py-2 text-sm ${
-                      isActive ? "border border-accent bg-accent/10 font-semibold text-accent" : "border border-slate-400 bg-white text-slate-700"
-                    }`}
+
+                <ul className="space-y-0.5 text-xs leading-5 text-muted">
+                  {sortedActiveRoutineDays.map((day, index) => {
+                    const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+
+                    return (
+                      <li key={day.id} className="truncate">
+                        Day {dayNumber} · {day.name?.trim() || (day.is_rest ? "Rest" : "Workout")}
+                      </li>
+                    );
+                  })}
+                  {sortedActiveRoutineDays.length === 0 ? <li>No days configured yet</li> : null}
+                </ul>
+
+                <div className="border-t border-border/40 pt-3">
+                  <Link
+                    href={`/routines/${activeRoutine.id}/edit`}
+                    className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
                   >
-                    {isActive ? "Active" : "Set Active"}
-                  </button>
-                </form>
-              </li>
-            );
-          })}
-        </ul>
+                    Edit Routine
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
       </Glass>
     </section>
   );

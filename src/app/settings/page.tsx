@@ -19,7 +19,12 @@ export default async function SettingsPage() {
         <p className="font-medium">{user.email}</p>
       </Glass>
       <GlassEffectsSettings />
-      <SignOutButton />
+      <Glass variant="base" className="space-y-3 p-4" interactive={false}>
+        <div className="border-t border-white/10 pt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Danger zone</p>
+        </div>
+        <SignOutButton />
+      </Glass>
     </section>
   );
 }

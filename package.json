@@ -7,11 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prebuild": "node scripts/generate-icons.mjs",
+    "prebuild": "npm run gen:exercise-icons && node scripts/generate-icons.mjs",
     "dev:assets": "node scripts/generate-icons.mjs",
     "sync:exercise-icons": "node scripts/syncExerciseIcons.mjs",
     "sync:assets": "npm run sync:exercise-icons",
-    "icons:normalize": "node scripts/normalizeExerciseIcons.mjs"
+    "icons:normalize": "node scripts/normalizeExerciseIcons.mjs",
+    "gen:exercise-icons": "node scripts/generate-exercise-icon-manifest.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
