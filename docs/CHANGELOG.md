@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Updated the Exercise Info overlay layout to remove the “HOW-TO” heading, remove the duplicate bottom “Primary Muscles” section, and place exercise description content in a highlighted bordered box above Stats.
+- Replaced the Exercise Info header “Close” control with a back-arrow button that preserves the same dismiss behavior.
+WHY:
+- Aligns Exercise Info with the new content hierarchy, removes redundant muscle labeling, and improves scanability and consistency with expected back-navigation affordances.
+
+### Changed
+WHAT:
 - Removed the Exercise Info “Muscles” image section and consolidated both Info surfaces to a single canonical How-to image slot.
 - Removed application-layer usage of `image_muscles_path` and deleted muscle-image resolver code paths so how-to media resolution is now the only image fallback chain.
 WHY:
