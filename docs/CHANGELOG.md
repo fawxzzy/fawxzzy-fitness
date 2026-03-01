@@ -1,3 +1,40 @@
+### Changed
+WHAT:
+- Refined Today screen information hierarchy with a stronger two-line workout header, denser-but-more-readable exercise rows, and a subtle content panel that better separates foreground content from the atmospheric background.
+- Removed Today’s inner exercise-list scroll constraint so workout preview content now follows a single natural page scroll.
+- Rebalanced Today action emphasis so Start/Resume Workout uses a premium muted-green primary treatment while Change Workout remains a clearly secondary control, and tightened top navigation spacing/corner treatment for consistency.
+WHY:
+- Improves scanability, perceived quality, and interaction clarity on the Today surface while reducing scroll friction and preserving the existing workout/session behavior.
+
+### Fixed
+WHAT:
+- Updated exercise How-to image resolution to ignore the seeded how-to placeholder path, use the exercise icon as the fallback visual, and hide the How-to panel when neither a real how-to image nor a real icon exists.
+- Applied the same How-to hide-on-placeholder behavior in both the Exercise Info sheet and the Exercise details page.
+WHY:
+- Seeded placeholder values in `image_howto_path` were treated as real assets, which prevented icon fallback and forced placeholder visuals even when icon media existed.
+
+### Fixed
+WHAT:
+- Re-synced the Exercise Info overlay HOW-TO image to the canonical exercise media resolution path so icon-backed exercises reliably render the same visual used in the picker thumbnail, with a guaranteed placeholder fallback when no icon exists.
+- Tightened Exercise Info section styling for STATS, HOW-TO, and MUSCLES with consistent section headers and more compact, single-surface media containers.
+WHY:
+- Prevents blank HOW-TO panels, keeps exercise visuals predictable when switching between items, and improves information density/consistency without changing data flow or schema.
+
+### Changed
+WHAT:
+- Fixed `/history/exercises` row interactions to open the existing in-place Exercise Info overlay instead of navigating to a non-existent `/exercises/[id]` destination.
+- Expanded exercise personal records to cache and expose both “Actual PR” (best recorded weighted set) and “Strength PR” (best estimated 1RM), and updated Exercise Info/Exercise Browser UI labels to show Last + Actual PR + e1RM PR together.
+WHY:
+- Restores deterministic, in-context exercise detail navigation without 404 regressions.
+- Separates intuitive literal best-set tracking from strength-estimate progression so users can read progress more clearly.
+
+### Fixed
+WHAT:
+- Hardened `/history/exercises` server rendering with a safe fallback state so users see a friendly error card instead of a route crash when exercise history data fails to load.
+- Added server-side diagnostics for history exercise data failures and tolerated missing `exercise_stats` relation/column schema drift by gracefully rendering rows without stats.
+WHY:
+- Prevents production-only Server Components failures from hard-crashing the page while giving actionable server logs to diagnose RLS/schema/query issues safely.
+
 ### Added
 WHAT:
 - Added an Exercise Browser under History with a dedicated `/history/exercises` view, searchable compact exercise rows, and Last/PR stat previews sourced from the existing `exercise_stats` cache.
@@ -1494,3 +1531,18 @@ WHAT:
 - Updated Goal rendering to show full range-aware output for sets, reps, and weight (including unit) when present, while still handling partial goals cleanly.
 WHY:
 - Prevents recently-added exercises from showing incomplete Goal text (for example only sets) after the range-column migration, and keeps displayed goals consistent with persisted session values.
+
+
+### Fixed
+WHAT:
+- Fixed History → Exercises Browser to load the same canonical exercise catalog used by Add Exercise so the browser shows the full exercise list instead of a reduced subset.
+- Fixed History → Exercises row navigation to open the existing Exercise Info screen without routing to a 404 path.
+WHY:
+- Users need complete catalog coverage when browsing history and consistent Exercise Info navigation behavior from exercise stats browsing.
+
+### Improved
+WHAT:
+- Smoothed History → Exercises browsing by tightening the list scrolling behavior and reducing per-row rendering overhead during scroll.
+- Added the same tag-based Filter control used in Add Exercise directly beneath Search in History → Exercises.
+WHY:
+- Makes long history exercise lists easier to scan on mobile/desktop without sticky-feeling scroll, and keeps filtering UX consistent across exercise browsing surfaces.

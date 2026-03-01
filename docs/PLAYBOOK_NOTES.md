@@ -11,9 +11,39 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 ## PROPOSED
 
 
-# Playbook Notes (Local Inbox)
+## Implemented Already
 
-## UPSTREAMED (keep for traceability)
+## 2026-03-01 — Treat seeded placeholder media defaults as unset in fallback resolvers
+- Type: Guardrail
+- Summary: Canonical media resolvers should treat known seeded placeholder paths as unset values so fallback chains can select real assets (and optionally suppress sections when no non-placeholder asset exists).
+- Suggested Playbook File: Playbook/docs/PATTERNS/media-fallbacks.md
+- Rationale: Database defaults can be truthy placeholder strings that unintentionally block deterministic fallback behavior and show low-value placeholder panels despite available icon assets.
+- Evidence: src/lib/exerciseImages.ts, src/components/ExerciseInfoSheet.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
+
+## 2026-03-01 — Never conditionally suppress media sections when fallback assets are valid UX
+- Type: Guardrail
+- Summary: If a media slot has a canonical resolver + safe placeholder fallback, always render the slot and let the image component degrade to placeholder rather than hiding the section.
+- Suggested Playbook File: Playbook/docs/PATTERNS/frontend/media-fallbacks.md
+- Rationale: Gating section render on “non-placeholder” checks can regress into blank UI states and break consistency across list/detail surfaces.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/lib/exerciseImages.ts, src/components/ExerciseAssetImage.tsx
+- Status: Proposed
+
+## 2026-03-01 — History exercise browsers must share the same canonical catalog loader as Add Exercise
+- Type: Guardrail
+- Summary: Any feature that lists exercisable catalog items for selection/browsing should source rows from the same canonical loader used by Add Exercise, then layer optional per-user stats in a separate batched lookup.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Prevents catalog drift where one surface silently shows only a partial DB subset while other flows show the full known catalog.
+- Evidence: src/lib/exercises-browser.ts, src/lib/exercises.ts, src/app/history/exercises/ExerciseBrowserClient.tsx
+- Status: Proposed
+
+## 2026-03-01 — Degrade derived cache reads safely when schema rollout lags
+- Type: Guardrail
+- Summary: Routes that enrich primary entities with derived cache tables should treat missing relation/column errors as a non-fatal fallback path (base rows + null stats) while logging full server diagnostics.
+- Suggested Playbook File: Playbook/docs/PATTERNS/cache-and-revalidation.md
+- Rationale: Production environments can lag migrations; hard-failing server components on optional cache tables causes avoidable route outages.
+- Evidence: src/lib/exercises-browser.ts, src/app/history/exercises/page.tsx
+- Status: Proposed
 
 ## 2026-02-28 — Resolve cached/aggregated stats by canonical entity ID at render boundaries
 - Type: Guardrail
@@ -440,4 +470,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Nested lock handlers can restore stale `overflow` values and leave the underlying page non-scrollable after close, especially on iOS/PWA.
 - Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExercisePicker.tsx, src/lib/useBodyScrollLock.ts
+- Status: Proposed
+
+## 2026-03-01 — Reuse existing in-context detail overlays instead of introducing dead detail-route links
+- Type: Guardrail
+- Summary: When a feature already exposes details through an established modal/overlay contract, new list surfaces should invoke that same overlay contract rather than linking to alternate or non-existent route paths.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Preserving one detail interaction contract avoids navigation regressions (404s), keeps close/return behavior deterministic, and prevents duplicated UI pathways for the same content.
+- Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx, src/components/ExerciseInfoSheet.tsx, src/lib/exercises-browser.ts
 - Status: Proposed

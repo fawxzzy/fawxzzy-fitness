@@ -46,6 +46,9 @@ type ExerciseStatsRow = {
   pr_reps: number | null;
   pr_est_1rm: number | null;
   pr_achieved_at: string | null;
+  actual_pr_weight: number | null;
+  actual_pr_reps: number | null;
+  actual_pr_at: string | null;
 };
 
 function computeEstimated1rm(weight: number, reps: number) {
@@ -142,6 +145,29 @@ export async function recomputeExerciseStatsForExercises(userId: string, exercis
         return b.set.set_index - a.set.set_index;
       })[0] ?? null;
 
+    const actualPrSet = sets
+      .filter((set) => {
+        const weight = typeof set.weight === "number" ? set.weight : 0;
+        return weight > 0;
+      })
+      .sort((a, b) => {
+        const aWeight = typeof a.weight === "number" ? a.weight : 0;
+        const bWeight = typeof b.weight === "number" ? b.weight : 0;
+        if (bWeight !== aWeight) return bWeight - aWeight;
+
+        const aReps = typeof a.reps === "number" ? a.reps : 0;
+        const bReps = typeof b.reps === "number" ? b.reps : 0;
+        if (bReps !== aReps) return bReps - aReps;
+
+        const aPerformedAt = performedAtValue(a);
+        const bPerformedAt = performedAtValue(b);
+        if (bPerformedAt !== aPerformedAt) {
+          return bPerformedAt.localeCompare(aPerformedAt);
+        }
+
+        return b.set_index - a.set_index;
+      })[0] ?? null;
+
     const hasAnySet = Boolean(lastSet || prSet);
 
     if (!hasAnySet) {
@@ -166,6 +192,9 @@ export async function recomputeExerciseStatsForExercises(userId: string, exercis
         pr_reps: prSet?.set.reps ?? null,
         pr_est_1rm: prSet?.est1rm ?? null,
         pr_achieved_at: prSet?.performedAt ?? null,
+        actual_pr_weight: actualPrSet?.weight ?? null,
+        actual_pr_reps: actualPrSet?.reps ?? null,
+        actual_pr_at: actualPrSet ? performedAtValue(actualPrSet) : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id,exercise_id" });
   }
@@ -188,7 +217,7 @@ export async function getExerciseStatsForExercises(userId: string, exerciseIds: 
   }
   const { data } = await supabase
     .from("exercise_stats")
-    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at")
+    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at, actual_pr_weight, actual_pr_reps, actual_pr_at")
     .eq("user_id", userId)
     .in("exercise_id", exerciseIds);
 
@@ -211,7 +240,7 @@ export async function getExerciseStatsForExercise(userId: string, exerciseId: st
   }
   const { data } = await supabase
     .from("exercise_stats")
-    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at")
+    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at, actual_pr_weight, actual_pr_reps, actual_pr_at")
     .eq("user_id", userId)
     .eq("exercise_id", exerciseId)
     .maybeSingle();

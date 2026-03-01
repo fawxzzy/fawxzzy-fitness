@@ -6,9 +6,10 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Pill, PillButton } from "@/components/ui/Pill";
+import { PillButton } from "@/components/ui/Pill";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
+import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
@@ -168,7 +169,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [hasMounted, setHasMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLUListElement | null>(null);
   const scrollPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -289,10 +289,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       .filter((group) => group.tags.length > 0);
   }, [uniqueExercises]);
 
-  const availableTags = useMemo(() => {
-    return availableTagGroups.flatMap((group) => group.tags);
-  }, [availableTagGroups]);
-
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
     return uniqueExercises.filter((exercise) => {
@@ -306,16 +302,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       return selectedTags.every((tag) => tags.has(tag));
     });
   }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
-
-  const selectedTagSummary = useMemo(() => {
-    if (selectedTags.length === 0) {
-      return "0 filters selected: All";
-    }
-
-    const tagLabelsByValue = new Map(availableTags.map((tag) => [tag.value, tag.label]));
-    const labels = selectedTags.map((tag) => tagLabelsByValue.get(tag) ?? formatTagLabel(tag));
-    return `${selectedTags.length} filter${selectedTags.length === 1 ? "" : "s"} selected: ${labels.join(", ")}`;
-  }, [availableTags, selectedTags]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
@@ -393,62 +379,12 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           ) : null}
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => setIsFiltersOpen((prev) => !prev)}
-          aria-expanded={isFiltersOpen}
-          className="w-full justify-between border border-border/60 bg-[rgb(var(--bg)/0.4)] [-webkit-tap-highlight-color:transparent]"
-        >
-          <span>Filters</span>
-          <span className="ml-auto inline-flex items-center gap-2">
-            <Pill active={isFiltersOpen} className="text-[10px] uppercase">{isFiltersOpen ? "Open" : "Closed"}</Pill>
-            {isFiltersOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
-          </span>
-        </Button>
-
-        <p className="text-xs text-muted">{selectedTags.length} selected · {selectedTags.length ? "Filtered" : "All"}</p>
-
-        {isFiltersOpen ? (
-          <div className="space-y-2">
-            <PillButton
-              type="button"
-              active={selectedTags.length === 0}
-              onClick={() => setSelectedTags([])}
-            >
-              All
-            </PillButton>
-            {availableTagGroups.map((group) => (
-              <div key={group.key} className="space-y-1">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{group.label}</p>
-                <div className="flex gap-1 overflow-x-auto px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
-                  {group.tags.map((tag) => {
-                    const isSelected = selectedTags.includes(tag.value);
-                    return (
-                      <PillButton
-                        key={tag.value}
-                        type="button"
-                        active={isSelected}
-                        onClick={() => {
-                          setSelectedTags((prev) => {
-                            if (prev.includes(tag.value)) {
-                              return prev.filter((value) => value !== tag.value);
-                            }
-
-                            return [...prev, tag.value];
-                          });
-                        }}
-                      >
-                        {tag.label}
-                      </PillButton>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            <p className="text-xs text-muted">{selectedTagSummary}</p>
-          </div>
-        ) : null}
+        <ExerciseTagFilterControl
+          selectedTags={selectedTags}
+          onChange={setSelectedTags}
+          groups={availableTagGroups}
+          className="space-y-2"
+        />
       </div>
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
       <input type="hidden" name="exerciseListScroll" value={scrollTopSnapshot} />
@@ -537,6 +473,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           pr_weight: info.stats?.prWeight ?? null,
           pr_reps: info.stats?.prReps ?? null,
           pr_est_1rm: info.stats?.prEst1rm ?? null,
+          actual_pr_weight: info.stats?.actualPrWeight ?? null,
+          actual_pr_reps: info.stats?.actualPrReps ?? null,
+          actual_pr_at: info.stats?.actualPrAt ?? null,
         } : null}
         open={!!info && hasMounted}
         onOpenChange={(open) => {

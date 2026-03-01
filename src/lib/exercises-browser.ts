@@ -1,17 +1,21 @@
 import "server-only";
 
+import type { PostgrestError } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
+import { listExercises } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type ExerciseCatalogRow = {
   id: string;
-  exercise_id: string | null;
   name: string;
   slug: string | null;
-  image_path: string | null;
-  image_icon_path: string | null;
+  primary_muscle: string | null;
+  equipment: string | null;
+  movement_pattern: string | null;
+  image_howto_path: string | null;
+  image_muscles_path: string | null;
+  how_to_short: string | null;
 };
 
 type ExerciseStatsRow = {
@@ -23,6 +27,9 @@ type ExerciseStatsRow = {
   pr_weight: number | null;
   pr_reps: number | null;
   pr_est_1rm: number | null;
+  actual_pr_weight: number | null;
+  actual_pr_reps: number | null;
+  actual_pr_at: string | null;
 };
 
 export type ExerciseBrowserRow = {
@@ -32,6 +39,12 @@ export type ExerciseBrowserRow = {
   slug: string | null;
   image_path: string | null;
   image_icon_path: string | null;
+  image_howto_path: string | null;
+  image_muscles_path: string | null;
+  how_to_short: string | null;
+  primary_muscle: string | null;
+  equipment: string | null;
+  movement_pattern: string | null;
   last_performed_at: string | null;
   last_weight: number | null;
   last_reps: number | null;
@@ -39,6 +52,9 @@ export type ExerciseBrowserRow = {
   pr_weight: number | null;
   pr_reps: number | null;
   pr_est_1rm: number | null;
+  actual_pr_weight: number | null;
+  actual_pr_reps: number | null;
+  actual_pr_at: string | null;
 };
 
 function compareExerciseBrowserRows(a: ExerciseBrowserRow, b: ExerciseBrowserRow) {
@@ -58,15 +74,8 @@ function compareExerciseBrowserRows(a: ExerciseBrowserRow, b: ExerciseBrowserRow
   return a.name.localeCompare(b.name);
 }
 
-function fallbackExercises(): ExerciseCatalogRow[] {
-  return EXERCISE_OPTIONS.map((exercise) => ({
-    id: exercise.id,
-    exercise_id: null,
-    name: exercise.name,
-    slug: null,
-    image_path: null,
-    image_icon_path: null,
-  }));
+function isRelationOrColumnMissing(error: PostgrestError | null) {
+  return error?.code === "42P01" || error?.code === "42703";
 }
 
 export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow[]> {
@@ -75,18 +84,23 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const { data: exerciseRows, error: exerciseError } = await supabase
-    .from("exercises")
-    .select("id, exercise_id, name, slug, image_path, image_icon_path")
-    .or(`user_id.is.null,user_id.eq.${user.id}`)
-    .order("name", { ascending: true });
+  const exerciseRows = await listExercises();
 
-  if (exerciseError && exerciseError.code !== "42P01") {
-    throw new Error(exerciseError.message);
-  }
+  const exercises: ExerciseCatalogRow[] = exerciseRows
+    .filter((row) => row.id && row.name)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: "slug" in row && typeof row.slug === "string" ? row.slug : null,
+      primary_muscle: row.primary_muscle ?? null,
+      equipment: row.equipment ?? null,
+      movement_pattern: row.movement_pattern ?? null,
+      image_howto_path: row.image_howto_path ?? null,
+      image_muscles_path: row.image_muscles_path ?? null,
+      how_to_short: row.how_to_short ?? null,
+    }));
 
-  const exercises = ((exerciseRows ?? fallbackExercises()) as ExerciseCatalogRow[]).filter((row) => row.id && row.name);
-  const canonicalIds = Array.from(new Set(exercises.map((row) => row.exercise_id ?? row.id)));
+  const canonicalIds = Array.from(new Set(exercises.map((row) => row.id)));
 
   if (!canonicalIds.length) {
     return [];
@@ -94,19 +108,26 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 
   const { data: statsRows, error: statsError } = await supabase
     .from("exercise_stats")
-    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm")
+    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, actual_pr_weight, actual_pr_reps, actual_pr_at")
     .eq("user_id", user.id)
     .in("exercise_id", canonicalIds);
 
   if (statsError) {
-    throw new Error(statsError.message);
+    if (isRelationOrColumnMissing(statsError)) {
+      console.error("[history/exercises] exercise_stats schema mismatch", {
+        code: statsError.code,
+        message: statsError.message,
+      });
+    } else {
+      throw new Error(`failed to load exercise stats: ${statsError.message}`);
+    }
   }
 
   const statsByExerciseId = new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
 
   return exercises
     .map((exercise) => {
-      const canonicalExerciseId = exercise.exercise_id ?? exercise.id;
+      const canonicalExerciseId = exercise.id;
       const stats = statsByExerciseId.get(canonicalExerciseId);
 
       return {
@@ -114,8 +135,14 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         canonicalExerciseId,
         name: exercise.name,
         slug: exercise.slug,
-        image_path: exercise.image_path,
-        image_icon_path: exercise.image_icon_path,
+        image_path: null,
+        image_icon_path: null,
+        image_howto_path: exercise.image_howto_path,
+        image_muscles_path: exercise.image_muscles_path,
+        how_to_short: exercise.how_to_short,
+        primary_muscle: exercise.primary_muscle,
+        equipment: exercise.equipment,
+        movement_pattern: exercise.movement_pattern,
         last_performed_at: stats?.last_performed_at ?? null,
         last_weight: stats?.last_weight ?? null,
         last_reps: stats?.last_reps ?? null,
@@ -123,6 +150,9 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         pr_weight: stats?.pr_weight ?? null,
         pr_reps: stats?.pr_reps ?? null,
         pr_est_1rm: stats?.pr_est_1rm ?? null,
+        actual_pr_weight: stats?.actual_pr_weight ?? null,
+        actual_pr_reps: stats?.actual_pr_reps ?? null,
+        actual_pr_at: stats?.actual_pr_at ?? null,
       };
     })
     .sort(compareExerciseBrowserRows);

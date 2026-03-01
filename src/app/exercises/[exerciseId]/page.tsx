@@ -4,7 +4,7 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseStatsForExercise } from "@/lib/exercise-stats";
-import { getExerciseHowToImageSrc, getExerciseMusclesImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrcOrNull, getExerciseMusclesImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -97,10 +97,11 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
     image_icon_path: exercise.image_icon_path,
     image_howto_path: exercise.image_howto_path,
   };
-  const howToImageSrc = getExerciseHowToImageSrc(detailsExercise);
+  const howToImageSrc = getExerciseHowToImageSrcOrNull(detailsExercise);
   const musclesImageSrc = getExerciseMusclesImageSrc(exercise.image_muscles_path);
   const hasLast = stats ? (stats.last_weight != null && stats.last_reps != null) : false;
-  const hasPR = stats ? ((stats.pr_weight != null && stats.pr_reps != null) || stats.pr_est_1rm != null) : false;
+  const hasActualPR = stats ? (stats.actual_pr_weight != null && stats.actual_pr_reps != null) : false;
+  const hasStrengthPR = stats ? stats.pr_est_1rm != null : false;
 
   if (process.env.NODE_ENV === "development") {
     console.log("[ExerciseDetailsPage:Stats]", {
@@ -110,7 +111,8 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
       stats,
       hasStats: Boolean(stats),
       hasLast,
-      hasPR,
+      hasActualPR,
+      hasStrengthPR,
     });
   }
 
@@ -130,9 +132,9 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           </div>
         </div>
 
-        {stats && (hasLast || hasPR) ? (
+        {stats ? (
           <div className="space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] p-2">
-            <p className="text-xs uppercase tracking-wide text-muted">Personal</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Stats</p>
             {process.env.NODE_ENV === "development" ? (
               <p className="font-mono text-[10px] text-muted/90">
                 dbg: canonicalExerciseId={canonicalExerciseId ?? "none"} statsFound={stats ? "yes" : "no"} statsExerciseId={stats?.exercise_id ?? "none"}
@@ -141,16 +143,22 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
             {hasLast ? (
               <p className="text-sm text-text">Last: {formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit)}{stats.last_performed_at ? ` · ${formatShortDate(stats.last_performed_at)}` : ""}</p>
             ) : null}
-            {hasPR ? (
-              <p className="text-sm text-text">PR: {formatWeightReps(stats.pr_weight, stats.pr_reps, null)}{stats.pr_est_1rm != null ? `${stats.pr_weight != null && stats.pr_reps != null ? " · " : ""}Est 1RM ${Math.round(stats.pr_est_1rm)}` : ""}</p>
+            {hasActualPR ? (
+              <p className="text-sm text-text">Actual PR: {formatWeightReps(stats.actual_pr_weight, stats.actual_pr_reps, stats.last_unit)}{stats.actual_pr_at ? ` · ${formatShortDate(stats.actual_pr_at)}` : ""}</p>
             ) : null}
+            {hasStrengthPR ? (
+              <p className="text-sm text-text">Strength PR: e1RM {Math.round(stats.pr_est_1rm ?? 0)}{stats.pr_weight != null && stats.pr_reps != null ? ` (from ${formatWeightReps(stats.pr_weight, stats.pr_reps, stats.last_unit) ?? `${stats.pr_weight} × ${stats.pr_reps}`})` : ""}</p>
+            ) : null}
+            {!hasLast && !hasActualPR && !hasStrengthPR ? <p className="text-sm text-muted">No history yet</p> : null}
           </div>
         ) : null}
 
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-          <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="w-full rounded-md border border-border" />
-        </div>
+        {howToImageSrc ? (
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+            <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="w-full rounded-md border border-border" />
+          </div>
+        ) : null}
 
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
