@@ -12,12 +12,33 @@ import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
-import { formatRepTarget, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
+
+function formatTodayExerciseTargets(exercise: Pick<RoutineDayExerciseRow, "target_sets" | "target_reps" | "target_reps_min" | "target_reps_max">) {
+  if (!exercise.target_sets) {
+    return null;
+  }
+
+  const minReps = exercise.target_reps_min ?? exercise.target_reps ?? null;
+  const maxReps = exercise.target_reps_max ?? exercise.target_reps ?? null;
+  const repsTarget =
+    minReps !== null && maxReps !== null
+      ? minReps === maxReps
+        ? `${minReps}`
+        : `${minReps}–${maxReps}`
+      : minReps !== null
+        ? `${minReps}`
+        : maxReps !== null
+          ? `${maxReps}`
+          : null;
+
+  return repsTarget ? `${exercise.target_sets} sets • ${repsTarget}` : `${exercise.target_sets} sets`;
+}
 
 async function startSessionAction(payload?: { dayIndex?: number }): Promise<ActionResult<{ sessionId: string }>> {
   "use server";
@@ -345,9 +366,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     exercises: effectiveDayExercises.map((exercise) => ({
       id: exercise.id,
       name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-      targets: exercise.target_sets
-        ? `${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
-        : null,
+      targets: formatTodayExerciseTargets(exercise),
       notes: exercise.notes,
     })),
     completedTodayCount,
@@ -370,14 +389,14 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         };
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 pb-32">
       <AppNav />
 
       {todayPayload.routine && !fetchFailed ? (
         <div className="space-y-4 px-1">
           <OfflineSyncBadge />
         {todayPayload.inProgressSessionId ? (
-            <div className="space-y-2">
+            <div className="space-y-4 pb-4">
               <div className="space-y-3 rounded-xl border border-white/10 bg-[rgb(var(--surface-2-soft)/0.72)] px-4 py-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
@@ -403,16 +422,20 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 </ul>
               </div>
 
-              <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "h-12 border-emerald-400/45 bg-emerald-500/20 text-emerald-50 hover:bg-emerald-500/26 active:bg-emerald-500/32" })}>Resume Workout</Link>
-              <ConfirmedServerFormButton
-                action={discardInProgressSessionAction}
-                hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
-                triggerLabel="Discard Workout"
-                triggerClassName="w-full"
-                modalTitle="Discard workout?"
-                modalDescription="This will delete your in-progress workout, including exercises and sets."
-                confirmLabel="Discard"
-              />
+              <div className="sticky bottom-0 z-20 -mx-1 border-t border-white/10 bg-[rgb(var(--surface)/0.96)] px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-sm">
+                <div className="space-y-2">
+                  <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "h-12 border-emerald-400/45 bg-emerald-500/20 text-emerald-50 transition-transform hover:bg-emerald-500/26 active:scale-[0.98] active:bg-emerald-500/32" })}>Resume Workout</Link>
+                  <ConfirmedServerFormButton
+                    action={discardInProgressSessionAction}
+                    hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
+                    triggerLabel="Discard Workout"
+                    triggerClassName="w-full"
+                    modalTitle="Discard workout?"
+                    modalDescription="This will delete your in-progress workout, including exercises and sets."
+                    confirmLabel="Discard"
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <TodayDayPicker
@@ -427,9 +450,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   .map((exercise) => ({
                     id: exercise.id,
                     name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-                    targets: exercise.target_sets
-                      ? `${exercise.target_sets} sets · ${formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps)}`
-                      : null,
+                    targets: formatTodayExerciseTargets(exercise),
                   })),
               }))}
               currentDayIndex={todayPayload.routine.dayIndex}

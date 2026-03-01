@@ -1560,3 +1560,10 @@ WHAT:
 - Added the same tag-based Filter control used in Add Exercise directly beneath Search in History → Exercises.
 WHY:
 - Makes long history exercise lists easier to scan on mobile/desktop without sticky-feeling scroll, and keeps filtering UX consistent across exercise browsing surfaces.
+
+### Changed
+WHAT:
+- Added a sticky bottom action bar on Today so Start/Resume Workout and Change/Discard Workout stay reachable while scrolling long exercise lists.
+- Updated Today exercise goal subtext to render as `X sets • A–B` when reps exist, and only `X sets` when reps are not provided.
+WHY:
+- Keeps primary workout actions consistently accessible during long sessions and removes placeholder-style goal noise for a cleaner, mission-ready Today experience.

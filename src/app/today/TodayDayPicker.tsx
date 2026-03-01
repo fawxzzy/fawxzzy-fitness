@@ -41,7 +41,7 @@ export function TodayDayPicker({
   );
 
   return (
-    <div className="flex min-h-0 flex-col gap-4">
+    <div className="flex min-h-0 flex-col gap-4 pb-4">
       {selectedDay ? (
         <div className="space-y-3 rounded-xl border border-white/10 bg-[rgb(var(--surface-2-soft)/0.72)] px-4 py-3">
           <div className="flex items-start justify-between gap-2">
@@ -71,20 +71,6 @@ export function TodayDayPicker({
         </div>
       ) : null}
 
-      <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />
-      <SecondaryButton
-        id="today-day-picker"
-        type="button"
-        fullWidth
-        className="h-11 border-white/14 bg-transparent text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-        onClick={() => {
-          setIsPickerOpen((previous) => !previous);
-        }}
-        aria-expanded={isPickerOpen}
-      >
-        <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
-      </SecondaryButton>
-
       {isPickerOpen ? (
         <div className="space-y-3 rounded-lg border border-white/10 bg-[rgb(var(--surface-2-soft)/0.62)] p-3">
           <p className="text-sm font-semibold text-muted">Choose workout day</p>
@@ -108,6 +94,24 @@ export function TodayDayPicker({
           </div>
         </div>
       ) : null}
+
+      <div className="sticky bottom-0 z-20 -mx-1 border-t border-white/10 bg-[rgb(var(--surface)/0.96)] px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-sm">
+        <div className="space-y-2">
+          <TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />
+          <SecondaryButton
+            id="today-day-picker"
+            type="button"
+            fullWidth
+            className="h-11 border-white/14 bg-transparent text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+            onClick={() => {
+              setIsPickerOpen((previous) => !previous);
+            }}
+            aria-expanded={isPickerOpen}
+          >
+            <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
+          </SecondaryButton>
+        </div>
+      </div>
     </div>
   );
 }
