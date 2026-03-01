@@ -452,3 +452,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Nested lock handlers can restore stale `overflow` values and leave the underlying page non-scrollable after close, especially on iOS/PWA.
 - Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExercisePicker.tsx, src/lib/useBodyScrollLock.ts
 - Status: Proposed
+
+## 2026-03-01 — Reuse existing in-context detail overlays instead of introducing dead detail-route links
+- Type: Guardrail
+- Summary: When a feature already exposes details through an established modal/overlay contract, new list surfaces should invoke that same overlay contract rather than linking to alternate or non-existent route paths.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Preserving one detail interaction contract avoids navigation regressions (404s), keeps close/return behavior deterministic, and prevents duplicated UI pathways for the same content.
+- Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx, src/components/ExerciseInfoSheet.tsx, src/lib/exercises-browser.ts
+- Status: Proposed

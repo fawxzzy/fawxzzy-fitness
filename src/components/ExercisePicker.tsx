@@ -537,6 +537,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           pr_weight: info.stats?.prWeight ?? null,
           pr_reps: info.stats?.prReps ?? null,
           pr_est_1rm: info.stats?.prEst1rm ?? null,
+          actual_pr_weight: info.stats?.actualPrWeight ?? null,
+          actual_pr_reps: info.stats?.actualPrReps ?? null,
+          actual_pr_at: info.stats?.actualPrAt ?? null,
         } : null}
         open={!!info && hasMounted}
         onOpenChange={(open) => {

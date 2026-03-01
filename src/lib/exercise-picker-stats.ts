@@ -8,6 +8,9 @@ export type ExerciseStatsOption = {
   prWeight: number | null;
   prReps: number | null;
   prEst1rm: number | null;
+  actualPrWeight: number | null;
+  actualPrReps: number | null;
+  actualPrAt: string | null;
 };
 
 type ExerciseWithCanonicalId = {
@@ -28,6 +31,9 @@ type ExerciseStatsMapRow = {
   pr_weight: number | null;
   pr_reps: number | null;
   pr_est_1rm: number | null;
+  actual_pr_weight: number | null;
+  actual_pr_reps: number | null;
+  actual_pr_at: string | null;
 };
 
 export function mapExerciseStatsForPicker(
@@ -48,6 +54,9 @@ export function mapExerciseStatsForPicker(
       prWeight: stats?.pr_weight ?? null,
       prReps: stats?.pr_reps ?? null,
       prEst1rm: stats?.pr_est_1rm ?? null,
+      actualPrWeight: stats?.actual_pr_weight ?? null,
+      actualPrReps: stats?.actual_pr_reps ?? null,
+      actualPrAt: stats?.actual_pr_at ?? null,
     };
   });
 }
