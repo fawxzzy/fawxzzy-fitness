@@ -10,6 +10,9 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+
+## Implemented Already
+
 ## 2026-03-01 — Treat seeded placeholder media defaults as unset in fallback resolvers
 - Type: Guardrail
 - Summary: Canonical media resolvers should treat known seeded placeholder paths as unset values so fallback chains can select real assets (and optionally suppress sections when no non-placeholder asset exists).
