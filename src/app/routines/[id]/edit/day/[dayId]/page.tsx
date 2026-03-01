@@ -298,7 +298,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                             primary_muscle: matchingExercise?.primary_muscle ?? null,
                             equipment: matchingExercise?.equipment ?? null,
                             movement_pattern: matchingExercise?.movement_pattern ?? null,
-                            image_muscles_path: matchingExercise?.image_muscles_path ?? null,
                             how_to_short: matchingExercise?.how_to_short ?? null,
                           }}
                         />

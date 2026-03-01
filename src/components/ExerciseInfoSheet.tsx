@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { getExerciseHowToImageSrcOrNull, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
@@ -14,7 +14,6 @@ export type ExerciseInfoSheetExercise = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  image_muscles_path?: string | null;
   image_howto_path?: string | null;
   how_to_short?: string | null;
   image_icon_path?: string | null;
@@ -104,8 +103,7 @@ export function ExerciseInfoSheet({
     };
   }, [exercise]);
 
-  const resolvedHowToSrc = exercise ? getExerciseHowToImageSrcOrNull(exercise) : null;
-  const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
+  const resolvedHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const lastSummary = stats ? formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) : null;
   const actualPrSummary = stats ? formatWeightReps(stats.actual_pr_weight, stats.actual_pr_reps, stats.last_unit) : null;
@@ -184,28 +182,14 @@ export function ExerciseInfoSheet({
                 </div>
               ) : null}
 
-              {resolvedHowToSrc ? (
-                <div className="space-y-1">
-                  <p className={sectionTitleClassName}>How-to</p>
-                  <div className="flex h-44 items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3 sm:h-48">
-                    <ExerciseAssetImage
-                      key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
-                      src={resolvedHowToSrc}
-                      alt="How-to visual"
-                      className="h-full w-full object-contain object-center"
-                    />
-                  </div>
-                </div>
-              ) : null}
-
               <div className="space-y-1">
-                <p className={sectionTitleClassName}>Muscles</p>
-                <div className="flex h-44 items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3 sm:h-48">
+                <p className={sectionTitleClassName}>How-to</p>
+                <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">
                   <ExerciseAssetImage
-                    src={infoMusclesSrc}
-                    alt="Muscles visual"
+                    key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
+                    src={resolvedHowToSrc}
+                    alt="How-to visual"
                     className="h-full w-full object-contain object-center"
-                    fallbackSrc="/exercises/placeholders/muscles.svg"
                   />
                 </div>
               </div>

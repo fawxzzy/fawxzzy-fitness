@@ -30,7 +30,6 @@ function fallbackGlobalExercises(): ExerciseRow[] {
     default_unit: "reps",
     calories_estimation_method: null,
     image_howto_path: null,
-    image_muscles_path: null,
     how_to_short: exercise.how_to_short,
     created_at: FALLBACK_CREATED_AT,
   }));
@@ -105,7 +104,7 @@ async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
   const supabase = supabaseServer();
   const { data: customData, error: customError } = await supabase
     .from("exercises")
-    .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_howto_path, image_muscles_path, how_to_short, created_at")
+    .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_howto_path, how_to_short, created_at")
     .eq("user_id", userId)
     .order("name", { ascending: true });
 
@@ -125,7 +124,7 @@ const listGlobalExercisesCached = unstable_cache(
     const supabase = supabaseServerAnon();
     const { data, error } = await supabase
       .from("exercises")
-      .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_howto_path, image_muscles_path, how_to_short, created_at")
+      .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_howto_path, how_to_short, created_at")
       .is("user_id", null)
       .eq("is_global", true)
       .order("name", { ascending: true });

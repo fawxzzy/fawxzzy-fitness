@@ -4,7 +4,7 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseStatsForExercise } from "@/lib/exercise-stats";
-import { getExerciseHowToImageSrcOrNull, getExerciseMusclesImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -43,7 +43,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, exercise_id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_icon_path, image_howto_path, image_muscles_path")
+    .select("id, exercise_id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_icon_path, image_howto_path")
     .eq("id", params.exerciseId)
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .maybeSingle();
@@ -61,7 +61,6 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
         secondary_muscles: [] as string[],
         slug: data.slug ?? null,
         image_icon_path: data.image_icon_path ?? null,
-        image_muscles_path: data.image_muscles_path ?? null,
       }
     : fallbackExercise
       ? {
@@ -76,7 +75,6 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           image_icon_path: null,
           image_path: null,
           image_howto_path: null,
-          image_muscles_path: null,
         }
       : null;
 
@@ -97,8 +95,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
     image_icon_path: exercise.image_icon_path,
     image_howto_path: exercise.image_howto_path,
   };
-  const howToImageSrc = getExerciseHowToImageSrcOrNull(detailsExercise);
-  const musclesImageSrc = getExerciseMusclesImageSrc(exercise.image_muscles_path);
+  const howToImageSrc = getExerciseHowToImageSrc(detailsExercise);
   const hasLast = stats ? (stats.last_weight != null && stats.last_reps != null) : false;
   const hasActualPR = stats ? (stats.actual_pr_weight != null && stats.actual_pr_reps != null) : false;
   const hasStrengthPR = stats ? stats.pr_est_1rm != null : false;
@@ -153,16 +150,11 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           </div>
         ) : null}
 
-        {howToImageSrc ? (
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-            <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="w-full rounded-md border border-border" />
-          </div>
-        ) : null}
-
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-          <ExerciseAssetImage src={musclesImageSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
+          <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+          <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">
+            <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="h-full w-full object-contain object-center" />
+          </div>
         </div>
 
         {exercise.how_to_short ? <p className="text-sm text-text">{exercise.how_to_short}</p> : null}

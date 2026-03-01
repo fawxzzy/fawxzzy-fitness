@@ -14,7 +14,6 @@ type ExerciseCatalogRow = {
   equipment: string | null;
   movement_pattern: string | null;
   image_howto_path: string | null;
-  image_muscles_path: string | null;
   how_to_short: string | null;
 };
 
@@ -40,7 +39,6 @@ export type ExerciseBrowserRow = {
   image_path: string | null;
   image_icon_path: string | null;
   image_howto_path: string | null;
-  image_muscles_path: string | null;
   how_to_short: string | null;
   primary_muscle: string | null;
   equipment: string | null;
@@ -96,7 +94,6 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
       equipment: row.equipment ?? null,
       movement_pattern: row.movement_pattern ?? null,
       image_howto_path: row.image_howto_path ?? null,
-      image_muscles_path: row.image_muscles_path ?? null,
       how_to_short: row.how_to_short ?? null,
     }));
 
@@ -138,7 +135,6 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         image_path: null,
         image_icon_path: null,
         image_howto_path: exercise.image_howto_path,
-        image_muscles_path: exercise.image_muscles_path,
         how_to_short: exercise.how_to_short,
         primary_muscle: exercise.primary_muscle,
         equipment: exercise.equipment,
