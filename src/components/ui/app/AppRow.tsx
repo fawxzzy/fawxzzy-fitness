@@ -7,6 +7,7 @@ export function AppRow({
   leftBottom,
   rightTop,
   rightBottom,
+  rightWrap = false,
   tone = "default",
   onClick,
   className,
@@ -15,19 +16,29 @@ export function AppRow({
   leftBottom?: ReactNode;
   rightTop?: ReactNode;
   rightBottom?: ReactNode;
+  rightWrap?: boolean;
   tone?: "default" | "active";
   onClick?: () => void;
   className?: string;
 }) {
   const content = (
     <>
-      <div className="min-w-0 space-y-1">
+      <div className={cn("min-w-0 space-y-1", rightWrap ? "shrink-0" : undefined)}>
         <div className="text-[0.96rem] font-semibold leading-snug text-[rgb(var(--text)/0.98)]">{leftTop}</div>
         {leftBottom ? <div className={cn("text-xs leading-snug", appTokens.metaText)}>{leftBottom}</div> : null}
       </div>
       {(rightTop || rightBottom) ? (
-        <div className="min-w-0 shrink-0 text-right">
-          {rightTop ? <div className="text-sm font-medium leading-snug text-[rgb(var(--text)/0.98)]">{rightTop}</div> : null}
+        <div className={cn("min-w-0 text-right", rightWrap ? "flex-1" : "shrink-0")}>
+          {rightTop ? (
+            <div
+              className={cn(
+                "text-sm font-medium text-[rgb(var(--text)/0.98)]",
+                rightWrap ? "whitespace-normal leading-tight [overflow-wrap:anywhere] [word-break:break-word]" : "leading-snug",
+              )}
+            >
+              {rightTop}
+            </div>
+          ) : null}
           {rightBottom ? <div className={cn("pt-0.5 text-xs", appTokens.metaText)}>{rightBottom}</div> : null}
         </div>
       ) : null}

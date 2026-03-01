@@ -188,6 +188,7 @@ export default async function RoutinesPage() {
                             leftTop={<span className="text-xs font-semibold uppercase tracking-wide text-emerald-300">Day {dayNumber}</span>}
                             leftBottom={isToday ? <AppBadge tone="today">Today</AppBadge> : undefined}
                             rightTop={<span className={day.is_rest ? "text-muted/80" : appTokens.accentText}>{day.is_rest ? "Rest" : dayLabel}</span>}
+                            rightWrap
                             className="px-4"
                           />
                         </Link>

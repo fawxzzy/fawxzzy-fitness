@@ -1745,3 +1745,10 @@ WHY:
 - Reduces repeated per-screen markup so future UI tuning compounds through one primitive layer instead of being reimplemented in each routine/day screen.
 - Improves cross-screen visual and interaction consistency while keeping existing data, routing, and behavior contracts intact.
 
+
+### Fixed
+WHAT:
+- Updated routine day rows on the Routines page so long right-side day titles wrap onto multiple lines while staying right-aligned.
+- Preserved consistent spacing between the left "Day X" label and right title content across narrow and wide layouts.
+WHY:
+- Prevents long day names from colliding with left-side labels and keeps routine rows readable on iPhone-sized screens and desktop.
