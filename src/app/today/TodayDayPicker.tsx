@@ -74,7 +74,7 @@ export function TodayDayPicker({
       {isPickerOpen ? (
         <div className="space-y-3 rounded-lg border border-white/15 bg-[rgb(var(--surface-2-soft)/0.7)] p-3">
           <p className="text-sm font-semibold text-muted">Choose workout day</p>
-          <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
+          <div aria-label="Routine days" className="space-y-2">
             {days.map((day) => {
               const isSelected = selectedDayIndex === day.dayIndex;
               return (
