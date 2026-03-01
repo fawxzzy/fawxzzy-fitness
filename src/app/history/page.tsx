@@ -1,16 +1,12 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { Glass } from "@/components/ui/Glass";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
-import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { requireUser } from "@/lib/auth";
-import { formatDateTime } from "@/lib/datetime";
 import { formatDurationClock } from "@/lib/duration";
-import { revalidateHistoryViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionRow } from "@/types/db";
 
@@ -46,47 +42,6 @@ function formatSessionTime(value: string | null) {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
-}
-
-async function deleteSessionAction(formData: FormData) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-  const sessionId = String(formData.get("sessionId") ?? "");
-
-  if (!sessionId) {
-    throw new Error("Missing session ID");
-  }
-
-  const { data: affectedExerciseRows, error: affectedExerciseError } = await supabase
-    .from("session_exercises")
-    .select("exercise_id")
-    .eq("session_id", sessionId)
-    .eq("user_id", user.id);
-
-  if (affectedExerciseError) {
-    throw new Error(affectedExerciseError.message);
-  }
-
-  const affectedExerciseIds = Array.from(new Set((affectedExerciseRows ?? []).map((row) => row.exercise_id)));
-
-  const { error } = await supabase
-    .from("sessions")
-    .delete()
-    .eq("id", sessionId)
-    .eq("user_id", user.id)
-    .eq("status", "completed");
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (affectedExerciseIds.length > 0) {
-    await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds);
-  }
-
-  revalidateHistoryViews();
 }
 
 export default async function HistoryPage({
@@ -139,7 +94,7 @@ export default async function HistoryPage({
   }
 
   return (
-    <section className="space-y-4">
+    <section className="flex min-h-[100dvh] flex-col space-y-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
       <AppNav />
 
       <Glass variant="base" className="p-2" interactive={false}>
@@ -154,7 +109,7 @@ export default async function HistoryPage({
         </div>
 
         {sessions.length > 0 ? (
-          <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
+          <ul className={`${listShellClasses.list} pb-1`}>
             {sessions.map((session) => {
               const resolvedDayName = session.day_name_override
                 || (session.routine_id && session.routine_day_index ? routineDayNameByKey.get(`${session.routine_id}:${session.routine_day_index}`) : null)
@@ -169,50 +124,29 @@ export default async function HistoryPage({
                 >
                   <Link
                     href={`/history/${session.id}`}
-                    aria-label={`Open log details for ${session.name || "session"}`}
-                    className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+                    aria-label={`View session details for ${session.name || "session"}`}
+                    className="relative z-10 flex items-start gap-3 rounded-xl p-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
                   >
-                    <span className="sr-only">Open log details</span>
-                  </Link>
-
-                  <div className="pointer-events-none relative z-10 p-3.5">
-                    <div className="flex items-start gap-3">
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <p className="truncate text-sm font-semibold text-slate-100">{session.name || "Session"}</p>
-                        <p className="truncate text-xs font-normal text-slate-300">{resolvedDayName || "Custom session"}</p>
-                        <p className="text-xs text-slate-400">
-                          <span className="font-medium text-slate-300">{duration}</span>
-                          <span className="mx-1.5 text-slate-500">•</span>
-                          <LocalDateTime value={session.performed_at} options={{ dateStyle: "medium" }} />
-                          {formatSessionTime(session.performed_at) ? (
-                            <>
-                              <span className="mx-1 text-slate-500">·</span>
-                              <span className="text-[11px] text-slate-500">{formatSessionTime(session.performed_at)}</span>
-                            </>
-                          ) : null}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center">
-                        <div className="pointer-events-auto">
-                          <ConfirmedServerFormButton
-                            action={deleteSessionAction}
-                            hiddenFields={{ sessionId: session.id }}
-                            triggerLabel="⋯"
-                            triggerAriaLabel="Delete session"
-                            triggerClassName={`${listShellClasses.iconAction} h-8 w-8 shrink-0 !rounded-lg !border !border-white/10 !bg-black/15 !px-0 !py-0 !text-slate-300 hover:!border-white/20 hover:!text-white`}
-                            modalTitle="Delete session?"
-                            modalDescription="This will permanently delete this workout session and all logged sets."
-                            confirmLabel="Delete"
-                            contextLines={[
-                              `${session.name || "Session"}`,
-                              `${formatDateTime(session.performed_at)} • ${duration}`,
-                            ]}
-                          />
-                        </div>
-                      </div>
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <p className="truncate text-sm font-semibold text-slate-100">{session.name || "Session"}</p>
+                      <p className="truncate text-xs font-normal text-slate-300">{resolvedDayName || "Custom session"}</p>
+                      <p className="text-xs text-slate-400">
+                        <span className="font-medium text-slate-300">{duration}</span>
+                        <span className="mx-1.5 text-slate-500">•</span>
+                        <LocalDateTime value={session.performed_at} options={{ dateStyle: "medium" }} />
+                        {formatSessionTime(session.performed_at) ? (
+                          <>
+                            <span className="mx-1 text-slate-500">·</span>
+                            <span className="text-[11px] text-slate-500">{formatSessionTime(session.performed_at)}</span>
+                          </>
+                        ) : null}
+                      </p>
                     </div>
-                  </div>
+
+                    <span className="shrink-0 rounded-md border border-white/10 bg-black/15 px-2.5 py-1.5 text-xs font-semibold text-slate-200">
+                      View
+                    </span>
+                  </Link>
                 </li>
               );
             })}
