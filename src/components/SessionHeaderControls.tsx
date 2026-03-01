@@ -39,13 +39,11 @@ export function SessionHeaderControls({
   sessionId,
   initialDurationSeconds,
   performedAt,
-  sessionTitle,
   saveSessionAction,
 }: {
   sessionId: string;
   initialDurationSeconds: number | null;
   performedAt: string;
-  sessionTitle: string;
   saveSessionAction: ServerAction;
 }) {
   const baseDurationSeconds = initialDurationSeconds ?? 0;
@@ -76,13 +74,8 @@ export function SessionHeaderControls({
   }, [baseDurationSeconds, performedAtMs]);
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 border-b border-white/10 bg-surface/95 px-4 py-2 backdrop-blur">
-      <div className="flex items-center gap-2">
-        <SessionBackButton />
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-text">{sessionTitle}</p>
-        <p className="shrink-0 whitespace-nowrap text-xs text-muted">
-          <span className="font-medium tabular-nums text-[rgb(var(--text)/0.75)]">{formatDurationClock(durationSeconds)}</span>
-        </p>
+    <div className="sticky top-0 z-30 -mx-4 border-b border-white/10 bg-[rgb(var(--surface)/0.98)] px-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-2 backdrop-blur">
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
         <form
           action={async (formData) => {
             const result = await saveSessionAction(formData);
@@ -101,6 +94,10 @@ export function SessionHeaderControls({
           <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
           <SaveSessionButton />
         </form>
+        <p className="whitespace-nowrap text-center text-xs text-muted">
+          <span className="font-medium tabular-nums text-[rgb(var(--text)/0.75)]">{formatDurationClock(durationSeconds)}</span>
+        </p>
+        <SessionBackButton />
       </div>
       <OfflineSyncBadge />
     </div>

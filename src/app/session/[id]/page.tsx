@@ -105,15 +105,16 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
 
   return (
-    <section className="space-y-4 pb-4 pt-[max(env(safe-area-inset-top),0.25rem)]">
+    <section className="space-y-4 pb-4 pt-1">
 
       <SessionHeaderControls
         sessionId={params.id}
         initialDurationSeconds={sessionRow.duration_seconds}
         performedAt={sessionRow.performed_at}
-        sessionTitle={sessionTitle}
         saveSessionAction={saveSessionAction}
       />
+
+      <h1 className="text-lg font-semibold leading-tight text-text">{sessionTitle}</h1>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       <ActionFeedbackToasts />
