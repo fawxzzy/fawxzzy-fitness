@@ -138,6 +138,30 @@ Route action results through a shared helper (`ok/error/message`) and gate anima
 - Inconsistent success/error messaging across client handlers.
 - Motion-heavy updates in high-frequency interaction paths.
 
+
+## Guardrail: Render destructive confirmations in a body-level portal with full-viewport isolation
+### Type
+Guardrail
+
+### Rationale
+Destructive confirmations launched from scrollable/tinted list containers can clip or visually bleed on mobile when mounted inline within local stacking contexts.
+
+### How to apply checklist
+- [ ] Mount destructive confirmation dialogs through `document.body` (or shared dialog portal).
+- [ ] Use fixed, full-viewport backdrop (`position: fixed; inset: 0`) with optional blur and explicit high z-index.
+- [ ] Lock background scroll while the modal is open.
+- [ ] Keep confirm/cancel actions keyboard and touch accessible.
+
+### Example snippet
+```tsx
+<Dialog.Portal container={document.body}>
+  <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm" />
+  <Dialog.Content className="fixed inset-x-4 top-1/2 z-[101] -translate-y-1/2" />
+</Dialog.Portal>
+```
+
+- **Source attribution:** `docs/PLAYBOOK_NOTES.md` (2026-02-28 mobile destructive overlay notes) + implementation evidence paths (`src/components/ui/ConfirmDestructiveModal.tsx`, `src/app/history/page.tsx`).
+
 ## Cross-links
 - Server-side action contracts for lazy detail fetches: [Server/Client Boundaries](./server-client-boundaries.md)
 - Offline continuity and stale-state signaling: [Offline-First Sync](./offline-first-sync.md)
