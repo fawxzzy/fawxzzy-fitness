@@ -89,20 +89,20 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       <button
         type="button"
         onClick={() => onOpen(row.canonicalExerciseId)}
-        className="flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+        className="flex min-h-28 w-full appearance-none items-center gap-4 rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.24)] bg-[rgb(var(--glass-tint-rgb)/0.52)] px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
-        <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-9 w-9 shrink-0 rounded-md border border-border/40 bg-surface-2-soft object-cover" />
+        <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-14 w-14 shrink-0 rounded-lg border border-border/40 bg-surface-2-soft object-cover" />
 
         <div className="min-w-0 flex-1">
           <p
-            className="overflow-hidden text-sm font-medium text-slate-100"
+            className="overflow-hidden text-base font-semibold leading-tight text-slate-100"
             style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
           >
             {row.name}
           </p>
         </div>
 
-        <div className="min-w-0 shrink-0 text-right text-xs">
+        <div className="min-w-0 shrink-0 text-right text-sm">
           {lastSummary || actualPrSummary || e1rmSummary ? (
             <>
               <p className="font-semibold text-slate-100">
@@ -113,7 +113,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
                 PR: {actualPrSummary ?? "—"}
                 {actualPrDate ? <span className="ml-1 text-slate-400">{actualPrDate}</span> : null}
               </p>
-              {e1rmSummary ? <p className="text-[11px] text-slate-400">{e1rmSummary}</p> : null}
+              {e1rmSummary ? <p className="text-xs text-slate-400">{e1rmSummary}</p> : null}
             </>
           ) : (
             <p className="text-slate-400">No history yet</p>
