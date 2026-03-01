@@ -1620,3 +1620,10 @@ WHAT:
 - Updated Today exercise goal subtext to render as `X sets • A–B` when reps exist, and only `X sets` when reps are not provided.
 WHY:
 - Keeps primary workout actions consistently accessible during long sessions and removes placeholder-style goal noise for a cleaner, mission-ready Today experience.
+
+### Changed
+WHAT:
+- Standardized app Back controls to one shared Back button primitive so screen-level Back actions now inherit the same iconography and styling baseline.
+- Updated history/log, exercise info, and session focus Back interactions to use the shared Back primitive while preserving each screen’s own destination or close behavior.
+WHY:
+- Creates a single visual/source-of-truth for Back behavior, reducing UI drift and making future Back-button updates faster and safer.

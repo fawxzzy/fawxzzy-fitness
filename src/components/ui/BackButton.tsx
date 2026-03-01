@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MouseEventHandler } from "react";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
 type BackButtonProps = {
   href?: string;
@@ -10,6 +11,7 @@ type BackButtonProps = {
   ariaLabel?: string;
   className?: string;
   onClick?: MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>;
+  iconOnly?: boolean;
 };
 
 const baseClassName =
@@ -28,15 +30,37 @@ function BackIcon() {
   );
 }
 
-export function BackButton({ href, label = "Back", ariaLabel, className = "", onClick }: BackButtonProps) {
+export function BackButton({
+  href,
+  label = "Back",
+  ariaLabel,
+  className = "",
+  onClick,
+  iconOnly = false,
+}: BackButtonProps) {
   const router = useRouter();
-  const classes = `${baseClassName} ${className}`.trim();
+  const classes = iconOnly
+    ? getAppButtonClassName({
+        variant: "ghost",
+        size: "sm",
+        className: ["min-w-10 rounded-full px-2", className].filter(Boolean).join(" "),
+      })
+    : `${baseClassName} ${className}`.trim();
+  const resolvedAriaLabel = ariaLabel ?? (iconOnly ? label : undefined);
+
+  const content = iconOnly
+    ? <BackIcon />
+    : (
+        <>
+          <BackIcon />
+          <span>{label}</span>
+        </>
+      );
 
   if (href) {
     return (
-      <Link href={href} onClick={onClick} aria-label={ariaLabel} className={`group ${classes}`}>
-        <BackIcon />
-        <span>{label}</span>
+      <Link href={href} onClick={onClick} aria-label={resolvedAriaLabel} className={`group ${classes}`}>
+        {content}
       </Link>
     );
   }
@@ -44,7 +68,7 @@ export function BackButton({ href, label = "Back", ariaLabel, className = "", on
   return (
     <button
       type="button"
-      aria-label={ariaLabel}
+      aria-label={resolvedAriaLabel}
       className={`group ${classes}`}
       onClick={(event) => {
         onClick?.(event);
@@ -55,8 +79,7 @@ export function BackButton({ href, label = "Back", ariaLabel, className = "", on
         router.back();
       }}
     >
-      <BackIcon />
-      <span>{label}</span>
+      {content}
     </button>
   );
 }

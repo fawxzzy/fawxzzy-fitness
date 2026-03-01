@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { Glass } from "@/components/ui/Glass";
+import { BackButton } from "@/components/ui/BackButton";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
@@ -100,9 +99,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       <AppNav />
 
       <Glass variant="base" className="space-y-2 p-4" interactive={false}>
-        <Link href="/history" className={getAppButtonClassName({ variant: "secondary", size: "sm" })}>
-          ← Back to history
-        </Link>
+        <BackButton href="/history" label="Back to history" className="w-fit" />
         <h1 className="text-2xl font-semibold text-slate-100">Log Details</h1>
         <p className="text-sm text-slate-300">
           {routineName} • {effectiveDayName} • <LocalDateTime value={sessionRow.performed_at} /> • {sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}

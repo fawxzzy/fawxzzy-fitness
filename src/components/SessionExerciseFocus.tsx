@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { AppButton } from "@/components/ui/AppButton";
+import { BackButton } from "@/components/ui/BackButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
@@ -240,16 +241,12 @@ export function SessionExerciseFocus({
               <p className="text-base font-semibold">{selectedExercise?.name ?? "Exercise"}</p>
               <p className="text-xs text-muted">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
-            <AppButton
-              type="button"
-              aria-label="Close exercise"
-              variant="ghost"
-              size="sm"
+            <BackButton
               onClick={() => setSelectedExerciseId(null)}
+              label="Back"
+              ariaLabel="Close exercise"
               className={tapFeedbackClass}
-            >
-              Back
-            </AppButton>
+            />
           </div>
         </div>
       )}

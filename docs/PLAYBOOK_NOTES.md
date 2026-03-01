@@ -495,3 +495,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Preserving one detail interaction contract avoids navigation regressions (404s), keeps close/return behavior deterministic, and prevents duplicated UI pathways for the same content.
 - Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx, src/components/ExerciseInfoSheet.tsx, src/lib/exercises-browser.ts
 - Status: Proposed
+
+## 2026-03-01 — Centralize Back navigation UI behind one reusable primitive with per-screen intent hooks
+- Type: Guardrail
+- Summary: Keep all in-app Back affordances bound to one shared Back button primitive, and let consuming screens provide route targets or local close handlers via props/events instead of redefining visual/button tokens.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: A single Back primitive prevents icon/style drift while preserving local navigation intent (route back, push, or in-context panel close).
+- Evidence: src/components/ui/BackButton.tsx, src/components/ui/TopRightBackButton.tsx, src/components/ExerciseInfoSheet.tsx, src/components/SessionExerciseFocus.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed

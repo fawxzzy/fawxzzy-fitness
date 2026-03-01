@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { BackButton } from "@/components/ui/BackButton";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
@@ -127,14 +127,12 @@ export function ExerciseInfoSheet({
         <section className="flex h-full w-full flex-col">
           <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(env(safe-area-inset-top),0px)]">
             <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
-              <button
-                type="button"
+              <BackButton
                 onClick={() => onOpenChange(false)}
-                aria-label="Back"
-                className={getAppButtonClassName({ variant: "ghost", size: "sm" })}
-              >
-                &lt;
-              </button>
+                label="Back"
+                ariaLabel="Back"
+                iconOnly
+              />
               <h2 className="text-2xl font-semibold">Exercise info</h2>
               <div className="w-9" aria-hidden="true" />
             </div>
