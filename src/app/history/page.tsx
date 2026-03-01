@@ -3,12 +3,10 @@ import { AppNav } from "@/components/AppNav";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { Glass } from "@/components/ui/Glass";
-import { listShellClasses } from "@/components/ui/listShellClasses";
-import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { requireUser } from "@/lib/auth";
-import { formatDurationClock } from "@/lib/duration";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionRow } from "@/types/db";
+import { HistorySessionsClient } from "./HistorySessionsClient";
 
 export const dynamic = "force-dynamic";
 const PAGE_SIZE = 20;
@@ -32,16 +30,6 @@ function decodeCursor(value?: string): HistoryCursor | null {
   } catch {
     return null;
   }
-}
-
-function formatSessionTime(value: string | null) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
 }
 
 export default async function HistoryPage({
@@ -93,11 +81,23 @@ export default async function HistoryPage({
     routineDayNameByKey.set(`${day.routine_id}:${day.day_index}`, day.name ?? "");
   }
 
+  const sessionItems = sessions.map((session) => ({
+    id: session.id,
+    name: session.name || "Session",
+    dayLabel: session.day_name_override
+      || (session.routine_id && session.routine_day_index ? routineDayNameByKey.get(`${session.routine_id}:${session.routine_day_index}`) : null)
+      || session.routine_day_name
+      || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day")
+      || "Custom session",
+    durationSeconds: session.duration_seconds ?? 0,
+    performedAt: session.performed_at,
+  }));
+
   return (
-    <section className="flex min-h-[100dvh] flex-col space-y-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+    <section className="flex h-[100dvh] min-h-[100dvh] flex-col space-y-4">
       <AppNav />
 
-      <Glass variant="base" className="p-2" interactive={false}>
+      <Glass variant="base" className="flex min-h-0 flex-1 flex-col p-2" interactive={false}>
         <div className="sticky top-2 z-20 mb-3 flex justify-center rounded-xl bg-[rgb(var(--surface-rgb)/0.4)] px-2 py-1 backdrop-blur-sm">
           <SegmentedControl
             options={[
@@ -109,50 +109,9 @@ export default async function HistoryPage({
         </div>
 
         {sessions.length > 0 ? (
-          <ul className={`${listShellClasses.list} pb-1`}>
-            {sessions.map((session) => {
-              const resolvedDayName = session.day_name_override
-                || (session.routine_id && session.routine_day_index ? routineDayNameByKey.get(`${session.routine_id}:${session.routine_day_index}`) : null)
-                || session.routine_day_name
-                || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day");
-              const duration = session.duration_seconds ? formatDurationClock(session.duration_seconds) : "0:00";
-
-              return (
-                <li
-                  key={session.id}
-                  className={`${listShellClasses.card} relative overflow-hidden border-[rgb(var(--glass-tint-rgb)/0.14)] bg-[rgb(var(--glass-tint-rgb)/0.52)] p-0 shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]`}
-                >
-                  <Link
-                    href={`/history/${session.id}`}
-                    aria-label={`View session details for ${session.name || "session"}`}
-                    className="relative z-10 flex items-start gap-3 rounded-xl p-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-                  >
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <p className="truncate text-sm font-semibold text-slate-100">{session.name || "Session"}</p>
-                      <p className="truncate text-xs font-normal text-slate-300">{resolvedDayName || "Custom session"}</p>
-                      <p className="text-xs text-slate-400">
-                        <span className="font-medium text-slate-300">{duration}</span>
-                        <span className="mx-1.5 text-slate-500">•</span>
-                        <LocalDateTime value={session.performed_at} options={{ dateStyle: "medium" }} />
-                        {formatSessionTime(session.performed_at) ? (
-                          <>
-                            <span className="mx-1 text-slate-500">·</span>
-                            <span className="text-[11px] text-slate-500">{formatSessionTime(session.performed_at)}</span>
-                          </>
-                        ) : null}
-                      </p>
-                    </div>
-
-                    <span className="shrink-0 rounded-md border border-white/10 bg-black/15 px-2.5 py-1.5 text-xs font-semibold text-slate-200">
-                      View
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <HistorySessionsClient sessions={sessionItems} />
         ) : (
-          <div className="px-4 py-6 text-center">
+          <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6 text-center">
             <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
             <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
           </div>
