@@ -2,6 +2,18 @@
 
 [Back to Index](./INDEX.md)
 
+## 2026-03-01 — Added proposed guardrails for deterministic media fallback, canonical catalog loading, and safe cache degradation
+
+### WHAT
+- Expanded `docs/PATTERNS/media-fallbacks.md` with a proposed guardrail that treats seeded placeholder defaults as unset in canonical fallback resolvers.
+- Added `docs/PATTERNS/frontend/media-fallbacks.md` with a proposed frontend rendering guardrail that keeps media slots rendered and degrades inside image components.
+- Expanded `docs/PATTERNS/deterministic-reversible-state.md` with a proposed shared-catalog-loader guardrail for Add Exercise and History browser surfaces, with explicit canonical-ID stats layering requirements.
+- Expanded `docs/PATTERNS/cache-and-revalidation.md` with a proposed non-fatal degradation guardrail for optional derived cache tables when schema rollout lags.
+- Updated `docs/INDEX.md` and `docs/PLAYBOOK_NOTES.md` to link and track the new proposed doctrine entries.
+
+### WHY
+- Encode deterministic, enforceable behavior that prevents placeholder truthiness regressions, cross-surface catalog drift, and avoidable route outages when optional cache schema is temporarily unavailable.
+
 ## 2026-03-01 — Added guardrail canon for deterministic IDs, bounded recompute, mobile destructive portals, and media manifest gating
 
 ### WHAT

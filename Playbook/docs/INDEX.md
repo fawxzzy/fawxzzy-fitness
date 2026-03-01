@@ -28,6 +28,7 @@
 - [Theming and Dark-Mode Guardrails](./PATTERNS/theming-dark-mode.md)
 - [Cache and Revalidation](./PATTERNS/cache-and-revalidation.md)
 - [Media Manifests and Deterministic Fallbacks](./PATTERNS/media-fallbacks.md)
+- [Frontend Media Fallback Rendering Guardrails](./PATTERNS/frontend/media-fallbacks.md)
 
 ## Checklists
 - [PR Quality Checklist](./CHECKLISTS/pr-quality-checklist.md)

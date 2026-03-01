@@ -42,6 +42,42 @@ const stats = canonicalExerciseId
 
 - **Source attribution:** `docs/PLAYBOOK_NOTES.md` (2026-02-28 ID-domain reliability notes) + implementation evidence paths (`src/app/session/[id]/page.tsx`, `src/components/ExercisePicker.tsx`, `src/app/exercises/[exerciseId]/page.tsx`).
 
+
+## 2026-03-01 — History exercise browsers must share the same canonical catalog loader as Add Exercise
+- **Type:** Guardrail
+- **Status:** Proposed
+- **Summary:** Any feature that lists exercisable catalog items for selection or browsing MUST source rows from the same canonical loader used by Add Exercise, then layer optional per-user stats via a separate batched lookup keyed by canonical IDs.
+- **Rationale:** Prevents catalog drift where one surface silently shows only a partial DB subset while other flows show the full known catalog.
+- **Evidence:** `src/lib/exercises-browser.ts`, `src/lib/exercises.ts`, `src/app/history/exercises/ExerciseBrowserClient.tsx`
+- **Source attribution:** `docs/PLAYBOOK_NOTES.md` (2026-03-01 canonical catalog loader guardrail).
+
+### Do
+- Reuse one canonical catalog loader shared across Add Exercise and History browser surfaces.
+- Keep catalog hydration and per-user stats hydration as separate steps.
+- Batch stats reads by canonical ID (`exerciseId` domain normalized before lookup).
+- Preserve base catalog render when stats are unavailable.
+
+### Don’t
+- Build independent catalog queries per surface.
+- Join optional stats tables directly into required catalog loaders.
+- Key stats by wrapper/transient IDs.
+
+### Required architecture pattern
+```ts
+const catalogRows = await listCanonicalExerciseCatalog(); // shared loader
+const canonicalIds = catalogRows.map((row) => row.canonicalExerciseId);
+const statsByCanonicalId = await getExerciseStatsBatch(userId, canonicalIds); // optional layer
+
+return catalogRows.map((row) => ({
+  ...row,
+  stats: statsByCanonicalId[row.canonicalExerciseId] ?? null,
+}));
+```
+
+See also:
+- [Cache and Revalidation](./cache-and-revalidation.md) for optional cache degradation behavior.
+- Guardrail above: **Resolve cached/aggregated stats by canonical entity ID at render boundaries** (2026-02-28).
+
 ## Guardrail: Reuse one measurement-to-goal payload mapper across create flows
 - **Type:** Guardrail
 - **Rationale:** Duplicate mappers drift over time and produce mismatched persisted goals from identical UI contracts.
@@ -108,10 +144,11 @@ return useUndoAction({
 - Random/time-dependent behavior embedded in transition logic.
 - Side effects executed outside traceable transaction boundaries.
 - Canonical caches queried via wrapper IDs.
+- Browser/catalog surfaces reading divergent exercise sources.
 - Symmetric recompute omitted for destructive mutations.
 - Undo offered without deterministic restore state.
 
 ## Sources
 - Dump A — `2) Core Principles / deterministic and explainable`.
 - Dump B — `Core Principles / Deterministic, reversible state changes`.
-- `docs/PLAYBOOK_NOTES.md` (2026-02-28 guardrails batch: canonical IDs, unified goal mapping, bounded recompute, risk-tiered undo).
+- `docs/PLAYBOOK_NOTES.md` (2026-02-28 guardrails batch: canonical IDs, unified goal mapping, bounded recompute, risk-tiered undo; 2026-03-01 shared catalog loader guardrail).
