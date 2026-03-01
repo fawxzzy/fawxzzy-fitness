@@ -1524,3 +1524,10 @@ WHAT:
 - Fixed History → Exercises row navigation to open the existing Exercise Info screen without routing to a 404 path.
 WHY:
 - Users need complete catalog coverage when browsing history and consistent Exercise Info navigation behavior from exercise stats browsing.
+
+### Improved
+WHAT:
+- Smoothed History → Exercises browsing by tightening the list scrolling behavior and reducing per-row rendering overhead during scroll.
+- Added the same tag-based Filter control used in Add Exercise directly beneath Search in History → Exercises.
+WHY:
+- Makes long history exercise lists easier to scan on mobile/desktop without sticky-feeling scroll, and keeps filtering UX consistent across exercise browsing surfaces.
