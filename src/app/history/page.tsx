@@ -98,24 +98,26 @@ export default async function HistoryPage({
       <AppNav />
 
       <Glass variant="base" className="flex min-h-0 flex-1 flex-col p-2" interactive={false}>
-        <div className="sticky top-2 z-20 mb-3 flex justify-center rounded-xl bg-[rgb(var(--surface-rgb)/0.4)] px-2 py-1 backdrop-blur-sm">
-          <SegmentedControl
-            options={[
-              { label: "Sessions", value: "sessions", href: "/history" },
-              { label: "Exercises", value: "exercises", href: "/history/exercises" },
-            ]}
-            value="sessions"
-          />
-        </div>
-
-        {sessions.length > 0 ? (
-          <HistorySessionsClient sessions={sessionItems} />
-        ) : (
-          <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6 text-center">
-            <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
-            <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="sticky top-2 z-20 mb-3 flex justify-center rounded-xl bg-[rgb(var(--surface-rgb)/0.4)] px-2 py-1 backdrop-blur-sm">
+            <SegmentedControl
+              options={[
+                { label: "Sessions", value: "sessions", href: "/history" },
+                { label: "Exercises", value: "exercises", href: "/history/exercises" },
+              ]}
+              value="sessions"
+            />
           </div>
-        )}
+
+          {sessions.length > 0 ? (
+            <HistorySessionsClient sessions={sessionItems} />
+          ) : (
+            <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6 text-center">
+              <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
+              <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
+            </div>
+          )}
+        </div>
       </Glass>
 
       {nextCursor ? (
