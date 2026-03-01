@@ -1,3 +1,9 @@
+### Changed
+WHAT:
+- Expanded History → Exercises cards so each exercise row uses the full card footprint with larger visual treatment for names and thumbnails.
+WHY:
+- Improves readability for long exercise names and gives exercise images more useful space when scanning progress history.
+
 ### Fixed
 WHAT:
 - Polished the Current Session sticky header spacing at the top-of-page by adding reliable iOS safe-area breathing room, a stable minimum header height, and an opaque surface background behind the status bar area.
