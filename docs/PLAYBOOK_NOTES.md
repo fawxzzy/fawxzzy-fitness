@@ -503,3 +503,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: A single Back primitive prevents icon/style drift while preserving local navigation intent (route back, push, or in-context panel close).
 - Evidence: src/components/ui/BackButton.tsx, src/components/ui/TopRightBackButton.tsx, src/components/ExerciseInfoSheet.tsx, src/components/SessionExerciseFocus.tsx, src/app/history/[sessionId]/page.tsx
 - Status: Proposed
+
+## 2026-03-01 — For in-panel scroll screens, avoid sticky tab wrappers inside clipped glass containers
+- Type: Guardrail
+- Summary: When a screen uses a clipped/rounded glass shell with an internal scroll panel, prefer a simple non-sticky tab row (`shrink-0`) and keep the list area as the only `overflow-y-auto` region with an explicit `min-h-0` flex chain.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Sticky wrappers inside clipped containers can produce visual clipping artifacts and increase the chance of pointer/scroll conflicts over list content.
+- Evidence: src/app/history/page.tsx, src/app/history/HistorySessionsClient.tsx, src/components/ui/SegmentedControl.tsx
+- Status: Proposed

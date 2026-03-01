@@ -141,10 +141,10 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col space-y-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between gap-2 px-1">
         <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Log view</p>
-        <div className="inline-flex rounded-lg border border-[rgb(var(--glass-tint-rgb)/0.24)] bg-[rgb(var(--glass-tint-rgb)/0.5)] p-1">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.56)] p-1">
           {(["list", "compact"] as const).map((option) => {
             const active = viewMode === option;
             return (
@@ -152,9 +152,9 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
                 key={option}
                 type="button"
                 onClick={() => setViewMode(option)}
-                className={`min-h-8 rounded-md px-2.5 text-[11px] font-semibold transition ${
+                className={`min-h-8 min-w-[68px] rounded-lg px-2.5 text-[11px] font-semibold transition ${
                   active
-                    ? "bg-[rgb(var(--glass-tint-rgb)/0.95)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.9)]"
+                    ? "bg-[rgb(var(--glass-tint-rgb)/0.94)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.9)]"
                     : "text-slate-300/90 hover:bg-white/10 hover:text-white"
                 }`}
                 aria-pressed={active}
@@ -166,7 +166,7 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl">
         <div
           ref={scrollRef}
           className="h-full overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+16px)] pr-1"

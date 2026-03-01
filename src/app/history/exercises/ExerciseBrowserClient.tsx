@@ -177,7 +177,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="space-y-3">
-      <div className="sticky top-2 z-20 px-1 backdrop-blur-[2px]">
+      <div className="shrink-0 px-1">
         <SegmentedControl
           options={[
             { label: "Sessions", value: "sessions", href: "/history" },
