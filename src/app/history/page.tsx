@@ -99,7 +99,7 @@ export default async function HistoryPage({
 
       <Glass variant="base" className="flex min-h-0 flex-1 flex-col p-2" interactive={false}>
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="sticky top-2 z-20 mb-3 flex justify-center rounded-xl border border-white/10 bg-[rgb(var(--surface-rgb)/0.52)] px-2 py-1 backdrop-blur-[2px]">
+          <div className="sticky top-2 z-20 mb-3 px-1 backdrop-blur-[2px]">
             <SegmentedControl
               options={[
                 { label: "Sessions", value: "sessions", href: "/history" },

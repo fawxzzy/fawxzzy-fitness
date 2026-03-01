@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Refined History navigation and layout: Sessions/Exercises tabs now fill the segmented container without the extra inner backing box, Exercises now uses one shared highlighted container for Search + Filters, and Log Details now presents as a dedicated page layout with a top-right Back affordance.
+- Kept Delete Session accessible within the Log Details header while separating it from the primary Back navigation action.
+WHY:
+- Improves visual hierarchy and consistency across History screens, makes filters/search feel like one cohesive control area, and clarifies navigation in Log Details without sacrificing destructive-action access.
+
+### Changed
+WHAT:
 - Refined visual contrast, blur intensity, card boundaries, accent emphasis, and typography hierarchy across Today, Routines, History, and Settings for a crisper presentation.
 - Improved History log scan hierarchy with clearer monthly separation cues and subtler de-emphasis of older entries while keeping structure intact.
 WHY:

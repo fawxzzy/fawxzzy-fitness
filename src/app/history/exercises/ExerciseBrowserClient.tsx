@@ -177,7 +177,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="space-y-3">
-      <div className="sticky top-2 z-20 flex justify-center rounded-xl border border-white/10 bg-[rgb(var(--surface-rgb)/0.52)] px-2 py-1 backdrop-blur-[2px]">
+      <div className="sticky top-2 z-20 px-1 backdrop-blur-[2px]">
         <SegmentedControl
           options={[
             { label: "Sessions", value: "sessions", href: "/history" },
@@ -187,7 +187,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         />
       </div>
 
-      <div className="space-y-2 px-1">
+      <div className="space-y-2 rounded-xl border border-white/15 bg-[rgb(var(--surface-rgb)/0.52)] px-3 py-2">
         <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Exercise history</p>
         <Input
           type="search"
@@ -196,9 +196,14 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
           placeholder="Search exercises"
           aria-label="Search exercises"
         />
-      </div>
 
-      <ExerciseTagFilterControl selectedTags={selectedTags} onChange={setSelectedTags} groups={availableTagGroups} />
+        <ExerciseTagFilterControl
+          selectedTags={selectedTags}
+          onChange={setSelectedTags}
+          groups={availableTagGroups}
+          className="space-y-2"
+        />
+      </div>
 
       <ul className={`${listShellClasses.viewport} space-y-2.5 scroll-py-2`} style={{ WebkitOverflowScrolling: "touch" }}>
         {filteredRows.map((row) => (
