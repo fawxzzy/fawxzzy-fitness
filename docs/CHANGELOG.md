@@ -1633,3 +1633,10 @@ WHAT:
 - Updated history/log, exercise info, and session focus Back interactions to use the shared Back primitive while preserving each screen’s own destination or close behavior.
 WHY:
 - Creates a single visual/source-of-truth for Back behavior, reducing UI drift and making future Back-button updates faster and safer.
+
+### Changed
+WHAT:
+- Refreshed the Routines main screen UI by replacing the inline routine dropdown with a bottom-sheet routine switcher, adding a compact in-card Edit action, and restructuring routine-day rows into aligned columns with clearer visual hierarchy.
+- Updated the routine summary card styling to reduce heavy borders and use subtler separators and emphasis states, including softer Rest/TODAY differentiation.
+WHY:
+- Improves mobile usability and visual clarity by matching the newer app UI language while keeping routine switching and editing fast, predictable, and less visually noisy.

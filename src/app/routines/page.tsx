@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
+import { RoutineSwitcherBar } from "@/components/RoutineSwitcherBar";
 import { Glass } from "@/components/ui/Glass";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -98,6 +99,50 @@ export default async function RoutinesPage() {
   const trainingDays = Math.max(totalDays - restDays, 0);
   const cycleLength = activeRoutine?.cycle_length_days ?? totalDays;
 
+  const todayRoutineDayIndex = (() => {
+    if (!activeRoutine?.start_date || !cycleLength || cycleLength <= 0) {
+      return null;
+    }
+
+    const timezone = activeRoutine.timezone || "UTC";
+
+    const toLocalDayStamp = (date: Date) => {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(date);
+      const year = parts.find((part) => part.type === "year")?.value;
+      const month = parts.find((part) => part.type === "month")?.value;
+      const day = parts.find((part) => part.type === "day")?.value;
+
+      if (!year || !month || !day) {
+        return null;
+      }
+
+      return `${year}-${month}-${day}`;
+    };
+
+    const startStamp = toLocalDayStamp(new Date(activeRoutine.start_date));
+    const todayStamp = toLocalDayStamp(new Date());
+
+    if (!startStamp || !todayStamp) {
+      return null;
+    }
+
+    const start = Date.parse(`${startStamp}T00:00:00Z`);
+    const today = Date.parse(`${todayStamp}T00:00:00Z`);
+
+    if (!Number.isFinite(start) || !Number.isFinite(today)) {
+      return null;
+    }
+
+    const elapsedDays = Math.max(Math.floor((today - start) / 86_400_000), 0);
+
+    return (elapsedDays % cycleLength) + 1;
+  })();
+
   if (process.env.NODE_ENV !== "production" && sortedActiveRoutineDays.length > 0 && sortedActiveRoutineDays[0]?.day_index !== 1) {
     console.warn("[routines] Active routine days are missing Day 1 in overview preview", {
       routineId: activeRoutine?.id,
@@ -122,69 +167,56 @@ export default async function RoutinesPage() {
           </div>
         ) : (
           <>
-            <details className="group mt-1 rounded-xl border border-border/45 bg-surface/65">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm text-text marker:content-none">
-                <span className="truncate font-medium">{activeRoutine?.name ?? "Select routine"}</span>
-                <span className="text-xs text-muted transition-transform group-open:rotate-180">⌄</span>
-              </summary>
-
-              <div className="space-y-1 border-t border-border/60 p-2">
-                {routines.map((routine) => {
-                  const isCurrent = activeRoutine?.id === routine.id;
-
-                  return (
-                    <form key={routine.id} action={setActiveRoutineAction}>
-                      <input type="hidden" name="routineId" value={routine.id} />
-                      <button
-                        type="submit"
-                        className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm ${isCurrent ? "bg-accent/20 text-text" : "text-muted hover:bg-surface-2-soft hover:text-text"}`}
-                      >
-                        <span className="truncate">{routine.name}</span>
-                        <span className={`ml-3 text-xs ${isCurrent ? "text-emerald-300" : "text-transparent"}`}>✓</span>
-                      </button>
-                    </form>
-                  );
-                })}
-
-                <Link
-                  href="/routines/new"
-                  className="block rounded-md px-3 py-2 text-sm text-muted hover:bg-surface-2-soft hover:text-text"
-                >
-                  + Create New Routine
-                </Link>
-              </div>
-            </details>
+            <RoutineSwitcherBar
+              activeRoutineId={activeRoutine?.id ?? null}
+              activeRoutineName={activeRoutine?.name ?? "Select routine"}
+              routines={routines.map((routine) => ({ id: routine.id, name: routine.name }))}
+              setActiveRoutineAction={setActiveRoutineAction}
+            />
 
             {activeRoutine ? (
-              <div className="space-y-3 rounded-xl border border-border/70 bg-surface/65 p-4">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-text">{activeRoutine.name}</h2>
-                  <p className="text-xs text-muted/90">
-                    {cycleLength}-day cycle · {trainingDays} training · {restDays} rest
-                  </p>
+              <div className="space-y-3 rounded-xl border border-border/40 bg-surface/70 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-semibold text-text">{activeRoutine.name}</h2>
+                    <p className="text-xs text-muted/90">
+                      {cycleLength}-day cycle · {trainingDays} training · {restDays} rest
+                    </p>
+                  </div>
+                  <Link
+                    href={`/routines/${activeRoutine.id}/edit`}
+                    aria-label={`Edit ${activeRoutine.name} routine`}
+                    className={getAppButtonClassName({ variant: "secondary", size: "sm", className: "min-h-11 px-3" })}
+                  >
+                    Edit
+                  </Link>
                 </div>
 
-                <ul className="space-y-0.5 text-xs leading-5 text-muted">
+                <ul className="divide-y divide-border/30 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
                     const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+                    const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
+                    const isToday = todayRoutineDayIndex !== null && dayNumber === todayRoutineDayIndex;
 
                     return (
-                      <li key={day.id} className="truncate">
-                        Day {dayNumber} · {day.name?.trim() || (day.is_rest ? "Rest" : "Workout")}
+                      <li key={day.id} className={`grid min-h-11 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-3 py-2 ${isToday ? "rounded-md bg-accent/10 px-2" : ""}`}>
+                        <span className="min-w-0 text-xs font-medium uppercase tracking-wide text-muted/95">
+                          Day {dayNumber}
+                        </span>
+                        <span className={`min-w-0 text-right text-sm leading-5 ${day.is_rest ? "text-muted/75" : "text-text/90"}`}>
+                          {day.is_rest ? "• Rest" : dayLabel}
+                        </span>
                       </li>
                     );
                   })}
-                  {sortedActiveRoutineDays.length === 0 ? <li>No days configured yet</li> : null}
+                  {sortedActiveRoutineDays.length === 0 ? (
+                    <li className="py-2 text-sm text-muted">No days configured yet</li>
+                  ) : null}
                 </ul>
 
-                <div className="border-t border-border/40 pt-3">
-                  <Link
-                    href={`/routines/${activeRoutine.id}/edit`}
-                    className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-                  >
-                    Edit Routine
-                  </Link>
-                </div>
+                {todayRoutineDayIndex !== null ? (
+                  <p className="text-xs text-muted/80">Today: Day {todayRoutineDayIndex}</p>
+                ) : null}
               </div>
             ) : null}
           </>
