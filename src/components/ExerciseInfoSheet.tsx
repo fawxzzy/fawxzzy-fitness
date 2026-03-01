@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -91,18 +91,6 @@ export function ExerciseInfoSheet({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onOpenChange, open]);
 
-  const infoDetails = useMemo(() => {
-    if (!exercise) {
-      return null;
-    }
-
-    const primaryMuscles = exercise.primary_muscle ? [exercise.primary_muscle] : [];
-    return {
-      ...exercise,
-      primary_muscles: primaryMuscles,
-    };
-  }, [exercise]);
-
   const resolvedHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const lastSummary = stats ? formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) : null;
@@ -139,8 +127,16 @@ export function ExerciseInfoSheet({
         <section className="flex h-full w-full flex-col">
           <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(env(safe-area-inset-top),0px)]">
             <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                aria-label="Back"
+                className={getAppButtonClassName({ variant: "ghost", size: "sm" })}
+              >
+                &lt;
+              </button>
               <h2 className="text-2xl font-semibold">Exercise info</h2>
-              <button type="button" onClick={() => onOpenChange(false)} className={getAppButtonClassName({ variant: "ghost", size: "sm" })}>Close</button>
+              <div className="w-9" aria-hidden="true" />
             </div>
           </div>
 
@@ -154,6 +150,12 @@ export function ExerciseInfoSheet({
                   <MetaTag value={exercise.movement_pattern} />
                 </div>
               </div>
+
+              {exercise.how_to_short ? (
+                <div className="rounded-md border border-white px-2.5 py-2">
+                  <p className="text-sm text-text">{exercise.how_to_short}</p>
+                </div>
+              ) : null}
 
               {stats ? (
                 <div className="space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-2.5 py-2 text-xs text-muted">
@@ -183,7 +185,6 @@ export function ExerciseInfoSheet({
               ) : null}
 
               <div className="space-y-1">
-                <p className={sectionTitleClassName}>How-to</p>
                 <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">
                   <ExerciseAssetImage
                     key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
@@ -193,15 +194,6 @@ export function ExerciseInfoSheet({
                   />
                 </div>
               </div>
-
-              {infoDetails?.how_to_short ? <p className="text-sm text-text">{infoDetails.how_to_short}</p> : null}
-
-              {infoDetails && infoDetails.primary_muscles.length > 0 ? (
-                <div>
-                  <p className={sectionTitleClassName}>Primary muscles</p>
-                  <div className="mt-1 flex flex-wrap gap-1">{infoDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
-                </div>
-              ) : null}
             </div>
           </div>
         </section>
