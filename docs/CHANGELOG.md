@@ -1,3 +1,10 @@
+### Added
+WHAT:
+- Added an Exercise Browser under History with a dedicated `/history/exercises` view, searchable compact exercise rows, and Last/PR stat previews sourced from the existing `exercise_stats` cache.
+- Added a lightweight Sessions/Exercises switch on History so users can move between the existing Sessions timeline and the new Exercise Browser.
+WHY:
+- Makes exercise progress discoverable without digging through session history, while keeping the experience fast and glanceable.
+
 ### Changed
 WHAT:
 - Showed per-exercise Personal stats (Last performed + PR) directly on the Exercise Info overlay opened from Add Exercise, using canonical exercise UUID mapping from `exercise.exercise_id ?? exercise.id`.
