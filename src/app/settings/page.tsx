@@ -15,11 +15,11 @@ export default async function SettingsPage() {
     <section className="space-y-4">
       <AppNav />
       <Glass variant="base" className="p-4" interactive={false}>
-        <p className="text-sm text-slate-600">Logged in as</p>
-        <p className="font-medium">{user.email}</p>
+        <p className="text-sm text-[rgb(var(--text)/0.7)]">Logged in as</p>
+        <p className="font-semibold text-[rgb(var(--text)/0.96)]">{user.email}</p>
       </Glass>
       <GlassEffectsSettings />
-      <Glass variant="base" className="space-y-3 p-4" interactive={false}>
+      <Glass variant="base" className="space-y-3 border border-white/12 p-4" interactive={false}>
         <div className="border-t border-white/10 pt-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Danger zone</p>
         </div>

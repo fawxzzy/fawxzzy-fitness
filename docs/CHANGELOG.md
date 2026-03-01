@@ -1,5 +1,12 @@
 ### Changed
 WHAT:
+- Refined visual contrast, blur intensity, card boundaries, accent emphasis, and typography hierarchy across Today, Routines, History, and Settings for a crisper presentation.
+- Improved History log scan hierarchy with clearer monthly separation cues and subtler de-emphasis of older entries while keeping structure intact.
+WHY:
+- Improve visual hierarchy, readability, and perceived product maturity without altering layout structure, architecture, or data flow.
+
+### Changed
+WHAT:
 - Polished the History Sessions screen so list scrolling ends cleanly against the viewport with mobile safe-area breathing room and without an inner nested scroll region.
 - Replaced the misleading session-row overflow affordance with explicit view navigation behavior (full-row tap + right-side View label).
 - Moved session deletion from the History list into the session detail view with destructive confirmation before removal.

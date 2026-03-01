@@ -100,13 +100,13 @@ export function AppNav() {
   return (
     <div className="sticky top-3 z-20 space-y-1">
       <p
-        className="px-1 text-center text-[0.69rem] font-semibold uppercase tracking-[0.17em] text-[rgb(var(--text)/0.78)]"
+        className="px-1 text-center text-[0.69rem] font-semibold uppercase tracking-[0.17em] text-[rgb(var(--text)/0.72)]"
         aria-label="Current time"
       >
         {timeFormatter.format(now)}
       </p>
-      <Glass variant="raised" className="rounded-xl border-b border-white/10 px-2 py-1" interactive={false}>
-        <p className="px-2 pb-0.5 text-center text-sm font-semibold text-text">{activeLink?.label ?? "FawxzzyFitness"}</p>
+      <Glass variant="raised" className="rounded-xl border-b border-white/15 px-2 py-1" interactive={false}>
+        <p className="px-2 pb-0.5 text-center text-sm font-bold text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
         <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
           {links.map((link) => {
             const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -120,15 +120,15 @@ export function AppNav() {
                 aria-current={isActive ? "page" : undefined}
                 className={`group relative rounded-[10px] px-2 py-1.5 transition-colors ${
                   isActive
-                    ? "bg-accent/16 font-semibold text-accent"
+                    ? "bg-accent/28 font-semibold text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.28),0_0_16px_rgb(var(--accent-rgb)/0.18)]"
                     : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"
                 }`}
               >
                 <span className="flex flex-col items-center gap-1">
-                  <Icon className={`h-5 w-5 transition-colors ${isActive ? "text-accent" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
+                  <Icon className={`h-5 w-5 transition-colors ${isActive ? "text-[rgb(var(--accent-rgb)/1)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
                   <span>{link.label}</span>
                 </span>
-                {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-accent" aria-hidden="true" /> : null}
+                {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.5)]" aria-hidden="true" /> : null}
               </Link>
             );
           })}

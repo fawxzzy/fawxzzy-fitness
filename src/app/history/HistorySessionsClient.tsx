@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 
 type ViewMode = "list" | "compact";
@@ -61,8 +61,8 @@ function HistorySessionRow({
   const secondaryMeta = mode === "list" ? formatTimeRange(session.performedAt, session.durationSeconds) : null;
 
   return (
-    <li
-      className={`${listShellClasses.card} relative overflow-hidden border-[rgb(var(--glass-tint-rgb)/0.14)] bg-[rgb(var(--glass-tint-rgb)/0.52)] ${mode === "compact" ? "p-2.5" : "p-0"} shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]`}
+    <div
+      className={`${listShellClasses.card} relative overflow-hidden border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.66)] ${mode === "compact" ? "p-2.5" : "p-0"} shadow-[0_6px_14px_-12px_rgba(0,0,0,0.72)]`}
     >
       <Link
         href={`/history/${session.id}`}
@@ -70,15 +70,15 @@ function HistorySessionRow({
         className={`relative z-10 flex gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] ${mode === "compact" ? "items-center px-2.5 py-2" : "items-start p-3.5"}`}
       >
         <div className="min-w-0 flex-1 space-y-1">
-          <p className={`truncate font-semibold text-slate-100 ${mode === "compact" ? "text-[13px]" : "text-sm"}`}>{session.name || "Session"}</p>
-          {mode === "list" ? <p className="truncate text-xs font-normal text-slate-300">{session.dayLabel || "Custom session"}</p> : null}
-          <p className={`truncate ${mode === "compact" ? "text-[11px]" : "text-xs"} text-slate-400`}>{primaryMeta}</p>
-          {secondaryMeta ? <p className="truncate text-[11px] text-slate-500">{secondaryMeta}</p> : null}
+          <p className={`truncate font-bold text-slate-50 ${mode === "compact" ? "text-[13px]" : "text-sm"}`}>{session.name || "Session"}</p>
+          {mode === "list" ? <p className="truncate text-xs font-medium text-slate-300">{session.dayLabel || "Custom session"}</p> : null}
+          <p className={`truncate ${mode === "compact" ? "text-[11px]" : "text-xs"} text-slate-400/90`}>{primaryMeta}</p>
+          {secondaryMeta ? <p className="truncate text-[11px] text-slate-500/80">{secondaryMeta}</p> : null}
         </div>
 
-        {mode === "list" ? <span className="shrink-0 rounded-md border border-white/10 bg-black/15 px-2.5 py-1.5 text-xs font-semibold text-slate-200">View</span> : null}
+        {mode === "list" ? <span className="shrink-0 rounded-md border border-white/15 bg-black/20 px-2.5 py-1.5 text-xs font-semibold text-slate-200">View</span> : null}
       </Link>
-    </li>
+    </div>
   );
 }
 
@@ -144,7 +144,7 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
     <div className="flex min-h-0 flex-1 flex-col space-y-3">
       <div className="flex items-center justify-between gap-2 px-1">
         <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Log view</p>
-        <div className="inline-flex rounded-lg border border-[rgb(var(--glass-tint-rgb)/0.16)] bg-[rgb(var(--glass-tint-rgb)/0.34)] p-1">
+        <div className="inline-flex rounded-lg border border-[rgb(var(--glass-tint-rgb)/0.24)] bg-[rgb(var(--glass-tint-rgb)/0.5)] p-1">
           {(["list", "compact"] as const).map((option) => {
             const active = viewMode === option;
             return (
@@ -154,8 +154,8 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
                 onClick={() => setViewMode(option)}
                 className={`min-h-8 rounded-md px-2.5 text-[11px] font-semibold transition ${
                   active
-                    ? "bg-[rgb(var(--glass-tint-rgb)/0.86)] text-slate-100"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white"
+                    ? "bg-[rgb(var(--glass-tint-rgb)/0.95)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.9)]"
+                    : "text-slate-300/90 hover:bg-white/10 hover:text-white"
                 }`}
                 aria-pressed={active}
               >
@@ -174,15 +174,27 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           <ul className={listClassName}>
-            {sessions.map((session) => (
-              <HistorySessionRow key={session.id} session={session} mode={viewMode} />
-            ))}
+            {sessions.map((session, index) => {
+              const currentMonth = session.performedAt.slice(0, 7);
+              const prevMonth = index > 0 ? sessions[index - 1].performedAt.slice(0, 7) : currentMonth;
+              const isNewMonthGroup = index > 0 && currentMonth !== prevMonth;
+              const isOlderEntry = index >= 6;
+
+              return (
+                <React.Fragment key={session.id}>
+                  {isNewMonthGroup ? <li className="mx-1 border-t border-white/12 pt-1" aria-hidden="true" /> : null}
+                  <li className={isOlderEntry ? "opacity-90" : "opacity-100"}>
+                    <HistorySessionRow session={session} mode={viewMode} />
+                  </li>
+                </React.Fragment>
+              );
+            })}
           </ul>
         </div>
 
         {showBottomFade ? (
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-9 rounded-b-xl bg-gradient-to-b from-transparent to-[rgb(var(--surface-rgb)/0.98)]"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-9 rounded-b-xl bg-gradient-to-b from-transparent to-[rgb(var(--surface-rgb)/0.99)]"
             aria-hidden="true"
           />
         ) : null}

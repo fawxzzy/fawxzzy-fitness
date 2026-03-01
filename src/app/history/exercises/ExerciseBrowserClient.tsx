@@ -85,16 +85,16 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const e1rmSummary = row.pr_est_1rm && row.pr_est_1rm > 0 ? `${Math.round(row.pr_est_1rm)} e1RM` : null;
 
   return (
-    <li className={`${listShellClasses.card} border-[rgb(var(--glass-tint-rgb)/0.14)] bg-[rgb(var(--glass-tint-rgb)/0.5)] p-3 shadow-[0_8px_20px_-18px_rgba(0,0,0,0.85)]`}>
+    <li className={`${listShellClasses.card} border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.64)] p-3 shadow-[0_6px_14px_-12px_rgba(0,0,0,0.74)]`}>
       <div className="flex items-center gap-3">
         <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-12 w-12 shrink-0 rounded-lg border border-border/35 bg-surface-2-soft object-cover" />
 
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="truncate text-sm font-semibold text-slate-100">{row.name}</p>
-          <p className="text-xs text-slate-400">Last performed: {lastDate ?? "Never"}</p>
+          <p className="truncate text-sm font-bold text-slate-50">{row.name}</p>
+          <p className="text-xs text-slate-400/85">Last performed: {lastDate ?? "Never"}</p>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-            <p className="text-slate-300">Last: <span className="text-slate-200">{lastSummary ?? "—"}</span></p>
-            <p className="text-slate-300">PR: <span className="text-slate-200">{actualPrSummary ?? "—"}</span>{actualPrDate ? <span className="ml-1 text-slate-500">{actualPrDate}</span> : null}</p>
+            <p className="text-slate-300/90">Last: <span className="text-slate-100">{lastSummary ?? "—"}</span></p>
+            <p className="text-slate-300/90">PR: <span className="text-slate-100">{actualPrSummary ?? "—"}</span>{actualPrDate ? <span className="ml-1 text-slate-500">{actualPrDate}</span> : null}</p>
             {e1rmSummary ? <p className="text-slate-400">{e1rmSummary}</p> : null}
           </div>
         </div>
@@ -177,7 +177,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="space-y-3">
-      <div className="sticky top-2 z-20 flex justify-center rounded-xl bg-[rgb(var(--surface-rgb)/0.4)] px-2 py-1 backdrop-blur-sm">
+      <div className="sticky top-2 z-20 flex justify-center rounded-xl border border-white/10 bg-[rgb(var(--surface-rgb)/0.52)] px-2 py-1 backdrop-blur-[2px]">
         <SegmentedControl
           options={[
             { label: "Sessions", value: "sessions", href: "/history" },

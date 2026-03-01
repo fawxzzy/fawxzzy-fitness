@@ -146,11 +146,11 @@ export default async function RoutinesPage() {
             />
 
             {activeRoutine ? (
-              <div className="space-y-3 rounded-xl border border-border/25 bg-surface/70 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
+              <div className="space-y-3 rounded-xl border border-border/55 bg-surface/78 p-4 shadow-[0_6px_16px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <h2 className="text-xl font-semibold text-text">{activeRoutine.name}</h2>
-                    <p className="text-xs text-muted/90">
+                    <h2 className="text-xl font-bold text-[rgb(var(--text)/0.98)]">{activeRoutine.name}</h2>
+                    <p className="text-xs text-muted/75">
                       {cycleLength}-day cycle · {trainingDays} training · {restDays} rest
                     </p>
                   </div>
@@ -163,22 +163,22 @@ export default async function RoutinesPage() {
                   </Link>
                 </div>
 
-                <ul className="divide-y divide-border/10 text-sm text-muted">
+                <ul className="divide-y divide-border/30 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
                     const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
                     const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
                     const isToday = index === todayRowIndex;
 
                     return (
-                      <li key={day.id} className={`grid min-h-11 grid-cols-[80px_minmax(0,1fr)] items-start gap-3 py-2 ${isToday ? "rounded-md bg-accent/5 px-2" : ""}`}>
-                        <span className="w-20 shrink-0 text-xs font-medium uppercase tracking-wide text-muted/95">
+                      <li key={day.id} className={`grid min-h-11 grid-cols-[80px_minmax(0,1fr)] items-start gap-3 py-2 ${isToday ? "rounded-md border border-accent/35 bg-accent/12 px-2" : ""}`}>
+                        <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted/80">
                           Day {dayNumber}
                         </span>
                         <div className="flex min-w-0 items-center justify-end gap-2 text-right">
-                          <span className={`min-w-0 text-sm leading-5 ${day.is_rest ? "text-muted/75" : "text-text/90"}`}>
+                          <span className={`min-w-0 text-sm leading-5 ${day.is_rest ? "text-muted/70" : "text-text/94"}`}>
                             {day.is_rest ? "Rest" : dayLabel}
                           </span>
-                          {isToday ? <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">Today</span> : null}
+                          {isToday ? <span className="rounded-full border border-accent/45 bg-accent/24 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.25)]">Today</span> : null}
                         </div>
                       </li>
                     );
