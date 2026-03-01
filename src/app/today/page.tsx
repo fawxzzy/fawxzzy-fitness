@@ -6,6 +6,12 @@ import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { AppHeader } from "@/components/ui/app/AppHeader";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AppRow } from "@/components/ui/app/AppRow";
+import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
+import { appTokens } from "@/components/ui/app/tokens";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
@@ -397,34 +403,31 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           <OfflineSyncBadge />
         {todayPayload.inProgressSessionId ? (
             <div className="space-y-4 pb-4">
-              <div className="space-y-3 rounded-xl border border-border/55 bg-[rgb(var(--surface-2-soft)/0.78)] px-4 py-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-bold leading-tight text-[rgb(var(--text)/0.98)]">
-                      {todayPayload.routine.isRest ? `${todayPayload.routine.name} (Rest Day)` : todayPayload.routine.dayName}
-                    </h2>
-                    <p className="text-sm text-[rgb(var(--text)/0.68)]">Day {todayPayload.routine.dayIndex} • {todayPayload.routine.name}</p>
-                    {todayPayload.exercises.length > 0 ? (
-                      <p className="text-xs text-[rgb(var(--text)/0.54)]">{todayPayload.exercises.length} exercises</p>
-                    ) : null}
-                  </div>
-                  {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-300/55 bg-emerald-400/22 px-2.5 py-1 text-xs font-semibold text-emerald-100 shadow-[0_0_10px_rgba(16,185,129,0.2)]">Completed</p> : null}
-                </div>
+              <AppPanel className="space-y-3">
+                <AppHeader
+                  title={todayPayload.routine.isRest ? `${todayPayload.routine.name} (Rest Day)` : todayPayload.routine.dayName}
+                  subtitleLeft={`Day ${todayPayload.routine.dayIndex} • ${todayPayload.routine.name}`}
+                  subtitleRight={todayPayload.exercises.length > 0 ? `${todayPayload.exercises.length} exercises` : undefined}
+                  action={todayPayload.completedTodayCount > 0 ? <AppBadge>Completed</AppBadge> : undefined}
+                />
 
-                <ul className="divide-y divide-white/12 overflow-hidden rounded-lg border border-white/15 bg-[rgb(var(--surface)/0.72)] text-sm">
+                <ul className={`${appTokens.listDivider} overflow-hidden rounded-lg border border-white/15 bg-[rgb(var(--surface)/0.72)] text-sm`}>
                   {todayPayload.exercises.map((exercise) => (
-                    <li key={exercise.id} className="space-y-1.5 px-3 py-3 text-text">
-                      <p className="line-clamp-2 text-[0.96rem] font-semibold leading-snug text-[rgb(var(--text)/0.98)]">{exercise.name}</p>
-                      {exercise.targets ? <p className="text-xs leading-snug text-[rgb(var(--text)/0.56)]">{exercise.targets}</p> : null}
+                    <li key={exercise.id}>
+                      <AppRow
+                        leftTop={exercise.name}
+                        leftBottom={exercise.targets || undefined}
+                        className="rounded-none border-x-0 border-t-0 border-b-white/12 bg-transparent px-3"
+                      />
                     </li>
                   ))}
                   {todayPayload.exercises.length === 0 ? <li className="px-3 py-3 text-muted">No routine exercises planned today.</li> : null}
                 </ul>
-              </div>
+              </AppPanel>
 
-              <div className="sticky bottom-0 z-20 -mx-1 border-t border-white/15 bg-[rgb(var(--surface)/0.97)] px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-[2px]">
-                <div className="space-y-2">
-                  <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "h-12 border-emerald-300/60 bg-emerald-500/28 text-emerald-50 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform hover:bg-emerald-500/34 active:scale-[0.98] active:bg-emerald-500/38" })}>Resume Workout</Link>
+              <StickyActionBar
+                primary={<Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "h-12 border-emerald-300/60 bg-emerald-500/28 text-emerald-50 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform hover:bg-emerald-500/34 active:scale-[0.98] active:bg-emerald-500/38" })}>Resume Workout</Link>}
+                secondary={(
                   <ConfirmedServerFormButton
                     action={discardInProgressSessionAction}
                     hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
@@ -434,8 +437,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     modalDescription="This will delete your in-progress workout, including exercises and sets."
                     confirmLabel="Discard"
                   />
-                </div>
-              </div>
+                )}
+              />
             </div>
           ) : (
             <TodayDayPicker

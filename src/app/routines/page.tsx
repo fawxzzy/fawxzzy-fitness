@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { RoutineSwitcherBar } from "@/components/RoutineSwitcherBar";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { AppHeader } from "@/components/ui/app/AppHeader";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AppRow } from "@/components/ui/app/AppRow";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Glass } from "@/components/ui/Glass";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -127,7 +132,7 @@ export default async function RoutinesPage() {
 
       <Glass variant="base" className="space-y-3 p-3" interactive={false}>
         {routines.length === 0 ? (
-          <div className="space-y-4 rounded-xl border border-border/70 bg-surface/65 p-4">
+          <div className={appTokens.panelMuted}>
             <p className="text-sm text-muted">No routines yet.</p>
             <Link
               href="/routines/new"
@@ -150,22 +155,21 @@ export default async function RoutinesPage() {
             />
 
             {activeRoutine ? (
-              <div className="space-y-4 rounded-xl border border-border/55 bg-surface/78 p-4 shadow-[0_6px_16px_rgba(0,0,0,0.18)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-semibold tracking-tight text-[rgb(var(--text)/0.98)]">{activeRoutine.name}</h2>
-                    <p className="mt-1 text-sm text-white/60">
-                      {cycleLength}-day cycle - {trainingDays} training - {restDays} rest
-                    </p>
-                  </div>
-                  <Link
-                    href={`/routines/${activeRoutine.id}/edit`}
-                    aria-label={`Edit ${activeRoutine.name} routine`}
-                    className={getAppButtonClassName({ variant: "secondary", size: "sm", className: "min-h-11 px-3" })}
-                  >
-                    Edit
-                  </Link>
-                </div>
+              <AppPanel className="space-y-4">
+                <AppHeader
+                  title={activeRoutine.name}
+                  subtitleLeft={`${cycleLength}-day cycle`}
+                  subtitleRight={`${trainingDays} training • ${restDays} rest`}
+                  action={(
+                    <Link
+                      href={`/routines/${activeRoutine.id}/edit`}
+                      aria-label={`Edit ${activeRoutine.name} routine`}
+                      className={getAppButtonClassName({ variant: "secondary", size: "sm", className: "min-h-11 px-3" })}
+                    >
+                      Edit
+                    </Link>
+                  )}
+                />
 
                 <ul className="space-y-3 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
@@ -177,21 +181,15 @@ export default async function RoutinesPage() {
                       <li key={day.id}>
                         <Link
                           href={`/routines/${activeRoutine.id}/days/${day.id}`}
-                          className={`flex min-h-11 items-center justify-between gap-3 rounded-lg border px-4 py-3 transition duration-150 active:scale-[0.99] ${
-                            isToday
-                              ? "border-white/30 bg-white/[0.03]"
-                              : "border-border/40 bg-surface/45 hover:border-border/65 hover:bg-surface/58"
-                          }`}
+                          className="block"
                         >
-                          <div className="flex w-24 shrink-0 flex-col pt-0.5">
-                            <span className="text-xs font-medium uppercase tracking-wide text-emerald-400">Day {dayNumber}</span>
-                            {isToday ? <span className="mt-1 w-fit rounded-full border border-white/70 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white backdrop-blur-sm shadow-[0_0_8px_rgba(255,255,255,0.15)]">Today</span> : null}
-                          </div>
-                          <div className="min-w-0 max-w-[65%] text-right break-words">
-                            <span className={`block min-w-0 text-sm font-medium leading-5 ${day.is_rest ? "text-muted/70" : "text-emerald-400"}`}>
-                              {day.is_rest ? "Rest" : dayLabel}
-                            </span>
-                          </div>
+                          <AppRow
+                            tone={isToday ? "active" : "default"}
+                            leftTop={<span className="text-xs font-semibold uppercase tracking-wide text-emerald-300">Day {dayNumber}</span>}
+                            leftBottom={isToday ? <AppBadge tone="today">Today</AppBadge> : undefined}
+                            rightTop={<span className={day.is_rest ? "text-muted/80" : appTokens.accentText}>{day.is_rest ? "Rest" : dayLabel}</span>}
+                            className="px-4"
+                          />
                         </Link>
                       </li>
                     );
@@ -200,7 +198,7 @@ export default async function RoutinesPage() {
                     <li className="py-2 text-sm text-muted">No days configured yet</li>
                   ) : null}
                 </ul>
-              </div>
+              </AppPanel>
             ) : null}
           </>
         )}

@@ -1736,3 +1736,12 @@ WHAT:
 - Made History log detail Back navigation deterministic so it always returns to History → Sessions and keeps the selected view mode.
 WHY:
 - Prevents blocked session-list browsing on mobile/desktop and removes inconsistent Back navigation outcomes from log details.
+
+### Changed
+WHAT:
+- Normalized repeated routine/day UI patterns across Today, Change Workout picker, Routine day detail, and Routines overview using shared app-local primitives for panels, headers, rows, badges, and sticky action bars.
+- Aligned accent text, border treatments, spacing rhythm, and TODAY/completed badge presentation across those surfaces with shared style tokens.
+WHY:
+- Reduces repeated per-screen markup so future UI tuning compounds through one primitive layer instead of being reimplemented in each routine/day screen.
+- Improves cross-screen visual and interaction consistency while keeping existing data, routing, and behavior contracts intact.
+
