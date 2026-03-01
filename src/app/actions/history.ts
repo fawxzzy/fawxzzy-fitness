@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
 
@@ -9,6 +11,46 @@ type ActionResult = {
   ok: boolean;
   error?: string;
 };
+
+export async function deleteCompletedSessionAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  const sessionId = String(formData.get("sessionId") ?? "").trim();
+
+  if (!sessionId) {
+    throw new Error("Missing session ID");
+  }
+
+  const { data: affectedExerciseRows, error: affectedExerciseError } = await supabase
+    .from("session_exercises")
+    .select("exercise_id")
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id);
+
+  if (affectedExerciseError) {
+    throw new Error(affectedExerciseError.message);
+  }
+
+  const affectedExerciseIds = Array.from(new Set((affectedExerciseRows ?? []).map((row) => row.exercise_id)));
+
+  const { error } = await supabase
+    .from("sessions")
+    .delete()
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .eq("status", "completed");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (affectedExerciseIds.length > 0) {
+    await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds);
+  }
+
+  revalidateHistoryViews();
+  redirect("/history");
+}
 
 export async function updateLogMetaAction(payload: { logId: string; dayNameOverride: string; notes: string }): Promise<ActionResult> {
   const user = await requireUser();

@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Polished the History Sessions screen so list scrolling ends cleanly against the viewport with mobile safe-area breathing room and without an inner nested scroll region.
+- Replaced the misleading session-row overflow affordance with explicit view navigation behavior (full-row tap + right-side View label).
+- Moved session deletion from the History list into the session detail view with destructive confirmation before removal.
+WHY:
+- Improves mobile scroll finish quality, aligns row affordances with actual behavior, and reduces accidental destructive actions from the list surface.
+
+### Changed
+WHAT:
 - Overhauled the History experience with a stronger Sessions/Exercises segmented control, denser scan-friendly cards, and calmer visual hierarchy for metadata and actions.
 - Updated session deletion affordances to a compact overflow-style action while keeping explicit confirmation context (session name + date/time).
 - Refined History → Exercises rows to surface last-performed context and key stats, with a dedicated info action that opens the existing Exercise Info overlay using canonical exercise IDs.
