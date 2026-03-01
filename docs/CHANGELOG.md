@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Polished the Current Session sticky header spacing at the top-of-page by adding reliable iOS safe-area breathing room, a stable minimum header height, and an opaque surface background behind the status bar area.
+WHY:
+- Prevents the header from feeling cramped or visually cut off at scroll-top on iPhone while preserving the existing sticky behavior during workout logging.
+
 ### Changed
 WHAT:
 - Added a deterministic missing-icons backfill mode to the exercise icon sync workflow, with a report-first default and explicit apply-only behavior for unambiguous matches.

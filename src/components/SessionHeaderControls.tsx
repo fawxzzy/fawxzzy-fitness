@@ -74,7 +74,7 @@ export function SessionHeaderControls({
   }, [baseDurationSeconds, performedAtMs]);
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 border-b border-white/10 bg-[rgb(var(--surface)/0.98)] px-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-2 backdrop-blur">
+    <div className="sticky top-0 z-30 -mx-4 min-h-[calc(env(safe-area-inset-top)+64px)] border-b border-white/10 bg-surface px-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-2">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
         <form
           action={async (formData) => {
