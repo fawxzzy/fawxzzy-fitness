@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Removed the inner scroll constraint from Today's “Choose workout day” options so the day list expands naturally within page flow.
+WHY:
+- Prevents nested scrolling in the day picker and keeps workout-day selection aligned with a single, natural page-level scroll experience on mobile.
+
+### Changed
+WHAT:
 - Refined Today screen workout/day info panel styling to use the same highlighted thin-outline treatment as the routine overview card style.
 - Updated Routines screen selection flow so the selector emphasizes routine picking (with routine rows plus a Create New Routine action), while day details remain in the main routine view.
 - Moved the TODAY indicator in the routine day list to sit beneath the DAY label and converted each day row into a compact clickable card.
