@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Refined the Routines screen active routine card spacing and typography hierarchy for the routine title, subtitle, and day-list rhythm.
+- Updated Routines day rows to use brighter emerald accent text, cleaner left/right alignment, and improved long-name wrapping behavior.
+- Restyled the TODAY badge with a white-highlight border treatment and subtle emphasis on the current-day row.
+WHY:
+- Improves readability and scanability on dark backgrounds, keeps row alignment consistent across varying day names, and makes the current-day indicator easier to recognize at a glance.
+
+### Changed
+WHAT:
 - Removed the inner scroll constraint from Today's “Choose workout day” options so the day list expands naturally within page flow.
 WHY:
 - Prevents nested scrolling in the day picker and keeps workout-day selection aligned with a single, natural page-level scroll experience on mobile.

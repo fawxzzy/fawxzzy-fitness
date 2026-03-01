@@ -150,12 +150,12 @@ export default async function RoutinesPage() {
             />
 
             {activeRoutine ? (
-              <div className="space-y-3 rounded-xl border border-border/55 bg-surface/78 p-4 shadow-[0_6px_16px_rgba(0,0,0,0.18)]">
+              <div className="space-y-4 rounded-xl border border-border/55 bg-surface/78 p-4 shadow-[0_6px_16px_rgba(0,0,0,0.18)]">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-bold text-[rgb(var(--text)/0.98)]">{activeRoutine.name}</h2>
-                    <p className="text-xs text-muted/75">
-                      {cycleLength}-day cycle · {trainingDays} training · {restDays} rest
+                  <div>
+                    <h2 className="text-xl font-semibold tracking-tight text-[rgb(var(--text)/0.98)]">{activeRoutine.name}</h2>
+                    <p className="mt-1 text-sm text-white/60">
+                      {cycleLength}-day cycle - {trainingDays} training - {restDays} rest
                     </p>
                   </div>
                   <Link
@@ -167,7 +167,7 @@ export default async function RoutinesPage() {
                   </Link>
                 </div>
 
-                <ul className="space-y-2 text-sm text-muted">
+                <ul className="space-y-3 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
                     const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
                     const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
@@ -177,18 +177,18 @@ export default async function RoutinesPage() {
                       <li key={day.id}>
                         <Link
                           href={`/routines/${activeRoutine.id}/days/${day.id}`}
-                          className={`grid min-h-11 grid-cols-[84px_minmax(0,1fr)] items-start gap-3 rounded-lg border px-3 py-2 transition duration-150 active:scale-[0.99] ${
+                          className={`flex min-h-11 items-center justify-between gap-3 rounded-lg border px-4 py-3 transition duration-150 active:scale-[0.99] ${
                             isToday
-                              ? "border-accent/35 bg-accent/12"
+                              ? "border-white/30 bg-white/[0.03]"
                               : "border-border/40 bg-surface/45 hover:border-border/65 hover:bg-surface/58"
                           }`}
                         >
-                          <div className="flex w-20 flex-col items-center pt-0.5 text-center">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-muted/80">Day {dayNumber}</span>
-                            {isToday ? <span className="mt-1 rounded-full border border-accent/45 bg-accent/24 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.25)]">Today</span> : null}
+                          <div className="flex w-24 shrink-0 flex-col pt-0.5">
+                            <span className="text-xs font-medium uppercase tracking-wide text-emerald-400">Day {dayNumber}</span>
+                            {isToday ? <span className="mt-1 w-fit rounded-full border border-white/70 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white backdrop-blur-sm shadow-[0_0_8px_rgba(255,255,255,0.15)]">Today</span> : null}
                           </div>
-                          <div className="min-w-0 pt-0.5 text-right">
-                            <span className={`block min-w-0 text-sm leading-5 ${day.is_rest ? "text-muted/70" : "text-text/94"}`}>
+                          <div className="min-w-0 max-w-[65%] text-right break-words">
+                            <span className={`block min-w-0 text-sm font-medium leading-5 ${day.is_rest ? "text-muted/70" : "text-emerald-400"}`}>
                               {day.is_rest ? "Rest" : dayLabel}
                             </span>
                           </div>
