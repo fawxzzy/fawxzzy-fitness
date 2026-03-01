@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Overhauled the History experience with a stronger Sessions/Exercises segmented control, denser scan-friendly cards, and calmer visual hierarchy for metadata and actions.
+- Updated session deletion affordances to a compact overflow-style action while keeping explicit confirmation context (session name + date/time).
+- Refined History → Exercises rows to surface last-performed context and key stats, with a dedicated info action that opens the existing Exercise Info overlay using canonical exercise IDs.
+WHY:
+- Improves at-a-glance readability, reduces destructive-action visual noise, and aligns History with the refreshed app UI language while preserving reliable in-place exercise info behavior.
+
+### Changed
+WHAT:
 - Polished the Routines day list layout with fixed-width day labels for stable row alignment, a softer TODAY row emphasis, lighter row dividers, and cleaner Rest text styling.
 WHY:
 - Improves scanability and visual stability on long day names while reducing wireframe-like contrast without changing routine behavior.

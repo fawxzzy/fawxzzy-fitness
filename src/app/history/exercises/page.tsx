@@ -1,7 +1,6 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { AppNav } from "@/components/AppNav";
-import { BackButton } from "@/components/ui/BackButton";
 import { Glass } from "@/components/ui/Glass";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
@@ -13,9 +12,6 @@ function ExercisesBrowserError() {
     <Glass variant="base" className="space-y-3 p-4" interactive={false}>
       <p className="text-sm font-medium text-slate-100">Unable to load exercise history right now.</p>
       <p className="text-xs text-slate-300">Please try again in a moment.</p>
-      <div className="flex justify-end">
-        <BackButton href="/history" label="Back to History" className="w-fit" />
-      </div>
     </Glass>
   );
 }
@@ -28,10 +24,7 @@ export default async function HistoryExercisesPage() {
       <section className="space-y-4">
         <AppNav />
 
-        <Glass variant="base" className="space-y-2 p-3" interactive={false}>
-          <div className="flex justify-end">
-            <BackButton href="/history" label="Back" className="w-fit" />
-          </div>
+        <Glass variant="base" className="p-3" interactive={false}>
           <ExerciseBrowserClient rows={rows} />
         </Glass>
       </section>

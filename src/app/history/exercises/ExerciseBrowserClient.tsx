@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { memo, useMemo, useState } from "react";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Input } from "@/components/ui/Input";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
@@ -58,7 +58,7 @@ function toTagArray(value: string | null | undefined) {
 
 function formatTagLabel(tag: string) {
   return tag
-    .split(/[_\s-]+/)
+    .split(/[\_\s-]+/)
     .filter(Boolean)
     .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
@@ -85,41 +85,29 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const e1rmSummary = row.pr_est_1rm && row.pr_est_1rm > 0 ? `${Math.round(row.pr_est_1rm)} e1RM` : null;
 
   return (
-    <li className={`${listShellClasses.card} p-0`}>
-      <button
-        type="button"
-        onClick={() => onOpen(row.canonicalExerciseId)}
-        className="flex min-h-28 w-full appearance-none items-center gap-4 rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.24)] bg-[rgb(var(--glass-tint-rgb)/0.52)] px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-      >
-        <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-14 w-14 shrink-0 rounded-lg border border-border/40 bg-surface-2-soft object-cover" />
+    <li className={`${listShellClasses.card} border-[rgb(var(--glass-tint-rgb)/0.14)] bg-[rgb(var(--glass-tint-rgb)/0.5)] p-3 shadow-[0_8px_20px_-18px_rgba(0,0,0,0.85)]`}>
+      <div className="flex items-center gap-3">
+        <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-12 w-12 shrink-0 rounded-lg border border-border/35 bg-surface-2-soft object-cover" />
 
-        <div className="min-w-0 flex-1">
-          <p
-            className="overflow-hidden text-base font-semibold leading-tight text-slate-100"
-            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
-          >
-            {row.name}
-          </p>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="truncate text-sm font-semibold text-slate-100">{row.name}</p>
+          <p className="text-xs text-slate-400">Last performed: {lastDate ?? "Never"}</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            <p className="text-slate-300">Last: <span className="text-slate-200">{lastSummary ?? "—"}</span></p>
+            <p className="text-slate-300">PR: <span className="text-slate-200">{actualPrSummary ?? "—"}</span>{actualPrDate ? <span className="ml-1 text-slate-500">{actualPrDate}</span> : null}</p>
+            {e1rmSummary ? <p className="text-slate-400">{e1rmSummary}</p> : null}
+          </div>
         </div>
 
-        <div className="min-w-0 shrink-0 text-right text-sm">
-          {lastSummary || actualPrSummary || e1rmSummary ? (
-            <>
-              <p className="font-semibold text-slate-100">
-                Last: {lastSummary ?? "—"}
-                {lastDate ? <span className="ml-1 font-normal text-slate-400">{lastDate}</span> : null}
-              </p>
-              <p className="text-slate-300">
-                PR: {actualPrSummary ?? "—"}
-                {actualPrDate ? <span className="ml-1 text-slate-400">{actualPrDate}</span> : null}
-              </p>
-              {e1rmSummary ? <p className="text-xs text-slate-400">{e1rmSummary}</p> : null}
-            </>
-          ) : (
-            <p className="text-slate-400">No history yet</p>
-          )}
-        </div>
-      </button>
+        <button
+          type="button"
+          onClick={() => onOpen(row.canonicalExerciseId)}
+          aria-label={`Open exercise info for ${row.name}`}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/15 text-xs text-slate-200 transition hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+        >
+          ⓘ
+        </button>
+      </div>
     </li>
   );
 });
@@ -189,32 +177,30 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold text-slate-100">Exercises</h1>
-        <div className="inline-flex rounded-lg border border-[rgb(var(--glass-tint-rgb)/0.22)] bg-[rgb(var(--glass-tint-rgb)/0.38)] p-1">
-          <Link href="/history" className="inline-flex min-h-9 items-center rounded-md px-3 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white">
-            Sessions
-          </Link>
-          <span className="inline-flex min-h-9 items-center rounded-md bg-[rgb(var(--glass-tint-rgb)/0.9)] px-3 text-xs font-semibold text-slate-100">
-            Exercises
-          </span>
-        </div>
+      <div className="sticky top-2 z-20 flex justify-center rounded-xl bg-[rgb(var(--surface-rgb)/0.4)] px-2 py-1 backdrop-blur-sm">
+        <SegmentedControl
+          options={[
+            { label: "Sessions", value: "sessions", href: "/history" },
+            { label: "Exercises", value: "exercises", href: "/history/exercises" },
+          ]}
+          value="exercises"
+        />
       </div>
 
-      <Input
-        type="search"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search exercises"
-        aria-label="Search exercises"
-      />
+      <div className="space-y-2 px-1">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Exercise history</p>
+        <Input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search exercises"
+          aria-label="Search exercises"
+        />
+      </div>
 
       <ExerciseTagFilterControl selectedTags={selectedTags} onChange={setSelectedTags} groups={availableTagGroups} />
 
-      <ul
-        className={`${listShellClasses.viewport} space-y-3 scroll-py-2`}
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
+      <ul className={`${listShellClasses.viewport} space-y-2.5 scroll-py-2`} style={{ WebkitOverflowScrolling: "touch" }}>
         {filteredRows.map((row) => (
           <ExerciseHistoryRow key={row.id} row={row} onOpen={setSelectedExerciseId} />
         ))}
