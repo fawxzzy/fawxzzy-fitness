@@ -89,6 +89,79 @@ function deriveMeasurementType(selections: Set<MeasurementSelection>) {
   return "reps" as const;
 }
 
+
+export function mapExerciseGoalPayloadToRoutineDayColumns(payload: ParsedGoalPayload) {
+  return {
+    target_sets: payload.target_sets_min,
+    target_reps_min: payload.target_reps_min,
+    target_reps_max: payload.target_reps_max,
+    target_reps: payload.target_reps_min ?? payload.target_reps_max,
+    target_weight: payload.target_weight_min ?? payload.target_weight_max,
+    target_weight_unit: payload.target_weight_unit,
+    target_duration_seconds: payload.target_time_seconds_min ?? payload.target_time_seconds_max,
+    target_distance: payload.target_distance_min ?? payload.target_distance_max,
+    target_distance_unit: payload.target_distance_unit,
+    target_calories: payload.target_calories_min ?? payload.target_calories_max,
+    measurement_type: payload.measurement_type,
+    default_unit: payload.default_unit,
+  };
+}
+
+export function mapExerciseGoalPayloadToSessionColumns(payload: ParsedGoalPayload) {
+  return {
+    target_sets_min: payload.target_sets_min,
+    target_sets_max: payload.target_sets_max,
+    target_reps_min: payload.target_reps_min,
+    target_reps_max: payload.target_reps_max,
+    target_weight_min: payload.target_weight_min,
+    target_weight_max: payload.target_weight_max,
+    target_weight_unit: payload.target_weight_unit,
+    target_time_seconds_min: payload.target_time_seconds_min,
+    target_time_seconds_max: payload.target_time_seconds_max,
+    target_distance_min: payload.target_distance_min,
+    target_distance_max: payload.target_distance_max,
+    target_distance_unit: payload.target_distance_unit,
+    target_calories_min: payload.target_calories_min,
+    target_calories_max: payload.target_calories_max,
+    measurement_type: payload.measurement_type,
+    default_unit: payload.default_unit,
+  };
+}
+
+export function mapRoutineDayGoalToSessionColumns(goal: {
+  target_sets: number | null;
+  target_reps: number | null;
+  target_reps_min: number | null;
+  target_reps_max: number | null;
+  target_weight: number | null;
+  target_weight_unit: "lbs" | "kg" | null;
+  target_duration_seconds: number | null;
+  target_distance: number | null;
+  target_distance_unit: "mi" | "km" | "m" | null;
+  target_calories: number | null;
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
+  default_unit: "mi" | "km" | "m" | null;
+}) {
+  return {
+    target_sets_min: goal.target_sets,
+    target_sets_max: goal.target_sets,
+    target_reps_min: goal.target_reps_min ?? goal.target_reps,
+    target_reps_max: goal.target_reps_max ?? goal.target_reps,
+    target_weight_min: goal.target_weight,
+    target_weight_max: goal.target_weight,
+    target_weight_unit: goal.target_weight_unit,
+    target_time_seconds_min: goal.target_duration_seconds,
+    target_time_seconds_max: goal.target_duration_seconds,
+    target_distance_min: goal.target_distance,
+    target_distance_max: goal.target_distance,
+    target_distance_unit: goal.target_distance_unit,
+    target_calories_min: goal.target_calories,
+    target_calories_max: goal.target_calories,
+    measurement_type: goal.measurement_type ?? "reps",
+    default_unit: goal.default_unit,
+  };
+}
+
 export function parseExerciseGoalPayload(formData: FormData, options: ParseOptions): ParseExerciseGoalPayloadResult {
   const targetSetsRaw = String(formData.get("targetSets") ?? "").trim();
   const targetRepsMinRaw = String(formData.get("targetRepsMin") ?? "").trim();

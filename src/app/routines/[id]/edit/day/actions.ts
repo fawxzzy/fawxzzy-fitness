@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditDayPath, getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
-import { parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
+import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineEditPath(routineId));
@@ -20,22 +20,7 @@ function parseRoutineExercisePayload(formData: FormData, returnTo: string) {
     redirect(`${returnTo}?error=${encodeURIComponent(parsed.error)}`);
   }
 
-  const payload = parsed.payload;
-
-  return {
-    target_sets: payload.target_sets_min,
-    target_reps_min: payload.target_reps_min,
-    target_reps_max: payload.target_reps_max,
-    target_reps: payload.target_reps_min ?? payload.target_reps_max,
-    target_weight: payload.target_weight_min ?? payload.target_weight_max,
-    target_weight_unit: payload.target_weight_unit,
-    target_duration_seconds: payload.target_time_seconds_min ?? payload.target_time_seconds_max,
-    target_distance: payload.target_distance_min ?? payload.target_distance_max,
-    target_distance_unit: payload.target_distance_unit,
-    target_calories: payload.target_calories_min ?? payload.target_calories_max,
-    measurement_type: payload.measurement_type,
-    default_unit: payload.default_unit,
-  };
+  return mapExerciseGoalPayloadToRoutineDayColumns(parsed.payload);
 }
 
 export async function saveRoutineDayAction(formData: FormData) {

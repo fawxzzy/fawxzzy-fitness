@@ -174,6 +174,19 @@ export function SetLoggerCard({
   }, [sessionExerciseId]);
 
   useEffect(() => {
+    setWeight(prefill?.weight !== undefined ? String(prefill.weight) : "");
+    setSelectedWeightUnit(prefill?.weightUnit ?? (unitLabel === "kg" ? "kg" : "lbs"));
+    setReps(prefill?.reps !== undefined ? String(prefill.reps) : "");
+    setDurationInput(prefill?.durationSeconds !== undefined ? formatDurationClock(prefill.durationSeconds) : "");
+    setDistance("");
+    setDistanceUnit(defaultDistanceUnit ?? "mi");
+    setCalories("");
+    setRpe("");
+    setIsWarmup(false);
+    setError(null);
+  }, [defaultDistanceUnit, prefill, sessionExerciseId, unitLabel]);
+
+  useEffect(() => {
     onSetCountChange?.(sets.length);
   }, [onSetCountChange, sets.length]);
 

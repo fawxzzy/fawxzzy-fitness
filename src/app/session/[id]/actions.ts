@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { recomputeExerciseStatsForSession } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateHistoryViews, revalidateSessionViews } from "@/lib/revalidation";
-import { parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
+import { mapExerciseGoalPayloadToSessionColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
@@ -344,15 +344,17 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     ? exerciseDefaults.default_unit
     : "mi";
 
+  const mappedGoalColumns = mapExerciseGoalPayloadToSessionColumns(parsedGoals.payload);
+
   const { error } = await supabase.from("session_exercises").insert({
     session_id: sessionId,
     user_id: user.id,
     exercise_id: exerciseId,
     position: count ?? 0,
     is_skipped: false,
-    ...parsedGoals.payload,
-    measurement_type: parsedGoals.payload.measurement_type ?? fallbackMeasurementType,
-    default_unit: parsedGoals.payload.default_unit ?? fallbackDefaultUnit,
+    ...mappedGoalColumns,
+    measurement_type: mappedGoalColumns.measurement_type ?? fallbackMeasurementType,
+    default_unit: mappedGoalColumns.default_unit ?? fallbackDefaultUnit,
   });
 
   if (error) {

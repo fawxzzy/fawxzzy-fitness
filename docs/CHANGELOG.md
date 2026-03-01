@@ -1,3 +1,11 @@
+### Fixed
+WHAT:
+- Restored deterministic goal target persistence across routine-day editing and active-session exercise creation by using a shared measurement-goal mapping contract.
+- Restored session seeding from routine templates so Today → Start Workout carries sets and measurement targets (reps/weight/time/distance/calories) into `session_exercises` goals.
+- Restored Current Session logger goal prefill behavior when switching exercises so target defaults populate consistently regardless of measurement panel disclosure state.
+WHY:
+- Goal target fields had drifted between routine/session create flows and session seeding, which caused target columns to be dropped and downstream Today/Current Session goal rendering to appear blank.
+
 ### Changed
 WHAT:
 - Refined Today screen information hierarchy with a stronger two-line workout header, denser-but-more-readable exercise rows, and a subtle content panel that better separates foreground content from the atmospheric background.
