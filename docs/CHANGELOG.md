@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Adjusted the Current Session sticky header to respect iOS safe-area spacing, swapped Save Session and Back positions, and moved the session title into page content so it can fully wrap.
+WHY:
+- Prevents notch/status-bar overlap while keeping critical controls and workout context readable and always accessible during logging.
+
 ### Changed
 WHAT:
 - Replaced the exercise icon sync tooling with a deterministic canonical-folder workflow that validates filename contracts, regenerates the existing icon manifest, and writes a stable human-readable sync report.
