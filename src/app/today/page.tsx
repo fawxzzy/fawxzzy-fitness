@@ -364,22 +364,32 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           <OfflineSyncBadge />
         {todayPayload.inProgressSessionId ? (
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold text-text">{todayPayload.routine.name}: {todayPayload.routine.isRest ? `REST DAY — ${todayPayload.routine.dayName}` : todayPayload.routine.dayName}</h2>
-                {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
+              <div className="space-y-3 rounded-xl border border-white/10 bg-[rgb(var(--surface-2-soft)/0.72)] px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-semibold leading-tight text-[rgb(var(--text)/0.96)]">
+                      {todayPayload.routine.isRest ? `${todayPayload.routine.name} (Rest Day)` : todayPayload.routine.dayName}
+                    </h2>
+                    <p className="text-sm text-muted">Day {todayPayload.routine.dayIndex} • {todayPayload.routine.name}</p>
+                    {todayPayload.exercises.length > 0 ? (
+                      <p className="text-xs text-[rgb(var(--text)/0.58)]">{todayPayload.exercises.length} exercises</p>
+                    ) : null}
+                  </div>
+                  {todayPayload.completedTodayCount > 0 ? <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p> : null}
+                </div>
+
+                <ul className="divide-y divide-white/10 overflow-hidden rounded-lg border border-white/5 bg-[rgb(var(--surface)/0.62)] text-sm">
+                  {todayPayload.exercises.map((exercise) => (
+                    <li key={exercise.id} className="space-y-1.5 px-3 py-3 text-text">
+                      <p className="line-clamp-2 text-[0.96rem] font-medium leading-snug text-[rgb(var(--text)/0.95)]">{exercise.name}</p>
+                      {exercise.targets ? <p className="text-xs leading-snug text-[rgb(var(--text)/0.62)]">{exercise.targets}</p> : null}
+                    </li>
+                  ))}
+                  {todayPayload.exercises.length === 0 ? <li className="px-3 py-3 text-muted">No routine exercises planned today.</li> : null}
+                </ul>
               </div>
 
-              <ul className="divide-y divide-border/70 overflow-hidden rounded-lg bg-surface/70 text-sm">
-                {todayPayload.exercises.map((exercise) => (
-                  <li key={exercise.id} className="flex items-center justify-between gap-3 px-3 py-2 text-text">
-                    <span className="truncate">{exercise.name}</span>
-                    {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
-                  </li>
-                ))}
-                {todayPayload.exercises.length === 0 ? <li className="px-3 py-2 text-muted">No routine exercises planned today.</li> : null}
-              </ul>
-
-              <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true })}>Resume Workout</Link>
+              <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "h-12 border-emerald-400/45 bg-emerald-500/20 text-emerald-50 hover:bg-emerald-500/26 active:bg-emerald-500/32" })}>Resume Workout</Link>
               <ConfirmedServerFormButton
                 action={discardInProgressSessionAction}
                 hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
