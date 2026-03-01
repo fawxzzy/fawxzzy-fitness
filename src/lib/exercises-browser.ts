@@ -3,16 +3,12 @@ import "server-only";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
+import { listExercises } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type ExerciseCatalogRow = {
   id: string;
-  exercise_id: string | null;
   name: string;
-  slug: string | null;
-  image_path: string | null;
-  image_icon_path: string | null;
 };
 
 type ExerciseStatsRow = {
@@ -59,17 +55,6 @@ function compareExerciseBrowserRows(a: ExerciseBrowserRow, b: ExerciseBrowserRow
   return a.name.localeCompare(b.name);
 }
 
-function fallbackExercises(): ExerciseCatalogRow[] {
-  return EXERCISE_OPTIONS.map((exercise) => ({
-    id: exercise.id,
-    exercise_id: null,
-    name: exercise.name,
-    slug: null,
-    image_path: null,
-    image_icon_path: null,
-  }));
-}
-
 function isRelationOrColumnMissing(error: PostgrestError | null) {
   return error?.code === "42P01" || error?.code === "42703";
 }
@@ -80,18 +65,16 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const { data: exerciseRows, error: exerciseError } = await supabase
-    .from("exercises")
-    .select("id, exercise_id, name, slug, image_path, image_icon_path")
-    .or(`user_id.is.null,user_id.eq.${user.id}`)
-    .order("name", { ascending: true });
+  const exerciseRows = await listExercises();
 
-  if (exerciseError && !isRelationOrColumnMissing(exerciseError)) {
-    throw new Error(`failed to load exercises: ${exerciseError.message}`);
-  }
+  const exercises: ExerciseCatalogRow[] = exerciseRows
+    .filter((row) => row.id && row.name)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+    }));
 
-  const exercises = ((exerciseRows ?? fallbackExercises()) as ExerciseCatalogRow[]).filter((row) => row.id && row.name);
-  const canonicalIds = Array.from(new Set(exercises.map((row) => row.exercise_id ?? row.id)));
+  const canonicalIds = Array.from(new Set(exercises.map((row) => row.id)));
 
   if (!canonicalIds.length) {
     return [];
@@ -118,16 +101,16 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 
   return exercises
     .map((exercise) => {
-      const canonicalExerciseId = exercise.exercise_id ?? exercise.id;
+      const canonicalExerciseId = exercise.id;
       const stats = statsByExerciseId.get(canonicalExerciseId);
 
       return {
         id: exercise.id,
         canonicalExerciseId,
         name: exercise.name,
-        slug: exercise.slug,
-        image_path: exercise.image_path,
-        image_icon_path: exercise.image_icon_path,
+        slug: null,
+        image_path: null,
+        image_icon_path: null,
         last_performed_at: stats?.last_performed_at ?? null,
         last_weight: stats?.last_weight ?? null,
         last_reps: stats?.last_reps ?? null,

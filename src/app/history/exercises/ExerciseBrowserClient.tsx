@@ -6,6 +6,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { Input } from "@/components/ui/Input";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { getExerciseInfoHref } from "@/lib/exercise-nav";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
 type ExerciseBrowserClientProps = {
@@ -101,7 +102,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
           return (
             <li key={row.id} className={`${listShellClasses.card} p-0`}>
               <Link
-                href={`/exercises/${row.id}?returnTo=${encodeURIComponent("/history/exercises")}`}
+                href={getExerciseInfoHref(row.canonicalExerciseId, { returnTo: "/history/exercises" })}
                 className="flex min-h-11 items-center gap-3 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
               >
                 <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-9 w-9 shrink-0 rounded-md border border-border/40 bg-surface-2-soft object-cover" />
