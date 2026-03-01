@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-01 — Never conditionally suppress media sections when fallback assets are valid UX
+- Type: Guardrail
+- Summary: If a media slot has a canonical resolver + safe placeholder fallback, always render the slot and let the image component degrade to placeholder rather than hiding the section.
+- Suggested Playbook File: Playbook/docs/PATTERNS/frontend/media-fallbacks.md
+- Rationale: Gating section render on “non-placeholder” checks can regress into blank UI states and break consistency across list/detail surfaces.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/lib/exerciseImages.ts, src/components/ExerciseAssetImage.tsx
+- Status: Proposed
+
 ## 2026-03-01 — History exercise browsers must share the same canonical catalog loader as Add Exercise
 - Type: Guardrail
 - Summary: Any feature that lists exercisable catalog items for selection/browsing should source rows from the same canonical loader used by Add Exercise, then layer optional per-user stats in a separate batched lookup.

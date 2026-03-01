@@ -1,3 +1,10 @@
+### Fixed
+WHAT:
+- Re-synced the Exercise Info overlay HOW-TO image to the canonical exercise media resolution path so icon-backed exercises reliably render the same visual used in the picker thumbnail, with a guaranteed placeholder fallback when no icon exists.
+- Tightened Exercise Info section styling for STATS, HOW-TO, and MUSCLES with consistent section headers and more compact, single-surface media containers.
+WHY:
+- Prevents blank HOW-TO panels, keeps exercise visuals predictable when switching between items, and improves information density/consistency without changing data flow or schema.
+
 ### Changed
 WHAT:
 - Fixed `/history/exercises` row interactions to open the existing in-place Exercise Info overlay instead of navigating to a non-existent `/exercises/[id]` destination.

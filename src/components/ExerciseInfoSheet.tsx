@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { getExerciseHowToImageSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc, getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
@@ -36,6 +36,7 @@ type ExerciseInfoSheetStats = {
 };
 
 const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
+const sectionTitleClassName = "text-xs font-semibold uppercase tracking-wide text-muted";
 
 function MetaTag({ value }: { value: string | null }) {
   if (!value) return null;
@@ -103,8 +104,9 @@ export function ExerciseInfoSheet({
     };
   }, [exercise]);
 
-  const infoHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : null;
-  const hasHowToImage = !!infoHowToSrc && infoHowToSrc !== "/exercises/icons/_placeholder.svg";
+  const iconSrc = exercise ? getExerciseIconSrc(exercise) : "/exercises/icons/_placeholder.svg";
+  const infoHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
+  const resolvedHowToSrc = infoHowToSrc || iconSrc || "/exercises/icons/_placeholder.svg";
   const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const lastSummary = stats ? formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) : null;
@@ -158,8 +160,8 @@ export function ExerciseInfoSheet({
               </div>
 
               {stats ? (
-                <div className="space-y-1 rounded-md border border-border/50 bg-[rgb(var(--bg)/0.2)] px-2 py-1.5 text-xs text-muted">
-                  <p className="text-xs uppercase tracking-wide text-muted">Stats</p>
+                <div className="space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-2.5 py-2 text-xs text-muted">
+                  <p className={sectionTitleClassName}>Stats</p>
                   {process.env.NODE_ENV === "development" ? (
                     <p className="font-mono text-[10px] text-muted/90">
                       DEBUG canonicalExerciseId={canonicalExerciseId ?? "none"} statsFound={stats ? "yes" : "no"} stats.exercise_id={stats.exercise_id ?? "none"}
@@ -184,30 +186,35 @@ export function ExerciseInfoSheet({
                 </div>
               ) : null}
 
-              {hasHowToImage && infoHowToSrc ? (
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-                  <div className="aspect-[4/3] overflow-hidden rounded-md border border-border">
-                    <ExerciseAssetImage
-                      key={exercise.id ?? exercise.slug ?? infoHowToSrc ?? undefined}
-                      src={infoHowToSrc}
-                      alt="How-to visual"
-                      className="h-full w-full object-contain object-center"
-                    />
-                  </div>
+              <div className="space-y-1">
+                <p className={sectionTitleClassName}>How-to</p>
+                <div className="flex h-44 items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3 sm:h-48">
+                  <ExerciseAssetImage
+                    key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
+                    src={resolvedHowToSrc}
+                    alt="How-to visual"
+                    className="h-full w-full object-contain object-center"
+                  />
                 </div>
-              ) : null}
+              </div>
 
               <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>
-                <ExerciseAssetImage src={infoMusclesSrc} alt="Muscles visual" className="w-full rounded-md border border-border" fallbackSrc="/exercises/placeholders/muscles.svg" />
+                <p className={sectionTitleClassName}>Muscles</p>
+                <div className="flex h-44 items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3 sm:h-48">
+                  <ExerciseAssetImage
+                    src={infoMusclesSrc}
+                    alt="Muscles visual"
+                    className="h-full w-full object-contain object-center"
+                    fallbackSrc="/exercises/placeholders/muscles.svg"
+                  />
+                </div>
               </div>
 
               {infoDetails?.how_to_short ? <p className="text-sm text-text">{infoDetails.how_to_short}</p> : null}
 
               {infoDetails && infoDetails.primary_muscles.length > 0 ? (
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-muted">Primary muscles</p>
+                  <p className={sectionTitleClassName}>Primary muscles</p>
                   <div className="mt-1 flex flex-wrap gap-1">{infoDetails.primary_muscles.map((item) => <span key={item} className={tagClassName}>{item}</span>)}</div>
                 </div>
               ) : null}
