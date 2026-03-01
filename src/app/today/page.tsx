@@ -11,6 +11,7 @@ import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
+import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
 import { formatRepTarget, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/action-result";
@@ -66,7 +67,7 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
 
   const { data: templateExercises, error: templateError } = await supabase
     .from("routine_day_exercises")
-    .select("id, exercise_id, position, notes, measurement_type, default_unit")
+    .select("id, exercise_id, position, notes, measurement_type, default_unit, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories")
     .eq("routine_day_id", routineDay.id)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -109,8 +110,20 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
     const { error: exerciseError } = await supabase.from("session_exercises").insert(
       (templateExercises ?? []).map((exercise) => {
         const fallback = exerciseFallbackById.get(exercise.exercise_id);
-        const measurementType = exercise.measurement_type ?? fallback?.measurement_type ?? "reps";
-        const defaultUnit = exercise.default_unit ?? fallback?.default_unit ?? "mi";
+        const mappedGoalColumns = mapRoutineDayGoalToSessionColumns({
+          target_sets: exercise.target_sets,
+          target_reps: exercise.target_reps,
+          target_reps_min: exercise.target_reps_min,
+          target_reps_max: exercise.target_reps_max,
+          target_weight: exercise.target_weight,
+          target_weight_unit: exercise.target_weight_unit,
+          target_duration_seconds: exercise.target_duration_seconds,
+          target_distance: exercise.target_distance,
+          target_distance_unit: exercise.target_distance_unit,
+          target_calories: exercise.target_calories,
+          measurement_type: exercise.measurement_type,
+          default_unit: exercise.default_unit,
+        });
 
         return {
           session_id: session.id,
@@ -120,8 +133,9 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
           position: exercise.position,
           notes: exercise.notes,
           is_skipped: false,
-          measurement_type: measurementType,
-          default_unit: defaultUnit,
+          ...mappedGoalColumns,
+          measurement_type: mappedGoalColumns.measurement_type ?? fallback?.measurement_type ?? "reps",
+          default_unit: mappedGoalColumns.default_unit ?? fallback?.default_unit ?? "mi",
         };
       }),
     );
