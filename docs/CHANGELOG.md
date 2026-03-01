@@ -1,5 +1,14 @@
 ### Changed
 WHAT:
+- Refined Today screen workout/day info panel styling to use the same highlighted thin-outline treatment as the routine overview card style.
+- Updated Routines screen selection flow so the selector emphasizes routine picking (with routine rows plus a Create New Routine action), while day details remain in the main routine view.
+- Moved the TODAY indicator in the routine day list to sit beneath the DAY label and converted each day row into a compact clickable card.
+- Added routine day detail navigation so tapping a day opens a dedicated day plan screen with planned exercises (or a clear rest-day state).
+WHY:
+- Improves visual consistency between Today and Routines, increases selector clarity, and makes day-plan inspection faster and more discoverable from the routine overview.
+
+### Changed
+WHAT:
 - Refined History navigation and layout: Sessions/Exercises tabs now fill the segmented container without the extra inner backing box, Exercises now uses one shared highlighted container for Search + Filters, and Log Details now presents as a dedicated page layout with a top-right Back affordance.
 - Kept Delete Session accessible within the Log Details header while separating it from the primary Back navigation action.
 WHY:

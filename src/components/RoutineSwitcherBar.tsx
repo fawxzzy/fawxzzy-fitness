@@ -7,6 +7,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 type RoutineItem = {
   id: string;
   name: string;
+  summary?: string;
 };
 
 type RoutineSwitcherBarProps = {
@@ -60,7 +61,10 @@ export function RoutineSwitcherBar({
                       : "border-transparent bg-surface/45 text-muted hover:border-border/35 hover:text-text"
                   }`}
                 >
-                  <span className="truncate">{routine.name}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{routine.name}</span>
+                    {routine.summary ? <span className="block truncate pt-0.5 text-xs text-muted/80">{routine.summary}</span> : null}
+                  </span>
                   {isCurrent ? (
                     <span className="ml-3 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
                       Active
@@ -76,7 +80,7 @@ export function RoutineSwitcherBar({
             onClick={() => setOpen(false)}
             className="mt-2 flex min-h-11 items-center rounded-lg border border-border/45 bg-surface/45 px-3 py-2 text-sm font-medium text-text hover:bg-surface-2-soft"
           >
-            + Create New Routine
+            Create New Routine
           </Link>
         </div>
       </BottomSheet>

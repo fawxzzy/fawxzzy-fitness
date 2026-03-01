@@ -43,7 +43,7 @@ export function TodayDayPicker({
   return (
     <div className="flex min-h-0 flex-col gap-4 pb-4">
       {selectedDay ? (
-        <div className="space-y-3 rounded-xl border border-white/15 bg-[rgb(var(--surface-2-soft)/0.78)] px-4 py-3">
+        <div className="space-y-3 rounded-xl border border-border/55 bg-[rgb(var(--surface-2-soft)/0.78)] px-4 py-3">
           <div className="flex items-start justify-between gap-2">
             <div className="space-y-1">
               <h2 className="pr-1 text-xl font-bold leading-tight text-[rgb(var(--text)/0.98)]">

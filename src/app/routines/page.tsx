@@ -141,7 +141,11 @@ export default async function RoutinesPage() {
             <RoutineSwitcherBar
               activeRoutineId={activeRoutine?.id ?? null}
               activeRoutineName={activeRoutine?.name ?? "Select routine"}
-              routines={routines.map((routine) => ({ id: routine.id, name: routine.name }))}
+              routines={routines.map((routine) => ({
+                id: routine.id,
+                name: routine.name,
+                summary: `${routine.cycle_length_days}-day cycle`,
+              }))}
               setActiveRoutineAction={setActiveRoutineAction}
             />
 
@@ -163,23 +167,32 @@ export default async function RoutinesPage() {
                   </Link>
                 </div>
 
-                <ul className="divide-y divide-border/30 text-sm text-muted">
+                <ul className="space-y-2 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
                     const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
                     const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
                     const isToday = index === todayRowIndex;
 
                     return (
-                      <li key={day.id} className={`grid min-h-11 grid-cols-[80px_minmax(0,1fr)] items-start gap-3 py-2 ${isToday ? "rounded-md border border-accent/35 bg-accent/12 px-2" : ""}`}>
-                        <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted/80">
-                          Day {dayNumber}
-                        </span>
-                        <div className="flex min-w-0 items-center justify-end gap-2 text-right">
-                          <span className={`min-w-0 text-sm leading-5 ${day.is_rest ? "text-muted/70" : "text-text/94"}`}>
-                            {day.is_rest ? "Rest" : dayLabel}
-                          </span>
-                          {isToday ? <span className="rounded-full border border-accent/45 bg-accent/24 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.25)]">Today</span> : null}
-                        </div>
+                      <li key={day.id}>
+                        <Link
+                          href={`/routines/${activeRoutine.id}/days/${day.id}`}
+                          className={`grid min-h-11 grid-cols-[84px_minmax(0,1fr)] items-start gap-3 rounded-lg border px-3 py-2 transition duration-150 active:scale-[0.99] ${
+                            isToday
+                              ? "border-accent/35 bg-accent/12"
+                              : "border-border/40 bg-surface/45 hover:border-border/65 hover:bg-surface/58"
+                          }`}
+                        >
+                          <div className="flex w-20 flex-col items-center pt-0.5 text-center">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-muted/80">Day {dayNumber}</span>
+                            {isToday ? <span className="mt-1 rounded-full border border-accent/45 bg-accent/24 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.25)]">Today</span> : null}
+                          </div>
+                          <div className="min-w-0 pt-0.5 text-right">
+                            <span className={`block min-w-0 text-sm leading-5 ${day.is_rest ? "text-muted/70" : "text-text/94"}`}>
+                              {day.is_rest ? "Rest" : dayLabel}
+                            </span>
+                          </div>
+                        </Link>
                       </li>
                     );
                   })}
