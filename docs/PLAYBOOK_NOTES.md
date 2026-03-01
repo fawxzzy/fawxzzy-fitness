@@ -511,3 +511,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Sticky wrappers inside clipped containers can produce visual clipping artifacts and increase the chance of pointer/scroll conflicts over list content.
 - Evidence: src/app/history/page.tsx, src/app/history/HistorySessionsClient.tsx, src/components/ui/SegmentedControl.tsx
 - Status: Proposed
+
+## 2026-03-01 — Normalize repeated routine/day UI through app-local primitives and tokens
+- Type: Pattern
+- Summary: When multiple routine/day surfaces share the same panel, header, row, badge, and sticky CTA structures, extract app-local primitives and shared style tokens first, then compose per-screen layouts with those primitives.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Reduces repeated markup/classes, keeps visual tuning centralized, and prevents multi-screen UI drift during future screen updates.
+- Evidence: src/components/ui/app/AppPanel.tsx, src/components/ui/app/AppHeader.tsx, src/components/ui/app/AppRow.tsx, src/components/ui/app/AppBadge.tsx, src/components/ui/app/StickyActionBar.tsx, src/app/today/TodayDayPicker.tsx, src/app/today/page.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
+- Status: Proposed
+

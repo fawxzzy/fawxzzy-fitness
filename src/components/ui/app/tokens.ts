@@ -1,0 +1,16 @@
+export const appTokens = {
+  panelBase: "rounded-xl border border-border/55 bg-[rgb(var(--surface-2-soft)/0.78)] p-4 shadow-[0_6px_16px_rgba(0,0,0,0.18)]",
+  panelMuted: "rounded-xl border border-border/70 bg-surface/65 p-4",
+  rowBase: "rounded-lg border border-border/45 bg-surface/52 px-3 py-3",
+  rowInteractive: "transition duration-150 active:scale-[0.99]",
+  rowAccent: "border-white/30 bg-white/[0.03]",
+  rowDefault: "border-border/40 bg-surface/45 hover:border-border/65 hover:bg-surface/58",
+  accentText: "text-emerald-300",
+  mutedText: "text-[rgb(var(--text)/0.66)]",
+  metaText: "text-[rgb(var(--text)/0.54)]",
+  dividerBorder: "border-white/15",
+  listDivider: "divide-y divide-white/12",
+  stickyBar: "sticky bottom-0 z-20 -mx-1 border-t border-white/15 bg-[rgb(var(--surface)/0.97)] px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-[2px]",
+  todayBadge: "inline-flex rounded-full border border-white/70 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-[0_0_8px_rgba(255,255,255,0.15)]",
+  defaultBadge: "inline-flex rounded-full border border-white/25 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90",
+} as const;

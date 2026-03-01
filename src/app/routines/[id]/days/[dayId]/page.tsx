@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { AppHeader } from "@/components/ui/app/AppHeader";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AppRow } from "@/components/ui/app/AppRow";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
@@ -75,14 +78,12 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
     <section className="space-y-4">
       <AppNav />
 
-      <div className="space-y-3 rounded-xl border border-border/55 bg-surface/78 p-4 shadow-[0_6px_16px_rgba(0,0,0,0.18)]">
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted/80">{routineRow.name} — Day {dayRow.day_index}</p>
-            <h1 className="text-xl font-bold text-[rgb(var(--text)/0.98)]">{dayLabel}</h1>
-          </div>
-          <TopRightBackButton href="/routines" />
-        </div>
+      <AppPanel className="space-y-3">
+        <AppHeader
+          title={dayLabel}
+          subtitleLeft={`Day ${dayRow.day_index} • ${routineRow.name}`}
+          action={<TopRightBackButton href="/routines" />}
+        />
 
         {dayRow.is_rest || dayExercises.length === 0 ? (
           <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
@@ -95,15 +96,14 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
               const targetSummary = formatTargetSummary(exercise);
 
               return (
-                <li key={exercise.id} className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm">
-                  <p className="font-semibold text-text">{exerciseName}</p>
-                  {targetSummary ? <p className="pt-1 text-xs text-muted">{targetSummary}</p> : null}
+                <li key={exercise.id}>
+                  <AppRow leftTop={exerciseName} leftBottom={targetSummary || undefined} />
                 </li>
               );
             })}
           </ul>
         )}
-      </div>
+      </AppPanel>
     </section>
   );
 }
