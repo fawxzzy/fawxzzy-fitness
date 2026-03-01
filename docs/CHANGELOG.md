@@ -1678,3 +1678,10 @@ WHAT:
 - Added a History Sessions view-mode toggle with a denser Compact mode alongside the primary List mode.
 WHY:
 - Improves scanability and visual consistency of session metadata, fixes bottom-of-screen scroll landing on mobile viewports, and gives power users a faster high-density history browsing option.
+
+
+### Fixed
+WHAT:
+- Fixed the History Sessions list scroll regression by restoring a proper full-height flex chain to the sessions scroll region and keeping the bottom fade overlay non-interactive.
+WHY:
+- Prevents blocked scrolling after the recent History layout and fade-overlay refinements, especially on iOS Safari/PWA.
