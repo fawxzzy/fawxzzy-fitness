@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { SVGProps } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { Glass } from "@/components/ui/Glass";
 
 type NavLink = {
@@ -65,27 +65,9 @@ const links: NavLink[] = [
 ];
 
 export function AppNav() {
-  const [now, setNow] = useState(() => new Date());
   const pathname = usePathname();
   const router = useRouter();
-  const timeFormatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(undefined, {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
-    [],
-  );
   const activeLink = links.find((link) => pathname === link.href || pathname.startsWith(`${link.href}/`));
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     for (const link of links) {
@@ -98,13 +80,7 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <div className="sticky top-3 z-20 space-y-1">
-      <p
-        className="px-1 text-center text-[0.69rem] font-semibold uppercase tracking-[0.17em] text-[rgb(var(--text)/0.72)]"
-        aria-label="Current time"
-      >
-        {timeFormatter.format(now)}
-      </p>
+    <div className="sticky top-3 z-20">
       <Glass variant="raised" className="rounded-xl border-b border-white/15 px-2 py-1" interactive={false}>
         <p className="px-2 pb-0.5 text-center text-sm font-bold text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
         <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">

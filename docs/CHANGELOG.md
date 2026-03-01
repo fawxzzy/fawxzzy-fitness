@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Removed the top-of-app live clock from the navigation header so only the screen title and tab bar remain.
+WHY:
+- Simplifies the app chrome and removes a non-essential moving UI element at the top of every screen.
+
+### Changed
+WHAT:
 - Refined the Routines screen active routine card spacing and typography hierarchy for the routine title, subtitle, and day-list rhythm.
 - Updated Routines day rows to use brighter emerald accent text, cleaner left/right alignment, and improved long-name wrapping behavior.
 - Restyled the TODAY badge with a white-highlight border treatment and subtle emphasis on the current-day row.
