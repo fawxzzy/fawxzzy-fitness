@@ -35,11 +35,12 @@ function decodeCursor(value?: string): HistoryCursor | null {
 export default async function HistoryPage({
   searchParams,
 }: {
-  searchParams?: { cursor?: string };
+  searchParams?: { cursor?: string; view?: string; tab?: string };
 }) {
   const user = await requireUser();
   const supabase = supabaseServer();
   const cursor = decodeCursor(searchParams?.cursor);
+  const viewMode = searchParams?.view === "compact" ? "compact" : "list";
 
   let query = supabase
     .from("sessions")
@@ -97,12 +98,17 @@ export default async function HistoryPage({
     <section className="flex h-[100dvh] min-h-0 flex-col gap-4 overflow-hidden">
       <AppNav />
 
-      <Glass variant="base" className="flex min-h-0 flex-1 flex-col p-2" interactive={false}>
+      <Glass
+        variant="base"
+        className="flex min-h-0 flex-1 flex-col p-2 [&>div]:flex [&>div]:min-h-0 [&>div]:flex-1"
+        interactive={false}
+      >
+        {/* Keep Glass's inner wrapper constrained (`min-h-0`) so the sessions pane can actually scroll inside this flex column. */}
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="mb-3 shrink-0 px-1">
             <SegmentedControl
               options={[
-                { label: "Sessions", value: "sessions", href: "/history" },
+                { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${viewMode}` },
                 { label: "Exercises", value: "exercises", href: "/history/exercises" },
               ]}
               value="sessions"
@@ -110,7 +116,7 @@ export default async function HistoryPage({
           </div>
 
           {sessions.length > 0 ? (
-            <HistorySessionsClient sessions={sessionItems} />
+            <HistorySessionsClient sessions={sessionItems} initialViewMode={viewMode} />
           ) : (
             <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6 text-center">
               <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
@@ -123,7 +129,7 @@ export default async function HistoryPage({
       {nextCursor ? (
         <div className="flex justify-center">
           <Link
-            href={`/history?cursor=${encodeURIComponent(nextCursor)}`}
+            href={`/history?tab=sessions&view=${viewMode}&cursor=${encodeURIComponent(nextCursor)}`}
             className={getAppButtonClassName({ variant: "secondary", size: "md" })}
           >
             Load more

@@ -3,19 +3,14 @@
 import { useRouter } from "next/navigation";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
-export function HistoryDetailsBackButton() {
+export function HistoryDetailsBackButton({ returnHref }: { returnHref: string }) {
   const router = useRouter();
 
   return (
     <button
       type="button"
       onClick={() => {
-        if (typeof window !== "undefined" && document.referrer.startsWith(window.location.origin)) {
-          router.back();
-          return;
-        }
-
-        router.push("/history");
+        router.push(returnHref);
       }}
       className={getAppButtonClassName({ variant: "secondary", size: "sm" })}
     >
