@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { Glass } from "@/components/ui/Glass";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { BackButton } from "@/components/ui/BackButton";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
@@ -11,6 +10,7 @@ import { formatDateTime } from "@/lib/datetime";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { deleteCompletedSessionAction } from "@/app/actions/history";
+import { HistoryDetailsBackButton } from "./HistoryDetailsBackButton";
 import { LogAuditClient } from "./LogAuditClient";
 
 export const dynamic = "force-dynamic";
@@ -98,12 +98,22 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const exerciseOptions = await listExercises();
 
   return (
-    <section className="space-y-4">
+    <section className="flex min-h-[100dvh] flex-col space-y-4">
       <AppNav />
 
-      <Glass variant="base" className="space-y-2 p-4" interactive={false}>
-        <div className="flex items-start justify-between gap-3">
-          <BackButton href="/history" label="Back to history" className="w-fit" />
+      <Glass variant="base" className="space-y-3 p-4" interactive={false}>
+        <div className="flex justify-end">
+          <HistoryDetailsBackButton />
+        </div>
+
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold text-slate-100">Log Details</h1>
+            <p className="text-sm text-slate-300">
+              {routineName} • {effectiveDayName} • <LocalDateTime value={sessionRow.performed_at} /> • {sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}
+            </p>
+          </div>
+
           <ConfirmedServerFormButton
             action={deleteCompletedSessionAction}
             hiddenFields={{ sessionId: sessionRow.id }}
@@ -119,10 +129,6 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             ]}
           />
         </div>
-        <h1 className="text-2xl font-semibold text-slate-100">Log Details</h1>
-        <p className="text-sm text-slate-300">
-          {routineName} • {effectiveDayName} • <LocalDateTime value={sessionRow.performed_at} /> • {sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}
-        </p>
       </Glass>
 
       <LogAuditClient
