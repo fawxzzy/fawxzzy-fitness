@@ -1761,3 +1761,10 @@ WHAT:
 WHY:
 - Reduces cross-screen UI drift and keeps history/log browsing visually and behaviorally consistent with the app’s newer surfaces.
 - Improves mobile scrolling/touch reliability by keeping each screen on a single primary scroll region with non-blocking sticky controls.
+
+### Fixed
+WHAT:
+- Moved the Exercise Info sheet Back control from the left side of the header to the top-right position.
+- Updated History Log Details Back actions to use the shared app Back button style used across other screens.
+WHY:
+- Aligns Back control placement and styling with the app-wide navigation pattern so users get a consistent, predictable Back experience.
