@@ -4,6 +4,9 @@ import { memo, useMemo, useState } from "react";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AppRow } from "@/components/ui/app/AppRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Input } from "@/components/ui/Input";
 import { listShellClasses } from "@/components/ui/listShellClasses";
@@ -13,6 +16,8 @@ import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
 };
+
+type ViewMode = "list" | "compact";
 
 function formatWeight(weight: number) {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
@@ -66,9 +71,11 @@ function formatTagLabel(tag: string) {
 
 const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   row,
+  mode,
   onOpen,
 }: {
   row: ExerciseBrowserRow;
+  mode: ViewMode;
   onOpen: (canonicalExerciseId: string) => void;
 }) {
   const iconSrc = getExerciseIconSrc({
@@ -81,34 +88,42 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const lastSummary = formatSetSummary(row.last_weight, row.last_reps, row.last_unit);
   const lastDate = formatShortDate(row.last_performed_at);
   const actualPrSummary = formatSetSummary(row.actual_pr_weight, row.actual_pr_reps, row.last_unit);
-  const actualPrDate = formatShortDate(row.actual_pr_at);
-  const e1rmSummary = row.pr_est_1rm && row.pr_est_1rm > 0 ? `${Math.round(row.pr_est_1rm)} e1RM` : null;
+
+  const rowBottom = mode === "list"
+    ? (
+      <>
+        <span>Last performed: {lastDate ?? "Never"}</span>
+        <span className="mx-1.5">•</span>
+        <span>Last: {lastSummary ?? "—"}</span>
+        <span className="mx-1.5">•</span>
+        <span>PR: {actualPrSummary ?? "—"}</span>
+      </>
+    )
+    : undefined;
 
   return (
-    <li className={`${listShellClasses.card} border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.64)] p-3 shadow-[0_6px_14px_-12px_rgba(0,0,0,0.74)]`}>
-      <div className="flex items-center gap-3">
-        <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-12 w-12 shrink-0 rounded-lg border border-border/35 bg-surface-2-soft object-cover" />
-
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="truncate text-sm font-bold text-slate-50">{row.name}</p>
-          <p className="text-xs text-slate-400/85">Last performed: {lastDate ?? "Never"}</p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-            <p className="text-slate-300/90">Last: <span className="text-slate-100">{lastSummary ?? "—"}</span></p>
-            <p className="text-slate-300/90">PR: <span className="text-slate-100">{actualPrSummary ?? "—"}</span>{actualPrDate ? <span className="ml-1 text-slate-500">{actualPrDate}</span> : null}</p>
-            {e1rmSummary ? <p className="text-slate-400">{e1rmSummary}</p> : null}
+    <AppPanel className="relative overflow-hidden p-2">
+      <AppRow
+        density={mode === "compact" ? "compact" : "default"}
+        leftTop={
+          <div className="flex min-w-0 items-center gap-2">
+            <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-9 w-9 shrink-0 rounded-md border border-border/35 bg-surface-2-soft object-cover" />
+            <span className="truncate">{row.name}</span>
           </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => onOpen(row.canonicalExerciseId)}
-          aria-label={`Open exercise info for ${row.name}`}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/15 text-xs text-slate-200 transition hover:border-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-        >
-          ⓘ
-        </button>
-      </div>
-    </li>
+        }
+        leftBottom={rowBottom}
+        rightTop={<AppBadge>View</AppBadge>}
+        className="border-white/15"
+      />
+      <button
+        type="button"
+        onClick={() => onOpen(row.canonicalExerciseId)}
+        aria-label={`Open exercise info for ${row.name}`}
+        className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+      >
+        <span className="sr-only">Open exercise info</span>
+      </button>
+    </AppPanel>
   );
 });
 
@@ -116,6 +131,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -176,18 +192,17 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   );
 
   return (
-    <div className="space-y-3">
-      <div className="shrink-0 px-1">
-        <SegmentedControl
-          options={[
-            { label: "Sessions", value: "sessions", href: "/history" },
-            { label: "Exercises", value: "exercises", href: "/history/exercises" },
-          ]}
-          value="exercises"
-        />
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <SegmentedControl
+        options={[
+          { label: "Sessions", value: "sessions", href: "/history" },
+          { label: "Exercises", value: "exercises", href: "/history/exercises" },
+        ]}
+        value="exercises"
+        ariaLabel="History tabs"
+      />
 
-      <div className="space-y-2 rounded-xl border border-white/15 bg-[rgb(var(--surface-rgb)/0.52)] px-3 py-2">
+      <AppPanel className="space-y-2 p-3">
         <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Exercise history</p>
         <Input
           type="search"
@@ -203,11 +218,29 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
           groups={availableTagGroups}
           className="space-y-2"
         />
-      </div>
+
+        <div className="flex justify-end">
+          <SegmentedControl
+            options={[
+              { label: "List", value: "list" },
+              { label: "Compact", value: "compact" },
+            ]}
+            value={viewMode}
+            size="sm"
+            className="w-auto"
+            ariaLabel="Exercise history density"
+            onChange={(next) => {
+              if (next === "list" || next === "compact") setViewMode(next);
+            }}
+          />
+        </div>
+      </AppPanel>
 
       <ul className={`${listShellClasses.viewport} space-y-2.5 scroll-py-2`} style={{ WebkitOverflowScrolling: "touch" }}>
         {filteredRows.map((row) => (
-          <ExerciseHistoryRow key={row.id} row={row} onOpen={setSelectedExerciseId} />
+          <li key={row.id}>
+            <ExerciseHistoryRow row={row} mode={viewMode} onOpen={setSelectedExerciseId} />
+          </li>
         ))}
       </ul>
 

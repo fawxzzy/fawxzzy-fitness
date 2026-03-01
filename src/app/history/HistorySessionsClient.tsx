@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AppRow } from "@/components/ui/app/AppRow";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 
 type ViewMode = "list" | "compact";
@@ -64,32 +68,45 @@ function HistorySessionRow({
   const secondaryMeta = mode === "list" ? formatTimeRange(session.performedAt, session.durationSeconds) : null;
 
   return (
-    <div
-      className={`${listShellClasses.card} relative overflow-hidden border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.66)] ${mode === "compact" ? "p-2.5" : "p-0"} shadow-[0_6px_14px_-12px_rgba(0,0,0,0.72)]`}
-    >
+    <AppPanel className="relative overflow-hidden p-2">
+      <AppRow
+        density={mode === "compact" ? "compact" : "default"}
+        leftTop={
+          <span className="block truncate">
+            {session.name || "Session"}
+          </span>
+        }
+        leftBottom={
+          mode === "list" ? (
+            <>
+              <span className="truncate">{session.dayLabel || "Custom session"}</span>
+              <span className="mx-1.5">•</span>
+              <span className="truncate">{primaryMeta}</span>
+              {secondaryMeta ? (
+                <>
+                  <span className="mx-1.5">•</span>
+                  <span className="truncate">{secondaryMeta}</span>
+                </>
+              ) : null}
+            </>
+          ) : undefined
+        }
+        rightTop={mode === "list" ? <AppBadge>View</AppBadge> : undefined}
+        className="border-white/15"
+      />
       <Link
         href={`/history/${session.id}?returnTab=sessions&view=${viewMode}`}
         aria-label={`View session details for ${session.name || "session"}`}
-        className={`relative z-10 flex gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] ${mode === "compact" ? "items-center px-2.5 py-2" : "items-start p-3.5"}`}
+        className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className={`truncate font-bold text-slate-50 ${mode === "compact" ? "text-[13px]" : "text-sm"}`}>{session.name || "Session"}</p>
-          {mode === "list" ? <p className="truncate text-xs font-medium text-slate-300">{session.dayLabel || "Custom session"}</p> : null}
-          <p className={`truncate ${mode === "compact" ? "text-[11px]" : "text-xs"} text-slate-400/90`}>{primaryMeta}</p>
-          {secondaryMeta ? <p className="truncate text-[11px] text-slate-500/80">{secondaryMeta}</p> : null}
-        </div>
-
-        {mode === "list" ? <span className="shrink-0 rounded-md border border-white/15 bg-black/20 px-2.5 py-1.5 text-xs font-semibold text-slate-200">View</span> : null}
+        <span className="sr-only">Open session</span>
       </Link>
-    </div>
+    </AppPanel>
   );
 }
 
 export function HistorySessionsClient({ sessions, initialViewMode }: HistorySessionsClientProps) {
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
-  const [showBottomFade, setShowBottomFade] = useState(false);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -115,97 +132,33 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
     }
   }, [viewMode]);
 
-  const updateFadeState = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setShowBottomFade(remaining > 8);
-  }, []);
-
-  const onScroll = useCallback(() => {
-    if (rafRef.current !== null) return;
-
-    rafRef.current = window.requestAnimationFrame(() => {
-      rafRef.current = null;
-      updateFadeState();
-    });
-  }, [updateFadeState]);
-
-  useEffect(() => {
-    updateFadeState();
-    const handleResize = () => updateFadeState();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, [updateFadeState, sessions.length, viewMode]);
-
-  const listClassName = useMemo(
-    () => `${listShellClasses.list} ${viewMode === "compact" ? "space-y-2" : "space-y-3"}`,
-    [viewMode],
-  );
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between gap-2 px-1">
         <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Log view</p>
-        <div className="inline-flex items-center gap-1 rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.56)] p-1">
-          {(["list", "compact"] as const).map((option) => {
-            const active = viewMode === option;
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setViewMode(option)}
-                className={`min-h-8 min-w-[68px] rounded-lg px-2.5 text-[11px] font-semibold transition ${
-                  active
-                    ? "bg-[rgb(var(--glass-tint-rgb)/0.94)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.9)]"
-                    : "text-slate-300/90 hover:bg-white/10 hover:text-white"
-                }`}
-                aria-pressed={active}
-              >
-                {option === "list" ? "List" : "Compact"}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          options={[
+            { label: "List", value: "list" },
+            { label: "Compact", value: "compact" },
+          ]}
+          value={viewMode}
+          size="sm"
+          ariaLabel="History session density"
+          className="w-auto"
+          onChange={(next) => {
+            if (next === "list" || next === "compact") setViewMode(next);
+          }}
+        />
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl">
-        <div
-          ref={scrollRef}
-          className="h-full overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+16px)] pr-1"
-          onScroll={onScroll}
-          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
-        >
-          <ul className={listClassName}>
-            {sessions.map((session, index) => {
-              const currentMonth = session.performedAt.slice(0, 7);
-              const prevMonth = index > 0 ? sessions[index - 1].performedAt.slice(0, 7) : currentMonth;
-              const isNewMonthGroup = index > 0 && currentMonth !== prevMonth;
-              const isOlderEntry = index >= 6;
-
-              return (
-                <React.Fragment key={session.id}>
-                  {isNewMonthGroup ? <li className="mx-1 border-t border-white/12 pt-1" aria-hidden="true" /> : null}
-                  <li className={isOlderEntry ? "opacity-90" : "opacity-100"}>
-                    <HistorySessionRow session={session} mode={viewMode} viewMode={viewMode} />
-                  </li>
-                </React.Fragment>
-              );
-            })}
-          </ul>
-        </div>
-
-        {showBottomFade ? (
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-9 rounded-b-xl bg-gradient-to-b from-transparent to-[rgb(var(--surface-rgb)/0.99)]"
-            aria-hidden="true"
-          />
-        ) : null}
+      <div className={`${listShellClasses.viewport} relative min-h-0 flex-1`} style={{ WebkitOverflowScrolling: "touch" }}>
+        <ul className={`${listShellClasses.list} ${viewMode === "compact" ? "space-y-2" : "space-y-3"}`}>
+          {sessions.map((session) => (
+            <li key={session.id} className="relative">
+              <HistorySessionRow session={session} mode={viewMode} viewMode={viewMode} />
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
-import { Glass } from "@/components/ui/Glass";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { AppHeader } from "@/components/ui/app/AppHeader";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
@@ -55,11 +58,11 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
 
   const { data: setsData } = sessionExerciseIds.length
     ? await supabase
-        .from("sets")
-        .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
-        .in("session_exercise_id", sessionExerciseIds)
-        .eq("user_id", user.id)
-        .order("set_index", { ascending: true })
+      .from("sets")
+      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
+      .in("session_exercise_id", sessionExerciseIds)
+      .eq("user_id", user.id)
+      .order("set_index", { ascending: true })
     : { data: [] };
 
   const sets = (setsData ?? []) as SetRow[];
@@ -75,12 +78,12 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
 
   const { data: routineDay } = sessionRow.routine_id && sessionRow.routine_day_index
     ? await supabase
-        .from("routine_days")
-        .select("name")
-        .eq("routine_id", sessionRow.routine_id)
-        .eq("day_index", sessionRow.routine_day_index)
-        .eq("user_id", user.id)
-        .maybeSingle()
+      .from("routine_days")
+      .select("name")
+      .eq("routine_id", sessionRow.routine_id)
+      .eq("day_index", sessionRow.routine_day_index)
+      .eq("user_id", user.id)
+      .maybeSingle()
     : { data: null };
 
   const exerciseNameMap = await getExerciseNameMap();
@@ -101,28 +104,57 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
   const backHref = `/history?tab=sessions&view=${returnView}`;
 
   return (
-    <section className="flex min-h-[100dvh] flex-col space-y-4">
+    <section className="flex min-h-[100dvh] flex-col gap-4 overflow-hidden">
       <AppNav />
 
-      <Glass variant="base" className="space-y-3 p-4" interactive={false}>
-        <div className="flex justify-end">
-          <HistoryDetailsBackButton returnHref={backHref} />
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1 pb-[calc(env(safe-area-inset-bottom)+108px)]">
+        <AppPanel className="space-y-3 p-4">
+          <AppHeader
+            title="Log Details"
+            subtitleLeft={<>{routineName} • {effectiveDayName}</>}
+            subtitleRight={<><LocalDateTime value={sessionRow.performed_at} /> • {sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}</>}
+            action={<HistoryDetailsBackButton returnHref={backHref} />}
+          />
+        </AppPanel>
 
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-slate-100">Log Details</h1>
-            <p className="text-sm text-slate-300">
-              {routineName} • {effectiveDayName} • <LocalDateTime value={sessionRow.performed_at} /> • {sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}
-            </p>
-          </div>
+        <LogAuditClient
+          logId={sessionRow.id}
+          initialDayName={effectiveDayName}
+          initialNotes={sessionRow.notes}
+          unitLabel={unitLabel}
+          exerciseNameMap={exerciseNameRecord}
+          exerciseOptions={exerciseOptions}
+          exercises={orderedSessionExercises.map((exercise) => ({
+            id: exercise.id,
+            exercise_id: exercise.exercise_id,
+            notes: exercise.notes,
+            measurement_type: exercise.measurement_type ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.measurement_type : exercise.exercise?.measurement_type) ?? "reps",
+            default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? "mi",
+            sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
+              id: set.id,
+              set_index: set.set_index,
+              weight: set.weight,
+              reps: set.reps,
+              duration_seconds: set.duration_seconds,
+              distance: set.distance,
+              distance_unit: set.distance_unit,
+              calories: set.calories,
+              weight_unit: set.weight_unit,
+            })),
+          }))}
+        />
+      </div>
 
+      <StickyActionBar
+        className="shrink-0"
+        primary={<HistoryDetailsBackButton returnHref={backHref} />}
+        secondary={(
           <ConfirmedServerFormButton
             action={deleteCompletedSessionAction}
             hiddenFields={{ sessionId: sessionRow.id }}
             triggerLabel="Delete Session"
             triggerAriaLabel="Delete session"
-            triggerClassName="!min-h-8 !rounded-md !px-3 !py-1.5 !text-xs"
+            triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", fullWidth: true })}
             modalTitle="Delete session?"
             modalDescription="This will permanently delete this workout session and all logged sets."
             confirmLabel="Delete"
@@ -131,34 +163,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
               `${formatDateTime(sessionRow.performed_at)} • ${sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}`,
             ]}
           />
-        </div>
-      </Glass>
-
-      <LogAuditClient
-        logId={sessionRow.id}
-        initialDayName={effectiveDayName}
-        initialNotes={sessionRow.notes}
-        unitLabel={unitLabel}
-        exerciseNameMap={exerciseNameRecord}
-        exerciseOptions={exerciseOptions}
-        exercises={orderedSessionExercises.map((exercise) => ({
-          id: exercise.id,
-          exercise_id: exercise.exercise_id,
-          notes: exercise.notes,
-          measurement_type: exercise.measurement_type ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.measurement_type : exercise.exercise?.measurement_type) ?? "reps",
-          default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? "mi",
-          sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
-            id: set.id,
-            set_index: set.set_index,
-            weight: set.weight,
-            reps: set.reps,
-            duration_seconds: set.duration_seconds,
-            distance: set.distance,
-            distance_unit: set.distance_unit,
-            calories: set.calories,
-            weight_unit: set.weight_unit,
-          })),
-        }))}
+        )}
       />
     </section>
   );

@@ -9,6 +9,7 @@ export function AppRow({
   rightBottom,
   rightWrap = false,
   tone = "default",
+  density = "default",
   onClick,
   className,
 }: {
@@ -18,9 +19,12 @@ export function AppRow({
   rightBottom?: ReactNode;
   rightWrap?: boolean;
   tone?: "default" | "active";
+  density?: "default" | "compact";
   onClick?: () => void;
   className?: string;
 }) {
+  const rowDensityClass = density === "compact" ? "px-3 py-2" : appTokens.rowBase;
+
   const content = (
     <>
       <div className={cn("min-w-0 space-y-1", rightWrap ? "shrink-0" : undefined)}>
@@ -51,7 +55,7 @@ export function AppRow({
         type="button"
         className={cn(
           "flex w-full items-start justify-between gap-3 text-left",
-          appTokens.rowBase,
+          rowDensityClass,
           appTokens.rowInteractive,
           tone === "active" ? appTokens.rowAccent : appTokens.rowDefault,
           className,
@@ -64,7 +68,7 @@ export function AppRow({
   }
 
   return (
-    <div className={cn("flex items-start justify-between gap-3", appTokens.rowBase, className)}>
+    <div className={cn("flex items-start justify-between gap-3", rowDensityClass, className)}>
       {content}
     </div>
   );
