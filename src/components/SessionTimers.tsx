@@ -697,9 +697,9 @@ export function SetLoggerCard({
           aria-expanded={isMetricsExpanded}
           aria-controls={metricsPanelId}
           onClick={() => setIsMetricsExpanded((current) => !current)}
-          className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 [-webkit-tap-highlight-color:transparent] ${tapFeedbackClass}`}
+          className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 [-webkit-tap-highlight-color:transparent] ${tapFeedbackClass}`}
         >
-          <span className="text-sm font-semibold text-[rgb(var(--text)/0.92)]">Modify measurements</span>
+          <span className="text-xs font-medium text-[rgb(var(--text)/0.72)]">Modify measurements</span>
           {isMetricsExpanded ? (
             <ChevronUpIcon className="h-4 w-4 shrink-0 text-[rgb(var(--text)/0.72)]" />
           ) : (
@@ -847,7 +847,7 @@ export function SetLoggerCard({
           </div>
         </div>
 
-        <div className="mt-3 border-t border-slate-100 pt-3">
+        <div className="sticky bottom-0 z-20 -mx-3 mt-3 border-t border-white/10 bg-surface/95 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur">
           <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
             Save set
           </AppButton>

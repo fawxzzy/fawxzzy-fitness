@@ -257,7 +257,7 @@ export function SessionExerciseFocus({
       {selectedExercise ? (
         <article
           ref={focusedRef}
-          className="space-y-4 overflow-hidden rounded-md border border-border/70 bg-surface p-4 pt-[max(env(safe-area-inset-top),1rem)]"
+          className="space-y-4 rounded-md border border-border/70 bg-surface p-4 pb-28 pt-4"
           aria-hidden={false}
         >
           <div className="flex items-start justify-between gap-2">
@@ -296,10 +296,9 @@ export function SessionExerciseFocus({
             </div>
           </div>
 
-          <div className="space-y-1 border-t border-border/60 pt-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">Goal</p>
+          <div className="border-t border-border/60 pt-3">
             {selectedExercise.goalStatLine ? (
-              <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted">
+              <p className="flex flex-wrap items-center gap-x-1 text-sm text-muted">
                 <span className="whitespace-nowrap font-semibold text-text">{selectedExercise.goalStatLine.primary || "Open"}</span>
                 {selectedExercise.goalStatLine.secondary.map((part) => (
                   <span key={part} className="whitespace-nowrap text-muted">

@@ -1,5 +1,4 @@
 import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
-import { SessionBackButton } from "@/components/SessionBackButton";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { SessionAddExerciseForm } from "@/components/SessionAddExerciseForm";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
@@ -103,12 +102,18 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
+  const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
+
   return (
-    <section className="space-y-4 pt-[max(env(safe-area-inset-top),0.5rem)]">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{sessionRow.name || "Routine"}: {sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}</h1>
-        <SessionBackButton />
-      </div>
+    <section className="space-y-4 pb-4 pt-[max(env(safe-area-inset-top),0.25rem)]">
+
+      <SessionHeaderControls
+        sessionId={params.id}
+        initialDurationSeconds={sessionRow.duration_seconds}
+        performedAt={sessionRow.performed_at}
+        sessionTitle={sessionTitle}
+        saveSessionAction={saveSessionAction}
+      />
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       <ActionFeedbackToasts />
@@ -166,14 +171,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           }
         />
       </CollapsibleCard>
-
-      <SessionHeaderControls
-        sessionId={params.id}
-        initialDurationSeconds={sessionRow.duration_seconds}
-        performedAt={sessionRow.performed_at}
-        saveSessionAction={saveSessionAction}
-      />
-
       {sessionExercises.length > 0 ? (
         <SessionExerciseFocus
           sessionId={params.id}
