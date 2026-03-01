@@ -70,30 +70,23 @@ function HistorySessionRow({
       aria-label={`View session details for ${session.name || "session"}`}
       className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      <AppPanel className="p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
+      <AppPanel clip className="p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
         <AppRow
           density={mode === "compact" ? "compact" : "default"}
           leftTop={
-            <span className="block truncate">
+            <span className={mode === "compact" ? "block truncate" : "block whitespace-normal break-words"}>
               {session.name || "Session"}
               {mode === "compact" ? ` — ${session.dayLabel || "Custom session"}` : ""}
             </span>
           }
           leftBottom={
             mode === "list" ? (
-              <>
-                <span className="truncate">{session.dayLabel || "Custom session"}</span>
-                <span className="mx-1.5">•</span>
-                <span className="truncate">{primaryMeta}</span>
-                {secondaryMeta ? (
-                  <>
-                    <span className="mx-1.5">•</span>
-                    <span className="truncate">{secondaryMeta}</span>
-                  </>
-                ) : null}
-              </>
+              <span className="block whitespace-normal break-words">
+                {session.dayLabel || "Custom session"} • {primaryMeta}
+                {secondaryMeta ? ` • ${secondaryMeta}` : ""}
+              </span>
             ) : (
-              <span className="truncate">{primaryMeta}</span>
+              <span className="block truncate">{primaryMeta}</span>
             )
           }
           className="border-0 bg-transparent"

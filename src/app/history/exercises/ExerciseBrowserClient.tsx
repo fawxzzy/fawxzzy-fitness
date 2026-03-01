@@ -85,24 +85,16 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const lastDate = formatShortDate(row.last_performed_at);
   const actualPrSummary = formatSetSummary(row.actual_pr_weight, row.actual_pr_reps, row.last_unit);
 
-  const rowBottom = (
-    <>
-      <span>Last performed: {lastDate ?? "Never"}</span>
-      <span className="mx-1.5">•</span>
-      <span>Last: {lastSummary ?? "—"}</span>
-      <span className="mx-1.5">•</span>
-      <span>PR: {actualPrSummary ?? "—"}</span>
-    </>
-  );
+  const rowBottom = `Last performed: ${lastDate ?? "Never"} • Last: ${lastSummary ?? "—"} • PR: ${actualPrSummary ?? "—"}`;
 
   return (
-    <AppPanel className="relative p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
+    <AppPanel clip className="relative p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
       <AppRow
         density="default"
         leftTop={
           <div className="flex min-w-0 items-center gap-2">
             <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-9 w-9 shrink-0 rounded-md border border-border/35 bg-surface-2-soft object-cover" />
-            <span className="truncate">{row.name}</span>
+            <span className="min-w-0 flex-1 truncate">{row.name || "Exercise"}</span>
           </div>
         }
         leftBottom={rowBottom}
