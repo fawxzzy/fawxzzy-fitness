@@ -1708,3 +1708,10 @@ WHAT:
 - Fixed the History Sessions list scroll regression by restoring a proper full-height flex chain to the sessions scroll region and keeping the bottom fade overlay non-interactive.
 WHY:
 - Prevents blocked scrolling after the recent History layout and fade-overlay refinements, especially on iOS Safari/PWA.
+
+### Fixed
+WHAT:
+- Corrected History screen layout so the Sessions log area uses a bounded flex-height scroll region again and no longer loses vertical scrolling.
+- Unified the segmented control styling for History section tabs and the Sessions List/Compact toggle to remove clipping/misalignment artifacts.
+WHY:
+- Restores reliable log browsing on mobile/desktop and makes tab/toggle controls visually consistent and readable.

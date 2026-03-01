@@ -94,12 +94,12 @@ export default async function HistoryPage({
   }));
 
   return (
-    <section className="flex h-[100dvh] min-h-[100dvh] flex-col space-y-4">
+    <section className="flex h-[100dvh] min-h-0 flex-col gap-4 overflow-hidden">
       <AppNav />
 
       <Glass variant="base" className="flex min-h-0 flex-1 flex-col p-2" interactive={false}>
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="sticky top-2 z-20 mb-3 px-1 backdrop-blur-[2px]">
+          <div className="mb-3 shrink-0 px-1">
             <SegmentedControl
               options={[
                 { label: "Sessions", value: "sessions", href: "/history" },
