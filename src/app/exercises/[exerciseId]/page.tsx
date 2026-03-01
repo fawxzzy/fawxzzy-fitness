@@ -4,7 +4,7 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseStatsForExercise } from "@/lib/exercise-stats";
-import { getExerciseHowToImageSrc, getExerciseMusclesImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrcOrNull, getExerciseMusclesImageSrc, type ExerciseImageSource } from "@/lib/exerciseImages";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PageProps = {
@@ -97,7 +97,7 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
     image_icon_path: exercise.image_icon_path,
     image_howto_path: exercise.image_howto_path,
   };
-  const howToImageSrc = getExerciseHowToImageSrc(detailsExercise);
+  const howToImageSrc = getExerciseHowToImageSrcOrNull(detailsExercise);
   const musclesImageSrc = getExerciseMusclesImageSrc(exercise.image_muscles_path);
   const hasLast = stats ? (stats.last_weight != null && stats.last_reps != null) : false;
   const hasActualPR = stats ? (stats.actual_pr_weight != null && stats.actual_pr_reps != null) : false;
@@ -153,10 +153,12 @@ export default async function ExerciseDetailsPage({ params, searchParams }: Page
           </div>
         ) : null}
 
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
-          <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="w-full rounded-md border border-border" />
-        </div>
+        {howToImageSrc ? (
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-wide text-muted">How-to</p>
+            <ExerciseAssetImage src={howToImageSrc} alt="How-to visual" className="w-full rounded-md border border-border" />
+          </div>
+        ) : null}
 
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-muted">Muscles</p>

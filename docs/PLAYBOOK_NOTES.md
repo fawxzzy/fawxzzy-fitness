@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-01 — Treat seeded placeholder media defaults as unset in fallback resolvers
+- Type: Guardrail
+- Summary: Canonical media resolvers should treat known seeded placeholder paths as unset values so fallback chains can select real assets (and optionally suppress sections when no non-placeholder asset exists).
+- Suggested Playbook File: Playbook/docs/PATTERNS/media-fallbacks.md
+- Rationale: Database defaults can be truthy placeholder strings that unintentionally block deterministic fallback behavior and show low-value placeholder panels despite available icon assets.
+- Evidence: src/lib/exerciseImages.ts, src/components/ExerciseInfoSheet.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-01 — Never conditionally suppress media sections when fallback assets are valid UX
 - Type: Guardrail
 - Summary: If a media slot has a canonical resolver + safe placeholder fallback, always render the slot and let the image component degrade to placeholder rather than hiding the section.
