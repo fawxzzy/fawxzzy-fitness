@@ -5,6 +5,7 @@ import { Glass } from "@/components/ui/Glass";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
+import { getRoutineDayComputation } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateRoutinesViews } from "@/lib/revalidation";
 import type { RoutineDayRow, RoutineRow } from "@/types/db";
@@ -98,50 +99,20 @@ export default async function RoutinesPage() {
   const restDays = sortedActiveRoutineDays.filter((day) => day.is_rest).length;
   const trainingDays = Math.max(totalDays - restDays, 0);
   const cycleLength = activeRoutine?.cycle_length_days ?? totalDays;
-
-  const todayRoutineDayIndex = (() => {
-    if (!activeRoutine?.start_date || !cycleLength || cycleLength <= 0) {
-      return null;
-    }
-
-    const timezone = activeRoutine.timezone || "UTC";
-
-    const toLocalDayStamp = (date: Date) => {
-      const parts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: timezone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).formatToParts(date);
-      const year = parts.find((part) => part.type === "year")?.value;
-      const month = parts.find((part) => part.type === "month")?.value;
-      const day = parts.find((part) => part.type === "day")?.value;
-
-      if (!year || !month || !day) {
-        return null;
-      }
-
-      return `${year}-${month}-${day}`;
-    };
-
-    const startStamp = toLocalDayStamp(new Date(activeRoutine.start_date));
-    const todayStamp = toLocalDayStamp(new Date());
-
-    if (!startStamp || !todayStamp) {
-      return null;
-    }
-
-    const start = Date.parse(`${startStamp}T00:00:00Z`);
-    const today = Date.parse(`${todayStamp}T00:00:00Z`);
-
-    if (!Number.isFinite(start) || !Number.isFinite(today)) {
-      return null;
-    }
-
-    const elapsedDays = Math.max(Math.floor((today - start) / 86_400_000), 0);
-
-    return (elapsedDays % cycleLength) + 1;
-  })();
+  const todayRoutineDayComputation = activeRoutine?.start_date && cycleLength > 0
+    ? getRoutineDayComputation({
+        cycleLengthDays: cycleLength,
+        startDate: activeRoutine.start_date,
+        profileTimeZone: activeRoutine.timezone || profile.timezone,
+      })
+    : null;
+  const todayRoutineDayIndex = todayRoutineDayComputation?.dayIndex ?? null;
+  const todayRowIndex = todayRoutineDayIndex === null
+    ? -1
+    : sortedActiveRoutineDays.findIndex((day, index) => {
+        const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+        return dayNumber === todayRoutineDayIndex;
+      });
 
   if (process.env.NODE_ENV !== "production" && sortedActiveRoutineDays.length > 0 && sortedActiveRoutineDays[0]?.day_index !== 1) {
     console.warn("[routines] Active routine days are missing Day 1 in overview preview", {
@@ -175,7 +146,7 @@ export default async function RoutinesPage() {
             />
 
             {activeRoutine ? (
-              <div className="space-y-3 rounded-xl border border-border/40 bg-surface/70 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
+              <div className="space-y-3 rounded-xl border border-border/25 bg-surface/70 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <h2 className="text-xl font-semibold text-text">{activeRoutine.name}</h2>
@@ -192,20 +163,23 @@ export default async function RoutinesPage() {
                   </Link>
                 </div>
 
-                <ul className="divide-y divide-border/30 text-sm text-muted">
+                <ul className="divide-y divide-border/15 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
                     const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
                     const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
-                    const isToday = todayRoutineDayIndex !== null && dayNumber === todayRoutineDayIndex;
+                    const isToday = index === todayRowIndex;
 
                     return (
-                      <li key={day.id} className={`grid min-h-11 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-3 py-2 ${isToday ? "rounded-md bg-accent/10 px-2" : ""}`}>
+                      <li key={day.id} className={`grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-start gap-3 py-2 ${isToday ? "rounded-md bg-accent/10 px-2" : ""}`}>
                         <span className="min-w-0 text-xs font-medium uppercase tracking-wide text-muted/95">
                           Day {dayNumber}
                         </span>
-                        <span className={`min-w-0 text-right text-sm leading-5 ${day.is_rest ? "text-muted/75" : "text-text/90"}`}>
-                          {day.is_rest ? "• Rest" : dayLabel}
-                        </span>
+                        <div className="flex min-w-0 items-center justify-end gap-2 text-right">
+                          <span className={`min-w-0 text-sm leading-5 ${day.is_rest ? "text-muted/75" : "text-text/90"}`}>
+                            {day.is_rest ? "• Rest" : dayLabel}
+                          </span>
+                          {isToday ? <span className="rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">Today</span> : null}
+                        </div>
                       </li>
                     );
                   })}
@@ -213,10 +187,6 @@ export default async function RoutinesPage() {
                     <li className="py-2 text-sm text-muted">No days configured yet</li>
                   ) : null}
                 </ul>
-
-                {todayRoutineDayIndex !== null ? (
-                  <p className="text-xs text-muted/80">Today: Day {todayRoutineDayIndex}</p>
-                ) : null}
               </div>
             ) : null}
           </>
