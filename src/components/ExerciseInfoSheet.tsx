@@ -20,6 +20,17 @@ export type ExerciseInfoSheetExercise = {
   slug?: string | null;
 };
 
+type ExerciseInfoSheetStats = {
+  exercise_id?: string;
+  last_weight: number | null;
+  last_reps: number | null;
+  last_unit: string | null;
+  last_performed_at: string | null;
+  pr_weight: number | null;
+  pr_reps: number | null;
+  pr_est_1rm: number | null;
+};
+
 const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
 
 function MetaTag({ value }: { value: string | null }) {
@@ -27,12 +38,20 @@ function MetaTag({ value }: { value: string | null }) {
   return <span className={tagClassName}>{value}</span>;
 }
 
+function formatShortDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
+}
+
 export function ExerciseInfoSheet({
   exercise,
+  stats,
   open,
   onOpenChange,
 }: {
   exercise: ExerciseInfoSheetExercise | null;
+  stats?: ExerciseInfoSheetStats | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -66,6 +85,23 @@ export function ExerciseInfoSheet({
   const infoHowToSrc = exercise ? getExerciseIconSrc(exercise) : null;
   const hasHowToImage = !!infoHowToSrc && infoHowToSrc !== "/exercises/icons/_placeholder.svg";
   const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
+  const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
+  const hasLast = stats
+    ? (stats.last_weight != null && stats.last_reps != null && stats.last_performed_at != null)
+    : false;
+  const hasPR = stats
+    ? ((stats.pr_weight != null && stats.pr_reps != null) || stats.pr_est_1rm != null)
+    : false;
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || !exercise) return;
+
+    console.log("[ExerciseInfoSheet:Stats]", {
+      canonicalExerciseId,
+      statsFound: Boolean(stats),
+      statsExerciseId: stats?.exercise_id ?? null,
+    });
+  }, [canonicalExerciseId, exercise, stats]);
 
   if (!open || !exercise) return null;
 
@@ -100,6 +136,29 @@ export function ExerciseInfoSheet({
                   <MetaTag value={exercise.movement_pattern} />
                 </div>
               </div>
+
+              {stats && (hasLast || hasPR) ? (
+                <div className="space-y-1 rounded-md border border-border/50 bg-[rgb(var(--bg)/0.2)] px-2 py-1.5 text-xs text-muted">
+                  <p className="text-xs uppercase tracking-wide text-muted">Personal</p>
+                  {process.env.NODE_ENV === "development" ? (
+                    <p className="font-mono text-[10px] text-muted/90">
+                      DEBUG canonicalExerciseId={canonicalExerciseId ?? "none"} statsFound={stats ? "yes" : "no"} stats.exercise_id={stats.exercise_id ?? "none"}
+                    </p>
+                  ) : null}
+                  {hasLast ? (
+                    <p>
+                      Last: {stats.last_weight} × {stats.last_reps}
+                      {stats.last_performed_at ? ` · ${formatShortDate(stats.last_performed_at)}` : ""}
+                    </p>
+                  ) : null}
+                  {hasPR ? (
+                    <p>
+                      PR: {stats.pr_weight != null && stats.pr_reps != null ? `${stats.pr_weight} × ${stats.pr_reps}` : ""}
+                      {stats.pr_est_1rm != null ? `${stats.pr_weight != null && stats.pr_reps != null ? " · " : ""}Est 1RM ${Math.round(stats.pr_est_1rm)}` : ""}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
 
               {hasHowToImage && infoHowToSrc ? (
                 <div className="space-y-1">
