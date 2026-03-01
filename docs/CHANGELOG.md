@@ -1729,3 +1729,10 @@ WHAT:
 - Unified the segmented control styling for History section tabs and the Sessions List/Compact toggle to remove clipping/misalignment artifacts.
 WHY:
 - Restores reliable log browsing on mobile/desktop and makes tab/toggle controls visually consistent and readable.
+
+### Fixed
+WHAT:
+- Restored reliable scrolling in History → Sessions for both List and Compact views.
+- Made History log detail Back navigation deterministic so it always returns to History → Sessions and keeps the selected view mode.
+WHY:
+- Prevents blocked session-list browsing on mobile/desktop and removes inconsistent Back navigation outcomes from log details.

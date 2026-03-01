@@ -17,9 +17,10 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: { sessionId: string };
+  searchParams?: { returnTab?: string; view?: string };
 };
 
-export default async function HistoryLogDetailsPage({ params }: PageProps) {
+export default async function HistoryLogDetailsPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -96,6 +97,8 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     ?? sessionRow.routine_day_name
     ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
   const exerciseOptions = await listExercises();
+  const returnView = searchParams?.view === "compact" ? "compact" : "list";
+  const backHref = `/history?tab=sessions&view=${returnView}`;
 
   return (
     <section className="flex min-h-[100dvh] flex-col space-y-4">
@@ -103,7 +106,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
       <Glass variant="base" className="space-y-3 p-4" interactive={false}>
         <div className="flex justify-end">
-          <HistoryDetailsBackButton />
+          <HistoryDetailsBackButton returnHref={backHref} />
         </div>
 
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -16,6 +16,7 @@ type HistorySessionItem = {
 
 type HistorySessionsClientProps = {
   sessions: HistorySessionItem[];
+  initialViewMode: ViewMode;
 };
 
 const VIEW_MODE_STORAGE_KEY = "history:sessions:view-mode";
@@ -53,9 +54,11 @@ function formatTimeRange(value: string, durationSeconds: number) {
 function HistorySessionRow({
   session,
   mode,
+  viewMode,
 }: {
   session: HistorySessionItem;
   mode: ViewMode;
+  viewMode: ViewMode;
 }) {
   const primaryMeta = `${formatDuration(session.durationSeconds)} • ${formatDate(session.performedAt)}`;
   const secondaryMeta = mode === "list" ? formatTimeRange(session.performedAt, session.durationSeconds) : null;
@@ -65,7 +68,7 @@ function HistorySessionRow({
       className={`${listShellClasses.card} relative overflow-hidden border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.66)] ${mode === "compact" ? "p-2.5" : "p-0"} shadow-[0_6px_14px_-12px_rgba(0,0,0,0.72)]`}
     >
       <Link
-        href={`/history/${session.id}`}
+        href={`/history/${session.id}?returnTab=sessions&view=${viewMode}`}
         aria-label={`View session details for ${session.name || "session"}`}
         className={`relative z-10 flex gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)] ${mode === "compact" ? "items-center px-2.5 py-2" : "items-start p-3.5"}`}
       >
@@ -82,14 +85,19 @@ function HistorySessionRow({
   );
 }
 
-export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+export function HistorySessionsClient({ sessions, initialViewMode }: HistorySessionsClientProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   const [showBottomFade, setShowBottomFade] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
+      if (initialViewMode === "list" || initialViewMode === "compact") {
+        setViewMode(initialViewMode);
+        return;
+      }
+
       const saved = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
       if (saved === "list" || saved === "compact") {
         setViewMode(saved);
@@ -97,7 +105,7 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
     } catch {
       // Ignore storage read failures.
     }
-  }, []);
+  }, [initialViewMode]);
 
   useEffect(() => {
     try {
@@ -171,7 +179,7 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
           ref={scrollRef}
           className="h-full overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+16px)] pr-1"
           onScroll={onScroll}
-          style={{ WebkitOverflowScrolling: "touch" }}
+          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
           <ul className={listClassName}>
             {sessions.map((session, index) => {
@@ -184,7 +192,7 @@ export function HistorySessionsClient({ sessions }: HistorySessionsClientProps) 
                 <React.Fragment key={session.id}>
                   {isNewMonthGroup ? <li className="mx-1 border-t border-white/12 pt-1" aria-hidden="true" /> : null}
                   <li className={isOlderEntry ? "opacity-90" : "opacity-100"}>
-                    <HistorySessionRow session={session} mode={viewMode} />
+                    <HistorySessionRow session={session} mode={viewMode} viewMode={viewMode} />
                   </li>
                 </React.Fragment>
               );
