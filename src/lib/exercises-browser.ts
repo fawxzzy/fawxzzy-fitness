@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { PostgrestError } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
@@ -69,6 +70,10 @@ function fallbackExercises(): ExerciseCatalogRow[] {
   }));
 }
 
+function isRelationOrColumnMissing(error: PostgrestError | null) {
+  return error?.code === "42P01" || error?.code === "42703";
+}
+
 export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow[]> {
   noStore();
 
@@ -81,8 +86,8 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .order("name", { ascending: true });
 
-  if (exerciseError && exerciseError.code !== "42P01") {
-    throw new Error(exerciseError.message);
+  if (exerciseError && !isRelationOrColumnMissing(exerciseError)) {
+    throw new Error(`failed to load exercises: ${exerciseError.message}`);
   }
 
   const exercises = ((exerciseRows ?? fallbackExercises()) as ExerciseCatalogRow[]).filter((row) => row.id && row.name);
@@ -99,7 +104,14 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
     .in("exercise_id", canonicalIds);
 
   if (statsError) {
-    throw new Error(statsError.message);
+    if (isRelationOrColumnMissing(statsError)) {
+      console.error("[history/exercises] exercise_stats schema mismatch", {
+        code: statsError.code,
+        message: statsError.message,
+      });
+    } else {
+      throw new Error(`failed to load exercise stats: ${statsError.message}`);
+    }
   }
 
   const statsByExerciseId = new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
