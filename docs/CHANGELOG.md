@@ -1,3 +1,9 @@
+### Changed
+WHAT:
+- Showed per-exercise Personal stats (Last performed + PR) directly on the Exercise Info overlay opened from Add Exercise, using canonical exercise UUID mapping from `exercise.exercise_id ?? exercise.id`.
+WHY:
+- Makes progress visible anywhere users inspect exercise details, reducing friction and reinforcing motivation without requiring navigation to Measurements.
+
 ### Fixed
 WHAT:
 - Fixed Exercise Info overlay scroll locking so body/page scrolling is fully restored immediately after closing the overlay.

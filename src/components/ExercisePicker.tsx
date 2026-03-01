@@ -203,7 +203,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [targetDistance, setTargetDistance] = useState("");
   const [targetCalories, setTargetCalories] = useState("");
   const [didApplyLast, setDidApplyLast] = useState(false);
-  const [info, setInfo] = useState<{ exercise: ExerciseOption } | null>(null);
+  const [info, setInfo] = useState<{ exercise: ExerciseOption; stats: ExerciseStatsOption | null } | null>(null);
   const previousExerciseIdRef = useRef<string>(selectedId);
 
   useEffect(() => {
@@ -507,7 +507,11 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                     variant="ghost"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setInfo({ exercise });
+                      const canonicalExerciseId = resolveCanonicalExerciseId(exercise);
+                      setInfo({
+                        exercise,
+                        stats: statsByExerciseId.get(canonicalExerciseId) ?? null,
+                      });
                     }}
                     aria-label="Exercise info"
                     className="h-9 w-9 rounded-full px-0 text-base"
@@ -522,11 +526,25 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
       </div>
 
-      <ExerciseInfoSheet exercise={info?.exercise ?? null} open={!!info && hasMounted} onOpenChange={(open) => {
-        if (!open) {
-          setInfo(null);
-        }
-      }} />
+      <ExerciseInfoSheet
+        exercise={info?.exercise ?? null}
+        stats={info ? {
+          exercise_id: info.stats?.statsExerciseId,
+          last_weight: info.stats?.lastWeight ?? null,
+          last_reps: info.stats?.lastReps ?? null,
+          last_unit: info.stats?.lastUnit ?? null,
+          last_performed_at: info.stats?.lastPerformedAt ?? null,
+          pr_weight: info.stats?.prWeight ?? null,
+          pr_reps: info.stats?.prReps ?? null,
+          pr_est_1rm: info.stats?.prEst1rm ?? null,
+        } : null}
+        open={!!info && hasMounted}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInfo(null);
+          }
+        }}
+      />
 
       {routineTargetConfig && selectedExercise ? (
         <div className="space-y-2 border-t border-border/50 pt-2">
