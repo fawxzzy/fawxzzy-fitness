@@ -163,22 +163,22 @@ export default async function RoutinesPage() {
                   </Link>
                 </div>
 
-                <ul className="divide-y divide-border/15 text-sm text-muted">
+                <ul className="divide-y divide-border/10 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
                     const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
                     const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
                     const isToday = index === todayRowIndex;
 
                     return (
-                      <li key={day.id} className={`grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-start gap-3 py-2 ${isToday ? "rounded-md bg-accent/10 px-2" : ""}`}>
-                        <span className="min-w-0 text-xs font-medium uppercase tracking-wide text-muted/95">
+                      <li key={day.id} className={`grid min-h-11 grid-cols-[80px_minmax(0,1fr)] items-start gap-3 py-2 ${isToday ? "rounded-md bg-accent/5 px-2" : ""}`}>
+                        <span className="w-20 shrink-0 text-xs font-medium uppercase tracking-wide text-muted/95">
                           Day {dayNumber}
                         </span>
                         <div className="flex min-w-0 items-center justify-end gap-2 text-right">
                           <span className={`min-w-0 text-sm leading-5 ${day.is_rest ? "text-muted/75" : "text-text/90"}`}>
-                            {day.is_rest ? "• Rest" : dayLabel}
+                            {day.is_rest ? "Rest" : dayLabel}
                           </span>
-                          {isToday ? <span className="rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">Today</span> : null}
+                          {isToday ? <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">Today</span> : null}
                         </div>
                       </li>
                     );

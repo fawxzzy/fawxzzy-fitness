@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Polished the Routines day list layout with fixed-width day labels for stable row alignment, a softer TODAY row emphasis, lighter row dividers, and cleaner Rest text styling.
+WHY:
+- Improves scanability and visual stability on long day names while reducing wireframe-like contrast without changing routine behavior.
+
+### Changed
+WHAT:
 - Moved the History → Exercises back-navigation control to the right side of the card header area.
 WHY:
 - Matches requested navigation placement and keeps the exercise browser header actions visually consistent with top-right back affordances used elsewhere.
