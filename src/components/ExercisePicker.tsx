@@ -487,6 +487,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
       {routineTargetConfig && selectedExercise ? (
         <div className="space-y-2 border-t border-border/50 pt-2">
+          {selectedMeasurements.map((metric) => (
+            <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />
+          ))}
           <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
 
           <div className="space-y-2 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-2">

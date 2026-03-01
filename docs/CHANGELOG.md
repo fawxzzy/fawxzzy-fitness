@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Ensured Add Exercise always submits the selected measurement targets (reps/weight/time/distance/calories) even when the Measurements panel is collapsed.
+WHY:
+- Measurement selection checkboxes were only rendered while expanded, so collapsed submissions dropped measurement flags and persisted empty goal/target fields.
+
+### Fixed
+WHAT:
 - Restored deterministic goal target persistence across routine-day editing and active-session exercise creation by using a shared measurement-goal mapping contract.
 - Restored session seeding from routine templates so Today → Start Workout carries sets and measurement targets (reps/weight/time/distance/calories) into `session_exercises` goals.
 - Restored Current Session logger goal prefill behavior when switching exercises so target defaults populate consistently regardless of measurement panel disclosure state.
