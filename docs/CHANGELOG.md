@@ -1670,3 +1670,11 @@ WHAT:
 - Softened routine card border and internal divider opacity for a less wireframe-like presentation.
 WHY:
 - Prevents contradictory day-index information between Today and Routines while improving at-a-glance scanability of the active routine.
+
+### Changed
+WHAT:
+- Polished History Sessions list metadata hierarchy so log cards now emphasize title/day while keeping duration/date and optional time-range details consistently muted.
+- Updated History Sessions layout to use a full-height flex scroll region with safe-area-aware bottom padding and a bottom fade affordance that appears only when more rows remain.
+- Added a History Sessions view-mode toggle with a denser Compact mode alongside the primary List mode.
+WHY:
+- Improves scanability and visual consistency of session metadata, fixes bottom-of-screen scroll landing on mobile viewports, and gives power users a faster high-density history browsing option.
