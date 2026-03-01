@@ -1,3 +1,10 @@
+### Changed
+WHAT:
+- Added a deterministic missing-icons backfill mode to the exercise icon sync workflow, with a report-first default and explicit apply-only behavior for unambiguous matches.
+- Added a generated `icon-missing-backfill-report.md` output that lists missing slugs, ambiguous candidates, and skipped file inventory reasons.
+WHY:
+- Improves icon coverage auditing and safe backfill operations without guessing, so missing exercise icons can be resolved predictably.
+
 ### Fixed
 WHAT:
 - Adjusted the Current Session sticky header to respect iOS safe-area spacing, swapped Save Session and Back positions, and moved the session title into page content so it can fully wrap.
