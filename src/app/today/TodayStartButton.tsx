@@ -23,7 +23,7 @@ export function TodayStartButton({
       type="button"
       loading={isPending}
       fullWidth
-      className="h-12 border-emerald-400/45 bg-emerald-500/20 text-emerald-50 hover:bg-emerald-500/26 active:bg-emerald-500/32"
+      className="h-12 border-emerald-400/45 bg-emerald-500/20 text-emerald-50 transition-transform hover:bg-emerald-500/26 active:scale-[0.98] active:bg-emerald-500/32"
       onClick={() => {
         startTransition(async () => {
           const result = await startSessionAction({ dayIndex: selectedDayIndex });
