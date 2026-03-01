@@ -1778,3 +1778,10 @@ WHAT:
 WHY:
 - Resolves visual drift and interaction inconsistency in History, improves scanability in compact mode, and restores a clearer mobile list ending affordance without blocking taps or scroll.
 
+
+### Fixed
+WHAT:
+- Updated History Sessions cards so long titles and metadata stay inside card bounds with clean wrapping/clipping on mobile.
+- Restored visible primary/secondary text in History Exercises cards while keeping the same card chrome and tap-to-open detail behavior.
+WHY:
+- Prevents text overflow/bleed regressions in session history and resolves blank-looking exercise cards introduced by recent UI refactors.

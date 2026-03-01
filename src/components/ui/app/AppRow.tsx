@@ -27,9 +27,9 @@ export function AppRow({
 
   const content = (
     <>
-      <div className={cn("min-w-0 space-y-1", rightWrap ? "shrink-0" : undefined)}>
+      <div className={cn("min-w-0 flex-1 space-y-1", rightWrap ? "shrink-0" : undefined)}>
         <div className="text-[0.96rem] font-semibold leading-snug text-[rgb(var(--text)/0.98)]">{leftTop}</div>
-        {leftBottom ? <div className={cn("text-xs leading-snug", appTokens.metaText)}>{leftBottom}</div> : null}
+        {leftBottom ? <div className={cn("min-w-0 text-xs leading-snug whitespace-normal break-words", appTokens.metaText)}>{leftBottom}</div> : null}
       </div>
       {(rightTop || rightBottom) ? (
         <div className={cn("min-w-0 text-right", rightWrap ? "flex-1" : "shrink-0")}>
