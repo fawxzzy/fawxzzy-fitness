@@ -131,8 +131,19 @@ export default async function HistoryPage({
     <section className="space-y-4">
       <AppNav />
 
-      {sessions.length > 0 ? (
-        <Glass variant="base" className="p-2" interactive={false}>
+      <Glass variant="base" className="p-2" interactive={false}>
+        <div className="mb-2 flex justify-end">
+          <div className="inline-flex rounded-lg border border-[rgb(var(--glass-tint-rgb)/0.22)] bg-[rgb(var(--glass-tint-rgb)/0.38)] p-1">
+            <span className="inline-flex min-h-9 items-center rounded-md bg-[rgb(var(--glass-tint-rgb)/0.9)] px-3 text-xs font-semibold text-slate-100">
+              Sessions
+            </span>
+            <Link href="/history/exercises" className="inline-flex min-h-9 items-center rounded-md px-3 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white">
+              Exercises
+            </Link>
+          </div>
+        </div>
+
+        {sessions.length > 0 ? (
           <ul className={`${listShellClasses.viewport} ${listShellClasses.list}`}>
             {sessions.map((session) => {
               const resolvedDayName = session.day_name_override
@@ -186,13 +197,13 @@ export default async function HistoryPage({
               );
             })}
           </ul>
-        </Glass>
-      ) : (
-        <Glass variant="base" className="px-4 py-6 text-center" interactive={false}>
-          <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
-          <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
-        </Glass>
-      )}
+        ) : (
+          <div className="px-4 py-6 text-center">
+            <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
+            <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
+          </div>
+        )}
+      </Glass>
 
       {nextCursor ? (
         <div className="flex justify-center">
