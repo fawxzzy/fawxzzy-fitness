@@ -4,9 +4,9 @@
 
 :root {
   color-scheme: dark;
-  --bg: 24 29 38;
-  --surface: 34 40 49;
-  --surface-2: 44 52 63;
+  --bg: 20 25 34;
+  --surface: 37 44 54;
+  --surface-2: 47 56 68;
   --border: 70 80 94;
   --text: 245 247 250;
   --muted: 198 206 216;
@@ -57,22 +57,22 @@
   --radius-lg: 1.125rem;
 
   --glass-tint-rgb: 38 45 56;
-  --glass-tint-alpha-on: 0.6;
+  --glass-tint-alpha-on: 0.64;
   --glass-tint-alpha-reduced: 0.74;
-  --glass-border-alpha-on: 0.28;
+  --glass-border-alpha-on: 0.36;
   --glass-border-alpha-reduced: 0.4;
 
-  --glass-blur-base-on: 10px;
-  --glass-blur-raised-on: 14px;
-  --glass-blur-overlay-on: 18px;
+  --glass-blur-base-on: 7px;
+  --glass-blur-raised-on: 10px;
+  --glass-blur-overlay-on: 12px;
   --glass-blur-base-reduced: 4px;
   --glass-blur-raised-reduced: 6px;
   --glass-blur-overlay-reduced: 8px;
   --glass-blur-off: 0px;
 
-  --glass-shadow-base: 0 8px 24px rgb(0 0 0 / 0.2);
-  --glass-shadow-raised: 0 12px 30px rgb(0 0 0 / 0.25);
-  --glass-shadow-overlay: 0 16px 36px rgb(0 0 0 / 0.28);
+  --glass-shadow-base: 0 6px 16px rgb(0 0 0 / 0.22);
+  --glass-shadow-raised: 0 10px 22px rgb(0 0 0 / 0.24);
+  --glass-shadow-overlay: 0 12px 28px rgb(0 0 0 / 0.26);
 
   --glass-sheen-strength-on: 0.09;
   --glass-sheen-strength-reduced: 0.05;
