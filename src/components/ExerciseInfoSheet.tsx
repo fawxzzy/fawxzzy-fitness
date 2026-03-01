@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { getExerciseHowToImageSrc, getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrcOrNull, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
@@ -104,9 +104,7 @@ export function ExerciseInfoSheet({
     };
   }, [exercise]);
 
-  const iconSrc = exercise ? getExerciseIconSrc(exercise) : "/exercises/icons/_placeholder.svg";
-  const infoHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
-  const resolvedHowToSrc = infoHowToSrc || iconSrc || "/exercises/icons/_placeholder.svg";
+  const resolvedHowToSrc = exercise ? getExerciseHowToImageSrcOrNull(exercise) : null;
   const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const lastSummary = stats ? formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) : null;
@@ -186,17 +184,19 @@ export function ExerciseInfoSheet({
                 </div>
               ) : null}
 
-              <div className="space-y-1">
-                <p className={sectionTitleClassName}>How-to</p>
-                <div className="flex h-44 items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3 sm:h-48">
-                  <ExerciseAssetImage
-                    key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
-                    src={resolvedHowToSrc}
-                    alt="How-to visual"
-                    className="h-full w-full object-contain object-center"
-                  />
+              {resolvedHowToSrc ? (
+                <div className="space-y-1">
+                  <p className={sectionTitleClassName}>How-to</p>
+                  <div className="flex h-44 items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3 sm:h-48">
+                    <ExerciseAssetImage
+                      key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
+                      src={resolvedHowToSrc}
+                      alt="How-to visual"
+                      className="h-full w-full object-contain object-center"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
               <div className="space-y-1">
                 <p className={sectionTitleClassName}>Muscles</p>

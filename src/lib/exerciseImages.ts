@@ -9,6 +9,7 @@ export type ExerciseImageSource = {
 };
 
 const PLACEHOLDER_ICON_SRC = "/exercises/icons/_placeholder.svg";
+const HOWTO_PLACEHOLDER_PATHS = new Set(["/exercises/placeholders/howto.svg"]);
 const missingIconSlugLogCache = new Set<string>();
 
 export function slugifyExerciseName(name: string): string {
@@ -71,7 +72,21 @@ export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
 }
 
 export function getExerciseHowToImageSrc(exercise: ExerciseImageSource): string {
-  return getLocalImagePath(exercise.image_howto_path) ?? getExerciseIconSrc(exercise);
+  const rawHowTo = exercise.image_howto_path?.trim() ?? "";
+  if (rawHowTo.startsWith("/") && !HOWTO_PLACEHOLDER_PATHS.has(rawHowTo)) {
+    return rawHowTo;
+  }
+
+  return getExerciseIconSrc(exercise);
+}
+
+export function getExerciseHowToImageSrcOrNull(exercise: ExerciseImageSource): string | null {
+  const src = getExerciseHowToImageSrc(exercise);
+  if (src === PLACEHOLDER_ICON_SRC || HOWTO_PLACEHOLDER_PATHS.has(src)) {
+    return null;
+  }
+
+  return src;
 }
 
 export function getExerciseMusclesImageSrc(imagePath?: string | null): string {
