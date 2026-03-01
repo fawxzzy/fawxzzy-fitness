@@ -13,7 +13,9 @@ function ExercisesBrowserError() {
     <Glass variant="base" className="space-y-3 p-4" interactive={false}>
       <p className="text-sm font-medium text-slate-100">Unable to load exercise history right now.</p>
       <p className="text-xs text-slate-300">Please try again in a moment.</p>
-      <BackButton href="/history" label="Back to History" className="w-fit" />
+      <div className="flex justify-end">
+        <BackButton href="/history" label="Back to History" className="w-fit" />
+      </div>
     </Glass>
   );
 }
@@ -27,7 +29,9 @@ export default async function HistoryExercisesPage() {
         <AppNav />
 
         <Glass variant="base" className="space-y-2 p-3" interactive={false}>
-          <BackButton href="/history" label="Back" className="w-fit" />
+          <div className="flex justify-end">
+            <BackButton href="/history" label="Back" className="w-fit" />
+          </div>
           <ExerciseBrowserClient rows={rows} />
         </Glass>
       </section>
