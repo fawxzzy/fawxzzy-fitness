@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { getExerciseIconSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
+import { getExerciseHowToImageSrc, getExerciseMusclesImageSrc } from "@/lib/exerciseImages";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
@@ -15,6 +15,7 @@ export type ExerciseInfoSheetExercise = {
   equipment: string | null;
   movement_pattern: string | null;
   image_muscles_path?: string | null;
+  image_howto_path?: string | null;
   how_to_short?: string | null;
   image_icon_path?: string | null;
   slug?: string | null;
@@ -29,6 +30,9 @@ type ExerciseInfoSheetStats = {
   pr_weight: number | null;
   pr_reps: number | null;
   pr_est_1rm: number | null;
+  actual_pr_weight: number | null;
+  actual_pr_reps: number | null;
+  actual_pr_at: string | null;
 };
 
 const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
@@ -41,7 +45,24 @@ function MetaTag({ value }: { value: string | null }) {
 function formatShortDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatWeight(weight: number) {
+  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatWeightReps(weight: number | null, reps: number | null, unit: string | null) {
+  const weightLabel = typeof weight === "number" && Number.isFinite(weight) && weight > 0 ? formatWeight(weight) : null;
+  const repsLabel = typeof reps === "number" && Number.isFinite(reps) && reps > 0 ? String(reps) : null;
+  const normalizedUnit = unit === "lb" || unit === "lbs" ? "lb" : unit === "kg" ? "kg" : "";
+  const unitSuffix = weightLabel && normalizedUnit ? normalizedUnit : "";
+
+  if (weightLabel && repsLabel) {
+    return `${weightLabel}${unitSuffix}×${repsLabel}`;
+  }
+
+  return null;
 }
 
 export function ExerciseInfoSheet({
@@ -82,16 +103,15 @@ export function ExerciseInfoSheet({
     };
   }, [exercise]);
 
-  const infoHowToSrc = exercise ? getExerciseIconSrc(exercise) : null;
+  const infoHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : null;
   const hasHowToImage = !!infoHowToSrc && infoHowToSrc !== "/exercises/icons/_placeholder.svg";
   const infoMusclesSrc = getExerciseMusclesImageSrc(infoDetails?.image_muscles_path);
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
-  const hasLast = stats
-    ? (stats.last_weight != null && stats.last_reps != null && stats.last_performed_at != null)
-    : false;
-  const hasPR = stats
-    ? ((stats.pr_weight != null && stats.pr_reps != null) || stats.pr_est_1rm != null)
-    : false;
+  const lastSummary = stats ? formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) : null;
+  const actualPrSummary = stats ? formatWeightReps(stats.actual_pr_weight, stats.actual_pr_reps, stats.last_unit) : null;
+  const e1rmSummary = stats?.pr_est_1rm != null && stats.pr_est_1rm > 0
+    ? `e1RM ${Math.round(stats.pr_est_1rm)}${stats.pr_weight != null && stats.pr_reps != null ? ` (from ${formatWeightReps(stats.pr_weight, stats.pr_reps, stats.last_unit) ?? `${stats.pr_weight}×${stats.pr_reps}`})` : ""}`
+    : null;
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development" || !exercise) return;
@@ -137,25 +157,29 @@ export function ExerciseInfoSheet({
                 </div>
               </div>
 
-              {stats && (hasLast || hasPR) ? (
+              {stats ? (
                 <div className="space-y-1 rounded-md border border-border/50 bg-[rgb(var(--bg)/0.2)] px-2 py-1.5 text-xs text-muted">
-                  <p className="text-xs uppercase tracking-wide text-muted">Personal</p>
+                  <p className="text-xs uppercase tracking-wide text-muted">Stats</p>
                   {process.env.NODE_ENV === "development" ? (
                     <p className="font-mono text-[10px] text-muted/90">
                       DEBUG canonicalExerciseId={canonicalExerciseId ?? "none"} statsFound={stats ? "yes" : "no"} stats.exercise_id={stats.exercise_id ?? "none"}
                     </p>
                   ) : null}
-                  {hasLast ? (
+                  {lastSummary ? (
                     <p>
-                      Last: {stats.last_weight} × {stats.last_reps}
+                      Last: {lastSummary}
                       {stats.last_performed_at ? ` · ${formatShortDate(stats.last_performed_at)}` : ""}
                     </p>
                   ) : null}
-                  {hasPR ? (
+                  {actualPrSummary ? (
                     <p>
-                      PR: {stats.pr_weight != null && stats.pr_reps != null ? `${stats.pr_weight} × ${stats.pr_reps}` : ""}
-                      {stats.pr_est_1rm != null ? `${stats.pr_weight != null && stats.pr_reps != null ? " · " : ""}Est 1RM ${Math.round(stats.pr_est_1rm)}` : ""}
+                      Actual PR: {actualPrSummary}
+                      {stats.actual_pr_at ? ` · ${formatShortDate(stats.actual_pr_at)}` : ""}
                     </p>
+                  ) : null}
+                  {e1rmSummary ? <p>Strength PR: {e1rmSummary}</p> : null}
+                  {!lastSummary && !actualPrSummary && !e1rmSummary ? (
+                    <p className="text-muted">No history yet</p>
                   ) : null}
                 </div>
               ) : null}

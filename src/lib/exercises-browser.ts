@@ -9,6 +9,13 @@ import { supabaseServer } from "@/lib/supabase/server";
 type ExerciseCatalogRow = {
   id: string;
   name: string;
+  slug: string | null;
+  primary_muscle: string | null;
+  equipment: string | null;
+  movement_pattern: string | null;
+  image_howto_path: string | null;
+  image_muscles_path: string | null;
+  how_to_short: string | null;
 };
 
 type ExerciseStatsRow = {
@@ -20,6 +27,9 @@ type ExerciseStatsRow = {
   pr_weight: number | null;
   pr_reps: number | null;
   pr_est_1rm: number | null;
+  actual_pr_weight: number | null;
+  actual_pr_reps: number | null;
+  actual_pr_at: string | null;
 };
 
 export type ExerciseBrowserRow = {
@@ -29,6 +39,12 @@ export type ExerciseBrowserRow = {
   slug: string | null;
   image_path: string | null;
   image_icon_path: string | null;
+  image_howto_path: string | null;
+  image_muscles_path: string | null;
+  how_to_short: string | null;
+  primary_muscle: string | null;
+  equipment: string | null;
+  movement_pattern: string | null;
   last_performed_at: string | null;
   last_weight: number | null;
   last_reps: number | null;
@@ -36,6 +52,9 @@ export type ExerciseBrowserRow = {
   pr_weight: number | null;
   pr_reps: number | null;
   pr_est_1rm: number | null;
+  actual_pr_weight: number | null;
+  actual_pr_reps: number | null;
+  actual_pr_at: string | null;
 };
 
 function compareExerciseBrowserRows(a: ExerciseBrowserRow, b: ExerciseBrowserRow) {
@@ -72,6 +91,13 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
     .map((row) => ({
       id: row.id,
       name: row.name,
+      slug: "slug" in row && typeof row.slug === "string" ? row.slug : null,
+      primary_muscle: row.primary_muscle ?? null,
+      equipment: row.equipment ?? null,
+      movement_pattern: row.movement_pattern ?? null,
+      image_howto_path: row.image_howto_path ?? null,
+      image_muscles_path: row.image_muscles_path ?? null,
+      how_to_short: row.how_to_short ?? null,
     }));
 
   const canonicalIds = Array.from(new Set(exercises.map((row) => row.id)));
@@ -82,7 +108,7 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 
   const { data: statsRows, error: statsError } = await supabase
     .from("exercise_stats")
-    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm")
+    .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, actual_pr_weight, actual_pr_reps, actual_pr_at")
     .eq("user_id", user.id)
     .in("exercise_id", canonicalIds);
 
@@ -108,9 +134,15 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         id: exercise.id,
         canonicalExerciseId,
         name: exercise.name,
-        slug: null,
+        slug: exercise.slug,
         image_path: null,
         image_icon_path: null,
+        image_howto_path: exercise.image_howto_path,
+        image_muscles_path: exercise.image_muscles_path,
+        how_to_short: exercise.how_to_short,
+        primary_muscle: exercise.primary_muscle,
+        equipment: exercise.equipment,
+        movement_pattern: exercise.movement_pattern,
         last_performed_at: stats?.last_performed_at ?? null,
         last_weight: stats?.last_weight ?? null,
         last_reps: stats?.last_reps ?? null,
@@ -118,6 +150,9 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         pr_weight: stats?.pr_weight ?? null,
         pr_reps: stats?.pr_reps ?? null,
         pr_est_1rm: stats?.pr_est_1rm ?? null,
+        actual_pr_weight: stats?.actual_pr_weight ?? null,
+        actual_pr_reps: stats?.actual_pr_reps ?? null,
+        actual_pr_at: stats?.actual_pr_at ?? null,
       };
     })
     .sort(compareExerciseBrowserRows);

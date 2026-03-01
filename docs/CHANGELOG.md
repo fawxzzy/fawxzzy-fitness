@@ -1,3 +1,11 @@
+### Changed
+WHAT:
+- Fixed `/history/exercises` row interactions to open the existing in-place Exercise Info overlay instead of navigating to a non-existent `/exercises/[id]` destination.
+- Expanded exercise personal records to cache and expose both “Actual PR” (best recorded weighted set) and “Strength PR” (best estimated 1RM), and updated Exercise Info/Exercise Browser UI labels to show Last + Actual PR + e1RM PR together.
+WHY:
+- Restores deterministic, in-context exercise detail navigation without 404 regressions.
+- Separates intuitive literal best-set tracking from strength-estimate progression so users can read progress more clearly.
+
 ### Fixed
 WHAT:
 - Hardened `/history/exercises` server rendering with a safe fallback state so users see a friendly error card instead of a route crash when exercise history data fails to load.

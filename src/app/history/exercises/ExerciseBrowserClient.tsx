@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
 import { Input } from "@/components/ui/Input";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
-import { getExerciseInfoHref } from "@/lib/exercise-nav";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
 type ExerciseBrowserClientProps = {
@@ -49,6 +49,7 @@ function formatShortDate(dateValue: string | null) {
 
 export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps) {
   const [query, setQuery] = useState("");
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -62,6 +63,11 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
       return nameMatch || slugMatch;
     });
   }, [query, rows]);
+
+  const selectedRow = useMemo(
+    () => (selectedExerciseId ? rows.find((row) => row.canonicalExerciseId === selectedExerciseId) ?? null : null),
+    [rows, selectedExerciseId],
+  );
 
   return (
     <div className="space-y-3">
@@ -92,18 +98,20 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
             slug: row.slug,
             image_path: row.image_path,
             image_icon_path: row.image_icon_path,
+            image_howto_path: row.image_howto_path,
           });
           const lastSummary = formatSetSummary(row.last_weight, row.last_reps, row.last_unit);
           const lastDate = formatShortDate(row.last_performed_at);
-          const prSummary = row.pr_est_1rm && row.pr_est_1rm > 0
-            ? `${Math.round(row.pr_est_1rm)} e1RM`
-            : formatSetSummary(row.pr_weight, row.pr_reps, row.last_unit);
+          const actualPrSummary = formatSetSummary(row.actual_pr_weight, row.actual_pr_reps, row.last_unit);
+          const actualPrDate = formatShortDate(row.actual_pr_at);
+          const e1rmSummary = row.pr_est_1rm && row.pr_est_1rm > 0 ? `${Math.round(row.pr_est_1rm)} e1RM` : null;
 
           return (
             <li key={row.id} className={`${listShellClasses.card} p-0`}>
-              <Link
-                href={getExerciseInfoHref(row.canonicalExerciseId, { returnTo: "/history/exercises" })}
-                className="flex min-h-11 items-center gap-3 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+              <button
+                type="button"
+                onClick={() => setSelectedExerciseId(row.canonicalExerciseId)}
+                className="flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
               >
                 <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-9 w-9 shrink-0 rounded-md border border-border/40 bg-surface-2-soft object-cover" />
 
@@ -117,23 +125,62 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
                 </div>
 
                 <div className="min-w-0 shrink-0 text-right text-xs">
-                  {lastSummary || prSummary ? (
+                  {lastSummary || actualPrSummary || e1rmSummary ? (
                     <>
                       <p className="font-semibold text-slate-100">
                         Last: {lastSummary ?? "—"}
                         {lastDate ? <span className="ml-1 font-normal text-slate-400">{lastDate}</span> : null}
                       </p>
-                      <p className="text-slate-300">{prSummary ? `PR: ${prSummary}` : "PR: —"}</p>
+                      <p className="text-slate-300">
+                        PR: {actualPrSummary ?? "—"}
+                        {actualPrDate ? <span className="ml-1 text-slate-400">{actualPrDate}</span> : null}
+                      </p>
+                      {e1rmSummary ? <p className="text-[11px] text-slate-400">{e1rmSummary}</p> : null}
                     </>
                   ) : (
                     <p className="text-slate-400">No history yet</p>
                   )}
                 </div>
-              </Link>
+              </button>
             </li>
           );
         })}
       </ul>
+
+      <ExerciseInfoSheet
+        exercise={selectedRow ? {
+          id: selectedRow.canonicalExerciseId,
+          exercise_id: selectedRow.canonicalExerciseId,
+          name: selectedRow.name,
+          primary_muscle: selectedRow.primary_muscle,
+          equipment: selectedRow.equipment,
+          movement_pattern: selectedRow.movement_pattern,
+          image_muscles_path: selectedRow.image_muscles_path,
+          image_icon_path: selectedRow.image_icon_path,
+          image_howto_path: selectedRow.image_howto_path,
+          how_to_short: selectedRow.how_to_short,
+          slug: selectedRow.slug,
+        } : null}
+        stats={selectedRow ? {
+          exercise_id: selectedRow.canonicalExerciseId,
+          last_weight: selectedRow.last_weight,
+          last_reps: selectedRow.last_reps,
+          last_unit: selectedRow.last_unit,
+          last_performed_at: selectedRow.last_performed_at,
+          pr_weight: selectedRow.pr_weight,
+          pr_reps: selectedRow.pr_reps,
+          pr_est_1rm: selectedRow.pr_est_1rm,
+          actual_pr_weight: selectedRow.actual_pr_weight,
+          actual_pr_reps: selectedRow.actual_pr_reps,
+          actual_pr_at: selectedRow.actual_pr_at,
+        } : null}
+        open={Boolean(selectedRow)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedExerciseId(null);
+          }
+        }}
+      />
     </div>
   );
 }
