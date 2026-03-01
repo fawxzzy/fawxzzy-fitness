@@ -1,3 +1,4 @@
+import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { AppNav } from "@/components/AppNav";
 import { BackButton } from "@/components/ui/BackButton";
@@ -32,7 +33,7 @@ export default async function HistoryExercisesPage() {
       </section>
     );
   } catch (error) {
-    if (isRedirectError(error)) {
+    if (isRedirectError(error) || isNotFoundError(error)) {
       throw error;
     }
 

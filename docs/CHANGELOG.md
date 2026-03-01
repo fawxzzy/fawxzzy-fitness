@@ -1501,3 +1501,11 @@ WHAT:
 - Updated Goal rendering to show full range-aware output for sets, reps, and weight (including unit) when present, while still handling partial goals cleanly.
 WHY:
 - Prevents recently-added exercises from showing incomplete Goal text (for example only sets) after the range-column migration, and keeps displayed goals consistent with persisted session values.
+
+
+### Fixed
+WHAT:
+- Fixed History → Exercises Browser to load the same canonical exercise catalog used by Add Exercise so the browser shows the full exercise list instead of a reduced subset.
+- Fixed History → Exercises row navigation to open the existing Exercise Info screen without routing to a 404 path.
+WHY:
+- Users need complete catalog coverage when browsing history and consistent Exercise Info navigation behavior from exercise stats browsing.

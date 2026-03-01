@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-01 — History exercise browsers must share the same canonical catalog loader as Add Exercise
+- Type: Guardrail
+- Summary: Any feature that lists exercisable catalog items for selection/browsing should source rows from the same canonical loader used by Add Exercise, then layer optional per-user stats in a separate batched lookup.
+- Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
+- Rationale: Prevents catalog drift where one surface silently shows only a partial DB subset while other flows show the full known catalog.
+- Evidence: src/lib/exercises-browser.ts, src/lib/exercises.ts, src/app/history/exercises/ExerciseBrowserClient.tsx
+- Status: Proposed
+
 ## 2026-03-01 — Degrade derived cache reads safely when schema rollout lags
 - Type: Guardrail
 - Summary: Routes that enrich primary entities with derived cache tables should treat missing relation/column errors as a non-fatal fallback path (base rows + null stats) while logging full server diagnostics.
