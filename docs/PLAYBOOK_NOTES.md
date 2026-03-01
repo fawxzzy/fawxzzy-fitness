@@ -10,10 +10,13 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
-
-# Playbook Notes (Local Inbox)
-
-## UPSTREAMED (keep for traceability)
+## 2026-03-01 — Degrade derived cache reads safely when schema rollout lags
+- Type: Guardrail
+- Summary: Routes that enrich primary entities with derived cache tables should treat missing relation/column errors as a non-fatal fallback path (base rows + null stats) while logging full server diagnostics.
+- Suggested Playbook File: Playbook/docs/PATTERNS/cache-and-revalidation.md
+- Rationale: Production environments can lag migrations; hard-failing server components on optional cache tables causes avoidable route outages.
+- Evidence: src/lib/exercises-browser.ts, src/app/history/exercises/page.tsx
+- Status: Proposed
 
 ## 2026-02-28 — Resolve cached/aggregated stats by canonical entity ID at render boundaries
 - Type: Guardrail

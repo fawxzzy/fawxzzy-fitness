@@ -9,7 +9,7 @@ import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
 type ExerciseBrowserClientProps = {
-  rows: ExerciseBrowserRow[];
+  rows?: ExerciseBrowserRow[];
 };
 
 function formatWeight(weight: number) {
@@ -46,7 +46,7 @@ function formatShortDate(dateValue: string | null) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
 }
 
-export function ExerciseBrowserClient({ rows }: ExerciseBrowserClientProps) {
+export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps) {
   const [query, setQuery] = useState("");
 
   const filteredRows = useMemo(() => {
