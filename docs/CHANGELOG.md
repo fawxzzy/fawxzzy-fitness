@@ -1640,3 +1640,11 @@ WHAT:
 - Updated the routine summary card styling to reduce heavy borders and use subtler separators and emphasis states, including softer Rest/TODAY differentiation.
 WHY:
 - Improves mobile usability and visual clarity by matching the newer app UI language while keeping routine switching and editing fast, predictable, and less visually noisy.
+
+### Fixed
+WHAT:
+- Reused the canonical routine-day mapping from Today on the Routines screen so the current cycle day resolves consistently (including Sunday mapping to Day 7 when applicable).
+- Highlighted the matching current day row directly in the routine day list and removed the incorrect footer-style "Today: Day X" display.
+- Softened routine card border and internal divider opacity for a less wireframe-like presentation.
+WHY:
+- Prevents contradictory day-index information between Today and Routines while improving at-a-glance scanability of the active routine.
