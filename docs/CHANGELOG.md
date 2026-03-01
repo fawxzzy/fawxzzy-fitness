@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Replaced the exercise icon sync tooling with a deterministic canonical-folder workflow that validates filename contracts, regenerates the existing icon manifest, and writes a stable human-readable sync report.
+WHY:
+- Gives a predictable manual drop-and-sync path for new exercise icons while preventing silent renames and reducing icon catalog drift risk.
+
+### Changed
+WHAT:
 - Updated Current Session with a compact sticky top control bar that keeps Back, session title, elapsed session time, and Save Session visible while scrolling.
 - Added a sticky Save set footer in expanded exercise logging so the primary set action stays reachable, with extra spacing to keep final inputs visible above the footer.
 - Simplified expanded exercise goal presentation to a single compact goal line and reduced visual emphasis on the Modify measurements control.

@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-01 — Use deterministic sync reports instead of auto-renaming canonical media files
+- Type: Guardrail
+- Summary: Canonical media sync scripts should validate strict filename contracts and report suggested fixes, but must not auto-rename files in-place by default.
+- Suggested Playbook File: Playbook/docs/PATTERNS/media-fallbacks.md
+- Rationale: Prevents hidden filesystem mutations and keeps media onboarding auditable/repeatable for manual asset workflows.
+- Evidence: scripts/syncExerciseIcons.mjs, icon-sync-report.md, src/generated/exerciseIconManifest.ts
+- Status: Proposed
+
 ## 2026-03-01 — Pair sticky bottom CTAs with conditional content padding in long input flows
 - Type: Guardrail
 - Summary: When adding sticky action bars over forms, reserve matching bottom space in the content container (including safe-area inset) so the last interactive fields remain visible and focusable.
