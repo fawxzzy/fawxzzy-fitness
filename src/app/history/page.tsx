@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
+import { AppHeader } from "@/components/ui/app/AppHeader";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { Glass } from "@/components/ui/Glass";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionRow } from "@/types/db";
@@ -71,10 +72,10 @@ export default async function HistoryPage({
   const routineIds = Array.from(new Set(sessions.map((session) => session.routine_id).filter((routineId): routineId is string => Boolean(routineId))));
   const { data: routineDays } = routineIds.length
     ? await supabase
-        .from("routine_days")
-        .select("routine_id, day_index, name")
-        .in("routine_id", routineIds)
-        .eq("user_id", user.id)
+      .from("routine_days")
+      .select("routine_id, day_index, name")
+      .in("routine_id", routineIds)
+      .eq("user_id", user.id)
     : { data: [] };
 
   const routineDayNameByKey = new Map<string, string>();
@@ -98,33 +99,31 @@ export default async function HistoryPage({
     <section className="flex h-[100dvh] min-h-0 flex-col gap-4 overflow-hidden">
       <AppNav />
 
-      <Glass
-        variant="base"
-        className="flex min-h-0 flex-1 flex-col p-2 [&>div]:flex [&>div]:min-h-0 [&>div]:flex-1"
-        interactive={false}
-      >
-        {/* Keep Glass's inner wrapper constrained (`min-h-0`) so the sessions pane can actually scroll inside this flex column. */}
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-3 shrink-0 px-1">
-            <SegmentedControl
-              options={[
-                { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${viewMode}` },
-                { label: "Exercises", value: "exercises", href: "/history/exercises" },
-              ]}
-              value="sessions"
-            />
-          </div>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <AppPanel className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+          <AppHeader title="History" subtitleLeft="Completed sessions and exercise performance" />
+
+          <SegmentedControl
+            options={[
+              { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${viewMode}` },
+              { label: "Exercises", value: "exercises", href: "/history/exercises" },
+            ]}
+            value="sessions"
+            ariaLabel="History tabs"
+          />
 
           {sessions.length > 0 ? (
             <HistorySessionsClient sessions={sessionItems} initialViewMode={viewMode} />
           ) : (
             <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6 text-center">
-              <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
-              <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
+              <div>
+                <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
+                <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
+              </div>
             </div>
           )}
-        </div>
-      </Glass>
+        </AppPanel>
+      </div>
 
       {nextCursor ? (
         <div className="flex justify-center">

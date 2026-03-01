@@ -520,3 +520,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: src/components/ui/app/AppPanel.tsx, src/components/ui/app/AppHeader.tsx, src/components/ui/app/AppRow.tsx, src/components/ui/app/AppBadge.tsx, src/components/ui/app/StickyActionBar.tsx, src/app/today/TodayDayPicker.tsx, src/app/today/page.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
 - Status: Proposed
 
+
+## 2026-03-01 — Treat List/Compact toggles as row-density variants on shared primitives
+- Type: Pattern
+- Summary: For timeline/history feeds, implement List vs Compact through shared row primitives (padding + secondary-line toggles) instead of maintaining separate markup trees.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Keeps visual parity and interaction behavior consistent while reducing layout drift and duplicated rendering logic.
+- Evidence: src/components/ui/app/AppRow.tsx, src/app/history/HistorySessionsClient.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx
+- Status: Proposed

@@ -3,7 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AppButton, DestructiveButton, GhostButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
-import { Glass } from "@/components/ui/Glass";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { AppHeader } from "@/components/ui/app/AppHeader";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AppRow } from "@/components/ui/app/AppRow";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -260,17 +263,11 @@ export function LogAuditClient({
 
   return (
     <>
-      <Glass
-        variant="base"
-        className={`space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}
-        interactive={false}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Session Summary</h2>
-            {isEditing ? <span className="rounded-full border border-emerald-400/50 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">Editing</span> : null}
-          </div>
-          {isEditing ? (
+      <AppPanel className={`space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
+        <AppHeader
+          title="Session Summary"
+          subtitleLeft={isEditing ? <AppBadge tone="today">Editing</AppBadge> : undefined}
+          action={isEditing ? (
             <div className="flex items-center gap-2">
               <SecondaryButton type="button" size="sm" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
               <PrimaryButton type="button" size="sm" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
@@ -278,7 +275,7 @@ export function LogAuditClient({
           ) : (
             <GhostButton type="button" size="sm" onClick={() => setIsEditing(true)}>Edit</GhostButton>
           )}
-        </div>
+        />
 
         {isEditing ? (
           <div className="space-y-3">
@@ -314,20 +311,12 @@ export function LogAuditClient({
             </div>
           </div>
         ) : (
-          <dl className="space-y-2 text-sm text-slate-200">
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-400">Day</dt>
-              <dd>{dayName || "—"}</dd>
-            </div>
-            {sessionNotes.trim() ? (
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Notes</dt>
-                <dd>{sessionNotes}</dd>
-              </div>
-            ) : null}
-          </dl>
+          <div className="space-y-2">
+            <AppRow leftTop="Day" rightTop={dayName || "—"} />
+            {sessionNotes.trim() ? <AppRow leftTop="Notes" rightTop={sessionNotes} rightWrap /> : null}
+          </div>
         )}
-      </Glass>
+      </AppPanel>
 
       <div className="space-y-3">
         {exercises.map((exercise) => {
@@ -336,24 +325,18 @@ export function LogAuditClient({
           const setsForExercise = editableSets[exercise.id] ?? [];
 
           return (
-            <Glass key={exercise.id} variant="base" className="p-4" interactive={false}>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h3 className="text-base font-semibold text-slate-100">{name}</h3>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full border border-white/15 bg-black/10 px-2 py-1 text-[11px] font-semibold text-slate-300">{setsForExercise.length} sets</span>
-                  {isEditing ? (
-                    <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>
-                      Delete Exercise
-                    </DestructiveButton>
-                  ) : null}
-                </div>
-              </div>
+            <AppPanel key={exercise.id} className="space-y-3 p-3">
+              <AppRow
+                leftTop={name}
+                rightTop={<AppBadge>{setsForExercise.length} sets</AppBadge>}
+                leftBottom={isEditing ? "Editing enabled" : undefined}
+              />
 
-              <ul className="mb-3 divide-y divide-white/10 text-sm text-slate-300">
+              <ul className="space-y-2 text-sm text-slate-300">
                 {setsForExercise.map((set, index) => (
-                  <li key={set.id} className="py-2 first:pt-0 last:pb-0">
+                  <li key={set.id}>
                     {isEditing ? (
-                      <div className="space-y-2">
+                      <div className="space-y-2 rounded-lg border border-white/10 bg-black/10 p-2">
                         <p className="text-xs font-medium text-slate-400">Set {index + 1}</p>
                         <div className="grid grid-cols-2 gap-2">
                           <input type="number" min={0} value={set.weight} onChange={(event) => updateEditableSetField(exercise.id, set.id, "weight", event.target.value)} className="rounded-md border border-white/15 bg-black/10 px-2 py-1 text-sm text-slate-100" placeholder="Weight" />
@@ -364,13 +347,17 @@ export function LogAuditClient({
                           <input type="number" min={0} value={set.reps} onChange={(event) => updateEditableSetField(exercise.id, set.id, "reps", event.target.value)} className="rounded-md border border-white/15 bg-black/10 px-2 py-1 text-sm text-slate-100" placeholder="Reps" />
                           <input type="number" min={0} value={set.durationSeconds} onChange={(event) => updateEditableSetField(exercise.id, set.id, "durationSeconds", event.target.value)} className="rounded-md border border-white/15 bg-black/10 px-2 py-1 text-sm text-slate-100" placeholder="Time (sec)" />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <AppButton type="button" variant="secondary" size="sm" onClick={() => handleSaveSet(exercise.id, set.id)}>Save Set</AppButton>
                           <DestructiveButton type="button" size="sm" onClick={() => handleDeleteSet(exercise.id, set.id)}>Delete Set</DestructiveButton>
                         </div>
                       </div>
                     ) : (
-                      <span>{formatSetSummary(set, index, exercise.measurement_type, exercise.default_unit)}</span>
+                      <AppRow
+                        density="compact"
+                        leftTop={`Set ${index + 1}`}
+                        leftBottom={formatSetSummary(set, index, exercise.measurement_type, exercise.default_unit)}
+                      />
                     )}
                   </li>
                 ))}
@@ -378,7 +365,10 @@ export function LogAuditClient({
 
               {isEditing ? (
                 <>
-                  <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise.id)} className="mb-3">+ Add Set</SecondaryButton>
+                  <div className="flex flex-wrap gap-2">
+                    <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise.id)}>+ Add Set</SecondaryButton>
+                    <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
+                  </div>
                   <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
                     Exercise Notes
                     <textarea
@@ -393,12 +383,13 @@ export function LogAuditClient({
                   </label>
                 </>
               ) : notesValue.trim() ? (
-                <p className="text-sm text-slate-400">Notes: {notesValue}</p>
+                <AppRow density="compact" leftTop="Notes" leftBottom={notesValue} />
               ) : null}
-            </Glass>
+            </AppPanel>
           );
         })}
       </div>
+
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}
         title="Delete exercise from completed log?"

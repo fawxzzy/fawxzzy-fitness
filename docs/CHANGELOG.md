@@ -1752,3 +1752,12 @@ WHAT:
 - Preserved consistent spacing between the left "Day X" label and right title content across narrow and wide layouts.
 WHY:
 - Prevents long day names from colliding with left-side labels and keeps routine rows readable on iPhone-sized screens and desktop.
+
+### Changed
+WHAT:
+- Normalized History Sessions, History Exercises, and Log Details to the same app-local panel/header/row/badge/sticky-action visual grammar used on Today and Routines.
+- Unified History segmented controls (Sessions/Exercises and List/Compact density toggles) so both tabs share the same styling and interaction behavior.
+- Kept compact rendering as a density variant of the same row structure rather than a separate card layout.
+WHY:
+- Reduces cross-screen UI drift and keeps history/log browsing visually and behaviorally consistent with the app’s newer surfaces.
+- Improves mobile scrolling/touch reliability by keeping each screen on a single primary scroll region with non-blocking sticky controls.
