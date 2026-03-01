@@ -1,3 +1,11 @@
+### Changed
+WHAT:
+- Updated Current Session with a compact sticky top control bar that keeps Back, session title, elapsed session time, and Save Session visible while scrolling.
+- Added a sticky Save set footer in expanded exercise logging so the primary set action stays reachable, with extra spacing to keep final inputs visible above the footer.
+- Simplified expanded exercise goal presentation to a single compact goal line and reduced visual emphasis on the Modify measurements control.
+WHY:
+- Keeps workout context and core actions continuously available during long logging flows, reducing navigation and reach friction without changing session behavior.
+
 ### Fixed
 WHAT:
 - Ensured Add Exercise always submits the selected measurement targets (reps/weight/time/distance/calories) even when the Measurements panel is collapsed.

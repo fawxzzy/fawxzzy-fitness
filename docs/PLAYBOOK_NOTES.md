@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-01 — Pair sticky bottom CTAs with conditional content padding in long input flows
+- Type: Guardrail
+- Summary: When adding sticky action bars over forms, reserve matching bottom space in the content container (including safe-area inset) so the last interactive fields remain visible and focusable.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Sticky footers can occlude final inputs and degrade keyboard/touch accessibility unless content offset is explicit.
+- Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx
+- Status: Proposed
+
 
 ## Implemented Already
 

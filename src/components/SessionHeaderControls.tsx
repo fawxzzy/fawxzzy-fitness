@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { SessionBackButton } from "@/components/SessionBackButton";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -26,9 +27,8 @@ function SaveSessionButton() {
   return (
     <SecondaryButton
       type="submit"
-      fullWidth
       disabled={pending}
-      className="sm:w-auto"
+      className="px-3"
     >
       {pending ? "Saving..." : "Save Session"}
     </SecondaryButton>
@@ -39,11 +39,13 @@ export function SessionHeaderControls({
   sessionId,
   initialDurationSeconds,
   performedAt,
+  sessionTitle,
   saveSessionAction,
 }: {
   sessionId: string;
   initialDurationSeconds: number | null;
   performedAt: string;
+  sessionTitle: string;
   saveSessionAction: ServerAction;
 }) {
   const baseDurationSeconds = initialDurationSeconds ?? 0;
@@ -74,11 +76,12 @@ export function SessionHeaderControls({
   }, [baseDurationSeconds, performedAtMs]);
 
   return (
-    <div className="space-y-3">
-      <div className="sticky top-2 z-10 space-y-2">
-        <OfflineSyncBadge />
-        <p className="px-1 text-sm text-slate-500">
-          Session time · <span className="font-semibold tabular-nums text-slate-700">{formatDurationClock(durationSeconds)}</span>
+    <div className="sticky top-0 z-30 -mx-4 border-b border-white/10 bg-surface/95 px-4 py-2 backdrop-blur">
+      <div className="flex items-center gap-2">
+        <SessionBackButton />
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-text">{sessionTitle}</p>
+        <p className="shrink-0 whitespace-nowrap text-xs text-muted">
+          <span className="font-medium tabular-nums text-[rgb(var(--text)/0.75)]">{formatDurationClock(durationSeconds)}</span>
         </p>
         <form
           action={async (formData) => {
@@ -92,13 +95,14 @@ export function SessionHeaderControls({
               router.push(result.data?.sessionId ? `/history/${result.data.sessionId}` : "/history");
             }
           }}
+          className="shrink-0"
         >
           <input type="hidden" name="sessionId" value={sessionId} />
           <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
           <SaveSessionButton />
         </form>
       </div>
-
+      <OfflineSyncBadge />
     </div>
   );
 }
