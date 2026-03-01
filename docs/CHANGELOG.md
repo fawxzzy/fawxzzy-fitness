@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Moved the History → Exercises back-navigation control to the right side of the card header area.
+WHY:
+- Matches requested navigation placement and keeps the exercise browser header actions visually consistent with top-right back affordances used elsewhere.
+
+### Changed
+WHAT:
 - Updated the Exercise Info overlay layout to remove the “HOW-TO” heading, remove the duplicate bottom “Primary Muscles” section, and place exercise description content in a highlighted bordered box above Stats.
 - Replaced the Exercise Info header “Close” control with a back-arrow button that preserves the same dismiss behavior.
 WHY:
