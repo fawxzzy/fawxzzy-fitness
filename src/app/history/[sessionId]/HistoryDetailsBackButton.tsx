@@ -1,20 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { BackButton } from "@/components/ui/BackButton";
 
 export function HistoryDetailsBackButton({ returnHref }: { returnHref: string }) {
-  const router = useRouter();
-
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        router.push(returnHref);
-      }}
-      className={getAppButtonClassName({ variant: "secondary", size: "sm" })}
-    >
-      Back
-    </button>
-  );
+  return <BackButton href={returnHref} label="Back" ariaLabel="Back to History" />;
 }
