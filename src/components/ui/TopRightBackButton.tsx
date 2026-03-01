@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { MouseEventHandler } from "react";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { BackButton } from "@/components/ui/BackButton";
 
 type TopRightBackButtonProps = {
   href?: string;
@@ -12,40 +10,5 @@ type TopRightBackButtonProps = {
 };
 
 export function TopRightBackButton({ href, ariaLabel = "Back", onClick }: TopRightBackButtonProps) {
-  const router = useRouter();
-  const className = getAppButtonClassName({
-    variant: "ghost",
-    size: "sm",
-    className: "min-w-10 rounded-full px-2",
-  });
-
-  const icon = (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4">
-      <path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} aria-label={ariaLabel} onClick={onClick} className={className}>
-        {icon}
-      </Link>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      className={className}
-      onClick={(event) => {
-        onClick?.(event);
-        if (!event.defaultPrevented) {
-          router.back();
-        }
-      }}
-    >
-      {icon}
-    </button>
-  );
+  return <BackButton href={href} label={ariaLabel} ariaLabel={ariaLabel} onClick={onClick} iconOnly />;
 }
