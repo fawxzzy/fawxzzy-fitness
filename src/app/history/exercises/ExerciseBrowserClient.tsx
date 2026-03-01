@@ -16,6 +16,24 @@ type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
 };
 
+function getExerciseDisplayName(row: ExerciseBrowserRow) {
+  const candidates = [
+    row.name,
+    (row as ExerciseBrowserRow & { exercise_name?: string | null }).exercise_name,
+    (row as ExerciseBrowserRow & { title?: string | null }).title,
+    (row as ExerciseBrowserRow & { exercise?: { name?: string | null } | null }).exercise?.name,
+    (row as ExerciseBrowserRow & { canonical?: { name?: string | null } | null }).canonical?.name,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  return "Unknown exercise";
+}
+
 
 function formatWeight(weight: number) {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
@@ -74,8 +92,9 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   row: ExerciseBrowserRow;
   onOpen: (canonicalExerciseId: string) => void;
 }) {
+  const displayName = getExerciseDisplayName(row);
   const iconSrc = getExerciseIconSrc({
-    name: row.name,
+    name: displayName,
     slug: row.slug,
     image_path: row.image_path,
     image_icon_path: row.image_icon_path,
@@ -93,8 +112,8 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         density="default"
         leftTop={
           <div className="flex min-w-0 items-center gap-2">
-            <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-9 w-9 shrink-0 rounded-md border border-border/35 bg-surface-2-soft object-cover" />
-            <span className="min-w-0 flex-1 truncate">{row.name || "Exercise"}</span>
+            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-9 w-9 shrink-0 rounded-md border border-border/35 bg-surface-2-soft object-cover" />
+            <span className="min-w-0 flex-1 truncate text-[rgb(var(--text)/0.98)]">{displayName}</span>
           </div>
         }
         leftBottom={rowBottom}
@@ -103,7 +122,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       <button
         type="button"
         onClick={() => onOpen(row.canonicalExerciseId)}
-        aria-label={`Open exercise info for ${row.name}`}
+        aria-label={`Open exercise info for ${displayName}`}
         className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
         <span className="sr-only">Open exercise info</span>
@@ -164,7 +183,8 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         return true;
       }
 
-      const nameMatch = row.name.toLowerCase().includes(normalizedQuery);
+      const displayName = getExerciseDisplayName(row);
+      const nameMatch = displayName.toLowerCase().includes(normalizedQuery);
       const slugMatch = row.slug?.toLowerCase().includes(normalizedQuery) ?? false;
       return nameMatch || slugMatch;
     });

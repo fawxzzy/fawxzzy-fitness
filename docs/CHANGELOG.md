@@ -1791,3 +1791,10 @@ WHAT:
 - Restored visible primary/secondary text in History Exercises cards while keeping the same card chrome and tap-to-open detail behavior.
 WHY:
 - Prevents text overflow/bleed regressions in session history and resolves blank-looking exercise cards introduced by recent UI refactors.
+
+### Fixed
+WHAT:
+- Hardened History → Exercises cards so every row resolves and renders a non-empty exercise name with a safe fallback label.
+- Kept Exercises rows on the existing card chrome and tap-to-open detail flow while preserving Sessions behavior unchanged.
+WHY:
+- Prevents blank-looking exercise cards when upstream row shapes omit expected title fields or provide empty values.
