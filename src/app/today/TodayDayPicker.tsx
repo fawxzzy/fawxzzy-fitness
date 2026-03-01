@@ -41,26 +41,32 @@ export function TodayDayPicker({
   );
 
   return (
-    <div className="flex min-h-0 flex-col gap-2.5">
+    <div className="flex min-h-0 flex-col gap-4">
       {selectedDay ? (
-        <div className="min-h-0 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="pr-1 text-lg font-semibold leading-tight text-text">
-              {routineName}: {selectedDay.isRest ? `REST DAY — ${selectedDay.name}` : selectedDay.name}
-            </h2>
+        <div className="space-y-3 rounded-xl border border-white/10 bg-[rgb(var(--surface-2-soft)/0.72)] px-4 py-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <h2 className="pr-1 text-xl font-semibold leading-tight text-[rgb(var(--text)/0.96)]">
+                {selectedDay.isRest ? `${routineName} (Rest Day)` : selectedDay.name}
+              </h2>
+              <p className="text-sm text-muted">Day {selectedDay.dayIndex} • {routineName}</p>
+              {selectedDay.exercises.length > 0 ? (
+                <p className="text-xs text-[rgb(var(--text)/0.58)]">{selectedDay.exercises.length} exercises</p>
+              ) : null}
+            </div>
             {completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? (
               <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p>
             ) : null}
           </div>
 
-          <ul className="max-h-52 divide-y divide-border/70 overflow-y-auto rounded-lg bg-surface/70 pr-1 text-sm">
+          <ul className="divide-y divide-white/10 overflow-hidden rounded-lg border border-white/5 bg-[rgb(var(--surface)/0.62)] text-sm">
             {selectedDay.exercises.map((exercise) => (
-              <li key={exercise.id} className="flex items-center justify-between gap-3 px-3 py-2 text-text">
-                <span className="truncate">{exercise.name}</span>
-                {exercise.targets ? <span className="shrink-0 text-xs text-muted">Goal: {exercise.targets}</span> : null}
+              <li key={exercise.id} className="space-y-1.5 px-3 py-3 text-text">
+                <p className="line-clamp-2 text-[0.96rem] font-medium leading-snug text-[rgb(var(--text)/0.95)]">{exercise.name}</p>
+                {exercise.targets ? <p className="text-xs leading-snug text-[rgb(var(--text)/0.62)]">{exercise.targets}</p> : null}
               </li>
             ))}
-            {selectedDay.exercises.length === 0 ? <li className="px-3 py-2 text-muted">No routine exercises planned for this day.</li> : null}
+            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3 text-muted">No routine exercises planned for this day.</li> : null}
           </ul>
         </div>
       ) : null}
@@ -70,7 +76,7 @@ export function TodayDayPicker({
         id="today-day-picker"
         type="button"
         fullWidth
-        className="border-white/20 bg-white/[0.03] text-muted shadow-none hover:bg-white/[0.07]"
+        className="h-11 border-white/14 bg-transparent text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
         onClick={() => {
           setIsPickerOpen((previous) => !previous);
         }}
@@ -80,7 +86,7 @@ export function TodayDayPicker({
       </SecondaryButton>
 
       {isPickerOpen ? (
-        <div className="space-y-3 rounded-lg bg-surface/60 p-2">
+        <div className="space-y-3 rounded-lg border border-white/10 bg-[rgb(var(--surface-2-soft)/0.62)] p-3">
           <p className="text-sm font-semibold text-muted">Choose workout day</p>
           <div aria-label="Routine days" className="max-h-72 space-y-2 overflow-y-auto pr-1">
             {days.map((day) => {

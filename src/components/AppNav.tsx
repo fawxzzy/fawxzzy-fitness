@@ -98,15 +98,15 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <div className="sticky top-3 z-20 space-y-1.5">
+    <div className="sticky top-3 z-20 space-y-1">
       <p
         className="px-1 text-center text-[0.69rem] font-semibold uppercase tracking-[0.17em] text-[rgb(var(--text)/0.78)]"
         aria-label="Current time"
       >
         {timeFormatter.format(now)}
       </p>
-      <Glass variant="raised" className="px-2 py-1.5" interactive={false}>
-        <p className="px-2 pb-1 text-center text-sm font-semibold text-text">{activeLink?.label ?? "FawxzzyFitness"}</p>
+      <Glass variant="raised" className="rounded-xl border-b border-white/10 px-2 py-1" interactive={false}>
+        <p className="px-2 pb-0.5 text-center text-sm font-semibold text-text">{activeLink?.label ?? "FawxzzyFitness"}</p>
         <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
           {links.map((link) => {
             const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -118,7 +118,7 @@ export function AppNav() {
                 href={link.href}
                 prefetch
                 aria-current={isActive ? "page" : undefined}
-                className={`group relative rounded-[var(--radius-sm)] px-2 py-1.5 transition-colors ${
+                className={`group relative rounded-[10px] px-2 py-1.5 transition-colors ${
                   isActive
                     ? "bg-accent/16 font-semibold text-accent"
                     : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"
