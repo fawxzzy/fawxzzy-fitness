@@ -4,7 +4,6 @@ import { memo, useMemo, useState } from "react";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -17,7 +16,6 @@ type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
 };
 
-type ViewMode = "list" | "compact";
 
 function formatWeight(weight: number) {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
@@ -71,11 +69,9 @@ function formatTagLabel(tag: string) {
 
 const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   row,
-  mode,
   onOpen,
 }: {
   row: ExerciseBrowserRow;
-  mode: ViewMode;
   onOpen: (canonicalExerciseId: string) => void;
 }) {
   const iconSrc = getExerciseIconSrc({
@@ -89,22 +85,20 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const lastDate = formatShortDate(row.last_performed_at);
   const actualPrSummary = formatSetSummary(row.actual_pr_weight, row.actual_pr_reps, row.last_unit);
 
-  const rowBottom = mode === "list"
-    ? (
-      <>
-        <span>Last performed: {lastDate ?? "Never"}</span>
-        <span className="mx-1.5">•</span>
-        <span>Last: {lastSummary ?? "—"}</span>
-        <span className="mx-1.5">•</span>
-        <span>PR: {actualPrSummary ?? "—"}</span>
-      </>
-    )
-    : undefined;
+  const rowBottom = (
+    <>
+      <span>Last performed: {lastDate ?? "Never"}</span>
+      <span className="mx-1.5">•</span>
+      <span>Last: {lastSummary ?? "—"}</span>
+      <span className="mx-1.5">•</span>
+      <span>PR: {actualPrSummary ?? "—"}</span>
+    </>
+  );
 
   return (
-    <AppPanel className="relative overflow-hidden p-2">
+    <AppPanel className="relative p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
       <AppRow
-        density={mode === "compact" ? "compact" : "default"}
+        density="default"
         leftTop={
           <div className="flex min-w-0 items-center gap-2">
             <ExerciseAssetImage src={iconSrc} alt={row.name} className="h-9 w-9 shrink-0 rounded-md border border-border/35 bg-surface-2-soft object-cover" />
@@ -112,8 +106,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
           </div>
         }
         leftBottom={rowBottom}
-        rightTop={<AppBadge>View</AppBadge>}
-        className="border-white/15"
+        className="border-0 bg-transparent"
       />
       <button
         type="button"
@@ -131,7 +124,6 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -219,30 +211,18 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
           className="space-y-2"
         />
 
-        <div className="flex justify-end">
-          <SegmentedControl
-            options={[
-              { label: "List", value: "list" },
-              { label: "Compact", value: "compact" },
-            ]}
-            value={viewMode}
-            size="sm"
-            className="w-auto"
-            ariaLabel="Exercise history density"
-            onChange={(next) => {
-              if (next === "list" || next === "compact") setViewMode(next);
-            }}
-          />
-        </div>
       </AppPanel>
 
-      <ul className={`${listShellClasses.viewport} space-y-2.5 scroll-py-2`} style={{ WebkitOverflowScrolling: "touch" }}>
-        {filteredRows.map((row) => (
-          <li key={row.id}>
-            <ExerciseHistoryRow row={row} mode={viewMode} onOpen={setSelectedExerciseId} />
-          </li>
-        ))}
-      </ul>
+      <div className={`${listShellClasses.viewport} relative min-h-0 flex-1`} style={{ WebkitOverflowScrolling: "touch" }}>
+        <ul className="space-y-2.5 scroll-py-2 pb-8">
+          {filteredRows.map((row) => (
+            <li key={row.id}>
+              <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} />
+            </li>
+          ))}
+        </ul>
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
+      </div>
 
       <ExerciseInfoSheet
         exercise={selectedRow ? {

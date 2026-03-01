@@ -1768,3 +1768,13 @@ WHAT:
 - Updated History Log Details Back actions to use the shared app Back button style used across other screens.
 WHY:
 - Aligns Back control placement and styling with the app-wide navigation pattern so users get a consistent, predictable Back experience.
+
+### Fixed
+WHAT:
+- Polished History page spacing and card presentation so Sessions and Exercises align with the same top rhythm and single-card border treatment used across other main tabs.
+- Updated History Sessions rows so the full row opens log details, removed the separate View badge/button, and added day context to Compact rows in the title line.
+- Scoped the LOG VIEW List/Compact toggle to Sessions only, while keeping Exercises in a consistent list presentation with preserved detail-open behavior.
+- Added a non-interactive bottom fade/cap and extra bottom list padding to both Sessions and Exercises history scroll lists.
+WHY:
+- Resolves visual drift and interaction inconsistency in History, improves scanability in compact mode, and restores a clearer mobile list ending affordance without blocking taps or scroll.
+
