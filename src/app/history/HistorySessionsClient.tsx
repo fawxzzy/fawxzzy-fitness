@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -58,50 +57,49 @@ function formatTimeRange(value: string, durationSeconds: number) {
 function HistorySessionRow({
   session,
   mode,
-  viewMode,
 }: {
   session: HistorySessionItem;
   mode: ViewMode;
-  viewMode: ViewMode;
 }) {
   const primaryMeta = `${formatDuration(session.durationSeconds)} • ${formatDate(session.performedAt)}`;
   const secondaryMeta = mode === "list" ? formatTimeRange(session.performedAt, session.durationSeconds) : null;
 
   return (
-    <AppPanel className="relative overflow-hidden p-2">
-      <AppRow
-        density={mode === "compact" ? "compact" : "default"}
-        leftTop={
-          <span className="block truncate">
-            {session.name || "Session"}
-          </span>
-        }
-        leftBottom={
-          mode === "list" ? (
-            <>
-              <span className="truncate">{session.dayLabel || "Custom session"}</span>
-              <span className="mx-1.5">•</span>
+    <Link
+      href={`/history/${session.id}?returnTab=sessions&view=${mode}`}
+      aria-label={`View session details for ${session.name || "session"}`}
+      className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+    >
+      <AppPanel className="p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
+        <AppRow
+          density={mode === "compact" ? "compact" : "default"}
+          leftTop={
+            <span className="block truncate">
+              {session.name || "Session"}
+              {mode === "compact" ? ` — ${session.dayLabel || "Custom session"}` : ""}
+            </span>
+          }
+          leftBottom={
+            mode === "list" ? (
+              <>
+                <span className="truncate">{session.dayLabel || "Custom session"}</span>
+                <span className="mx-1.5">•</span>
+                <span className="truncate">{primaryMeta}</span>
+                {secondaryMeta ? (
+                  <>
+                    <span className="mx-1.5">•</span>
+                    <span className="truncate">{secondaryMeta}</span>
+                  </>
+                ) : null}
+              </>
+            ) : (
               <span className="truncate">{primaryMeta}</span>
-              {secondaryMeta ? (
-                <>
-                  <span className="mx-1.5">•</span>
-                  <span className="truncate">{secondaryMeta}</span>
-                </>
-              ) : null}
-            </>
-          ) : undefined
-        }
-        rightTop={mode === "list" ? <AppBadge>View</AppBadge> : undefined}
-        className="border-white/15"
-      />
-      <Link
-        href={`/history/${session.id}?returnTab=sessions&view=${viewMode}`}
-        aria-label={`View session details for ${session.name || "session"}`}
-        className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-      >
-        <span className="sr-only">Open session</span>
-      </Link>
-    </AppPanel>
+            )
+          }
+          className="border-0 bg-transparent"
+        />
+      </AppPanel>
+    </Link>
   );
 }
 
@@ -152,13 +150,14 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
       </div>
 
       <div className={`${listShellClasses.viewport} relative min-h-0 flex-1`} style={{ WebkitOverflowScrolling: "touch" }}>
-        <ul className={`${listShellClasses.list} ${viewMode === "compact" ? "space-y-2" : "space-y-3"}`}>
+        <ul className={`${listShellClasses.list} ${viewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}`}>
           {sessions.map((session) => (
             <li key={session.id} className="relative">
-              <HistorySessionRow session={session} mode={viewMode} viewMode={viewMode} />
+              <HistorySessionRow session={session} mode={viewMode} />
             </li>
           ))}
         </ul>
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
       </div>
     </div>
   );
