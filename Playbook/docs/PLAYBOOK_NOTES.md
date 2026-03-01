@@ -275,3 +275,51 @@ Project-local inbox for candidate principles, guardrails, and patterns to be ups
 - Rationale: Prevents repeated 404 request spam and unnecessary network churn when placeholder-backed asset catalogs are intentionally incomplete.
 - Evidence: src/components/ExerciseAssetImage.tsx, src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
 - Status: Proposed
+
+## 2026-02-28 — Resolve cached stats via canonical exercise IDs at render boundaries
+- Type: Guardrail
+- Summary: Derived exercise stats keyed by canonical exercise IDs must always be queried with canonical IDs (never wrapper/custom row IDs) across picker rows, route params, and detail screens.
+- Suggested Playbook File: patterns/deterministic-reversible-state.md
+- Rationale: Prevents silent Last/PR disappearance when UI state mixes wrapper IDs with canonical cache keys.
+- Evidence: src/app/session/[id]/page.tsx, src/components/ExercisePicker.tsx, src/app/exercises/[exerciseId]/page.tsx
+- Status: Proposed
+
+## 2026-02-28 — Reuse one measurement-to-goal mapper across all create flows
+- Type: Guardrail
+- Summary: All flows that serialize goals from the shared measurement UI contract must call one canonical parser helper from `src/lib/exercise-goal-payload.ts`.
+- Suggested Playbook File: patterns/deterministic-reversible-state.md
+- Rationale: Eliminates flow-specific payload drift where one path drops goal fields.
+- Evidence: src/lib/exercise-goal-payload.ts, src/app/routines/[id]/edit/day/actions.ts, src/app/session/[id]/actions.ts
+- Status: Proposed
+
+## 2026-02-28 — Recompute derived performance caches after destructive history mutations
+- Type: Guardrail
+- Summary: Recompute bounded exercise stats for touched canonical exercise IDs after additive and destructive history mutations (complete, delete, edit).
+- Suggested Playbook File: patterns/deterministic-reversible-state.md
+- Rationale: Keeps Last/PR deterministic after deletes/edits without full-table rebuilds.
+- Evidence: src/lib/exercise-stats.ts, src/app/session/[id]/actions.ts, src/app/history/page.tsx
+- Status: Proposed
+
+## 2026-02-28 — Portal destructive confirms to body with full-viewport isolation on mobile
+- Type: Guardrail
+- Summary: Destructive confirmation overlays launched from scrollable/tinted lists should mount via body-level portal and lock background scroll.
+- Suggested Playbook File: patterns/mobile-interactions-and-navigation.md
+- Rationale: Prevents clipping/backdrop bleed from local stacking contexts on mobile.
+- Evidence: src/components/ui/ConfirmDestructiveModal.tsx, src/app/history/page.tsx
+- Status: Proposed
+
+## 2026-02-28 — Pair risk-tiered destructive safeguards with deterministic undo eligibility
+- Type: Pattern
+- Summary: Require confirm modal for high-risk irreversible actions; offer undo only where full deterministic local snapshot restore is possible.
+- Suggested Playbook File: patterns/deterministic-reversible-state.md
+- Rationale: Avoids misleading undo affordances and aligns safeguards with reversibility guarantees.
+- Evidence: src/components/ui/ConfirmDestructiveModal.tsx, src/components/ui/useUndoAction.ts, src/components/SessionTimers.tsx, src/components/SessionExerciseFocus.tsx
+- Status: Proposed
+
+## 2026-02-28 — Gate slug-based media fetches by generated manifests
+- Type: Guardrail
+- Summary: Lookup helpers should consult a generated asset manifest before requesting slug-resolved media; unknown slugs must fall back immediately to placeholders.
+- Suggested Playbook File: patterns/media-fallbacks.md
+- Rationale: Eliminates repeated 404 spam from optimistic URL construction for missing media.
+- Evidence: scripts/generate-exercise-icon-manifest.mjs, src/generated/exerciseIconManifest.ts, src/lib/exerciseImages.ts
+- Status: Proposed

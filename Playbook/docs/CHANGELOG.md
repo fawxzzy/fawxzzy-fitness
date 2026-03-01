@@ -2,6 +2,17 @@
 
 [Back to Index](./INDEX.md)
 
+## 2026-03-01 — Added guardrail canon for deterministic IDs, bounded recompute, mobile destructive portals, and media manifest gating
+
+### WHAT
+- Expanded `docs/PATTERNS/deterministic-reversible-state.md` with new guardrails for canonical-ID cache lookups, shared measurement-to-goal payload mapping, bounded recompute after additive/destructive mutations, and risk-tiered destructive safeguards with deterministic undo eligibility.
+- Expanded `docs/PATTERNS/mobile-interactions-and-navigation.md` with a body-level portal guardrail for destructive confirmations (full-viewport fixed backdrop + scroll lock).
+- Added `docs/PATTERNS/media-fallbacks.md` to codify manifest-gated slug media lookup and deterministic placeholder fallback policy.
+- Added corresponding 2026-02-28 local inbox notes in `docs/PLAYBOOK_NOTES.md` and linked the new media pattern from `docs/INDEX.md`.
+
+### WHY
+- Capture recurring 2026-02-27/28 silent-failure classes as reusable doctrine so implementation repos can prevent ID-domain drift, payload mapping divergence, stale derived stats after deletes/edits, mobile overlay clipping, unsafe undo affordances, and repeated missing-media network churn.
+
 ## 2026-02-27 — Added media-fallback guardrail candidate to local inbox
 
 ### WHAT

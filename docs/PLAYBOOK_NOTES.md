@@ -65,11 +65,6 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: scripts/generate-exercise-icon-manifest.mjs, src/generated/exerciseIconManifest.ts, src/lib/exerciseImages.ts
 - Status: Proposed
 
-
-
-# Playbook Notes (Local Inbox)
-
-## UPSTREAMED (keep for traceability)
 ## 2026-02-27 — Cache known-missing media URLs per session in shared image components
 - Type: Guardrail
 - Summary: Shared image components should keep an in-memory set of failed source URLs and immediately render deterministic fallbacks for repeat references during the same session.

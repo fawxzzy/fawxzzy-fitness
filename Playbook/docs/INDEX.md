@@ -27,6 +27,7 @@
 - [Mobile Interactions, List Shells, and Navigation Performance](./PATTERNS/mobile-interactions-and-navigation.md)
 - [Theming and Dark-Mode Guardrails](./PATTERNS/theming-dark-mode.md)
 - [Cache and Revalidation](./PATTERNS/cache-and-revalidation.md)
+- [Media Manifests and Deterministic Fallbacks](./PATTERNS/media-fallbacks.md)
 
 ## Checklists
 - [PR Quality Checklist](./CHECKLISTS/pr-quality-checklist.md)
