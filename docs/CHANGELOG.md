@@ -1832,3 +1832,10 @@ WHAT:
 WHY:
 - Keeps tab-to-tab navigation visually consistent and prevents subtle top-gap mismatch beneath the shared NavBar while preserving safe-area behavior.
 
+
+### Fixed
+WHAT:
+- Updated the shared top NavBar to render as a floating rounded card below the device safe-area across Today, Routines, History, and Settings.
+- Centralized a single safe-area-aware top offset token so the header position and page spacing stay consistent on notched and non-notched devices.
+WHY:
+- Prevents the NavBar from visually touching the phone notch/status area while preserving sticky behavior and cross-screen spacing consistency.
