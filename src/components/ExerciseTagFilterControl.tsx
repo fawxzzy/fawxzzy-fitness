@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
-import { Pill, PillButton } from "@/components/ui/Pill";
+import { PillButton } from "@/components/ui/Pill";
 
 export type ExerciseTagGroup = {
   key: string;
@@ -30,7 +30,7 @@ export function ExerciseTagFilterControl({ selectedTags, onChange, groups, class
   const [isOpen, setIsOpen] = useState(false);
 
   const selectedSummary = useMemo(() => {
-    if (selectedTags.length === 0) return "0 selected · All";
+    if (selectedTags.length === 0) return "All";
 
     const labelByValue = new Map(groups.flatMap((group) => group.tags.map((tag) => [tag.value, tag.label] as const)));
     const labels = selectedTags.map((tag) => labelByValue.get(tag) ?? formatTagLabel(tag));
@@ -47,13 +47,12 @@ export function ExerciseTagFilterControl({ selectedTags, onChange, groups, class
         className="w-full justify-between border border-border/60 bg-[rgb(var(--bg)/0.4)] [-webkit-tap-highlight-color:transparent]"
       >
         <span>Filters</span>
-        <span className="ml-auto inline-flex items-center gap-2">
-          <Pill active={isOpen} className="text-[10px] uppercase">{isOpen ? "Open" : "Closed"}</Pill>
+        <span className="ml-auto inline-flex items-center">
           {isOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
         </span>
       </Button>
 
-      <p className="text-xs text-muted">{selectedSummary}</p>
+      {selectedTags.length > 0 ? <p className="text-xs text-muted">{selectedSummary}</p> : null}
 
       {isOpen ? (
         <div className="space-y-2">

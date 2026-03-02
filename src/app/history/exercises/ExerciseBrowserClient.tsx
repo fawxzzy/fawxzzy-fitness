@@ -5,7 +5,6 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AppRow } from "@/components/ui/app/AppRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Input } from "@/components/ui/Input";
 import { listShellClasses } from "@/components/ui/listShellClasses";
@@ -33,7 +32,6 @@ function getExerciseDisplayName(row: ExerciseBrowserRow) {
 
   return "Unknown exercise";
 }
-
 
 function formatWeight(weight: number) {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
@@ -103,8 +101,9 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const lastSummary = formatSetSummary(row.last_weight, row.last_reps, row.last_unit);
   const lastDate = formatShortDate(row.last_performed_at);
   const actualPrSummary = formatSetSummary(row.actual_pr_weight, row.actual_pr_reps, row.last_unit);
-
-  const rowBottom = `Last performed: ${lastDate ?? "Never"} • Last: ${lastSummary ?? "—"} • PR: ${actualPrSummary ?? "—"}`;
+  const strengthPrSummary = typeof row.pr_est_1rm === "number" && Number.isFinite(row.pr_est_1rm) && row.pr_est_1rm > 0
+    ? `${formatWeight(row.pr_est_1rm)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
+    : null;
 
   return (
     <AppPanel clip className="relative p-0 transition-colors hover:border-border/70 active:scale-[0.99]">
@@ -119,17 +118,19 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         aria-label={`Open exercise info for ${displayName}`}
         className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
-        <AppRow
-          density="default"
-          leftTop={
-            <div className="flex min-w-0 items-center gap-2">
-              <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-9 w-9 shrink-0 rounded-md border border-border/35 bg-surface-2-soft object-cover" />
-              <span className="min-w-0 flex-1 truncate text-[rgb(var(--text)/0.98)]">{displayName}</span>
+        <div className="flex min-h-[88px] items-stretch gap-3 rounded-[inherit] border border-border/40 bg-surface/45 px-3 py-3 text-right">
+          <div className="flex w-14 shrink-0 self-stretch items-center justify-center overflow-hidden rounded-md border border-border/35 bg-surface-2-soft">
+            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full object-contain" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold leading-snug text-[rgb(var(--text)/0.98)]">{displayName}</p>
+            <div className="mt-1 space-y-0.5 text-xs leading-snug text-[rgb(var(--text)/0.54)]">
+              <p>Last: {lastDate ? `${lastDate} · ${lastSummary ?? "—"}` : "—"}</p>
+              <p>PR: {actualPrSummary ?? "—"}</p>
+              {strengthPrSummary ? <p>STR PR: {strengthPrSummary}</p> : null}
             </div>
-          }
-          leftBottom={rowBottom}
-          className="border-0 bg-transparent"
-        />
+          </div>
+        </div>
       </button>
     </AppPanel>
   );
@@ -201,17 +202,16 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <SegmentedControl
-        options={[
-          { label: "Sessions", value: "sessions", href: "/history" },
-          { label: "Exercises", value: "exercises", href: "/history/exercises" },
-        ]}
-        value="exercises"
-        ariaLabel="History tabs"
-      />
-
       <AppPanel className="space-y-2 p-3">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Exercise history</p>
+        <SegmentedControl
+          options={[
+            { label: "Sessions", value: "sessions", href: "/history" },
+            { label: "Exercises", value: "exercises", href: "/history/exercises" },
+          ]}
+          value="exercises"
+          ariaLabel="History tabs"
+        />
+
         <Input
           type="search"
           value={query}
@@ -226,7 +226,6 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
           groups={availableTagGroups}
           className="space-y-2"
         />
-
       </AppPanel>
 
       <div className={`${listShellClasses.viewport} relative min-h-0 flex-1`} style={{ WebkitOverflowScrolling: "touch" }}>
