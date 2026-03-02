@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.2.0 — 2026-03-02
+
+### Changed
+WHAT:
+- Prepared a minor production release by bumping the app version from 0.1.0 to 0.2.0.
+WHY:
+- Marks this deployment as an intentional SemVer minor release so production rollout is explicit and traceable.
+
 ## 0.1.0 — 2026-03-02
 
 ### Changed
