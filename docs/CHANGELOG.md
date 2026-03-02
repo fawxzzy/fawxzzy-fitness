@@ -1,3 +1,9 @@
+### Changed
+WHAT:
+- Formalized the shared app-wide filter panel contract in `ExerciseTagFilterControl`, including canonical header/summary behavior and minimal prop-based customization (`countDisplayMode`, `defaultOpen`, `headerLabel`) while preserving default rendering on existing screens.
+WHY:
+- Prevents filter UI drift across screens while still allowing intentional, constrained variations without forking bespoke filter UIs.
+
 ### Fixed
 WHAT:
 - Followed up History → Exercises row layout so text content is left-aligned and the exercise image sits flush on the right edge of the card.

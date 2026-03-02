@@ -15,6 +15,9 @@ type ExerciseTagFilterControlProps = {
   selectedTags: string[];
   onChange: (nextTags: string[]) => void;
   groups: ExerciseTagGroup[];
+  countDisplayMode?: "never" | "whenNonZero" | "always";
+  defaultOpen?: boolean;
+  headerLabel?: string;
   className?: string;
 };
 
@@ -26,8 +29,16 @@ function formatTagLabel(tag: string) {
     .join(" ");
 }
 
-export function ExerciseTagFilterControl({ selectedTags, onChange, groups, className }: ExerciseTagFilterControlProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function ExerciseTagFilterControl({
+  selectedTags,
+  onChange,
+  groups,
+  countDisplayMode = "whenNonZero",
+  defaultOpen = false,
+  headerLabel = "Filters",
+  className,
+}: ExerciseTagFilterControlProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   const selectedSummary = useMemo(() => {
     if (selectedTags.length === 0) return "All";
@@ -36,6 +47,9 @@ export function ExerciseTagFilterControl({ selectedTags, onChange, groups, class
     const labels = selectedTags.map((tag) => labelByValue.get(tag) ?? formatTagLabel(tag));
     return `${selectedTags.length} selected · ${labels.join(", ")}`;
   }, [groups, selectedTags]);
+
+  const shouldShowSummary =
+    countDisplayMode === "always" || (countDisplayMode === "whenNonZero" && selectedTags.length > 0);
 
   return (
     <div className={className ?? "space-y-2 rounded-md border border-border/70 bg-[rgb(var(--bg)/0.28)] p-2.5"}>
@@ -46,13 +60,13 @@ export function ExerciseTagFilterControl({ selectedTags, onChange, groups, class
         aria-expanded={isOpen}
         className="w-full justify-between border border-border/60 bg-[rgb(var(--bg)/0.4)] [-webkit-tap-highlight-color:transparent]"
       >
-        <span>Filters</span>
+        <span>{headerLabel}</span>
         <span className="ml-auto inline-flex items-center">
           {isOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
         </span>
       </Button>
 
-      {selectedTags.length > 0 ? <p className="text-xs text-muted">{selectedSummary}</p> : null}
+      {shouldShowSummary ? <p className="text-xs text-muted">{selectedSummary}</p> : null}
 
       {isOpen ? (
         <div className="space-y-2">

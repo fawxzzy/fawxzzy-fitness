@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-02 — Keep app-wide filter headers on one shared contract
+- Type: Guardrail
+- Summary: Reuse `ExerciseTagFilterControl` for tag filters with a caret-only header, default count line shown only when selected tags are non-zero, and minimal prop-level extensibility (`countDisplayMode`, `defaultOpen`, `headerLabel`).
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents per-screen filter header drift while still allowing intentional display variations without forking filter UIs.
+- Evidence: src/components/ExerciseTagFilterControl.tsx
+- Status: Proposed
+
 ## Implemented Already
 
 ## 2026-03-02 — API errors should ship phase + correlation metadata by default
