@@ -1,3 +1,9 @@
+### Changed
+WHAT:
+- Added a governance scope declaration and Playbook version pin in local project governance to align with the Playbook v0.3.3 contract model.
+WHY:
+- Prevents doctrine drift and clarifies the local adoption boundary.
+
 ### Fixed
 WHAT:
 - Added a deterministic Exercise Info fallback for canonical built-in exercises when the `exercises` table lookup does not return a row.

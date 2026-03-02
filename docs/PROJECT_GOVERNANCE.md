@@ -1,5 +1,13 @@
 # Project Governance
 
+## Governance Scope Declaration
+
+Governance Scope: Normative
+Playbook Version Pin: v0.3.3
+Sync Cadence: per release
+
+This repository adopts the Playbook as a Normative governance source. Any divergence must be explicitly documented in this file with a reason and owner, and Playbook subtree sync updates must also update the version pin.
+
 This repository is governed by the Product Engineering Playbook.
 
 Source of truth:
@@ -65,6 +73,8 @@ Before implementing repository code or structural changes:
   - `npm run build`
 
 ## Documentation Scope in This Repo
+
+This repository keeps only project-specific governance contracts and the local change log. All reusable doctrine (patterns, guardrails, templates, prompts) lives in the central Playbook subtree.
 
 Allowed documentation files:
 - docs/PROJECT_GOVERNANCE.md
