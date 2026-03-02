@@ -1,29 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { ExerciseInfoSheet, type ExerciseInfoSheetExercise } from "@/components/ExerciseInfoSheet";
+import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppRow } from "@/components/ui/app/AppRow";
 
 type RoutineDayExerciseItem = {
   id: string;
   name: string;
   targetSummary: string;
-  info: {
-    id: string;
-    exercise_id: string;
-    name: string;
-    primary_muscle: string | null;
-    equipment: string | null;
-    movement_pattern: string | null;
-    image_howto_path: string | null;
-    image_icon_path: string | null;
-    slug: string | null;
-    how_to_short: string | null;
-  };
+  exerciseId: string;
 };
 
 export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExerciseItem[] }) {
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseInfoSheetExercise | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
   return (
     <>
@@ -34,22 +23,22 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
               leftTop={exercise.name}
               leftBottom={exercise.targetSummary || undefined}
               rightTop={<span className="text-muted">›</span>}
-              onClick={() => setSelectedExercise(exercise.info)}
+              onClick={() => setSelectedExerciseId(exercise.exerciseId)}
             />
           </li>
         ))}
       </ul>
 
-      <ExerciseInfoSheet
-        exercise={selectedExercise}
-        open={Boolean(selectedExercise)}
+      <ExerciseInfo
+        exerciseId={selectedExerciseId}
+        open={Boolean(selectedExerciseId)}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedExercise(null);
+            setSelectedExerciseId(null);
           }
         }}
         onClose={() => {
-          setSelectedExercise(null);
+          setSelectedExerciseId(null);
         }}
       />
     </>

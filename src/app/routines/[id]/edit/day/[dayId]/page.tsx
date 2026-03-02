@@ -292,14 +292,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs [&::-webkit-details-marker]:hidden">
                       <span className="flex min-w-0 flex-1 items-center gap-2">
                         <ExerciseInfoIconButton
-                          exercise={{
-                            id: exercise.exercise_id,
-                            name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-                            primary_muscle: matchingExercise?.primary_muscle ?? null,
-                            equipment: matchingExercise?.equipment ?? null,
-                            movement_pattern: matchingExercise?.movement_pattern ?? null,
-                            how_to_short: matchingExercise?.how_to_short ?? null,
-                          }}
+                          exerciseId={matchingExercise?.id ?? exercise.exercise_id}
+                          exerciseName={exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
                         />
                         <span className="min-w-0 truncate">
                           <span className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</span>

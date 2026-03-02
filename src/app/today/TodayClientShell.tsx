@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { readTodayCache } from "@/lib/offline/today-cache";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
-import { ExerciseInfoSheet, type ExerciseInfoSheetExercise } from "@/components/ExerciseInfoSheet";
+import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
 type TodayPayload = {
@@ -42,7 +42,7 @@ export function TodayClientShell({
   fetchFailed: boolean;
 }) {
   const [cachedSnapshot, setCachedSnapshot] = useState<TodayCacheSnapshot | null>(null);
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseInfoSheetExercise | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!fetchFailed) {
@@ -114,18 +114,7 @@ export function TodayClientShell({
               type="button"
               className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-text"
               onClick={() => {
-                setSelectedExercise({
-                  id: ("exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id),
-                  exercise_id: ("exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id),
-                  name: exercise.name,
-                  primary_muscle: "primary_muscle" in exercise ? (exercise.primary_muscle ?? null) : null,
-                  equipment: "equipment" in exercise ? (exercise.equipment ?? null) : null,
-                  movement_pattern: "movement_pattern" in exercise ? (exercise.movement_pattern ?? null) : null,
-                  image_howto_path: "image_howto_path" in exercise ? (exercise.image_howto_path ?? null) : null,
-                  how_to_short: "how_to_short" in exercise ? (exercise.how_to_short ?? null) : null,
-                  image_icon_path: "image_icon_path" in exercise ? (exercise.image_icon_path ?? null) : null,
-                  slug: "slug" in exercise ? (exercise.slug ?? null) : null,
-                });
+                setSelectedExerciseId(("exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id));
               }}
             >
               <span className="truncate">{exercise.name}</span>
@@ -154,16 +143,16 @@ export function TodayClientShell({
         </p>
       )}
 
-      <ExerciseInfoSheet
-        exercise={selectedExercise}
-        open={Boolean(selectedExercise)}
+      <ExerciseInfo
+        exerciseId={selectedExerciseId}
+        open={Boolean(selectedExerciseId)}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedExercise(null);
+            setSelectedExerciseId(null);
           }
         }}
         onClose={() => {
-          setSelectedExercise(null);
+          setSelectedExerciseId(null);
         }}
       />
     </div>
