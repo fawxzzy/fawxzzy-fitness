@@ -6,7 +6,6 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Input } from "@/components/ui/Input";
-import { listShellClasses } from "@/components/ui/listShellClasses";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
@@ -228,7 +227,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         />
       </AppPanel>
 
-      <div className={`${listShellClasses.viewport} relative min-h-0 flex-1`} style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="relative min-h-0">
         <ul className="space-y-2.5 scroll-py-2 pb-8">
           {filteredRows.map((row) => (
             <li key={row.id}>
