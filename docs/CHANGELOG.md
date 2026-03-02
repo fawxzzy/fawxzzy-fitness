@@ -13,6 +13,12 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Log Details: renamed the bottom destructive action to “Delete”, aligned it to match the Edit button shape/size, corrected summary panel top-left alignment with top-right back control, and added collapsible per-set editors in edit mode with one expanded set at a time and auto-expand for newly added sets.
+WHY:
+- Improves action consistency and scanability while reducing edit-mode clutter so set updates stay fast and focused.
+
+### Fixed
+WHAT:
 - Polished History → Log Details summary/header spacing and standardized set-count badge rendering so the top panel/back row and `X SETS` pills stay consistently aligned without wrapping artifacts.
 - Anchored Log Details primary actions to the viewport bottom with safe-area support, and reserved matching content bottom space so list content remains fully reachable above the action bar.
 - Normalized Log Details sticky action button sizing to balanced two-column full-width controls for both Edit/Delete and Cancel/Save states.
