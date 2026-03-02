@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getExerciseInfoBase, getExerciseInfoStats, resolveExerciseInfoImages } from "@/lib/exercise-info";
+import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 import { optionalEnv } from "@/lib/env";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -39,6 +40,7 @@ export async function GET(
   { params }: { params: { exerciseId: string } },
 ) {
   const exerciseId = params.exerciseId;
+  const canonicalExerciseId = resolveCanonicalExerciseId(exerciseId);
   const requestId = `ei_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   let step: ExerciseInfoStep = "validate";
   let userId: string | null = null;
@@ -48,7 +50,7 @@ export async function GET(
     return await fn();
   };
 
-  const isValidExerciseId = await runStep("validate", () => UUID_V4ISH_PATTERN.test(exerciseId));
+  const isValidExerciseId = await runStep("validate", () => UUID_V4ISH_PATTERN.test(canonicalExerciseId));
   if (!isValidExerciseId) {
     return jsonError(400, "EXERCISE_INFO_INVALID_ID", "Invalid exercise id.", requestId, step);
   }
@@ -83,7 +85,7 @@ export async function GET(
 
     userId = user.id;
 
-    const exercise = await runStep("payload:base", () => getExerciseInfoBase(exerciseId, user.id));
+    const exercise = await runStep("payload:base", () => getExerciseInfoBase(canonicalExerciseId, user.id));
 
     if (!exercise) {
       return jsonError(404, "EXERCISE_INFO_NOT_FOUND", "Exercise not found.", requestId, step);

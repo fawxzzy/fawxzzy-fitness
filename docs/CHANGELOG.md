@@ -1966,3 +1966,11 @@ WHY:
 - Restores reliable Exercise Info behavior across all entry points while making production failures diagnosable from logs.
 - Prevents optional stats/image resolution issues from taking down the whole endpoint.
 - Ensures expected invalid/unauth/not-found cases are handled deterministically without collapsing into generic 500 errors.
+
+
+### Fixed
+WHAT:
+- Added a legacy exercise-id alias for Exercise Info so old routine rows using `66666666-6666-6666-6666-666666666666` resolve to the canonical Pull-Up exercise id.
+- Updated both Exercise Info client fetches and `/api/exercise-info/[exerciseId]` route validation/loading to use the canonicalized id.
+WHY:
+- Restores Exercise Info opening from Today when routines still contain legacy Pull-Up ids and prevents invalid-id blocking in those flows.
