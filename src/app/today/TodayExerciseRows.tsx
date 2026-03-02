@@ -54,6 +54,7 @@ export function TodayExerciseRows({
         onClose={() => {
           setSelectedExerciseId(null);
         }}
+        sourceContext="TodayExerciseRows"
       />
     </>
   );

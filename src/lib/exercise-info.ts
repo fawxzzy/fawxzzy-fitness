@@ -33,7 +33,7 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, exercise_id, slug, name, how_to_short, primary_muscle, movement_pattern, equipment, image_icon_path, image_howto_path")
+    .select("id, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path")
     .eq("id", exerciseId)
     .or(`user_id.is.null,user_id.eq.${userId}`)
     .maybeSingle();
@@ -46,34 +46,30 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
     throw new Error(`failed to load exercise info base: ${error.message}`);
   }
 
-  if (!data) {
-    return null;
-  }
-
-  const canonicalExerciseId = data.exercise_id ?? data.id;
-  if (!canonicalExerciseId) {
+  if (!data || !data.id) {
     return null;
   }
 
   return {
     id: data.id,
-    exercise_id: canonicalExerciseId,
+    exercise_id: data.id,
     name: data.name,
     primary_muscle: data.primary_muscle,
     equipment: data.equipment,
     movement_pattern: data.movement_pattern,
     image_howto_path: data.image_howto_path,
     how_to_short: data.how_to_short,
-    image_icon_path: data.image_icon_path,
-    slug: data.slug,
+    image_icon_path: null,
+    slug: null,
   };
 }
 
-export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string): Promise<ExerciseStatsRow | null> {
+export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, requestId?: string): Promise<ExerciseStatsRow | null> {
   try {
     return await getExerciseStatsForExercise(userId, canonicalExerciseId);
   } catch (error) {
-    console.error("[exercise-info] non-fatal stats failure", {
+    console.warn("[exercise-info] non-fatal stats failure", {
+      requestId,
       step: "payload:stats",
       userId,
       canonicalExerciseId,

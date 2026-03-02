@@ -141,6 +141,7 @@ export function TodayDayPicker({
         onClose={() => {
           setSelectedExerciseId(null);
         }}
+        sourceContext="TodayDayPicker"
       />
     </div>
   );

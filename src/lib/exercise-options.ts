@@ -40,7 +40,7 @@ export const EXERCISE_OPTIONS = [
     how_to_short: "Press bar from upper chest overhead in a straight path while keeping ribs down and glutes tight.",
   },
   {
-    id: "66666666-6666-6666-6666-666666666666",
+    id: "de1f9f53-120f-4f4e-88b4-bd30f6ce1240",
     name: "Pull-Up",
     primary_muscle: "lats",
     equipment: "bodyweight",
