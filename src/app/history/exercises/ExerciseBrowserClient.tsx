@@ -123,7 +123,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         type="button"
         onClick={() => onOpen(row.canonicalExerciseId)}
         aria-label={`Open exercise info for ${displayName}`}
-        className="absolute inset-0 rounded-xl border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+        className="absolute inset-0 appearance-none rounded-xl border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
         <span className="sr-only">Open exercise info</span>
       </button>
