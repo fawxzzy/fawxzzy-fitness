@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ViewModeSelect } from "@/components/ui/app/ViewModeSelect";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
 type ViewMode = "list" | "compact";
 
@@ -129,27 +130,48 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <ViewModeSelect
-        label="View Mode"
-        value={viewMode}
-        options={[
-          { label: "List", value: "list" },
-          { label: "Compact", value: "compact" },
-        ]}
-        onChange={(next) => {
-          if (next === "list" || next === "compact") setViewMode(next);
-        }}
-      />
+      <AppPanel className="space-y-2 p-2">
+        <SegmentedControl
+          options={[
+            { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${viewMode}` },
+            { label: "Exercises", value: "exercises", href: "/history/exercises" },
+          ]}
+          value="sessions"
+          ariaLabel="History tabs"
+        />
 
-      <div className="relative">
-        <ul className={viewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}>
-          {sessions.map((session) => (
-            <li key={session.id} className="relative">
-              <HistorySessionRow session={session} mode={viewMode} />
-            </li>
-          ))}
-        </ul>
-      </div>
+        <ViewModeSelect
+          label="View Mode"
+          value={viewMode}
+          options={[
+            { label: "List", value: "list" },
+            { label: "Compact", value: "compact" },
+          ]}
+          onChange={(next) => {
+            if (next === "list" || next === "compact") setViewMode(next);
+          }}
+          withPanel={false}
+        />
+      </AppPanel>
+
+      {sessions.length > 0 ? (
+        <div className="relative">
+          <ul className={viewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}>
+            {sessions.map((session) => (
+              <li key={session.id} className="relative">
+                <HistorySessionRow session={session} mode={viewMode} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6 text-center">
+          <div>
+            <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
+            <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

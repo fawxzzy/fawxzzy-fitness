@@ -15,9 +15,10 @@ type ViewModeSelectProps = {
   options: ViewModeOption[];
   onChange: (value: string) => void;
   className?: string;
+  withPanel?: boolean;
 };
 
-export function ViewModeSelect({ label, value, options, onChange, className }: ViewModeSelectProps) {
+export function ViewModeSelect({ label, value, options, onChange, className, withPanel = true }: ViewModeSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -38,8 +39,8 @@ export function ViewModeSelect({ label, value, options, onChange, className }: V
     };
   }, [isOpen]);
 
-  return (
-    <AppPanel className={cn("p-2", className)}>
+  const content = (
+    <div className={cn("p-2", className)}>
       <div ref={containerRef} className="space-y-1">
         <button
           type="button"
@@ -84,6 +85,12 @@ export function ViewModeSelect({ label, value, options, onChange, className }: V
           </div>
         ) : null}
       </div>
-    </AppPanel>
+    </div>
   );
+
+  if (!withPanel) {
+    return content;
+  }
+
+  return <AppPanel>{content}</AppPanel>;
 }
