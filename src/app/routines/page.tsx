@@ -186,9 +186,9 @@ export default async function RoutinesPage() {
                         >
                           <AppRow
                             tone={isToday ? "active" : "default"}
-                            leftTop={<span className="text-xs font-semibold uppercase tracking-wide text-emerald-300">Day {dayNumber}</span>}
-                            leftBottom={isToday ? <AppBadge tone="today">Today</AppBadge> : undefined}
-                            rightTop={<span className={day.is_rest ? "text-muted/80" : appTokens.accentText}>{day.is_rest ? "Rest" : dayLabel}</span>}
+                            leftTop={(<span className="text-xs font-semibold uppercase tracking-wide">Day {dayNumber}{isToday ? <span className="ml-2 inline-block align-middle"><AppBadge tone="today">Today</AppBadge></span> : null}</span>)}
+                            
+                            rightTop={<span className={day.is_rest ? appTokens.accentText : undefined}>{day.is_rest ? "Rest" : dayLabel}</span>}
                             rightWrap
                             className="px-4"
                           />

@@ -1,0 +1,13 @@
+﻿import { promises as fs } from 'node:fs';
+const file = 'src/app/routines/page.tsx';
+let s = await fs.readFile(file,'utf8');
+const oldLeftTop = 'leftTop={<span className="text-xs font-semibold uppercase tracking-wide text-emerald-300">Day {dayNumber}</span>}';
+const newLeftTop = 'leftTop={(<span className="text-xs font-semibold uppercase tracking-wide">Day {dayNumber}{isToday ? <span className="ml-2 inline-block align-middle"><AppBadge tone="today">Today</AppBadge></span> : null}</span>)}';
+if (s.includes(oldLeftTop)) s = s.replace(oldLeftTop, newLeftTop);
+const oldLeftBottom = 'leftBottom={isToday ? <AppBadge tone="today">Today</AppBadge> : undefined}';
+if (s.includes(oldLeftBottom)) s = s.replace(oldLeftBottom, '');
+const oldRightTop = 'rightTop={<span className={day.is_rest ? "text-muted/80" : appTokens.accentText}>{day.is_rest ? "Rest" : dayLabel}</span>}';
+const newRightTop = 'rightTop={<span className={day.is_rest ? appTokens.accentText : undefined}>{day.is_rest ? "Rest" : dayLabel}</span>}';
+if (s.includes(oldRightTop)) s = s.replace(oldRightTop, newRightTop);
+await fs.writeFile(file,s,'utf8');
+console.log('patched');
