@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
+import { PanelShell } from "@/components/layout/PanelShell";
+import { ScrollFade } from "@/components/layout/ScrollFade";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
@@ -47,7 +49,7 @@ export function TodayDayPicker({
   );
 
   return (
-    <div className="flex min-h-0 flex-col gap-4 pb-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
       {selectedDay ? (
         <AppPanel className="space-y-3 p-4">
           <AppHeader
@@ -67,26 +69,28 @@ export function TodayDayPicker({
       ) : null}
 
       {isPickerOpen ? (
-        <AppPanel className="space-y-3 rounded-lg border-white/15 bg-[rgb(var(--surface-2-soft)/0.7)] p-3 shadow-none">
-          <p className="text-sm font-semibold text-muted">Choose workout day</p>
-          <div aria-label="Routine days" className="space-y-2">
-            {days.map((day) => {
-              const isSelected = selectedDayIndex === day.dayIndex;
-              return (
-                <AppRow
-                  key={day.id}
-                  tone={isSelected ? "active" : "default"}
-                  leftTop={<span>{day.name}{day.isRest ? " (Rest)" : ""}</span>}
-                  onClick={() => {
-                    setSelectedDayIndex(day.dayIndex);
-                    setIsPickerOpen(false);
-                  }}
-                  className={isSelected ? "border-accent/70 bg-accent/26" : "border-border/85 bg-surface-2-soft/95"}
-                />
-              );
-            })}
-          </div>
-        </AppPanel>
+        <PanelShell className="rounded-lg border-white/15 bg-[rgb(var(--surface-2-soft)/0.7)] p-3 shadow-none">
+          <p className="pb-3 text-sm font-semibold text-muted">Choose workout day</p>
+          <ScrollFade>
+            <div aria-label="Routine days" className="space-y-2 pb-2 pr-1">
+              {days.map((day) => {
+                const isSelected = selectedDayIndex === day.dayIndex;
+                return (
+                  <AppRow
+                    key={day.id}
+                    tone={isSelected ? "active" : "default"}
+                    leftTop={<span>{day.name}{day.isRest ? " (Rest)" : ""}</span>}
+                    onClick={() => {
+                      setSelectedDayIndex(day.dayIndex);
+                      setIsPickerOpen(false);
+                    }}
+                    className={isSelected ? "border-accent/70 bg-accent/26" : "border-border/85 bg-surface-2-soft/95"}
+                  />
+                );
+              })}
+            </div>
+          </ScrollFade>
+        </PanelShell>
       ) : null}
 
       <StickyActionBar
