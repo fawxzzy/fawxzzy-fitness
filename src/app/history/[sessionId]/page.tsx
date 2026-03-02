@@ -3,6 +3,8 @@ import { AppNav } from "@/components/AppNav";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AppShell } from "@/components/ui/app/AppShell";
+import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { LocalDateTime } from "@/components/ui/LocalDateTime";
@@ -104,10 +106,10 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
   const backHref = `/history?tab=sessions&view=${returnView}`;
 
   return (
-    <section className="flex min-h-[100dvh] flex-col gap-4 overflow-hidden">
+    <AppShell className="gap-4">
       <AppNav />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1 pb-[calc(env(safe-area-inset-bottom)+108px)]">
+      <ScrollContainer className="flex flex-col gap-3 px-1 pb-[calc(env(safe-area-inset-bottom)+108px)]">
         <AppPanel className="space-y-3 p-4">
           <AppHeader
             title="Log Details"
@@ -143,7 +145,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
             })),
           }))}
         />
-      </div>
+      </ScrollContainer>
 
       <StickyActionBar
         className="shrink-0"
@@ -165,6 +167,6 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
           />
         )}
       />
-    </section>
+    </AppShell>
   );
 }

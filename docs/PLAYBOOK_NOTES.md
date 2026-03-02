@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-02 — Enforce one vertical scroll owner per app page shell
+- Type: Guardrail
+- Summary: Use a single `ScrollContainer` as the only `overflow-y-auto` owner per page inside a full-height `AppShell`; avoid root `h-[100dvh]` + `overflow-hidden` patterns and nested page-level scrollers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Multiple scroll owners in mobile flex layouts can trap scroll, break sticky positioning context, and cause layout jumping.
+- Evidence: src/components/ui/app/AppShell.tsx, src/components/ui/app/ScrollContainer.tsx, src/app/history/page.tsx, src/app/history/exercises/page.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-02 — Keep token refresh exclusively in middleware for server-auth determinism
 - Type: Guardrail
 - Summary: In Next.js apps using cookie-backed server auth, perform token refresh only in middleware and keep server Supabase helpers read-only consumers of access cookies.
