@@ -127,7 +127,7 @@ export default async function RoutinesPage() {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <AppNav />
 
       <Glass variant="base" className="space-y-3 p-3" interactive={false}>

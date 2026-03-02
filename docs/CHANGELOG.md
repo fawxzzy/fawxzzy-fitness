@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Reduced the vertical spacing between the top navigation bar and main content on Today, Routines, and Settings so first-load layout matches the tighter History tab rhythm.
+WHY:
+- Removes the extra perceived gap under the nav on primary tabs and makes top-of-screen composition feel consistent at initial load.
+
 ### Changed
 WHAT:
 - Removed the top-of-app live clock from the navigation header so only the screen title and tab bar remain.
