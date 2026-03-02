@@ -1,5 +1,13 @@
 ### Fixed
 WHAT:
+- Switched History Exercise Browser catalog loading to canonical `exercises.id` rows from the database so Exercise Info opens use persisted IDs instead of fixture fallback IDs.
+- Added Exercise Browser ID sanitization that drops sentinel or malformed exercise IDs before rendering/open flows.
+- Added a lightweight fixture validation script to block sentinel IDs from shipping in Exercise Browser-related fixture sources.
+WHY:
+- Prevents Pull-Up and other Exercise Browser rows from opening Exercise Info with invalid placeholder IDs and eliminates repeat guard-blocked open attempts.
+
+### Fixed
+WHAT:
 - Added a canonical Exercise Info open guard that blocks falsy, sentinel, and non-UUID exercise IDs before any network request, with a user-facing invalid-link toast and source-tagged diagnostics.
 - Upgraded `/api/exercise-info/[exerciseId]` failures to always include `step` and `requestId` in JSON and response headers, and added request-scoped server logging for fatal and non-fatal phases.
 - Corrected Exercise Info base payload loading to query only schema-backed exercise columns so valid exercise UUIDs resolve successfully instead of failing in the base payload phase.

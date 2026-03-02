@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-02 — Filter sentinel/invalid IDs before wiring detail-open actions
+- Type: Guardrail
+- Summary: Any list that opens canonical detail views should validate IDs at list-construction time and drop sentinel/non-UUID identifiers before they reach UI open handlers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Prevents invalid identifier traffic from crossing UI/API boundaries and keeps open-guard logs actionable to true caller defects.
+- Evidence: src/lib/exercises-browser.ts, src/app/history/exercises/ExerciseBrowserClient.tsx, scripts/validate-exercise-browser-fixtures.mjs
+- Status: Proposed
+
 ## 2026-03-02 — API errors should ship phase + correlation metadata by default
 - Type: Guardrail
 - Summary: For multi-step API handlers, include the failing phase (`step`) and a per-request correlation id (`requestId`) in both JSON error payloads and response headers.

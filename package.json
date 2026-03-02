@@ -13,7 +13,8 @@
     "sync:assets": "npm run sync:exercise-icons",
     "icons:normalize": "node scripts/normalizeExerciseIcons.mjs",
     "gen:exercise-icons": "node scripts/generate-exercise-icon-manifest.mjs",
-    "validate:exercise-info-endpoint": "node scripts/validate-exercise-info-endpoint.mjs"
+    "validate:exercise-info-endpoint": "node scripts/validate-exercise-info-endpoint.mjs",
+    "check:exercise-browser-fixtures": "node scripts/validate-exercise-browser-fixtures.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
