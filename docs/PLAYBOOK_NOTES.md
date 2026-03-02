@@ -10,14 +10,6 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
-## 2026-03-02 — Standardize mobile list panels with anchored shell + inner scroll fade
-- Type: Pattern
-- Summary: For long mobile lists inside feature panels, keep the panel height anchored to viewport/flex space and move overflow to a dedicated inner scroll region with a bottom fade affordance.
-- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
-- Rationale: Prevents page-level scroll chaining and drifting panel bottoms while preserving consistent touch scrolling behavior and overflow clarity.
-- Evidence: src/components/layout/PanelShell.tsx, src/components/layout/ScrollFade.tsx, src/app/today/TodayDayPicker.tsx, src/app/history/HistorySessionsClient.tsx, src/app/routines/page.tsx
-- Status: Proposed
-
 ## 2026-03-01 — Use deterministic sync reports instead of auto-renaming canonical media files
 - Type: Guardrail
 - Summary: Canonical media sync scripts should validate strict filename contracts and report suggested fixes, but must not auto-rename files in-place by default.

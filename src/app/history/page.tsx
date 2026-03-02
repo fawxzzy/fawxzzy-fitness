@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { PanelShell } from "@/components/layout/PanelShell";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -97,11 +97,11 @@ export default async function HistoryPage({
   }));
 
   return (
-    <MainTabScreen className="flex min-h-[100dvh] min-h-0 flex-col overflow-hidden">
+    <MainTabScreen className="flex h-[100dvh] min-h-0 flex-col overflow-hidden">
       <AppNav />
 
       <div className="flex min-h-0 flex-1 flex-col px-1">
-        <PanelShell className="gap-3 p-3">
+        <AppPanel className="flex min-h-0 flex-1 flex-col gap-3 p-3">
           <AppHeader title="History" />
 
           <SegmentedControl
@@ -123,19 +123,19 @@ export default async function HistoryPage({
               </div>
             </div>
           )}
-
-          {nextCursor ? (
-            <div className="flex shrink-0 justify-center pb-1">
-              <Link
-                href={`/history?tab=sessions&view=${viewMode}&cursor=${encodeURIComponent(nextCursor)}`}
-                className={getAppButtonClassName({ variant: "secondary", size: "md" })}
-              >
-                Load more
-              </Link>
-            </div>
-          ) : null}
-        </PanelShell>
+        </AppPanel>
       </div>
+
+      {nextCursor ? (
+        <div className="flex justify-center">
+          <Link
+            href={`/history?tab=sessions&view=${viewMode}&cursor=${encodeURIComponent(nextCursor)}`}
+            className={getAppButtonClassName({ variant: "secondary", size: "md" })}
+          >
+            Load more
+          </Link>
+        </div>
+      ) : null}
     </MainTabScreen>
   );
 }

@@ -1,10 +1,3 @@
-### Changed
-WHAT:
-- Added a reusable anchored panel + inner-scroll fade layout pattern and applied it to Today day selection, History session logs, and Routines day lists so large lists scroll inside their panels instead of expanding the page.
-- Updated primary tab screen containers to use dynamic viewport sizing (`100dvh`) and safe-area-aware spacing for more stable mobile behavior.
-WHY:
-- Prevents panels from dropping below the fold and forcing page scroll on long content, while improving iOS Safari scroll feel and visual affordance for overflow.
-
 ### Fixed
 WHAT:
 - Reworked History → Exercises card tap targets so card content is rendered inside the interactive control instead of beneath an absolute overlay.
