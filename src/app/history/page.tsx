@@ -3,7 +3,6 @@ import { AppNav } from "@/components/AppNav";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -102,25 +101,7 @@ export default async function HistoryPage({
 
       <ScrollContainer className="px-1">
         <AppPanel className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-          <SegmentedControl
-            options={[
-              { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${viewMode}` },
-              { label: "Exercises", value: "exercises", href: "/history/exercises" },
-            ]}
-            value="sessions"
-            ariaLabel="History tabs"
-          />
-
-          {sessions.length > 0 ? (
-            <HistorySessionsClient sessions={sessionItems} initialViewMode={viewMode} />
-          ) : (
-            <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-6 text-center">
-              <div>
-                <p className="text-sm font-medium text-slate-200">No completed sessions yet.</p>
-                <p className="mt-1 text-xs text-slate-400">Finish a workout and your performance timeline will appear here.</p>
-              </div>
-            </div>
-          )}
+          <HistorySessionsClient sessions={sessionItems} initialViewMode={viewMode} />
 
           {nextCursor ? (
             <div className="flex justify-center">

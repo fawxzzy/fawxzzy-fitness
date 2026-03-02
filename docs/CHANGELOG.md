@@ -13,6 +13,12 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Unified History Sessions controls by wrapping the Sessions/Exercises tabs and View Mode selector in a single highlighted container.
+WHY:
+- Strengthens visual hierarchy and groups related controls into one cohesive interaction block.
+
+### Fixed
+WHAT:
 - Log Details: renamed the bottom destructive action to “Delete”, aligned it to match the Edit button shape/size, corrected summary panel top-left alignment with top-right back control, and added collapsible per-set editors in edit mode with one expanded set at a time and auto-expand for newly added sets.
 WHY:
 - Improves action consistency and scanability while reducing edit-mode clutter so set updates stay fast and focused.
