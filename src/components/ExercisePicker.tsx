@@ -482,6 +482,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             setInfo(null);
           }
         }}
+        onClose={() => {
+          setInfo(null);
+        }}
       />
 
       {routineTargetConfig && selectedExercise ? (

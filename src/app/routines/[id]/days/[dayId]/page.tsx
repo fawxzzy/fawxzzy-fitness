@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AppRow } from "@/components/ui/app/AppRow";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { formatRepTarget } from "@/lib/routines";
@@ -72,6 +72,14 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
   const dayRow = day as RoutineDayRow;
   const dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
   const exerciseNameMap = await getExerciseNameMap();
+  const exerciseIds = Array.from(new Set(dayExercises.map((exercise) => exercise.exercise_id)));
+  const { data: exerciseDetailsRows } = exerciseIds.length === 0
+    ? { data: [] }
+    : await supabase
+        .from("exercises")
+        .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short")
+        .in("id", exerciseIds);
+  const exerciseDetailsById = new Map((exerciseDetailsRows ?? []).map((exercise) => [exercise.id, exercise]));
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
 
   return (
@@ -90,18 +98,29 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
             Rest day. No exercises planned for this day.
           </p>
         ) : (
-          <ul className="space-y-2">
-            {dayExercises.map((exercise) => {
-              const exerciseName = exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id;
-              const targetSummary = formatTargetSummary(exercise);
-
-              return (
-                <li key={exercise.id}>
-                  <AppRow leftTop={exerciseName} leftBottom={targetSummary || undefined} />
-                </li>
-              );
+          <RoutineDayExerciseList
+            exercises={dayExercises.map((exercise) => {
+              const details = exerciseDetailsById.get(exercise.exercise_id);
+              const exerciseName = details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id;
+              return {
+                id: exercise.id,
+                name: exerciseName,
+                targetSummary: formatTargetSummary(exercise),
+                info: {
+                  id: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
+                  exercise_id: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
+                  name: exerciseName,
+                  primary_muscle: details?.primary_muscle ?? null,
+                  equipment: details?.equipment ?? null,
+                  movement_pattern: details?.movement_pattern ?? null,
+                  image_howto_path: details?.image_howto_path ?? null,
+                  image_icon_path: details?.image_icon_path ?? null,
+                  slug: details?.slug ?? null,
+                  how_to_short: details?.how_to_short ?? null,
+                },
+              };
             })}
-          </ul>
+          />
         )}
       </AppPanel>
     </section>

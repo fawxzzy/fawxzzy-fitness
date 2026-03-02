@@ -1911,3 +1911,11 @@ WHAT:
 - Cleaned the expanded exercise close control so it shows only the intended single collapse arrow affordance.
 WHY:
 - Reduces in-session clutter and prevents duplicate/ambiguous controls while making Quick Add faster and more predictable during active workouts.
+
+### Fixed
+WHAT:
+- Made exercises tappable on Today and Routine Day views so tapping opens the Exercise Info sheet.
+- Standardized Exercise Info back behavior so sheet contexts close back to the originating screen context.
+WHY:
+- Improves discoverability of exercise details in daily training and routine planning flows.
+- Keeps users in their current context without route resets or unexpected navigation jumps.
