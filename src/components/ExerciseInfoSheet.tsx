@@ -178,11 +178,6 @@ export function ExerciseInfoSheet({
               {stats ? (
                 <div className="space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-2.5 py-2 text-xs text-muted">
                   <p className={sectionTitleClassName}>Stats</p>
-                  {process.env.NODE_ENV === "development" ? (
-                    <p className="font-mono text-[10px] text-muted/90">
-                      DEBUG canonicalExerciseId={canonicalExerciseId ?? "none"} statsFound={stats ? "yes" : "no"} stats.exercise_id={stats.exercise_id ?? "none"}
-                    </p>
-                  ) : null}
                   {lastSummary ? (
                     <p>
                       Last: {lastSummary}

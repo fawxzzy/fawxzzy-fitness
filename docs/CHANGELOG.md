@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Removed the Exercise Info Stats debug diagnostics line that displayed canonical/stat exercise IDs in the Info sheet.
+WHY:
+- Keeps the Info screen user-facing content clean by removing internal debugging text.
+
+### Fixed
+WHAT:
 - Removed the nested History → Exercises list viewport scroll owner and its iOS momentum-scroll styling so the page-level `ScrollContainer` is the only vertical scroller.
 WHY:
 - Eliminates the secondary scrollbar indicator on Safari/iOS and enforces the single-scroll-owner page shell contract.
