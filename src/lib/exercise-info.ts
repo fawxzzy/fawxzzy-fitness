@@ -1,25 +1,34 @@
 import "server-only";
 
+import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { getExerciseStatsForExercise, type ExerciseStatsRow } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 
+export type ExerciseInfoExercise = {
+  id: string;
+  exercise_id: string;
+  name: string;
+  primary_muscle: string | null;
+  equipment: string | null;
+  movement_pattern: string | null;
+  image_howto_path: string | null;
+  how_to_short: string | null;
+  image_icon_path: string | null;
+  slug: string | null;
+};
+
 export type ExerciseInfoPayload = {
-  exercise: {
-    id: string;
-    exercise_id: string;
-    name: string;
-    primary_muscle: string | null;
-    equipment: string | null;
-    movement_pattern: string | null;
-    image_howto_path: string | null;
-    how_to_short: string | null;
-    image_icon_path: string | null;
-    slug: string | null;
-  };
+  exercise: ExerciseInfoExercise;
   stats: ExerciseStatsRow | null;
 };
 
-export async function getExerciseInfoPayload(exerciseId: string, userId: string): Promise<ExerciseInfoPayload | null> {
+function isNoRowsError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST116") return true;
+  return typeof error.message === "string" && /no rows|0 rows/i.test(error.message);
+}
+
+export async function getExerciseInfoBase(exerciseId: string, userId: string): Promise<ExerciseInfoExercise | null> {
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
@@ -30,11 +39,11 @@ export async function getExerciseInfoPayload(exerciseId: string, userId: string)
     .maybeSingle();
 
   if (error) {
-    if (error.code === "PGRST116") {
+    if (isNoRowsError(error)) {
       return null;
     }
 
-    throw new Error(`failed to load exercise info: ${error.message}`);
+    throw new Error(`failed to load exercise info base: ${error.message}`);
   }
 
   if (!data) {
@@ -46,32 +55,54 @@ export async function getExerciseInfoPayload(exerciseId: string, userId: string)
     return null;
   }
 
-  let stats: ExerciseStatsRow | null = null;
+  return {
+    id: data.id,
+    exercise_id: canonicalExerciseId,
+    name: data.name,
+    primary_muscle: data.primary_muscle,
+    equipment: data.equipment,
+    movement_pattern: data.movement_pattern,
+    image_howto_path: data.image_howto_path,
+    how_to_short: data.how_to_short,
+    image_icon_path: data.image_icon_path,
+    slug: data.slug,
+  };
+}
+
+export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string): Promise<ExerciseStatsRow | null> {
   try {
-    stats = await getExerciseStatsForExercise(userId, canonicalExerciseId);
+    return await getExerciseStatsForExercise(userId, canonicalExerciseId);
   } catch (error) {
-    console.error("[exercise-info] failed to load stats", {
-      exerciseId,
-      canonicalExerciseId,
+    console.error("[exercise-info] non-fatal stats failure", {
+      step: "payload:stats",
       userId,
+      canonicalExerciseId,
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
+    return null;
+  }
+}
+
+export function resolveExerciseInfoImages(exercise: ExerciseInfoExercise): ExerciseInfoExercise {
+  const resolvedHowToPath = getExerciseHowToImageSrc(exercise);
+  return {
+    ...exercise,
+    image_howto_path: resolvedHowToPath,
+  };
+}
+
+export async function getExerciseInfoPayload(exerciseId: string, userId: string): Promise<ExerciseInfoPayload | null> {
+  const exercise = await getExerciseInfoBase(exerciseId, userId);
+  if (!exercise) {
+    return null;
   }
 
+  const stats = await getExerciseInfoStats(userId, exercise.exercise_id);
+  const exerciseWithImages = resolveExerciseInfoImages(exercise);
+
   return {
-    exercise: {
-      id: data.id,
-      exercise_id: canonicalExerciseId,
-      name: data.name,
-      primary_muscle: data.primary_muscle,
-      equipment: data.equipment,
-      movement_pattern: data.movement_pattern,
-      image_howto_path: data.image_howto_path,
-      how_to_short: data.how_to_short,
-      image_icon_path: data.image_icon_path,
-      slug: data.slug,
-    },
+    exercise: exerciseWithImages,
     stats,
   };
 }

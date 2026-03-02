@@ -1944,3 +1944,15 @@ WHAT:
 - Added visible client-side error feedback when Exercise Info fetches fail instead of silently doing nothing.
 WHY:
 - Prevents Exercise Info from failing to open due to placeholder or mismapped IDs and makes failure modes explicit for users and debugging.
+
+### Fixed
+WHAT:
+- Made `/api/exercise-info/[exerciseId]` return one stable API envelope shape for both success and failure, with explicit error codes including a server misconfiguration case.
+- Added step-level observability (`validate`, `auth`, `payload:base`, `payload:stats`, `payload:images`, `respond`) so server logs identify the exact failing phase for 500s.
+- Split Exercise Info payload loading into isolated base/stats/images phases and made stats failures non-fatal so valid exercise info still loads.
+- Updated Exercise Info client error parsing/toasts to support both stable and legacy error shapes while surfacing request status + exercise id.
+- Tightened the endpoint validation script to assert expected error statuses are non-500.
+WHY:
+- Restores reliable Exercise Info behavior across all entry points while making production failures diagnosable from logs.
+- Prevents optional stats/image resolution issues from taking down the whole endpoint.
+- Ensures expected invalid/unauth/not-found cases are handled deterministically without collapsing into generic 500 errors.

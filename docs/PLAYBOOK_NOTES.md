@@ -576,3 +576,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Prevents hard-coded return routes, preserves origin screen state/scroll in modal contexts, and keeps deep-link route behavior correct.
 - Evidence: src/components/ExerciseInfoSheet.tsx, src/app/today/TodayDayPicker.tsx, src/app/today/TodayExerciseRows.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx
 - Status: Proposed
+
+## 2026-03-02 — API routes should emit phase-labeled failure logs with stable error envelopes
+- Type: Guardrail
+- Summary: For multi-step API handlers (validate/auth/load/transform/respond), track a current step label and include it in structured error logs while returning a single stable `{ ok:false, code, message, details? }` contract.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Prevents opaque 500 debugging and avoids client drift from mixed/legacy error response shapes.
+- Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts, src/components/ExerciseInfo.tsx
+- Status: Proposed
