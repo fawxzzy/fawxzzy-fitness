@@ -3,6 +3,7 @@ import "server-only";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { listExercises } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type ExerciseCatalogRow = {
@@ -54,9 +55,6 @@ export type ExerciseBrowserRow = {
   actual_pr_at: string | null;
 };
 
-const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
-const UUID_V4ISH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 function compareExerciseBrowserRows(a: ExerciseBrowserRow, b: ExerciseBrowserRow) {
   const aLast = a.last_performed_at;
   const bLast = b.last_performed_at;
@@ -78,70 +76,28 @@ function isRelationOrColumnMissing(error: PostgrestError | null) {
   return error?.code === "42P01" || error?.code === "42703";
 }
 
-function isValidCanonicalExerciseId(exerciseId: string) {
-  return exerciseId !== SENTINEL_EXERCISE_ID && UUID_V4ISH_PATTERN.test(exerciseId);
-}
-
-async function getExerciseCatalogForUser(userId: string): Promise<ExerciseCatalogRow[]> {
-  const supabase = supabaseServer();
-
-  const [globalResult, customResult] = await Promise.all([
-    supabase
-      .from("exercises")
-      .select("id, name, slug, primary_muscle, equipment, movement_pattern, image_howto_path, how_to_short")
-      .is("user_id", null)
-      .eq("is_global", true),
-    supabase
-      .from("exercises")
-      .select("id, name, slug, primary_muscle, equipment, movement_pattern, image_howto_path, how_to_short")
-      .eq("user_id", userId),
-  ]);
-
-  if (globalResult.error) {
-    throw new Error(`failed to load global exercises: ${globalResult.error.message}`);
-  }
-
-  if (customResult.error) {
-    throw new Error(`failed to load custom exercises: ${customResult.error.message}`);
-  }
-
-  return [...(customResult.data ?? []), ...(globalResult.data ?? [])] as ExerciseCatalogRow[];
-}
-
 export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow[]> {
   noStore();
 
   const user = await requireUser();
   const supabase = supabaseServer();
 
-  const exerciseRows = await getExerciseCatalogForUser(user.id);
-  const exercises = new Map<string, ExerciseCatalogRow>();
+  const exerciseRows = await listExercises();
 
-  for (const row of exerciseRows) {
-    const id = typeof row.id === "string" ? row.id.trim() : "";
-    const name = typeof row.name === "string" ? row.name.trim() : "";
+  const exercises: ExerciseCatalogRow[] = exerciseRows
+    .filter((row) => row.id && row.name)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: "slug" in row && typeof row.slug === "string" ? row.slug : null,
+      primary_muscle: row.primary_muscle ?? null,
+      equipment: row.equipment ?? null,
+      movement_pattern: row.movement_pattern ?? null,
+      image_howto_path: row.image_howto_path ?? null,
+      how_to_short: row.how_to_short ?? null,
+    }));
 
-    if (!id || !name) {
-      continue;
-    }
-
-    if (!isValidCanonicalExerciseId(id)) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("[history/exercises] Dropped invalid exercise id", { id, name, slug: row.slug ?? null });
-      }
-      continue;
-    }
-
-    if (!exercises.has(id)) {
-      exercises.set(id, {
-        ...row,
-        id,
-        name,
-      });
-    }
-  }
-
-  const canonicalIds = Array.from(exercises.keys());
+  const canonicalIds = Array.from(new Set(exercises.map((row) => row.id)));
 
   if (!canonicalIds.length) {
     return [];
@@ -166,7 +122,7 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 
   const statsByExerciseId = new Map(((statsRows ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
 
-  return Array.from(exercises.values())
+  return exercises
     .map((exercise) => {
       const canonicalExerciseId = exercise.id;
       const stats = statsByExerciseId.get(canonicalExerciseId);
