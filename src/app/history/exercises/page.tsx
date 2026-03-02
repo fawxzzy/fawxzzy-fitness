@@ -1,7 +1,6 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { AppNav } from "@/components/AppNav";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
@@ -29,7 +28,6 @@ export default async function HistoryExercisesPage() {
 
         <ScrollContainer className="px-1">
           <AppPanel className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-            <AppHeader title="History" />
             <ExerciseBrowserClient rows={rows} />
           </AppPanel>
         </ScrollContainer>

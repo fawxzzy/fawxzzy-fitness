@@ -1986,3 +1986,9 @@ WHAT:
 - Updated both Exercise Info client fetches and `/api/exercise-info/[exerciseId]` route validation/loading to use the canonicalized id.
 WHY:
 - Restores Exercise Info opening from Today when routines still contain legacy Pull-Up ids and prevents invalid-id blocking in those flows.
+
+### Fixed
+WHAT:
+- History Exercises UI: removed redundant in-content history titles, moved Sessions/Exercises tabs into the shared highlighted header panel, simplified filter header/count display, and refreshed exercise card alignment for icon + stat hierarchy.
+WHY:
+- Reduces visual clutter, strengthens hierarchy inside the shared header region, and improves readability/scanability of exercise rows without changing behavior.
