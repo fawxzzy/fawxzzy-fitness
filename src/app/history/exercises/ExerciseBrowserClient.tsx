@@ -127,8 +127,8 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
               {strengthPrSummary ? <p>STR PR: {strengthPrSummary}</p> : null}
             </div>
           </div>
-          <div className="w-20 shrink-0 self-stretch overflow-hidden border-l border-border/20">
-            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full object-contain" />
+          <div className="h-full aspect-square shrink-0 self-stretch overflow-hidden border-l border-border/20">
+            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full object-cover" />
           </div>
         </div>
       </button>

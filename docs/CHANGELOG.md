@@ -1,5 +1,12 @@
 ### Fixed
 WHAT:
+- Updated History → Exercises row cards so the right-side image column now sizes from row height as a square and the divider position adapts naturally with card height.
+- Switched History exercise thumbnails in these rows to edge-to-edge fill mode for the standardized square icon set.
+WHY:
+- Removes fixed-width thumbnail constraints so divider placement stays proportional to each row and standardized square icons render without letterboxing.
+
+### Fixed
+WHAT:
 - Removed `AppPanel` from History → Exercises row cards and switched the row shell to a direct non-panel container so card fill reaches the highlight border edge-to-edge.
 WHY:
 - Eliminates the persistent inset gap caused by inherited panel base padding and restores the intended flush card treatment without changing row behavior.
