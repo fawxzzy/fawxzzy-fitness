@@ -1,4 +1,5 @@
 import { AppNav } from "@/components/AppNav";
+import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { GlassEffectsSettings } from "@/components/settings/GlassEffectsSettings";
 import { Glass } from "@/components/ui/Glass";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -12,7 +13,7 @@ export default async function SettingsPage() {
   await ensureProfile(user.id);
 
   return (
-    <section className="space-y-3">
+    <MainTabScreen>
       <AppNav />
       <Glass variant="base" className="p-4" interactive={false}>
         <p className="text-sm text-[rgb(var(--text)/0.7)]">Logged in as</p>
@@ -25,6 +26,6 @@ export default async function SettingsPage() {
         </div>
         <SignOutButton />
       </Glass>
-    </section>
+    </MainTabScreen>
   );
 }

@@ -2,6 +2,7 @@ import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { AppNav } from "@/components/AppNav";
 import { AppHeader } from "@/components/ui/app/AppHeader";
+import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
@@ -22,7 +23,7 @@ export default async function HistoryExercisesPage() {
     const rows = await getExercisesWithStatsForUser();
 
     return (
-      <section className="flex h-[100dvh] min-h-0 flex-col gap-4 overflow-hidden">
+      <MainTabScreen className="flex h-[100dvh] min-h-0 flex-col overflow-hidden">
         <AppNav />
 
         <div className="flex min-h-0 flex-1 flex-col px-1">
@@ -31,7 +32,7 @@ export default async function HistoryExercisesPage() {
             <ExerciseBrowserClient rows={rows} />
           </AppPanel>
         </div>
-      </section>
+      </MainTabScreen>
     );
   } catch (error) {
     if (isRedirectError(error) || isNotFoundError(error)) {
@@ -41,10 +42,10 @@ export default async function HistoryExercisesPage() {
     console.error("[history/exercises] failed to load exercise stats", error);
 
     return (
-      <section className="space-y-4">
+      <MainTabScreen>
         <AppNav />
         <ExercisesBrowserError />
-      </section>
+      </MainTabScreen>
     );
   }
 }
