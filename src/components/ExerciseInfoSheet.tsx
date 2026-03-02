@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { BackButton } from "@/components/ui/BackButton";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
@@ -70,26 +71,38 @@ export function ExerciseInfoSheet({
   stats,
   open,
   onOpenChange,
+  onClose,
 }: {
   exercise: ExerciseInfoSheetExercise | null;
   stats?: ExerciseInfoSheetStats | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onClose?: () => void;
 }) {
+  const router = useRouter();
   useBodyScrollLock(open);
+
+  const handleClose = useCallback(() => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+
+    onOpenChange(false);
+  }, [onClose, onOpenChange]);
 
   useEffect(() => {
     if (!open) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onOpenChange(false);
+        handleClose();
       }
     };
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onOpenChange, open]);
+  }, [handleClose, open]);
 
   const resolvedHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
@@ -119,7 +132,7 @@ export function ExerciseInfoSheet({
       aria-label="Exercise info"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
-          onOpenChange(false);
+          handleClose();
         }
       }}
     >
@@ -131,7 +144,12 @@ export function ExerciseInfoSheet({
               <BackButton
                 onClick={(event) => {
                   event.preventDefault();
-                  onOpenChange(false);
+                  if (onClose) {
+                    onClose();
+                    return;
+                  }
+
+                  router.back();
                 }}
                 label="Back"
                 ariaLabel="Back"

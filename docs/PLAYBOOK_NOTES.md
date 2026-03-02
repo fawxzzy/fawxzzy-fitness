@@ -560,3 +560,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Safe-area accommodation should adjust nav position, not expand nav background/panel height into the notch/status region.
 - Evidence: src/app/globals.css, src/components/AppNav.tsx
 - Status: Proposed
+
+## 2026-03-02 — Standardize detail sheet back actions with optional local close handlers
+- Type: Guardrail
+- Summary: Reusable detail sheets should accept an optional `onClose` callback; Back invokes `onClose` when provided and otherwise falls back to `router.back()`.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents hard-coded return routes, preserves origin screen state/scroll in modal contexts, and keeps deep-link route behavior correct.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/app/today/TodayDayPicker.tsx, src/app/today/TodayExerciseRows.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx
+- Status: Proposed

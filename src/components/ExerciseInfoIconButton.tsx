@@ -22,7 +22,7 @@ export function ExerciseInfoIconButton({
       >
         <span aria-hidden="true">ⓘ</span>
       </button>
-      <ExerciseInfoSheet exercise={exercise} open={open} onOpenChange={setOpen} />
+      <ExerciseInfoSheet exercise={exercise} open={open} onOpenChange={setOpen} onClose={() => setOpen(false)} />
     </>
   );
 }

@@ -4,15 +4,14 @@ import { AppNav } from "@/components/AppNav";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
+import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AppRow } from "@/components/ui/app/AppRow";
 import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
-import { appTokens } from "@/components/ui/app/tokens";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
@@ -345,6 +344,14 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   }
 
   const exerciseNameMap = await getExerciseNameMap();
+  const exerciseIds = Array.from(new Set(allDayExercises.map((exercise) => exercise.exercise_id)));
+  const { data: exerciseDetailsRows } = exerciseIds.length === 0
+    ? { data: [] }
+    : await supabase
+        .from("exercises")
+        .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short")
+        .in("id", exerciseIds);
+  const exerciseDetailsById = new Map((exerciseDetailsRows ?? []).map((exercise) => [exercise.id, exercise]));
   // Manual QA checklist:
   // - Change day on Today, start workout, leave, return: displayed day matches Resume target.
   const effectiveDayIndex = inProgressSession?.routine_day_index ?? todayDayIndex;
@@ -370,12 +377,23 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             routineDayId: effectiveRoutineDay.id,
           }
         : null,
-    exercises: effectiveDayExercises.map((exercise) => ({
-      id: exercise.id,
-      name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-      targets: formatTodayExerciseTargets(exercise),
-      notes: exercise.notes,
-    })),
+    exercises: effectiveDayExercises.map((exercise) => {
+      const details = exerciseDetailsById.get(exercise.exercise_id);
+      return {
+        id: exercise.id,
+        exerciseId: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
+        name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+        targets: formatTodayExerciseTargets(exercise),
+        notes: exercise.notes,
+        primary_muscle: details?.primary_muscle ?? null,
+        equipment: details?.equipment ?? null,
+        movement_pattern: details?.movement_pattern ?? null,
+        image_howto_path: details?.image_howto_path ?? null,
+        image_icon_path: details?.image_icon_path ?? null,
+        slug: details?.slug ?? null,
+        how_to_short: details?.how_to_short ?? null,
+      };
+    }),
     completedTodayCount,
     inProgressSessionId: inProgressSession?.id ?? null,
   };
@@ -412,18 +430,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   action={todayPayload.completedTodayCount > 0 ? <AppBadge>Completed</AppBadge> : undefined}
                 />
 
-                <ul className={`${appTokens.listDivider} overflow-hidden rounded-lg border border-white/15 bg-[rgb(var(--surface)/0.72)] text-sm`}>
-                  {todayPayload.exercises.map((exercise) => (
-                    <li key={exercise.id}>
-                      <AppRow
-                        leftTop={exercise.name}
-                        leftBottom={exercise.targets || undefined}
-                        className="rounded-none border-x-0 border-t-0 border-b-white/12 bg-transparent px-3"
-                      />
-                    </li>
-                  ))}
-                  {todayPayload.exercises.length === 0 ? <li className="px-3 py-3 text-muted">No routine exercises planned today.</li> : null}
-                </ul>
+                <TodayExerciseRows
+                  exercises={todayPayload.exercises}
+                  emptyMessage="No routine exercises planned today."
+                />
               </AppPanel>
 
               <StickyActionBar
@@ -451,11 +461,22 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 isRest: day.is_rest,
                 exercises: allDayExercises
                   .filter((exercise) => exercise.routine_day_id === day.id)
-                  .map((exercise) => ({
-                    id: exercise.id,
-                    name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-                    targets: formatTodayExerciseTargets(exercise),
-                  })),
+                  .map((exercise) => {
+                    const details = exerciseDetailsById.get(exercise.exercise_id);
+                    return {
+                      id: exercise.id,
+                      exerciseId: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
+                      name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+                      targets: formatTodayExerciseTargets(exercise),
+                      primary_muscle: details?.primary_muscle ?? null,
+                      equipment: details?.equipment ?? null,
+                      movement_pattern: details?.movement_pattern ?? null,
+                      image_howto_path: details?.image_howto_path ?? null,
+                      image_icon_path: details?.image_icon_path ?? null,
+                      slug: details?.slug ?? null,
+                      how_to_short: details?.how_to_short ?? null,
+                    };
+                  }),
               }))}
               currentDayIndex={todayPayload.routine.dayIndex}
               completedTodayCount={todayPayload.completedTodayCount}

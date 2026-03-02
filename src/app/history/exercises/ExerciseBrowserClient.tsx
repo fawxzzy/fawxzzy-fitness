@@ -267,6 +267,9 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
             setSelectedExerciseId(null);
           }
         }}
+        onClose={() => {
+          setSelectedExerciseId(null);
+        }}
       />
     </div>
   );
