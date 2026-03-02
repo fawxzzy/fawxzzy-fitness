@@ -249,8 +249,8 @@ export function SessionExerciseFocus({
                 event.preventDefault();
                 setSelectedExerciseId(null);
               }}
-              label="^"
               ariaLabel="Collapse exercise"
+              iconOnly
               className={tapFeedbackClass}
             />
           </div>

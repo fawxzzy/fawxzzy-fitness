@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
@@ -41,14 +40,12 @@ export function SessionHeaderControls({
   initialDurationSeconds,
   performedAt,
   saveSessionAction,
-  editDayHref,
   quickAddAction,
 }: {
   sessionId: string;
   initialDurationSeconds: number | null;
   performedAt: string;
   saveSessionAction: ServerAction;
-  editDayHref: string | null;
   quickAddAction: React.ReactNode;
 }) {
   const baseDurationSeconds = initialDurationSeconds ?? 0;
@@ -103,11 +100,6 @@ export function SessionHeaderControls({
           <span className="font-medium tabular-nums text-[rgb(var(--text)/0.75)]">{formatDurationClock(durationSeconds)}</span>
         </p>
         <div className="flex items-center justify-end gap-2">
-          {editDayHref ? (
-            <Link href={editDayHref} className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md border border-border/70 bg-surface-2-soft px-3 text-sm font-medium text-text transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
-              Edit Day
-            </Link>
-          ) : null}
           {quickAddAction}
           <SessionBackButton />
         </div>

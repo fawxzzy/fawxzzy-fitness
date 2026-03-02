@@ -1903,3 +1903,11 @@ WHAT:
 WHY:
 - Prevents accidental session exits when users intend to close exercise details and keeps the interaction consistent with in-place expand/collapse behavior.
 
+
+### Fixed
+WHAT:
+- Simplified the Current Session header/actions by removing Edit Day access and removing the Custom Exercise management panel from the in-session screen.
+- Improved Current Session Quick Add with clearer selected-exercise highlighting, a filter control placed below exercise search, and per-exercise saved set-count values.
+- Cleaned the expanded exercise close control so it shows only the intended single collapse arrow affordance.
+WHY:
+- Reduces in-session clutter and prevents duplicate/ambiguous controls while making Quick Add faster and more predictable during active workouts.

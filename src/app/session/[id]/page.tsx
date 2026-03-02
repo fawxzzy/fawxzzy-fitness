@@ -2,10 +2,6 @@ import { SessionExerciseFocus } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
-import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
-import { AppButton } from "@/components/ui/AppButton";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { formatGoalStatLine, type DisplayTarget } from "@/lib/session-targets";
 import {
   addSetAction,
@@ -19,8 +15,6 @@ import {
 import { getSessionPageData } from "./queries";
 
 export const dynamic = "force-dynamic";
-
-const customExerciseInputClass = "w-full rounded-md border border-border/70 bg-[rgb(var(--bg)/0.45)] px-3 py-2 text-sm text-text";
 
 function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): {
   weight?: number;
@@ -80,7 +74,6 @@ type PageProps = {
   searchParams?: {
     error?: string;
     exerciseId?: string;
-    addExerciseOpen?: string;
   };
 };
 
@@ -89,12 +82,10 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     sessionRow,
     routine,
     sessionExercises,
-    routineDayId,
     setsByExercise,
     sessionTargets,
     exerciseOptions,
     exerciseNameMap,
-    customExercises,
   } = await getSessionPageData(params.id);
 
   const unitLabel = routine?.weight_unit ?? "kg";
@@ -111,7 +102,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         initialDurationSeconds={sessionRow.duration_seconds}
         performedAt={sessionRow.performed_at}
         saveSessionAction={saveSessionAction}
-        editDayHref={sessionRow.routine_id && routineDayId ? `/routines/${sessionRow.routine_id}/edit/day/${routineDayId}` : null}
         quickAddAction={(
           <QuickAddExerciseSheet
             sessionId={params.id}
@@ -125,42 +115,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       <ActionFeedbackToasts />
-
-      <CollapsibleCard title="Custom exercises" summary={`${customExercises.length} saved`} defaultOpen={searchParams?.addExerciseOpen === "1"}>
-        <form action={createCustomExerciseAction} className="space-y-2">
-          <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
-          <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={customExerciseInputClass} />
-          <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
-        </form>
-
-        {customExercises.length > 0 ? (
-          <ul className="mt-3 space-y-2 border-t border-border/60 pt-3">
-            {customExercises.map((exercise) => (
-              <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] p-2">
-                <p className="text-xs font-semibold text-text">{exercise.name}</p>
-                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <form action={renameCustomExerciseAction} className="flex gap-2">
-                    <input type="hidden" name="returnTo" value={`/session/${params.id}`} />
-                    <input type="hidden" name="exerciseId" value={exercise.id} />
-                    <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={customExerciseInputClass} />
-                    <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
-                  </form>
-                  <ConfirmedServerFormButton
-                    action={deleteCustomExerciseAction}
-                    hiddenFields={{ returnTo: `/session/${params.id}`, exerciseId: exercise.id }}
-                    triggerLabel="Delete"
-                    triggerClassName="w-full"
-                    modalTitle="Delete custom exercise?"
-                    modalDescription="This permanently deletes this custom exercise from your library."
-                    confirmLabel="Delete"
-                    details={`Exercise: ${exercise.name}`}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </CollapsibleCard>
       {sessionExercises.length > 0 ? (
         <SessionExerciseFocus
           sessionId={params.id}
