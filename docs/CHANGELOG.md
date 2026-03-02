@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Removed the nested History → Exercises list viewport scroll owner and its iOS momentum-scroll styling so the page-level `ScrollContainer` is the only vertical scroller.
+WHY:
+- Eliminates the secondary scrollbar indicator on Safari/iOS and enforces the single-scroll-owner page shell contract.
+
+### Fixed
+WHAT:
 - Updated History → Exercises row cards so the right-side image column now sizes from row height as a square and the divider position adapts naturally with card height.
 - Switched History exercise thumbnails in these rows to edge-to-edge fill mode for the standardized square icon set.
 WHY:
