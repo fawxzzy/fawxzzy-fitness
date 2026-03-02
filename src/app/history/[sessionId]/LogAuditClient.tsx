@@ -14,7 +14,7 @@ import {
 } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppButton, DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
-import { InlineHintInput } from "@/components/ui/InlineHintInput";
+import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
@@ -40,13 +40,9 @@ type AuditSet = {
 type EditableSet = {
   id: string;
   source: AuditSet;
-  weight: string;
-  reps: string;
-  durationSeconds: string;
-  distance: string;
-  distanceUnit: "mi" | "km" | "m";
-  calories: string;
-  weightUnit: "lbs" | "kg";
+  values: MeasurementValues;
+  activeMetrics: MeasurementMetrics;
+  isMetricsExpanded: boolean;
 };
 
 type AuditExercise = {
@@ -58,16 +54,48 @@ type AuditExercise = {
   sets: AuditSet[];
 };
 
-const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg"): EditableSet => ({
+const metricsForMeasurementType = (measurementType: AuditExercise["measurement_type"]): MeasurementMetrics => {
+  if (measurementType === "reps") return { reps: true, weight: true, time: false, distance: false, calories: false };
+  if (measurementType === "time") return { reps: false, weight: false, time: true, distance: false, calories: false };
+  if (measurementType === "distance") return { reps: false, weight: false, time: false, distance: true, calories: false };
+  return { reps: false, weight: false, time: true, distance: true, calories: false };
+};
+
+function parseDurationInput(rawValue: string): number | null {
+  const value = rawValue.trim();
+  if (!value) return null;
+  if (value.includes(":")) {
+    const [minutesRaw, secondsRaw] = value.split(":");
+    if (secondsRaw === undefined) return null;
+    const minutes = Number(minutesRaw);
+    const seconds = Number(secondsRaw);
+    if (!Number.isInteger(minutes) || !Number.isInteger(seconds) || minutes < 0 || seconds < 0 || seconds > 59) {
+      return null;
+    }
+    return (minutes * 60) + seconds;
+  }
+  const totalSeconds = Number(value);
+  if (!Number.isInteger(totalSeconds) || totalSeconds < 0) return null;
+  return totalSeconds;
+}
+
+const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg", measurementType: AuditExercise["measurement_type"]): EditableSet => ({
   id: set.id,
   source: set,
-  weight: String(set.weight),
-  reps: String(set.reps),
-  durationSeconds: set.duration_seconds === null ? "" : String(set.duration_seconds),
-  distance: set.distance === null ? "" : String(set.distance),
-  distanceUnit: set.distance_unit ?? "mi",
-  calories: set.calories === null ? "" : String(set.calories),
-  weightUnit: set.weight_unit ?? unitLabel,
+  values: {
+    weight: String(set.weight),
+    reps: String(set.reps),
+    duration: set.duration_seconds === null ? "" : formatDurationClock(set.duration_seconds),
+    distance: set.distance === null ? "" : String(set.distance),
+    distanceUnit: set.distance_unit ?? "mi",
+    calories: set.calories === null ? "" : String(set.calories),
+    weightUnit: set.weight_unit ?? unitLabel,
+  },
+  activeMetrics: {
+    ...metricsForMeasurementType(measurementType),
+    calories: set.calories !== null,
+  },
+  isMetricsExpanded: false,
 });
 
 export function LogAuditClient({
@@ -107,20 +135,20 @@ export function LogAuditClient({
   const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
   const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])));
   const [editableSets, setEditableSets] = useState<Record<string, EditableSet[]>>(
-    Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel))])),
+    Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel, exercise.measurement_type))])),
   );
 
   const formatSetSummary = (set: EditableSet, measurementType: AuditExercise["measurement_type"], defaultUnit: AuditExercise["default_unit"]) => {
     const parts: string[] = [];
-    const weight = Number(set.weight);
-    const reps = Number(set.reps);
+    const weight = Number(set.values.weight);
+    const reps = Number(set.values.reps);
 
     if (measurementType === "reps") {
       if (weight > 0 || reps > 0) {
-        parts.push(`${set.weight} ${set.weightUnit} × ${set.reps}`);
+        parts.push(`${set.values.weight} ${set.values.weightUnit} × ${set.values.reps}`);
       }
     } else if (reps > 0) {
-      parts.push(`${set.reps} reps`);
+      parts.push(`${set.values.reps} reps`);
     }
 
     if ((measurementType === "time" || measurementType === "time_distance") && set.source.duration_seconds !== null) {
@@ -143,7 +171,7 @@ export function LogAuditClient({
     setDayName(initialDayName);
     setSessionNotes(initialNotes ?? "");
     setExerciseNotes(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])));
-    setEditableSets(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel))])));
+    setEditableSets(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel, exercise.measurement_type))])));
   };
 
   const handleSave = () => {
@@ -170,26 +198,36 @@ export function LogAuditClient({
     });
   };
 
-  const updateEditableSetField = (exerciseId: string, setId: string, field: keyof EditableSet, value: string) => {
-    setEditableSets((current) => ({ ...current, [exerciseId]: (current[exerciseId] ?? []).map((set) => (set.id === setId ? { ...set, [field]: value } : set)) }));
+  const updateEditableSet = (exerciseId: string, setId: string, updater: (set: EditableSet) => EditableSet) => {
+    setEditableSets((current) => ({
+      ...current,
+      [exerciseId]: (current[exerciseId] ?? []).map((set) => (set.id === setId ? updater(set) : set)),
+    }));
   };
 
   const handleSaveSet = (exerciseId: string, setId: string) => {
     const currentSet = (editableSets[exerciseId] ?? []).find((set) => set.id === setId);
     if (!currentSet) return;
 
+    const parsedDuration = parseDurationInput(currentSet.values.duration);
+    const nextDuration = currentSet.values.duration.trim() ? parsedDuration : null;
+    if (currentSet.values.duration.trim() && parsedDuration === null) {
+      toast.error("Use seconds or mm:ss for duration.");
+      return;
+    }
+
     startTransition(async () => {
       const result = await updateLogExerciseSetAction({
         logId,
         logExerciseId: exerciseId,
         setId,
-        weight: Number(currentSet.weight),
-        reps: Number(currentSet.reps),
-        durationSeconds: currentSet.durationSeconds.trim() ? Number(currentSet.durationSeconds) : null,
-        distance: currentSet.distance.trim() ? Number(currentSet.distance) : null,
-        distanceUnit: currentSet.distance.trim() ? currentSet.distanceUnit : null,
-        calories: currentSet.calories.trim() ? Number(currentSet.calories) : null,
-        weightUnit: currentSet.weightUnit,
+        weight: Number(currentSet.values.weight),
+        reps: Number(currentSet.values.reps),
+        durationSeconds: nextDuration,
+        distance: currentSet.values.distance.trim() ? Number(currentSet.values.distance) : null,
+        distanceUnit: currentSet.values.distance.trim() ? currentSet.values.distanceUnit : null,
+        calories: currentSet.values.calories.trim() ? Number(currentSet.values.calories) : null,
+        weightUnit: currentSet.values.weightUnit,
       });
 
       toastActionResult(toast, result, { success: "Set updated.", error: "Unable to update set." });
@@ -202,13 +240,13 @@ export function LogAuditClient({
                 ...set,
                 source: {
                   ...set.source,
-                  weight: Number(currentSet.weight),
-                  reps: Number(currentSet.reps),
-                  duration_seconds: currentSet.durationSeconds.trim() ? Number(currentSet.durationSeconds) : null,
-                  distance: currentSet.distance.trim() ? Number(currentSet.distance) : null,
-                  distance_unit: currentSet.distance.trim() ? currentSet.distanceUnit : null,
-                  calories: currentSet.calories.trim() ? Number(currentSet.calories) : null,
-                  weight_unit: currentSet.weightUnit,
+                  weight: Number(currentSet.values.weight),
+                  reps: Number(currentSet.values.reps),
+                  duration_seconds: nextDuration,
+                  distance: currentSet.values.distance.trim() ? Number(currentSet.values.distance) : null,
+                  distance_unit: currentSet.values.distance.trim() ? currentSet.values.distanceUnit : null,
+                  calories: currentSet.values.calories.trim() ? Number(currentSet.values.calories) : null,
+                  weight_unit: currentSet.values.weightUnit,
                 },
               }
               : set
@@ -237,13 +275,17 @@ export function LogAuditClient({
     const optimisticSet: EditableSet = {
       id: tempId,
       source: { id: tempId, set_index: (editableSets[exerciseId]?.length ?? 0), weight: 0, reps: 0, duration_seconds: null, distance: null, distance_unit: null, calories: null, weight_unit: unitLabel },
-      weight: "0",
-      reps: "0",
-      durationSeconds: "",
-      distance: "",
-      distanceUnit: exercise.default_unit ?? "mi",
-      calories: "",
-      weightUnit: unitLabel,
+      values: {
+        weight: "0",
+        reps: "0",
+        duration: "",
+        distance: "",
+        distanceUnit: exercise.default_unit ?? "mi",
+        calories: "",
+        weightUnit: unitLabel,
+      },
+      activeMetrics: metricsForMeasurementType(exercise.measurement_type),
+      isMetricsExpanded: false,
     };
 
     setEditableSets((current) => ({ ...current, [exerciseId]: [...(current[exerciseId] ?? []), optimisticSet] }));
@@ -274,7 +316,7 @@ export function LogAuditClient({
 
       setEditableSets((current) => ({
         ...current,
-        [exerciseId]: (current[exerciseId] ?? []).map((set) => (set.id === tempId ? toEditableSet(createdSet, unitLabel) : set)),
+        [exerciseId]: (current[exerciseId] ?? []).map((set) => (set.id === tempId ? toEditableSet(createdSet, unitLabel, exercise.measurement_type) : set)),
       }));
     });
   };
@@ -302,7 +344,7 @@ export function LogAuditClient({
   return (
     <>
       <AppPanel className={`space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
-        <div className="flex items-start justify-end">
+        <div className="flex items-center justify-end">
           <TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />
         </div>
         {isEditing ? (
@@ -363,35 +405,17 @@ export function LogAuditClient({
                     {isEditing ? (
                       <div className="space-y-2">
                         <p className="text-xs font-medium text-slate-400">Set {index + 1}</p>
+                        <ModifyMeasurements
+                          values={set.values}
+                          activeMetrics={set.activeMetrics}
+                          isExpanded={set.isMetricsExpanded}
+                          onExpandedChange={(nextExpanded) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, isMetricsExpanded: nextExpanded }))}
+                          onMetricToggle={(metric) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, activeMetrics: { ...current.activeMetrics, [metric]: !current.activeMetrics[metric] } }))}
+                          onChange={(patch) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
+                        />
                         <div className="grid grid-cols-2 gap-2">
-                          {exercise.measurement_type === "reps" ? (
-                            <>
-                              <InlineHintInput type="number" min={0} value={set.reps} onChange={(event) => updateEditableSetField(exercise.id, set.id, "reps", event.target.value)} hint="reps" containerClassName="col-span-2" />
-                              <InlineHintInput type="number" min={0} step="0.5" value={set.weight} onChange={(event) => updateEditableSetField(exercise.id, set.id, "weight", event.target.value)} hint={set.weightUnit} />
-                              <select value={set.weightUnit} onChange={(event) => updateEditableSetField(exercise.id, set.id, "weightUnit", event.target.value)} className="min-h-11 rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm">
-                                <option value="lbs">lbs</option>
-                                <option value="kg">kg</option>
-                              </select>
-                            </>
-                          ) : null}
-                          {(exercise.measurement_type === "time" || exercise.measurement_type === "time_distance") ? (
-                            <InlineHintInput type="number" min={0} value={set.durationSeconds} onChange={(event) => updateEditableSetField(exercise.id, set.id, "durationSeconds", event.target.value)} hint="sec" containerClassName="col-span-2" />
-                          ) : null}
-                          {(exercise.measurement_type === "distance" || exercise.measurement_type === "time_distance") ? (
-                            <>
-                              <InlineHintInput type="number" min={0} step="0.01" value={set.distance} onChange={(event) => updateEditableSetField(exercise.id, set.id, "distance", event.target.value)} hint={set.distanceUnit} />
-                              <select value={set.distanceUnit} onChange={(event) => updateEditableSetField(exercise.id, set.id, "distanceUnit", event.target.value)} className="min-h-11 rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm">
-                                <option value="mi">mi</option>
-                                <option value="km">km</option>
-                                <option value="m">m</option>
-                              </select>
-                            </>
-                          ) : null}
-                          <InlineHintInput type="number" min={0} step="1" value={set.calories} onChange={(event) => updateEditableSetField(exercise.id, set.id, "calories", event.target.value)} hint="cal" containerClassName="col-span-2" />
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <AppButton type="button" variant="secondary" size="sm" onClick={() => handleSaveSet(exercise.id, set.id)}>Save Set</AppButton>
-                          <DestructiveButton type="button" size="sm" disabled={set.id.startsWith("temp-")} onClick={() => handleDeleteSet(exercise.id, set.id)}>Delete Set</DestructiveButton>
+                          <AppButton type="button" variant="secondary" size="md" fullWidth onClick={() => handleSaveSet(exercise.id, set.id)}>Save Set</AppButton>
+                          <DestructiveButton type="button" size="md" className="w-full" disabled={set.id.startsWith("temp-")} onClick={() => handleDeleteSet(exercise.id, set.id)}>Delete Set</DestructiveButton>
                         </div>
                       </div>
                     ) : (
@@ -423,23 +447,23 @@ export function LogAuditClient({
       </div>
 
       <StickyActionBar
-        className="mt-2"
+        mode="fixed"
         primary={(
           <div className="grid grid-cols-2 gap-2">
             {isEditing ? (
               <>
-                <SecondaryButton type="button" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
-                <PrimaryButton type="button" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
+                <SecondaryButton type="button" size="md" className="w-full" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
+                <PrimaryButton type="button" size="md" className="w-full" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
               </>
             ) : (
               <>
-                <SecondaryButton type="button" onClick={() => setIsEditing(true)}>Edit</SecondaryButton>
+                <SecondaryButton type="button" size="md" className="w-full" onClick={() => setIsEditing(true)}>Edit</SecondaryButton>
                 <ConfirmedServerFormButton
                   action={deleteCompletedSessionAction}
                   hiddenFields={{ sessionId: logId }}
                   triggerLabel="Delete Log"
                   triggerAriaLabel="Delete log"
-                  triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md" })}
+                  triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", fullWidth: true })}
                   modalTitle="Delete log?"
                   modalDescription="This will permanently delete this workout session and all logged sets."
                   confirmLabel="Delete"

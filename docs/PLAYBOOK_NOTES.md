@@ -618,3 +618,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Prevents opaque 500 debugging and avoids client drift from mixed/legacy error response shapes.
 - Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts, src/components/ExerciseInfo.tsx
 - Status: Proposed
+
+## 2026-03-02 — Reuse one measurement editor surface across logging and history correction
+- Type: Pattern
+- Summary: Shared measurement editing UI (metric toggles + unit-aware inputs) should be reused between live set logging and history set correction screens instead of maintaining per-screen bespoke editors.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents behavior drift in metric visibility, unit selection, and value-entry expectations across closely related workout flows.
+- Evidence: src/components/ui/measurements/ModifyMeasurements.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed
