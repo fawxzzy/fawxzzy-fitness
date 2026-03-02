@@ -536,3 +536,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Mobile WebKit may apply default button surface styles that make cards look blank even though content is rendered underneath.
 - Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx
 - Status: Proposed
+
+## 2026-03-02 — Floating sticky top nav should anchor below safe-area via one shared offset token
+- Type: Pattern
+- Summary: For shared top navigation on mobile, keep the nav as a bounded rounded card and set its anchor with one global offset token (`safe-area inset + fixed gap`) rather than padding a full-height header into the safe-area.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Safe-area accommodation should adjust nav position, not expand nav background/panel height into the notch/status region.
+- Evidence: src/app/globals.css, src/components/AppNav.tsx
+- Status: Proposed
