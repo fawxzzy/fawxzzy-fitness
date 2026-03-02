@@ -11,6 +11,15 @@ All notable changes to this project are documented in this file.
 ### WHY
 - Makes production deployments explicit, repeatable, and tied to versioned release intent instead of ad-hoc pushes.
 
+### Fixed
+WHAT:
+- Polished History → Log Details summary/header spacing and standardized set-count badge rendering so the top panel/back row and `X SETS` pills stay consistently aligned without wrapping artifacts.
+- Anchored Log Details primary actions to the viewport bottom with safe-area support, and reserved matching content bottom space so list content remains fully reachable above the action bar.
+- Normalized Log Details sticky action button sizing to balanced two-column full-width controls for both Edit/Delete and Cancel/Save states.
+- Reused the shared “Modify measurements” editor in Log Details set edit mode so measurement toggles, unit pickers, and metric input behavior match Current Session/Add Exercise.
+WHY:
+- Removes remaining layout drift in Log Details, keeps critical actions persistently reachable during scrolling, and aligns measurement editing behavior across workout logging and history correction flows.
+
 ### Changed
 WHAT:
 - Rehauled History → Log Details into a dedicated detail-view layout with no tab/nav shell, a normalized top-right Back action, header-level Edit/Delete Log actions, compact summary lines, and denser exercise/set cards.
