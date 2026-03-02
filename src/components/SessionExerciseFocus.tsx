@@ -242,9 +242,12 @@ export function SessionExerciseFocus({
               <p className="text-xs text-muted">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
             <BackButton
-              onClick={() => setSelectedExerciseId(null)}
-              label="Back"
-              ariaLabel="Close exercise"
+              onClick={(event) => {
+                event.preventDefault();
+                setSelectedExerciseId(null);
+              }}
+              label="^"
+              ariaLabel="Collapse exercise"
               className={tapFeedbackClass}
             />
           </div>
