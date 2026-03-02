@@ -76,6 +76,9 @@ export function TodayDayPicker({
                   rightTop={<span className="text-muted">›</span>}
                   className="rounded-none border-x-0 border-t-0 border-b-white/12 bg-transparent px-3"
                   onClick={() => {
+                    if (process.env.NODE_ENV === "development") {
+                      console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
+                    }
                     setSelectedExerciseId(exercise.exerciseId);
                   }}
                 />

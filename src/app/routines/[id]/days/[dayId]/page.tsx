@@ -106,7 +106,7 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
                 id: exercise.id,
                 name: exerciseName,
                 targetSummary: formatTargetSummary(exercise),
-                exerciseId: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
+                exerciseId: details?.id ?? exercise.exercise_id,
               };
             })}
           />

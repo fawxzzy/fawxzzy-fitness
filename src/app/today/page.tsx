@@ -381,7 +381,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       const details = exerciseDetailsById.get(exercise.exercise_id);
       return {
         id: exercise.id,
-        exerciseId: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
+        exerciseId: details?.id ?? exercise.exercise_id,
         name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
         targets: formatTodayExerciseTargets(exercise),
         notes: exercise.notes,
@@ -465,7 +465,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     const details = exerciseDetailsById.get(exercise.exercise_id);
                     return {
                       id: exercise.id,
-                      exerciseId: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
+                      exerciseId: details?.id ?? exercise.exercise_id,
                       name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
                       targets: formatTodayExerciseTargets(exercise),
                       primary_muscle: details?.primary_muscle ?? null,

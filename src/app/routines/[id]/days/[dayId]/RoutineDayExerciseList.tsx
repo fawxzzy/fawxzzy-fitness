@@ -23,7 +23,12 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
               leftTop={exercise.name}
               leftBottom={exercise.targetSummary || undefined}
               rightTop={<span className="text-muted">›</span>}
-              onClick={() => setSelectedExerciseId(exercise.exerciseId)}
+              onClick={() => {
+                if (process.env.NODE_ENV === "development") {
+                  console.debug("[ExerciseInfo:open] RoutineDayExerciseList", { exerciseId: exercise.exerciseId, exercise });
+                }
+                setSelectedExerciseId(exercise.exerciseId);
+              }}
             />
           </li>
         ))}
