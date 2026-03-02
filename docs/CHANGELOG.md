@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Accepted known legacy exercise IDs in the Exercise Info open/load path so built-in legacy selections (including Barbell Row-era IDs) can still resolve the info sheet.
+WHY:
+- Prevents invalid-ID guardrails from blocking legitimate legacy exercise selections and restores reliable access to their info screens.
+
+### Fixed
+WHAT:
 - Removed the Exercise Info Stats debug diagnostics line that displayed canonical/stat exercise IDs in the Info sheet.
 WHY:
 - Keeps the Info screen user-facing content clean by removing internal debugging text.
