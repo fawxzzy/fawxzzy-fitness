@@ -84,3 +84,15 @@ Allowed documentation files:
 - docs/PLAYBOOK_CHECKLIST.md
 
 All reusable patterns, templates, prompts, and checklists live in the central Playbook repository.
+
+## Release Ritual (Intentional Production Deploys)
+
+Production deploys are tag-driven and must be intentional:
+
+1. Verify changes locally before release (`npm run lint`, `npm run build`, plus feature checks as needed).
+2. Run one release command:
+   - `pnpm release:patch`
+   - `pnpm release:minor`
+   - `pnpm release:major`
+3. The release command updates `package.json` SemVer, prepends a WHAT/WHY release entry in `docs/CHANGELOG.md`, commits, creates an annotated `vX.Y.Z` tag, and pushes commit + tag.
+4. Pushing a `v*` tag triggers the production deploy workflow in GitHub Actions.
