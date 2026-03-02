@@ -2,28 +2,26 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteCompletedSessionAction } from "@/app/actions/history";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { AppButton, DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
-import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AppRow } from "@/components/ui/app/AppRow";
-import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { useToast } from "@/components/ui/ToastProvider";
-import { toastActionResult } from "@/lib/action-feedback";
-import { formatDurationClock } from "@/lib/duration";
-import { HistoryDetailsBackButton } from "./HistoryDetailsBackButton";
 import {
   addLogExerciseAction,
   addLogExerciseSetAction,
+  deleteCompletedSessionAction,
   deleteLogExerciseAction,
   deleteLogExerciseSetAction,
   updateLogExerciseNotesAction,
   updateLogExerciseSetAction,
   updateLogMetaAction,
 } from "@/app/actions/history";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { AppButton, DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { useToast } from "@/components/ui/ToastProvider";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { toastActionResult } from "@/lib/action-feedback";
+import { formatDurationClock } from "@/lib/duration";
 
 type AuditSet = {
   id: string;
@@ -55,6 +53,15 @@ type AuditExercise = {
   sets: AuditSet[];
 };
 
+const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg"): EditableSet => ({
+  id: set.id,
+  source: set,
+  weight: String(set.weight),
+  reps: String(set.reps),
+  durationSeconds: set.duration_seconds === null ? "" : String(set.duration_seconds),
+  weightUnit: set.weight_unit ?? unitLabel,
+});
+
 export function LogAuditClient({
   logId,
   initialDayName,
@@ -75,33 +82,36 @@ export function LogAuditClient({
   unitLabel: "lbs" | "kg";
   exerciseNameMap: Record<string, string>;
   exercises: AuditExercise[];
-  exerciseOptions: Array<{
-    id: string;
-    name: string;
-    user_id: string | null;
-    is_global: boolean;
-  }>;
+  exerciseOptions: Array<{ id: string; name: string; user_id: string | null; is_global: boolean }>;
   routineName: string;
   performedDateLabel: string;
   performedTimeLabel: string;
   durationLabel: string;
   backHref: string;
 }) {
-  const formatSetSummary = (
-    set: EditableSet,
-    index: number,
-    measurementType: "reps" | "time" | "distance" | "time_distance",
-    defaultUnit: "mi" | "km" | "m" | null,
-  ) => {
+  const router = useRouter();
+  const toast = useToast();
+  const [isPending, startTransition] = useTransition();
+  const [isEditing, setIsEditing] = useState(false);
+  const [dayName, setDayName] = useState(initialDayName);
+  const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
+  const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseOptions[0]?.id ?? "");
+  const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])));
+  const [editableSets, setEditableSets] = useState<Record<string, EditableSet[]>>(
+    Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel))])),
+  );
+
+  const formatSetSummary = (set: EditableSet, measurementType: AuditExercise["measurement_type"], defaultUnit: AuditExercise["default_unit"]) => {
     const parts: string[] = [];
-    const numericWeight = Number(set.weight);
-    const numericReps = Number(set.reps);
+    const weight = Number(set.weight);
+    const reps = Number(set.reps);
 
     if (measurementType === "reps") {
-      if (numericWeight > 0 || numericReps > 0) {
-        parts.push(`${set.weight}${set.weightUnit} × ${set.reps} reps`);
+      if (weight > 0 || reps > 0) {
+        parts.push(`${set.weight} ${set.weightUnit} × ${set.reps}`);
       }
-    } else if (numericReps > 0) {
+    } else if (reps > 0) {
       parts.push(`${set.reps} reps`);
     }
 
@@ -117,81 +127,29 @@ export function LogAuditClient({
       parts.push(`${set.source.calories} cal`);
     }
 
-    return `Set ${index + 1} · ${parts.join(" · ") || "No data"}`;
+    return parts.join(" · ") || "—";
   };
-
-  const router = useRouter();
-  const toast = useToast();
-  const [isPending, startTransition] = useTransition();
-  const [isEditing, setIsEditing] = useState(false);
-  const [dayName, setDayName] = useState(initialDayName);
-  const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
-
-  const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseOptions[0]?.id ?? "");
-  const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
-  const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>(
-    Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])),
-  );
-
-  const [editableSets, setEditableSets] = useState<Record<string, EditableSet[]>>(() =>
-    Object.fromEntries(
-      exercises.map((exercise) => [
-        exercise.id,
-        exercise.sets.map((set) => ({
-          id: set.id,
-          source: set,
-          weight: String(set.weight),
-          reps: String(set.reps),
-          durationSeconds: set.duration_seconds === null ? "" : String(set.duration_seconds),
-          weightUnit: set.weight_unit ?? unitLabel,
-        })),
-      ]),
-    ),
-  );
 
   const handleCancel = () => {
     setIsEditing(false);
     setDayName(initialDayName);
     setSessionNotes(initialNotes ?? "");
     setExerciseNotes(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])));
-    setEditableSets(
-      Object.fromEntries(
-        exercises.map((exercise) => [
-          exercise.id,
-          exercise.sets.map((set) => ({
-            id: set.id,
-            source: set,
-            weight: String(set.weight),
-            reps: String(set.reps),
-            durationSeconds: set.duration_seconds === null ? "" : String(set.duration_seconds),
-            weightUnit: set.weight_unit ?? unitLabel,
-          })),
-        ]),
-      ),
-    );
+    setEditableSets(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel))])));
   };
 
   const handleSave = () => {
     startTransition(async () => {
-      const metaResult = await updateLogMetaAction({
-        logId,
-        dayNameOverride: dayName,
-        notes: sessionNotes,
-      });
-
+      const metaResult = await updateLogMetaAction({ logId, dayNameOverride: dayName, notes: sessionNotes });
       if (!metaResult.ok) {
         toastActionResult(toast, metaResult, { success: "", error: "Unable to save log details." });
         return;
       }
 
       for (const exercise of exercises) {
-        const notes = exerciseNotes[exercise.id] ?? "";
-        const result = await updateLogExerciseNotesAction({
-          logId,
-          logExerciseId: exercise.id,
-          notes,
-        });
-
+        const notesValue = (exerciseNotes[exercise.id] ?? "").trim();
+        if (notesValue === (exercise.notes ?? "").trim()) continue;
+        const result = await updateLogExerciseNotesAction({ logId, logExerciseId: exercise.id, notes: notesValue });
         if (!result.ok) {
           toastActionResult(toast, result, { success: "", error: "Unable to save exercise notes." });
           return;
@@ -205,10 +163,7 @@ export function LogAuditClient({
   };
 
   const updateEditableSetField = (exerciseId: string, setId: string, field: keyof EditableSet, value: string) => {
-    setEditableSets((current) => ({
-      ...current,
-      [exerciseId]: (current[exerciseId] ?? []).map((set) => (set.id === setId ? { ...set, [field]: value } : set)),
-    }));
+    setEditableSets((current) => ({ ...current, [exerciseId]: (current[exerciseId] ?? []).map((set) => (set.id === setId ? { ...set, [field]: value } : set)) }));
   };
 
   const handleSaveSet = (exerciseId: string, setId: string) => {
@@ -227,36 +182,67 @@ export function LogAuditClient({
       });
 
       toastActionResult(toast, result, { success: "Set updated.", error: "Unable to update set." });
-      if (result.ok) router.refresh();
+      if (result.ok) {
+        setEditableSets((current) => ({
+          ...current,
+          [exerciseId]: (current[exerciseId] ?? []).map((set) => (
+            set.id === setId
+              ? {
+                ...set,
+                source: {
+                  ...set.source,
+                  weight: Number(currentSet.weight),
+                  reps: Number(currentSet.reps),
+                  duration_seconds: currentSet.durationSeconds.trim() ? Number(currentSet.durationSeconds) : null,
+                  weight_unit: currentSet.weightUnit,
+                },
+              }
+              : set
+          )),
+        }));
+      }
     });
   };
 
   const handleDeleteSet = (exerciseId: string, setId: string) => {
+    const previous = editableSets[exerciseId] ?? [];
+    setEditableSets((current) => ({ ...current, [exerciseId]: (current[exerciseId] ?? []).filter((set) => set.id !== setId) }));
+
     startTransition(async () => {
       const result = await deleteLogExerciseSetAction({ logId, logExerciseId: exerciseId, setId });
       toastActionResult(toast, result, { success: "Set deleted.", error: "Unable to delete set." });
-      if (result.ok) router.refresh();
+      if (!result.ok) {
+        setEditableSets((current) => ({ ...current, [exerciseId]: previous }));
+      }
     });
   };
 
   const handleAddSet = (exerciseId: string) => {
+    const tempId = `temp-${Date.now()}`;
+    const optimisticSet: EditableSet = {
+      id: tempId,
+      source: { id: tempId, set_index: (editableSets[exerciseId]?.length ?? 0), weight: 0, reps: 0, duration_seconds: null, distance: null, distance_unit: null, calories: null, weight_unit: unitLabel },
+      weight: "0",
+      reps: "0",
+      durationSeconds: "",
+      weightUnit: unitLabel,
+    };
+
+    setEditableSets((current) => ({ ...current, [exerciseId]: [...(current[exerciseId] ?? []), optimisticSet] }));
+
     startTransition(async () => {
-      const result = await addLogExerciseSetAction({
-        logId,
-        logExerciseId: exerciseId,
-        weight: 0,
-        reps: 0,
-        durationSeconds: null,
-        weightUnit: unitLabel,
-      });
+      const result = await addLogExerciseSetAction({ logId, logExerciseId: exerciseId, weight: 0, reps: 0, durationSeconds: null, weightUnit: unitLabel });
       toastActionResult(toast, result, { success: "Set added.", error: "Unable to add set." });
-      if (result.ok) router.refresh();
+      if (!result.ok) {
+        setEditableSets((current) => ({ ...current, [exerciseId]: (current[exerciseId] ?? []).filter((set) => set.id !== tempId) }));
+        return;
+      }
+      router.refresh();
     });
   };
 
   const handleAddExercise = () => {
     if (!selectedExerciseId) return;
-
     startTransition(async () => {
       const result = await addLogExerciseAction({ logId, exerciseId: selectedExerciseId });
       toastActionResult(toast, result, { success: "Exercise added.", error: "Unable to add exercise." });
@@ -277,22 +263,33 @@ export function LogAuditClient({
 
   return (
     <>
-      <AppPanel className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <HistoryDetailsBackButton returnHref={backHref} />
-            <h1 className="text-xl font-bold leading-tight text-[rgb(var(--text)/0.98)]">Log Details</h1>
-          </div>
-          <div className="shrink-0 flex items-center gap-2">
-            {isEditing ? (
-              <>
-                <SecondaryButton type="button" size="sm" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
-                <PrimaryButton type="button" size="sm" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
-              </>
-            ) : (
+      <AppPanel className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-xl font-bold text-[rgb(var(--text)/0.98)]">Log Details</h1>
+          <TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {isEditing ? (
+            <>
+              <SecondaryButton type="button" size="sm" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
+              <PrimaryButton type="button" size="sm" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
+            </>
+          ) : (
+            <>
               <SecondaryButton type="button" size="sm" onClick={() => setIsEditing(true)}>Edit</SecondaryButton>
-            )}
-          </div>
+              <ConfirmedServerFormButton
+                action={deleteCompletedSessionAction}
+                hiddenFields={{ sessionId: logId }}
+                triggerLabel="Delete Log"
+                triggerAriaLabel="Delete log"
+                triggerClassName={getAppButtonClassName({ variant: "destructive", size: "sm" })}
+                modalTitle="Delete log?"
+                modalDescription="This will permanently delete this workout session and all logged sets."
+                confirmLabel="Delete"
+                contextLines={[`${routineName}`, `${performedDateLabel} • ${durationLabel} • ${performedTimeLabel}`]}
+              />
+            </>
+          )}
         </div>
       </AppPanel>
 
@@ -301,28 +298,15 @@ export function LogAuditClient({
           <div className="space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
               Day Name
-              <input
-                value={dayName}
-                onChange={(event) => setDayName(event.target.value)}
-                className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100"
-              />
+              <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
             </label>
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
               Session Notes
-              <textarea
-                value={sessionNotes}
-                onChange={(event) => setSessionNotes(event.target.value)}
-                rows={3}
-                className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100"
-              />
+              <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
             </label>
             <div className="space-y-2 rounded-lg border border-white/15 bg-black/10 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Add Exercise</p>
-              <select
-                value={selectedExerciseId}
-                onChange={(event) => setSelectedExerciseId(event.target.value)}
-                className="w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100"
-              >
+              <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100">
                 {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
               </select>
               <div className="flex justify-end">
@@ -331,28 +315,29 @@ export function LogAuditClient({
             </div>
           </div>
         ) : (
-          <div className="space-y-1">
-            <p className="text-lg font-semibold text-[rgb(var(--text)/0.98)]">{routineName}</p>
+          <div className="space-y-1 text-left">
+            <p className="text-base font-semibold text-[rgb(var(--text)/0.98)]">{routineName} | {durationLabel}</p>
             <p className="text-sm text-[rgb(var(--text-muted)/0.9)]">{dayName || "Day"}</p>
-            <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">{performedDateLabel} • {durationLabel} • {performedTimeLabel}</p>
-            {sessionNotes.trim() ? <AppRow density="compact" leftTop="Notes" leftBottom={sessionNotes} /> : null}
+            <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">{performedDateLabel} | {performedTimeLabel}</p>
           </div>
         )}
       </AppPanel>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {exercises.map((exercise) => {
           const name = exerciseNameMap[exercise.exercise_id] ?? exercise.exercise_id;
           const notesValue = exerciseNotes[exercise.id] ?? "";
           const setsForExercise = editableSets[exercise.id] ?? [];
 
           return (
-            <AppPanel key={exercise.id} className="space-y-3 p-3">
-              <AppRow
-                leftTop={name}
-                rightTop={<AppBadge>{setsForExercise.length} sets</AppBadge>}
-                leftBottom={isEditing ? "Editing enabled" : undefined}
-              />
+            <AppPanel key={exercise.id} className="space-y-2 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[0.96rem] font-semibold leading-snug text-[rgb(var(--text)/0.98)]">{name}</p>
+                  {isEditing ? <p className="text-xs text-[rgb(var(--text-muted)/0.78)]">Editing enabled</p> : null}
+                </div>
+                <AppBadge>{setsForExercise.length} SETS</AppBadge>
+              </div>
 
               {isEditing ? (
                 <div className="flex flex-wrap gap-2">
@@ -361,11 +346,11 @@ export function LogAuditClient({
                 </div>
               ) : null}
 
-              <ul className="space-y-2 text-sm text-slate-300">
+              <ul className="space-y-1.5 text-sm">
                 {setsForExercise.map((set, index) => (
-                  <li key={set.id}>
+                  <li key={set.id} className="rounded-md border border-white/10 bg-black/10 px-2.5 py-2">
                     {isEditing ? (
-                      <div className="space-y-2 rounded-lg border border-white/10 bg-black/10 p-2">
+                      <div className="space-y-2">
                         <p className="text-xs font-medium text-slate-400">Set {index + 1}</p>
                         <div className="grid grid-cols-2 gap-2">
                           <input type="number" min={0} value={set.weight} onChange={(event) => updateEditableSetField(exercise.id, set.id, "weight", event.target.value)} className="rounded-md border border-white/15 bg-black/10 px-2 py-1 text-sm text-slate-100" placeholder="Weight" />
@@ -382,11 +367,7 @@ export function LogAuditClient({
                         </div>
                       </div>
                     ) : (
-                      <AppRow
-                        density="compact"
-                        leftTop={`Set ${index + 1}`}
-                        leftBottom={formatSetSummary(set, index, exercise.measurement_type, exercise.default_unit)}
-                      />
+                      <p className="text-sm text-[rgb(var(--text)/0.9)]">{formatSetSummary(set, exercise.measurement_type, exercise.default_unit)}</p>
                     )}
                   </li>
                 ))}
@@ -406,34 +387,12 @@ export function LogAuditClient({
                   />
                 </label>
               ) : notesValue.trim() ? (
-                <AppRow density="compact" leftTop="Notes" leftBottom={notesValue} />
+                <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">Notes: {notesValue}</p>
               ) : null}
             </AppPanel>
           );
         })}
       </div>
-
-      {!isEditing ? (
-        <StickyActionBar
-          className="shrink-0"
-          primary={(
-            <ConfirmedServerFormButton
-              action={deleteCompletedSessionAction}
-              hiddenFields={{ sessionId: logId }}
-              triggerLabel="Delete Session"
-              triggerAriaLabel="Delete session"
-              triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", fullWidth: true })}
-              modalTitle="Delete session?"
-              modalDescription="This will permanently delete this workout session and all logged sets."
-              confirmLabel="Delete"
-              contextLines={[
-                `${routineName}`,
-                `${performedDateLabel} • ${durationLabel} • ${performedTimeLabel}`,
-              ]}
-            />
-          )}
-        />
-      ) : null}
 
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}
