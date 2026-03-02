@@ -5,6 +5,26 @@
 ## Problem
 Mixing server-only and client-only concerns causes runtime failures and auth/session defects.
 
+## Context
+- Used in full-stack apps where server-only and client-only logic can be mixed accidentally.
+- Assumes auth/session handling must remain authoritative server-side.
+- Requires clear call boundaries for security and runtime determinism.
+
+## Solution
+- Keep secret-bearing and privileged logic in server contexts only.
+- Restrict client to presentation, interaction, and non-authoritative state.
+- Centralize token refresh/session mutation in middleware or dedicated server boundaries.
+- Expose safe API/service contracts for client data needs.
+- Audit boundary violations during review and CI checks.
+
+## Tradeoffs
+- More boundary plumbing and DTO shaping.
+- Server roundtrips can increase perceived latency for some interactions.
+- Refactors may require moving legacy mixed code paths.
+
+## Example
+Client invokes a server route for protected detail data; middleware owns session refresh and response includes correlation metadata for failures.
+
 ## When to use
 - Frameworks with explicit server/client execution contexts.
 - Cookie/session-authenticated workflows.
@@ -46,6 +66,10 @@ Fetch only `id/name/thumb/tag` in the initial picker query, then request full me
 ### Pitfalls
 - Shipping full metadata in initial list payloads.
 - Client-side direct database access for secondary detail requests.
+
+## Related guardrails
+- [Keep token refresh in middleware](../GUARDRAILS/guardrails.md#keep-token-refresh-in-middleware)
+- [API errors ship phase and correlation metadata](../GUARDRAILS/guardrails.md#api-errors-ship-phase-and-correlation-metadata)
 
 ## Common failure modes
 - Import graph leaks server code into client bundles.

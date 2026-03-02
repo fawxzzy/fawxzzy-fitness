@@ -5,166 +5,113 @@
 ## Problem
 Mobile-first flows degrade when touch feedback, disclosure controls, overlays, and list-shell behavior are implemented inconsistently.
 
+## Context
+- Primary usage is on constrained mobile viewports with mixed touch + keyboard interaction.
+- Screens often combine lists, detail views, and destructive actions in the same session.
+- Navigation latency is visible because flows jump between sibling tabs/routes frequently.
+- Accessibility constraints (focus visibility, reduced motion, reachable controls) must hold under sticky UI.
+
+## Solution
+- Prefer route-based detail screens for dense metadata/media and reserve overlays for short, low-density actions.
+- Keep one vertical scroll owner per page shell and avoid nested page-level scroll containers.
+- Pair sticky bottom CTAs with conditional bottom padding so final controls stay reachable.
+- Mount destructive confirmations via `document.body` portals with full-viewport fixed overlays.
+- Standardize touch feedback/button tokens and preserve keyboard-visible focus styles.
+- Keep completed-history experiences read-first and require explicit edit mode for corrections.
+- Debounce non-critical scroll persistence and prefetch sibling tab routes where beneficial.
+
+## Tradeoffs
+- Route-based details add route/state coordination versus pure overlays.
+- Scroll ownership constraints limit ad hoc container composition.
+- Sticky CTA spacing requires viewport and safe-area testing.
+- Prefetching improves responsiveness but increases background network use.
+
+## Example
+Mini-scenario: a history feed keeps only the list pane scrollable, opens dense details on a route transition, and uses sticky edit actions with matching content padding while destructive confirmation runs in a body-level portal.
+
 ## Route details when overlays become dense
-### Guideline
-Prefer route-based detail screens for dense metadata/media content. Use overlays only for short, low-density interactions.
-
-### Example
-A picker opens a lightweight selector first, then navigates to a dedicated detail route for long-form content with explicit back navigation.
-
-### Pitfalls
-- Stacking nested overlays that hide navigation context.
-- Cramming dense content into fixed-height mobile modals.
+- Use route navigation for long-form metadata/media and explicit back behavior.
+- Keep overlays for compact choosers and quick confirmations.
+- Avoid nesting multiple fixed overlays for core reading/editing workflows.
 
 ## Keep mobile form interactions stable and explicit
-### Guideline
-Use `16px+` font size for mobile inputs to prevent focus zoom, and make disclosure state explicit with label/icon changes.
-
-### Example
-Use labels like `Show details` / `Hide details` instead of a static chevron-only control.
-
-### Pitfalls
-- Focus-zoom jumps on iOS.
-- Disclosure controls that toggle content without state cues.
+- Use `16px+` input font size to prevent iOS zoom jumps.
+- Make disclosure state explicit (`Show details` / `Hide details`) rather than icon-only toggles.
+- Keep long-form controls vertically predictable with stable spacing.
 
 ## Standardize touch feedback and primary action tokens
-### Guideline
-Centralize press-state classes and button tokens, and pair touch feedback with keyboard-visible focus styles.
-
-### Example
-Define one shared press-feedback class (`active` opacity/scale + short transition) and one app-level button primitive for repeated high-frequency actions.
-
-### Pitfalls
-- One-off motion/opacity values across screens.
-- Regressing keyboard accessibility while tuning touch UX.
+- Reuse one press-feedback token set across high-frequency actions.
+- Pair touch states with keyboard focus-visible styles.
+- Keep action affordances consistent across sibling list/detail screens.
 
 ## Prefer inline choosers for card-scoped decisions
-### Guideline
-When a choice only affects one card/section, render the chooser inline instead of launching a fixed overlay.
-
-### Example
-Render a day selector inline inside a start-session card, then submit the selected value.
-
-### Pitfalls
-- Clipping and backdrop artifacts with fixed overlays on constrained surfaces.
-- Extra mode switching for a small local decision.
+- Render local decisions inline when choice scope is one card/section.
+- Avoid fixed overlays that add unnecessary mode switches.
+- Keep local chooser state close to submit action.
 
 ## Use in-app dirty-navigation guards before browser prompts
-### Guideline
-Use scoped in-app confirmation for dirty in-app navigation; reserve browser `beforeunload` prompts for hard requirements.
-
-### Example
-Show a confirm modal on route change when unsaved edits exist, with `Discard` and `Continue editing` actions.
-
-### Pitfalls
-- Global unload prompts for every navigation.
-- Prompt fatigue that trains users to ignore data-loss warnings.
+- Prefer scoped in-app confirm modals for unsaved edits.
+- Reserve browser `beforeunload` prompts for hard requirements only.
+- Keep wording explicit about discard vs continue editing.
 
 ## Debounce non-critical scroll persistence
-### Guideline
-If scroll position is only needed for return context, debounce persistence and avoid per-scroll React state updates.
-
-### Example
-Persist list offset with a short debounce interval and read it on remount.
-
-### Pitfalls
-- Per-pixel state writes causing scroll jank.
-- Treating best-effort scroll memory as real-time UI state.
+- Persist return-context scroll offset with short debounce.
+- Avoid per-scroll React state updates for best-effort memory.
+- Restore offsets on remount only when it improves orientation.
 
 ## Use explicit action splits and stable list shells
-### Guideline
-For dense mobile cards, keep primary and secondary actions explicit, and reuse shared list-shell tokens across sibling tabs.
-
-### Example
-A history card exposes `View` and `Edit` buttons while shared shell tokens define snap, height, overflow, and tap-target sizing.
-
-### Pitfalls
-- Entire-card links that hide intent and increase mis-taps.
-- Visual/interaction drift across similar tabbed feeds.
+- Keep primary and secondary actions explicit on dense cards.
+- Reuse shared shell tokens (height, overflow, tap-target sizing) across sibling tabs.
+- Avoid whole-card links when actions have different intent.
 
 ## Use snap windows for long chronological feeds
-### Guideline
-For long card timelines, keep a fixed shell and scroll only the list region with optional `snap-y` affordances.
-
-### Example
-A tab keeps the app chrome static while cards scroll in a constrained timeline viewport.
-
-### Pitfalls
-- Whole-page long scroll that loses orientation.
-- Inconsistent snap behavior between sibling views.
+- Keep app chrome fixed and scroll only the timeline region.
+- Apply snap affordances consistently across related feeds.
+- Prevent full-page scroll patterns that lose context.
 
 ## Prefetch primary tab destinations in dynamic shells
-### Guideline
-From active tab chrome, prefetch sibling tab routes and provide route-level loading boundaries.
-
-### Example
-Trigger prefetch for adjacent tabs on mount/intent and show a lightweight loading shell on transition.
-
-### Pitfalls
-- Navigation waiting entirely on fresh server payloads.
-- No immediate loading affordance during tab switches.
-
+- Prefetch likely sibling tab routes on mount/intent.
+- Provide route-level loading boundaries for transitions.
+- Keep loading affordances lightweight and deterministic.
 
 ## Keep ad hoc day switching session-scoped
-### Guideline
-When users temporarily choose a different plan/day to run, treat it as a session-start override instead of mutating long-term schedule/order metadata.
-
-### Example
-Apply selected day only to the new session being launched; keep baseline program sequencing unchanged.
-
-### Pitfalls
-- Permanent plan drift from temporary user intent.
-- Coupling quick-start choices to structural schedule mutations.
+- Treat temporary day selection as session-start override only.
+- Avoid mutating long-term schedule/order metadata during quick start.
+- Preserve baseline program sequencing unless user explicitly edits structure.
 
 ## Keep completed-history flows read-first
-### Guideline
-Default completed records to read-only audit mode, and require explicit edit mode for intentional corrections.
-
-### Example
-Expose `Edit` then `Save/Cancel` for metadata updates rather than editing inline by default.
-
-### Pitfalls
-- Accidental edits in screens that should communicate finality.
-- Ambiguous "resume vs edit" behavior in completed-session views.
+- Default completed records to read-only audit mode.
+- Require explicit edit mode for corrections.
+- Keep resume/edit semantics unambiguous.
 
 ## Standardize action feedback and reduced-motion behavior
-### Guideline
-Use one app-level feedback surface for client action outcomes (for example centralized toasts), and keep high-frequency list transitions short with reduced-motion-safe fallbacks.
+- Use one app-level feedback surface for action outcomes.
+- Keep list transitions short and reduced-motion-safe.
+- Avoid inconsistent success/error semantics across handlers.
 
-### Example
-Route action results through a shared helper (`ok/error/message`) and gate animations with `prefers-reduced-motion`.
+## When to use
+- Mobile-first surfaces with sticky actions, long forms, and layered navigation.
+- Screens that combine list browsing, detail transitions, and destructive actions.
 
-### Pitfalls
-- Inconsistent success/error messaging across client handlers.
-- Motion-heavy updates in high-frequency interaction paths.
+## When NOT to use
+- Single-screen static layouts with no scroll or stateful interaction complexity.
 
+## Implementation outline
+- Establish shell contract first: scroll owner, sticky regions, and overlay portal boundary.
+- Define shared touch/action tokens used by all list and detail modules.
+- Add route-level loading + prefetch behavior for sibling tab transitions.
+- Validate focus, reachability, and reduced-motion behavior before release.
 
-## Guardrail: Render destructive confirmations in a body-level portal with full-viewport isolation
-### Type
-Guardrail
+## Related guardrails
+- [Enforce one vertical scroll owner per app page shell](../GUARDRAILS/guardrails.md#enforce-one-vertical-scroll-owner-per-app-page-shell)
+- [Pair sticky bottom CTA with conditional content padding](../GUARDRAILS/guardrails.md#pair-sticky-bottom-cta-with-conditional-content-padding)
+- [Guardrail Enforcement Index](../GUARDRAILS/_index.md)
 
-### Rationale
-Destructive confirmations launched from scrollable/tinted list containers can clip or visually bleed on mobile when mounted inline within local stacking contexts.
-
-### How to apply checklist
-- [ ] Mount destructive confirmation dialogs through `document.body` (or shared dialog portal).
-- [ ] Use fixed, full-viewport backdrop (`position: fixed; inset: 0`) with optional blur and explicit high z-index.
-- [ ] Lock background scroll while the modal is open.
-- [ ] Keep confirm/cancel actions keyboard and touch accessible.
-
-### Example snippet
-```tsx
-<Dialog.Portal container={document.body}>
-  <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm" />
-  <Dialog.Content className="fixed inset-x-4 top-1/2 z-[101] -translate-y-1/2" />
-</Dialog.Portal>
-```
-
-- **Source attribution:** `docs/PLAYBOOK_NOTES.md` (2026-02-28 mobile destructive overlay notes) + implementation evidence paths (`src/components/ui/ConfirmDestructiveModal.tsx`, `src/app/history/page.tsx`).
-
-## Cross-links
-- Server-side action contracts for lazy detail fetches: [Server/Client Boundaries](./server-client-boundaries.md)
-- Offline continuity and stale-state signaling: [Offline-First Sync](./offline-first-sync.md)
+## Common failure modes
+- Nested vertical scrollers that trap gestures.
+- Sticky CTAs occluding final fields.
+- Inline modal mounting that clips overlays on mobile.
+- Inconsistent feedback timing and motion behavior across flows.
 
 ## Sources
-- `docs/PLAYBOOK_NOTES.md` (2026-02-21 to 2026-02-25): route-based details, focus-zoom/disclosure state, shared press/button tokens, session-scoped day switching, inline choosers, dirty-navigation guards, debounced scroll state, split card actions, history read-first edit mode, centralized feedback/motion guardrails, list-shell tokens, snap windows, tab prefetch guidance.
+- `docs/PLAYBOOK_NOTES.md` (2026-02-21 to 2026-03-02 mobile interaction and navigation guardrails).

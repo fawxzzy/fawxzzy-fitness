@@ -5,6 +5,26 @@
 ## Problem
 Client-state and offline workflows degrade when persistence formats drift, replays are non-idempotent, and stale data is not visible to users.
 
+## Context
+- Applies to long-lived client flows with retries, reconnects, or tab restores.
+- Assumes local state can diverge temporarily from server truth.
+- Requires deterministic reconciliation rules after failures.
+
+## Solution
+- Version persisted client snapshots and include timestamps.
+- Use deterministic keys for resumable per-entity state.
+- Treat server responses as canonical and reconcile local state explicitly.
+- Idempotently replay interrupted operations where possible.
+- Surface stale/unsynced indicators to prevent silent inconsistency.
+
+## Tradeoffs
+- State-version migrations add maintenance burden.
+- Reconciliation logic can be hard to reason about without strict contracts.
+- Extra UX signaling increases interface complexity.
+
+## Example
+On app restart, client restores versioned snapshot, revalidates with server, and only keeps local deltas that still match canonical constraints.
+
 ## Snapshot Versioning
 - Tag persisted snapshots with an explicit schema version.
 - Strip runtime-only fields before persistence.
@@ -37,6 +57,10 @@ Client-state and offline workflows degrade when persistence formats drift, repla
 - Include schema version and snapshot timestamp in cached offline snapshots.
 - Normalize snapshots before save/load so stale-state rendering stays deterministic across app versions.
 - Surface explicit stale indicators whenever cached snapshots are rendered.
+
+## Related guardrails
+- [Recompute derived caches after additive and destructive mutations](../GUARDRAILS/guardrails.md#recompute-derived-caches-after-additive-and-destructive-mutations)
+- [Resolve cached and aggregated stats by canonical entity ID](../GUARDRAILS/guardrails.md#resolve-cached-and-aggregated-stats-by-canonical-entity-id)
 
 ## Common failure modes
 - Persisting snapshots without version tags or normalization.

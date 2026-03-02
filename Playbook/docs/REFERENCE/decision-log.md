@@ -1,6 +1,6 @@
 # Decisions
 
-[Back to Index](./INDEX.md)
+[Back to Index](../INDEX.md)
 
 This file records durable, playbook-level decisions inferred from source dumps.
 

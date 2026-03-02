@@ -5,6 +5,26 @@
 ## Problem
 Date-sensitive features break when "today" is computed inconsistently across locales/timezones.
 
+## Context
+- Applies where daily logic depends on user-local date boundaries.
+- Assumes server/client may run in different timezones.
+- Requires one canonical timezone/day-window implementation shared across flows.
+
+## Solution
+- Centralize timezone conversion and day-window helpers.
+- Compute day indices from canonical normalized timestamps.
+- Pass timezone context explicitly into daily-resolution functions.
+- Avoid implicit local-time parsing in critical state transitions.
+- Add targeted tests around boundary times and DST changes.
+
+## Tradeoffs
+- Temporal helpers add abstraction to simple date operations.
+- DST/locale edge-case tests increase maintenance surface.
+- Strict normalization can require migration of legacy timestamp assumptions.
+
+## Example
+Session-day resolution uses shared helper with user timezone so activity near midnight maps to the expected local day consistently.
+
 ## When to use
 - Daily schedule, streak, or day-window behavior depends on user locale.
 
@@ -44,6 +64,10 @@ Persist canonical IANA values even when input arrives from aliases or abbreviate
 ### Pitfalls
 - Persisting unnormalized timezone aliases.
 - Letting form choice labels diverge from server-expected canonical values.
+
+## Related guardrails
+- [History exercise browsers use canonical catalog loader](../GUARDRAILS/guardrails.md#history-exercise-browsers-use-canonical-catalog-loader)
+- [Guardrail Enforcement Index](../GUARDRAILS/_index.md)
 
 ## Common failure modes
 - UTC-only assumptions for local-day features.

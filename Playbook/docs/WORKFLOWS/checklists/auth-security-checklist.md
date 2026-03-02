@@ -1,6 +1,6 @@
 # Auth + Security Checklist
 
-[Back to Index](../INDEX.md)
+[Back to Index](../../INDEX.md)
 
 - [ ] Auth/session flow is request-aware and uses correct runtime boundary. (Pattern: server-client-boundaries. Source: Dump A `auth flow shape`, `runtime-dynamic auth routes`)
 - [ ] Data ownership is explicit and row-level policy enforcement exists. (Pattern: supabase-auth-rls. Source: Dump A `user ownership + RLS mandatory`; Dump B `RLS takeaway`)

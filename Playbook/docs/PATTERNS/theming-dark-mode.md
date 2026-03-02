@@ -5,6 +5,26 @@
 ## Problem
 Dark-mode interfaces regress quickly when surface tokens, utility mappings, and translucency intensity are not centralized.
 
+## Context
+- Used when dark mode spans multiple components and token systems.
+- Assumes visual consistency and accessibility are release requirements.
+- Requires shared semantic tokens instead of ad hoc utility mixes.
+
+## Solution
+- Define semantic surface and glass tokens with explicit intensity modes.
+- Prefer semantic utilities over inline color formulas.
+- Provide fallback mappings for common neutral surfaces in dark mode.
+- Constrain sheen/highlight effects to preserve readability.
+- Run merged-branch visual verification on affected screens before release.
+
+## Tradeoffs
+- Token governance adds upfront design/dev coordination.
+- Visual regression review takes extra release time.
+- Strict token rules can slow one-off stylistic tweaks.
+
+## Example
+A card system consumes `surface-soft/surface-strong` tokens and dark-mode checks run on the merged branch to catch cross-PR contrast drift.
+
 ## Centralize surface and glass intensity tokens
 ### Guideline
 Define a shared token contract for dark surfaces and translucent/glass treatments, including explicit intensity modes (for example `on`, `reduced`, `off`).
@@ -59,6 +79,10 @@ Run a final branch-level dark-mode pass on screens touched by multiple UI PRs.
 ### Pitfalls
 - Approving isolated UI deltas that conflict after merge.
 - Missing contrast regressions introduced by token collisions.
+
+## Related guardrails
+- [One canonical renderer and resolver for repeated detail surfaces](../GUARDRAILS/guardrails.md#one-canonical-renderer-and-resolver-for-repeated-detail-surfaces)
+- [Guardrail Enforcement Index](../GUARDRAILS/_index.md)
 
 ## Sources
 - `docs/PLAYBOOK_NOTES.md` (2026-02-21 to 2026-02-22): dark-mode surface tokenization, glass intensity modes, fallback utility mapping, sheen tuning, and merge-validation guardrails.

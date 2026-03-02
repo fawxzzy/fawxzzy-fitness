@@ -1,6 +1,6 @@
 # Principles
 
-[Back to Index](./INDEX.md)
+[Back to Index](../INDEX.md)
 
 ## 1) Optimize for clarity and delivery speed before sophistication.
 - **Why it matters:**
@@ -151,5 +151,5 @@ Playbook status: Normative | Reference
   - Declare exactly one canonical identity/authz authority.
   - Ensure RLS policies and ownership checks align with that canonical authority.
   - If multiple auth mechanisms exist, mark non-canonical mechanisms as transitional/deprecated and document a migration path.
-  - Validate policy alignment with [CI Guardrails and Verification Tiers](./PATTERNS/ci-guardrails-and-verification-tiers.md) contract gates.
+  - Validate policy alignment with [CI Guardrails and Verification Tiers](../PATTERNS/ci-guardrails-and-verification-tiers.md) contract gates.
 - **Source:** Cross-repository auth drift audits — mixed authority and migration-gap findings (2026-02 doctrine patch request).

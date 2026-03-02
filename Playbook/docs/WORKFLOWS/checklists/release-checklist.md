@@ -1,6 +1,6 @@
 # Release Checklist
 
-[Back to Index](../INDEX.md)
+[Back to Index](../../INDEX.md)
 
 - [ ] Changelog updated with concise WHAT + WHY. (Decision: changelog discipline. Source: Dump A `changelog discipline`; Dump B `changelog discipline`)
 - [ ] Verification tier completed and evidence captured. (Pattern: ci-guardrails-and-verification-tiers. Source: Dump A `build + lint + manual flow test`; Dump B `verification tiers`)

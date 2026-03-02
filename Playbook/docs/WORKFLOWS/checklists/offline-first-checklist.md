@@ -1,6 +1,6 @@
 # Offline-First Checklist
 
-[Back to Index](../INDEX.md)
+[Back to Index](../../INDEX.md)
 
 - [ ] Local source-of-truth and sync boundaries are explicit. (Pattern: offline-first-sync. Source: Dump B `offline-first local persistence stack`)
 - [ ] Provider capability detection and fallback behavior are defined. (Pattern: provider-adapters + offline-first-sync. Source: Dump B `capability-based provider selection`)

@@ -1,6 +1,66 @@
 # Changelog
 
+## 2026-03-02 — Added project governance contract entrypoint and guardrail catalog polish
+
+### WHAT
+- Added `docs/PROJECT_GOVERNANCE.md` as the canonical governance contract for downstream repositories and added a local `docs/PLAYBOOK_CHECKLIST.md` pointer to active workflow checklists.
+- Updated governance discovery links in README/index/consumption docs to use the new governance entrypoint while preserving subtree guidance.
+- Clarified empty guardrail index sections and reduced duplication in the guardrails catalog by adding a template section and removing redundant title metadata lines.
+- Bumped governance patch version from `v0.3.2` to `v0.3.3`.
+
+### WHY
+- Reduce governance friction for consuming repositories by making scope, pinning expectations, and required local documents explicit in one operational contract.
+- Improve guardrail discoverability and readability without changing guardrail meaning.
+- Keep versioning and release notes aligned with documentation-only governance improvements.
+
 [Back to Index](./INDEX.md)
+
+## 2026-03-02 — Follow-up pattern specificity and mobile guidance restoration
+
+### WHAT
+- Replaced remaining generic top-section pattern text with file-specific operational Context, Solution, Tradeoffs, and Example content across `docs/PATTERNS/`.
+- Restored detailed mobile guidance sections (route vs overlay usage, scroll ownership, sticky CTAs, modal portals, touch feedback, and navigation performance) while keeping guardrails centralized.
+- Kept direct related-guardrail deep links in patterns and preserved layered taxonomy.
+- Bumped governance version to `v0.3.2` as a PATCH clarification pass.
+
+### WHY
+- Ensure pattern docs remain actionable and high-signal for implementers, without reintroducing duplicated guardrail canon or structural drift.
+
+## 2026-03-02 — PR review fixes for pattern signal restoration
+
+### WHAT
+- Replaced placeholder template text in pattern docs with concise operational Context, Solution, Tradeoffs, and Example guidance.
+- Restored high-signal guidance in mobile interactions/navigation and media fallback patterns while keeping guardrails centralized in `docs/GUARDRAILS/guardrails.md`.
+- Added direct related-guardrail deep links across touched patterns and rechecked internal path consistency after layer moves.
+- Updated governance versioning with a patch bump to `v0.3.1`.
+
+### WHY
+- Preserve enforceability and layered governance structure without sacrificing practical implementation guidance in core pattern docs.
+
+## 2026-03-02 — Structural governance hardening and version normalization
+
+### WHAT
+- Reorganized governance into explicit layers: `PRINCIPLES`, `PATTERNS`, `GUARDRAILS`, `WORKFLOWS`, `REFERENCE`, plus new `VERSIONING.md`.
+- Added normalized guardrail catalog and enforcement index under `docs/GUARDRAILS/` using a strict invariant template.
+- Added `docs/CONSUMPTION.md` to define downstream integration and sync safety.
+- Updated `README.md` and `docs/INDEX.md` to make governance usage operational and version-aware.
+- Moved principles and decisions into layered locations and merged duplicate frontend media fallback doctrine into the canonical media pattern/guardrail catalog.
+
+### WHY
+- Make governance enforceable, versioned, and scalable across multiple production repositories while reducing structure overlap and doctrine drift.
+
+## 2026-03-02 — Added six proposed guardrails across CI, mobile interaction, auth boundaries, media sync, and shared detail rendering
+
+### WHAT
+- Expanded `docs/PATTERNS/ci-guardrails-and-verification-tiers.md` with a proposed API error metadata guardrail (`requestId` + `phase`).
+- Expanded `docs/PATTERNS/mobile-interactions-and-navigation.md` with proposed guardrails for single scroll ownership per app shell and sticky CTA content padding offsets.
+- Expanded `docs/PATTERNS/server-client-boundaries.md` with a proposed middleware-only token refresh ownership guardrail.
+- Expanded `docs/PATTERNS/media-fallbacks.md` with a proposed deterministic sync-report guardrail that avoids default in-place auto-renaming.
+- Expanded `docs/PATTERNS/ui-controller-separation.md` with a proposed canonical renderer + resolver guardrail for repeated detail surfaces.
+- Updated `docs/PLAYBOOK_NOTES.md` to record matching local inbox entries for all six proposed guardrails.
+
+### WHY
+- Preserve and codify recurring reliability guardrails in canonical pattern docs with enforceable guidance so teams can reduce diagnosis time, avoid mobile layout regressions, keep auth refresh ownership deterministic, prevent hidden media mutations, and eliminate multi-flow detail drift.
 
 ## 2026-03-01 — Added proposed guardrails for deterministic media fallback, canonical catalog loading, and safe cache degradation
 

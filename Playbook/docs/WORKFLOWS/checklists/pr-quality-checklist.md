@@ -1,6 +1,6 @@
 # PR Quality Checklist
 
-[Back to Index](../INDEX.md)
+[Back to Index](../../INDEX.md)
 
 - [ ] Scope/problem statement is explicit and keeps change small. (Principle: clarity + speed. Source: Dump A `Core Principles / speed and clarity`; Dump B `Architecture-first decision making`)
 - [ ] Module/server-client boundaries are preserved (no boundary leaks). (Pattern: modular-monolith-seams, server-client-boundaries. Source: Dump A `strict server/client boundaries`; Dump B `modular monolith seams`)

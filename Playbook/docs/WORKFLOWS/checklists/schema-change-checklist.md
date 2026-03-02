@@ -1,6 +1,6 @@
 # Schema Change Checklist
 
-[Back to Index](../INDEX.md)
+[Back to Index](../../INDEX.md)
 
 - [ ] Change is versioned/migration-aware with ordering documented. (Pattern: versioned-persistence. Source: Dump A `ordered SQL migrations`; Dump B `versioned persistence contract`)
 - [ ] Rollout sequence handles mixed-version windows safely. (Principle: additive/reversible rollout. Source: Dump A `schema rollout risk`; Dump B `fallback semantics`)

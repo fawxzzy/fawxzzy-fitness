@@ -5,6 +5,26 @@
 ## Problem
 Unversioned persistence breaks consumers when data/contracts evolve.
 
+## Context
+- Applies when persisted data must outlive a single release.
+- Assumes schema/contract evolution is inevitable.
+- Requires compatibility planning across old and new persisted versions.
+
+## Solution
+- Tag persisted payloads with explicit schema versions.
+- Include migration/read-upgrade paths for prior versions.
+- Use deterministic keys for per-entity persisted state.
+- Add write-time validation to prevent invalid legacy shapes.
+- Document version bump implications in changelog/decisions.
+
+## Tradeoffs
+- Version migration logic increases code paths to maintain.
+- Backward compatibility can slow schema simplification.
+- Poorly planned versioning can create long-tail legacy debt.
+
+## Example
+Client snapshot stores `{schemaVersion, savedAt}` and upgrade logic maps v1 payloads to current shape before use.
+
 ## When to use
 - Persisted artifacts survive across releases.
 - Compatibility across old/new forms is required.
@@ -31,6 +51,10 @@ Cache per-session/per-item state using a stable key (`sessionId:itemId`) and inc
 ### Pitfalls
 - Key collisions from ad hoc local-storage naming.
 - Snapshot payloads without version/timestamp metadata.
+
+## Related guardrails
+- [Recompute derived caches after additive and destructive mutations](../GUARDRAILS/guardrails.md#recompute-derived-caches-after-additive-and-destructive-mutations)
+- [Use deterministic sync reports instead of auto-renaming media files](../GUARDRAILS/guardrails.md#use-deterministic-sync-reports-instead-of-auto-renaming-media-files)
 
 ## Common failure modes
 - Destructive changes before dependent readers are updated.

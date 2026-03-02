@@ -12,7 +12,7 @@ Bootstrap this repository using the Product Engineering Playbook.
 
 Tasks:
 1) Create missing governance docs (AGENT/CODEX/changelog) if absent.
-2) Create/update INDEX, PRINCIPLES, DECISIONS, PATTERNS, CHECKLISTS, TEMPLATES, and PROMPTS docs.
+2) Create/update INDEX, layered governance docs, PATTERNS, WORKFLOWS, TEMPLATES, and PROMPTS docs.
 3) Keep docs modular and linked from docs/INDEX.md.
 4) Use TODO for unknowns; do not invent facts.
 5) Add/update changelog entry with WHAT + WHY.

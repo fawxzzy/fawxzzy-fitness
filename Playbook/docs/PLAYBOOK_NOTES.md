@@ -4,6 +4,54 @@
 
 Project-local inbox for candidate principles, guardrails, and patterns to be upstreamed or distilled into canonical playbook docs.
 
+## 2026-03-02 — API errors should ship phase + correlation metadata by default
+- Type: Guardrail
+- Summary: For multi-step API handlers, include the failing phase (step) and a per-request correlation id (`requestId`) in both JSON error payloads and response headers.
+- Suggested Playbook File: patterns/ci-guardrails-and-verification-tiers.md
+- Rationale: Reduces mean-time-to-diagnosis for production failures by making client-visible errors instantly traceable to server logs without exposing sensitive data.
+- Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/components/ExerciseInfo.tsx
+- Status: Proposed
+
+## 2026-03-02 — Enforce one vertical scroll owner per app page shell
+- Type: Guardrail
+- Summary: Use a single ScrollContainer as the only overflow-y-auto owner per page inside a full-height AppShell; avoid root h-[100dvh] + overflow-hidden patterns and nested page-level scrollers.
+- Suggested Playbook File: patterns/mobile-interactions-and-navigation.md
+- Rationale: Multiple scroll owners in mobile flex layouts can trap scroll, break sticky positioning context, and cause layout jumping.
+- Evidence: src/components/ui/app/AppShell.tsx, src/components/ui/app/ScrollContainer.tsx, src/app/history/page.tsx, src/app/history/exercises/page.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
+
+## 2026-03-02 — Keep token refresh exclusively in middleware for server-auth determinism
+- Type: Guardrail
+- Summary: In Next.js apps using cookie-backed server auth, perform token refresh only in middleware and keep server Supabase helpers read-only consumers of access cookies.
+- Suggested Playbook File: patterns/server-client-boundaries.md
+- Rationale: Prevents split refresh ownership and cookie drift that can cause intermittent SSR/session auth failures.
+- Evidence: middleware.ts, src/lib/supabase/server.ts, src/app/auth/actions.ts, src/app/auth/confirm/route.ts
+- Status: Proposed
+
+## 2026-03-02 — Route repeated detail surfaces through one canonical renderer + resolver
+- Type: Guardrail
+- Summary: When the same detail experience is reachable from multiple product entry points, all flows should open one shared UI module and one shared data resolver keyed by canonical entity ID.
+- Suggested Playbook File: patterns/ui-controller-separation.md
+- Rationale: Prevents section/layout drift, inconsistent media fallback behavior, and per-flow data-shaping divergence that accumulates hidden UX bugs.
+- Evidence: src/components/ExerciseInfo.tsx, src/components/ExerciseInfoSheet.tsx, src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts
+- Status: Proposed
+
+## 2026-03-01 — Use deterministic sync reports instead of auto-renaming canonical media files
+- Type: Guardrail
+- Summary: Canonical media sync scripts should validate strict filename contracts and report suggested fixes, but must not auto-rename files in-place by default.
+- Suggested Playbook File: patterns/media-fallbacks.md
+- Rationale: Prevents hidden filesystem mutations and keeps media onboarding auditable/repeatable for manual asset workflows.
+- Evidence: scripts/syncExerciseIcons.mjs, icon-sync-report.md, src/generated/exerciseIconManifest.ts
+- Status: Proposed
+
+## 2026-03-01 — Pair sticky bottom CTAs with conditional content padding in long input flows
+- Type: Guardrail
+- Summary: When adding sticky action bars over forms, reserve matching bottom space in the content container (including safe-area inset) so the last interactive fields remain visible and focusable.
+- Suggested Playbook File: patterns/mobile-interactions-and-navigation.md
+- Rationale: Sticky footers can occlude final inputs and degrade keyboard/touch accessibility unless content offset is explicit.
+- Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx
+- Status: Proposed
+
 
 ## 2026-03-01 — Treat seeded placeholder media defaults as unset in fallback resolvers
 - Type: Guardrail

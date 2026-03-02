@@ -5,6 +5,26 @@
 ## Problem
 Intermittent connectivity causes data loss and UX failure without explicit offline strategy.
 
+## Context
+- Used when user actions must survive intermittent connectivity.
+- Assumes local state can queue operations for later sync.
+- Requires deterministic conflict handling and user-visible sync status.
+
+## Solution
+- Persist local intents with idempotent operation identifiers.
+- Replay queued writes in deterministic order after reconnect.
+- Separate optimistic UI state from confirmed server state markers.
+- Use server authority to resolve conflicts and return canonical state.
+- Expose sync health and retry outcomes to users/operators.
+
+## Tradeoffs
+- Queue/state management increases client complexity.
+- Conflict policies require careful product and data design.
+- Offline support expands test matrix across network states.
+
+## Example
+User completes actions offline, queue replays on reconnect, and UI marks records as synced only after server confirmation.
+
 ## When to use
 - Users must continue workflows while offline.
 - Local persistence and later synchronization are product requirements.
@@ -59,6 +79,10 @@ On network failure, enqueue the payload and render a queued badge until replay c
 ### Pitfalls
 - Dropping failed writes.
 - Rendering optimistic success without sync-state indicators.
+
+## Related guardrails
+- [Recompute derived caches after additive and destructive mutations](../GUARDRAILS/guardrails.md#recompute-derived-caches-after-additive-and-destructive-mutations)
+- [API errors ship phase and correlation metadata](../GUARDRAILS/guardrails.md#api-errors-ship-phase-and-correlation-metadata)
 
 ## Common failure modes
 - No conflict-resolution contract.
