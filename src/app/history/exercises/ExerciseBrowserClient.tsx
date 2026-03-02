@@ -106,7 +106,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     : null;
 
   return (
-    <AppPanel clip className="relative rounded-[inherit] border border-border/40 bg-surface/45 p-0 transition-colors hover:border-border/70 active:scale-[0.99]">
+    <AppPanel clip className="relative overflow-hidden rounded-[inherit] border border-border/25 bg-surface/45 p-0 transition-colors hover:border-border/35 active:scale-[0.99]">
       <button
         type="button"
         onClick={() => {
@@ -118,9 +118,9 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         aria-label={`Open exercise info for ${displayName}`}
         className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
-        <div className="flex min-h-[88px] items-stretch rounded-[inherit]">
+        <div className="flex min-h-[88px] items-stretch">
           <div className="min-w-0 flex-1 p-3 text-left">
-            <p className="truncate text-sm font-semibold leading-snug text-[rgb(var(--text)/0.98)]">{displayName}</p>
+            <p className="line-clamp-2 text-base font-semibold leading-tight text-[rgb(var(--text)/0.98)]">{displayName}</p>
             <div className="mt-1 space-y-0.5 text-xs leading-snug text-[rgb(var(--text)/0.54)]">
               <p>Last: {lastDate ? `${lastDate} · ${lastSummary ?? "—"}` : "—"}</p>
               <p>PR: {actualPrSummary ?? "—"}</p>
