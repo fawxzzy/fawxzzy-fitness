@@ -63,17 +63,6 @@ export async function getSessionPageData(sessionId: string) {
 
   const routineRows = routineDayExercises ?? [];
   const routineRowsById = new Map(routineRows.map((row) => [row.id, row]));
-  const routineRowsByPosition = new Map<number, typeof routineRows[number]>();
-  const routineRowsByExerciseId = new Map<string, Array<typeof routineRows[number]>>();
-
-  for (const row of routineRows) {
-    routineRowsByPosition.set(row.position, row);
-    const list = routineRowsByExerciseId.get(row.exercise_id) ?? [];
-    list.push(row);
-    routineRowsByExerciseId.set(row.exercise_id, list);
-  }
-
-  const consumedRoutineIds = new Set<string>();
 
   const sessionExercises = ((sessionExercisesData ?? []) as Array<SessionExerciseRow & {
     exercise?: {
@@ -100,27 +89,16 @@ export async function getSessionPageData(sessionId: string) {
     }>;
   }>).map((item) => {
     const exerciseRow = Array.isArray(item.exercise) ? (item.exercise[0] ?? null) : (item.exercise ?? null);
-    const linkedRoutine = Array.isArray(item.routine_day_exercise) ? (item.routine_day_exercise[0] ?? null) : (item.routine_day_exercise ?? null);
-
-    let matchedRoutine = linkedRoutine ?? (item.routine_day_exercise_id ? (routineRowsById.get(item.routine_day_exercise_id) ?? null) : null);
-    if (!matchedRoutine) {
-      matchedRoutine = routineRowsByPosition.get(item.position) ?? null;
-      if (matchedRoutine?.exercise_id !== item.exercise_id || consumedRoutineIds.has(matchedRoutine.id)) {
-        matchedRoutine = null;
-        const candidates = routineRowsByExerciseId.get(item.exercise_id) ?? [];
-        matchedRoutine = candidates.find((candidate) => !consumedRoutineIds.has(candidate.id)) ?? null;
-      }
-    }
-    if (matchedRoutine) {
-      consumedRoutineIds.add(matchedRoutine.id);
-    }
+    const linkedRoutine = item.routine_day_exercise_id
+      ? (routineRowsById.get(item.routine_day_exercise_id) ?? null)
+      : null;
 
     const effectiveMeasurementType = resolveMeasurementType(item.measurement_type)
-      ?? resolveMeasurementType(matchedRoutine?.measurement_type)
+      ?? resolveMeasurementType(linkedRoutine?.measurement_type)
       ?? resolveMeasurementType(exerciseRow?.measurement_type)
       ?? "reps";
     const effectiveDefaultUnit = resolveDistanceUnit(item.default_unit)
-      ?? resolveDistanceUnit(matchedRoutine?.default_unit)
+      ?? resolveDistanceUnit(linkedRoutine?.default_unit)
       ?? resolveDistanceUnit(exerciseRow?.default_unit)
       ?? "mi";
 
@@ -136,7 +114,7 @@ export async function getSessionPageData(sessionId: string) {
       || item.target_distance_max !== null
       || item.target_calories_min !== null
       || item.target_calories_max !== null;
-    const goalSource = hasSessionGoal ? item : matchedRoutine ?? item;
+    const goalSource = hasSessionGoal ? item : linkedRoutine ?? item;
     const hasSetsTarget = ("target_sets_min" in goalSource && goalSource.target_sets_min !== null) || ("target_sets_max" in goalSource && goalSource.target_sets_max !== null) || ("target_sets" in goalSource && goalSource.target_sets !== null);
     const enabledMetrics = {
       reps: ("target_reps_min" in goalSource && goalSource.target_reps_min !== null) || ("target_reps_max" in goalSource && goalSource.target_reps_max !== null) || ("target_reps" in goalSource && goalSource.target_reps !== null),

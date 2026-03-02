@@ -1,3 +1,11 @@
+### Changed
+WHAT:
+- Removed heuristic routine/template matching from session rendering and target resolution.
+- Template-derived targets now apply only when a session exercise has an explicit `routine_day_exercise_id` link.
+WHY:
+- Prevents silent metric/target drift when routine exercises are reordered, duplicated, inserted, or removed.
+- Makes routine-to-session linkage deterministic and easier to reason about across planned and ad-hoc exercises.
+
 ### Fixed
 WHAT:
 - Re-applied the shared main-tab spacing wrapper on History Sessions and History Exercises so both tabs keep consistent breathing room between the top Nav bar and the primary content panel.
