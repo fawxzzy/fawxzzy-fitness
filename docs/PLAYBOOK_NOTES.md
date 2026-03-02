@@ -20,6 +20,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## Implemented Already
 
+## 2026-03-02 — Prefer collapsible select controls over segmented toggles in dense mobile headers
+- Type: Pattern
+- Summary: For compact mobile list headers, use a reusable collapsible select control (label + selected value + expandable options) instead of segmented toggles when options are low-cardinality view/sort/group modes.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Keeps header chrome lighter, preserves readability, and provides a normalized interaction contract reusable across view-mode and ordering controls.
+- Evidence: src/components/ui/app/ViewModeSelect.tsx, src/app/history/HistorySessionsClient.tsx
+- Status: Proposed
+
 ## 2026-03-02 — API errors should ship phase + correlation metadata by default
 - Type: Guardrail
 - Summary: For multi-step API handlers, include the failing phase (`step`) and a per-request correlation id (`requestId`) in both JSON error payloads and response headers.

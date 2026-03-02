@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- History Sessions now uses a compact collapsible “View Mode” selector instead of the segmented “Log view” toggle, and session cards now follow normalized List/Compact text layouts.
+WHY:
+- Reduces header UI clutter while making session information easier to scan consistently across view modes.
+
+### Fixed
+WHAT:
 - Accepted known legacy exercise IDs in the Exercise Info open/load path so built-in legacy selections (including Barbell Row-era IDs) can still resolve the info sheet.
 WHY:
 - Prevents invalid-ID guardrails from blocking legitimate legacy exercise selections and restores reliable access to their info screens.
