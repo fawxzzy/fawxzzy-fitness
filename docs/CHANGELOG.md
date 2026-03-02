@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Re-applied the shared main-tab spacing wrapper on History Sessions and History Exercises so both tabs keep consistent breathing room between the top Nav bar and the primary content panel.
+WHY:
+- Restores the intended top gap under the glass navigation header and prevents the History panel from visually touching the Nav bar after the layout regression.
+
 ### Changed
 WHAT:
 - Introduced a shared page layout contract with `AppShell` and `ScrollContainer` so each page has one deterministic vertical scroll owner.

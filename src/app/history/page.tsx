@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { AppHeader } from "@/components/ui/app/AppHeader";
-import { AppShell } from "@/components/ui/app/AppShell";
+import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -98,7 +98,7 @@ export default async function HistoryPage({
   }));
 
   return (
-    <AppShell>
+    <MainTabScreen>
       <AppNav />
 
       <ScrollContainer className="px-1">
@@ -137,6 +137,6 @@ export default async function HistoryPage({
           ) : null}
         </AppPanel>
       </ScrollContainer>
-    </AppShell>
+    </MainTabScreen>
   );
 }
