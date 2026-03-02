@@ -1887,3 +1887,11 @@ WHAT:
 - Rounded the Today sticky action container that wraps Start Workout and Change Workout so it matches the app’s rounded panel style.
 WHY:
 - Improves visual consistency and removes the spacing/shape polish issues called out in the main workout flows.
+
+### Fixed
+WHAT:
+- Restored the in-session expanded exercise close control to a collapse affordance (`^`) instead of a Back label.
+- Updated that control so it only collapses the expanded exercise panel and does not navigate out of the active session.
+WHY:
+- Prevents accidental session exits when users intend to close exercise details and keeps the interaction consistent with in-place expand/collapse behavior.
+
