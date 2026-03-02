@@ -21,6 +21,7 @@ function assert(condition, message) {
 }
 
 function assertErrorEnvelope(result, expectedStatus) {
+  assert(result.status !== 500, `Expected non-500 status, got ${result.status}`);
   assert(result.status === expectedStatus, `Expected ${expectedStatus}, got ${result.status}`);
   assert(result.body && result.body.ok === false, `Expected ok:false envelope, got ${JSON.stringify(result.body)}`);
   assert(typeof result.body.message === "string" && result.body.message.length > 0, "Expected stable error message");

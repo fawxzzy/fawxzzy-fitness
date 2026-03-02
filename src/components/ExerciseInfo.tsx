@@ -58,12 +58,14 @@ export function ExerciseInfo({
         if (!response.ok) {
           if (!active) return;
           const errorPayload = payload as ExerciseInfoErrorResponse | null;
+          const resolvedMessage = errorPayload?.message ?? errorPayload?.error ?? "Could not load exercise info.";
           console.error("[ExerciseInfo] failed to load payload", {
             exerciseId,
             status: response.status,
+            code: errorPayload?.code,
             payload: errorPayload,
           });
-          toast.error(errorPayload?.message ?? errorPayload?.error ?? "Could not load exercise info.");
+          toast.error(`${resolvedMessage} (status ${response.status}, id ${exerciseId})`);
           setExercise(null);
           setStats(null);
           return;
@@ -88,8 +90,8 @@ export function ExerciseInfo({
         setStats(successPayload.payload.stats);
       } catch (error) {
         if (!active || controller.signal.aborted) return;
-        console.error("[ExerciseInfo] request failed", { exerciseId, error });
-        toast.error("Could not load exercise info.");
+        console.error("[ExerciseInfo] request failed", { exerciseId, status: "request-failed", error });
+        toast.error(`Could not load exercise info. (status request-failed, id ${exerciseId})`);
         setExercise(null);
         setStats(null);
       }
