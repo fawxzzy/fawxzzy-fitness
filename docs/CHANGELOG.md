@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Removed `AppPanel` from History → Exercises row cards and switched the row shell to a direct non-panel container so card fill reaches the highlight border edge-to-edge.
+WHY:
+- Eliminates the persistent inset gap caused by inherited panel base padding and restores the intended flush card treatment without changing row behavior.
+
+### Fixed
+WHAT:
 - Refined History → Exercises row cards so the dark card fill is flush to the outer highlight border, softened the card highlight intensity, and allowed long exercise titles to wrap to two lines.
 WHY:
 - Improves card polish and title readability while preserving the existing History list interaction behavior.

@@ -4,10 +4,10 @@ import { memo, useMemo, useState } from "react";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Input } from "@/components/ui/Input";
 import { listShellClasses } from "@/components/ui/listShellClasses";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
@@ -106,7 +106,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     : null;
 
   return (
-    <AppPanel clip className="relative overflow-hidden rounded-[inherit] border border-border/25 bg-surface/45 p-0 transition-colors hover:border-border/35 active:scale-[0.99]">
+    <div className="relative overflow-hidden rounded-xl border border-border/25 bg-surface/45 transition-colors hover:border-border/35 active:scale-[0.99]">
       <button
         type="button"
         onClick={() => {
@@ -132,7 +132,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
           </div>
         </div>
       </button>
-    </AppPanel>
+    </div>
   );
 });
 
