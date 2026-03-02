@@ -80,36 +80,40 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <div className="sticky top-3 z-20">
-      <Glass variant="raised" className="rounded-xl border-b border-white/15 px-2 py-1" interactive={false}>
-        <p className="px-2 pb-0.5 text-center text-sm font-bold text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
-        <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
-          {links.map((link) => {
-            const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-            const Icon = link.Icon;
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4">
+      <div className="pointer-events-auto w-full max-w-md">
+        <Glass variant="raised" className="h-[var(--header-total)] rounded-b-xl border-x border-b border-white/15 px-2 pt-[var(--top-inset)] shadow-[0_8px_20px_rgb(0_0_0/0.26)] backdrop-blur-md" interactive={false}>
+          <div className="flex h-[var(--header-h)] flex-col justify-center gap-1">
+            <p className="px-2 text-center text-sm font-bold leading-none text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
+            <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
+              {links.map((link) => {
+                const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                const Icon = link.Icon;
 
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                prefetch
-                aria-current={isActive ? "page" : undefined}
-                className={`group relative rounded-[10px] px-2 py-1.5 transition-colors ${
-                  isActive
-                    ? "bg-accent/28 font-semibold text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.28),0_0_16px_rgb(var(--accent-rgb)/0.18)]"
-                    : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"
-                }`}
-              >
-                <span className="flex flex-col items-center gap-1">
-                  <Icon className={`h-5 w-5 transition-colors ${isActive ? "text-[rgb(var(--accent-rgb)/1)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
-                  <span>{link.label}</span>
-                </span>
-                {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.5)]" aria-hidden="true" /> : null}
-              </Link>
-            );
-          })}
-        </nav>
-      </Glass>
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    prefetch
+                    aria-current={isActive ? "page" : undefined}
+                    className={`group relative flex min-h-11 items-center justify-center rounded-[10px] px-2 py-1 transition-colors ${
+                      isActive
+                        ? "bg-accent/28 font-semibold text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.28),0_0_16px_rgb(var(--accent-rgb)/0.18)]"
+                        : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"
+                    }`}
+                  >
+                    <span className="flex flex-col items-center gap-0.5">
+                      <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-[rgb(var(--accent-rgb)/1)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
+                      <span>{link.label}</span>
+                    </span>
+                    {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.5)]" aria-hidden="true" /> : null}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </Glass>
+      </div>
     </div>
   );
 }

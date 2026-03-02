@@ -1816,3 +1816,11 @@ WHAT:
 - Fixed History → Exercises cards on iOS/mobile WebKit so card text and icons remain visible while preserving the same full-card tap target behavior.
 WHY:
 - Prevents rows from appearing blank when browser default button styling overlays the card content.
+
+### Fixed
+WHAT:
+- Normalized top app navigation to a single safe-area-aware header contract using a shared top inset variable and one global content offset.
+- Added visual viewport top inset syncing so iOS Safari and iOS Home Screen mode keep the header clear of notch/status bar regions during viewport changes.
+- Tightened nav vertical spacing while preserving consistent 44px tab targets and shared glass header styling.
+WHY:
+- Prevents top navigation from being obscured by iOS status/notch/Dynamic Island areas and removes duplicate/competing top offsets that made the bar sit too low.

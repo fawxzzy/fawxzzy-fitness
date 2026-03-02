@@ -86,7 +86,11 @@
   --glass-current-blur-raised: var(--glass-blur-raised-on);
   --glass-current-blur-overlay: var(--glass-blur-overlay-on);
 
-  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --sat: env(safe-area-inset-top, 0px);
+  --vv-top: 0px;
+  --top-inset: max(var(--sat), var(--vv-top));
+  --header-h: 72px;
+  --header-total: calc(var(--top-inset) + var(--header-h));
 }
 
 :root[data-glass-effects="reduced"] {
@@ -362,5 +366,5 @@ a:focus-visible {
 
 
 .safe-area-main {
-  padding-top: calc(1.5rem + var(--safe-area-inset-top));
+  padding-top: var(--header-total);
 }
