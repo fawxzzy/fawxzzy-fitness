@@ -10,6 +10,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## Implemented Already
+
 ## 2026-03-02 — API errors should ship phase + correlation metadata by default
 - Type: Guardrail
 - Summary: For multi-step API handlers, include the failing phase (`step`) and a per-request correlation id (`requestId`) in both JSON error payloads and response headers.
@@ -59,7 +61,7 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: src/components/ExerciseInfo.tsx, src/components/ExerciseInfoSheet.tsx, src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts
 - Status: Proposed
 
-## Implemented Already
+
 
 ## 2026-03-01 — Treat seeded placeholder media defaults as unset in fallback resolvers
 - Type: Guardrail
