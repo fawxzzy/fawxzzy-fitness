@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ExerciseInfoSheet, type ExerciseInfoSheetExercise, type ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
 import { useToast } from "@/components/ui/ToastProvider";
-import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
+import { isKnownLegacyExerciseId, resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 
 const UUID_V4ISH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -49,7 +49,7 @@ export function ExerciseInfo({
 
     const rawExerciseId = typeof exerciseId === "string" ? exerciseId.trim() : "";
     const normalizedExerciseId = resolveCanonicalExerciseId(rawExerciseId);
-    const isValidExerciseId = normalizedExerciseId.length > 0 && UUID_V4ISH_PATTERN.test(normalizedExerciseId);
+    const isValidExerciseId = normalizedExerciseId.length > 0 && (UUID_V4ISH_PATTERN.test(normalizedExerciseId) || isKnownLegacyExerciseId(rawExerciseId));
 
     if (!isValidExerciseId) {
       const minimalShape = {

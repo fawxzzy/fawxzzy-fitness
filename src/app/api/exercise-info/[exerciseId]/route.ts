@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getExerciseInfoBase, getExerciseInfoStats, resolveExerciseInfoImages } from "@/lib/exercise-info";
-import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
+import { isKnownLegacyExerciseId, resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 import { optionalEnv } from "@/lib/env";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -50,7 +50,9 @@ export async function GET(
     return await fn();
   };
 
-  const isValidExerciseId = await runStep("validate", () => UUID_V4ISH_PATTERN.test(canonicalExerciseId));
+  const isValidExerciseId = await runStep("validate", () => {
+    return UUID_V4ISH_PATTERN.test(canonicalExerciseId) || isKnownLegacyExerciseId(exerciseId);
+  });
   if (!isValidExerciseId) {
     return jsonError(400, "EXERCISE_INFO_INVALID_ID", "Invalid exercise id.", requestId, step);
   }
