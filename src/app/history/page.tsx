@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { AppHeader } from "@/components/ui/app/AppHeader";
+import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -96,7 +97,7 @@ export default async function HistoryPage({
   }));
 
   return (
-    <section className="flex h-[100dvh] min-h-0 flex-col gap-4 overflow-hidden">
+    <MainTabScreen className="flex h-[100dvh] min-h-0 flex-col overflow-hidden">
       <AppNav />
 
       <div className="flex min-h-0 flex-1 flex-col px-1">
@@ -135,6 +136,6 @@ export default async function HistoryPage({
           </Link>
         </div>
       ) : null}
-    </section>
+    </MainTabScreen>
   );
 }
