@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState } from "react";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
+import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
@@ -235,32 +235,8 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
       </div>
 
-      <ExerciseInfoSheet
-        exercise={selectedRow ? {
-          id: selectedRow.canonicalExerciseId,
-          exercise_id: selectedRow.canonicalExerciseId,
-          name: selectedRow.name,
-          primary_muscle: selectedRow.primary_muscle,
-          equipment: selectedRow.equipment,
-          movement_pattern: selectedRow.movement_pattern,
-          image_icon_path: selectedRow.image_icon_path,
-          image_howto_path: selectedRow.image_howto_path,
-          how_to_short: selectedRow.how_to_short,
-          slug: selectedRow.slug,
-        } : null}
-        stats={selectedRow ? {
-          exercise_id: selectedRow.canonicalExerciseId,
-          last_weight: selectedRow.last_weight,
-          last_reps: selectedRow.last_reps,
-          last_unit: selectedRow.last_unit,
-          last_performed_at: selectedRow.last_performed_at,
-          pr_weight: selectedRow.pr_weight,
-          pr_reps: selectedRow.pr_reps,
-          pr_est_1rm: selectedRow.pr_est_1rm,
-          actual_pr_weight: selectedRow.actual_pr_weight,
-          actual_pr_reps: selectedRow.actual_pr_reps,
-          actual_pr_at: selectedRow.actual_pr_at,
-        } : null}
+      <ExerciseInfo
+        exerciseId={selectedRow?.canonicalExerciseId ?? null}
         open={Boolean(selectedRow)}
         onOpenChange={(open) => {
           if (!open) {

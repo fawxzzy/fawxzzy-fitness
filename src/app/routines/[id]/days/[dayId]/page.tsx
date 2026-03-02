@@ -106,18 +106,7 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
                 id: exercise.id,
                 name: exerciseName,
                 targetSummary: formatTargetSummary(exercise),
-                info: {
-                  id: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
-                  exercise_id: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
-                  name: exerciseName,
-                  primary_muscle: details?.primary_muscle ?? null,
-                  equipment: details?.equipment ?? null,
-                  movement_pattern: details?.movement_pattern ?? null,
-                  image_howto_path: details?.image_howto_path ?? null,
-                  image_icon_path: details?.image_icon_path ?? null,
-                  slug: details?.slug ?? null,
-                  how_to_short: details?.how_to_short ?? null,
-                },
+                exerciseId: details?.exercise_id ?? details?.id ?? exercise.exercise_id,
               };
             })}
           />

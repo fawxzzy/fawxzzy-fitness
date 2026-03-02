@@ -36,7 +36,7 @@ type HistoricalSetRow = {
     | null;
 };
 
-type ExerciseStatsRow = {
+export type ExerciseStatsRow = {
   exercise_id: string;
   last_weight: number | null;
   last_reps: number | null;

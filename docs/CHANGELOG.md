@@ -1,3 +1,11 @@
+
+### Changed
+WHAT:
+- Unified Exercise Info across History Exercises, Today, Routines Day View, Edit Day info buttons, and the exercise picker so all entry points open the same canonical Exercise Info sheet.
+- Standardized Exercise Info data loading to a single server-backed resolver path keyed by exercise ID, and retired the separate Exercise Details page as an alternate UI path.
+WHY:
+- Eliminates UI/content drift between entry points and ensures identical sections, media behavior, and stats formatting everywhere Exercise Info is opened.
+
 ### Changed
 WHAT:
 - Replaced the Current Session “Add Exercise” action surface with explicit “Edit Day” and “Quick Add” actions.

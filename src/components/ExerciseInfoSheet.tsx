@@ -21,7 +21,7 @@ export type ExerciseInfoSheetExercise = {
   slug?: string | null;
 };
 
-type ExerciseInfoSheetStats = {
+export type ExerciseInfoSheetStats = {
   exercise_id?: string;
   last_weight: number | null;
   last_reps: number | null;

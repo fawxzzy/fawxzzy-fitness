@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
+import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PillButton } from "@/components/ui/Pill";
@@ -202,7 +202,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [targetDistance, setTargetDistance] = useState("");
   const [targetCalories, setTargetCalories] = useState("");
   const [didApplyLast, setDidApplyLast] = useState(false);
-  const [info, setInfo] = useState<{ exercise: ExerciseOption; stats: ExerciseStatsOption | null } | null>(null);
+  const [infoExerciseId, setInfoExerciseId] = useState<string | null>(null);
   const previousExerciseIdRef = useRef<string>(selectedId);
 
   useEffect(() => {
@@ -443,10 +443,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                     onClick={(event) => {
                       event.stopPropagation();
                       const canonicalExerciseId = resolveCanonicalExerciseId(exercise);
-                      setInfo({
-                        exercise,
-                        stats: statsByExerciseId.get(canonicalExerciseId) ?? null,
-                      });
+                      setInfoExerciseId(canonicalExerciseId);
                     }}
                     aria-label="Exercise info"
                     className="h-9 w-9 rounded-full px-0 text-base"
@@ -461,29 +458,16 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
       </div>
 
-      <ExerciseInfoSheet
-        exercise={info?.exercise ?? null}
-        stats={info ? {
-          exercise_id: info.stats?.statsExerciseId,
-          last_weight: info.stats?.lastWeight ?? null,
-          last_reps: info.stats?.lastReps ?? null,
-          last_unit: info.stats?.lastUnit ?? null,
-          last_performed_at: info.stats?.lastPerformedAt ?? null,
-          pr_weight: info.stats?.prWeight ?? null,
-          pr_reps: info.stats?.prReps ?? null,
-          pr_est_1rm: info.stats?.prEst1rm ?? null,
-          actual_pr_weight: info.stats?.actualPrWeight ?? null,
-          actual_pr_reps: info.stats?.actualPrReps ?? null,
-          actual_pr_at: info.stats?.actualPrAt ?? null,
-        } : null}
-        open={!!info && hasMounted}
+      <ExerciseInfo
+        exerciseId={infoExerciseId}
+        open={Boolean(infoExerciseId) && hasMounted}
         onOpenChange={(open) => {
           if (!open) {
-            setInfo(null);
+            setInfoExerciseId(null);
           }
         }}
         onClose={() => {
-          setInfo(null);
+          setInfoExerciseId(null);
         }}
       />
 

@@ -43,6 +43,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Status: Proposed
 
 
+## 2026-03-02 — Route repeated detail surfaces through one canonical renderer + resolver
+- Type: Guardrail
+- Summary: When the same detail experience is reachable from multiple product entry points, all flows should open one shared UI module and one shared data resolver keyed by canonical entity ID.
+- Suggested Playbook File: Playbook/docs/PATTERNS/ui-controller-separation.md
+- Rationale: Prevents section/layout drift, inconsistent media fallback behavior, and per-flow data-shaping divergence that accumulates hidden UX bugs.
+- Evidence: src/components/ExerciseInfo.tsx, src/components/ExerciseInfoSheet.tsx, src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts
+- Status: Proposed
+
 ## Implemented Already
 
 ## 2026-03-01 — Treat seeded placeholder media defaults as unset in fallback resolvers

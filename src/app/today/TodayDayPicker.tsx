@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { ExerciseInfoSheet, type ExerciseInfoSheetExercise } from "@/components/ExerciseInfoSheet";
+import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
@@ -49,7 +49,7 @@ export function TodayDayPicker({
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseInfoSheetExercise | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
   const selectedDay = useMemo(
     () => days.find((day) => day.dayIndex === selectedDayIndex) ?? days.find((day) => day.dayIndex === currentDayIndex) ?? null,
@@ -76,18 +76,7 @@ export function TodayDayPicker({
                   rightTop={<span className="text-muted">›</span>}
                   className="rounded-none border-x-0 border-t-0 border-b-white/12 bg-transparent px-3"
                   onClick={() => {
-                    setSelectedExercise({
-                      id: exercise.exerciseId,
-                      exercise_id: exercise.exerciseId,
-                      name: exercise.name,
-                      primary_muscle: exercise.primary_muscle,
-                      equipment: exercise.equipment,
-                      movement_pattern: exercise.movement_pattern,
-                      image_howto_path: exercise.image_howto_path,
-                      image_icon_path: exercise.image_icon_path,
-                      slug: exercise.slug,
-                      how_to_short: exercise.how_to_short,
-                    });
+                    setSelectedExerciseId(exercise.exerciseId);
                   }}
                 />
               </li>
@@ -138,16 +127,16 @@ export function TodayDayPicker({
         )}
       />
 
-      <ExerciseInfoSheet
-        exercise={selectedExercise}
-        open={Boolean(selectedExercise)}
+      <ExerciseInfo
+        exerciseId={selectedExerciseId}
+        open={Boolean(selectedExerciseId)}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedExercise(null);
+            setSelectedExerciseId(null);
           }
         }}
         onClose={() => {
-          setSelectedExercise(null);
+          setSelectedExerciseId(null);
         }}
       />
     </div>
