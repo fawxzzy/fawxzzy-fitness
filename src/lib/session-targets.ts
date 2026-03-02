@@ -364,41 +364,19 @@ export async function getSessionTargets(sessionId: string) {
 
   const routineRows = routineDayExercises ?? [];
   const routineRowsById = new Map(routineRows.map((row) => [row.id, row]));
-  const routineRowsByPosition = new Map<number, typeof routineRows[number]>();
-  const routineRowsByExerciseId = new Map<string, Array<typeof routineRows[number]>>();
-
-  for (const row of routineRows) {
-    routineRowsByPosition.set(row.position, row);
-    const list = routineRowsByExerciseId.get(row.exercise_id) ?? [];
-    list.push(row);
-    routineRowsByExerciseId.set(row.exercise_id, list);
-  }
-
-  const consumedRoutineIds = new Set<string>();
 
   for (const sessionExercise of sessionExercises ?? []) {
     if (targetMap.has(sessionExercise.id)) {
       continue;
     }
 
-    let matchedRoutine = sessionExercise.routine_day_exercise_id
+    const matchedRoutine = sessionExercise.routine_day_exercise_id
       ? (routineRowsById.get(sessionExercise.routine_day_exercise_id) ?? null)
       : null;
 
     if (!matchedRoutine) {
-      matchedRoutine = routineRowsByPosition.get(sessionExercise.position) ?? null;
-      if (matchedRoutine && (matchedRoutine.exercise_id !== sessionExercise.exercise_id || consumedRoutineIds.has(matchedRoutine.id))) {
-        matchedRoutine = null;
-        const candidates = routineRowsByExerciseId.get(sessionExercise.exercise_id) ?? [];
-        matchedRoutine = candidates.find((candidate) => !consumedRoutineIds.has(candidate.id)) ?? null;
-      }
-    }
-
-    if (!matchedRoutine) {
       continue;
     }
-
-    consumedRoutineIds.add(matchedRoutine.id);
 
     const templateTarget = buildDisplayTargetFromGoalFields({
       source: "template",

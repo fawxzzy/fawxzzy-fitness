@@ -310,9 +310,49 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
 
   const sessionId = String(formData.get("sessionId") ?? "");
   const exerciseId = String(formData.get("exerciseId") ?? "");
+  const routineDayExerciseIdValue = String(formData.get("routineDayExerciseId") ?? "").trim();
+  const routineDayExerciseId = routineDayExerciseIdValue || null;
 
   if (!sessionId || !exerciseId) {
     return { ok: false, error: "Missing exercise info" };
+  }
+
+  if (routineDayExerciseId) {
+    const { data: session } = await supabase
+      .from("sessions")
+      .select("id, routine_id, routine_day_index")
+      .eq("id", sessionId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!session?.routine_id || session.routine_day_index === null) {
+      return { ok: false, error: "Invalid planned exercise link" };
+    }
+
+    const { data: routineDay } = await supabase
+      .from("routine_days")
+      .select("id")
+      .eq("routine_id", session.routine_id)
+      .eq("day_index", session.routine_day_index)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!routineDay) {
+      return { ok: false, error: "Invalid planned exercise link" };
+    }
+
+    const { data: linkedExercise } = await supabase
+      .from("routine_day_exercises")
+      .select("id")
+      .eq("id", routineDayExerciseId)
+      .eq("routine_day_id", routineDay.id)
+      .eq("user_id", user.id)
+      .eq("exercise_id", exerciseId)
+      .maybeSingle();
+
+    if (!linkedExercise) {
+      return { ok: false, error: "Invalid planned exercise link" };
+    }
   }
 
   const { count } = await supabase
@@ -350,6 +390,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     session_id: sessionId,
     user_id: user.id,
     exercise_id: exerciseId,
+    routine_day_exercise_id: routineDayExerciseId,
     position: count ?? 0,
     is_skipped: false,
     ...mappedGoalColumns,
