@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
+import type { SetRow } from "@/types/db";
 
 type ActionResult = {
   ok: boolean;
@@ -129,8 +130,11 @@ export async function addLogExerciseSetAction(payload: {
   weight: number;
   reps: number;
   durationSeconds: number | null;
+  distance: number | null;
+  distanceUnit: "mi" | "km" | "m" | null;
+  calories: number | null;
   weightUnit: "lbs" | "kg";
-}): Promise<ActionResult> {
+}): Promise<ActionResult & { data?: { set: SetRow } }> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -149,6 +153,14 @@ export async function addLogExerciseSetAction(payload: {
     return { ok: false, error: "Time must be an integer in seconds." };
   }
 
+  if (payload.distance !== null && (!Number.isFinite(payload.distance) || payload.distance < 0)) {
+    return { ok: false, error: "Distance must be 0 or greater." };
+  }
+
+  if (payload.calories !== null && (!Number.isFinite(payload.calories) || payload.calories < 0)) {
+    return { ok: false, error: "Calories must be 0 or greater." };
+  }
+
   const canEdit = await ensureCompletedLogOwner(logId, user.id);
   if (!canEdit) {
     return { ok: false, error: "Log not found." };
@@ -165,7 +177,7 @@ export async function addLogExerciseSetAction(payload: {
 
   const nextSetIndex = latestSet ? latestSet.set_index + 1 : 0;
 
-  const { error } = await supabase
+  const { data: insertedSet, error } = await supabase
     .from("sets")
     .insert({
       session_exercise_id: logExerciseId,
@@ -174,11 +186,16 @@ export async function addLogExerciseSetAction(payload: {
       weight: payload.weight,
       reps: payload.reps,
       duration_seconds: payload.durationSeconds,
+      distance: payload.distance,
+      distance_unit: payload.distanceUnit,
+      calories: payload.calories,
       is_warmup: false,
       notes: null,
       rpe: null,
       weight_unit: payload.weightUnit,
-    });
+    })
+    .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
+    .single();
 
   if (error) {
     return { ok: false, error: error.message };
@@ -186,7 +203,11 @@ export async function addLogExerciseSetAction(payload: {
 
   revalidateHistoryViews();
   revalidatePath(getHistoryDetailPath(logId));
-  return { ok: true };
+  if (!insertedSet) {
+    return { ok: false, error: "Unable to return inserted set." };
+  }
+
+  return { ok: true, data: { set: insertedSet as SetRow } };
 }
 
 export async function updateLogExerciseSetAction(payload: {
@@ -196,6 +217,9 @@ export async function updateLogExerciseSetAction(payload: {
   weight: number;
   reps: number;
   durationSeconds: number | null;
+  distance: number | null;
+  distanceUnit: "mi" | "km" | "m" | null;
+  calories: number | null;
   weightUnit: "lbs" | "kg";
 }): Promise<ActionResult> {
   const user = await requireUser();
@@ -217,6 +241,14 @@ export async function updateLogExerciseSetAction(payload: {
     return { ok: false, error: "Time must be an integer in seconds." };
   }
 
+  if (payload.distance !== null && (!Number.isFinite(payload.distance) || payload.distance < 0)) {
+    return { ok: false, error: "Distance must be 0 or greater." };
+  }
+
+  if (payload.calories !== null && (!Number.isFinite(payload.calories) || payload.calories < 0)) {
+    return { ok: false, error: "Calories must be 0 or greater." };
+  }
+
   const canEdit = await ensureCompletedLogOwner(logId, user.id);
   if (!canEdit) {
     return { ok: false, error: "Log not found." };
@@ -228,6 +260,9 @@ export async function updateLogExerciseSetAction(payload: {
       weight: payload.weight,
       reps: payload.reps,
       duration_seconds: payload.durationSeconds,
+      distance: payload.distance,
+      distance_unit: payload.distanceUnit,
+      calories: payload.calories,
       weight_unit: payload.weightUnit,
     })
     .eq("id", setId)

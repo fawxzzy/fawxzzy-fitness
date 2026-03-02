@@ -101,7 +101,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
 
   return (
     <AppShell className="gap-4">
-      <ScrollContainer className="flex flex-col gap-3 px-1 pb-[calc(env(safe-area-inset-bottom)+20px)]">
+      <ScrollContainer className="flex flex-col gap-3 px-1 pb-[calc(env(safe-area-inset-bottom)+112px)]">
         <LogAuditClient
           logId={sessionRow.id}
           initialDayName={effectiveDayName}
