@@ -107,12 +107,12 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const rowBottom = `Last performed: ${lastDate ?? "Never"} • Last: ${lastSummary ?? "—"} • PR: ${actualPrSummary ?? "—"}`;
 
   return (
-    <AppPanel clip className="relative p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
+    <AppPanel clip className="relative p-0 transition-colors hover:border-border/70 active:scale-[0.99]">
       <button
         type="button"
         onClick={() => onOpen(row.canonicalExerciseId)}
         aria-label={`Open exercise info for ${displayName}`}
-        className="block w-full appearance-none rounded-xl border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+        className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
         <AppRow
           density="default"
