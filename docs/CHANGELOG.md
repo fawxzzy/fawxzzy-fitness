@@ -2098,3 +2098,13 @@ WHAT:
 - Added project-level `vercel.json` configuration to disable automatic Git-triggered deployments.
 WHY:
 - Ensures deployments are manually controlled through the Vercel CLI (`vercel` / `vercel --prod`) instead of running on every push.
+
+### Fixed
+WHAT:
+- Log Details now places Back in the summary panel, removes the separate Log Details header box, and uses a sticky bottom action bar for Edit/Delete and Cancel/Save states.
+- Log Details set editing now keeps newly added sets immediately deletable without leaving and re-entering the screen.
+- Log Details measurements editor now matches the same measurement input style and unit picker behavior used in Add Exercise and Current Session set logging.
+WHY:
+- Reduces header clutter, keeps primary actions consistently anchored, and improves scanability of session summary content.
+- Fixes a disruptive edit workflow reliability issue when adding then immediately deleting sets.
+- Standardizes measurement interactions across workout entry and history editing surfaces for clearer, more predictable behavior.

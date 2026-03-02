@@ -14,8 +14,10 @@ import {
 } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppButton, DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
+import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -41,6 +43,9 @@ type EditableSet = {
   weight: string;
   reps: string;
   durationSeconds: string;
+  distance: string;
+  distanceUnit: "mi" | "km" | "m";
+  calories: string;
   weightUnit: "lbs" | "kg";
 };
 
@@ -59,6 +64,9 @@ const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg"): EditableSet => (
   weight: String(set.weight),
   reps: String(set.reps),
   durationSeconds: set.duration_seconds === null ? "" : String(set.duration_seconds),
+  distance: set.distance === null ? "" : String(set.distance),
+  distanceUnit: set.distance_unit ?? "mi",
+  calories: set.calories === null ? "" : String(set.calories),
   weightUnit: set.weight_unit ?? unitLabel,
 });
 
@@ -178,6 +186,9 @@ export function LogAuditClient({
         weight: Number(currentSet.weight),
         reps: Number(currentSet.reps),
         durationSeconds: currentSet.durationSeconds.trim() ? Number(currentSet.durationSeconds) : null,
+        distance: currentSet.distance.trim() ? Number(currentSet.distance) : null,
+        distanceUnit: currentSet.distance.trim() ? currentSet.distanceUnit : null,
+        calories: currentSet.calories.trim() ? Number(currentSet.calories) : null,
         weightUnit: currentSet.weightUnit,
       });
 
@@ -194,6 +205,9 @@ export function LogAuditClient({
                   weight: Number(currentSet.weight),
                   reps: Number(currentSet.reps),
                   duration_seconds: currentSet.durationSeconds.trim() ? Number(currentSet.durationSeconds) : null,
+                  distance: currentSet.distance.trim() ? Number(currentSet.distance) : null,
+                  distance_unit: currentSet.distance.trim() ? currentSet.distanceUnit : null,
+                  calories: currentSet.calories.trim() ? Number(currentSet.calories) : null,
                   weight_unit: currentSet.weightUnit,
                 },
               }
@@ -217,7 +231,8 @@ export function LogAuditClient({
     });
   };
 
-  const handleAddSet = (exerciseId: string) => {
+  const handleAddSet = (exercise: AuditExercise) => {
+    const exerciseId = exercise.id;
     const tempId = `temp-${Date.now()}`;
     const optimisticSet: EditableSet = {
       id: tempId,
@@ -225,19 +240,42 @@ export function LogAuditClient({
       weight: "0",
       reps: "0",
       durationSeconds: "",
+      distance: "",
+      distanceUnit: exercise.default_unit ?? "mi",
+      calories: "",
       weightUnit: unitLabel,
     };
 
     setEditableSets((current) => ({ ...current, [exerciseId]: [...(current[exerciseId] ?? []), optimisticSet] }));
 
     startTransition(async () => {
-      const result = await addLogExerciseSetAction({ logId, logExerciseId: exerciseId, weight: 0, reps: 0, durationSeconds: null, weightUnit: unitLabel });
+      const result = await addLogExerciseSetAction({
+        logId,
+        logExerciseId: exerciseId,
+        weight: 0,
+        reps: 0,
+        durationSeconds: null,
+        distance: null,
+        distanceUnit: null,
+        calories: null,
+        weightUnit: unitLabel,
+      });
       toastActionResult(toast, result, { success: "Set added.", error: "Unable to add set." });
       if (!result.ok) {
         setEditableSets((current) => ({ ...current, [exerciseId]: (current[exerciseId] ?? []).filter((set) => set.id !== tempId) }));
         return;
       }
-      router.refresh();
+
+      const createdSet = result.data?.set;
+      if (!createdSet) {
+        router.refresh();
+        return;
+      }
+
+      setEditableSets((current) => ({
+        ...current,
+        [exerciseId]: (current[exerciseId] ?? []).map((set) => (set.id === tempId ? toEditableSet(createdSet, unitLabel) : set)),
+      }));
     });
   };
 
@@ -263,37 +301,10 @@ export function LogAuditClient({
 
   return (
     <>
-      <AppPanel className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="text-xl font-bold text-[rgb(var(--text)/0.98)]">Log Details</h1>
+      <AppPanel className={`space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
+        <div className="flex items-start justify-end">
           <TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {isEditing ? (
-            <>
-              <SecondaryButton type="button" size="sm" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
-              <PrimaryButton type="button" size="sm" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
-            </>
-          ) : (
-            <>
-              <SecondaryButton type="button" size="sm" onClick={() => setIsEditing(true)}>Edit</SecondaryButton>
-              <ConfirmedServerFormButton
-                action={deleteCompletedSessionAction}
-                hiddenFields={{ sessionId: logId }}
-                triggerLabel="Delete Log"
-                triggerAriaLabel="Delete log"
-                triggerClassName={getAppButtonClassName({ variant: "destructive", size: "sm" })}
-                modalTitle="Delete log?"
-                modalDescription="This will permanently delete this workout session and all logged sets."
-                confirmLabel="Delete"
-                contextLines={[`${routineName}`, `${performedDateLabel} • ${durationLabel} • ${performedTimeLabel}`]}
-              />
-            </>
-          )}
-        </div>
-      </AppPanel>
-
-      <AppPanel className={`space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
         {isEditing ? (
           <div className="space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
@@ -317,7 +328,7 @@ export function LogAuditClient({
         ) : (
           <div className="space-y-1 text-left">
             <p className="text-base font-semibold text-[rgb(var(--text)/0.98)]">{routineName} | {durationLabel}</p>
-            <p className="text-sm text-[rgb(var(--text-muted)/0.9)]">{dayName || "Day"}</p>
+            <p className="line-clamp-2 text-sm text-[rgb(var(--text-muted)/0.9)]">{dayName || "Day"}</p>
             <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">{performedDateLabel} | {performedTimeLabel}</p>
           </div>
         )}
@@ -341,7 +352,7 @@ export function LogAuditClient({
 
               {isEditing ? (
                 <div className="flex flex-wrap gap-2">
-                  <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise.id)}>+ Add Set</SecondaryButton>
+                  <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
                   <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
                 </div>
               ) : null}
@@ -353,17 +364,34 @@ export function LogAuditClient({
                       <div className="space-y-2">
                         <p className="text-xs font-medium text-slate-400">Set {index + 1}</p>
                         <div className="grid grid-cols-2 gap-2">
-                          <input type="number" min={0} value={set.weight} onChange={(event) => updateEditableSetField(exercise.id, set.id, "weight", event.target.value)} className="rounded-md border border-white/15 bg-black/10 px-2 py-1 text-sm text-slate-100" placeholder="Weight" />
-                          <select value={set.weightUnit} onChange={(event) => updateEditableSetField(exercise.id, set.id, "weightUnit", event.target.value)} className="rounded-md border border-white/15 bg-black/10 px-2 py-1 text-sm text-slate-100">
-                            <option value="lbs">lbs</option>
-                            <option value="kg">kg</option>
-                          </select>
-                          <input type="number" min={0} value={set.reps} onChange={(event) => updateEditableSetField(exercise.id, set.id, "reps", event.target.value)} className="rounded-md border border-white/15 bg-black/10 px-2 py-1 text-sm text-slate-100" placeholder="Reps" />
-                          <input type="number" min={0} value={set.durationSeconds} onChange={(event) => updateEditableSetField(exercise.id, set.id, "durationSeconds", event.target.value)} className="rounded-md border border-white/15 bg-black/10 px-2 py-1 text-sm text-slate-100" placeholder="Time (sec)" />
+                          {exercise.measurement_type === "reps" ? (
+                            <>
+                              <InlineHintInput type="number" min={0} value={set.reps} onChange={(event) => updateEditableSetField(exercise.id, set.id, "reps", event.target.value)} hint="reps" containerClassName="col-span-2" />
+                              <InlineHintInput type="number" min={0} step="0.5" value={set.weight} onChange={(event) => updateEditableSetField(exercise.id, set.id, "weight", event.target.value)} hint={set.weightUnit} />
+                              <select value={set.weightUnit} onChange={(event) => updateEditableSetField(exercise.id, set.id, "weightUnit", event.target.value)} className="min-h-11 rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm">
+                                <option value="lbs">lbs</option>
+                                <option value="kg">kg</option>
+                              </select>
+                            </>
+                          ) : null}
+                          {(exercise.measurement_type === "time" || exercise.measurement_type === "time_distance") ? (
+                            <InlineHintInput type="number" min={0} value={set.durationSeconds} onChange={(event) => updateEditableSetField(exercise.id, set.id, "durationSeconds", event.target.value)} hint="sec" containerClassName="col-span-2" />
+                          ) : null}
+                          {(exercise.measurement_type === "distance" || exercise.measurement_type === "time_distance") ? (
+                            <>
+                              <InlineHintInput type="number" min={0} step="0.01" value={set.distance} onChange={(event) => updateEditableSetField(exercise.id, set.id, "distance", event.target.value)} hint={set.distanceUnit} />
+                              <select value={set.distanceUnit} onChange={(event) => updateEditableSetField(exercise.id, set.id, "distanceUnit", event.target.value)} className="min-h-11 rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm">
+                                <option value="mi">mi</option>
+                                <option value="km">km</option>
+                                <option value="m">m</option>
+                              </select>
+                            </>
+                          ) : null}
+                          <InlineHintInput type="number" min={0} step="1" value={set.calories} onChange={(event) => updateEditableSetField(exercise.id, set.id, "calories", event.target.value)} hint="cal" containerClassName="col-span-2" />
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <AppButton type="button" variant="secondary" size="sm" onClick={() => handleSaveSet(exercise.id, set.id)}>Save Set</AppButton>
-                          <DestructiveButton type="button" size="sm" onClick={() => handleDeleteSet(exercise.id, set.id)}>Delete Set</DestructiveButton>
+                          <DestructiveButton type="button" size="sm" disabled={set.id.startsWith("temp-")} onClick={() => handleDeleteSet(exercise.id, set.id)}>Delete Set</DestructiveButton>
                         </div>
                       </div>
                     ) : (
@@ -393,6 +421,35 @@ export function LogAuditClient({
           );
         })}
       </div>
+
+      <StickyActionBar
+        className="mt-2"
+        primary={(
+          <div className="grid grid-cols-2 gap-2">
+            {isEditing ? (
+              <>
+                <SecondaryButton type="button" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
+                <PrimaryButton type="button" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
+              </>
+            ) : (
+              <>
+                <SecondaryButton type="button" onClick={() => setIsEditing(true)}>Edit</SecondaryButton>
+                <ConfirmedServerFormButton
+                  action={deleteCompletedSessionAction}
+                  hiddenFields={{ sessionId: logId }}
+                  triggerLabel="Delete Log"
+                  triggerAriaLabel="Delete log"
+                  triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md" })}
+                  modalTitle="Delete log?"
+                  modalDescription="This will permanently delete this workout session and all logged sets."
+                  confirmLabel="Delete"
+                  contextLines={[`${routineName}`, `${performedDateLabel} • ${durationLabel} • ${performedTimeLabel}`]}
+                />
+              </>
+            )}
+          </div>
+        )}
+      />
 
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}
