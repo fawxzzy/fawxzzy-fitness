@@ -1850,3 +1850,10 @@ WHAT:
 - Updated the History → Exercises info-sheet Back button behavior so exiting exercise details no longer navigates away from the Exercises tab.
 WHY:
 - Keeps users in the same History context when closing exercise info, preventing accidental jumps back to Sessions.
+
+### Fixed
+WHAT:
+- Expanded History → Exercises row cards to better fill each list slot so the card no longer leaves a visible inset gap around the tap surface.
+- Rounded the Today sticky action container that wraps Start Workout and Change Workout so it matches the app’s rounded panel style.
+WHY:
+- Improves visual consistency and removes the spacing/shape polish issues called out in the main workout flows.
