@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Fixed History → Exercises cards so each row’s primary exercise label remains visible while preserving full-card tap behavior for opening exercise details.
+WHY:
+- On some mobile browsers, the full-card overlay button could render with default button chrome and obscure row content, making cards appear blank.
+
+### Fixed
+WHAT:
 - Reduced the vertical spacing between the top navigation bar and main content on Today, Routines, and Settings so first-load layout matches the tighter History tab rhythm.
 WHY:
 - Removes the extra perceived gap under the nav on primary tabs and makes top-of-screen composition feel consistent at initial load.
