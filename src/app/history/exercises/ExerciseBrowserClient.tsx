@@ -108,24 +108,23 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
 
   return (
     <AppPanel clip className="relative p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
-      <AppRow
-        density="default"
-        leftTop={
-          <div className="flex min-w-0 items-center gap-2">
-            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-9 w-9 shrink-0 rounded-md border border-border/35 bg-surface-2-soft object-cover" />
-            <span className="min-w-0 flex-1 truncate text-[rgb(var(--text)/0.98)]">{displayName}</span>
-          </div>
-        }
-        leftBottom={rowBottom}
-        className="border-0 bg-transparent"
-      />
       <button
         type="button"
         onClick={() => onOpen(row.canonicalExerciseId)}
         aria-label={`Open exercise info for ${displayName}`}
-        className="absolute inset-0 appearance-none rounded-xl border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+        className="block w-full appearance-none rounded-xl border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
-        <span className="sr-only">Open exercise info</span>
+        <AppRow
+          density="default"
+          leftTop={
+            <div className="flex min-w-0 items-center gap-2">
+              <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-9 w-9 shrink-0 rounded-md border border-border/35 bg-surface-2-soft object-cover" />
+              <span className="min-w-0 flex-1 truncate text-[rgb(var(--text)/0.98)]">{displayName}</span>
+            </div>
+          }
+          leftBottom={rowBottom}
+          className="border-0 bg-transparent"
+        />
       </button>
     </AppPanel>
   );
