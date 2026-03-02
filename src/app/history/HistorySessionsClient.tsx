@@ -22,6 +22,8 @@ type HistorySessionsClientProps = {
 };
 
 const VIEW_MODE_STORAGE_KEY = "history:sessions:view-mode";
+const HISTORY_LOCALE = "en-US";
+const HISTORY_TIMEZONE = "America/Toronto";
 
 function formatDuration(seconds: number) {
   const safe = Math.max(0, Math.floor(seconds || 0));
@@ -33,13 +35,21 @@ function formatDuration(seconds: number) {
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+  return new Intl.DateTimeFormat(HISTORY_LOCALE, {
+    timeZone: HISTORY_TIMEZONE,
+    month: "short",
+    day: "numeric",
+  }).format(date);
 }
 
 function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat(HISTORY_LOCALE, {
+    timeZone: HISTORY_TIMEZONE,
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function formatTimeRange(value: string, durationSeconds: number) {
@@ -47,7 +57,8 @@ function formatTimeRange(value: string, durationSeconds: number) {
   if (Number.isNaN(end.getTime()) || durationSeconds <= 0) return null;
 
   const start = new Date(end.getTime() - (durationSeconds * 1000));
-  const formatter = new Intl.DateTimeFormat(undefined, {
+  const formatter = new Intl.DateTimeFormat(HISTORY_LOCALE, {
+    timeZone: HISTORY_TIMEZONE,
     hour: "numeric",
     minute: "2-digit",
   });
@@ -103,14 +114,16 @@ function HistorySessionRow({
 
 export function HistorySessionsClient({ sessions, initialViewMode }: HistorySessionsClientProps) {
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    try {
-      if (initialViewMode === "list" || initialViewMode === "compact") {
-        setViewMode(initialViewMode);
-        return;
-      }
+    setMounted(true);
+  }, []);
 
+  useEffect(() => {
+    if (!mounted) return;
+
+    try {
       const saved = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
       if (saved === "list" || saved === "compact") {
         setViewMode(saved);
@@ -118,22 +131,26 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
     } catch {
       // Ignore storage read failures.
     }
-  }, [initialViewMode]);
+  }, [mounted]);
 
   useEffect(() => {
+    if (!mounted) return;
+
     try {
       window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
     } catch {
       // Ignore storage write failures.
     }
-  }, [viewMode]);
+  }, [mounted, viewMode]);
+
+  const effectiveViewMode: ViewMode = mounted ? viewMode : initialViewMode;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <AppPanel className="space-y-2 p-2">
         <SegmentedControl
           options={[
-            { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${viewMode}` },
+            { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${effectiveViewMode}` },
             { label: "Exercises", value: "exercises", href: "/history/exercises" },
           ]}
           value="sessions"
@@ -142,7 +159,7 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
 
         <ViewModeSelect
           label="View Mode"
-          value={viewMode}
+          value={effectiveViewMode}
           options={[
             { label: "List", value: "list" },
             { label: "Compact", value: "compact" },
@@ -156,10 +173,10 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
 
       {sessions.length > 0 ? (
         <div className="relative">
-          <ul className={viewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}>
+          <ul className={effectiveViewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}>
             {sessions.map((session) => (
               <li key={session.id} className="relative">
-                <HistorySessionRow session={session} mode={viewMode} />
+                <HistorySessionRow session={session} mode={effectiveViewMode} />
               </li>
             ))}
           </ul>

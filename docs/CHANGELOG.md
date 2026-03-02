@@ -14,6 +14,14 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Fixed History → Sessions hydration mismatches by keeping the initial render on the server-selected view mode and restoring local view-mode preference only after client mount.
+- Standardized History → Sessions date/time display to a deterministic locale/timezone so server and client render the same timestamp strings.
+WHY:
+- Prevents Suspense hydration boundary crashes caused by server/client first-paint text drift in view-mode labels and timestamp formatting.
+
+
+### Fixed
+WHAT:
 - Updated History → Log Details so read-mode bottom actions stack vertically (full-width Edit above full-width destructive Delete) and session notes render in a dedicated panel directly under the summary only when notes exist.
 - Updated Log Details edit mode to remove per-set Save actions and persist set edits only when the global Save action is pressed, while keeping immediate Delete Set behavior and collapsible set editors.
 WHY:
