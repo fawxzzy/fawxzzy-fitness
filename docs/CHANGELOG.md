@@ -1,5 +1,11 @@
 ### Changed
 WHAT:
+- Rehauled History → Log Details into a dedicated detail-view layout with no tab/nav shell, a normalized top-right Back action, header-level Edit/Delete Log actions, compact summary lines, and denser exercise/set cards.
+WHY:
+- Improves scan speed and visual consistency with History list cards while reducing action clutter and keeping the log detail flow focused.
+
+### Changed
+WHAT:
 - Added a GitHub Actions workflow that deploys production to Vercel when version tags matching `v*` are pushed.
 WHY:
 - Automates release deployment from tag events to make production rollouts consistent and repeatable.

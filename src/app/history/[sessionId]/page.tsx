@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { AppNav } from "@/components/AppNav";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
@@ -102,9 +101,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
 
   return (
     <AppShell className="gap-4">
-      <AppNav />
-
-      <ScrollContainer className="flex flex-col gap-3 px-1 pb-[calc(env(safe-area-inset-bottom)+108px)]">
+      <ScrollContainer className="flex flex-col gap-3 px-1 pb-[calc(env(safe-area-inset-bottom)+20px)]">
         <LogAuditClient
           logId={sessionRow.id}
           initialDayName={effectiveDayName}
