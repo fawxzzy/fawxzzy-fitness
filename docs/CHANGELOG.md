@@ -1,3 +1,12 @@
+### Fixed
+WHAT:
+- Stabilized `/api/exercise-info/[exerciseId]` responses to a consistent envelope contract for success and failure cases, including explicit invalid-id, unauthenticated, not-found, and unexpected-error outcomes.
+- Hardened Exercise Info loading so expected missing/visibility cases resolve to not-found behavior and downstream stats/media failures degrade gracefully instead of crashing the endpoint.
+- Updated Exercise Info client error parsing to prefer stable server `message` values while preserving compatibility with legacy `error` payloads, and added an endpoint validation script for the 400/401/404/(optional 200) status matrix.
+WHY:
+- Prevents production 500s for expected Exercise Info edge cases and makes route behavior deterministic across runtime environments.
+- Improves debugging and user-facing reliability by standardizing API errors, preserving canonical UI behavior, and adding a repeatable regression check for endpoint status handling.
+
 
 ### Changed
 WHAT:

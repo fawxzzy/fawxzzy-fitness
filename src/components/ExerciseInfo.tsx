@@ -5,13 +5,19 @@ import { ExerciseInfoSheet, type ExerciseInfoSheetExercise, type ExerciseInfoShe
 import { useToast } from "@/components/ui/ToastProvider";
 
 type ExerciseInfoResponse = {
-  exercise: ExerciseInfoSheetExercise;
-  stats: ExerciseInfoSheetStats | null;
+  ok: true;
+  payload: {
+    exercise: ExerciseInfoSheetExercise;
+    stats: ExerciseInfoSheetStats | null;
+  };
 };
 
 type ExerciseInfoErrorResponse = {
+  ok?: false;
+  message?: string;
   error?: string;
   code?: string;
+  details?: unknown;
 };
 
 export function ExerciseInfo({
@@ -47,24 +53,39 @@ export function ExerciseInfo({
     async function load() {
       try {
         const response = await fetch(`/api/exercise-info/${exerciseId}`, { signal: controller.signal });
+        const payload = (await response.json().catch(() => null)) as ExerciseInfoResponse | ExerciseInfoErrorResponse | null;
+
         if (!response.ok) {
-          const errorPayload = (await response.json().catch(() => null)) as ExerciseInfoErrorResponse | null;
           if (!active) return;
+          const errorPayload = payload as ExerciseInfoErrorResponse | null;
           console.error("[ExerciseInfo] failed to load payload", {
             exerciseId,
             status: response.status,
-            error: errorPayload,
+            payload: errorPayload,
           });
-          toast.error(errorPayload?.error ?? "Could not load exercise info.");
+          toast.error(errorPayload?.message ?? errorPayload?.error ?? "Could not load exercise info.");
           setExercise(null);
           setStats(null);
           return;
         }
 
-        const data = (await response.json()) as ExerciseInfoResponse;
         if (!active) return;
-        setExercise(data.exercise);
-        setStats(data.stats);
+        const successPayload = payload as ExerciseInfoResponse | null;
+
+        if (!successPayload?.ok || !successPayload.payload) {
+          console.error("[ExerciseInfo] unexpected response payload", {
+            exerciseId,
+            status: response.status,
+            payload,
+          });
+          toast.error("Could not load exercise info.");
+          setExercise(null);
+          setStats(null);
+          return;
+        }
+
+        setExercise(successPayload.payload.exercise);
+        setStats(successPayload.payload.stats);
       } catch (error) {
         if (!active || controller.signal.aborted) return;
         console.error("[ExerciseInfo] request failed", { exerciseId, error });

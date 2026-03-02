@@ -1,6 +1,5 @@
 import "server-only";
 
-import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseStatsForExercise, type ExerciseStatsRow } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -20,7 +19,7 @@ export type ExerciseInfoPayload = {
   stats: ExerciseStatsRow | null;
 };
 
-export async function getExerciseInfoPayload(userId: string, exerciseId: string): Promise<ExerciseInfoPayload | null> {
+export async function getExerciseInfoPayload(exerciseId: string, userId: string): Promise<ExerciseInfoPayload | null> {
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
@@ -31,51 +30,47 @@ export async function getExerciseInfoPayload(userId: string, exerciseId: string)
     .maybeSingle();
 
   if (error) {
+    if (error.code === "PGRST116") {
+      return null;
+    }
+
     throw new Error(`failed to load exercise info: ${error.message}`);
   }
 
-  const fallbackExercise = EXERCISE_OPTIONS.find((exercise) => exercise.id === exerciseId);
-  if (!data && !fallbackExercise) {
+  if (!data) {
     return null;
   }
 
-  const canonicalExerciseId = data?.exercise_id ?? data?.id ?? fallbackExercise?.id;
+  const canonicalExerciseId = data.exercise_id ?? data.id;
   if (!canonicalExerciseId) {
     return null;
   }
 
-  const stats = await getExerciseStatsForExercise(userId, canonicalExerciseId);
-
-  if (data) {
-    return {
-      exercise: {
-        id: data.id,
-        exercise_id: canonicalExerciseId,
-        name: data.name,
-        primary_muscle: data.primary_muscle,
-        equipment: data.equipment,
-        movement_pattern: data.movement_pattern,
-        image_howto_path: data.image_howto_path,
-        how_to_short: data.how_to_short,
-        image_icon_path: data.image_icon_path,
-        slug: data.slug,
-      },
-      stats,
-    };
+  let stats: ExerciseStatsRow | null = null;
+  try {
+    stats = await getExerciseStatsForExercise(userId, canonicalExerciseId);
+  } catch (error) {
+    console.error("[exercise-info] failed to load stats", {
+      exerciseId,
+      canonicalExerciseId,
+      userId,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 
   return {
     exercise: {
-      id: fallbackExercise!.id,
-      exercise_id: fallbackExercise!.id,
-      name: fallbackExercise!.name,
-      primary_muscle: fallbackExercise!.primary_muscle,
-      equipment: fallbackExercise!.equipment,
-      movement_pattern: fallbackExercise!.movement_pattern,
-      image_howto_path: null,
-      how_to_short: fallbackExercise!.how_to_short,
-      image_icon_path: null,
-      slug: null,
+      id: data.id,
+      exercise_id: canonicalExerciseId,
+      name: data.name,
+      primary_muscle: data.primary_muscle,
+      equipment: data.equipment,
+      movement_pattern: data.movement_pattern,
+      image_howto_path: data.image_howto_path,
+      how_to_short: data.how_to_short,
+      image_icon_path: data.image_icon_path,
+      slug: data.slug,
     },
     stats,
   };
