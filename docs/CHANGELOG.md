@@ -1,5 +1,12 @@
 ### Fixed
 WHAT:
+- Followed up History → Exercises row layout so text content is left-aligned and the exercise image sits flush on the right edge of the card.
+- Removed remaining inner card inset spacing so the row fill reaches the highlight border as a single shell.
+WHY:
+- Matches the intended left-content/right-image hierarchy and removes the remaining sticker/inset visual gap in exercise history rows.
+
+### Fixed
+WHAT:
 - Simplified History → Exercises card shells so each row uses a single visible border/highlight surface and no inset border/fill gap.
 - Updated the History exercise icon treatment to remove the inner icon border so the image blends with the row card edge while preserving full-row tap and Info-open behavior.
 WHY:
