@@ -11,6 +11,14 @@ All notable changes to this project are documented in this file.
 ### WHY
 - Makes production deployments explicit, repeatable, and tied to versioned release intent instead of ad-hoc pushes.
 
+
+### Fixed
+WHAT:
+- Updated History → Log Details so read-mode bottom actions stack vertically (full-width Edit above full-width destructive Delete) and session notes render in a dedicated panel directly under the summary only when notes exist.
+- Updated Log Details edit mode to remove per-set Save actions and persist set edits only when the global Save action is pressed, while keeping immediate Delete Set behavior and collapsible set editors.
+WHY:
+- Clarifies action hierarchy in read mode, makes saved session notes discoverable without entering edit mode, and keeps edit sessions reversible until explicit global Save.
+
 ### Fixed
 WHAT:
 - Unified History Sessions controls by wrapping the Sessions/Exercises tabs and View Mode selector in a single highlighted container.

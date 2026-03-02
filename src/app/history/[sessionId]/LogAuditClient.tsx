@@ -13,7 +13,7 @@ import {
   updateLogMetaAction,
 } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { AppButton, DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
+import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
@@ -122,6 +122,32 @@ const formatSetSummary = (set: EditableSet, measurementType: AuditExercise["meas
   return "—";
 };
 
+const toSetPayload = (set: EditableSet) => {
+  const parsedDuration = parseDurationInput(set.values.duration);
+  const nextDuration = set.values.duration.trim() ? parsedDuration : null;
+
+  return {
+    weight: Number(set.values.weight),
+    reps: Number(set.values.reps),
+    durationSeconds: nextDuration,
+    distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+    distanceUnit: set.values.distance.trim() ? set.values.distanceUnit : null,
+    calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+    weightUnit: set.values.weightUnit,
+    hasDurationError: set.values.duration.trim().length > 0 && parsedDuration === null,
+  };
+};
+
+const isSetChanged = (set: EditableSet, payload: ReturnType<typeof toSetPayload>) => (
+  payload.weight !== set.source.weight
+  || payload.reps !== set.source.reps
+  || payload.durationSeconds !== set.source.duration_seconds
+  || payload.distance !== set.source.distance
+  || payload.distanceUnit !== set.source.distance_unit
+  || payload.calories !== set.source.calories
+  || payload.weightUnit !== (set.source.weight_unit ?? payload.weightUnit)
+);
+
 export function LogAuditClient({
   logId,
   initialDayName,
@@ -190,6 +216,40 @@ export function LogAuditClient({
         }
       }
 
+      for (const exercise of exercises) {
+        const setsForExercise = editableSets[exercise.id] ?? [];
+
+        for (const set of setsForExercise) {
+          if (set.id.startsWith("temp-")) continue;
+          const payload = toSetPayload(set);
+
+          if (payload.hasDurationError) {
+            toast.error("Use seconds or mm:ss for duration.");
+            return;
+          }
+
+          if (!isSetChanged(set, payload)) continue;
+
+          const result = await updateLogExerciseSetAction({
+            logId,
+            logExerciseId: exercise.id,
+            setId: set.id,
+            weight: payload.weight,
+            reps: payload.reps,
+            durationSeconds: payload.durationSeconds,
+            distance: payload.distance,
+            distanceUnit: payload.distanceUnit,
+            calories: payload.calories,
+            weightUnit: payload.weightUnit,
+          });
+
+          if (!result.ok) {
+            toastActionResult(toast, result, { success: "", error: "Unable to save set changes." });
+            return;
+          }
+        }
+      }
+
       setIsEditing(false);
       toastActionResult(toast, { ok: true }, { success: "Log details saved.", error: "Unable to save log details." });
       router.refresh();
@@ -201,57 +261,6 @@ export function LogAuditClient({
       ...current,
       [exerciseId]: (current[exerciseId] ?? []).map((set) => (set.id === setId ? updater(set) : set)),
     }));
-  };
-
-  const handleSaveSet = (exerciseId: string, setId: string) => {
-    const currentSet = (editableSets[exerciseId] ?? []).find((set) => set.id === setId);
-    if (!currentSet) return;
-
-    const parsedDuration = parseDurationInput(currentSet.values.duration);
-    const nextDuration = currentSet.values.duration.trim() ? parsedDuration : null;
-    if (currentSet.values.duration.trim() && parsedDuration === null) {
-      toast.error("Use seconds or mm:ss for duration.");
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await updateLogExerciseSetAction({
-        logId,
-        logExerciseId: exerciseId,
-        setId,
-        weight: Number(currentSet.values.weight),
-        reps: Number(currentSet.values.reps),
-        durationSeconds: nextDuration,
-        distance: currentSet.values.distance.trim() ? Number(currentSet.values.distance) : null,
-        distanceUnit: currentSet.values.distance.trim() ? currentSet.values.distanceUnit : null,
-        calories: currentSet.values.calories.trim() ? Number(currentSet.values.calories) : null,
-        weightUnit: currentSet.values.weightUnit,
-      });
-
-      toastActionResult(toast, result, { success: "Set updated.", error: "Unable to update set." });
-      if (result.ok) {
-        setEditableSets((current) => ({
-          ...current,
-          [exerciseId]: (current[exerciseId] ?? []).map((set) => (
-            set.id === setId
-              ? {
-                ...set,
-                source: {
-                  ...set.source,
-                  weight: Number(currentSet.values.weight),
-                  reps: Number(currentSet.values.reps),
-                  duration_seconds: nextDuration,
-                  distance: currentSet.values.distance.trim() ? Number(currentSet.values.distance) : null,
-                  distance_unit: currentSet.values.distance.trim() ? currentSet.values.distanceUnit : null,
-                  calories: currentSet.values.calories.trim() ? Number(currentSet.values.calories) : null,
-                  weight_unit: currentSet.values.weightUnit,
-                },
-              }
-              : set
-          )),
-        }));
-      }
-    });
   };
 
   const handleDeleteSet = (exerciseId: string, setId: string) => {
@@ -376,6 +385,13 @@ export function LogAuditClient({
         )}
       </AppPanel>
 
+      {!isEditing && sessionNotes.trim().length > 0 ? (
+        <AppPanel className="space-y-2 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--text-muted)/0.78)]">Session Notes</p>
+          <p className="text-sm text-[rgb(var(--text)/0.94)]">{sessionNotes}</p>
+        </AppPanel>
+      ) : null}
+
       <div className="space-y-2">
         {exercises.map((exercise) => {
           const name = exerciseNameMap[exercise.exercise_id] ?? exercise.exercise_id;
@@ -426,8 +442,7 @@ export function LogAuditClient({
                               onMetricToggle={(metric) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, activeMetrics: { ...current.activeMetrics, [metric]: !current.activeMetrics[metric] } }))}
                               onChange={(patch) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
                             />
-                            <div className="grid grid-cols-2 gap-2">
-                              <AppButton type="button" variant="secondary" size="md" fullWidth onClick={(event) => { event.stopPropagation(); handleSaveSet(exercise.id, set.id); }}>Save Set</AppButton>
+                            <div className="grid grid-cols-1 gap-2">
                               <DestructiveButton type="button" size="md" className="w-full" disabled={set.id.startsWith("temp-")} onClick={(event) => { event.stopPropagation(); handleDeleteSet(exercise.id, set.id); }}>Delete Set</DestructiveButton>
                             </div>
                           </div>
@@ -464,7 +479,7 @@ export function LogAuditClient({
       <StickyActionBar
         mode="fixed"
         primary={(
-          <div className="grid grid-cols-2 gap-2">
+          <div className={isEditing ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
             {isEditing ? (
               <>
                 <SecondaryButton type="button" size="md" className="w-full" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
