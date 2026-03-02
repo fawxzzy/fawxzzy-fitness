@@ -1,3 +1,10 @@
+### Fixed
+WHAT:
+- Simplified History → Exercises card shells so each row uses a single visible border/highlight surface and no inset border/fill gap.
+- Updated the History exercise icon treatment to remove the inner icon border so the image blends with the row card edge while preserving full-row tap and Info-open behavior.
+WHY:
+- Eliminates the double-border/sticker look in History exercise rows and improves visual cohesion without changing interaction contracts.
+
 ### Changed
 WHAT:
 - Added a governance scope declaration and Playbook version pin in local project governance to align with the Playbook v0.3.3 contract model.

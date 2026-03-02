@@ -106,7 +106,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     : null;
 
   return (
-    <AppPanel clip className="relative p-0 transition-colors hover:border-border/70 active:scale-[0.99]">
+    <AppPanel clip className="relative rounded-[inherit] border border-border/40 bg-surface/45 p-3 transition-colors hover:border-border/70 active:scale-[0.99]">
       <button
         type="button"
         onClick={() => {
@@ -118,8 +118,8 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         aria-label={`Open exercise info for ${displayName}`}
         className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
-        <div className="flex min-h-[88px] items-stretch gap-3 rounded-[inherit] border border-border/40 bg-surface/45 px-3 py-3 text-right">
-          <div className="flex w-14 shrink-0 self-stretch items-center justify-center overflow-hidden rounded-md border border-border/35 bg-surface-2-soft">
+        <div className="flex min-h-[88px] items-stretch gap-3 rounded-[inherit] text-right">
+          <div className="flex w-14 shrink-0 self-stretch items-center justify-center overflow-hidden rounded-md">
             <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full object-contain" />
           </div>
           <div className="min-w-0 flex-1">
