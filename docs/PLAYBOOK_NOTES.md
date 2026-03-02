@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-02 — API errors should ship phase + correlation metadata by default
+- Type: Guardrail
+- Summary: For multi-step API handlers, include the failing phase (`step`) and a per-request correlation id (`requestId`) in both JSON error payloads and response headers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/ci-guardrails-and-verification-tiers.md
+- Rationale: Reduces mean-time-to-diagnosis for production failures by making client-visible errors instantly traceable to server logs without exposing sensitive data.
+- Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/components/ExerciseInfo.tsx
+- Status: Proposed
+
 ## 2026-03-02 — Enforce one vertical scroll owner per app page shell
 - Type: Guardrail
 - Summary: Use a single `ScrollContainer` as the only `overflow-y-auto` owner per page inside a full-height `AppShell`; avoid root `h-[100dvh]` + `overflow-hidden` patterns and nested page-level scrollers.

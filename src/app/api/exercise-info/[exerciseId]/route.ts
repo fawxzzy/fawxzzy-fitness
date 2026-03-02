@@ -14,8 +14,24 @@ type ExerciseInfoErrorCode =
 
 type ExerciseInfoStep = "validate" | "auth" | "payload:base" | "payload:stats" | "payload:images" | "respond";
 
-function jsonError(status: number, code: ExerciseInfoErrorCode, message: string, details?: Record<string, unknown>) {
-  return NextResponse.json({ ok: false, code, message, ...(details ? { details } : {}) }, { status });
+function jsonError(
+  status: number,
+  code: ExerciseInfoErrorCode,
+  message: string,
+  requestId: string,
+  step: ExerciseInfoStep,
+  details?: Record<string, unknown>,
+) {
+  return NextResponse.json(
+    { ok: false, code, message, step, requestId, ...(details ? { details } : {}) },
+    {
+      status,
+      headers: {
+        "x-request-id": requestId,
+        "x-error-step": step,
+      },
+    },
+  );
 }
 
 export async function GET(
@@ -23,31 +39,18 @@ export async function GET(
   { params }: { params: { exerciseId: string } },
 ) {
   const exerciseId = params.exerciseId;
+  const requestId = `ei_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   let step: ExerciseInfoStep = "validate";
   let userId: string | null = null;
 
   const runStep = async <T>(nextStep: ExerciseInfoStep, fn: () => Promise<T> | T) => {
     step = nextStep;
-    try {
-      return await fn();
-    } catch (error) {
-      const resolved = error instanceof Error ? error : new Error(String(error));
-      console.error("[api/exercise-info] step failure", {
-        path: "/api/exercise-info/[exerciseId]",
-        method: request.method,
-        exerciseId,
-        userId,
-        step,
-        message: resolved.message,
-        stack: resolved.stack,
-      });
-      throw error;
-    }
+    return await fn();
   };
 
   const isValidExerciseId = await runStep("validate", () => UUID_V4ISH_PATTERN.test(exerciseId));
   if (!isValidExerciseId) {
-    return jsonError(400, "EXERCISE_INFO_INVALID_ID", "Invalid exercise id.");
+    return jsonError(400, "EXERCISE_INFO_INVALID_ID", "Invalid exercise id.", requestId, step);
   }
 
   try {
@@ -56,7 +59,7 @@ export async function GET(
     });
 
     if (!hasSupabaseEnv) {
-      return jsonError(500, "EXERCISE_INFO_MISCONFIG", "Server misconfigured.");
+      return jsonError(500, "EXERCISE_INFO_MISCONFIG", "Server misconfigured.", requestId, step);
     }
 
     const supabase = await runStep("auth", () => supabaseServer());
@@ -68,14 +71,14 @@ export async function GET(
     if (authError) {
       const normalizedAuthMessage = authError.message.toLowerCase();
       if (normalizedAuthMessage.includes("auth session missing")) {
-        return jsonError(401, "EXERCISE_INFO_UNAUTHENTICATED", "Not signed in.");
+        return jsonError(401, "EXERCISE_INFO_UNAUTHENTICATED", "Not signed in.", requestId, step);
       }
 
       throw new Error(`failed to resolve auth user: ${authError.message}`);
     }
 
     if (!user) {
-      return jsonError(401, "EXERCISE_INFO_UNAUTHENTICATED", "Not signed in.");
+      return jsonError(401, "EXERCISE_INFO_UNAUTHENTICATED", "Not signed in.", requestId, step);
     }
 
     userId = user.id;
@@ -83,23 +86,48 @@ export async function GET(
     const exercise = await runStep("payload:base", () => getExerciseInfoBase(exerciseId, user.id));
 
     if (!exercise) {
-      return jsonError(404, "EXERCISE_INFO_NOT_FOUND", "Exercise not found.");
+      return jsonError(404, "EXERCISE_INFO_NOT_FOUND", "Exercise not found.", requestId, step);
     }
 
-    const stats = await runStep("payload:stats", () => getExerciseInfoStats(user.id, exercise.exercise_id));
-    const exerciseWithImages = await runStep("payload:images", () => resolveExerciseInfoImages(exercise));
+    const stats = await runStep("payload:stats", () => getExerciseInfoStats(user.id, exercise.exercise_id, requestId));
+
+    let exerciseWithImages = exercise;
+    try {
+      exerciseWithImages = await runStep("payload:images", () => resolveExerciseInfoImages(exercise));
+    } catch (error) {
+      console.warn("[api/exercise-info] non-fatal images failure", {
+        requestId,
+        step: "payload:images",
+        path: "/api/exercise-info/[exerciseId]",
+        method: request.method,
+        exerciseId,
+        userId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     const payload = { exercise: exerciseWithImages, stats };
 
-    return runStep("respond", () => NextResponse.json({ ok: true, payload }, { status: 200 }));
+    return runStep("respond", () =>
+      NextResponse.json(
+        { ok: true, payload },
+        {
+          status: 200,
+          headers: {
+            "x-request-id": requestId,
+          },
+        },
+      ),
+    );
   } catch (error) {
     const resolved = error instanceof Error ? error : new Error("Unknown exercise info route failure");
     console.error("[api/exercise-info] unexpected failure", {
+      requestId,
+      step,
       path: "/api/exercise-info/[exerciseId]",
       method: request.method,
       exerciseId,
       userId,
-      step,
       message: resolved.message,
       stack: resolved.stack,
     });
@@ -108,6 +136,8 @@ export async function GET(
       500,
       "EXERCISE_INFO_UNEXPECTED",
       "Unexpected server error.",
+      requestId,
+      step,
       process.env.NODE_ENV !== "production" ? { stack: resolved.stack } : undefined,
     );
   }

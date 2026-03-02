@@ -158,6 +158,7 @@ export function TodayClientShell({
         onClose={() => {
           setSelectedExerciseId(null);
         }}
+        sourceContext="TodayClientShell"
       />
     </div>
   );

@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { ExerciseInfoSheet, type ExerciseInfoSheetExercise, type ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
 import { useToast } from "@/components/ui/ToastProvider";
 
+const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
+const UUID_V4ISH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 type ExerciseInfoResponse = {
   ok: true;
   payload: {
@@ -25,6 +28,7 @@ export function ExerciseInfo({
   open,
   onOpenChange,
   onClose,
+  sourceContext,
 }: {
   exerciseId: string | null;
   open: boolean;
@@ -37,14 +41,37 @@ export function ExerciseInfo({
   const toast = useToast();
 
   useEffect(() => {
-    if (!open || !exerciseId) {
+    if (!open) {
+      setExercise(null);
+      setStats(null);
+      return;
+    }
+
+    const normalizedExerciseId = typeof exerciseId === "string" ? exerciseId.trim() : "";
+    const isValidExerciseId =
+      normalizedExerciseId.length > 0 &&
+      normalizedExerciseId !== SENTINEL_EXERCISE_ID &&
+      UUID_V4ISH_PATTERN.test(normalizedExerciseId);
+
+    if (!isValidExerciseId) {
+      const minimalShape = {
+        hasId: normalizedExerciseId.length > 0,
+        isSentinel: normalizedExerciseId === SENTINEL_EXERCISE_ID,
+        length: normalizedExerciseId.length,
+      };
+      console.error("[ExerciseInfo] blocked invalid open request", {
+        source: sourceContext ?? "ExerciseInfo",
+        exerciseId: normalizedExerciseId || null,
+        minimalShape,
+      });
+      toast.error("Invalid exercise link");
       setExercise(null);
       setStats(null);
       return;
     }
 
     if (process.env.NODE_ENV === "development") {
-      console.debug("[ExerciseInfo] open request", { exerciseId });
+      console.debug("[ExerciseInfo] open request", { exerciseId: normalizedExerciseId, source: sourceContext ?? "ExerciseInfo" });
     }
 
     let active = true;
@@ -52,7 +79,7 @@ export function ExerciseInfo({
 
     async function load() {
       try {
-        const response = await fetch(`/api/exercise-info/${exerciseId}`, { signal: controller.signal });
+        const response = await fetch(`/api/exercise-info/${normalizedExerciseId}`, { signal: controller.signal });
         const payload = (await response.json().catch(() => null)) as ExerciseInfoResponse | ExerciseInfoErrorResponse | null;
 
         if (!response.ok) {
@@ -60,12 +87,12 @@ export function ExerciseInfo({
           const errorPayload = payload as ExerciseInfoErrorResponse | null;
           const resolvedMessage = errorPayload?.message ?? errorPayload?.error ?? "Could not load exercise info.";
           console.error("[ExerciseInfo] failed to load payload", {
-            exerciseId,
+            exerciseId: normalizedExerciseId,
             status: response.status,
             code: errorPayload?.code,
             payload: errorPayload,
           });
-          toast.error(`${resolvedMessage} (status ${response.status}, id ${exerciseId})`);
+          toast.error(`${resolvedMessage} (status ${response.status}, id ${normalizedExerciseId})`);
           setExercise(null);
           setStats(null);
           return;
@@ -76,7 +103,7 @@ export function ExerciseInfo({
 
         if (!successPayload?.ok || !successPayload.payload) {
           console.error("[ExerciseInfo] unexpected response payload", {
-            exerciseId,
+            exerciseId: normalizedExerciseId,
             status: response.status,
             payload,
           });
@@ -90,8 +117,8 @@ export function ExerciseInfo({
         setStats(successPayload.payload.stats);
       } catch (error) {
         if (!active || controller.signal.aborted) return;
-        console.error("[ExerciseInfo] request failed", { exerciseId, status: "request-failed", error });
-        toast.error(`Could not load exercise info. (status request-failed, id ${exerciseId})`);
+        console.error("[ExerciseInfo] request failed", { exerciseId: normalizedExerciseId, status: "request-failed", error });
+        toast.error(`Could not load exercise info. (status request-failed, id ${normalizedExerciseId})`);
         setExercise(null);
         setStats(null);
       }
@@ -103,7 +130,7 @@ export function ExerciseInfo({
       active = false;
       controller.abort();
     };
-  }, [exerciseId, open, toast]);
+  }, [exerciseId, open, sourceContext, toast]);
 
   return <ExerciseInfoSheet exercise={exercise} stats={stats} open={open} onOpenChange={onOpenChange} onClose={onClose} />;
 }

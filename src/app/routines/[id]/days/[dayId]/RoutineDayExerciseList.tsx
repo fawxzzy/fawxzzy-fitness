@@ -45,6 +45,7 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
         onClose={() => {
           setSelectedExerciseId(null);
         }}
+        sourceContext="RoutineDayExerciseList"
       />
     </>
   );

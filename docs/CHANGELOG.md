@@ -1,5 +1,15 @@
 ### Fixed
 WHAT:
+- Added a canonical Exercise Info open guard that blocks falsy, sentinel, and non-UUID exercise IDs before any network request, with a user-facing invalid-link toast and source-tagged diagnostics.
+- Upgraded `/api/exercise-info/[exerciseId]` failures to always include `step` and `requestId` in JSON and response headers, and added request-scoped server logging for fatal and non-fatal phases.
+- Corrected Exercise Info base payload loading to query only schema-backed exercise columns so valid exercise UUIDs resolve successfully instead of failing in the base payload phase.
+WHY:
+- Prevents invalid sentinel traffic from reaching the API and makes remaining bad callers immediately attributable at the open source.
+- Reduces production triage time by making every 400/401/404/500 response self-diagnosing and traceable via request correlation.
+- Restores reliable 200 responses for valid exercise info lookups by removing schema/select mismatch failure paths.
+
+### Fixed
+WHAT:
 - Stabilized `/api/exercise-info/[exerciseId]` responses to a consistent envelope contract for success and failure cases, including explicit invalid-id, unauthenticated, not-found, and unexpected-error outcomes.
 - Hardened Exercise Info loading so expected missing/visibility cases resolve to not-found behavior and downstream stats/media failures degrade gracefully instead of crashing the endpoint.
 - Updated Exercise Info client error parsing to prefer stable server `message` values while preserving compatibility with legacy `error` payloads, and added an endpoint validation script for the 400/401/404/(optional 200) status matrix.

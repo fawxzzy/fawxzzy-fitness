@@ -29,7 +29,13 @@ export function ExerciseInfoIconButton({
       >
         <span aria-hidden="true">ⓘ</span>
       </button>
-      <ExerciseInfo exerciseId={exerciseId} open={open} onOpenChange={setOpen} onClose={() => setOpen(false)} />
+      <ExerciseInfo
+        exerciseId={exerciseId}
+        open={open}
+        onOpenChange={setOpen}
+        onClose={() => setOpen(false)}
+        sourceContext="ExerciseInfoIconButton"
+      />
     </>
   );
 }
