@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
@@ -37,47 +36,21 @@ function SaveSessionButton() {
 
 export function SessionHeaderControls({
   sessionId,
-  initialDurationSeconds,
-  performedAt,
+  durationSeconds,
   saveSessionAction,
   quickAddAction,
 }: {
   sessionId: string;
-  initialDurationSeconds: number | null;
-  performedAt: string;
+  durationSeconds: number;
   saveSessionAction: ServerAction;
   quickAddAction: React.ReactNode;
 }) {
-  const baseDurationSeconds = initialDurationSeconds ?? 0;
-  const performedAtMs = useMemo(() => {
-    const parsed = Date.parse(performedAt);
-    return Number.isNaN(parsed) ? null : parsed;
-  }, [performedAt]);
-  const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const toast = useToast();
   const router = useRouter();
 
-  useEffect(() => {
-    const computeElapsed = () => {
-      if (!performedAtMs) {
-        return baseDurationSeconds;
-      }
-
-      const elapsed = Math.floor((Date.now() - performedAtMs) / 1000);
-      return elapsed > 0 ? elapsed : baseDurationSeconds;
-    };
-
-    setDurationSeconds(computeElapsed());
-    const timer = window.setInterval(() => {
-      setDurationSeconds(computeElapsed());
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [baseDurationSeconds, performedAtMs]);
-
   return (
-    <div className="sticky top-0 z-30 -mx-4 min-h-[calc(env(safe-area-inset-top)+64px)] border-b border-white/10 bg-surface px-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-2">
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+    <div className="sticky top-0 z-50 -mx-4 border-b border-white/10 bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
+      <div className="grid min-h-16 grid-cols-[auto_1fr_auto] items-center gap-2 px-4 pb-2 pt-2">
         <form
           action={async (formData) => {
             const result = await saveSessionAction(formData);

@@ -57,7 +57,7 @@ type SessionExercisePrefill = {
   weightUnit?: "lbs" | "kg";
 };
 
-type SessionExerciseFocusItem = {
+export type SessionExerciseFocusItem = {
   id: string;
   name: string;
   isSkipped: boolean;
@@ -82,6 +82,8 @@ export function SessionExerciseFocus({
   sessionId,
   unitLabel,
   exercises,
+  selectedExerciseId,
+  onSelectedExerciseIdChange,
   addSetAction,
   syncQueuedSetLogsAction,
   toggleSkipAction,
@@ -91,13 +93,14 @@ export function SessionExerciseFocus({
   sessionId: string;
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
+  selectedExerciseId: string | null;
+  onSelectedExerciseIdChange: (exerciseId: string | null) => void;
   addSetAction: (payload: AddSetPayload) => Promise<AddSetActionResult>;
   syncQueuedSetLogsAction: SyncQueuedSetLogsAction;
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
   const [setLoggerResetSignal, setSetLoggerResetSignal] = useState(0);
   const [loggedSetCounts, setLoggedSetCounts] = useState<Record<string, number>>(() =>
@@ -121,7 +124,7 @@ export function SessionExerciseFocus({
     if (removingExerciseIds.includes(exerciseId)) return;
 
     setRemovingExerciseIds((current) => [...current, exerciseId]);
-    setSelectedExerciseId(null);
+    onSelectedExerciseIdChange(null);
 
     queueUndo({
       message: "Removed exercise",
@@ -165,7 +168,7 @@ export function SessionExerciseFocus({
 
     const closeSelectedExercise = () => {
       setSetLoggerResetSignal((value) => value + 1);
-      setSelectedExerciseId(null);
+      onSelectedExerciseIdChange(null);
     };
 
     const handlePopState = () => {
@@ -183,7 +186,7 @@ export function SessionExerciseFocus({
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("session-exercise-focus:close-request", handleCloseRequest);
     };
-  }, [selectedExerciseId]);
+  }, [onSelectedExerciseIdChange, selectedExerciseId]);
 
   return (
     <div className="space-y-3">
@@ -204,7 +207,7 @@ export function SessionExerciseFocus({
                 <button
                   type="button"
                   aria-label={`Open ${exercise.name}`}
-                  onClick={() => setSelectedExerciseId(exercise.id)}
+                  onClick={() => onSelectedExerciseIdChange(exercise.id)}
                   className={`w-full bg-transparent p-3 text-left transition-colors duration-150 motion-reduce:transition-none ${tapFeedbackClass} hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -247,7 +250,7 @@ export function SessionExerciseFocus({
             <BackButton
               onClick={(event) => {
                 event.preventDefault();
-                setSelectedExerciseId(null);
+                onSelectedExerciseIdChange(null);
               }}
               ariaLabel="Collapse exercise"
               iconOnly

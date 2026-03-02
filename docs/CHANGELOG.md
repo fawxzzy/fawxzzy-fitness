@@ -2164,3 +2164,13 @@ WHY:
 - Reduces header clutter, keeps primary actions consistently anchored, and improves scanability of session summary content.
 - Fixes a disruptive edit workflow reliability issue when adding then immediately deleting sets.
 - Standardizes measurement interactions across workout entry and history editing surfaces for clearer, more predictable behavior.
+
+### Fixed
+WHAT:
+- Made the Current Session header truly top-anchored with notch-safe spacing so header controls stay flush to the viewport top while respecting iOS safe-area insets.
+- Updated Current Session exercise-open mode to hide both top header controls and the routine/day title line for a cleaner focused exercise view.
+- Kept the session timer running continuously while toggling between list mode and exercise-open mode.
+WHY:
+- Removes top-gap drift and sticky inconsistencies on mobile devices with notches/Dynamic Island.
+- Reduces visual clutter during active exercise logging while preserving full controls in list mode.
+- Prevents perceived timer resets or pauses when UI sections are conditionally hidden.
