@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-02 — Keep token refresh exclusively in middleware for server-auth determinism
+- Type: Guardrail
+- Summary: In Next.js apps using cookie-backed server auth, perform token refresh only in middleware and keep server Supabase helpers read-only consumers of access cookies.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Prevents split refresh ownership and cookie drift that can cause intermittent SSR/session auth failures.
+- Evidence: middleware.ts, src/lib/supabase/server.ts, src/app/auth/actions.ts, src/app/auth/confirm/route.ts
+- Status: Proposed
+
 ## 2026-03-01 — Use deterministic sync reports instead of auto-renaming canonical media files
 - Type: Guardrail
 - Summary: Canonical media sync scripts should validate strict filename contracts and report suggested fixes, but must not auto-rename files in-place by default.
