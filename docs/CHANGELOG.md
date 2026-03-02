@@ -1,3 +1,9 @@
+### Fixed
+WHAT:
+- Refined History → Exercises row cards so the dark card fill is flush to the outer highlight border, softened the card highlight intensity, and allowed long exercise titles to wrap to two lines.
+WHY:
+- Improves card polish and title readability while preserving the existing History list interaction behavior.
+
 ### Changed
 WHAT:
 - Formalized the shared app-wide filter panel contract in `ExerciseTagFilterControl`, including canonical header/summary behavior and minimal prop-based customization (`countDisplayMode`, `defaultOpen`, `headerLabel`) while preserving default rendering on existing screens.
