@@ -2067,3 +2067,9 @@ WHAT:
 - Increased the History → Exercises row image area so the card divider sits further left and standardized images display with stronger visual emphasis.
 WHY:
 - Improves scanability and visual balance for the updated exercise image set while keeping the existing row interactions and content hierarchy intact.
+
+### Changed
+WHAT:
+- Added project-level `vercel.json` configuration to disable automatic Git-triggered deployments.
+WHY:
+- Ensures deployments are manually controlled through the Vercel CLI (`vercel` / `vercel --prod`) instead of running on every push.
