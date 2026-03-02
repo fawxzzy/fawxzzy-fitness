@@ -1,3 +1,11 @@
+### Changed
+WHAT:
+- Introduced a shared page layout contract with `AppShell` and `ScrollContainer` so each page has one deterministic vertical scroll owner.
+- Refactored History pages to adopt the single-scroll-owner structure, including Sessions, Exercises, and Log Details screens.
+WHY:
+- Prevents nested overflow conflicts that could cause non-scrollable/trapped lists and mobile layout jumpiness.
+- Normalizes scroll behavior and sticky element stability across History surfaces.
+
 ### Fixed
 WHAT:
 - Added deterministic auth middleware for protected routes to refresh expired/near-expiry access tokens using the refresh token.
