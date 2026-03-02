@@ -16,7 +16,8 @@
     "validate:exercise-info-endpoint": "node scripts/validate-exercise-info-endpoint.mjs",
     "release:patch": "node scripts/release.mjs patch",
     "release:minor": "node scripts/release.mjs minor",
-    "release:major": "node scripts/release.mjs major"
+    "release:major": "node scripts/release.mjs major",
+    "audit:exercise-icons": "node scripts/audit-exercise-icons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

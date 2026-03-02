@@ -1,0 +1,18 @@
+exercise_id,exercise_name,canonical_slug,current_mapped_path,expected_path,expected_file_exists
+global:cable-rear-delt-fly,Cable Rear Delt Fly,cable-rear-delt-fly,/exercises/icons/_placeholder.svg,/exercises/icons/cable-rear-delt-fly.png,true
+global:deficit-push-up,Deficit Push-Up,deficit-push-up,/exercises/icons/_placeholder.svg,/exercises/icons/deficit-push-up.png,true
+global:dumbbell-row,Dumbbell Row,dumbbell-row,/exercises/icons/_placeholder.svg,/exercises/icons/dumbbell-row.png,true
+global:front-raise,Front Raise,front-raise,/exercises/icons/_placeholder.svg,/exercises/icons/front-raise.png,true
+global:hanging-leg-raise,Hanging Leg Raise,hanging-leg-raise,/exercises/icons/_placeholder.svg,/exercises/icons/hanging-leg-raise.png,true
+global:lat-pulldown,Lat Pulldown,lat-pulldown,/exercises/icons/_placeholder.svg,/exercises/icons/lat-pulldown.png,true
+global:lateral-raise,Lateral Raise,lateral-raise,/exercises/icons/_placeholder.svg,/exercises/icons/lateral-raise.png,true
+global:leaning-cable-lateral-raise,Leaning Cable Lateral Raise,leaning-cable-lateral-raise,/exercises/icons/_placeholder.svg,/exercises/icons/leaning-cable-lateral-raise.png,true
+global:lying-leg-raise,Lying Leg Raise,lying-leg-raise,/exercises/icons/_placeholder.svg,/exercises/icons/lying-leg-raise.png,true
+global:pull-up,Pull-Up,pull-up,/exercises/icons/_placeholder.svg,/exercises/icons/pull-up.png,true
+global:single-arm-dumbbell-bench-press,Single-Arm Dumbbell Bench Press,single-arm-dumbbell-bench-press,/exercises/icons/_placeholder.svg,/exercises/icons/single-arm-dumbbell-bench-press.png,true
+global:single-arm-dumbbell-row,Single-Arm Dumbbell Row,single-arm-dumbbell-row,/exercises/icons/_placeholder.svg,/exercises/icons/single-arm-dumbbell-row.png,true
+global:single-arm-lat-pulldown,Single-Arm Lat Pulldown,single-arm-lat-pulldown,/exercises/icons/_placeholder.svg,/exercises/icons/single-arm-lat-pulldown.png,true
+global:straight-arm-pulldown,Straight-Arm Pulldown,straight-arm-pulldown,/exercises/icons/_placeholder.svg,/exercises/icons/straight-arm-pulldown.png,true
+global:upright-row,Upright Row,upright-row,/exercises/icons/_placeholder.svg,/exercises/icons/upright-row.png,true
+global:weighted-plank,Weighted Plank,weighted-plank,/exercises/icons/_placeholder.svg,/exercises/icons/weighted-plank.png,true
+global:weighted-push-up,Weighted Push-Up,weighted-push-up,/exercises/icons/_placeholder.svg,/exercises/icons/weighted-push-up.png,true

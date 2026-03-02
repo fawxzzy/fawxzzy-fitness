@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## 0.1.0 — 2026-03-02
 
+### Changed
+WHAT:
+- Added a deterministic Exercise ↔ icon audit command that scans the canonical global exercise seed list against `public/exercises/icons/` and exports review-ready bucket CSVs plus a markdown report.
+- Committed generated icon audit artifacts under `artifacts/icon-audit/` and `docs/icon-audit-report.md` for fast reviewer triage.
+WHY:
+- Gives a single source of truth for new-icon, off-by-name, and imageless exercise gaps without silent file mutation, so icon linkage decisions stay explicit and auditable.
+
 ### Fixed
 WHAT:
 - Updated History → Sessions card text ordering for Compact and List view modes.
