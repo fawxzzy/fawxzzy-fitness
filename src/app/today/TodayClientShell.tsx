@@ -114,7 +114,11 @@ export function TodayClientShell({
               type="button"
               className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-text"
               onClick={() => {
-                setSelectedExerciseId(("exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id));
+                const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
+                if (process.env.NODE_ENV === "development") {
+                  console.debug("[ExerciseInfo:open] TodayClientShell", { exerciseId: canonicalExerciseId, exercise: { id: exercise.id, exerciseId: "exerciseId" in exercise ? exercise.exerciseId : undefined, name: exercise.name } });
+                }
+                setSelectedExerciseId(canonicalExerciseId);
               }}
             >
               <span className="truncate">{exercise.name}</span>

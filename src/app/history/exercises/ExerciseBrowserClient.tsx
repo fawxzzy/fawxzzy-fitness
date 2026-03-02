@@ -110,7 +110,12 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     <AppPanel clip className="relative p-0 transition-colors hover:border-border/70 active:scale-[0.99]">
       <button
         type="button"
-        onClick={() => onOpen(row.canonicalExerciseId)}
+        onClick={() => {
+          if (process.env.NODE_ENV === "development") {
+            console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.canonicalExerciseId, row: { id: row.id, name: row.name, slug: row.slug } });
+          }
+          onOpen(row.canonicalExerciseId);
+        }}
         aria-label={`Open exercise info for ${displayName}`}
         className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >

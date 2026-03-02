@@ -1927,3 +1927,11 @@ WHAT:
 WHY:
 - Improves discoverability of exercise details in daily training and routine planning flows.
 - Keeps users in their current context without route resets or unexpected navigation jumps.
+
+### Fixed
+WHAT:
+- Corrected Exercise Info ID wiring so Today, Routine Day, and related open flows consistently use canonical exercise primary keys instead of secondary identifier fallbacks.
+- Hardened `/api/exercise-info/[exerciseId]` to return structured 400/401/404 JSON for invalid IDs, unauthenticated access, and missing exercises.
+- Added visible client-side error feedback when Exercise Info fetches fail instead of silently doing nothing.
+WHY:
+- Prevents Exercise Info from failing to open due to placeholder or mismapped IDs and makes failure modes explicit for users and debugging.
