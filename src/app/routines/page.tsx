@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { RoutineSwitcherBar } from "@/components/RoutineSwitcherBar";
-import { PanelShell } from "@/components/layout/PanelShell";
-import { ScrollFade } from "@/components/layout/ScrollFade";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Glass } from "@/components/ui/Glass";
@@ -129,10 +128,10 @@ export default async function RoutinesPage() {
   }
 
   return (
-    <MainTabScreen className="flex min-h-[100dvh] min-h-0 flex-col overflow-hidden">
+    <MainTabScreen>
       <AppNav />
 
-      <Glass variant="base" className="flex min-h-0 flex-1 flex-col space-y-3 p-3" interactive={false}>
+      <Glass variant="base" className="space-y-3 p-3" interactive={false}>
         {routines.length === 0 ? (
           <div className={appTokens.panelMuted}>
             <p className="text-sm text-muted">No routines yet.</p>
@@ -157,7 +156,7 @@ export default async function RoutinesPage() {
             />
 
             {activeRoutine ? (
-              <PanelShell className="gap-4">
+              <AppPanel className="space-y-4">
                 <AppHeader
                   title={activeRoutine.name}
                   subtitleLeft={`${cycleLength}-day cycle`}
@@ -173,8 +172,7 @@ export default async function RoutinesPage() {
                   )}
                 />
 
-                <ScrollFade>
-                  <ul className="space-y-3 pb-[calc(env(safe-area-inset-bottom)+16px)] text-sm text-muted">
+                <ul className="space-y-3 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
                     const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
                     const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
@@ -201,9 +199,8 @@ export default async function RoutinesPage() {
                   {sortedActiveRoutineDays.length === 0 ? (
                     <li className="py-2 text-sm text-muted">No days configured yet</li>
                   ) : null}
-                  </ul>
-                </ScrollFade>
-              </PanelShell>
+                </ul>
+              </AppPanel>
             ) : null}
           </>
         )}
