@@ -2031,3 +2031,9 @@ WHAT:
 - History Exercises UI: removed redundant in-content history titles, moved Sessions/Exercises tabs into the shared highlighted header panel, simplified filter header/count display, and refreshed exercise card alignment for icon + stat hierarchy.
 WHY:
 - Reduces visual clutter, strengthens hierarchy inside the shared header region, and improves readability/scanability of exercise rows without changing behavior.
+
+### Fixed
+WHAT:
+- Increased the History → Exercises row image area so the card divider sits further left and standardized images display with stronger visual emphasis.
+WHY:
+- Improves scanability and visual balance for the updated exercise image set while keeping the existing row interactions and content hierarchy intact.
