@@ -1,5 +1,13 @@
 ### Fixed
 WHAT:
+- Added deterministic auth middleware for protected routes to refresh expired/near-expiry access tokens using the refresh token.
+- Secured server-owned session cookies with httpOnly defaults and production-only secure flags across login/signup and auth confirmation flows.
+WHY:
+- Prevents token drift between client/server auth state and removes session refresh instability.
+- Makes SSR and server action authentication deterministic while reducing random logout behavior.
+
+### Fixed
+WHAT:
 - Reworked History → Exercises card tap targets so card content is rendered inside the interactive control instead of beneath an absolute overlay.
 WHY:
 - Prevents mobile WebKit from painting native button chrome over the card surface, which could make exercise rows look blank while keeping the same tap-to-open behavior.

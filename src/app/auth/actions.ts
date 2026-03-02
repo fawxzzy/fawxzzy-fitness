@@ -50,12 +50,15 @@ function setSessionCookies(session: { access_token: string; refresh_token: strin
   cookieStore.set("sb-access-token", session.access_token, {
     path: "/",
     sameSite: "lax",
-    httpOnly: false,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
   });
   cookieStore.set("sb-refresh-token", session.refresh_token, {
     path: "/",
     sameSite: "lax",
-    httpOnly: false,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 30,
   });
 }
 
