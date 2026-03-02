@@ -1,3 +1,9 @@
+### Changed
+WHAT:
+- Added a GitHub Actions workflow that deploys production to Vercel when version tags matching `v*` are pushed.
+WHY:
+- Automates release deployment from tag events to make production rollouts consistent and repeatable.
+
 ### Fixed
 WHAT:
 - Rehauled History Log Details UI with a unified top header/back action pattern, a structured session summary panel, normalized exercise and set editor layout, and a simplified sticky action area.
