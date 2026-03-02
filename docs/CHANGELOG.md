@@ -1844,3 +1844,9 @@ WHAT:
 WHY:
 - Eliminates remaining top-gap inconsistency between History tabs and keeps tab switching visually stable.
 
+
+### Fixed
+WHAT:
+- Updated the History → Exercises info-sheet Back button behavior so exiting exercise details no longer navigates away from the Exercises tab.
+WHY:
+- Keeps users in the same History context when closing exercise info, preventing accidental jumps back to Sessions.

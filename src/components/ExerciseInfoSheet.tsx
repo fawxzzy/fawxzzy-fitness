@@ -129,7 +129,10 @@ export function ExerciseInfoSheet({
             <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
               <h2 className="text-2xl font-semibold">Exercise info</h2>
               <BackButton
-                onClick={() => onOpenChange(false)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onOpenChange(false);
+                }}
                 label="Back"
                 ariaLabel="Back"
                 iconOnly
