@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { ExerciseInfoSheet, type ExerciseInfoSheetExercise, type ExerciseInfoSheetStats } from "@/components/ExerciseInfoSheet";
 import { useToast } from "@/components/ui/ToastProvider";
+import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 
-const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
 const UUID_V4ISH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type ExerciseInfoResponse = {
@@ -47,21 +47,20 @@ export function ExerciseInfo({
       return;
     }
 
-    const normalizedExerciseId = typeof exerciseId === "string" ? exerciseId.trim() : "";
-    const isValidExerciseId =
-      normalizedExerciseId.length > 0 &&
-      normalizedExerciseId !== SENTINEL_EXERCISE_ID &&
-      UUID_V4ISH_PATTERN.test(normalizedExerciseId);
+    const rawExerciseId = typeof exerciseId === "string" ? exerciseId.trim() : "";
+    const normalizedExerciseId = resolveCanonicalExerciseId(rawExerciseId);
+    const isValidExerciseId = normalizedExerciseId.length > 0 && UUID_V4ISH_PATTERN.test(normalizedExerciseId);
 
     if (!isValidExerciseId) {
       const minimalShape = {
         hasId: normalizedExerciseId.length > 0,
-        isSentinel: normalizedExerciseId === SENTINEL_EXERCISE_ID,
+        wasAliased: rawExerciseId !== normalizedExerciseId,
         length: normalizedExerciseId.length,
       };
       console.error("[ExerciseInfo] blocked invalid open request", {
         source: sourceContext ?? "ExerciseInfo",
-        exerciseId: normalizedExerciseId || null,
+        exerciseId: rawExerciseId || null,
+        canonicalExerciseId: normalizedExerciseId || null,
         minimalShape,
       });
       toast.error("Invalid exercise link");
