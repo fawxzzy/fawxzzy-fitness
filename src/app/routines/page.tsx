@@ -3,6 +3,7 @@ import { AppNav } from "@/components/AppNav";
 import { RoutineSwitcherBar } from "@/components/RoutineSwitcherBar";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
+import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -127,7 +128,7 @@ export default async function RoutinesPage() {
   }
 
   return (
-    <section className="space-y-3">
+    <MainTabScreen>
       <AppNav />
 
       <Glass variant="base" className="space-y-3 p-3" interactive={false}>
@@ -204,6 +205,6 @@ export default async function RoutinesPage() {
           </>
         )}
       </Glass>
-    </section>
+    </MainTabScreen>
   );
 }

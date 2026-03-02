@@ -8,6 +8,7 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
+import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
@@ -395,7 +396,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         };
 
   return (
-    <section className="space-y-3 pb-32">
+    <MainTabScreen className="pb-32">
       <AppNav />
 
       {todayPayload.routine && !fetchFailed ? (
@@ -469,6 +470,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       <TodayOfflineBridge snapshot={todaySnapshot} />
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-    </section>
+    </MainTabScreen>
   );
 }
