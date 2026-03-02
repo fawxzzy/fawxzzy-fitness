@@ -1,5 +1,13 @@
 ### Changed
 WHAT:
+- Replaced the Current Session “Add Exercise” action surface with explicit “Edit Day” and “Quick Add” actions.
+- Added a minimal Quick Add flow that appends session-only exercises unlinked from routine day templates.
+WHY:
+- Keeps Current Session focused on training/logging while making template edits explicit.
+- Prevents accidental routine/template drift while still supporting one-off in-session additions.
+
+### Changed
+WHAT:
 - Removed heuristic routine/template matching from session rendering and target resolution.
 - Template-derived targets now apply only when a session exercise has an explicit `routine_day_exercise_id` link.
 WHY:

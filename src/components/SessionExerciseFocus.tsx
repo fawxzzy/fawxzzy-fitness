@@ -213,6 +213,9 @@ export function SessionExerciseFocus({
                       <span className="rounded-full border border-border/70 bg-surface-2-soft px-2 py-0.5 text-xs font-medium text-text">
                         {setCount} {exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}
                       </span>
+                      {exercise.routineDayExerciseId === null ? (
+                        <span className="rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[11px] font-medium text-text">Added today</span>
+                      ) : null}
                     </div>
                     <span aria-hidden="true" className="text-muted">›</span>
                   </div>
