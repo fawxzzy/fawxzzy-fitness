@@ -528,3 +528,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Keeps visual parity and interaction behavior consistent while reducing layout drift and duplicated rendering logic.
 - Evidence: src/components/ui/app/AppRow.tsx, src/app/history/HistorySessionsClient.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx
 - Status: Proposed
+
+## 2026-03-02 — Add `appearance-none` to absolute full-card button overlays in mobile dark cards
+- Type: Guardrail
+- Summary: When using an absolute inset button as a full-card tap target, explicitly include `appearance-none` so browser-native button painting cannot visually mask card content.
+- Suggested Playbook File: Playbook/docs/PATTERNS/theming-dark-mode.md
+- Rationale: Mobile WebKit may apply default button surface styles that make cards look blank even though content is rendered underneath.
+- Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx
+- Status: Proposed

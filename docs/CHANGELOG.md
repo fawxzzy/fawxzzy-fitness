@@ -1810,3 +1810,9 @@ WHAT:
 - Kept Exercises rows on the existing card chrome and tap-to-open detail flow while preserving Sessions behavior unchanged.
 WHY:
 - Prevents blank-looking exercise cards when upstream row shapes omit expected title fields or provide empty values.
+
+### Fixed
+WHAT:
+- Fixed History → Exercises cards on iOS/mobile WebKit so card text and icons remain visible while preserving the same full-card tap target behavior.
+WHY:
+- Prevents rows from appearing blank when browser default button styling overlays the card content.
