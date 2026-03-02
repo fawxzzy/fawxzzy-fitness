@@ -1,5 +1,6 @@
 import "server-only";
 
+import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { getExerciseStatsForExercise, type ExerciseStatsRow } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -47,7 +48,23 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
   }
 
   if (!data || !data.id) {
-    return null;
+    const fallbackExercise = EXERCISE_OPTIONS.find((exercise) => exercise.id === exerciseId);
+    if (!fallbackExercise) {
+      return null;
+    }
+
+    return {
+      id: fallbackExercise.id,
+      exercise_id: fallbackExercise.id,
+      name: fallbackExercise.name,
+      primary_muscle: fallbackExercise.primary_muscle,
+      equipment: fallbackExercise.equipment,
+      movement_pattern: fallbackExercise.movement_pattern,
+      image_howto_path: null,
+      how_to_short: fallbackExercise.how_to_short,
+      image_icon_path: null,
+      slug: null,
+    };
   }
 
   return {
