@@ -3,9 +3,7 @@
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AppRow } from "@/components/ui/app/AppRow";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { listShellClasses } from "@/components/ui/listShellClasses";
+import { ViewModeSelect } from "@/components/ui/app/ViewModeSelect";
 
 type ViewMode = "list" | "compact";
 
@@ -37,6 +35,12 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
 }
 
+function formatTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(date);
+}
+
 function formatTimeRange(value: string, durationSeconds: number) {
   const end = new Date(value);
   if (Number.isNaN(end.getTime()) || durationSeconds <= 0) return null;
@@ -61,8 +65,10 @@ function HistorySessionRow({
   session: HistorySessionItem;
   mode: ViewMode;
 }) {
-  const primaryMeta = `${formatDuration(session.durationSeconds)} • ${formatDate(session.performedAt)}`;
-  const secondaryMeta = mode === "list" ? formatTimeRange(session.performedAt, session.durationSeconds) : null;
+  const routineTitle = session.name || "Session";
+  const dayTitle = session.dayLabel || "Custom session";
+  const timeRange = formatTimeRange(session.performedAt, session.durationSeconds);
+  const timeOnly = formatTime(session.performedAt);
 
   return (
     <Link
@@ -70,27 +76,25 @@ function HistorySessionRow({
       aria-label={`View session details for ${session.name || "session"}`}
       className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      <AppPanel clip className="p-2 transition-colors hover:border-border/70 active:scale-[0.99]">
-        <AppRow
-          density={mode === "compact" ? "compact" : "default"}
-          leftTop={
-            <span className={mode === "compact" ? "block truncate" : "block whitespace-normal break-words"}>
-              {session.name || "Session"}
-              {mode === "compact" ? ` — ${session.dayLabel || "Custom session"}` : ""}
-            </span>
-          }
-          leftBottom={
-            mode === "list" ? (
-              <span className="block whitespace-normal break-words">
-                {session.dayLabel || "Custom session"} • {primaryMeta}
-                {secondaryMeta ? ` • ${secondaryMeta}` : ""}
-              </span>
-            ) : (
-              <span className="block truncate">{primaryMeta}</span>
-            )
-          }
-          className="border-0 bg-transparent"
-        />
+      <AppPanel clip className="p-3 transition-colors hover:border-border/70 active:scale-[0.99]">
+        {mode === "list" ? (
+          <div className="text-left">
+            <p className="whitespace-normal break-words text-sm font-semibold text-slate-100">
+              {routineTitle} | {formatDuration(session.durationSeconds)}
+            </p>
+            <p className="mt-1 whitespace-normal break-words text-sm text-slate-300">{dayTitle}</p>
+            <p className="mt-1 whitespace-normal break-words text-sm text-slate-400">
+              {formatDate(session.performedAt)} | {timeRange ?? timeOnly}
+            </p>
+          </div>
+        ) : (
+          <div className="text-left">
+            <p className="truncate text-sm font-semibold text-slate-100">
+              {routineTitle} | {formatDate(session.performedAt)}
+            </p>
+            <p className="mt-1 truncate text-sm text-slate-300">{dayTitle}</p>
+          </div>
+        )}
       </AppPanel>
     </Link>
   );
@@ -125,32 +129,26 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex items-center justify-between gap-2 px-1">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Log view</p>
-        <SegmentedControl
-          options={[
-            { label: "List", value: "list" },
-            { label: "Compact", value: "compact" },
-          ]}
-          value={viewMode}
-          size="sm"
-          ariaLabel="History session density"
-          className="w-auto"
-          onChange={(next) => {
-            if (next === "list" || next === "compact") setViewMode(next);
-          }}
-        />
-      </div>
+      <ViewModeSelect
+        label="View Mode"
+        value={viewMode}
+        options={[
+          { label: "List", value: "list" },
+          { label: "Compact", value: "compact" },
+        ]}
+        onChange={(next) => {
+          if (next === "list" || next === "compact") setViewMode(next);
+        }}
+      />
 
-      <div className={`${listShellClasses.viewport} relative min-h-0 flex-1`} style={{ WebkitOverflowScrolling: "touch" }}>
-        <ul className={`${listShellClasses.list} ${viewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}`}>
+      <div className="relative">
+        <ul className={viewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}>
           {sessions.map((session) => (
             <li key={session.id} className="relative">
               <HistorySessionRow session={session} mode={viewMode} />
             </li>
           ))}
         </ul>
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
       </div>
     </div>
   );
