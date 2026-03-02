@@ -48,26 +48,8 @@ function formatTime(value: string) {
   return new Intl.DateTimeFormat(HISTORY_LOCALE, {
     timeZone: HISTORY_TIMEZONE,
     hour: "numeric",
-    minute: "2-digit",
+    hour12: true,
   }).format(date);
-}
-
-function formatTimeRange(value: string, durationSeconds: number) {
-  const end = new Date(value);
-  if (Number.isNaN(end.getTime()) || durationSeconds <= 0) return null;
-
-  const start = new Date(end.getTime() - (durationSeconds * 1000));
-  const formatter = new Intl.DateTimeFormat(HISTORY_LOCALE, {
-    timeZone: HISTORY_TIMEZONE,
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-  if (typeof formatter.formatRange === "function") {
-    return formatter.formatRange(start, end).replace(" – ", " → ");
-  }
-
-  return `${formatter.format(start)} → ${formatter.format(end)}`;
 }
 
 function HistorySessionRow({
@@ -79,8 +61,13 @@ function HistorySessionRow({
 }) {
   const routineTitle = session.name || "Session";
   const dayTitle = session.dayLabel || "Custom session";
-  const timeRange = formatTimeRange(session.performedAt, session.durationSeconds);
   const timeOnly = formatTime(session.performedAt);
+  const dateOnly = formatDate(session.performedAt);
+  const durationLabel = formatDuration(session.durationSeconds);
+
+  const compactParts = [routineTitle, dayTitle, dateOnly, timeOnly].filter((part) => part.length > 0);
+  const listMetaParts = [dayTitle, dateOnly].filter((part) => part.length > 0);
+  const listFooterParts = [timeOnly, durationLabel].filter((part) => part.length > 0);
 
   return (
     <Link
@@ -91,20 +78,13 @@ function HistorySessionRow({
       <AppPanel clip className="p-3 transition-colors hover:border-border/70 active:scale-[0.99]">
         {mode === "list" ? (
           <div className="text-left">
-            <p className="whitespace-normal break-words text-sm font-semibold text-slate-100">
-              {routineTitle} | {formatDuration(session.durationSeconds)}
-            </p>
-            <p className="mt-1 whitespace-normal break-words text-sm text-slate-300">{dayTitle}</p>
-            <p className="mt-1 whitespace-normal break-words text-sm text-slate-400">
-              {formatDate(session.performedAt)} | {timeRange ?? timeOnly}
-            </p>
+            <p className="whitespace-normal break-words text-sm font-semibold text-slate-100">{routineTitle}</p>
+            <p className="mt-1 whitespace-normal break-words text-sm text-slate-300">{listMetaParts.join(" | ")}</p>
+            <p className="mt-1 whitespace-normal break-words text-sm text-slate-400">{listFooterParts.join(" | ")}</p>
           </div>
         ) : (
           <div className="text-left">
-            <p className="truncate text-sm font-semibold text-slate-100">
-              {routineTitle} | {formatDate(session.performedAt)}
-            </p>
-            <p className="mt-1 truncate text-sm text-slate-300">{dayTitle}</p>
+            <p className="truncate text-sm font-semibold text-slate-100">{compactParts.join(" | ")}</p>
           </div>
         )}
       </AppPanel>

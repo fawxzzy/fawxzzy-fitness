@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## 0.1.0 — 2026-03-02
 
+### Fixed
+WHAT:
+- Updated History → Sessions card text ordering for Compact and List view modes.
+WHY:
+- Improve scanability and standardize key metadata presentation.
+
 ### WHAT
 - Added an intentional release workflow with SemVer bump commands for patch/minor/major releases.
 - Added a release governance ritual that requires local validation before creating and pushing a `v*` release tag.
