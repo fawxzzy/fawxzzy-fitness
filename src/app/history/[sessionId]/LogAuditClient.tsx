@@ -2,15 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AppButton, DestructiveButton, GhostButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
+import { deleteCompletedSessionAction } from "@/app/actions/history";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { AppButton, DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
+import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
+import { HistoryDetailsBackButton } from "./HistoryDetailsBackButton";
 import {
   addLogExerciseAction,
   addLogExerciseSetAction,
@@ -59,6 +63,11 @@ export function LogAuditClient({
   exerciseNameMap,
   exercises,
   exerciseOptions,
+  routineName,
+  performedDateLabel,
+  performedTimeLabel,
+  durationLabel,
+  backHref,
 }: {
   logId: string;
   initialDayName: string;
@@ -72,6 +81,11 @@ export function LogAuditClient({
     user_id: string | null;
     is_global: boolean;
   }>;
+  routineName: string;
+  performedDateLabel: string;
+  performedTimeLabel: string;
+  durationLabel: string;
+  backHref: string;
 }) {
   const formatSetSummary = (
     set: EditableSet,
@@ -263,20 +277,26 @@ export function LogAuditClient({
 
   return (
     <>
-      <AppPanel className={`space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
-        <AppHeader
-          title="Session Summary"
-          subtitleLeft={isEditing ? <AppBadge tone="today">Editing</AppBadge> : undefined}
-          action={isEditing ? (
-            <div className="flex items-center gap-2">
-              <SecondaryButton type="button" size="sm" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
-              <PrimaryButton type="button" size="sm" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
-            </div>
-          ) : (
-            <GhostButton type="button" size="sm" onClick={() => setIsEditing(true)}>Edit</GhostButton>
-          )}
-        />
+      <AppPanel className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <HistoryDetailsBackButton returnHref={backHref} />
+            <h1 className="text-xl font-bold leading-tight text-[rgb(var(--text)/0.98)]">Log Details</h1>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            {isEditing ? (
+              <>
+                <SecondaryButton type="button" size="sm" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
+                <PrimaryButton type="button" size="sm" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
+              </>
+            ) : (
+              <SecondaryButton type="button" size="sm" onClick={() => setIsEditing(true)}>Edit</SecondaryButton>
+            )}
+          </div>
+        </div>
+      </AppPanel>
 
+      <AppPanel className={`space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
         {isEditing ? (
           <div className="space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
@@ -311,9 +331,11 @@ export function LogAuditClient({
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            <AppRow leftTop="Day" rightTop={dayName || "—"} />
-            {sessionNotes.trim() ? <AppRow leftTop="Notes" rightTop={sessionNotes} rightWrap /> : null}
+          <div className="space-y-1">
+            <p className="text-lg font-semibold text-[rgb(var(--text)/0.98)]">{routineName}</p>
+            <p className="text-sm text-[rgb(var(--text-muted)/0.9)]">{dayName || "Day"}</p>
+            <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">{performedDateLabel} • {durationLabel} • {performedTimeLabel}</p>
+            {sessionNotes.trim() ? <AppRow density="compact" leftTop="Notes" leftBottom={sessionNotes} /> : null}
           </div>
         )}
       </AppPanel>
@@ -331,6 +353,13 @@ export function LogAuditClient({
                 rightTop={<AppBadge>{setsForExercise.length} sets</AppBadge>}
                 leftBottom={isEditing ? "Editing enabled" : undefined}
               />
+
+              {isEditing ? (
+                <div className="flex flex-wrap gap-2">
+                  <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise.id)}>+ Add Set</SecondaryButton>
+                  <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
+                </div>
+              ) : null}
 
               <ul className="space-y-2 text-sm text-slate-300">
                 {setsForExercise.map((set, index) => (
@@ -364,24 +393,18 @@ export function LogAuditClient({
               </ul>
 
               {isEditing ? (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise.id)}>+ Add Set</SecondaryButton>
-                    <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
-                  </div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
-                    Exercise Notes
-                    <textarea
-                      value={notesValue}
-                      onChange={(event) => {
-                        const nextValue = event.target.value;
-                        setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
-                      }}
-                      rows={2}
-                      className="mt-1 w-full rounded-md border border-white/15 bg-black/10 px-3 py-2 text-sm text-slate-100"
-                    />
-                  </label>
-                </>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+                  Exercise Notes
+                  <textarea
+                    value={notesValue}
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
+                    }}
+                    rows={2}
+                    className="mt-1 w-full rounded-md border border-white/15 bg-black/10 px-3 py-2 text-sm text-slate-100"
+                  />
+                </label>
               ) : notesValue.trim() ? (
                 <AppRow density="compact" leftTop="Notes" leftBottom={notesValue} />
               ) : null}
@@ -389,6 +412,28 @@ export function LogAuditClient({
           );
         })}
       </div>
+
+      {!isEditing ? (
+        <StickyActionBar
+          className="shrink-0"
+          primary={(
+            <ConfirmedServerFormButton
+              action={deleteCompletedSessionAction}
+              hiddenFields={{ sessionId: logId }}
+              triggerLabel="Delete Session"
+              triggerAriaLabel="Delete session"
+              triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", fullWidth: true })}
+              modalTitle="Delete session?"
+              modalDescription="This will permanently delete this workout session and all logged sets."
+              confirmLabel="Delete"
+              contextLines={[
+                `${routineName}`,
+                `${performedDateLabel} • ${durationLabel} • ${performedTimeLabel}`,
+              ]}
+            />
+          )}
+        />
+      ) : null}
 
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}

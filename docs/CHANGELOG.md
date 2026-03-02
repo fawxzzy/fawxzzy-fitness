@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Rehauled History Log Details UI with a unified top header/back action pattern, a structured session summary panel, normalized exercise and set editor layout, and a simplified sticky action area.
+WHY:
+- Improves readability, reduces action-placement confusion, and aligns Log Details with the app’s normalized mobile page-shell interaction contract.
+
+### Fixed
+WHAT:
 - History Sessions now uses a compact collapsible “View Mode” selector instead of the segmented “Log view” toggle, and session cards now follow normalized List/Compact text layouts.
 WHY:
 - Reduces header UI clutter while making session information easier to scan consistently across view modes.

@@ -1,21 +1,12 @@
 import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { AppHeader } from "@/components/ui/app/AppHeader";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
-import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { LocalDateTime } from "@/components/ui/LocalDateTime";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { formatDurationClock } from "@/lib/duration";
-import { formatDateTime } from "@/lib/datetime";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
-import { deleteCompletedSessionAction } from "@/app/actions/history";
-import { HistoryDetailsBackButton } from "./HistoryDetailsBackButton";
 import { LogAuditClient } from "./LogAuditClient";
 
 export const dynamic = "force-dynamic";
@@ -104,21 +95,16 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
   const exerciseOptions = await listExercises();
   const returnView = searchParams?.view === "compact" ? "compact" : "list";
   const backHref = `/history?tab=sessions&view=${returnView}`;
+  const performedAt = new Date(sessionRow.performed_at);
+  const performedDateLabel = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(performedAt);
+  const performedTimeLabel = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(performedAt);
+  const durationLabel = sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00";
 
   return (
     <AppShell className="gap-4">
       <AppNav />
 
       <ScrollContainer className="flex flex-col gap-3 px-1 pb-[calc(env(safe-area-inset-bottom)+108px)]">
-        <AppPanel className="space-y-3 p-4">
-          <AppHeader
-            title="Log Details"
-            subtitleLeft={<>{routineName} • {effectiveDayName}</>}
-            subtitleRight={<><LocalDateTime value={sessionRow.performed_at} /> • {sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}</>}
-            action={<HistoryDetailsBackButton returnHref={backHref} />}
-          />
-        </AppPanel>
-
         <LogAuditClient
           logId={sessionRow.id}
           initialDayName={effectiveDayName}
@@ -126,6 +112,11 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
           unitLabel={unitLabel}
           exerciseNameMap={exerciseNameRecord}
           exerciseOptions={exerciseOptions}
+          routineName={routineName}
+          performedDateLabel={performedDateLabel}
+          performedTimeLabel={performedTimeLabel}
+          durationLabel={durationLabel}
+          backHref={backHref}
           exercises={orderedSessionExercises.map((exercise) => ({
             id: exercise.id,
             exercise_id: exercise.exercise_id,
@@ -146,27 +137,6 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
           }))}
         />
       </ScrollContainer>
-
-      <StickyActionBar
-        className="shrink-0"
-        primary={<HistoryDetailsBackButton returnHref={backHref} />}
-        secondary={(
-          <ConfirmedServerFormButton
-            action={deleteCompletedSessionAction}
-            hiddenFields={{ sessionId: sessionRow.id }}
-            triggerLabel="Delete Session"
-            triggerAriaLabel="Delete session"
-            triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", fullWidth: true })}
-            modalTitle="Delete session?"
-            modalDescription="This will permanently delete this workout session and all logged sets."
-            confirmLabel="Delete"
-            contextLines={[
-              `${routineName}`,
-              `${formatDateTime(sessionRow.performed_at)} • ${sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00"}`,
-            ]}
-          />
-        )}
-      />
     </AppShell>
   );
 }
