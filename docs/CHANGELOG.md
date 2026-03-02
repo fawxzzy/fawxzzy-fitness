@@ -11,6 +11,12 @@ All notable changes to this project are documented in this file.
 ### WHY
 - Makes production deployments explicit, repeatable, and tied to versioned release intent instead of ad-hoc pushes.
 
+### Fixed
+WHAT:
+- Integrated production PWA app icons and updated manifest paths.
+WHY:
+- Remove missing icon 404s and improve installability and mobile home-screen presentation.
+
 
 ### Fixed
 WHAT:
