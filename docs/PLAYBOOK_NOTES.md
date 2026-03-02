@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-02 — Automate intentional tag-based release ritual
+- Type: Workflow
+- Summary: Standardize releases behind a SemVer bump command that updates changelog WHAT/WHY, commits, tags, and pushes in one deterministic flow.
+- Suggested Playbook File: Playbook/docs/WORKFLOWS/checklists/release-checklist.md
+- Rationale: Reduces accidental production deploys and keeps deploy intent auditable through explicit version/tag events.
+- Evidence: scripts/release.mjs, package.json, docs/PROJECT_GOVERNANCE.md
+- Status: Proposed
+
 ## 2026-03-02 — Keep app-wide filter headers on one shared contract
 - Type: Guardrail
 - Summary: Reuse `ExerciseTagFilterControl` for tag filters with a caret-only header, default count line shown only when selected tags are non-zero, and minimal prop-level extensibility (`countDisplayMode`, `defaultOpen`, `headerLabel`).

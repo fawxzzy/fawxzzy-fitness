@@ -1,3 +1,16 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+## 0.1.0 — 2026-03-02
+
+### WHAT
+- Added an intentional release workflow with SemVer bump commands for patch/minor/major releases.
+- Added a release governance ritual that requires local validation before creating and pushing a `v*` release tag.
+
+### WHY
+- Makes production deployments explicit, repeatable, and tied to versioned release intent instead of ad-hoc pushes.
+
 ### Changed
 WHAT:
 - Rehauled History → Log Details into a dedicated detail-view layout with no tab/nav shell, a normalized top-right Back action, header-level Edit/Delete Log actions, compact summary lines, and denser exercise/set cards.
