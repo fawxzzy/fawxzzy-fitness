@@ -1,5 +1,11 @@
 ### Fixed
 WHAT:
+- Reworked History → Exercises card tap targets so card content is rendered inside the interactive control instead of beneath an absolute overlay.
+WHY:
+- Prevents mobile WebKit from painting native button chrome over the card surface, which could make exercise rows look blank while keeping the same tap-to-open behavior.
+
+### Fixed
+WHAT:
 - Fixed History → Exercises cards so each row’s primary exercise label remains visible while preserving full-card tap behavior for opening exercise details.
 WHY:
 - On some mobile browsers, the full-card overlay button could render with default button chrome and obscure row content, making cards appear blank.
