@@ -395,7 +395,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         };
 
   return (
-    <section className="space-y-4 pb-32">
+    <section className="space-y-3 pb-32">
       <AppNav />
 
       {todayPayload.routine && !fetchFailed ? (

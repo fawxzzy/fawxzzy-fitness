@@ -12,7 +12,7 @@ export default async function SettingsPage() {
   await ensureProfile(user.id);
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <AppNav />
       <Glass variant="base" className="p-4" interactive={false}>
         <p className="text-sm text-[rgb(var(--text)/0.7)]">Logged in as</p>
