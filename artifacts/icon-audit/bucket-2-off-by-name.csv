@@ -1,0 +1,2 @@
+exercise_id,exercise_name,canonical_slug,expected_path,top_candidate_path,top_score,runner_up_path,runner_up_score,decision,notes
+global:machine-biceps-curl,Machine Biceps Curl,machine-biceps-curl,/exercises/icons/machine-biceps-curl.png,/exercises/icons/machine-bicep-curl.png,0.755,/exercises/icons/machine-crunch.png,0.431,ambiguous,multiple/uncertain candidates; top=token_overlap_dice=2/6; edit_distance=1; containment=no; prefix_ratio=0.68; runner_up_score=0.431
