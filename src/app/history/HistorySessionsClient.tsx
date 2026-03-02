@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+import { ScrollFade } from "@/components/layout/ScrollFade";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { listShellClasses } from "@/components/ui/listShellClasses";
 
 type ViewMode = "list" | "compact";
 
@@ -142,16 +142,15 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
         />
       </div>
 
-      <div className={`${listShellClasses.viewport} relative min-h-0 flex-1`} style={{ WebkitOverflowScrolling: "touch" }}>
-        <ul className={`${listShellClasses.list} ${viewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}`}>
+      <ScrollFade className="min-h-0 flex-1" contentClassName="pr-1">
+        <ul className={viewMode === "compact" ? "space-y-2 pb-[calc(env(safe-area-inset-bottom)+24px)]" : "space-y-3 pb-[calc(env(safe-area-inset-bottom)+24px)]"}>
           {sessions.map((session) => (
             <li key={session.id} className="relative">
               <HistorySessionRow session={session} mode={viewMode} />
             </li>
           ))}
         </ul>
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
-      </div>
+      </ScrollFade>
     </div>
   );
 }
