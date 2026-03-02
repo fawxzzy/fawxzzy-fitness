@@ -16,13 +16,6 @@ type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
 };
 
-const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
-const UUID_V4ISH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function canOpenExerciseInfo(exerciseId: string) {
-  return exerciseId !== SENTINEL_EXERCISE_ID && UUID_V4ISH_PATTERN.test(exerciseId);
-}
-
 function getExerciseDisplayName(row: ExerciseBrowserRow) {
   const candidates = [
     row.name,
@@ -112,27 +105,19 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const actualPrSummary = formatSetSummary(row.actual_pr_weight, row.actual_pr_reps, row.last_unit);
 
   const rowBottom = `Last performed: ${lastDate ?? "Never"} • Last: ${lastSummary ?? "—"} • PR: ${actualPrSummary ?? "—"}`;
-  const openEnabled = canOpenExerciseInfo(row.canonicalExerciseId);
 
   return (
     <AppPanel clip className="relative p-0 transition-colors hover:border-border/70 active:scale-[0.99]">
       <button
         type="button"
-        disabled={!openEnabled}
         onClick={() => {
-          if (!openEnabled) {
-            if (process.env.NODE_ENV !== "production") {
-              console.error("[history/exercises] blocked invalid exercise info open id", { id: row.canonicalExerciseId, rowId: row.id, name: row.name });
-            }
-            return;
-          }
           if (process.env.NODE_ENV === "development") {
             console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.canonicalExerciseId, row: { id: row.id, name: row.name, slug: row.slug } });
           }
           onOpen(row.canonicalExerciseId);
         }}
         aria-label={`Open exercise info for ${displayName}`}
-        className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit disabled:cursor-not-allowed disabled:opacity-70 [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+        className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
         <AppRow
           density="default"
