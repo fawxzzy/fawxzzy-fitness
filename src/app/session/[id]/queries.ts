@@ -162,6 +162,7 @@ export async function getSessionPageData(sessionId: string) {
 
   return {
     sessionRow: session as SessionRow,
+    routineDayId: routineDay?.id ?? null,
     routine,
     sessionExercises,
     setsByExercise,

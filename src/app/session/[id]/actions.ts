@@ -304,6 +304,89 @@ export async function toggleSkipAction(formData: FormData): Promise<ActionResult
   return { ok: true };
 }
 
+
+export async function quickAddExerciseAction(formData: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = String(formData.get("sessionId") ?? "").trim();
+  const exerciseId = String(formData.get("exerciseId") ?? "").trim();
+  const setCountValue = String(formData.get("setCount") ?? "").trim();
+
+  if (!sessionId || !exerciseId) {
+    return { ok: false, error: "Missing exercise info" };
+  }
+
+  if (setCountValue) {
+    const parsedSetCount = Number.parseInt(setCountValue, 10);
+    if (!Number.isInteger(parsedSetCount) || parsedSetCount < 1 || parsedSetCount > 50) {
+      return { ok: false, error: "Set count must be between 1 and 50" };
+    }
+  }
+
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("id, status")
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!session || session.status !== "in_progress") {
+    return { ok: false, error: "Can only add exercises to an active session" };
+  }
+
+  const { data: exerciseDefaults } = await supabase
+    .from("exercises")
+    .select("id, measurement_type, default_unit")
+    .eq("id", exerciseId)
+    .or(`is_global.eq.true,user_id.eq.${user.id}`)
+    .maybeSingle();
+
+  if (!exerciseDefaults) {
+    return { ok: false, error: "Exercise not found" };
+  }
+
+  const { data: lastPositionRow } = await supabase
+    .from("session_exercises")
+    .select("position")
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextPosition = typeof lastPositionRow?.position === "number" ? lastPositionRow.position + 1 : 0;
+  const fallbackMeasurementType = exerciseDefaults.measurement_type === "time"
+    || exerciseDefaults.measurement_type === "distance"
+    || exerciseDefaults.measurement_type === "time_distance"
+    || exerciseDefaults.measurement_type === "reps"
+    ? exerciseDefaults.measurement_type
+    : "reps";
+  const fallbackDefaultUnit = exerciseDefaults.default_unit === "mi"
+    || exerciseDefaults.default_unit === "km"
+    || exerciseDefaults.default_unit === "m"
+    ? exerciseDefaults.default_unit
+    : "mi";
+
+  const { error } = await supabase.from("session_exercises").insert({
+    session_id: sessionId,
+    user_id: user.id,
+    exercise_id: exerciseId,
+    routine_day_exercise_id: null,
+    position: nextPosition,
+    is_skipped: false,
+    measurement_type: fallbackMeasurementType,
+    default_unit: fallbackDefaultUnit,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidateSessionViews(sessionId);
+  return { ok: true };
+}
+
 export async function addExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
