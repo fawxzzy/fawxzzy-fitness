@@ -7,8 +7,8 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
-import { appTokens } from "@/components/ui/app/tokens";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -67,15 +67,13 @@ export function TodayDayPicker({
             action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
           />
 
-          <ul className={`${appTokens.listDivider} overflow-hidden rounded-lg border border-white/15 bg-[rgb(var(--surface)/0.72)] text-sm`}>
+          <ul className="space-y-2">
             {selectedDay.exercises.map((exercise) => (
               <li key={exercise.id}>
-                <AppRow
-                  leftTop={exercise.name}
-                  leftBottom={exercise.targets || undefined}
-                  rightTop={<span className="text-muted">›</span>}
-                  className="rounded-none border-x-0 border-t-0 border-b-white/12 bg-transparent px-3"
-                  onClick={() => {
+                <ExerciseCard
+                  title={exercise.name}
+                  subtitle={exercise.targets || undefined}
+                  onPress={() => {
                     if (process.env.NODE_ENV === "development") {
                       console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
                     }

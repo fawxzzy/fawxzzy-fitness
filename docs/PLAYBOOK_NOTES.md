@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Canonicalize shared exercise planning rows behind one reusable card contract
+- Type: Pattern
+- Summary: When multiple screens render the same “planned exercise” concept, centralize row/card UI into one reusable component with optional metadata props instead of per-screen markup forks.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents style drift and duplicated interaction behavior across Routine, Today, and Session surfaces while keeping UX updates low-risk.
+- Evidence: src/components/ExerciseCard.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx, src/app/today/TodayExerciseRows.tsx, src/app/today/TodayDayPicker.tsx, src/components/SessionExerciseFocus.tsx
+- Status: Proposed
+
 ## 2026-03-03 — Prefer explicit client action invocation for transient-sheet mutations
 - Type: Pattern
 - Summary: In transient client overlays/sheets, trigger server actions explicitly from click handlers and refresh route state before closing the overlay.

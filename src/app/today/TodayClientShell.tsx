@@ -7,6 +7,7 @@ import { readTodayCache } from "@/lib/offline/today-cache";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { ExerciseCard } from "@/components/ExerciseCard";
 
 type TodayPayload = {
   routine: {
@@ -107,26 +108,20 @@ export function TodayClientShell({
         </p>
       ) : null}
 
-      <ul className="divide-y divide-border/70 overflow-hidden rounded-lg bg-surface/70 text-sm">
+      <ul className="space-y-2">
         {display.exercises.map((exercise) => (
           <li key={exercise.id}>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-text"
-              onClick={() => {
+            <ExerciseCard
+              title={exercise.name}
+              subtitle={exercise.targets ? `Goal: ${exercise.targets}` : undefined}
+              onPress={() => {
                 const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] TodayClientShell", { exerciseId: canonicalExerciseId, exercise: { id: exercise.id, exerciseId: "exerciseId" in exercise ? exercise.exerciseId : undefined, name: exercise.name } });
                 }
                 setSelectedExerciseId(canonicalExerciseId);
               }}
-            >
-              <span className="truncate">{exercise.name}</span>
-              <span className="flex shrink-0 items-center gap-2">
-                {exercise.targets ? <span className="text-xs text-muted">Goal: {exercise.targets}</span> : null}
-                <span className="text-muted">›</span>
-              </span>
-            </button>
+            />
           </li>
         ))}
         {display.exercises.length === 0 ? (

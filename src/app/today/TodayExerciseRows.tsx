@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { AppRow } from "@/components/ui/app/AppRow";
-import { appTokens } from "@/components/ui/app/tokens";
+import { ExerciseCard } from "@/components/ExerciseCard";
 
 type TodayExerciseRow = {
   id: string;
@@ -23,20 +22,18 @@ export function TodayExerciseRows({
 
   return (
     <>
-      <ul className={`${appTokens.listDivider} overflow-hidden rounded-lg border border-white/15 bg-[rgb(var(--surface)/0.72)] text-sm`}>
+      <ul className="space-y-2">
         {exercises.map((exercise) => (
           <li key={exercise.id}>
-            <AppRow
-              leftTop={exercise.name}
-              leftBottom={exercise.targets || undefined}
-              rightTop={<span className="text-muted">›</span>}
-              onClick={() => {
+            <ExerciseCard
+              title={exercise.name}
+              subtitle={exercise.targets || undefined}
+              onPress={() => {
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });
                 }
                 setSelectedExerciseId(exercise.exerciseId);
               }}
-              className="rounded-none border-x-0 border-t-0 border-b-white/12 bg-transparent px-3"
             />
           </li>
         ))}
