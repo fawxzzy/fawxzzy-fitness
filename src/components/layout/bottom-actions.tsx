@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 
 type BottomActionsApi = {
@@ -40,9 +40,43 @@ export function usePublishBottomActions(node: React.ReactNode | null) {
 
 export function BottomActionsSlot() {
   const context = useContext(BottomActionsContext);
+  const slotRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+
+    const slotElement = slotRef.current;
+    if (!slotElement) {
+      return;
+    }
+
+    let current: HTMLElement | null = slotElement.parentElement;
+    let hasScrollableAncestor = false;
+
+    while (current) {
+      const style = window.getComputedStyle(current);
+      const overflowY = style.overflowY;
+      if (overflowY === "auto" || overflowY === "scroll") {
+        hasScrollableAncestor = true;
+        break;
+      }
+      current = current.parentElement;
+    }
+
+    if (!hasScrollableAncestor) {
+      console.warn("[bottom-actions] BottomActionsSlot should be rendered inside a scroll owner (overflow-y-auto/scroll ancestor not found).");
+    }
+  }, [context?.node]);
+
   if (!context || !context.node) {
     return null;
   }
 
-  return <BottomActionBar variant="sticky">{context.node}</BottomActionBar>;
+  return (
+    <div ref={slotRef}>
+      <BottomActionBar variant="sticky">{context.node}</BottomActionBar>
+    </div>
+  );
 }

@@ -10,9 +10,8 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
-import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -398,8 +397,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   return (
     <MainTabScreen>
       <AppNav />
-      <ScrollContainer>
-        <BottomActionsProvider>
+      <ScrollScreenWithBottomActions>
           {todayPayload.routine && !fetchFailed ? (
             <div className="space-y-4 px-1">
               <OfflineSyncBadge />
@@ -476,9 +474,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           <TodayOfflineBridge snapshot={todaySnapshot} />
 
           {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-          <BottomActionsSlot />
-        </BottomActionsProvider>
-      </ScrollContainer>
+      </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
 import { LogAuditClient } from "./LogAuditClient";
 import type { SessionSummary } from "../session-summary";
 
@@ -37,10 +36,5 @@ export function HistoryLogPageClient(props: {
   initialIsEditing: boolean;
   backHref: string;
 }) {
-  return (
-    <BottomActionsProvider>
-      <LogAuditClient {...props} />
-      <BottomActionsSlot />
-    </BottomActionsProvider>
-  );
+  return <LogAuditClient {...props} />;
 }

@@ -4,9 +4,8 @@ import { AppNav } from "@/components/AppNav";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
-import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -103,8 +102,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
     <MainTabScreen>
       <AppNav />
 
-      <ScrollContainer className={FIXED_CTA_RESERVE_CLASS}>
-        <BottomActionsProvider>
+      <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
           <section className="space-y-4">
             <AppPanel className="space-y-3">
               <AppHeader
@@ -140,9 +138,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
               Edit Day
             </Link>
           </PublishBottomActions>
-          <BottomActionsSlot />
-        </BottomActionsProvider>
-      </ScrollContainer>
+      </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );
 }
