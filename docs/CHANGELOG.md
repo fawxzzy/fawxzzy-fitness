@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.3.0 — 2026-03-03
+
+### Changed
+WHAT:
+- Prepared a minor production release by bumping the app version from 0.2.0 to 0.3.0.
+WHY:
+- Marks this deployment as an intentional SemVer minor release so production rollout remains explicit and traceable.
+
 ### Fixed
 WHAT:
 - Fixed oversized and unstable top whitespace on screens without MainTopNav by making top header offset conditional and using a single safe-area top spacing contract for those screens.
