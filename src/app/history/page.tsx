@@ -6,8 +6,9 @@ import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
-import type { SessionRow } from "@/types/db";
+import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { HistorySessionsClient } from "./HistorySessionsClient";
+import { buildSessionSummary, type SessionSummary } from "./session-summary";
 
 export const dynamic = "force-dynamic";
 const PAGE_SIZE = 20;
@@ -70,6 +71,21 @@ export default async function HistoryPage({
       : null;
 
   const routineIds = Array.from(new Set(sessions.map((session) => session.routine_id).filter((routineId): routineId is string => Boolean(routineId))));
+  const sessionIds = sessions.map((session) => session.id);
+
+  const { data: routines } = routineIds.length
+    ? await supabase
+      .from("routines")
+      .select("id, name")
+      .in("id", routineIds)
+      .eq("user_id", user.id)
+    : { data: [] };
+
+  const routineNameById = new Map<string, string>();
+  for (const routine of routines ?? []) {
+    routineNameById.set(routine.id, routine.name ?? "");
+  }
+
   const { data: routineDays } = routineIds.length
     ? await supabase
       .from("routine_days")
@@ -83,17 +99,96 @@ export default async function HistoryPage({
     routineDayNameByKey.set(`${day.routine_id}:${day.day_index}`, day.name ?? "");
   }
 
-  const sessionItems = sessions.map((session) => ({
-    id: session.id,
-    name: session.name || "Session",
-    dayLabel: session.day_name_override
+  const { data: sessionExercisesData } = sessionIds.length
+    ? await supabase
+      .from("session_exercises")
+      .select("id, session_id, exercise_id")
+      .in("session_id", sessionIds)
+      .eq("user_id", user.id)
+    : { data: [] };
+
+  const sessionExercises = (sessionExercisesData ?? []) as Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id">[];
+  const exerciseIds = Array.from(new Set(sessionExercises.map((row) => row.exercise_id)));
+  const sessionExerciseIds = sessionExercises.map((row) => row.id);
+
+  const { data: setsData } = sessionExerciseIds.length
+    ? await supabase
+      .from("sets")
+      .select("session_exercise_id, weight, reps, weight_unit")
+      .in("session_exercise_id", sessionExerciseIds)
+      .eq("user_id", user.id)
+    : { data: [] };
+
+  const sets = (setsData ?? []) as Pick<SetRow, "session_exercise_id" | "weight" | "reps" | "weight_unit">[];
+
+  const { data: exerciseNamesData } = exerciseIds.length
+    ? await supabase
+      .from("exercises")
+      .select("id, name")
+      .in("id", exerciseIds)
+    : { data: [] };
+
+  const exerciseNameById = new Map<string, string>();
+  for (const exercise of exerciseNamesData ?? []) {
+    exerciseNameById.set(exercise.id, exercise.name ?? "Exercise");
+  }
+
+  const { data: exerciseStatsData } = exerciseIds.length
+    ? await supabase
+      .from("exercise_stats_cache")
+      .select("exercise_id, actual_pr_at")
+      .eq("user_id", user.id)
+      .in("exercise_id", exerciseIds)
+    : { data: [] };
+
+  const actualPrAtByExerciseId = new Map<string, string>();
+  for (const stat of exerciseStatsData ?? []) {
+    if (stat.actual_pr_at) actualPrAtByExerciseId.set(stat.exercise_id, stat.actual_pr_at);
+  }
+
+  const exercisesBySessionId = new Map<string, Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id">[]>();
+  for (const row of sessionExercises) {
+    const current = exercisesBySessionId.get(row.session_id) ?? [];
+    current.push(row);
+    exercisesBySessionId.set(row.session_id, current);
+  }
+
+  const setsBySessionExerciseId = new Map<string, Pick<SetRow, "session_exercise_id" | "weight" | "reps" | "weight_unit">[]>();
+  for (const set of sets) {
+    const current = setsBySessionExerciseId.get(set.session_exercise_id) ?? [];
+    current.push(set);
+    setsBySessionExerciseId.set(set.session_exercise_id, current);
+  }
+
+  const sessionSummaryById = new Map<string, SessionSummary>();
+  for (const session of sessions) {
+    const dayTitle = session.day_name_override
       || (session.routine_id && session.routine_day_index ? routineDayNameByKey.get(`${session.routine_id}:${session.routine_day_index}`) : null)
       || session.routine_day_name
-      || (session.routine_day_index ? `Day ${session.routine_day_index}` : "Day")
-      || "Custom session",
-    durationSeconds: session.duration_seconds ?? 0,
-    performedAt: session.performed_at,
-  }));
+      || (session.routine_day_index ? `Day ${session.routine_day_index}` : null);
+    const routineTitle = (session.routine_id ? routineNameById.get(session.routine_id) : null) ?? session.name;
+    const exercisesForSession = exercisesBySessionId.get(session.id) ?? [];
+    const prExerciseIds = new Set<string>();
+
+    for (const exercise of exercisesForSession) {
+      const actualPrAt = actualPrAtByExerciseId.get(exercise.exercise_id);
+      if (actualPrAt && actualPrAt === session.performed_at) {
+        prExerciseIds.add(exercise.exercise_id);
+      }
+    }
+
+    sessionSummaryById.set(session.id, buildSessionSummary({
+      sessionRow: session,
+      routineTitle,
+      dayTitle,
+      sessionExercises: exercisesForSession,
+      setsBySessionExerciseId,
+      exerciseNameById,
+      prExerciseIds,
+    }));
+  }
+
+  const sessionItems = sessions.map((session) => sessionSummaryById.get(session.id)).filter((item): item is SessionSummary => Boolean(item));
 
   return (
     <MainTabScreen>
