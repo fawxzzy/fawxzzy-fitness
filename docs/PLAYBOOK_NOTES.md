@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Preserve route-instance context with explicit returnTo tokens in edit flows
+- Type: Pattern
+- Summary: When navigating from a detail screen into an edit screen, pass an explicit `returnTo` route (including current query params) so back controls return users to the exact originating screen state.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents context loss from generic fallbacks and keeps navigation deterministic across deep links and PWA/browser history behavior.
+- Evidence: src/app/routines/[id]/days/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-03 — Canonicalize shared exercise planning rows behind one reusable card contract
 - Type: Pattern
 - Summary: When multiple screens render the same “planned exercise” concept, centralize row/card UI into one reusable component with optional metadata props instead of per-screen markup forks.

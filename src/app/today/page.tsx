@@ -14,6 +14,7 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { BottomActionBar, BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
+import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
@@ -24,27 +25,6 @@ import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
-
-function formatTodayExerciseTargets(exercise: Pick<RoutineDayExerciseRow, "target_sets" | "target_reps" | "target_reps_min" | "target_reps_max">) {
-  if (!exercise.target_sets) {
-    return null;
-  }
-
-  const minReps = exercise.target_reps_min ?? exercise.target_reps ?? null;
-  const maxReps = exercise.target_reps_max ?? exercise.target_reps ?? null;
-  const repsTarget =
-    minReps !== null && maxReps !== null
-      ? minReps === maxReps
-        ? `${minReps}`
-        : `${minReps}–${maxReps}`
-      : minReps !== null
-        ? `${minReps}`
-        : maxReps !== null
-          ? `${maxReps}`
-          : null;
-
-  return repsTarget ? `${exercise.target_sets} sets • ${repsTarget}` : `${exercise.target_sets} sets`;
-}
 
 async function startSessionAction(payload?: { dayIndex?: number }): Promise<ActionResult<{ sessionId: string }>> {
   "use server";
@@ -298,7 +278,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         if (routineDays.length > 0) {
           const { data: allExercises } = await supabase
             .from("routine_day_exercises")
-            .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
+            .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, notes")
             .in("routine_day_id", routineDays.map((day) => day.id))
             .eq("user_id", user.id)
             .order("position", { ascending: true });
@@ -383,7 +363,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         id: exercise.id,
         exerciseId: details?.id ?? exercise.exercise_id,
         name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-        targets: formatTodayExerciseTargets(exercise),
+        targets: formatExerciseGoal(exercise),
         notes: exercise.notes,
         primary_muscle: details?.primary_muscle ?? null,
         equipment: details?.equipment ?? null,
@@ -424,9 +404,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             <div className="space-y-4 pb-4">
               <AppPanel className="space-y-3">
                 <AppHeader
-                  title={todayPayload.routine.isRest ? `${todayPayload.routine.name} (Rest Day)` : todayPayload.routine.dayName}
-                  subtitleLeft={`Day ${todayPayload.routine.dayIndex} • ${todayPayload.routine.name}`}
-                  subtitleRight={todayPayload.exercises.length > 0 ? `${todayPayload.exercises.length} exercises` : undefined}
+                  title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
+                  subtitleRight={`${todayPayload.exercises.length} exercises`}
                   action={todayPayload.completedTodayCount > 0 ? <AppBadge>Completed</AppBadge> : undefined}
                 />
 
@@ -467,7 +446,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                       id: exercise.id,
                       exerciseId: details?.id ?? exercise.exercise_id,
                       name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-                      targets: formatTodayExerciseTargets(exercise),
+                      targets: formatExerciseGoal(exercise),
                       primary_muscle: details?.primary_muscle ?? null,
                       equipment: details?.equipment ?? null,
                       movement_pattern: details?.movement_pattern ?? null,

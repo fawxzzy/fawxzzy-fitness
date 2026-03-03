@@ -113,7 +113,6 @@ export function TodayClientShell({
           <li key={exercise.id}>
             <ExerciseCard
               title={exercise.name}
-              subtitle={exercise.targets ? `Goal: ${exercise.targets}` : undefined}
               onPress={() => {
                 const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
                 if (process.env.NODE_ENV === "development") {
@@ -121,7 +120,9 @@ export function TodayClientShell({
                 }
                 setSelectedExerciseId(canonicalExerciseId);
               }}
-            />
+            >
+              <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.targets ?? "Goal: Not set"}</p>
+            </ExerciseCard>
           </li>
         ))}
         {display.exercises.length === 0 ? (

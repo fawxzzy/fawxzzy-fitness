@@ -7,7 +7,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 type RoutineDayExerciseItem = {
   id: string;
   name: string;
-  targetSummary: string;
+  goalLine: string;
   exerciseId: string;
 };
 
@@ -21,14 +21,15 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
           <li key={exercise.id}>
             <ExerciseCard
               title={exercise.name}
-              subtitle={exercise.targetSummary || undefined}
               onPress={() => {
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] RoutineDayExerciseList", { exerciseId: exercise.exerciseId, exercise });
                 }
                 setSelectedExerciseId(exercise.exerciseId);
               }}
-            />
+            >
+              <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.goalLine}</p>
+            </ExerciseCard>
           </li>
         ))}
       </ul>
