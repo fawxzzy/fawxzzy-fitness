@@ -401,7 +401,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         <div className="space-y-4 px-1">
           <OfflineSyncBadge />
         {todayPayload.inProgressSessionId ? (
-            <div className="space-y-4 pb-4">
+            <div className="space-y-4">
               <AppPanel className="space-y-3">
                 <AppHeader
                   title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}

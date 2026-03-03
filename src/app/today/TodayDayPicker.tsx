@@ -57,7 +57,7 @@ export function TodayDayPicker({
   );
 
   return (
-    <div className="flex min-h-0 flex-col gap-4 pb-4">
+    <div className="flex min-h-0 flex-col gap-4">
       {selectedDay ? (
         <AppPanel className="space-y-3 p-4">
           <AppHeader

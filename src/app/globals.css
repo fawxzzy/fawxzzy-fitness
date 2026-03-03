@@ -93,15 +93,13 @@
   --header-offset: calc(var(--top-inset) + var(--header-floating-gap));
   --header-h: 72px;
   --header-total: calc(var(--header-offset) + var(--header-h));
-  --screen-gutter-top: var(--header-floating-gap);
   --app-top-inset: var(--top-inset);
   --app-header-offset: var(--header-h);
-  --app-top-gutter: var(--screen-gutter-top);
-  --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset) + var(--app-top-gutter));
+  --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset));
   --app-bottom-inset: env(safe-area-inset-bottom, 0px);
-  --app-bottom-gutter: 12px;
+  --app-bottom-gap: 3px;
   --app-bottom-bar-height: 0px;
-  --app-bottom-offset: calc(var(--app-bottom-inset) + var(--app-bottom-bar-height));
+  --app-bottom-offset: calc(var(--app-bottom-inset) + var(--app-bottom-gap) + var(--app-bottom-bar-height));
 }
 
 :root[data-glass-effects="reduced"] {
@@ -382,8 +380,4 @@ a:focus-visible {
 
 .safe-area-main:has([data-top-nav-mode="none"]) {
   --app-header-offset: 0px;
-}
-
-.safe-area-main:has(.app-bottom-action-bar) {
-  --app-bottom-bar-height: 88px;
 }

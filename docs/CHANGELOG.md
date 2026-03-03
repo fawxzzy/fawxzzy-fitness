@@ -5,10 +5,12 @@ All notable changes to this project are documented in this file.
 ## 0.3.1 — 2026-03-03
 
 ### WHAT
-- (fill in)
+- Enforced a skin-to-skin safe-area contract so no-nav screens now use only top safe-area inset by default and fixed-bottom spacing uses a shared bottom inset + 3px gap token.
+- Replaced static BottomActionBar reserve assumptions with measured bar-height publishing and unified content reserve consumption through `--app-bottom-offset`.
+- Removed extra local bottom compensation on Today bottom-action surfaces so reserve comes from one owner.
 
 ### WHY
-- (fill in)
+- Eliminates persistent extra top gutters on no-nav screens and keeps fixed bottom actions from either covering content or creating oversized dead space across iOS Safari/PWA layouts.
 
 ### Fixed
 WHAT:
