@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { deleteCompletedSessionAction } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppPanel } from "@/components/ui/app/AppPanel";
@@ -31,6 +32,12 @@ function performanceParts(session: SessionSummary) {
   return parts;
 }
 
+
+function isWeekdayTitle(value?: string) {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "mon", "tue", "wed", "thu", "fri", "sat", "sun"].includes(normalized);
+}
 function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec }: {
   sessionId: string;
   mode: ViewMode;
@@ -39,10 +46,49 @@ function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec
   durationSec?: number;
 }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({ top: rect.bottom + 6, left: rect.right - 176 });
+    };
+
+    updatePosition();
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target)) {
+        const menu = document.getElementById(`history-session-menu-${sessionId}`);
+        if (!menu?.contains(target)) {
+          setOpen(false);
+        }
+      }
+    };
+
+    const handleViewportChange = () => {
+      updatePosition();
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [open, sessionId]);
 
   return (
-    <div className="relative z-20" onClick={(event) => event.stopPropagation()}>
+    <div className="relative" onClick={(event) => event.stopPropagation()}>
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -52,8 +98,12 @@ function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec
         ⋯
       </button>
 
-      {open ? (
-        <div className="absolute right-0 top-9 w-44 rounded-lg border border-white/15 bg-[rgb(var(--surface-rgb)/0.98)] p-1 shadow-xl">
+      {open && menuPosition ? createPortal((
+        <div
+          id={`history-session-menu-${sessionId}`}
+          className="fixed z-[80] w-44 rounded-lg border border-white/15 bg-[rgb(var(--surface-rgb)/0.98)] p-1 shadow-xl"
+          style={{ top: `${menuPosition.top}px`, left: `${Math.max(8, menuPosition.left)}px` }}
+        >
           <Link
             href={`/history/${sessionId}?returnTab=sessions&view=${mode}&edit=1`}
             className="block rounded-md px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
@@ -76,7 +126,7 @@ function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec
             />
           </div>
         </div>
-      ) : null}
+      ), document.body) : null}
     </div>
   );
 }
@@ -89,21 +139,22 @@ function HistorySessionRow({
   mode: ViewMode;
 }) {
   const routineTitle = session.routineTitle || "Unknown routine";
-  const secondaryLine = session.dayTitle ? `${session.dayTitle} — ${formatDateShort(session.startedAt)}` : formatDateShort(session.startedAt);
+  const dateLabel = formatDateShort(session.startedAt);
+  const secondaryLine = session.dayTitle && !isWeekdayTitle(session.dayTitle) ? `${session.dayTitle} · ${dateLabel}` : dateLabel;
   const performanceRow = performanceParts(session).join(" • ");
 
   return (
-    <AppPanel clip className={`${mode === "compact" ? "p-2.5" : "p-3"} transition-colors hover:border-border/70 ${session.prCounts.total > 0 ? "border-l-2 border-l-[rgb(var(--button-primary-border)/0.9)]" : ""}`}>
-      <div className="relative flex min-h-[74px] flex-col gap-1 pr-12">
+    <AppPanel clip className={`${mode === "compact" ? "p-2" : "p-3"} transition-colors hover:border-border/70 ${session.prCounts.total > 0 ? "border-l-2 border-l-[rgb(var(--button-primary-border)/0.9)]" : ""}`}>
+      <div className={`relative flex ${mode === "compact" ? "min-h-[64px] gap-0.5" : "min-h-[74px] gap-1"} flex-col pr-12`}>
         <Link
           href={`/history/${session.id}?returnTab=sessions&view=${mode}`}
           aria-label={`View session details for ${routineTitle}`}
           className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
         />
 
-        <p className="line-clamp-2 text-sm font-semibold text-slate-100">{routineTitle}</p>
+        <p className="line-clamp-1 text-sm font-semibold text-slate-100">{routineTitle}</p>
         <p className="line-clamp-1 text-xs text-slate-300">{secondaryLine}</p>
-        <p className="line-clamp-1 text-xs text-slate-400">{performanceRow}</p>
+        <p className={`line-clamp-1 ${mode === "compact" ? "text-[11px]" : "text-xs"} text-slate-400`}>{performanceRow}</p>
         {mode === "list" && session.topSet ? (
           <p className="line-clamp-1 text-xs text-slate-400">Top Set: {session.topSet.exerciseName} — {session.topSet.display}</p>
         ) : null}
@@ -182,7 +233,7 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
 
       {sessions.length > 0 ? (
         <div className="relative">
-          <ul className={effectiveViewMode === "compact" ? "space-y-2 pb-8" : "space-y-3 pb-8"}>
+          <ul className={effectiveViewMode === "compact" ? "space-y-1.5 pb-8" : "space-y-3 pb-8"}>
             {sessions.map((session) => (
               <li key={session.id} className="relative">
                 <HistorySessionRow session={session} mode={effectiveViewMode} />

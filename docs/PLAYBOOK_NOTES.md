@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Portal dropdowns/menus out of glass/card stacking contexts
+- Type: Guardrail
+- Summary: Interactive overlays (dropdowns, popovers, context menus) must render through a top-level portal layer rather than inside card/glass containers that may create clipping or stacking contexts.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents mobile overlay clipping, z-index fights, and awkward menu overlap when parent containers use blur, overflow, or local stacking contexts.
+- Evidence: src/components/ui/app/ViewModeSelect.tsx, src/app/history/HistorySessionsClient.tsx
+- Status: Proposed
+
 ## 2026-03-03 — Keep PR systems metric-aware and emit category counts from loaders
 - Type: Pattern
 - Summary: PR evaluation should distinguish rep-based vs weight-based progress (including bodyweight sets), then expose category counts and formatted labels from server-side loaders/transformers for reuse across detail and list surfaces.
