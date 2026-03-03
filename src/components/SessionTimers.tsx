@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
@@ -11,7 +11,6 @@ import {
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
@@ -95,6 +94,7 @@ export function SetLoggerCard({
   planTargetsHash,
   deleteSetAction,
   resetSignal,
+  onActionBarStateChange,
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -124,6 +124,7 @@ export function SetLoggerCard({
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
+  onActionBarStateChange?: (state: { onSave: () => void; isSaveDisabled: boolean } | null) => void;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -150,6 +151,7 @@ export function SetLoggerCard({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [showRpeTooltip, setShowRpeTooltip] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
+  const handleLogSetRef = useRef<() => Promise<void>>(async () => {});
 
   const toast = useToast();
   const queueUndo = useUndoAction(6000);
@@ -682,6 +684,23 @@ export function SetLoggerCard({
     });
   }
 
+  useEffect(() => {
+    handleLogSetRef.current = handleLogSet;
+  });
+
+  useEffect(() => {
+    onActionBarStateChange?.({
+      onSave: () => {
+        void handleLogSetRef.current();
+      },
+      isSaveDisabled,
+    });
+
+    return () => {
+      onActionBarStateChange?.(null);
+    };
+  }, [isSaveDisabled, onActionBarStateChange]);
+
   return (
     <div className="space-y-3">
       {/* Manual QA checklist:
@@ -802,11 +821,6 @@ export function SetLoggerCard({
         {sets.length === 0 ? <li className="px-3 py-2 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
       </ul>
 
-      <BottomActionBar variant="sticky">
-        <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
-          Save Set
-        </AppButton>
-      </BottomActionBar>
     </div>
   );
 }

@@ -352,38 +352,39 @@ export function LogAuditClient({
 
   return (
     <>
-      <AppPanel className={`relative space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
-        <div className="absolute right-3 top-3">
-          <TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />
-        </div>
-        {isEditing ? (
-          <div className="space-y-3">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
-              Day Name
-              <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
-            </label>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
-              Session Notes
-              <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
-            </label>
-            <div className="space-y-2 rounded-lg border border-white/15 bg-black/10 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Add Exercise</p>
-              <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100">
-                {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
-              </select>
-              <div className="flex justify-end">
-                <SecondaryButton type="button" size="sm" onClick={handleAddExercise}>Add Exercise</SecondaryButton>
+      <main className="space-y-3">
+        <AppPanel className={`relative space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
+          <div className="absolute right-3 top-3">
+            <TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />
+          </div>
+          {isEditing ? (
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+                Day Name
+                <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
+              </label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+                Session Notes
+                <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
+              </label>
+              <div className="space-y-2 rounded-lg border border-white/15 bg-black/10 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Add Exercise</p>
+                <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100">
+                  {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
+                </select>
+                <div className="flex justify-end">
+                  <SecondaryButton type="button" size="sm" onClick={handleAddExercise}>Add Exercise</SecondaryButton>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-start justify-start space-y-1 pr-14 text-left">
-            <p className="text-base font-semibold text-[rgb(var(--text)/0.98)]">{routineName} | {durationLabel}</p>
-            <p className="line-clamp-2 text-sm text-[rgb(var(--text-muted)/0.9)]">{dayName || "Day"}</p>
-            <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">{performedDateLabel} | {performedTimeLabel}</p>
-          </div>
-        )}
-      </AppPanel>
+          ) : (
+            <div className="flex flex-col items-start justify-start space-y-1 pr-14 text-left">
+              <p className="text-base font-semibold text-[rgb(var(--text)/0.98)]">{routineName} | {durationLabel}</p>
+              <p className="line-clamp-2 text-sm text-[rgb(var(--text-muted)/0.9)]">{dayName || "Day"}</p>
+              <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">{performedDateLabel} | {performedTimeLabel}</p>
+            </div>
+          )}
+        </AppPanel>
 
       {!isEditing && sessionNotes.trim().length > 0 ? (
         <AppPanel className="space-y-2 p-4">
@@ -476,6 +477,20 @@ export function LogAuditClient({
         })}
       </div>
 
+      <ConfirmDestructiveModal
+        open={exerciseToDelete !== null}
+        title="Delete exercise from completed log?"
+        description="This will remove the exercise and all logged sets from this completed session."
+        confirmLabel="Delete"
+        details={exerciseToDelete ? `Exercise: ${exerciseToDelete.name}` : undefined}
+        onCancel={() => setExerciseToDelete(null)}
+        onConfirm={() => {
+          if (!exerciseToDelete) return;
+          handleDeleteExercise(exerciseToDelete.id);
+        }}
+      />
+      </main>
+
       <BottomActionBar variant="sticky">
         {isEditing ? (
           <div className="grid w-full grid-cols-2 gap-2">
@@ -511,18 +526,6 @@ export function LogAuditClient({
         )}
       </BottomActionBar>
 
-      <ConfirmDestructiveModal
-        open={exerciseToDelete !== null}
-        title="Delete exercise from completed log?"
-        description="This will remove the exercise and all logged sets from this completed session."
-        confirmLabel="Delete"
-        details={exerciseToDelete ? `Exercise: ${exerciseToDelete.name}` : undefined}
-        onCancel={() => setExerciseToDelete(null)}
-        onConfirm={() => {
-          if (!exerciseToDelete) return;
-          handleDeleteExercise(exerciseToDelete.id);
-        }}
-      />
     </>
   );
 }
