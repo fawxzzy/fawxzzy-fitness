@@ -89,6 +89,143 @@ Mini-scenario: a history feed keeps only the list pane scrollable, opens dense d
 - Keep list transitions short and reduced-motion-safe.
 - Avoid inconsistent success/error semantics across handlers.
 
+## 2026-03-03 — Derive feed summaries once in loaders for performance-first history cards
+- Date: 2026-03-03
+- Type: Pattern
+- Summary: For list-heavy history surfaces, derive compact summary view models (counts, highlights, formatted-ready metadata) once in server loaders/transformers and pass only the summary shape to card renderers.
+- Rationale: Prevents repeated per-card aggregation in render loops and keeps mobile scrolling predictable as history feeds grow.
+- Evidence: src/app/history/page.tsx, src/app/history/session-summary.ts, src/app/history/HistorySessionsClient.tsx
+- Status: Proposed
+
+### Implementation Notes
+**Do**
+- Build a server-side session-card VM (`id`, `title`, `subtitle`, `counts`, formatted dates, highlight line) before crossing the client boundary.
+- Keep card components render-only and typed against the summary contract.
+
+**Don't**
+- Recompute counts/highlights inside `map()` render loops.
+- Reformat date/time strings repeatedly inside each card component.
+
+```ts
+// server
+const cards = sessions.map((s) => toSessionCardVM(s));
+
+// client
+return cards.map((vm) => <SessionCard key={vm.id} vm={vm} />);
+```
+
+## 2026-03-03 — Preserve route-instance context with explicit returnTo tokens in edit flows
+- Date: 2026-03-03
+- Type: Pattern
+- Summary: When navigating from a detail screen into an edit screen, pass an explicit returnTo route (including current query params) so back controls return users to the exact originating screen state.
+- Rationale: Prevents context loss from generic fallbacks and keeps navigation deterministic across deep links and PWA/browser history behavior.
+- Evidence: src/app/routines/[id]/days/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
+### Implementation Notes
+**Do**
+- Push edit routes with `returnTo=encodeURIComponent(currentPathWithQuery)`.
+- In edit screens, prefer `returnTo` for back/navigation completion, then fall back to deterministic defaults.
+
+**Don't**
+- Depend on `router.back()` as the primary navigation contract for deep-link-capable flows.
+
+```ts
+router.push(`/routines/${id}/edit/day/${dayId}?returnTo=${encodeURIComponent(pathWithQuery)}`);
+const next = searchParams.get('returnTo') ?? `/routines/${id}/days/${dayId}`;
+```
+
+## 2026-03-03 — Canonicalize shared exercise planning rows behind one reusable card contract
+- Date: 2026-03-03
+- Type: Pattern
+- Summary: When multiple screens render the same “planned exercise” concept, centralize row/card UI into one reusable component with optional metadata props instead of per-screen markup forks.
+- Rationale: Prevents style drift and duplicated interaction behavior across Routine, Today, and Session surfaces while keeping UX updates low-risk.
+- Evidence: src/components/ExerciseCard.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx, src/app/today/TodayExerciseRows.tsx, src/app/today/TodayDayPicker.tsx, src/components/SessionExerciseFocus.tsx
+- Status: Proposed
+
+### Implementation Notes
+**Do**
+- Keep one canonical `PlannedExerciseRow/Card` contract and add optional props (`showGoal`, `showLastPerformed`, `variant`) for intentional differences.
+- Route screen-specific behavior through props/callbacks while preserving shared structure.
+
+**Don't**
+- Fork nearly identical row markup across Today/Routine/Session screens for minor display differences.
+
+```tsx
+<PlannedExerciseCard
+  exercise={exercise}
+  showGoal
+  showLastPerformed={surface === 'today'}
+  variant={surface}
+/>
+```
+
+## 2026-03-03 — Keep detail-surface sections structurally stable with explicit empty states
+- Date: 2026-03-03
+- Type: Guardrail
+- Summary: In shared detail screens, always render core information sections (like Stats) and use explicit empty states when data is missing instead of conditionally removing sections.
+- Rationale: Prevents layout drift and user confusion when some entities have sparse data while others have populated data.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExerciseInfo.tsx, src/app/api/exercise-info/[exerciseId]/route.ts
+- Status: Proposed
+
+### Implementation Notes
+**Do**
+- Always render canonical sections in a stable order.
+- Show deterministic empty states like “No stats yet” with consistent spacing/height behavior.
+
+**Don't**
+- Remove entire sections when a subsection lacks data.
+
+```tsx
+<StatsSection>
+  {stats ? <StatsGrid stats={stats} /> : <EmptyState label="No stats yet" />}
+</StatsSection>
+```
+
+## 2026-03-02 — Keep app-wide filter headers on one shared contract
+- Date: 2026-03-02
+- Type: Guardrail
+- Summary: Reuse ExerciseTagFilterControl for tag filters with a caret-only header, default count line shown only when selected tags are non-zero, and minimal prop-level extensibility (`countDisplayMode`, `defaultOpen`, `headerLabel`).
+- Rationale: Prevents per-screen filter header drift while still allowing intentional display variations without forking filter UIs.
+- Evidence: src/components/ExerciseTagFilterControl.tsx
+- Status: Proposed
+
+### Implementation Notes
+**Do**
+- Reuse `ExerciseTagFilterControl` across screens.
+- Extend behavior via narrow props only when needed.
+
+**Don't**
+- Create ad hoc filter-header components for small text/layout differences.
+
+```tsx
+<ExerciseTagFilterControl
+  countDisplayMode="selected-only"
+  defaultOpen={false}
+  headerLabel="Filter tags"
+/>
+```
+
+## 2026-03-03 — Make top safe-area/header offset route-configurable in shared shells
+- Date: 2026-03-03
+- Type: Guardrail
+- Summary: Shared page shells should expose a route-level top-nav mode so no-nav screens can zero header reservation while keeping one top-padding source of truth.
+- Rationale: Prevents duplicated safe-area/header offsets and eliminates unstable top whitespace on detail screens that intentionally hide primary nav chrome.
+- Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/session/[id]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
+
+### Implementation Notes
+**Do**
+- Expose route-level shell mode (for example, `topNavMode: 'main' | 'none'`).
+- Keep safe-area handling centralized in the shell with deterministic CSS variables.
+
+**Don't**
+- Use per-page negative margins or one-off top padding hacks to counter shell offsets.
+
+```tsx
+<AppShell topNavMode="none">{/* detail content */}</AppShell>
+```
+
 ## When to use
 - Mobile-first surfaces with sticky actions, long forms, and layered navigation.
 - Screens that combine list browsing, detail transitions, and destructive actions.
