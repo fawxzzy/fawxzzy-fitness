@@ -6,9 +6,9 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
-- Restored the shared top spacing contract on the Routines screen so content starts with the same gap beneath the floating nav header used across main app tabs.
+- Restored the top spacing between the floating NavBar and the Routines page primary container to match the Today tab rhythm.
 WHY:
-- Prevents the routine switcher panel from visually crowding the navbar and keeps tab-to-tab layout rhythm consistent.
+- Keeps primary tab layouts visually consistent and prevents Routines content from crowding the sticky header.
 
 ### Fixed
 WHAT:
