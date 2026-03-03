@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Updated the Routines “Switch routine” sheet so selecting a routine reliably applies it as the active routine and updates the on-screen routine state immediately.
+WHY:
+- Prevents intermittent missed routine switches caused by sheet-close timing and ensures users see the newly active routine without manual refresh.
+
+### Fixed
+WHAT:
 - Polished History → Sessions view mode labeling and controls by renaming the user-facing “List” mode to “Details” and tightening the mode picker layout directly beneath the Sessions/Exercises segmented control.
 - Updated History → Sessions compact cards to render only a centered single-line summary in the format “Routine | Day | Date”.
 - Updated History → Sessions details cards to prioritize session duration metadata and move timestamp context beneath it with clearer time labeling.

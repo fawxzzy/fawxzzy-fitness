@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Prefer explicit client action invocation for transient-sheet mutations
+- Type: Pattern
+- Summary: In transient client overlays/sheets, trigger server actions explicitly from click handlers and refresh route state before closing the overlay.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Form submissions tied to rapidly unmounted UI can race with close behavior and produce non-deterministic mutation feedback.
+- Evidence: src/components/RoutineSwitcherBar.tsx, src/app/routines/page.tsx
+- Status: Proposed
+
 ## 2026-03-03 — Keep detail-surface sections structurally stable with explicit empty states
 - Type: Guardrail
 - Summary: In shared detail screens, always render core information sections (like Stats) and use explicit empty states when data is missing instead of conditionally removing sections.
