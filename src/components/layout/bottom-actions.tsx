@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 
 type BottomActionsApi = {
@@ -37,7 +37,7 @@ export function useHasBottomActions(): boolean {
 export function usePublishBottomActions(node: React.ReactNode | null) {
   const { set } = useBottomActions();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     set(node);
     return () => set(null);
   }, [node, set]);

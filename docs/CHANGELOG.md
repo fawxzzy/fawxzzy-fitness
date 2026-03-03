@@ -5,12 +5,13 @@ All notable changes to this project are documented in this file.
 ## 0.3.16 — 2026-03-03
 
 ### WHAT
-- Made `BottomActionBar` treat `variant="sticky"` as a viewport-pinned, portal-rendered bottom action bar using the same reliable fixed-position contract as legacy fixed usage.
-- Updated `ScrollScreenWithBottomActions` to auto-apply fixed bottom-action reserve spacing only when published bottom actions are present.
+- Made bottom-actions scroll reserve deterministic by always applying the shared fixed CTA reserve class in `ScrollScreenWithBottomActions`.
+- Switched bottom-action publishing to a layout-timed publish cycle so action presence is established before initial paint when possible.
+- Initialized the bottom-action portal root on first client render for portaled variants to keep sticky/fixed behavior stable from the first frame.
 
 ### WHY
-- Restores Today-style always-visible bottom actions while scrolling across screens.
-- Prevents bottom-content overlap on iOS/mobile by enforcing one scroll-owner reserve contract without adding dead space on screens that have no bottom actions.
+- Viewport-pinned bottom actions require a reliable scroll reserve so final content can scroll fully above the action bar across screens.
+- Reduces transient mount-order timing gaps that can cause one-frame overlap or layout jumps when bottom actions publish during hydration/transitions.
 
 ## 0.3.15 — 2026-03-03
 

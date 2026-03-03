@@ -10,6 +10,15 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+
+## 2026-03-03 — Prioritize deterministic reserve when portaled bottom actions are introduced
+- Type: Guardrail
+- Summary: When migrating sticky actions to viewport-pinned portal/fixed behavior, default to always-on scroll-owner reserve until publish timing and mount order are proven stable.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents final-content overlap regressions during hydration/transition edges where action presence may publish late.
+- Evidence: src/components/layout/ScrollScreenWithBottomActions.tsx, src/components/layout/bottom-actions.tsx, src/components/ui/BottomActionBar.tsx
+- Status: Proposed
+
 ## 2026-03-03 — Portaled sticky bottom actions must pair with conditional scroll-owner reserve
 - Type: Guardrail
 - Summary: When bottom actions are viewport-pinned via portal/fixed positioning, reserve padding must be owned by the single scroll container and applied only when actions are actually present.
