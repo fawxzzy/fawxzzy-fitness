@@ -76,8 +76,8 @@ function HistorySessionRow({
   const durationLabel = `Duration: ${formatDuration(session.durationSeconds)}`;
 
   const compactParts = [routineTitle || "Routine", dayTitle || "Day", dateOnly].filter((part) => part.length > 0);
-  const detailsPrimaryParts = [dayTitle, durationLabel].filter((part) => part.length > 0);
-  const detailsSecondaryParts = [dateOnly, `Started: ${timeOnly}`].filter((part) => part.length > 0);
+  const detailsPrimaryParts = [dayTitle, dateOnly].filter((part) => part.length > 0);
+  const detailsSecondaryParts = [durationLabel, `Started: ${timeOnly}`].filter((part) => part.length > 0);
 
   return (
     <Link
