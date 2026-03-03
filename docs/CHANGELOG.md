@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Restored the shared top spacing contract on the Routines screen so content starts with the same gap beneath the floating nav header used across main app tabs.
+WHY:
+- Prevents the routine switcher panel from visually crowding the navbar and keeps tab-to-tab layout rhythm consistent.
+
+### Fixed
+WHAT:
 - Reduced internal padding for History Sessions compact-view cards.
 WHY:
 - Decreases compact card height so more session rows fit on screen while preserving the existing details-view layout.

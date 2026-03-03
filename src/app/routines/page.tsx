@@ -130,7 +130,7 @@ export default async function RoutinesPage() {
   }
 
   return (
-    <AppShell className="h-[100dvh]">
+    <AppShell className="h-[100dvh] gap-3">
       <AppNav />
       <div className="flex-1 min-h-0">
         <ScrollContainer className={activeRoutine ? BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS : undefined}>
