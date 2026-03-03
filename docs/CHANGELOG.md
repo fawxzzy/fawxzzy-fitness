@@ -2323,3 +2323,11 @@ WHY:
 - Removes top-gap drift and sticky inconsistencies on mobile devices with notches/Dynamic Island.
 - Reduces visual clutter during active exercise logging while preserving full controls in list mode.
 - Prevents perceived timer resets or pauses when UI sections are conditionally hidden.
+## 0.3.6 — 2026-03-03
+
+### WHAT
+- (fill in)
+
+### WHY
+- (fill in)
+
