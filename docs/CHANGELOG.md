@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.2 — 2026-03-03
+
+### WHAT
+- (fill in)
+
+### WHY
+- (fill in)
+
 ## 0.3.1 — 2026-03-03
 
 ### WHAT
@@ -171,14 +179,12 @@ WHAT:
 WHY:
 - Remove missing icon 404s and improve installability and mobile home-screen presentation.
 
-
 ### Fixed
 WHAT:
 - Fixed History → Sessions hydration mismatches by keeping the initial render on the server-selected view mode and restoring local view-mode preference only after client mount.
 - Standardized History → Sessions date/time display to a deterministic locale/timezone so server and client render the same timestamp strings.
 WHY:
 - Prevents Suspense hydration boundary crashes caused by server/client first-paint text drift in view-mode labels and timestamp formatting.
-
 
 ### Fixed
 WHAT:
@@ -319,7 +325,6 @@ WHAT:
 WHY:
 - Prevents production 500s for expected Exercise Info edge cases and makes route behavior deterministic across runtime environments.
 - Improves debugging and user-facing reliability by standardizing API errors, preserving canonical UI behavior, and adding a repeatable regression check for endpoint status handling.
-
 
 ### Changed
 WHAT:
@@ -1241,7 +1246,6 @@ WHAT:
 WHY:
 - This enables richer exercise guidance in-picker without client-side database writes, preserves RLS-safe server/client boundaries, and prevents binary-asset review failures while keeping a clean upgrade path to hosted media.
 
-
 ### Changed
 WHAT:
 - Removed the helper sentence under Today’s `CHANGE DAY` action and made day cards in the chooser immediately selectable on tap, applying the chosen day for the next workout start without requiring an extra confirmation button.
@@ -1255,13 +1259,11 @@ WHAT:
 WHY:
 - This keeps the start flow cleaner on mobile while preserving temporary day selection control before launching a workout session.
 
-
 ### Changed
 WHAT:
 - Added a compact live clock above the top navigation card that shows local hour/minute with AM/PM in a subtle Apple-inspired style.
 WHY:
 - This provides an always-visible time reference at the top of the app without adding visual weight or disrupting the existing navigation layout.
-
 
 ### Changed
 WHAT:
@@ -1273,7 +1275,6 @@ WHAT:
 WHY:
 - These changes address reported usability and correctness issues around routine ordering, destructive affordances, day editing reliability, and deterministic day/date behavior after completing workouts.
 
-
 ### Changed
 WHAT:
 - Updated the Routines list header layout to keep the main card aligned directly under top navigation and moved the Create Routine CTA into the list container header for clearer placement.
@@ -1282,14 +1283,11 @@ WHAT:
 WHY:
 - These refinements improve cross-screen alignment under the shared nav pattern, reduce card noise, and make destructive actions visually consistent across routines/history surfaces.
 
-
-
 ### Changed
 WHAT:
 - Updated Today's workout-start flow to use an `ActionResult` server-action contract for non-navigation outcomes, with inline client toast feedback for failures and client-driven navigation on success.
 WHY:
 - This standardizes server-action semantics (return for data/errors, navigation only for route transitions), reducing mixed redirect/error handling complexity at the server/client boundary.
-
 
 ### Changed
 WHAT:
@@ -1301,7 +1299,6 @@ WHAT:
 WHY:
 - These changes address reported correctness issues around day naming, timestamp trust, and daily-session status, while improving post-workout log maintenance without changing the server-action/RLS architecture.
 
-
 ### Changed
 WHAT:
 - Added in-session set removal controls in the active workout logger, including removal of queued offline set logs from local queue storage.
@@ -1310,7 +1307,6 @@ WHAT:
 - Expanded History log Edit mode to support adding, updating, and deleting individual sets (not just session/exercise notes).
 WHY:
 - These updates address requested workout continuity and editability gaps: users can correct live mistakes, recover in-progress logs after restart, and fully maintain completed history data from the existing Edit workflow.
-
 
 ### Changed
 WHAT:
@@ -1322,7 +1318,6 @@ WHAT:
 WHY:
 - These updates address requested session reliability and correctness issues while preserving the existing server-action/RLS architecture and improving clarity for mixed-unit training logs.
 
-
 ### Changed
 WHAT:
 - Removed the routine-day empty-state line in day editing so the exercise list no longer shows the extra "No exercises yet" placeholder block.
@@ -1330,7 +1325,6 @@ WHAT:
 - Slightly reduced the Routines list viewport height on mobile so the bottom edge sits cleaner within the screen.
 WHY:
 - This matches requested UX cleanup for the routines flow, improves search ergonomics during exercise selection, and prevents the routines list from appearing to bleed off the bottom of the viewport.
-
 
 ### Changed
 WHAT:
@@ -1342,20 +1336,17 @@ WHY:
 WHY:
 - Cursor pagination keeps large history feeds bounded and responsive without changing the first-load behavior users already expect.
 
-
 ### Fixed
 WHAT:
 - Softened the History card Delete action interaction state by removing the stronger hover/click highlight treatment.
 WHY:
 - The prior highlight drew too much attention during quick list interactions; a calmer state keeps destructive controls readable without visual flash.
 
-
 ### Changed
 WHAT:
 - Documented the standard Playbook subtree sync workflow in governance docs, including `git subtree pull --prefix=Playbook ... --squash`, the `git sync-playbook` alias path, and a concise ongoing update sequence.
 WHY:
 - Keeping subtree update guidance in-repo makes Playbook governance repeatable, reduces sync ambiguity, and reinforces intentional doctrine versioning.
-
 
 ### Changed
 WHAT:
@@ -1637,7 +1628,6 @@ WHAT:
 WHY:
 - The prior text color could blend into the accent background and make the action label hard to read, reducing usability for a core workflow.
 
-
 ### Changed
 WHAT:
 - Added docs/PROJECT_GOVERNANCE.md (thin-docs governance)
@@ -1770,7 +1760,6 @@ WHY:
 - Middleware matcher exclusions.
 - Environment variable handling.
 
-
 ### Fixed
 - Exercise loading now falls back to the baseline global catalog when the new exercises table is not yet available, so the app no longer hard-crashes after deploys where schema rollout lags behind code rollout.
 - Routine deletion now safely clears active-routine pointers and detaches historical sessions before removing the routine, preventing delete-time crashes and stale active state when removing cards at the top of the list.
@@ -1807,7 +1796,6 @@ WHAT:
 - Refactored `src/app/session/[id]/page.tsx` so route-owned server actions and session data-query assembly now live in adjacent `actions.ts` and `queries.ts` files, leaving the page focused on composition and rendering.
 WHY:
 - This reduces controller/query sprawl in the route page while preserving existing behavior and keeping server/client boundaries explicit with route-local ownership.
-
 
 ### Changed
 WHAT:
@@ -1949,7 +1937,6 @@ WHAT:
 WHY:
 - This allows exercises that already have icons to populate the How-to image slot automatically while preserving placeholder fallback for exercises without icons.
 
-
 ### Fixed
 WHAT:
 - Updated the ExercisePicker Info modal so its How-to image always uses the same deterministic per-exercise icon source shown in the list thumbnail, and refreshes per selected exercise.
@@ -1984,7 +1971,6 @@ WHAT:
 WHY:
 - Reduces visual clutter, improves scanability and navigation clarity, and emphasizes the most important actions during active workout logging.
 
-
 ### Changed
 WHAT:
 - Normalized the Routines flow UI (Routines list, New Routine, Edit Routine, Edit Day, and exercise picker/info surfaces) to use consistent dark-theme-safe cards, spacing, and button hierarchy with clearer primary/secondary/destructive actions.
@@ -1993,7 +1979,6 @@ WHAT:
 WHY:
 - Improves visual cohesion and scanability across routine management, removes harsh light-state styling in a dark UI, and makes expandable areas more obvious and predictable.
 - Prevents confusing empty/missing-image presentation in Exercise Info while keeping the experience robust when icon assets are unavailable.
-
 
 ### Changed
 WHAT:
@@ -2056,7 +2041,6 @@ WHAT:
 WHY:
 - Prevents recently-added exercises from showing incomplete Goal text (for example only sets) after the range-column migration, and keeps displayed goals consistent with persisted session values.
 
-
 ### Fixed
 WHAT:
 - Fixed History → Exercises Browser to load the same canonical exercise catalog used by Add Exercise so the browser shows the full exercise list instead of a reduced subset.
@@ -2108,7 +2092,6 @@ WHAT:
 WHY:
 - Improves scanability and visual consistency of session metadata, fixes bottom-of-screen scroll landing on mobile viewports, and gives power users a faster high-density history browsing option.
 
-
 ### Fixed
 WHAT:
 - Fixed the History Sessions list scroll regression by restoring a proper full-height flex chain to the sessions scroll region and keeping the bottom fade overlay non-interactive.
@@ -2136,7 +2119,6 @@ WHAT:
 WHY:
 - Reduces repeated per-screen markup so future UI tuning compounds through one primitive layer instead of being reimplemented in each routine/day screen.
 - Improves cross-screen visual and interaction consistency while keeping existing data, routing, and behavior contracts intact.
-
 
 ### Fixed
 WHAT:
@@ -2169,7 +2151,6 @@ WHAT:
 - Added a non-interactive bottom fade/cap and extra bottom list padding to both Sessions and Exercises history scroll lists.
 WHY:
 - Resolves visual drift and interaction inconsistency in History, improves scanability in compact mode, and restores a clearer mobile list ending affordance without blocking taps or scroll.
-
 
 ### Fixed
 WHAT:
@@ -2212,7 +2193,6 @@ WHAT:
 WHY:
 - Eliminates remaining top-gap inconsistency between History tabs and keeps tab switching visually stable.
 
-
 ### Fixed
 WHAT:
 - Updated the History → Exercises info-sheet Back button behavior so exiting exercise details no longer navigates away from the Exercises tab.
@@ -2232,7 +2212,6 @@ WHAT:
 - Updated that control so it only collapses the expanded exercise panel and does not navigate out of the active session.
 WHY:
 - Prevents accidental session exits when users intend to close exercise details and keeps the interaction consistent with in-place expand/collapse behavior.
-
 
 ### Fixed
 WHAT:
@@ -2269,7 +2248,6 @@ WHY:
 - Restores reliable Exercise Info behavior across all entry points while making production failures diagnosable from logs.
 - Prevents optional stats/image resolution issues from taking down the whole endpoint.
 - Ensures expected invalid/unauth/not-found cases are handled deterministically without collapsing into generic 500 errors.
-
 
 ### Fixed
 WHAT:
