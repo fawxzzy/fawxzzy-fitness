@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { AppRow } from "@/components/ui/app/AppRow";
+import { ExerciseCard } from "@/components/ExerciseCard";
 
 type RoutineDayExerciseItem = {
   id: string;
@@ -19,11 +19,10 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
       <ul className="space-y-2">
         {exercises.map((exercise) => (
           <li key={exercise.id}>
-            <AppRow
-              leftTop={exercise.name}
-              leftBottom={exercise.targetSummary || undefined}
-              rightTop={<span className="text-muted">›</span>}
-              onClick={() => {
+            <ExerciseCard
+              title={exercise.name}
+              subtitle={exercise.targetSummary || undefined}
+              onPress={() => {
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] RoutineDayExerciseList", { exerciseId: exercise.exerciseId, exercise });
                 }

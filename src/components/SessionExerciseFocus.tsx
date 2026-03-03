@@ -8,6 +8,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
@@ -191,7 +192,7 @@ export function SessionExerciseFocus({
   return (
     <div className="space-y-3">
       {selectedExerciseId === null ? (
-        <ul className="divide-y divide-border/70 overflow-hidden rounded-lg border border-border/70 bg-surface/70">
+        <ul className="space-y-2">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
@@ -204,38 +205,19 @@ export function SessionExerciseFocus({
                   isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-32 scale-100 opacity-100",
                 ].join(" ")}
               >
-                <button
-                  type="button"
-                  aria-label={`Open ${exercise.name}`}
-                  onClick={() => onSelectedExerciseIdChange(exercise.id)}
-                  className={`w-full bg-transparent p-3 text-left transition-colors duration-150 motion-reduce:transition-none ${tapFeedbackClass} hover:bg-surface-2-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{exercise.name}</p>
-                      <span className="rounded-full border border-border/70 bg-surface-2-soft px-2 py-0.5 text-xs font-medium text-text">
-                        {setCount} {exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}
-                      </span>
-                      {exercise.routineDayExerciseId === null ? (
-                        <span className="rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[11px] font-medium text-text">Added today</span>
-                      ) : null}
-                    </div>
-                    <span aria-hidden="true" className="text-muted">›</span>
+                <ExerciseCard
+                  title={exercise.name}
+                  subtitle={exercise.goalStatLine ? [exercise.goalStatLine.primary || "Open", ...exercise.goalStatLine.secondary].filter(Boolean).join(" • ") : "Goal: Open"}
+                  onPress={() => onSelectedExerciseIdChange(exercise.id)}
+                  className={tapFeedbackClass}
+                  badgeText={`${setCount} ${exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}`}
+                />
+                {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
+                  <div className="mt-1 flex flex-wrap gap-2 px-1">
+                    {exercise.routineDayExerciseId === null ? <span className="rounded-full border border-accent/40 bg-accent/15 px-2 py-0.5 text-[11px] font-medium text-text">Added today</span> : null}
+                    {exercise.isSkipped ? <span className="text-xs text-amber-300">Skipped</span> : null}
                   </div>
-                  {exercise.goalStatLine ? (
-                    <p className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-muted">
-                      <span className="whitespace-nowrap font-semibold text-text">{exercise.goalStatLine.primary || "Open"}</span>
-                      {exercise.goalStatLine.secondary.map((part) => (
-                        <span key={part} className="whitespace-nowrap text-muted">
-                          • {part}
-                        </span>
-                      ))}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-xs text-muted">Goal: Open</p>
-                  )}
-                  {exercise.isSkipped ? <p className="mt-1 text-xs text-amber-300">Skipped</p> : null}
-                </button>
+                ) : null}
               </li>
             );
           })}

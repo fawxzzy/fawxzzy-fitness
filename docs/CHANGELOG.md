@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Standardized planned-exercise list UI across Routine Day, Today, and Session surfaces with one canonical `ExerciseCard` presentation contract.
+- Updated these screens to reuse the same card styling, subtitle treatment, chevron alignment, and optional set-count pill behavior.
+WHY:
+- Removes visual drift between equivalent exercise planning surfaces and makes interaction patterns more consistent and predictable.
+
+### Fixed
+WHAT:
 - Replaced the Today and History Log vertical bottom action stacks with a reusable fixed bottom frosted action bar that keeps two actions side-by-side.
 - Updated Today (“Start Workout”, “Change Workout”) and History Log (“Edit”, “Delete”) actions to stay anchored at the page bottom with safe-area-aware spacing and matching content bottom padding.
 WHY:
