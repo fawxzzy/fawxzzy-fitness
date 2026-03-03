@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { BottomActionBar, FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
@@ -101,7 +101,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
     <MainTabScreen>
       <AppNav />
 
-      <ScrollContainer>
+      <ScrollContainer className={FIXED_CTA_RESERVE_CLASS}>
         <section className="space-y-4">
           <AppPanel className="space-y-3">
             <AppHeader
@@ -129,7 +129,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             )}
           </AppPanel>
         </section>
-        <BottomActionBar variant="sticky">
+        <BottomActionBar variant="fixed">
           <Link
             href={editDayHref}
             className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "w-full" })}
