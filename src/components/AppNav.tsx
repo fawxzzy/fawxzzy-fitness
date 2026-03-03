@@ -84,7 +84,7 @@ export function AppNav() {
       <div className="pointer-events-auto w-full max-w-md">
         <Glass
           variant="raised"
-          className="h-[var(--header-h)] rounded-xl border border-white/15 px-2 shadow-[0_8px_20px_rgb(0_0_0/0.26)] backdrop-blur-md"
+          className="h-[var(--header-h)] rounded-xl border border-white/15 px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] backdrop-blur-md"
           interactive={false}
         >
           <div className="flex h-[var(--header-h)] flex-col justify-center gap-1">
