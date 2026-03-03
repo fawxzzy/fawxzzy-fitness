@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.10 — 2026-03-03
+
+### WHAT
+- Reused the Today bottom-action CTA pattern across History Log Detail, Routines, Routine Day View, and Current Session exercise detail by standardizing on one shared fixed CTA reserve class on each route’s existing scroll owner.
+- Normalized Edit/Delete, Edit routine, Edit Day, and Save Set actions to the same fixed bottom CTA behavior and removed route-specific bottom spacing compensation in those flows.
+
+### WHY
+- Prevents fixed CTAs from overlapping the final content while preserving existing full-screen scroll ownership and mobile safe-area consistency.
+
 ## 0.3.9 — 2026-03-03
 
 ### WHAT

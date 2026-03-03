@@ -7,7 +7,7 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { appTokens } from "@/components/ui/app/tokens";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { BottomActionBar, FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { Glass } from "@/components/ui/Glass";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -133,7 +133,7 @@ export default async function RoutinesPage() {
     <AppShell className="h-[100dvh] gap-3">
       <AppNav />
       <div className="mt-3 flex-1 min-h-0">
-        <ScrollContainer>
+        <ScrollContainer className={FIXED_CTA_RESERVE_CLASS}>
           <Glass variant="base" className="space-y-3 p-3" interactive={false}>
             {routines.length === 0 ? (
               <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
@@ -194,7 +194,7 @@ export default async function RoutinesPage() {
             )}
           </Glass>
           {activeRoutine ? (
-            <BottomActionBar variant="sticky">
+            <BottomActionBar variant="fixed">
               <Link
                 href={`/routines/${activeRoutine.id}/edit`}
                 aria-label={`Edit ${activeRoutine.name} routine`}

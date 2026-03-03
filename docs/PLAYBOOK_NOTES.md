@@ -90,6 +90,15 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/session/[id]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx
 - Status: Proposed
 
+
+## 2026-03-03 — Standardize fixed CTA spacing through one shared reserve token
+- Type: Guardrail
+- Summary: When using viewport-fixed bottom CTAs, export and reuse one shared reserve class constant on the existing route scroll owner instead of screen-specific `pb-*` compensation.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents overlap/dead-zone drift and keeps bottom-safe-area behavior consistent across screens without changing scroll ownership.
+- Evidence: src/components/ui/BottomActionBar.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/session/[id]/page.tsx
+- Status: Proposed
+
 ## Implemented Already
 
 ## 2026-03-02 — Prefer collapsible select controls over segmented toggles in dense mobile headers
