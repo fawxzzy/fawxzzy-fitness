@@ -80,14 +80,14 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-[var(--app-nav-top)] z-40 flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-[var(--header-offset)] z-40 flex justify-center px-4">
       <div className="pointer-events-auto w-full max-w-md">
         <Glass
           variant="raised"
-          className="h-[var(--app-nav-h)] rounded-xl border border-white/15 px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] backdrop-blur-md"
+          className="h-[var(--header-h)] rounded-xl border border-white/15 px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] backdrop-blur-md"
           interactive={false}
         >
-          <div className="flex h-[var(--app-nav-h)] flex-col justify-center gap-1">
+          <div className="flex h-[var(--header-h)] flex-col justify-center gap-1">
             <p className="px-2 text-center text-sm font-bold leading-none text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
             <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
               {links.map((link) => {
