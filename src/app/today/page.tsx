@@ -11,6 +11,7 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
 import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -414,7 +415,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         };
 
   return (
-    <MainTabScreen className="pb-32">
+    <MainTabScreen className={BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}>
       <AppNav />
 
       {todayPayload.routine && !fetchFailed ? (

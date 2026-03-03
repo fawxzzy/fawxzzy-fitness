@@ -7,7 +7,7 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
-import { CompactActionStack } from "@/components/ui/CompactActionStack";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { appTokens } from "@/components/ui/app/tokens";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
@@ -112,17 +112,17 @@ export function TodayDayPicker({
         </AppPanel>
       ) : null}
 
-      <CompactActionStack>
+      <BottomActionBar>
         <TodayStartButton
           startSessionAction={startSessionAction}
           selectedDayIndex={selectedDayIndex}
-          fullWidth={false}
-          className="w-fit min-h-[44px] px-10"
+          fullWidth
+          className="w-full"
         />
         <SecondaryButton
           id="today-day-picker"
           type="button"
-          className="inline-flex w-fit min-h-[44px] px-10 justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+          className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
           onClick={() => {
             setIsPickerOpen((previous) => !previous);
           }}
@@ -130,7 +130,7 @@ export function TodayDayPicker({
         >
           <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
         </SecondaryButton>
-      </CompactActionStack>
+      </BottomActionBar>
 
       <ExerciseInfo
         exerciseId={selectedExerciseId}
