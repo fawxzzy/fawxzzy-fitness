@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Fixed the Routines screen shell so the bottom Edit Routine action bar is truly viewport-pinned with safe-area support and the page content reserves matching bottom space.
+- Consolidated routine cycle metadata into the routine switcher trigger title line as `Routine Title | {cycle summary}` and removed the duplicate standalone gray metadata line from the page body.
+WHY:
+- Keeps the primary action consistently reachable at the true bottom on mobile, prevents list content from being obscured, and removes duplicated metadata for a cleaner single-source routine summary.
+
+### Fixed
+WHAT:
 - Polished the Routine screen header by removing duplicate standalone title/subtitle text, moving the Routine edit action into the shared bottom action bar, and showing routine subtitle context inline in the routine switch trigger as `Title | subtitle`.
 - Normalized Today in-progress workout controls so “Resume Workout” and “Discard Workout” use matching button sizing, padding, and shape while keeping the destructive color treatment for discard.
 WHY:
