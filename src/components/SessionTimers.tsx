@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SetRow } from "@/types/db";
 import {
@@ -95,6 +96,7 @@ export function SetLoggerCard({
   planTargetsHash,
   deleteSetAction,
   resetSignal,
+  actionBar,
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -124,6 +126,7 @@ export function SetLoggerCard({
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
+  actionBar?: (controls: { onSave: () => Promise<void>; isSaveDisabled: boolean }) => ReactNode;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -802,11 +805,13 @@ export function SetLoggerCard({
         {sets.length === 0 ? <li className="px-3 py-2 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
       </ul>
 
-      <BottomActionBar variant="sticky">
-        <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
-          Save Set
-        </AppButton>
-      </BottomActionBar>
+      {actionBar ? actionBar({ onSave: handleLogSet, isSaveDisabled }) : (
+        <BottomActionBar variant="sticky">
+          <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
+            Save Set
+          </AppButton>
+        </BottomActionBar>
+      )}
     </div>
   );
 }
