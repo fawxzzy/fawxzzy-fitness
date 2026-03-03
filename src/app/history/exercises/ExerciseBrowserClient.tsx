@@ -32,30 +32,6 @@ function getExerciseDisplayName(row: ExerciseBrowserRow) {
   return "Unknown exercise";
 }
 
-function formatWeight(weight: number) {
-  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
-}
-
-function formatSetSummary(weight: number | null, reps: number | null, unit: string | null) {
-  const weightLabel = typeof weight === "number" && Number.isFinite(weight) && weight > 0 ? formatWeight(weight) : null;
-  const repsLabel = typeof reps === "number" && Number.isFinite(reps) && reps > 0 ? String(reps) : null;
-  const normalizedUnit = unit === "lb" || unit === "lbs" ? "lb" : unit === "kg" ? "kg" : "";
-  const unitSuffix = weightLabel && normalizedUnit ? normalizedUnit : "";
-
-  if (weightLabel && repsLabel) {
-    return `${weightLabel}${unitSuffix}×${repsLabel}`;
-  }
-
-  if (repsLabel) {
-    return `${repsLabel} reps`;
-  }
-
-  if (weightLabel) {
-    return `${weightLabel}${unitSuffix}`;
-  }
-
-  return null;
-}
 
 function formatShortDate(dateValue: string | null) {
   if (!dateValue) return null;
@@ -97,11 +73,9 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     image_icon_path: row.image_icon_path,
     image_howto_path: row.image_howto_path,
   });
-  const lastSummary = formatSetSummary(row.last_weight, row.last_reps, row.last_unit);
   const lastDate = formatShortDate(row.last_performed_at);
-  const actualPrSummary = formatSetSummary(row.actual_pr_weight, row.actual_pr_reps, row.last_unit);
   const strengthPrSummary = typeof row.pr_est_1rm === "number" && Number.isFinite(row.pr_est_1rm) && row.pr_est_1rm > 0
-    ? `${formatWeight(row.pr_est_1rm)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
+    ? `${row.pr_est_1rm.toFixed(0)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
     : null;
 
   return (
@@ -121,9 +95,18 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
           <div className="min-w-0 flex-1 p-3 text-left">
             <p className="line-clamp-2 text-base font-semibold leading-tight text-[rgb(var(--text)/0.98)]">{displayName}</p>
             <div className="mt-1 space-y-0.5 text-xs leading-snug text-[rgb(var(--text)/0.54)]">
-              <p>Last: {lastDate ? `${lastDate} · ${lastSummary ?? "—"}` : "—"}</p>
-              <p>PR: {actualPrSummary ?? "—"}</p>
-              {strengthPrSummary ? <p>STR PR: {strengthPrSummary}</p> : null}
+              {row.kind === "strength" ? (
+                <>
+                  <p>Last: {lastDate ? `${lastDate} · ${row.lastSummary ?? "—"}` : "—"}</p>
+                  <p>PR: {row.prLabel || row.bestSummary || "—"}</p>
+                  {strengthPrSummary ? <p>STR PR: {strengthPrSummary}</p> : null}
+                </>
+              ) : (
+                <>
+                  <p>Last: {lastDate ? `${lastDate} · ${row.lastSummary ?? "—"}` : "—"}</p>
+                  <p>Best: {row.bestSummary ?? "—"}</p>
+                </>
+              )}
             </div>
           </div>
           <div className="basis-[40%] max-w-[180px] shrink-0 self-stretch overflow-hidden border-l border-border/20">

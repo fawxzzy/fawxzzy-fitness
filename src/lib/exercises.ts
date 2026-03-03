@@ -13,6 +13,18 @@ let hasLoggedMissingExerciseId = false;
 const VALID_MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "carry", "rotation"] as const;
 const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight"] as const;
 
+const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
+const LEGACY_PLACEHOLDER_IDS = new Set<string>([SENTINEL_EXERCISE_ID, ...EXERCISE_OPTIONS.map((exercise) => exercise.id)]);
+
+function isLegacyPlaceholderExercise(exercise: ExerciseRow) {
+  const id = typeof exercise.id === "string" ? exercise.id.trim() : "";
+  const normalizedName = typeof exercise.name === "string" ? exercise.name.trim().toLowerCase() : "";
+
+  if (LEGACY_PLACEHOLDER_IDS.has(id)) return true;
+  if (!normalizedName) return true;
+  return normalizedName === "placeholder" || normalizedName === "placeholder exercise" || normalizedName === "unknown exercise";
+}
+
 function logExerciseLoaderEvent(event: string, details?: Record<string, unknown>) {
   console.info("[exercises]", event, details ?? {});
 }
@@ -78,16 +90,29 @@ export async function listExercises() {
   const validExercises = mergedExercises.flatMap((exercise) => {
     const id = typeof exercise.id === "string" ? exercise.id.trim() : "";
 
-    if (id.length > 0) {
-      return [{ ...exercise, id }];
+    if (!id.length) {
+      if (!hasLoggedMissingExerciseId) {
+        hasLoggedMissingExerciseId = true;
+        console.error("[exercises] Dropped exercise rows with missing/invalid id.");
+      }
+      return [];
     }
 
-    if (!hasLoggedMissingExerciseId) {
-      hasLoggedMissingExerciseId = true;
-      console.error("[exercises] Dropped exercise rows with missing/invalid id.");
+    const normalizedExercise = { ...exercise, id };
+
+    if (isLegacyPlaceholderExercise(normalizedExercise)) {
+      if (process.env.NODE_ENV === "development") {
+        console.info("[exercises] suppressed sentinel/legacy placeholder exercise row", {
+          id,
+          name: normalizedExercise.name,
+          user_id: normalizedExercise.user_id,
+          is_global: normalizedExercise.is_global,
+        });
+      }
+      return [];
     }
 
-    return [];
+    return [normalizedExercise];
   });
   const dedupedExercises = new Map<string, ExerciseRow>();
 

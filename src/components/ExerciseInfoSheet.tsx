@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { BackButton } from "@/components/ui/BackButton";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
-import { formatCount, formatDateShort, formatSetDisplay, formatWeight } from "@/lib/formatting";
+import { formatCount, formatDateShort, formatWeight } from "@/lib/formatting";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
@@ -24,27 +24,30 @@ export type ExerciseInfoSheetExercise = {
 
 export type ExerciseInfoSheetStats = {
   exercise_id?: string;
-  last_weight: number | null;
-  last_reps: number | null;
-  last_unit: string | null;
-  last_performed_at: string | null;
-  total_sessions?: number | null;
-  total_sets?: number | null;
-  total_reps?: number | null;
-  best_reps_at_best_weight?: number | null;
-  pr_weight: number | null;
-  pr_reps: number | null;
-  pr_est_1rm: number | null;
-  actual_pr_weight: number | null;
-  actual_pr_reps: number | null;
-  actual_pr_at: string | null;
-  pr_counts?: { reps: number; weight: number; total: number };
-  pr_label?: string;
-  best_bodyweight_reps?: number | null;
-  best_weight?: number | null;
-  best_set_weight?: number | null;
-  best_set_reps?: number | null;
-  best_set_unit?: string | null;
+  kind: "strength" | "cardio";
+  recent: {
+    lastPerformedAt: string | null;
+    lastSummary: string | null;
+  };
+  totals: {
+    sessions: number;
+    sets: number;
+    reps?: number;
+    durationSeconds?: number;
+    distance?: number;
+    calories?: number;
+  };
+  bests: {
+    bestBodyweightReps?: number;
+    bestWeight?: number;
+    bestRepsAtBestWeight?: number;
+    bestSetSummary?: string;
+    bestDurationSeconds?: number;
+    bestDistance?: number;
+    bestPace?: number;
+    bestCalories?: number;
+  };
+  prLabel: string;
 };
 
 const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
@@ -55,17 +58,21 @@ function MetaTag({ value }: { value: string | null }) {
   return <span className={tagClassName}>{value}</span>;
 }
 
-function formatWeightReps(weight: number | null, reps: number | null, unit: string | null) {
-  const weightLabel = typeof weight === "number" && Number.isFinite(weight) && weight > 0 ? formatWeight(weight) : null;
-  const repsLabel = typeof reps === "number" && Number.isFinite(reps) && reps > 0 ? String(reps) : null;
-  const normalizedUnit = unit === "lb" || unit === "lbs" ? "lb" : unit === "kg" ? "kg" : "";
-  const unitSuffix = weightLabel && normalizedUnit ? normalizedUnit : "";
+function formatSimple(value: number | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+}
 
-  if (weightLabel && repsLabel) {
-    return `${weightLabel}${unitSuffix}×${repsLabel}`;
-  }
+function StatSection({ title, rows }: { title: string; rows: Array<{ label: string; value: string | null }> }) {
+  const visibleRows = rows.filter((row) => row.value);
+  if (!visibleRows.length) return null;
 
-  return null;
+  return (
+    <div className="space-y-0.5">
+      <p className={sectionTitleClassName}>{title}</p>
+      {visibleRows.map((row) => <p key={`${title}-${row.label}`}>{row.label}: {row.value}</p>)}
+    </div>
+  );
 }
 
 export function ExerciseInfoSheet({
@@ -111,35 +118,6 @@ export function ExerciseInfoSheet({
 
   const resolvedHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
-  const lastSummary = stats ? formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) : null;
-  const lastPerformedAt = stats?.last_performed_at ?? null;
-  const totalSets = typeof stats?.total_sets === "number" && stats.total_sets > 0 ? stats.total_sets : null;
-  const totalSessions = typeof stats?.total_sessions === "number" && stats.total_sessions > 0 ? stats.total_sessions : null;
-  const totalReps = typeof stats?.total_reps === "number" && stats.total_reps > 0 ? stats.total_reps : null;
-  const actualPrSummary = stats ? formatWeightReps(stats.actual_pr_weight, stats.actual_pr_reps, stats.last_unit) : null;
-  const bestBodyweightReps = typeof stats?.best_bodyweight_reps === "number" && stats.best_bodyweight_reps > 0 ? `${stats.best_bodyweight_reps} reps` : null;
-  const bestWeightSummary = formatWeight(stats?.best_weight, stats?.last_unit ?? stats?.best_set_unit ?? null);
-  const bestRepsAtBestWeight = typeof stats?.best_reps_at_best_weight === "number" && stats.best_reps_at_best_weight > 0 ? stats.best_reps_at_best_weight : null;
-  const bestSetDisplay = formatSetDisplay({
-    weight: stats?.best_set_weight,
-    reps: stats?.best_set_reps,
-    unit: stats?.best_set_unit ?? stats?.last_unit,
-  });
-  const prBreakdown = stats?.pr_label?.trim() || null;
-
-  const e1rmSummary = stats?.pr_est_1rm != null && stats.pr_est_1rm > 0
-    ? `e1RM ${Math.round(stats.pr_est_1rm)}${stats.pr_weight != null && stats.pr_reps != null ? ` (from ${formatWeightReps(stats.pr_weight, stats.pr_reps, stats.last_unit) ?? `${stats.pr_weight}×${stats.pr_reps}`})` : ""}`
-    : null;
-
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || !exercise) return;
-
-    console.log("[ExerciseInfoSheet:Stats]", {
-      canonicalExerciseId,
-      statsFound: Boolean(stats),
-      statsExerciseId: stats?.exercise_id ?? null,
-    });
-  }, [canonicalExerciseId, exercise, stats]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development" || !open || !exercise) return;
@@ -153,6 +131,33 @@ export function ExerciseInfoSheet({
   }, [canonicalExerciseId, exercise, open, statsPanelId]);
 
   if (!open || !exercise) return null;
+
+  const recentRows = stats ? [
+    { label: "Last performed", value: stats.recent.lastPerformedAt ? formatDateShort(stats.recent.lastPerformedAt) : null },
+    { label: "Last", value: stats.recent.lastSummary ?? null },
+    { label: "PRs", value: stats.prLabel || null },
+  ] : [];
+
+  const totalsRows = stats ? [
+    { label: "Sessions", value: stats.totals.sessions > 0 ? formatCount(stats.totals.sessions, "session") : null },
+    { label: "Sets", value: stats.totals.sets > 0 ? formatCount(stats.totals.sets, "set") : null },
+    { label: "Reps", value: stats.totals.reps ? formatCount(stats.totals.reps, "rep") : null },
+    { label: "Duration", value: stats.totals.durationSeconds ? `${formatSimple(stats.totals.durationSeconds)}s` : null },
+    { label: "Distance", value: stats.totals.distance ? formatSimple(stats.totals.distance) : null },
+    { label: "Calories", value: stats.totals.calories ? formatCount(stats.totals.calories, "cal") : null },
+  ] : [];
+
+  const bestWeightLabel = stats?.bests.bestWeight ? formatWeight(stats.bests.bestWeight, null) : null;
+  const bestRows = stats ? [
+    { label: "Best bodyweight reps", value: stats.bests.bestBodyweightReps ? formatCount(stats.bests.bestBodyweightReps, "rep") : null },
+    { label: "Best weight", value: bestWeightLabel },
+    { label: "Best reps at best weight", value: stats.bests.bestRepsAtBestWeight ? formatCount(stats.bests.bestRepsAtBestWeight, "rep") : null },
+    { label: "Best set", value: stats.bests.bestSetSummary ?? null },
+    { label: "Best duration", value: stats.bests.bestDurationSeconds ? `${formatSimple(stats.bests.bestDurationSeconds)}s` : null },
+    { label: "Best distance", value: stats.bests.bestDistance ? formatSimple(stats.bests.bestDistance) : null },
+    { label: "Best pace", value: stats.bests.bestPace ? `${formatSimple(stats.bests.bestPace)} s/dist` : null },
+    { label: "Best calories", value: stats.bests.bestCalories ? formatCount(stats.bests.bestCalories, "cal") : null },
+  ] : [];
 
   return createPortal(
     <div
@@ -208,7 +213,7 @@ export function ExerciseInfoSheet({
               <div
                 id={statsPanelId}
                 data-testid="exercise-info-stats-box"
-                className="min-h-[94px] space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-2.5 py-2 text-xs text-muted"
+                className="min-h-[94px] space-y-2 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-2.5 py-2 text-xs text-muted"
               >
                 <p className={sectionTitleClassName}>Stats</p>
                 {statsLoading ? (
@@ -217,33 +222,14 @@ export function ExerciseInfoSheet({
                     <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
                     <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
                   </div>
-                ) : (
+                ) : stats ? (
                   <>
-                    {lastPerformedAt ? (
-                      <p>
-                        Last performed: {formatDateShort(lastPerformedAt)}
-                      </p>
-                    ) : null}
-                    {lastSummary ? <p>Last set: {lastSummary}</p> : null}
-                    {totalSessions ? <p>Total sessions: {formatCount(totalSessions, "session")}</p> : null}
-                    {totalSets ? <p>Total sets: {formatCount(totalSets, "set")}</p> : null}
-                    {totalReps ? <p>Total reps: {formatCount(totalReps, "rep")}</p> : null}
-                    {actualPrSummary ? (
-                      <p>
-                        Actual PR: {actualPrSummary}
-                        {stats?.actual_pr_at ? ` · ${formatDateShort(stats.actual_pr_at)}` : ""}
-                      </p>
-                    ) : null}
-                    {bestBodyweightReps ? <p>Best Reps (Bodyweight): {bestBodyweightReps}</p> : null}
-                    {bestWeightSummary ? <p>Best Weight: {bestWeightSummary}</p> : null}
-                    {bestRepsAtBestWeight ? <p>Best Reps at Best Weight: {formatCount(bestRepsAtBestWeight, "rep")}</p> : null}
-                    {bestSetDisplay ? <p>Best Set: {bestSetDisplay}</p> : null}
-                    {prBreakdown ? <p>PRs: {prBreakdown}</p> : null}
-                    {e1rmSummary ? <p>Strength PR: {e1rmSummary}</p> : null}
-                    {!lastSummary && !lastPerformedAt && !totalSets && !actualPrSummary && !e1rmSummary && !bestBodyweightReps && !bestWeightSummary && !prBreakdown ? (
-                      <p className="text-muted">No stats yet — log a set to generate stats.</p>
-                    ) : null}
+                    <StatSection title="Recent" rows={recentRows} />
+                    <StatSection title="Totals" rows={totalsRows} />
+                    <StatSection title="Bests" rows={bestRows} />
                   </>
+                ) : (
+                  <p className="text-muted">No stats yet — log a set to generate stats.</p>
                 )}
               </div>
 
