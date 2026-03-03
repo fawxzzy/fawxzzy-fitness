@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
 import type { SetRow } from "@/types/db";
@@ -316,10 +317,18 @@ export async function addLogExerciseAction(payload: { logId: string; exerciseId:
   const supabase = supabaseServer();
 
   const logId = payload.logId.trim();
-  const exerciseId = payload.exerciseId.trim();
+  const exerciseIdentifier = payload.exerciseId.trim();
 
-  if (!logId || !exerciseId) {
+  if (!logId || !exerciseIdentifier) {
     return { ok: false, error: "Missing exercise details." };
+  }
+
+  const resolvedExercise = await resolveCanonicalExercise({
+    exerciseIdOrSlugOrName: exerciseIdentifier,
+  });
+
+  if (!resolvedExercise?.id) {
+    return { ok: false, error: "Exercise must map to a canonical exercise before logging." };
   }
 
   const canEdit = await ensureCompletedLogOwner(logId, user.id);
@@ -333,20 +342,14 @@ export async function addLogExerciseAction(payload: { logId: string; exerciseId:
     .eq("session_id", logId)
     .eq("user_id", user.id);
 
-  const { data: exerciseDefaults } = await supabase
-    .from("exercises")
-    .select("measurement_type, default_unit")
-    .eq("id", exerciseId)
-    .maybeSingle();
-
   const { error } = await supabase.from("session_exercises").insert({
     session_id: logId,
     user_id: user.id,
-    exercise_id: exerciseId,
+    exercise_id: resolvedExercise.id,
     position: count ?? 0,
     is_skipped: false,
-    measurement_type: exerciseDefaults?.measurement_type ?? "reps",
-    default_unit: exerciseDefaults?.default_unit ?? "mi",
+    measurement_type: resolvedExercise.measurementType,
+    default_unit: resolvedExercise.defaultUnit,
   });
 
   if (error) {

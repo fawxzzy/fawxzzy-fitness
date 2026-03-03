@@ -57,6 +57,46 @@ type HistoricalSetRow = {
     | null;
 };
 
+async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string) {
+  return supabaseServer()
+    .from("sets")
+    .select("set_index, weight, reps, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
+    .eq("user_id", userId)
+    .eq("session_exercise.user_id", userId)
+    .eq("session_exercise.exercise_id", canonicalExerciseId)
+    .eq("session_exercise.session.status", "completed");
+}
+
+async function repairMissingExerciseIdLinks(userId: string, canonicalExerciseId: string): Promise<void> {
+  const supabase = supabaseServer();
+  const { data: orphanRows, error: orphanError } = await supabase
+    .from("session_exercises")
+    .select("id, routine_day_exercise:routine_day_exercises!inner(exercise_id)")
+    .eq("user_id", userId)
+    .is("exercise_id", null)
+    .eq("routine_day_exercise.exercise_id", canonicalExerciseId)
+    .limit(250);
+
+  if (orphanError || !orphanRows?.length) {
+    return;
+  }
+
+  const repairIds = orphanRows
+    .map((row) => row.id)
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  if (!repairIds.length) {
+    return;
+  }
+
+  await supabase
+    .from("session_exercises")
+    .update({ exercise_id: canonicalExerciseId })
+    .eq("user_id", userId)
+    .is("exercise_id", null)
+    .in("id", repairIds);
+}
+
 function isNoRowsError(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
   if (error.code === "PGRST116") return true;
@@ -119,16 +159,17 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
   try {
     const [stats, historicalSetRows] = await Promise.all([
       getExerciseStatsForExercise(userId, canonicalExerciseId),
-      supabaseServer()
-        .from("sets")
-        .select("set_index, weight, reps, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
-        .eq("user_id", userId)
-        .eq("session_exercise.user_id", userId)
-        .eq("session_exercise.exercise_id", canonicalExerciseId)
-        .eq("session_exercise.session.status", "completed"),
+      loadHistoricalSetRows(userId, canonicalExerciseId),
     ]);
 
-    const normalizedRows = ((historicalSetRows.data ?? []) as HistoricalSetRow[]).flatMap((row) => {
+    let historicalRows = historicalSetRows.data ?? [];
+    if (!historicalRows.length) {
+      await repairMissingExerciseIdLinks(userId, canonicalExerciseId);
+      const repairedRows = await loadHistoricalSetRows(userId, canonicalExerciseId);
+      historicalRows = repairedRows.data ?? historicalRows;
+    }
+
+    const normalizedRows = (historicalRows as HistoricalSetRow[]).flatMap((row) => {
       const sessionExercise = Array.isArray(row.session_exercise)
         ? (row.session_exercise[0] ?? null)
         : (row.session_exercise ?? null);

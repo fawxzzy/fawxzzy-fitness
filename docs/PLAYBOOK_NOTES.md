@@ -10,6 +10,22 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Canonical exercise ids are required before session set logging
+- Type: Guardrail
+- Summary: Session/log-history write paths must resolve exercise identifiers to canonical `exercises.id` before inserting `session_exercises`; unresolved identifiers should fail fast and never create unlinked rows.
+- Suggested Playbook File: Playbook/docs/PATTERNS/supabase-auth-rls.md
+- Rationale: Prevents missing stats/PRs and cross-exercise leakage caused by null or non-canonical session exercise links.
+- Evidence: src/app/session/[id]/actions.ts, src/app/actions/history.ts, src/lib/exercise-resolution.ts, src/lib/exercise-info.ts, supabase/migrations/030_backfill_session_exercises_exercise_id.sql
+- Status: Proposed
+
+## 2026-03-03 — App shell should own top-nav placement variables
+- Type: Guardrail
+- Summary: Treat app-level top spacing as a single `AppShell` contract (`--app-nav-top`, `--app-nav-h`, `--app-content-top`) and make nav components consume only those shell-scoped vars.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents competing safe-area/header offset sources from creating route-specific whitespace drift and notch/header overlap bugs.
+- Evidence: src/components/ui/app/AppShell.tsx, src/components/AppNav.tsx, src/app/globals.css
+- Status: Proposed
+
 ## 2026-03-03 — Portal dropdowns/menus out of glass/card stacking contexts
 - Type: Guardrail
 - Summary: Interactive overlays (dropdowns, popovers, context menus) must render through a top-level portal layer rather than inside card/glass containers that may create clipping or stacking contexts.

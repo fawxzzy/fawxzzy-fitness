@@ -6,8 +6,11 @@ import { recomputeExerciseStatsForSession } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateHistoryViews, revalidateSessionViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToSessionColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
+import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
+
+const SHOULD_DEBUG_CANONICAL_LINKING = process.env.NODE_ENV === "development";
 
 async function ensurePerformedIndex(payload: {
   sessionId: string;
@@ -169,6 +172,14 @@ export async function addSetAction(payload: {
       .single();
 
     if (!error && insertedSet) {
+      if (SHOULD_DEBUG_CANONICAL_LINKING) {
+        console.log("[session-linking] inserted-set", {
+          setId: insertedSet.id,
+          sessionExerciseId,
+          reps: insertedSet.reps,
+          weight: insertedSet.weight,
+        });
+      }
       await ensurePerformedIndex({
         sessionId,
         sessionExerciseId,
@@ -310,10 +321,10 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
   const supabase = supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "").trim();
-  const exerciseId = String(formData.get("exerciseId") ?? "").trim();
+  const exerciseIdentifier = String(formData.get("exerciseId") ?? "").trim();
   const setCountValue = String(formData.get("setCount") ?? "").trim();
 
-  if (!sessionId || !exerciseId) {
+  if (!sessionId || !exerciseIdentifier) {
     return { ok: false, error: "Missing exercise info" };
   }
 
@@ -335,15 +346,12 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
     return { ok: false, error: "Can only add exercises to an active session" };
   }
 
-  const { data: exerciseDefaults } = await supabase
-    .from("exercises")
-    .select("id, measurement_type, default_unit")
-    .eq("id", exerciseId)
-    .or(`is_global.eq.true,user_id.eq.${user.id}`)
-    .maybeSingle();
+  const resolvedExercise = await resolveCanonicalExercise({
+    exerciseIdOrSlugOrName: exerciseIdentifier,
+  });
 
-  if (!exerciseDefaults) {
-    return { ok: false, error: "Exercise not found" };
+  if (!resolvedExercise) {
+    return { ok: false, error: "Exercise must map to a canonical exercise before logging." };
   }
 
   const { data: lastPositionRow } = await supabase
@@ -356,31 +364,37 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
     .maybeSingle();
 
   const nextPosition = typeof lastPositionRow?.position === "number" ? lastPositionRow.position + 1 : 0;
-  const fallbackMeasurementType = exerciseDefaults.measurement_type === "time"
-    || exerciseDefaults.measurement_type === "distance"
-    || exerciseDefaults.measurement_type === "time_distance"
-    || exerciseDefaults.measurement_type === "reps"
-    ? exerciseDefaults.measurement_type
-    : "reps";
-  const fallbackDefaultUnit = exerciseDefaults.default_unit === "mi"
-    || exerciseDefaults.default_unit === "km"
-    || exerciseDefaults.default_unit === "m"
-    ? exerciseDefaults.default_unit
-    : "mi";
+  const canonicalExerciseId = resolvedExercise.id;
+  if (!canonicalExerciseId) {
+    throw new Error("Session exercise invariant failed: missing canonical exercise id.");
+  }
 
-  const { error } = await supabase.from("session_exercises").insert({
+  const { data: insertedExercise, error } = await supabase.from("session_exercises").insert({
     session_id: sessionId,
     user_id: user.id,
-    exercise_id: exerciseId,
+    exercise_id: canonicalExerciseId,
     routine_day_exercise_id: null,
     position: nextPosition,
     is_skipped: false,
-    measurement_type: fallbackMeasurementType,
-    default_unit: fallbackDefaultUnit,
-  });
+    measurement_type: resolvedExercise.measurementType,
+    default_unit: resolvedExercise.defaultUnit,
+  }).select("id, exercise_id").single();
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  if (!insertedExercise?.exercise_id) {
+    throw new Error("Session exercise invariant failed: persisted row missing exercise_id.");
+  }
+
+  if (SHOULD_DEBUG_CANONICAL_LINKING) {
+    console.log("[session-linking] inserted-session-exercise", {
+      sessionExerciseId: insertedExercise.id,
+      exerciseId: insertedExercise.exercise_id,
+      exerciseName: resolvedExercise.name,
+      exerciseSlug: resolvedExercise.slug,
+    });
   }
 
   revalidateSessionViews(sessionId);
@@ -392,12 +406,25 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   const supabase = supabaseServer();
 
   const sessionId = String(formData.get("sessionId") ?? "");
-  const exerciseId = String(formData.get("exerciseId") ?? "");
+  const exerciseIdentifier = String(formData.get("exerciseId") ?? "");
   const routineDayExerciseIdValue = String(formData.get("routineDayExerciseId") ?? "").trim();
   const routineDayExerciseId = routineDayExerciseIdValue || null;
 
-  if (!sessionId || !exerciseId) {
+  if (!sessionId || !exerciseIdentifier) {
     return { ok: false, error: "Missing exercise info" };
+  }
+
+  const resolvedExercise = await resolveCanonicalExercise({
+    exerciseIdOrSlugOrName: exerciseIdentifier,
+  });
+
+  if (!resolvedExercise) {
+    return { ok: false, error: "Exercise must map to a canonical exercise before logging." };
+  }
+
+  const canonicalExerciseId = resolvedExercise.id;
+  if (!canonicalExerciseId) {
+    throw new Error("Session exercise invariant failed: missing canonical exercise id.");
   }
 
   if (routineDayExerciseId) {
@@ -430,7 +457,7 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
       .eq("id", routineDayExerciseId)
       .eq("routine_day_id", routineDay.id)
       .eq("user_id", user.id)
-      .eq("exercise_id", exerciseId)
+      .eq("exercise_id", canonicalExerciseId)
       .maybeSingle();
 
     if (!linkedExercise) {
@@ -449,40 +476,35 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     return { ok: false, error: parsedGoals.error };
   }
 
-  const { data: exerciseDefaults } = await supabase
-    .from("exercises")
-    .select("measurement_type, default_unit")
-    .eq("id", exerciseId)
-    .maybeSingle();
-
-  const fallbackMeasurementType = exerciseDefaults?.measurement_type === "time"
-    || exerciseDefaults?.measurement_type === "distance"
-    || exerciseDefaults?.measurement_type === "time_distance"
-    || exerciseDefaults?.measurement_type === "reps"
-    ? exerciseDefaults.measurement_type
-    : "reps";
-  const fallbackDefaultUnit = exerciseDefaults?.default_unit === "mi"
-    || exerciseDefaults?.default_unit === "km"
-    || exerciseDefaults?.default_unit === "m"
-    ? exerciseDefaults.default_unit
-    : "mi";
-
   const mappedGoalColumns = mapExerciseGoalPayloadToSessionColumns(parsedGoals.payload);
 
-  const { error } = await supabase.from("session_exercises").insert({
+  const { data: insertedExercise, error } = await supabase.from("session_exercises").insert({
     session_id: sessionId,
     user_id: user.id,
-    exercise_id: exerciseId,
+    exercise_id: canonicalExerciseId,
     routine_day_exercise_id: routineDayExerciseId,
     position: count ?? 0,
     is_skipped: false,
     ...mappedGoalColumns,
-    measurement_type: mappedGoalColumns.measurement_type ?? fallbackMeasurementType,
-    default_unit: mappedGoalColumns.default_unit ?? fallbackDefaultUnit,
-  });
+    measurement_type: mappedGoalColumns.measurement_type ?? resolvedExercise.measurementType,
+    default_unit: mappedGoalColumns.default_unit ?? resolvedExercise.defaultUnit,
+  }).select("id, exercise_id").single();
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  if (!insertedExercise?.exercise_id) {
+    throw new Error("Session exercise invariant failed: persisted row missing exercise_id.");
+  }
+
+  if (SHOULD_DEBUG_CANONICAL_LINKING) {
+    console.log("[session-linking] inserted-session-exercise", {
+      sessionExerciseId: insertedExercise.id,
+      exerciseId: insertedExercise.exercise_id,
+      exerciseName: resolvedExercise.name,
+      exerciseSlug: resolvedExercise.slug,
+    });
   }
 
   revalidateSessionViews(sessionId);

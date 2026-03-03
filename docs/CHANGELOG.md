@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.13 — 2026-03-03
+
+### WHAT
+- Enforced canonical exercise linking in session/logging writes so new `session_exercises` rows must resolve to a real exercise id before sets can be logged.
+- Added a safe backfill for legacy `session_exercises` rows missing `exercise_id` when a linked routine-day exercise provides an unambiguous canonical match.
+- Hardened Exercise Info/History exercise stat loading to prioritize canonical id joins and avoid cross-exercise PR leakage when canonical linkage is missing.
+
+### WHY
+- Ensures newly logged Pull-Up/bodyweight sets immediately appear in Exercise Info stats.
+- Repairs prior unlinked rows safely so historical stats can recover without manual database edits.
+- Prevents PR/stat contamination between similarly named movements (for example Pull-Up vs Weighted Pull-Up).
+
+## 0.3.12 — 2026-03-03
+
+### WHAT
+- Formalized a single top-layout contract where `AppShell` owns top safe-area/nav offsets and `AppNav` reads those shell-provided variables instead of independent global header offsets.
+- Marked legacy global header offset variables as non-canonical for layout and documented the fixed-bottom action reserve contract directly at the shared `FIXED_CTA_RESERVE_CLASS` source.
+- Removed redundant route-level top spacing compensation on the Routines overview screen while preserving the existing bottom fixed-action reserve behavior on fixed-bar routes.
+- Documented the mobile layout contract in architecture guidance so scroll ownership, top-nav spacing, and fixed CTA reserve usage remain consistent across routes.
+
+### WHY
+- Prevents spacing drift caused by competing top-offset sources and keeps notch/header clearance deterministic across main routes.
+- Reduces overlap/whitespace regressions by keeping fixed-bottom reserve ownership on the single scroll container pattern.
+- Makes the layout contract explicit for future route work so mobile spacing bugs are caught earlier.
+
 ## 0.3.11 — 2026-03-03
 
 ### WHAT
@@ -2386,5 +2411,6 @@ WHY:
 - (fill in)
 
 ### WHY
-- (fill in)
-
+- Prevents recurring iOS overlap bugs where fixed bars rendered inside overflow scrollers clip/anchor inconsistently and hide final rows.
+- Keeps bottom reserve spacing resilient if fixed action bar height changes over time without requiring per-screen padding rewrites.
+- Reinforces one normalized, future-proof fixed-bottom-bar contract across affected routes.
