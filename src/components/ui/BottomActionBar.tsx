@@ -10,7 +10,7 @@ export const BOTTOM_ACTION_BAR_CONTENT_RESERVE_CLASS = FIXED_CTA_RESERVE_CLASS;
 
 const BOTTOM_ACTION_BAR_ROOT_ID = "app-bottom-action-bar-root";
 
-const ensureBottomActionBarPortalRoot = () => {
+const getOrCreateBottomBarPortalRoot = () => {
   const existing = document.getElementById(BOTTOM_ACTION_BAR_ROOT_ID);
   if (existing) {
     return existing;
@@ -42,11 +42,15 @@ export function BottomActionBar({
       return;
     }
 
-    setPortalRoot(ensureBottomActionBarPortalRoot());
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    setPortalRoot(getOrCreateBottomBarPortalRoot());
   }, [isFixed]);
 
   useEffect(() => {
-    if (!isFixed || !fixedContainerRef.current) {
+    if (!isFixed || !fixedContainerRef.current || typeof window === "undefined") {
       return;
     }
 
@@ -59,6 +63,10 @@ export function BottomActionBar({
     };
 
     updateHeightVar();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
 
     const observer = new ResizeObserver(() => {
       updateHeightVar();

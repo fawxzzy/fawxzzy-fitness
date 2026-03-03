@@ -2416,3 +2416,9 @@ WHY:
 - Prevents recurring iOS overlap bugs where fixed bars rendered inside overflow scrollers clip/anchor inconsistently and hide final rows.
 - Keeps bottom reserve spacing resilient if fixed action bar height changes over time without requiring per-screen padding rewrites.
 - Reinforces one normalized, future-proof fixed-bottom-bar contract across affected routes.
+
+### Fixed
+WHAT:
+- Hardened the shared fixed bottom action bar contract used by Routine Day, Log Details, and Current Session so viewport-fixed actions remain reliable on iOS across browser/runtime variations.
+WHY:
+- Prevents regressions where bottom CTAs can overlap final scroll content when platform APIs behave differently, while preserving the single scroll-owner reserve model.
