@@ -37,6 +37,12 @@ Core entities currently include:
 
 All user-owned rows are expected to remain protected by RLS and tied to `user_id` where applicable.
 
+## Mobile Layout Contract
+- Use one vertical scroll owner per route surface.
+- `AppShell` owns safe-area and top-nav offset variables (`--app-nav-top`, `--app-nav-h`, `--app-content-top`).
+- `AppNav` consumes `AppShell` variables only; legacy global header offsets are not canonical layout inputs.
+- Routes with `BottomActionBar` in `variant="fixed"` must apply `FIXED_CTA_RESERVE_CLASS` on the scroll owner and must not add extra compensating bottom padding elsewhere.
+
 ## Change Management Rule
 Any future architectural change that alters boundaries, ownership, or data flow should be documented here before or alongside implementation to prevent undocumented drift.
 

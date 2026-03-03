@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.12 — 2026-03-03
+
+### WHAT
+- Formalized a single top-layout contract where `AppShell` owns top safe-area/nav offsets and `AppNav` reads those shell-provided variables instead of independent global header offsets.
+- Marked legacy global header offset variables as non-canonical for layout and documented the fixed-bottom action reserve contract directly at the shared `FIXED_CTA_RESERVE_CLASS` source.
+- Removed redundant route-level top spacing compensation on the Routines overview screen while preserving the existing bottom fixed-action reserve behavior on fixed-bar routes.
+- Documented the mobile layout contract in architecture guidance so scroll ownership, top-nav spacing, and fixed CTA reserve usage remain consistent across routes.
+
+### WHY
+- Prevents spacing drift caused by competing top-offset sources and keeps notch/header clearance deterministic across main routes.
+- Reduces overlap/whitespace regressions by keeping fixed-bottom reserve ownership on the single scroll container pattern.
+- Makes the layout contract explicit for future route work so mobile spacing bugs are caught earlier.
+
 ## 0.3.11 — 2026-03-03
 
 ### WHAT
