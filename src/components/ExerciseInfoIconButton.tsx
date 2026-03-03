@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 
 export function ExerciseInfoIconButton({
   exerciseId,
@@ -13,6 +14,7 @@ export function ExerciseInfoIconButton({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const canonicalExerciseId = resolveCanonicalExerciseId(exerciseId);
 
   return (
     <>
@@ -20,7 +22,7 @@ export function ExerciseInfoIconButton({
         type="button"
         onClick={() => {
           if (process.env.NODE_ENV === "development") {
-            console.debug("[ExerciseInfo:open] ExerciseInfoIconButton", { exerciseId, exerciseName });
+            console.debug("[ExerciseInfo:open] ExerciseInfoIconButton", { exerciseId, canonicalExerciseId, exerciseName });
           }
           setOpen(true);
         }}
@@ -30,7 +32,7 @@ export function ExerciseInfoIconButton({
         <span aria-hidden="true">ⓘ</span>
       </button>
       <ExerciseInfo
-        exerciseId={exerciseId}
+        exerciseId={canonicalExerciseId}
         open={open}
         onOpenChange={setOpen}
         onClose={() => setOpen(false)}

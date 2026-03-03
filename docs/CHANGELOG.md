@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.11 — 2026-03-03
+
+### WHAT
+- Normalized Exercise Info stats into one server-derived view model that includes bodyweight and weighted set history, and now surfaces all meaningful computed rows (last performed, totals, best reps/weight, PR breakdown, and best set when available).
+- Hardened Exercise Info ID flow and stats fallbacks so exercises with logged completed sets do not incorrectly show an empty "No stats yet" state.
+- Portaled History view-mode dropdown and per-session context menus to a top-level overlay layer with consistent z-index behavior.
+- Tightened History compact card spacing and removed redundant weekday/date duplication in session metadata lines.
+
+### WHY
+- Keeps Exercise Info trustworthy for both bodyweight and weighted movements, including legacy-id entry paths.
+- Prevents card/container stacking contexts from clipping or overlapping dropdown/menu overlays on mobile.
+- Improves scan speed in compact history mode with cleaner, less repetitive date presentation.
+
 ## 0.3.10 — 2026-03-03
 
 ### WHAT

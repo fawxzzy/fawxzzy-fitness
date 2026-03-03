@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { BackButton } from "@/components/ui/BackButton";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
+import { formatCount, formatDateShort, formatSetDisplay, formatWeight } from "@/lib/formatting";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
@@ -27,6 +28,10 @@ export type ExerciseInfoSheetStats = {
   last_reps: number | null;
   last_unit: string | null;
   last_performed_at: string | null;
+  total_sessions?: number | null;
+  total_sets?: number | null;
+  total_reps?: number | null;
+  best_reps_at_best_weight?: number | null;
   pr_weight: number | null;
   pr_reps: number | null;
   pr_est_1rm: number | null;
@@ -37,6 +42,9 @@ export type ExerciseInfoSheetStats = {
   pr_label?: string;
   best_bodyweight_reps?: number | null;
   best_weight?: number | null;
+  best_set_weight?: number | null;
+  best_set_reps?: number | null;
+  best_set_unit?: string | null;
 };
 
 const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
@@ -45,16 +53,6 @@ const sectionTitleClassName = "text-xs font-semibold uppercase tracking-wide tex
 function MetaTag({ value }: { value: string | null }) {
   if (!value) return null;
   return <span className={tagClassName}>{value}</span>;
-}
-
-function formatShortDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-function formatWeight(weight: number) {
-  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "");
 }
 
 function formatWeightReps(weight: number | null, reps: number | null, unit: string | null) {
@@ -114,9 +112,19 @@ export function ExerciseInfoSheet({
   const resolvedHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const lastSummary = stats ? formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) : null;
+  const lastPerformedAt = stats?.last_performed_at ?? null;
+  const totalSets = typeof stats?.total_sets === "number" && stats.total_sets > 0 ? stats.total_sets : null;
+  const totalSessions = typeof stats?.total_sessions === "number" && stats.total_sessions > 0 ? stats.total_sessions : null;
+  const totalReps = typeof stats?.total_reps === "number" && stats.total_reps > 0 ? stats.total_reps : null;
   const actualPrSummary = stats ? formatWeightReps(stats.actual_pr_weight, stats.actual_pr_reps, stats.last_unit) : null;
   const bestBodyweightReps = typeof stats?.best_bodyweight_reps === "number" && stats.best_bodyweight_reps > 0 ? `${stats.best_bodyweight_reps} reps` : null;
-  const bestWeightSummary = typeof stats?.best_weight === "number" && stats.best_weight > 0 ? `${formatWeight(stats.best_weight)}${stats?.last_unit === "kg" ? "kg" : stats?.last_unit === "lb" || stats?.last_unit === "lbs" ? "lb" : ""}` : null;
+  const bestWeightSummary = formatWeight(stats?.best_weight, stats?.last_unit ?? stats?.best_set_unit ?? null);
+  const bestRepsAtBestWeight = typeof stats?.best_reps_at_best_weight === "number" && stats.best_reps_at_best_weight > 0 ? stats.best_reps_at_best_weight : null;
+  const bestSetDisplay = formatSetDisplay({
+    weight: stats?.best_set_weight,
+    reps: stats?.best_set_reps,
+    unit: stats?.best_set_unit ?? stats?.last_unit,
+  });
   const prBreakdown = stats?.pr_label?.trim() || null;
 
   const e1rmSummary = stats?.pr_est_1rm != null && stats.pr_est_1rm > 0
@@ -211,23 +219,28 @@ export function ExerciseInfoSheet({
                   </div>
                 ) : (
                   <>
-                    {lastSummary ? (
+                    {lastPerformedAt ? (
                       <p>
-                        Last: {lastSummary}
-                        {stats?.last_performed_at ? ` · ${formatShortDate(stats.last_performed_at)}` : ""}
+                        Last performed: {formatDateShort(lastPerformedAt)}
                       </p>
                     ) : null}
+                    {lastSummary ? <p>Last set: {lastSummary}</p> : null}
+                    {totalSessions ? <p>Total sessions: {formatCount(totalSessions, "session")}</p> : null}
+                    {totalSets ? <p>Total sets: {formatCount(totalSets, "set")}</p> : null}
+                    {totalReps ? <p>Total reps: {formatCount(totalReps, "rep")}</p> : null}
                     {actualPrSummary ? (
                       <p>
                         Actual PR: {actualPrSummary}
-                        {stats?.actual_pr_at ? ` · ${formatShortDate(stats.actual_pr_at)}` : ""}
+                        {stats?.actual_pr_at ? ` · ${formatDateShort(stats.actual_pr_at)}` : ""}
                       </p>
                     ) : null}
                     {bestBodyweightReps ? <p>Best Reps (Bodyweight): {bestBodyweightReps}</p> : null}
                     {bestWeightSummary ? <p>Best Weight: {bestWeightSummary}</p> : null}
+                    {bestRepsAtBestWeight ? <p>Best Reps at Best Weight: {formatCount(bestRepsAtBestWeight, "rep")}</p> : null}
+                    {bestSetDisplay ? <p>Best Set: {bestSetDisplay}</p> : null}
                     {prBreakdown ? <p>PRs: {prBreakdown}</p> : null}
                     {e1rmSummary ? <p>Strength PR: {e1rmSummary}</p> : null}
-                    {!lastSummary && !actualPrSummary && !e1rmSummary && !bestBodyweightReps && !bestWeightSummary && !prBreakdown ? (
+                    {!lastSummary && !lastPerformedAt && !totalSets && !actualPrSummary && !e1rmSummary && !bestBodyweightReps && !bestWeightSummary && !prBreakdown ? (
                       <p className="text-muted">No stats yet — log a set to generate stats.</p>
                     ) : null}
                   </>

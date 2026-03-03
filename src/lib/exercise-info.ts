@@ -19,16 +19,42 @@ export type ExerciseInfoExercise = {
   slug: string | null;
 };
 
-export type ExerciseInfoStats = ExerciseStatsRow & {
+export type ExerciseInfoStatsViewModel = ExerciseStatsRow & {
+  total_sessions: number | null;
+  total_sets: number;
+  total_reps: number | null;
+  best_reps_at_best_weight: number | null;
   pr_counts: { reps: number; weight: number; total: number };
   pr_label: string;
   best_bodyweight_reps: number | null;
   best_weight: number | null;
+  best_set_weight: number | null;
+  best_set_reps: number | null;
+  best_set_unit: string | null;
 };
 
 export type ExerciseInfoPayload = {
   exercise: ExerciseInfoExercise;
-  stats: ExerciseInfoStats | null;
+  stats: ExerciseInfoStatsViewModel | null;
+};
+
+type HistoricalSetRow = {
+  set_index: number;
+  weight: number | null;
+  reps: number | null;
+  weight_unit: "lbs" | "lb" | "kg" | null;
+  session_exercise:
+    | {
+      session_id: string;
+      exercise_id: string;
+      session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null;
+    }
+    | Array<{
+      session_id: string;
+      exercise_id: string;
+      session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null;
+    }>
+    | null;
 };
 
 function isNoRowsError(error: { code?: string; message?: string } | null): boolean {
@@ -89,28 +115,20 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
   };
 }
 
-export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, requestId?: string): Promise<ExerciseInfoStats | null> {
+export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, requestId?: string): Promise<ExerciseInfoStatsViewModel | null> {
   try {
     const [stats, historicalSetRows] = await Promise.all([
       getExerciseStatsForExercise(userId, canonicalExerciseId),
       supabaseServer()
         .from("sets")
-        .select("set_index, weight, reps, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
+        .select("set_index, weight, reps, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
         .eq("user_id", userId)
         .eq("session_exercise.user_id", userId)
         .eq("session_exercise.exercise_id", canonicalExerciseId)
         .eq("session_exercise.session.status", "completed"),
     ]);
 
-    const rows = ((historicalSetRows.data ?? []) as Array<{
-      set_index: number;
-      weight: number | null;
-      reps: number | null;
-      session_exercise:
-        | { session_id: string; exercise_id: string; session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null }
-        | Array<{ session_id: string; exercise_id: string; session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null }>
-        | null;
-    }>).flatMap((row): PrEvaluationSet[] => {
+    const normalizedRows = ((historicalSetRows.data ?? []) as HistoricalSetRow[]).flatMap((row) => {
       const sessionExercise = Array.isArray(row.session_exercise)
         ? (row.session_exercise[0] ?? null)
         : (row.session_exercise ?? null);
@@ -122,19 +140,28 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
       }
 
       return [{
-        exerciseId: canonicalExerciseId,
         sessionId: sessionExercise.session_id,
         performedAt: session.performed_at,
         setIndex: row.set_index,
         weight: row.weight,
         reps: row.reps,
+        weightUnit: row.weight_unit,
       }];
     });
+
+    const rows: PrEvaluationSet[] = normalizedRows.map((row) => ({
+      exerciseId: canonicalExerciseId,
+      sessionId: row.sessionId,
+      performedAt: row.performedAt,
+      setIndex: row.setIndex,
+      weight: row.weight,
+      reps: row.reps,
+    }));
 
     const { exerciseSummaryById } = evaluatePrSummaries(rows);
     const exerciseSummary = exerciseSummaryById.get(canonicalExerciseId);
 
-    if (!stats && !exerciseSummary) return null;
+    if (!stats && normalizedRows.length === 0 && !exerciseSummary) return null;
 
     const fallbackStats: ExerciseStatsRow = {
       exercise_id: canonicalExerciseId,
@@ -153,13 +180,63 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
 
     const resolvedStats = stats ?? fallbackStats;
     const prCounts = exerciseSummary?.counts ?? { reps: 0, weight: 0, total: 0 };
+    const totalSessions = new Set(normalizedRows.map((row) => row.sessionId)).size;
+    const totalSets = normalizedRows.length;
+    const totalReps = normalizedRows.reduce((sum, row) => {
+      const reps = typeof row.reps === "number" && Number.isFinite(row.reps) && row.reps > 0 ? row.reps : 0;
+      return sum + reps;
+    }, 0);
+
+    const sortedRows = [...normalizedRows].sort((a, b) => {
+      if (b.performedAt !== a.performedAt) return b.performedAt.localeCompare(a.performedAt);
+      return b.setIndex - a.setIndex;
+    });
+
+    const bestWeightedSet = [...normalizedRows]
+      .filter((row) => typeof row.weight === "number" && Number.isFinite(row.weight) && row.weight > 0)
+      .sort((a, b) => {
+        const aWeight = a.weight ?? 0;
+        const bWeight = b.weight ?? 0;
+        if (bWeight !== aWeight) return bWeight - aWeight;
+
+        const aReps = a.reps ?? 0;
+        const bReps = b.reps ?? 0;
+        if (bReps !== aReps) return bReps - aReps;
+
+        if (b.performedAt !== a.performedAt) return b.performedAt.localeCompare(a.performedAt);
+        return b.setIndex - a.setIndex;
+      })[0] ?? null;
+
+    const fallbackLastSet = sortedRows[0] ?? null;
+    const resolvedLastPerformedAt = resolvedStats.last_performed_at ?? fallbackLastSet?.performedAt ?? null;
+
+    // Tiny regression check: if any sets exist, last-performed + total-sets must be populated.
+    if (totalSets > 0 && (!resolvedLastPerformedAt || totalSets < 1)) {
+      console.warn("[exercise-info] stats invariant fallback", {
+        requestId,
+        canonicalExerciseId,
+        totalSets,
+        resolvedLastPerformedAt,
+      });
+    }
 
     return {
       ...resolvedStats,
+      last_weight: resolvedStats.last_weight ?? fallbackLastSet?.weight ?? null,
+      last_reps: resolvedStats.last_reps ?? fallbackLastSet?.reps ?? null,
+      last_unit: resolvedStats.last_unit ?? fallbackLastSet?.weightUnit ?? null,
+      last_performed_at: resolvedLastPerformedAt,
+      total_sessions: totalSessions > 0 ? totalSessions : null,
+      total_sets: totalSets,
+      total_reps: totalReps > 0 ? totalReps : null,
+      best_reps_at_best_weight: typeof bestWeightedSet?.reps === "number" && bestWeightedSet.reps > 0 ? bestWeightedSet.reps : null,
       pr_counts: prCounts,
       pr_label: formatPrBreakdown(prCounts),
       best_bodyweight_reps: exerciseSummary && exerciseSummary.bestBodyweightReps > 0 ? exerciseSummary.bestBodyweightReps : null,
       best_weight: exerciseSummary && exerciseSummary.bestWeight > 0 ? exerciseSummary.bestWeight : null,
+      best_set_weight: bestWeightedSet?.weight ?? null,
+      best_set_reps: bestWeightedSet?.reps ?? null,
+      best_set_unit: bestWeightedSet?.weightUnit ?? null,
     };
   } catch (error) {
     console.warn("[exercise-info] non-fatal stats failure", {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 
 type ViewModeOption = {
@@ -19,21 +20,40 @@ type ViewModeSelectProps = {
 export function ViewModeSelect({ label, value, options, onChange, className }: ViewModeSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const selectedOption = useMemo(() => options.find((option) => option.value === value), [options, value]);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    const updateMenuPosition = () => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    };
+
+    updateMenuPosition();
+
     const handlePointerDown = (event: PointerEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (!containerRef.current?.contains(target) && !menuRef.current?.contains(target)) {
         setIsOpen(false);
       }
     };
 
+    const handleViewportChange = () => {
+      updateMenuPosition();
+    };
+
     window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
     return () => {
       window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
     };
   }, [isOpen]);
 
@@ -57,8 +77,12 @@ export function ViewModeSelect({ label, value, options, onChange, className }: V
           </span>
         </button>
 
-        {isOpen ? (
-          <div className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.3)] bg-[rgb(var(--glass-tint-rgb)/0.95)] p-1 shadow-xl">
+        {isOpen && menuPosition ? createPortal(
+          <div
+            ref={menuRef}
+            className="fixed z-[80] overflow-hidden rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.3)] bg-[rgb(var(--glass-tint-rgb)/0.95)] p-1 shadow-xl"
+            style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px`, width: `${menuPosition.width}px` }}
+          >
             {options.map((option) => {
               const isSelected = option.value === value;
               return (
@@ -83,7 +107,8 @@ export function ViewModeSelect({ label, value, options, onChange, className }: V
                 </button>
               );
             })}
-          </div>
+          </div>,
+          document.body,
         ) : null}
       </div>
     </div>
