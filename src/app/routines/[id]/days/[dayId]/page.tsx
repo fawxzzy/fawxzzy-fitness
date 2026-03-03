@@ -8,8 +8,8 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
+import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { getExerciseNameMap } from "@/lib/exercises";
-import { formatRepTarget } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -20,24 +20,32 @@ type PageProps = {
     id: string;
     dayId: string;
   };
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
-function formatTargetSummary(exercise: RoutineDayExerciseRow) {
-  const parts: string[] = [];
-
-  if (exercise.target_sets !== null) {
-    parts.push(`${exercise.target_sets} sets`);
+function getCurrentPathWithSearch(params: PageProps["params"], searchParams?: PageProps["searchParams"]) {
+  const routePath = `/routines/${params.id}/days/${params.dayId}`;
+  if (!searchParams) {
+    return routePath;
   }
 
-  const repsText = formatRepTarget(exercise.target_reps_min, exercise.target_reps_max, exercise.target_reps ?? null).replace("Reps: ", "");
-  if (repsText !== "-") {
-    parts.push(`${repsText} reps`);
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        query.append(key, item);
+      }
+      continue;
+    }
+    query.set(key, value);
   }
 
-  return parts.join(" · ");
+  const queryString = query.toString();
+  return queryString ? `${routePath}?${queryString}` : routePath;
 }
 
-export default async function RoutineDayDetailPage({ params }: PageProps) {
+export default async function RoutineDayDetailPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -66,7 +74,7 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
 
   const { data: exercises } = await supabase
     .from("routine_day_exercises")
-    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, notes")
+    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, notes")
     .eq("routine_day_id", day.id)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -84,7 +92,8 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
         .in("id", exerciseIds);
   const exerciseDetailsById = new Map((exerciseDetailsRows ?? []).map((exercise) => [exercise.id, exercise]));
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
-  const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}`;
+  const returnToPath = getCurrentPathWithSearch(params, searchParams);
+  const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
 
   return (
     <section className={`space-y-4 ${BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}`}>
@@ -93,7 +102,6 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
       <AppPanel className="space-y-3">
         <AppHeader
           title={dayLabel}
-          subtitleLeft={`Day ${dayRow.day_index} • ${routineRow.name}`}
           action={<TopRightBackButton href="/routines" />}
         />
 
@@ -109,7 +117,7 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
               return {
                 id: exercise.id,
                 name: exerciseName,
-                targetSummary: formatTargetSummary(exercise),
+                goalLine: formatExerciseGoal(exercise),
                 exerciseId: details?.id ?? exercise.exercise_id,
               };
             })}

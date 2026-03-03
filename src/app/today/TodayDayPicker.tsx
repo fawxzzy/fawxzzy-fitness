@@ -61,9 +61,8 @@ export function TodayDayPicker({
       {selectedDay ? (
         <AppPanel className="space-y-3 p-4">
           <AppHeader
-            title={selectedDay.isRest ? `${routineName} (Rest Day)` : selectedDay.name}
-            subtitleLeft={`Day ${selectedDay.dayIndex} • ${routineName}`}
-            subtitleRight={selectedDay.exercises.length > 0 ? `${selectedDay.exercises.length} exercises` : undefined}
+            title={`${routineName} | ${selectedDay.name}`}
+            subtitleRight={`${selectedDay.exercises.length} exercises`}
             action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
           />
 
@@ -72,14 +71,15 @@ export function TodayDayPicker({
               <li key={exercise.id}>
                 <ExerciseCard
                   title={exercise.name}
-                  subtitle={exercise.targets || undefined}
                   onPress={() => {
                     if (process.env.NODE_ENV === "development") {
                       console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
                     }
                     setSelectedExerciseId(exercise.exerciseId);
                   }}
-                />
+                >
+                  <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.targets ?? "Goal: Not set"}</p>
+                </ExerciseCard>
               </li>
             ))}
             {selectedDay.exercises.length === 0 ? <li className="px-3 py-3 text-muted">No routine exercises planned for this day.</li> : null}

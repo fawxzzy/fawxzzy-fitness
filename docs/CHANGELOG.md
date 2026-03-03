@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Updated Day Viewer → Edit Day navigation so Edit Day back now returns to the originating Day Viewer route context.
+- Simplified Day Viewer and Today headers by removing subtitle lines and normalizing Today title format to “Routine Name | Day Name” while keeping the exercise-count indicator.
+- Added a consistent full goal line on planned exercise cards across Day Viewer and Today surfaces, including a fallback when a goal is unset.
+WHY:
+- Improves navigation predictability, reduces header clutter, and makes planned training targets immediately visible while scanning exercise lists.
+
+### Fixed
+WHAT:
 - Standardized Today in-progress actions so “Resume Workout” and “Discard Workout” now use the shared frosted bottom action bar in a side-by-side layout.
 - Standardized Current Session set logging so the “Save Set” action now uses the same bottom action bar surface.
 WHY:

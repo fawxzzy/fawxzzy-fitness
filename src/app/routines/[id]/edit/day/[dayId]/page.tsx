@@ -29,8 +29,21 @@ type PageProps = {
     success?: string;
     exerciseId?: string;
     addExerciseOpen?: string;
+    returnTo?: string;
   };
 };
+
+function resolveReturnTo(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
 function formatDayTitle(dayIndex: number, dayName: string | null) {
   const fallback = `Day ${dayIndex}`;
@@ -232,12 +245,13 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     exerciseOptions.map((exercise) => exercise.id),
   );
   const returnTo = `/routines/${params.id}/edit/day/${params.dayId}`;
+  const backHref = resolveReturnTo(searchParams?.returnTo) ?? `/routines/${params.id}/edit`;
 
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{dayTitle}</h1>
-        <TopRightBackButton href={`/routines/${params.id}/edit`} />
+        <TopRightBackButton href={backHref} />
       </div>
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
