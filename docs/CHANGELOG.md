@@ -6,10 +6,10 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
-- Removed the grey action-card treatment from Today and History log bottom actions and normalized both surfaces to use the same centered compact action-button pattern.
-- Updated Today (“Start Workout”, “Change Workout”) and History log read mode (“Edit”, “Delete”) actions to use fit-content button widths while maintaining iOS-friendly touch target height.
+- Replaced the Today and History Log vertical bottom action stacks with a reusable fixed bottom frosted action bar that keeps two actions side-by-side.
+- Updated Today (“Start Workout”, “Change Workout”) and History Log (“Edit”, “Delete”) actions to stay anchored at the page bottom with safe-area-aware spacing and matching content bottom padding.
 WHY:
-- Improves visual consistency across key action surfaces, reduces unnecessary chrome, and keeps bottom actions clear of the iOS home indicator without oversized full-width buttons.
+- Normalizes primary action placement, reduces visual weight from card-like action containers, and improves thumb reach and consistency with the app’s frosted navigation language.
 
 ### Fixed
 WHAT:
