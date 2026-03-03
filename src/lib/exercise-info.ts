@@ -5,6 +5,7 @@ import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { getExerciseStatsForExercise, type ExerciseStatsLookupError } from "@/lib/exercise-stats";
 import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
+import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
 
 export type ExerciseInfoExercise = {
   id: string;
@@ -18,6 +19,7 @@ export type ExerciseInfoExercise = {
   image_icon_path: string | null;
   slug: string | null;
   measurement_type: string | null;
+  default_unit: string | null;
 };
 
 type ExerciseStatsKind = "strength" | "cardio";
@@ -28,6 +30,11 @@ export type ExerciseStatsVM = {
   recent: {
     lastPerformedAt: string | null;
     lastSummary: string | null;
+    lastDurationSeconds?: number;
+    lastDistance?: number;
+    lastCalories?: number;
+    lastPaceSecondsPerUnit?: number;
+    lastDistanceUnit?: string | null;
   };
   totals: {
     sessions: number;
@@ -45,6 +52,7 @@ export type ExerciseStatsVM = {
     bestDurationSeconds?: number;
     bestDistance?: number;
     bestPace?: number;
+    bestDistanceUnit?: string | null;
     bestCalories?: number;
   };
   prLabel: string;
@@ -99,9 +107,6 @@ function resolveStatsKind(measurementType: string | null | undefined): ExerciseS
   return "strength";
 }
 
-function positive(value: number | null | undefined) {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
-}
 
 function formatCompactNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
@@ -127,17 +132,23 @@ function formatWeightReps(weight: number | null, reps: number | null, unit: stri
   return null;
 }
 
-function formatCardioSummary(set: NormalizedSet) {
-  const duration = positive(set.durationSeconds);
-  const distance = positive(set.distance);
-  const calories = positive(set.calories);
-
-  const parts: string[] = [];
-  if (duration > 0) parts.push(`${formatCompactNumber(duration)}s`);
-  if (distance > 0) parts.push(`${formatCompactNumber(distance)} dist`);
-  if (calories > 0) parts.push(`${formatCompactNumber(calories)} cal`);
+function formatCardioSummary(args: { durationSeconds?: number | null; distance?: number | null; calories?: number | null; paceSecondsPerUnit?: number | null; distanceUnit?: string | null }) {
+  const parts = [
+    formatDurationShort(args.durationSeconds),
+    formatDistance(args.distance, args.distanceUnit),
+    formatPace(args.paceSecondsPerUnit, args.distanceUnit),
+    formatCalories(args.calories),
+  ].filter((value): value is string => Boolean(value));
 
   return parts.length > 0 ? parts.join(" • ") : null;
+}
+
+function resolveCardioPrimaryMetric(measurementType: string | null | undefined): "distance" | "duration" | "calories" | "effort" {
+  const normalized = String(measurementType ?? "").trim().toLowerCase();
+  if (normalized === "distance") return "distance";
+  if (normalized === "duration" || normalized === "time" || normalized === "time_distance") return "duration";
+  if (normalized === "calories") return "calories";
+  return "effort";
 }
 
 async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string) {
@@ -203,17 +214,18 @@ function runDevStatsVerification(exercise: ExerciseInfoExercise, stats: Exercise
 
   if (name === "dips") {
     checks.push({
-      label: "Dips bodyweight-only best",
-      ok: typeof stats.bests.bestBodyweightReps === "number" && typeof stats.bests.bestWeight !== "number",
+      label: "Dips shows PR reps when reps exist",
+      ok: typeof stats.bests.bestBodyweightReps === "number" && stats.bests.bestBodyweightReps > 0,
       details: { bestBodyweightReps: stats.bests.bestBodyweightReps, bestWeight: stats.bests.bestWeight },
     });
   }
 
   if (name === "incline walk") {
     checks.push({
-      label: "Incline Walk cardio duration",
-      ok: typeof stats.totals.durationSeconds === "number" && typeof stats.bests.bestDurationSeconds === "number",
-      details: { durationSeconds: stats.totals.durationSeconds, bestDurationSeconds: stats.bests.bestDurationSeconds },
+      label: "Incline Walk has last + total duration signal",
+      ok: (typeof stats.recent.lastDurationSeconds === "number" && stats.recent.lastDurationSeconds > 0)
+        && (typeof stats.totals.durationSeconds === "number" && stats.totals.durationSeconds > 0),
+      details: { lastDurationSeconds: stats.recent.lastDurationSeconds, durationSeconds: stats.totals.durationSeconds },
     });
   }
 
@@ -256,7 +268,7 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path, measurement_type")
+    .select("id, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path, measurement_type, default_unit")
     .eq("id", exerciseId)
     .or(`user_id.is.null,user_id.eq.${userId}`)
     .maybeSingle();
@@ -287,6 +299,7 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
       image_icon_path: null,
       slug: null,
       measurement_type: "reps",
+      default_unit: null,
     };
   }
 
@@ -302,10 +315,11 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
     image_icon_path: null,
     slug: null,
     measurement_type: data.measurement_type ?? null,
+    default_unit: data.default_unit ?? null,
   };
 }
 
-export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, measurementType?: string | null, requestId?: string): Promise<ExerciseStatsVM | null> {
+export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, measurementType?: string | null, defaultUnit?: string | null, requestId?: string): Promise<ExerciseStatsVM | null> {
   try {
     const kind = resolveStatsKind(measurementType);
 
@@ -404,28 +418,67 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
     const bestDistance = normalizedRows.reduce((max, row) => Math.max(max, positive(row.distance)), 0);
     const bestCalories = normalizedRows.reduce((max, row) => Math.max(max, positive(row.calories)), 0);
 
-    const paces = normalizedRows
-      .map((row) => {
+    const bySession = new Map<string, NormalizedSet[]>();
+    for (const row of normalizedRows) {
+      const existing = bySession.get(row.sessionId) ?? [];
+      existing.push(row);
+      bySession.set(row.sessionId, existing);
+    }
+    const latestSessionRows = [...bySession.values()].sort((a, b) => (b[0]?.performedAt ?? "").localeCompare(a[0]?.performedAt ?? ""))[0] ?? [];
+
+    const rowPace = (row: NormalizedSet) => {
+      const duration = positive(row.durationSeconds);
+      const distance = positive(row.distance);
+      if (duration <= 0 || distance <= 0) return null;
+      return duration / distance;
+    };
+
+    const selectBestSet = (rows: NormalizedSet[]) => {
+      const priority = resolveCardioPrimaryMetric(measurementType);
+      const score = (row: NormalizedSet) => {
         const duration = positive(row.durationSeconds);
         const distance = positive(row.distance);
-        if (duration <= 0 || distance <= 0) return null;
-        return duration / distance;
-      })
-      .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0);
+        const calories = positive(row.calories);
+        if (priority === "distance") return [distance, duration, calories];
+        if (priority === "duration") return [duration, distance, calories];
+        if (priority === "calories") return [calories, distance, duration];
+        return [distance, duration, calories];
+      };
+      return [...rows].sort((a, b) => {
+        const sa = score(a);
+        const sb = score(b);
+        if (sb[0] !== sa[0]) return sb[0] - sa[0];
+        if (sb[1] !== sa[1]) return sb[1] - sa[1];
+        if (sb[2] !== sa[2]) return sb[2] - sa[2];
+        return b.setIndex - a.setIndex;
+      })[0] ?? null;
+    };
+
+    const latestSessionBest = selectBestSet(latestSessionRows);
+    const allTimeBest = selectBestSet(normalizedRows);
+
+    const paces = normalizedRows.map((row) => rowPace(row)).filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0);
     const bestPace = paces.length ? Math.min(...paces) : 0;
 
-    const durationPrs = normalizedRows.filter((row) => positive(row.durationSeconds) === bestDurationSeconds && bestDurationSeconds > 0).length;
-    const distancePrs = normalizedRows.filter((row) => positive(row.distance) === bestDistance && bestDistance > 0).length;
-    const prLabelParts: string[] = [];
-    if (durationPrs > 0) prLabelParts.push(`${durationPrs} Duration PR${durationPrs === 1 ? "" : "s"}`);
-    if (distancePrs > 0) prLabelParts.push(`${distancePrs} Distance PR${distancePrs === 1 ? "" : "s"}`);
+    const distanceUnitForPace = defaultUnit === "mi" || defaultUnit === "km" || defaultUnit === "m" ? defaultUnit : null;
 
     return {
       exercise_id: canonicalExerciseId,
       kind,
       recent: {
-        lastPerformedAt: statsLookup.row?.last_performed_at ?? lastSet?.performedAt ?? null,
-        lastSummary: lastSet ? formatCardioSummary(lastSet) : null,
+        lastPerformedAt: statsLookup.row?.last_performed_at ?? latestSessionBest?.performedAt ?? lastSet?.performedAt ?? null,
+        lastSummary: formatCardioSummary({
+          durationSeconds: latestSessionBest?.durationSeconds ?? null,
+          distance: latestSessionBest?.distance ?? null,
+          calories: latestSessionBest?.calories ?? null,
+          paceSecondsPerUnit: latestSessionBest ? rowPace(latestSessionBest) : null,
+          distanceUnit: distanceUnitForPace,
+        }),
+        ...(positive(latestSessionBest?.durationSeconds) > 0 ? { lastDurationSeconds: positive(latestSessionBest?.durationSeconds) } : {}),
+        ...(positive(latestSessionBest?.distance) > 0 ? { lastDistance: positive(latestSessionBest?.distance) } : {}),
+        ...(positive(latestSessionBest?.calories) > 0 ? { lastCalories: positive(latestSessionBest?.calories) } : {}),
+        ...(latestSessionBest && rowPace(latestSessionBest) ? { lastPaceSecondsPerUnit: rowPace(latestSessionBest) ?? undefined } : {}),
+        lastDistanceUnit: distanceUnitForPace,
       },
       totals: {
         ...totals,
@@ -438,8 +491,18 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
         ...(bestDistance > 0 ? { bestDistance } : {}),
         ...(bestPace > 0 ? { bestPace } : {}),
         ...(bestCalories > 0 ? { bestCalories } : {}),
+        bestDistanceUnit: distanceUnitForPace,
+        ...(allTimeBest ? {
+          bestSetSummary: formatCardioSummary({
+            durationSeconds: allTimeBest.durationSeconds,
+            distance: allTimeBest.distance,
+            calories: allTimeBest.calories,
+            paceSecondsPerUnit: rowPace(allTimeBest),
+            distanceUnit: distanceUnitForPace,
+          }) ?? undefined,
+        } : {}),
       },
-      prLabel: prLabelParts.join(" • "),
+      prLabel: "",
     };
   } catch (error) {
     console.warn("[exercise-info] non-fatal stats failure", {
@@ -467,7 +530,7 @@ export async function getExerciseInfoPayload(exerciseId: string, userId: string)
     return null;
   }
 
-  const stats = await getExerciseInfoStats(userId, exercise.exercise_id, exercise.measurement_type);
+  const stats = await getExerciseInfoStats(userId, exercise.exercise_id, exercise.measurement_type, exercise.default_unit);
   const exerciseWithImages = resolveExerciseInfoImages(exercise);
   runDevStatsVerification(exerciseWithImages, stats ?? null);
 

@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.18 — 2026-03-03
+
+### WHAT
+- Improved History → Exercises card summaries so cardio exercises show measurement-aware Last/Best effort lines and bodyweight-only exercises show rep-led Last/PR lines instead of empty PR states.
+- Expanded Exercise Info stats for cardio and bodyweight cases to surface meaningful RECENT/TOTALS/BESTS signals (including duration/distance/pace/calories where available).
+- Added development-time stats verification checks for Incline Walk and Dips so key cardio/bodyweight stat signals are validated during local development.
+
+### WHY
+- Keeps history and exercise detail surfaces meaningful for cardio and pure bodyweight movements, not just weighted strength.
+- Makes “best effort” deterministic by measurement type so users see the right performance signal for each exercise.
+- Reduces regressions by checking for required signal presence without overfitting to exact values.
+
 ## 0.3.16 — 2026-03-03
 
 ### WHAT

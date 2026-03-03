@@ -98,7 +98,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
               {row.kind === "strength" ? (
                 <>
                   <p>Last: {lastDate ? `${lastDate} · ${row.lastSummary ?? "—"}` : "—"}</p>
-                  <p>PR: {row.prLabel || row.bestSummary || "—"}</p>
+                  <p>PR: {row.bestSummary || row.prLabel || "—"}</p>
                   {strengthPrSummary ? <p>STR PR: {strengthPrSummary}</p> : null}
                 </>
               ) : (
