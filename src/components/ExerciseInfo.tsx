@@ -38,12 +38,14 @@ export function ExerciseInfo({
 }) {
   const [exercise, setExercise] = useState<ExerciseInfoSheetExercise | null>(null);
   const [stats, setStats] = useState<ExerciseInfoSheetStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
     if (!open) {
       setExercise(null);
       setStats(null);
+      setStatsLoading(false);
       return;
     }
 
@@ -66,6 +68,7 @@ export function ExerciseInfo({
       toast.error("Invalid exercise link");
       setExercise(null);
       setStats(null);
+      setStatsLoading(false);
       return;
     }
 
@@ -75,6 +78,7 @@ export function ExerciseInfo({
 
     let active = true;
     const controller = new AbortController();
+    setStatsLoading(true);
 
     async function load() {
       try {
@@ -94,6 +98,7 @@ export function ExerciseInfo({
           toast.error(`${resolvedMessage} (status ${response.status}, id ${normalizedExerciseId})`);
           setExercise(null);
           setStats(null);
+          setStatsLoading(false);
           return;
         }
 
@@ -109,17 +114,20 @@ export function ExerciseInfo({
           toast.error("Could not load exercise info.");
           setExercise(null);
           setStats(null);
+          setStatsLoading(false);
           return;
         }
 
         setExercise(successPayload.payload.exercise);
-        setStats(successPayload.payload.stats);
+        setStats(successPayload.payload.stats ?? null);
+        setStatsLoading(false);
       } catch (error) {
         if (!active || controller.signal.aborted) return;
         console.error("[ExerciseInfo] request failed", { exerciseId: normalizedExerciseId, status: "request-failed", error });
         toast.error(`Could not load exercise info. (status request-failed, id ${normalizedExerciseId})`);
         setExercise(null);
         setStats(null);
+        setStatsLoading(false);
       }
     }
 
@@ -131,5 +139,5 @@ export function ExerciseInfo({
     };
   }, [exerciseId, open, sourceContext, toast]);
 
-  return <ExerciseInfoSheet exercise={exercise} stats={stats} open={open} onOpenChange={onOpenChange} onClose={onClose} />;
+  return <ExerciseInfoSheet exercise={exercise} stats={stats} statsLoading={statsLoading} open={open} onOpenChange={onOpenChange} onClose={onClose} />;
 }

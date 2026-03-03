@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## 0.2.0 — 2026-03-02
 
+### Fixed
+WHAT:
+- Normalized Exercise Info so the Stats panel is always visible across all Exercise Info entry flows.
+- Added a stable empty-state message when an exercise has no recorded stats.
+WHY:
+- Removes confusing cases where the Stats section disappeared for some exercises and keeps Exercise Info layout consistent.
+
 ### Changed
 WHAT:
 - Prepared a minor production release by bumping the app version from 0.1.0 to 0.2.0.

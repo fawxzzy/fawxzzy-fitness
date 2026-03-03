@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
@@ -69,17 +69,20 @@ function formatWeightReps(weight: number | null, reps: number | null, unit: stri
 export function ExerciseInfoSheet({
   exercise,
   stats,
+  statsLoading,
   open,
   onOpenChange,
   onClose,
 }: {
   exercise: ExerciseInfoSheetExercise | null;
-  stats?: ExerciseInfoSheetStats | null;
+  stats: ExerciseInfoSheetStats | null;
+  statsLoading: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onClose?: () => void;
 }) {
   const router = useRouter();
+  const statsPanelId = useId();
   useBodyScrollLock(open);
 
   const handleClose = useCallback(() => {
@@ -121,6 +124,17 @@ export function ExerciseInfoSheet({
       statsExerciseId: stats?.exercise_id ?? null,
     });
   }, [canonicalExerciseId, exercise, stats]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || !open || !exercise) return;
+
+    const statsNode = document.getElementById(statsPanelId);
+    if (!statsNode) {
+      console.error("[ExerciseInfoSheet] invariant violated: stats panel is missing from DOM", {
+        exerciseId: canonicalExerciseId,
+      });
+    }
+  }, [canonicalExerciseId, exercise, open, statsPanelId]);
 
   if (!open || !exercise) return null;
 
@@ -175,27 +189,39 @@ export function ExerciseInfoSheet({
                 </div>
               ) : null}
 
-              {stats ? (
-                <div className="space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-2.5 py-2 text-xs text-muted">
-                  <p className={sectionTitleClassName}>Stats</p>
-                  {lastSummary ? (
-                    <p>
-                      Last: {lastSummary}
-                      {stats.last_performed_at ? ` · ${formatShortDate(stats.last_performed_at)}` : ""}
-                    </p>
-                  ) : null}
-                  {actualPrSummary ? (
-                    <p>
-                      Actual PR: {actualPrSummary}
-                      {stats.actual_pr_at ? ` · ${formatShortDate(stats.actual_pr_at)}` : ""}
-                    </p>
-                  ) : null}
-                  {e1rmSummary ? <p>Strength PR: {e1rmSummary}</p> : null}
-                  {!lastSummary && !actualPrSummary && !e1rmSummary ? (
-                    <p className="text-muted">No history yet</p>
-                  ) : null}
-                </div>
-              ) : null}
+              <div
+                id={statsPanelId}
+                data-testid="exercise-info-stats-box"
+                className="min-h-[94px] space-y-1 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-2.5 py-2 text-xs text-muted"
+              >
+                <p className={sectionTitleClassName}>Stats</p>
+                {statsLoading ? (
+                  <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
+                    <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
+                    <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
+                    <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
+                  </div>
+                ) : (
+                  <>
+                    {lastSummary ? (
+                      <p>
+                        Last: {lastSummary}
+                        {stats?.last_performed_at ? ` · ${formatShortDate(stats.last_performed_at)}` : ""}
+                      </p>
+                    ) : null}
+                    {actualPrSummary ? (
+                      <p>
+                        Actual PR: {actualPrSummary}
+                        {stats?.actual_pr_at ? ` · ${formatShortDate(stats.actual_pr_at)}` : ""}
+                      </p>
+                    ) : null}
+                    {e1rmSummary ? <p>Strength PR: {e1rmSummary}</p> : null}
+                    {!lastSummary && !actualPrSummary && !e1rmSummary ? (
+                      <p className="text-muted">No stats yet — log a set to generate stats.</p>
+                    ) : null}
+                  </>
+                )}
+              </div>
 
               <div className="space-y-1">
                 <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">

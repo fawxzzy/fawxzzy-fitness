@@ -116,6 +116,6 @@ export async function getExerciseInfoPayload(exerciseId: string, userId: string)
 
   return {
     exercise: exerciseWithImages,
-    stats,
+    stats: stats ?? null,
   };
 }
