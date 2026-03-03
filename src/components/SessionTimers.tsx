@@ -802,7 +802,7 @@ export function SetLoggerCard({
         {sets.length === 0 ? <li className="px-3 py-2 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
       </ul>
 
-      <BottomActionBar variant="sticky">
+      <BottomActionBar variant="fixed">
         <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
           Save Set
         </AppButton>
