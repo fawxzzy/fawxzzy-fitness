@@ -90,7 +90,6 @@ export function SessionExerciseFocus({
   toggleSkipAction,
   removeExerciseAction,
   deleteSetAction,
-  onBottomActionsChange,
 }: {
   sessionId: string;
   unitLabel: string;
@@ -102,7 +101,6 @@ export function SessionExerciseFocus({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
-  onBottomActionsChange?: (actions: React.ReactNode | null) => void;
 }) {
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
   const [setLoggerResetSignal, setSetLoggerResetSignal] = useState(0);
@@ -308,7 +306,6 @@ export function SessionExerciseFocus({
           planTargetsHash={selectedExercise.planTargetsHash}
           deleteSetAction={deleteSetAction}
           resetSignal={setLoggerResetSignal}
-          onBottomActionsChange={onBottomActionsChange}
           onSetCountChange={(count) => {
             setLoggedSetCounts((current) => ({ ...current, [selectedExercise.id]: count }));
           }}

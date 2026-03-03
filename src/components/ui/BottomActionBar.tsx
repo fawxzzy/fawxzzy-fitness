@@ -37,7 +37,7 @@ export function BottomActionBar({
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" && variant === "fixed") {
-      console.warn("[BottomActionBar] variant='fixed' is legacy; prefer sticky bottom actions rendered as last child of ScrollContainer.");
+      console.warn("[BottomActionBar] variant='fixed' is discouraged. Prefer screen-owned sticky bottom actions rendered as the last child of ScrollContainer (Today pattern).");
     }
   }, [variant]);
   const fixedContainerRef = useRef<HTMLDivElement | null>(null);

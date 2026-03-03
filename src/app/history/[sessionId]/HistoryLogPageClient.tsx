@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
 import { LogAuditClient } from "./LogAuditClient";
 import type { SessionSummary } from "../session-summary";
 
@@ -38,15 +37,10 @@ export function HistoryLogPageClient(props: {
   initialIsEditing: boolean;
   backHref: string;
 }) {
-  const [bottomActions, setBottomActions] = useState<React.ReactNode | null>(null);
-  const handleBottomActionsChange = useCallback((actions: React.ReactNode | null) => {
-    setBottomActions(actions);
-  }, []);
-
   return (
-    <>
-      <LogAuditClient {...props} onBottomActionsChange={handleBottomActionsChange} />
-      {bottomActions ? <BottomActionBar variant="sticky">{bottomActions}</BottomActionBar> : null}
-    </>
+    <BottomActionsProvider>
+      <LogAuditClient {...props} />
+      <BottomActionsSlot />
+    </BottomActionsProvider>
   );
 }
