@@ -24,6 +24,8 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
+import { formatCount, formatDateShort, formatDurationShort, formatSetDisplay } from "@/lib/formatting";
+import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
   id: string;
@@ -102,12 +104,8 @@ const formatSetSummary = (set: EditableSet, measurementType: AuditExercise["meas
   const weight = Number(set.values.weight);
   const reps = Number(set.values.reps);
 
-  if (weight > 0 && reps > 0) {
-    return `${set.values.weight} ${set.values.weightUnit} × ${set.values.reps}`;
-  }
-
-  if (reps > 0) return `${set.values.reps} reps`;
-  if (weight > 0) return `${set.values.weight} ${set.values.weightUnit}`;
+  const weightedDisplay = formatSetDisplay({ weight, reps, unit: set.values.weightUnit });
+  if (weightedDisplay) return weightedDisplay;
 
   if ((measurementType === "time" || measurementType === "time_distance") && set.source.duration_seconds !== null) {
     return formatDurationClock(set.source.duration_seconds);
@@ -156,10 +154,8 @@ export function LogAuditClient({
   exerciseNameMap,
   exercises,
   exerciseOptions,
-  routineName,
-  performedDateLabel,
-  performedTimeLabel,
-  durationLabel,
+  sessionSummary,
+  initialIsEditing,
   backHref,
 }: {
   logId: string;
@@ -169,16 +165,14 @@ export function LogAuditClient({
   exerciseNameMap: Record<string, string>;
   exercises: AuditExercise[];
   exerciseOptions: Array<{ id: string; name: string; user_id: string | null; is_global: boolean }>;
-  routineName: string;
-  performedDateLabel: string;
-  performedTimeLabel: string;
-  durationLabel: string;
+  sessionSummary: SessionSummary;
+  initialIsEditing: boolean;
   backHref: string;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialIsEditing);
   const [dayName, setDayName] = useState(initialDayName);
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
   const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseOptions[0]?.id ?? "");
@@ -350,6 +344,13 @@ export function LogAuditClient({
     });
   };
 
+  const summaryParts = [
+    sessionSummary.durationSec ? formatDurationShort(sessionSummary.durationSec) : null,
+    formatCount(sessionSummary.exerciseCount, "exercise"),
+    formatCount(sessionSummary.setCount, "set"),
+    sessionSummary.prCount > 0 ? formatCount(sessionSummary.prCount, "PR") : null,
+  ].filter((part): part is string => Boolean(part));
+
   return (
     <>
       <AppPanel className={`relative space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
@@ -378,9 +379,9 @@ export function LogAuditClient({
           </div>
         ) : (
           <div className="flex flex-col items-start justify-start space-y-1 pr-14 text-left">
-            <p className="text-base font-semibold text-[rgb(var(--text)/0.98)]">{routineName} | {durationLabel}</p>
-            <p className="line-clamp-2 text-sm text-[rgb(var(--text-muted)/0.9)]">{dayName || "Day"}</p>
-            <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">{performedDateLabel} | {performedTimeLabel}</p>
+            <p className="line-clamp-2 text-base font-semibold text-[rgb(var(--text)/0.98)]">{sessionSummary.routineTitle}</p>
+            <p className="line-clamp-2 text-sm text-[rgb(var(--text-muted)/0.9)]">{sessionSummary.dayTitle ? `${sessionSummary.dayTitle} — ${formatDateShort(sessionSummary.startedAt)}` : formatDateShort(sessionSummary.startedAt)}</p>
+            <p className="line-clamp-1 text-xs text-[rgb(var(--text-muted)/0.75)]">{summaryParts.join(" • ")}</p>
           </div>
         )}
       </AppPanel>
@@ -505,7 +506,7 @@ export function LogAuditClient({
               modalTitle="Delete log?"
               modalDescription="This will permanently delete this workout session and all logged sets."
               confirmLabel="Delete"
-              contextLines={[`${routineName}`, `${performedDateLabel} • ${durationLabel} • ${performedTimeLabel}`]}
+              contextLines={[`${sessionSummary.routineTitle}`, `${formatDateShort(sessionSummary.startedAt)}${sessionSummary.durationSec ? ` • ${formatDurationShort(sessionSummary.durationSec)}` : ""}`]}
             />
           </>
         )}

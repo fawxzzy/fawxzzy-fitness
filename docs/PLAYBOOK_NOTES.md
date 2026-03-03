@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Derive feed summaries once in loaders for performance-first history cards
+- Type: Pattern
+- Summary: For list-heavy history surfaces, derive compact summary view models (counts, highlights, formatted-ready metadata) once in server loaders/transformers and pass only the summary shape to card renderers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents repeated per-card aggregation in render loops and keeps mobile scrolling predictable as history feeds grow.
+- Evidence: src/app/history/page.tsx, src/app/history/session-summary.ts, src/app/history/HistorySessionsClient.tsx
+- Status: Proposed
+
 ## 2026-03-03 — Enforce mobile safe-area contracts with a single scroll-owner reserve
 - Type: Guardrail
 - Summary: Keep top/bottom viewport spacing deterministic by letting the page shell own both top inset/header offset and bottom fixed-bar reserve, and remove per-screen spacing compensation.

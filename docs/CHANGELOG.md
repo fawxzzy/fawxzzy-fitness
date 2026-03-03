@@ -2,15 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
-## 0.3.6 - 2026-03-03
+## 0.3.6 — 2026-03-03
 
 ### WHAT
-- Updated the Routines switcher summary metadata to remove cycle length and show only training/rest day counts.
-- Cleaned up duplicated changelog document blocks so release entries live in one canonical changelog stream.
+- Redesigned History → Sessions cards in both Details and Compact modes with clearer hierarchy, a shared performance summary row, and optional top-set context in Details mode.
+- Added server-derived `SessionSummary` shaping for History sessions and reused that summary in Log View header rendering.
+- Added per-session 3-dot context menu actions on History cards (Edit, Delete, and disabled placeholders for future Perform Again / Save as Template actions).
+- Added shared formatting helpers for short duration, counts, weight/set display, and short date labels, then applied them to History Sessions and Log View summary surfaces.
 
 ### WHY
-- Keeps routine summary text compact and focused on the day breakdown users requested.
-- Restores changelog readability and prevents future release entries from being appended into duplicate sections.
+- Makes history feel like a performance archive with faster scanability and consistent summary language.
+- Keeps summary derivation deterministic and efficient by computing once during load/transform instead of during card render loops.
+- Preserves existing data safety boundaries while preparing a clean path for the next Log View upgrade pass.
 
 ## 0.3.5 — 2026-03-03
 
@@ -2321,4 +2324,3 @@ WHY:
 ### WHY
 - Removes excess empty space in the shared action panel and makes CTA placement feel tighter and more predictable on mobile.
 - Ensures critical actions remain reachable on long, scrollable detail screens without overlay-style content blocking.
-
