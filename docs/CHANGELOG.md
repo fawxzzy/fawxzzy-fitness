@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### WHAT
+- Ensured History Log Detail and Current Session Exercise Detail both keep a single AppShell scroll owner and render their sticky bottom actions as the last in-flow content element.
+- Moved the Current Session “Save Set” sticky action out of the set logger card so it anchors at the bottom of the shared screen scroll container.
+- Locked AppShell/ScrollContainer to the intended viewport-owned scrolling contract (`h-[100dvh]`, shell overflow hidden, scroll container overflow-y-auto + overflow-x-hidden).
+
+### WHY
+- Restores deterministic sticky behavior on both detail screens so primary actions stay visible while scrolling instead of dropping to normal-flow page bottom.
+
+## 0.3.6 - 2026-03-03
 ## 0.3.6 — 2026-03-03
 
 ### WHAT

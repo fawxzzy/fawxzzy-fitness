@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { AppButton } from "@/components/ui/AppButton";
 import { BackButton } from "@/components/ui/BackButton";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
@@ -107,6 +108,7 @@ export function SessionExerciseFocus({
   const [loggedSetCounts, setLoggedSetCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount])),
   );
+  const [actionBarState, setActionBarState] = useState<{ onSave: () => void; isSaveDisabled: boolean } | null>(null);
   const focusedRef = useRef<HTMLElement | null>(null);
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
@@ -306,11 +308,20 @@ export function SessionExerciseFocus({
           planTargetsHash={selectedExercise.planTargetsHash}
           deleteSetAction={deleteSetAction}
           resetSignal={setLoggerResetSignal}
+          onActionBarStateChange={setActionBarState}
           onSetCountChange={(count) => {
             setLoggedSetCounts((current) => ({ ...current, [selectedExercise.id]: count }));
           }}
         />
         </>
+      ) : null}
+
+      {selectedExercise && actionBarState ? (
+        <BottomActionBar variant="sticky">
+          <AppButton type="button" onClick={actionBarState.onSave} disabled={actionBarState.isSaveDisabled} variant="primary" fullWidth>
+            Save Set
+          </AppButton>
+        </BottomActionBar>
       ) : null}
     </div>
   );
