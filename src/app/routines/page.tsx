@@ -132,7 +132,7 @@ export default async function RoutinesPage() {
   return (
     <AppShell className="h-[100dvh] gap-3">
       <AppNav />
-      <div className="flex-1 min-h-0">
+      <div className="mt-3 flex-1 min-h-0">
         <ScrollContainer className={FIXED_CTA_RESERVE_CLASS}>
           <Glass variant="base" className="space-y-3 p-3" interactive={false}>
             {routines.length === 0 ? (

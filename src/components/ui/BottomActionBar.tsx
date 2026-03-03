@@ -4,8 +4,6 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 export const BOTTOM_ACTION_BAR_HEIGHT_PX = 120;
-// Apply this to the one vertical scroll-owner container on routes that render variant="fixed".
-// Do not add extra bottom padding elsewhere to compensate for overlap.
 export const FIXED_CTA_RESERVE_CLASS = `pb-[calc(${BOTTOM_ACTION_BAR_HEIGHT_PX}px+env(safe-area-inset-bottom,0px)+3px)]`;
 export const BOTTOM_ACTION_BAR_CONTENT_RESERVE_CLASS = FIXED_CTA_RESERVE_CLASS;
 
