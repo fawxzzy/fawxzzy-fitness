@@ -10,6 +10,7 @@ import {
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
+import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { AppButton } from "@/components/ui/AppButton";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
@@ -93,8 +94,7 @@ export function SetLoggerCard({
   routineDayExerciseId,
   planTargetsHash,
   deleteSetAction,
-  resetSignal,
-  onBottomActionsChange,
+  resetSignal
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -124,7 +124,6 @@ export function SetLoggerCard({
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
-  onBottomActionsChange?: (actions: React.ReactNode | null) => void;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -669,10 +668,7 @@ export function SetLoggerCard({
     [handleLogSet, isSaveDisabled],
   );
 
-  useEffect(() => {
-    onBottomActionsChange?.(saveSetActions);
-    return () => onBottomActionsChange?.(null);
-  }, [onBottomActionsChange, saveSetActions]);
+  usePublishBottomActions(saveSetActions);
 
 
   async function handleDeleteSet(set: DisplaySet) {

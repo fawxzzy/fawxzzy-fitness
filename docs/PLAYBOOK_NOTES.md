@@ -10,6 +10,15 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+
+## 2026-03-03 — Screen-owned sticky bottom actions should be slotted once per scroll screen
+- Type: Pattern
+- Summary: Bottom actions should be screen-owned and rendered once via a sticky slot as the last child of the scroll-content stack, while feature components only publish action content.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents iOS/mobile overlap and clipping regressions from feature-mounted fixed bars inside nested content wrappers while preserving a single scroll owner.
+- Evidence: src/components/layout/bottom-actions.tsx, src/components/SessionPageClient.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/HistoryLogPageClient.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed
+
 ## 2026-03-03 — Canonical exercise ids are required before session set logging
 - Type: Guardrail
 - Summary: Session/log-history write paths must resolve exercise identifiers to canonical `exercises.id` before inserting `session_exercises`; unresolved identifiers should fail fast and never create unlinked rows.

@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
+import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
@@ -88,7 +88,6 @@ export function SessionPageClient({
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [bottomActions, setBottomActions] = useState<React.ReactNode | null>(null);
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(() => getElapsedDuration(baseDurationSeconds, performedAt));
 
@@ -109,44 +108,41 @@ export function SessionPageClient({
     [hasExercises],
   );
 
-  const handleBottomActionsChange = useCallback((actions: React.ReactNode | null) => {
-    setBottomActions(actions);
-  }, []);
-
   return (
-    <section className="space-y-4">
-      {!isExerciseOpen ? (
-        <SessionHeaderControls
-          sessionId={sessionId}
-          durationSeconds={durationSeconds}
-          saveSessionAction={saveSessionAction}
-          quickAddAction={quickAddAction}
-        />
-      ) : null}
+    <BottomActionsProvider>
+      <section className="space-y-4">
+        {!isExerciseOpen ? (
+          <SessionHeaderControls
+            sessionId={sessionId}
+            durationSeconds={durationSeconds}
+            saveSessionAction={saveSessionAction}
+            quickAddAction={quickAddAction}
+          />
+        ) : null}
 
-      {!isExerciseOpen ? <h1 className="text-lg font-semibold leading-tight text-text">{sessionTitle}</h1> : null}
+        {!isExerciseOpen ? <h1 className="text-lg font-semibold leading-tight text-text">{sessionTitle}</h1> : null}
 
-      {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
-      <ActionFeedbackToasts />
+        {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
+        <ActionFeedbackToasts />
 
-      {hasExercises ? (
-        <SessionExerciseFocus
-          sessionId={sessionId}
-          unitLabel={unitLabel}
-          exercises={exercises}
-          selectedExerciseId={selectedExerciseId}
-          onSelectedExerciseIdChange={setSelectedExerciseId}
-          addSetAction={addSetAction}
-          syncQueuedSetLogsAction={syncQueuedSetLogsAction}
-          toggleSkipAction={toggleSkipAction}
-          removeExerciseAction={removeExerciseAction}
-          deleteSetAction={deleteSetAction}
-          onBottomActionsChange={handleBottomActionsChange}
-        />
-      ) : null}
+        {hasExercises ? (
+          <SessionExerciseFocus
+            sessionId={sessionId}
+            unitLabel={unitLabel}
+            exercises={exercises}
+            selectedExerciseId={selectedExerciseId}
+            onSelectedExerciseIdChange={setSelectedExerciseId}
+            addSetAction={addSetAction}
+            syncQueuedSetLogsAction={syncQueuedSetLogsAction}
+            toggleSkipAction={toggleSkipAction}
+            removeExerciseAction={removeExerciseAction}
+            deleteSetAction={deleteSetAction}
+          />
+        ) : null}
 
-      {emptyState}
-      {bottomActions ? <BottomActionBar variant="sticky">{bottomActions}</BottomActionBar> : null}
-    </section>
+        {emptyState}
+      </section>
+      <BottomActionsSlot />
+    </BottomActionsProvider>
   );
 }

@@ -2439,3 +2439,10 @@ WHAT:
 WHY:
 - Eliminates fixed-overlay overlap issues at the bottom of long scrollable screens on iOS/mobile by making bottom actions layout-aware.
 - Keeps bottom action behavior consistent across key app surfaces and easier to maintain under the single-scroll-owner contract.
+
+### Changed
+WHAT:
+- Introduced a reusable, screen-owned sticky bottom-actions pattern using a shared provider/slot + publish hook, and migrated Session Save Set plus History Log Edit/Delete/Cancel/Save to that pattern.
+WHY:
+- Standardizes bottom actions to the Today layout contract and prevents overlap/clipping issues from feature-level fixed bars on long mobile scroll screens.
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   addLogExerciseAction,
@@ -13,6 +13,7 @@ import {
   updateLogMetaAction,
 } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { AppBadge } from "@/components/ui/app/AppBadge";
@@ -155,8 +156,7 @@ export function LogAuditClient({
   exerciseOptions,
   sessionSummary,
   initialIsEditing,
-  backHref,
-  onBottomActionsChange,
+  backHref
 }: {
   logId: string;
   initialDayName: string;
@@ -168,7 +168,6 @@ export function LogAuditClient({
   sessionSummary: SessionSummary;
   initialIsEditing: boolean;
   backHref: string;
-  onBottomActionsChange?: (actions: React.ReactNode | null) => void;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -292,10 +291,7 @@ export function LogAuditClient({
     );
   }, [handleCancel, handleSave, handleStartEditing, isEditing, isPending, logId, sessionSummary.durationSec, sessionSummary.routineTitle, sessionSummary.startedAt]);
 
-  useEffect(() => {
-    onBottomActionsChange?.(actionsNode);
-    return () => onBottomActionsChange?.(null);
-  }, [actionsNode, onBottomActionsChange]);
+  usePublishBottomActions(actionsNode);
 
   const updateEditableSet = (exerciseId: string, setId: string, updater: (set: EditableSet) => EditableSet) => {
     setEditableSets((current) => ({
