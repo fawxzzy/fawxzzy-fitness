@@ -41,19 +41,13 @@ export function BottomActionBar({
     }
   }, [variant]);
   const fixedContainerRef = useRef<HTMLDivElement | null>(null);
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!isPortaled) {
-      return;
+  const [portalRoot] = useState<HTMLElement | null>(() => {
+    if (!isPortaled || typeof window === "undefined") {
+      return null;
     }
 
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setPortalRoot(getOrCreateBottomBarPortalRoot());
-  }, [isPortaled]);
+    return getOrCreateBottomBarPortalRoot();
+  });
 
   useEffect(() => {
     if (!isPortaled || !fixedContainerRef.current || typeof window === "undefined") {
