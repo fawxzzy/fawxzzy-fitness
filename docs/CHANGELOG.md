@@ -2408,7 +2408,9 @@ WHY:
 ## 0.3.11 — 2026-03-03
 
 ### WHAT
-- (fill in)
+- Normalized `BottomActionBar` fixed behavior so fixed variants render through a shared viewport-level portal root instead of inheriting nested scroll container behavior.
+- Updated the fixed-bottom reserve contract to use a measured CSS variable fallback (`--app-bottom-action-bar-height`, defaulting to 120px) for scroll-owner padding.
+- Kept Routine Day, History Log Details, and Current Session reserve ownership on their single `ScrollContainer` scroll roots.
 
 ### WHY
 - Prevents recurring iOS overlap bugs where fixed bars rendered inside overflow scrollers clip/anchor inconsistently and hide final rows.
