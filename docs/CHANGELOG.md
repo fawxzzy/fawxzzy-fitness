@@ -2396,8 +2396,12 @@ WHY:
 ## 0.3.11 — 2026-03-03
 
 ### WHAT
-- (fill in)
+- Portaled `BottomActionBar` when `variant="fixed"` so fixed action bars mount at `document.body` and remain viewport-fixed regardless of nested scroll containers.
+- Updated the shared fixed CTA reserve contract to use a measured `--app-bottom-action-bar-height` CSS variable with a `120px` fallback.
+- Kept Routine Day, History Log, and Session pages on the existing single-scroll-owner `FIXED_CTA_RESERVE_CLASS` contract.
 
 ### WHY
-- (fill in)
+- Prevents recurring iOS overlap bugs where fixed bars rendered inside overflow scrollers clip/anchor inconsistently and hide final rows.
+- Keeps bottom reserve spacing resilient if fixed action bar height changes over time without requiring per-screen padding rewrites.
+- Reinforces one normalized, future-proof fixed-bottom-bar contract across affected routes.
 

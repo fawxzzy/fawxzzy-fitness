@@ -748,3 +748,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Sticky in-flow actions eliminate overlap bugs and dead-space drift caused by fixed overlays, nested scroll owners, and bar-height reserve math.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx, src/components/SessionTimers.tsx, src/app/session/[id]/page.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
 - Status: Proposed
+
+## 2026-03-03 — Portal viewport-fixed bottom actions out of scroll containers
+- Type: Guardrail
+- Summary: Components using viewport-fixed bottom action bars should render the fixed layer through a shared `document.body` portal root, while the page scroll owner reserves bottom reachability exactly once.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents iOS overflow-container clipping/anchoring issues where nested `position: fixed` bars overlap tail content despite local padding reserves.
+- Evidence: src/components/ui/BottomActionBar.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/session/[id]/page.tsx
+- Status: Proposed
