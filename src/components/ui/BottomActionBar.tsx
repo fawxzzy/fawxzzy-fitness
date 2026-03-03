@@ -33,9 +33,9 @@ export function BottomActionBar({
     const updateHeight = () => {
       const rootStyles = window.getComputedStyle(target);
       const panelHeight = panel.getBoundingClientRect().height;
-      const bottomInset = parseCssPx(rootStyles.getPropertyValue("--app-bottom-inset"));
-      const bottomGap = parseCssPx(rootStyles.getPropertyValue("--app-bottom-gap"));
-      const visibleHeight = Math.max(0, panelHeight - (bottomInset + bottomGap));
+      const safeAreaInsetBottom = parseCssPx(rootStyles.getPropertyValue("--app-bottom-inset"));
+      const gap = parseCssPx(rootStyles.getPropertyValue("--app-bottom-gap"));
+      const visibleHeight = Math.max(0, panelHeight - (safeAreaInsetBottom + gap));
       target.style.setProperty("--app-bottom-bar-height", `${visibleHeight}px`);
     };
 
