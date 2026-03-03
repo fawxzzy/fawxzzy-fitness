@@ -2,103 +2,123 @@
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+import { deleteCompletedSessionAction } from "@/app/actions/history";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ViewModeSelect } from "@/components/ui/app/ViewModeSelect";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
+import type { SessionSummary } from "./session-summary";
 
 type ViewMode = "list" | "compact";
 
-type HistorySessionItem = {
-  id: string;
-  name: string;
-  dayLabel: string;
-  durationSeconds: number;
-  performedAt: string;
-};
-
 type HistorySessionsClientProps = {
-  sessions: HistorySessionItem[];
+  sessions: SessionSummary[];
   initialViewMode: ViewMode;
 };
 
 const VIEW_MODE_STORAGE_KEY = "history:sessions:view-mode";
-const HISTORY_LOCALE = "en-US";
-const HISTORY_TIMEZONE = "America/Toronto";
 
-function formatDuration(seconds: number) {
-  const safe = Math.max(0, Math.floor(seconds || 0));
-  const hours = Math.floor(safe / 3600);
-  const minutes = Math.floor((safe % 3600) / 60);
-  const remainingSeconds = safe % 60;
+function performanceParts(session: SessionSummary) {
+  const parts = [
+    session.durationSec ? formatDurationShort(session.durationSec) : null,
+    formatCount(session.exerciseCount, "exercise"),
+    formatCount(session.setCount, "set"),
+    session.prCount > 0 ? formatCount(session.prCount, "PR") : null,
+  ].filter((part): part is string => Boolean(part));
 
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  if (minutes > 0) {
-    return `${minutes}m`;
-  }
-
-  return `${remainingSeconds}s`;
+  return parts;
 }
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(HISTORY_LOCALE, {
-    timeZone: HISTORY_TIMEZONE,
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
+function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec }: {
+  sessionId: string;
+  mode: ViewMode;
+  routineTitle: string;
+  startedAt: string;
+  durationSec?: number;
+}) {
+  const [open, setOpen] = useState(false);
 
-function formatTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(HISTORY_LOCALE, {
-    timeZone: HISTORY_TIMEZONE,
-    hour: "numeric",
-    hour12: true,
-  }).format(date);
+  return (
+    <div className="relative z-20" onClick={(event) => event.stopPropagation()}>
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/15 bg-black/20 text-sm text-slate-200 transition-colors hover:bg-black/35"
+      >
+        ⋯
+      </button>
+
+      {open ? (
+        <div className="absolute right-0 top-9 w-44 rounded-lg border border-white/15 bg-[rgb(var(--surface-rgb)/0.98)] p-1 shadow-xl">
+          <Link
+            href={`/history/${sessionId}?returnTab=sessions&view=${mode}&edit=1`}
+            className="block rounded-md px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
+          >
+            Edit
+          </Link>
+          <button type="button" disabled className="block w-full cursor-not-allowed rounded-md px-3 py-2 text-left text-sm text-slate-500">Perform Again (Coming soon)</button>
+          <button type="button" disabled className="block w-full cursor-not-allowed rounded-md px-3 py-2 text-left text-sm text-slate-500">Save as Template (Coming soon)</button>
+          <div className="px-1 py-1">
+            <ConfirmedServerFormButton
+              action={deleteCompletedSessionAction}
+              hiddenFields={{ sessionId }}
+              triggerLabel="Delete"
+              triggerAriaLabel="Delete session"
+              triggerClassName={getAppButtonClassName({ variant: "destructive", size: "sm", className: "w-full justify-center" })}
+              modalTitle="Delete log?"
+              modalDescription="This will permanently delete this workout session and all logged sets."
+              confirmLabel="Delete"
+              contextLines={[routineTitle, `${formatDateShort(startedAt)}${durationSec ? ` • ${formatDurationShort(durationSec)}` : ""}`]}
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function HistorySessionRow({
   session,
   mode,
 }: {
-  session: HistorySessionItem;
+  session: SessionSummary;
   mode: ViewMode;
 }) {
-  const routineTitle = session.name || "Session";
-  const dayTitle = session.dayLabel || "Custom session";
-  const timeOnly = formatTime(session.performedAt);
-  const dateOnly = formatDate(session.performedAt);
-  const durationLabel = `Duration: ${formatDuration(session.durationSeconds)}`;
-
-  const compactParts = [routineTitle || "Routine", dayTitle || "Day", dateOnly].filter((part) => part.length > 0);
-  const detailsPrimaryParts = [dayTitle, dateOnly].filter((part) => part.length > 0);
-  const detailsSecondaryParts = [durationLabel, `Started: ${timeOnly}`].filter((part) => part.length > 0);
+  const routineTitle = session.routineTitle || "Unknown routine";
+  const secondaryLine = session.dayTitle ? `${session.dayTitle} — ${formatDateShort(session.startedAt)}` : formatDateShort(session.startedAt);
+  const performanceRow = performanceParts(session).join(" • ");
 
   return (
-    <Link
-      href={`/history/${session.id}?returnTab=sessions&view=${mode}`}
-      aria-label={`View session details for ${session.name || "session"}`}
-      className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-    >
-      <AppPanel clip className={`${mode === "compact" ? "p-2" : "p-3"} transition-colors hover:border-border/70 active:scale-[0.99]`}>
-        {mode === "list" ? (
-          <div className="text-left">
-            <p className="whitespace-normal break-words text-sm font-semibold text-slate-100">{routineTitle}</p>
-            <p className="mt-1 whitespace-normal break-words text-sm text-slate-300">{detailsPrimaryParts.join(" | ")}</p>
-            <p className="mt-1 whitespace-normal break-words text-sm text-slate-400">{detailsSecondaryParts.join(" | ")}</p>
-          </div>
-        ) : (
-          <div className="flex min-h-[40px] items-center justify-center text-center">
-            <p className="w-full truncate text-sm font-semibold text-slate-100">{compactParts.join(" | ")}</p>
-          </div>
-        )}
-      </AppPanel>
-    </Link>
+    <AppPanel clip className={`${mode === "compact" ? "p-2.5" : "p-3"} transition-colors hover:border-border/70`}>
+      <div className="relative flex min-h-[74px] flex-col gap-1 pr-12">
+        <Link
+          href={`/history/${session.id}?returnTab=sessions&view=${mode}`}
+          aria-label={`View session details for ${routineTitle}`}
+          className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+        />
+
+        <p className="line-clamp-2 text-sm font-semibold text-slate-100">{routineTitle}</p>
+        <p className="line-clamp-1 text-xs text-slate-300">{secondaryLine}</p>
+        <p className="line-clamp-1 text-xs text-slate-400">{performanceRow}</p>
+        {mode === "list" && session.topSet ? (
+          <p className="line-clamp-1 text-xs text-slate-400">Top Set: {session.topSet.exerciseName} — {session.topSet.display}</p>
+        ) : null}
+
+        <div className="absolute right-0 top-0">
+          <SessionCardMenu
+            sessionId={session.id}
+            mode={mode}
+            routineTitle={routineTitle}
+            startedAt={session.startedAt}
+            durationSec={session.durationSec}
+          />
+        </div>
+      </div>
+    </AppPanel>
   );
 }
 

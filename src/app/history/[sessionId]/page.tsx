@@ -3,16 +3,16 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
-import { formatDurationClock } from "@/lib/duration";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { LogAuditClient } from "./LogAuditClient";
+import { buildSessionSummary } from "../session-summary";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: { sessionId: string };
-  searchParams?: { returnTab?: string; view?: string };
+  searchParams?: { returnTab?: string; view?: string; edit?: string };
 };
 
 export default async function HistoryLogDetailsPage({ params, searchParams }: PageProps) {
@@ -94,10 +94,37 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
   const exerciseOptions = await listExercises();
   const returnView = searchParams?.view === "compact" ? "compact" : "list";
   const backHref = `/history?tab=sessions&view=${returnView}`;
-  const performedAt = new Date(sessionRow.performed_at);
-  const performedDateLabel = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(performedAt);
-  const performedTimeLabel = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(performedAt);
-  const durationLabel = sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00";
+
+  const exerciseIds = orderedSessionExercises.map((exercise) => exercise.exercise_id);
+  const { data: exerciseStats } = exerciseIds.length
+    ? await supabase
+      .from("exercise_stats_cache")
+      .select("exercise_id, actual_pr_at")
+      .eq("user_id", user.id)
+      .in("exercise_id", exerciseIds)
+    : { data: [] };
+  const prExerciseIds = new Set<string>();
+  for (const stat of exerciseStats ?? []) {
+    if (stat.actual_pr_at && stat.actual_pr_at === sessionRow.performed_at) {
+      prExerciseIds.add(stat.exercise_id);
+    }
+  }
+
+  const sessionSummary = buildSessionSummary({
+    sessionRow,
+    routineTitle: routineName,
+    dayTitle: effectiveDayName,
+    sessionExercises: orderedSessionExercises.map((exercise) => ({
+      id: exercise.id,
+      session_id: exercise.session_id,
+      exercise_id: exercise.exercise_id,
+    })),
+    setsBySessionExerciseId: new Map(Array.from(setsByExercise.entries())),
+    exerciseNameById: exerciseNameMap,
+    prExerciseIds,
+  });
+
+  const initialIsEditing = searchParams?.edit === "1";
 
   return (
     <AppShell className="gap-4" topNavMode="none">
@@ -109,10 +136,8 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
           unitLabel={unitLabel}
           exerciseNameMap={exerciseNameRecord}
           exerciseOptions={exerciseOptions}
-          routineName={routineName}
-          performedDateLabel={performedDateLabel}
-          performedTimeLabel={performedTimeLabel}
-          durationLabel={durationLabel}
+          sessionSummary={sessionSummary}
+          initialIsEditing={initialIsEditing}
           backHref={backHref}
           exercises={orderedSessionExercises.map((exercise) => ({
             id: exercise.id,
