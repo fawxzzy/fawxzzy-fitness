@@ -14,6 +14,7 @@ type RoutineItem = {
 type RoutineSwitcherBarProps = {
   activeRoutineId: string | null;
   activeRoutineName: string;
+  activeRoutineSummary?: string;
   routines: RoutineItem[];
   setActiveRoutineAction: (formData: FormData) => Promise<void>;
 };
@@ -21,6 +22,7 @@ type RoutineSwitcherBarProps = {
 export function RoutineSwitcherBar({
   activeRoutineId,
   activeRoutineName,
+  activeRoutineSummary,
   routines,
   setActiveRoutineAction,
 }: RoutineSwitcherBarProps) {
@@ -62,8 +64,10 @@ export function RoutineSwitcherBar({
         aria-controls="routine-switcher-sheet"
       >
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-text">{activeRoutineName}</span>
-          <span className="mt-1 block h-0.5 w-10 rounded-full bg-accent/60" aria-hidden="true" />
+          <span className="block truncate text-sm leading-5 text-text">
+            <span className="font-semibold">{activeRoutineName}</span>
+            {activeRoutineSummary ? <span className="font-medium text-muted">{` | ${activeRoutineSummary}`}</span> : null}
+          </span>
         </span>
         <span className={`text-xs text-muted transition-transform ${open ? "rotate-180" : "rotate-0"}`} aria-hidden="true">
           ⌄

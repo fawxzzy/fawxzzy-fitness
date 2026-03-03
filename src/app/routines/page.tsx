@@ -2,11 +2,11 @@ import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { RoutineSwitcherBar } from "@/components/RoutineSwitcherBar";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { appTokens } from "@/components/ui/app/tokens";
+import { BottomActionBar, BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
 import { Glass } from "@/components/ui/Glass";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -128,7 +128,7 @@ export default async function RoutinesPage() {
   }
 
   return (
-    <MainTabScreen>
+    <MainTabScreen className={activeRoutine ? BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS : undefined}>
       <AppNav />
 
       <Glass variant="base" className="space-y-3 p-3" interactive={false}>
@@ -147,6 +147,7 @@ export default async function RoutinesPage() {
             <RoutineSwitcherBar
               activeRoutineId={activeRoutine?.id ?? null}
               activeRoutineName={activeRoutine?.name ?? "Select routine"}
+              activeRoutineSummary={activeRoutine ? `${cycleLength}-day cycle` : undefined}
               routines={routines.map((routine) => ({
                 id: routine.id,
                 name: routine.name,
@@ -157,20 +158,10 @@ export default async function RoutinesPage() {
 
             {activeRoutine ? (
               <AppPanel className="space-y-4">
-                <AppHeader
-                  title={activeRoutine.name}
-                  subtitleLeft={`${cycleLength}-day cycle`}
-                  subtitleRight={`${trainingDays} training • ${restDays} rest`}
-                  action={(
-                    <Link
-                      href={`/routines/${activeRoutine.id}/edit`}
-                      aria-label={`Edit ${activeRoutine.name} routine`}
-                      className={getAppButtonClassName({ variant: "secondary", size: "sm", className: "min-h-11 px-3" })}
-                    >
-                      Edit
-                    </Link>
-                  )}
-                />
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                  <p className={appTokens.mutedText}>{`${cycleLength}-day cycle`}</p>
+                  <p className={appTokens.metaText}>{`${trainingDays} training • ${restDays} rest`}</p>
+                </div>
 
                 <ul className="space-y-3 text-sm text-muted">
                   {sortedActiveRoutineDays.map((day, index) => {
@@ -201,6 +192,18 @@ export default async function RoutinesPage() {
                   ) : null}
                 </ul>
               </AppPanel>
+            ) : null}
+
+            {activeRoutine ? (
+              <BottomActionBar>
+                <Link
+                  href={`/routines/${activeRoutine.id}/edit`}
+                  aria-label={`Edit ${activeRoutine.name} routine`}
+                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                >
+                  Edit routine
+                </Link>
+              </BottomActionBar>
             ) : null}
           </>
         )}

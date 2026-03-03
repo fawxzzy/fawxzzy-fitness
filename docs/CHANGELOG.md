@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Polished the Routine screen header by removing duplicate standalone title/subtitle text, moving the Routine edit action into the shared bottom action bar, and showing routine subtitle context inline in the routine switch trigger as `Title | subtitle`.
+- Normalized Today in-progress workout controls so “Resume Workout” and “Discard Workout” use matching button sizing, padding, and shape while keeping the destructive color treatment for discard.
+WHY:
+- Reduces header clutter, keeps routine-switch context in one compact control, improves action discoverability with a consistent bottom CTA pattern, and prevents visual drift between paired resume/discard actions.
+
+### Fixed
+WHAT:
 - Updated Day Viewer → Edit Day navigation so Edit Day back now returns to the originating Day Viewer route context.
 - Simplified Day Viewer and Today headers by removing subtitle lines and normalizing Today title format to “Routine Name | Day Name” while keeping the exercise-count indicator.
 - Added a consistent full goal line on planned exercise cards across Day Viewer and Today surfaces, including a fallback when a goal is unset.
