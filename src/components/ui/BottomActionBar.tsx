@@ -33,7 +33,7 @@ export function BottomActionBar({
   innerClassName?: string;
   variant?: "sticky" | "fixed";
 }) {
-  const isFixed = variant === "fixed";
+  const isPortaled = variant === "sticky" || variant === "fixed";
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" && variant === "fixed") {
@@ -44,7 +44,7 @@ export function BottomActionBar({
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!isFixed) {
+    if (!isPortaled) {
       return;
     }
 
@@ -53,10 +53,10 @@ export function BottomActionBar({
     }
 
     setPortalRoot(getOrCreateBottomBarPortalRoot());
-  }, [isFixed]);
+  }, [isPortaled]);
 
   useEffect(() => {
-    if (!isFixed || !fixedContainerRef.current || typeof window === "undefined") {
+    if (!isPortaled || !fixedContainerRef.current || typeof window === "undefined") {
       return;
     }
 
@@ -82,20 +82,19 @@ export function BottomActionBar({
 
     return () => {
       observer.disconnect();
-      document.documentElement.style.removeProperty("--app-bottom-action-bar-height");
     };
-  }, [isFixed]);
+  }, [isPortaled]);
 
   const content = useMemo(() => (
     <div
-      ref={isFixed ? fixedContainerRef : undefined}
+      ref={isPortaled ? fixedContainerRef : undefined}
       className={cn(
         "app-bottom-action-bar",
-        isFixed ? "pointer-events-none fixed inset-x-0 bottom-0 z-50" : "sticky bottom-0 z-50 pt-[3px]",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-50",
         className,
       )}
     >
-      <div className={cn("mx-auto w-full max-w-md px-3", isFixed ? "pointer-events-auto" : undefined)}>
+      <div className={cn("mx-auto w-full max-w-md px-3 pointer-events-auto")}>
         <div
           className={cn(
             "flex items-center justify-center gap-3 rounded-2xl border border-[rgb(var(--glass-tint-rgb)/0.34)] bg-[rgb(var(--glass-tint-rgb)/0.72)] px-4 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+3px)] shadow-[0_10px_24px_rgb(0_0_0/0.32)] backdrop-blur-md",
@@ -107,9 +106,9 @@ export function BottomActionBar({
         </div>
       </div>
     </div>
-  ), [children, className, innerClassName, isFixed]);
+  ), [children, className, innerClassName, isPortaled]);
 
-  if (isFixed && portalRoot) {
+  if (isPortaled && portalRoot) {
     return createPortal(content, portalRoot);
   }
 
