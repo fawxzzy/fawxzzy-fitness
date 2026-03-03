@@ -642,3 +642,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Prevents behavior drift in metric visibility, unit selection, and value-entry expectations across closely related workout flows.
 - Evidence: src/components/ui/measurements/ModifyMeasurements.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
 - Status: Proposed
+
+## 2026-03-03 — Normalize bottom actions with compact fit-content stacks
+- Type: Pattern
+- Summary: For mobile bottom actions that present a short set of primary/secondary actions, use a shared centered compact stack with safe-area bottom padding and fit-content buttons instead of full-width sticky action cards.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents action-surface drift, removes unnecessary background chrome, and preserves consistent touch target sizing while respecting iOS home-indicator safe area.
+- Evidence: src/components/ui/CompactActionStack.tsx, src/app/today/TodayDayPicker.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed

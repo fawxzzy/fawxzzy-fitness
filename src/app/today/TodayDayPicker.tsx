@@ -7,7 +7,7 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
-import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
+import { CompactActionStack } from "@/components/ui/CompactActionStack";
 import { appTokens } from "@/components/ui/app/tokens";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
@@ -112,23 +112,25 @@ export function TodayDayPicker({
         </AppPanel>
       ) : null}
 
-      <StickyActionBar
-        primary={<TodayStartButton startSessionAction={startSessionAction} selectedDayIndex={selectedDayIndex} />}
-        secondary={(
-          <SecondaryButton
-            id="today-day-picker"
-            type="button"
-            fullWidth
-            className="h-11 border-white/14 bg-transparent text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-            onClick={() => {
-              setIsPickerOpen((previous) => !previous);
-            }}
-            aria-expanded={isPickerOpen}
-          >
-            <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
-          </SecondaryButton>
-        )}
-      />
+      <CompactActionStack>
+        <TodayStartButton
+          startSessionAction={startSessionAction}
+          selectedDayIndex={selectedDayIndex}
+          fullWidth={false}
+          className="w-fit min-h-[44px] px-10"
+        />
+        <SecondaryButton
+          id="today-day-picker"
+          type="button"
+          className="inline-flex w-fit min-h-[44px] px-10 justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+          onClick={() => {
+            setIsPickerOpen((previous) => !previous);
+          }}
+          aria-expanded={isPickerOpen}
+        >
+          <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
+        </SecondaryButton>
+      </CompactActionStack>
 
       <ExerciseInfo
         exerciseId={selectedExerciseId}

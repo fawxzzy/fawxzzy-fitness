@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Removed the grey action-card treatment from Today and History log bottom actions and normalized both surfaces to use the same centered compact action-button pattern.
+- Updated Today (“Start Workout”, “Change Workout”) and History log read mode (“Edit”, “Delete”) actions to use fit-content button widths while maintaining iOS-friendly touch target height.
+WHY:
+- Improves visual consistency across key action surfaces, reduces unnecessary chrome, and keeps bottom actions clear of the iOS home indicator without oversized full-width buttons.
+
+### Fixed
+WHAT:
 - Updated the Routines “Switch routine” sheet so selecting a routine reliably applies it as the active routine and updates the on-screen routine state immediately.
 WHY:
 - Prevents intermittent missed routine switches caused by sheet-close timing and ensures users see the newly active routine without manual refresh.
