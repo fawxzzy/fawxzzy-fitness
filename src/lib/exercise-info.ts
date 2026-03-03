@@ -2,7 +2,7 @@ import "server-only";
 
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
-import { getExerciseStatsForExercise, type ExerciseStatsRow } from "@/lib/exercise-stats";
+import { getExerciseStatsForExercise, type ExerciseStatsLookupError, type ExerciseStatsRow } from "@/lib/exercise-stats";
 import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -157,10 +157,31 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
 
 export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, requestId?: string): Promise<ExerciseInfoStatsViewModel | null> {
   try {
-    const [stats, historicalSetRows] = await Promise.all([
+    if (process.env.NODE_ENV === "development") {
+      console.debug("[exercise-info:getExerciseInfoStats] lookup boundary", {
+        requestId,
+        userId,
+        exerciseId: canonicalExerciseId,
+      });
+    }
+
+    const [statsLookup, historicalSetRows] = await Promise.all([
       getExerciseStatsForExercise(userId, canonicalExerciseId),
       loadHistoricalSetRows(userId, canonicalExerciseId),
     ]);
+
+    const statsLookupError: ExerciseStatsLookupError | null = statsLookup.error;
+    if (statsLookupError) {
+      console.warn("[exercise-info:getExerciseInfoStats] stats lookup warning", {
+        requestId,
+        exerciseId: canonicalExerciseId,
+        code: statsLookupError.code,
+        message: statsLookupError.message,
+        details: statsLookupError.details,
+      });
+    }
+
+    const stats = statsLookup.row;
 
     let historicalRows = historicalSetRows.data ?? [];
     if (!historicalRows.length) {
