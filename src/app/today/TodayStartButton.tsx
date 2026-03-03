@@ -10,9 +10,13 @@ import { PrimaryButton } from "@/components/ui/AppButton";
 export function TodayStartButton({
   startSessionAction,
   selectedDayIndex,
+  fullWidth = true,
+  className,
 }: {
   startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
   selectedDayIndex?: number;
+  fullWidth?: boolean;
+  className?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -22,8 +26,8 @@ export function TodayStartButton({
     <PrimaryButton
       type="button"
       loading={isPending}
-      fullWidth
-      className="h-12 border-emerald-400/45 bg-emerald-500/20 text-emerald-50 transition-transform hover:bg-emerald-500/26 active:scale-[0.98] active:bg-emerald-500/32"
+      fullWidth={fullWidth}
+      className={`min-h-[44px] border-emerald-400/45 bg-emerald-500/20 text-emerald-50 transition-transform hover:bg-emerald-500/26 active:scale-[0.98] active:bg-emerald-500/32 ${className ?? ""}`}
       onClick={() => {
         startTransition(async () => {
           const result = await startSessionAction({ dayIndex: selectedDayIndex });

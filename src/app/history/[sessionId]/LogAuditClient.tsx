@@ -17,7 +17,7 @@ import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
+import { CompactActionStack } from "@/components/ui/CompactActionStack";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -476,45 +476,40 @@ export function LogAuditClient({
         })}
       </div>
 
-      <StickyActionBar
-        mode="fixed"
-        primary={(
-          <div className={isEditing ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
-            {isEditing ? (
-              <>
-                <SecondaryButton type="button" size="md" className="w-full" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
-                <PrimaryButton type="button" size="md" className="w-full" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
-              </>
-            ) : (
-              <>
-                <SecondaryButton
-                  type="button"
-                  size="md"
-                  className="w-full"
-                  onClick={() => {
-                    const firstSet = exercises.flatMap((exercise) => editableSets[exercise.id] ?? [])[0];
-                    setExpandedSetId(firstSet?.id ?? null);
-                    setIsEditing(true);
-                  }}
-                >
-                  Edit
-                </SecondaryButton>
-                <ConfirmedServerFormButton
-                  action={deleteCompletedSessionAction}
-                  hiddenFields={{ sessionId: logId }}
-                  triggerLabel="Delete"
-                  triggerAriaLabel="Delete log"
-                  triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", fullWidth: true })}
-                  modalTitle="Delete log?"
-                  modalDescription="This will permanently delete this workout session and all logged sets."
-                  confirmLabel="Delete"
-                  contextLines={[`${routineName}`, `${performedDateLabel} • ${durationLabel} • ${performedTimeLabel}`]}
-                />
-              </>
-            )}
+      <CompactActionStack mode="fixed">
+        {isEditing ? (
+          <div className="grid w-full grid-cols-2 gap-2">
+            <SecondaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
+            <PrimaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
           </div>
+        ) : (
+          <>
+            <SecondaryButton
+              type="button"
+              size="md"
+              className="inline-flex w-fit min-h-[44px] px-10 justify-center text-center"
+              onClick={() => {
+                const firstSet = exercises.flatMap((exercise) => editableSets[exercise.id] ?? [])[0];
+                setExpandedSetId(firstSet?.id ?? null);
+                setIsEditing(true);
+              }}
+            >
+              Edit
+            </SecondaryButton>
+            <ConfirmedServerFormButton
+              action={deleteCompletedSessionAction}
+              hiddenFields={{ sessionId: logId }}
+              triggerLabel="Delete"
+              triggerAriaLabel="Delete log"
+              triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "inline-flex w-fit min-h-[44px] px-10 justify-center text-center" })}
+              modalTitle="Delete log?"
+              modalDescription="This will permanently delete this workout session and all logged sets."
+              confirmLabel="Delete"
+              contextLines={[`${routineName}`, `${performedDateLabel} • ${durationLabel} • ${performedTimeLabel}`]}
+            />
+          </>
         )}
-      />
+      </CompactActionStack>
 
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}
