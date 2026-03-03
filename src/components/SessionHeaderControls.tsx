@@ -49,7 +49,7 @@ export function SessionHeaderControls({
   const router = useRouter();
 
   return (
-    <div className="sticky top-0 z-50 -mx-4 border-b border-white/10 bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
+    <div className="sticky top-0 z-50 -mx-4 border-b border-white/10 bg-surface/90 backdrop-blur-sm">
       <div className="grid min-h-16 grid-cols-[auto_1fr_auto] items-center gap-2 px-4 pb-2 pt-2">
         <form
           action={async (formData) => {

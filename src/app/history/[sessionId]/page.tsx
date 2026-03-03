@@ -101,7 +101,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
   const durationLabel = sessionRow.duration_seconds ? formatDurationClock(sessionRow.duration_seconds) : "0:00";
 
   return (
-    <AppShell className="gap-4">
+    <AppShell className="gap-4" topNavMode="none">
       <ScrollContainer className={`flex flex-col gap-3 px-1 ${BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}`}>
         <LogAuditClient
           logId={sessionRow.id}

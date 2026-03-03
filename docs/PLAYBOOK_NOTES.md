@@ -58,6 +58,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: src/components/ExerciseTagFilterControl.tsx
 - Status: Proposed
 
+## 2026-03-03 — Make top safe-area/header offset route-configurable in shared shells
+- Type: Guardrail
+- Summary: Shared page shells should expose a route-level top-nav mode so no-nav screens can zero header reservation while keeping one top-padding source of truth.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents duplicated safe-area/header offsets and eliminates unstable top whitespace on detail screens that intentionally hide primary nav chrome.
+- Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/session/[id]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
+
 ## Implemented Already
 
 ## 2026-03-02 — Prefer collapsible select controls over segmented toggles in dense mobile headers
