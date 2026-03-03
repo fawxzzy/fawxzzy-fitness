@@ -2367,3 +2367,11 @@ WHY:
 ### WHY
 - Removes excess empty space in the shared action panel and makes CTA placement feel tighter and more predictable on mobile.
 - Ensures critical actions remain reachable on long, scrollable detail screens without overlay-style content blocking.
+## 0.3.11 — 2026-03-03
+
+### WHAT
+- (fill in)
+
+### WHY
+- (fill in)
+
