@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   addLogExerciseAction,
@@ -17,7 +17,6 @@ import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -157,6 +156,7 @@ export function LogAuditClient({
   sessionSummary,
   initialIsEditing,
   backHref,
+  onBottomActionsChange,
 }: {
   logId: string;
   initialDayName: string;
@@ -168,6 +168,7 @@ export function LogAuditClient({
   sessionSummary: SessionSummary;
   initialIsEditing: boolean;
   backHref: string;
+  onBottomActionsChange?: (actions: React.ReactNode | null) => void;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -183,16 +184,16 @@ export function LogAuditClient({
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel, exercise.measurement_type))])),
   );
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setIsEditing(false);
     setDayName(initialDayName);
     setSessionNotes(initialNotes ?? "");
     setExerciseNotes(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])));
     setEditableSets(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel, exercise.measurement_type))])));
     setExpandedSetId(null);
-  };
+  }, [exercises, initialDayName, initialNotes, unitLabel]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     startTransition(async () => {
       const metaResult = await updateLogMetaAction({ logId, dayNameOverride: dayName, notes: sessionNotes });
       if (!metaResult.ok) {
@@ -248,7 +249,53 @@ export function LogAuditClient({
       toastActionResult(toast, { ok: true }, { success: "Log details saved.", error: "Unable to save log details." });
       router.refresh();
     });
-  };
+  }, [dayName, editableSets, exerciseNotes, exercises, logId, router, sessionNotes, toast]);
+
+  const handleStartEditing = useCallback(() => {
+    const firstSet = exercises.flatMap((exercise) => editableSets[exercise.id] ?? [])[0];
+    setExpandedSetId(firstSet?.id ?? null);
+    setIsEditing(true);
+  }, [editableSets, exercises]);
+
+  const actionsNode = useMemo(() => {
+    if (isEditing) {
+      return (
+        <div className="grid w-full grid-cols-2 gap-2">
+          <SecondaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
+          <PrimaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <SecondaryButton
+          type="button"
+          size="md"
+          className="w-full min-h-[44px] justify-center text-center"
+          onClick={handleStartEditing}
+        >
+          Edit
+        </SecondaryButton>
+        <ConfirmedServerFormButton
+          action={deleteCompletedSessionAction}
+          hiddenFields={{ sessionId: logId }}
+          triggerLabel="Delete"
+          triggerAriaLabel="Delete log"
+          triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "w-full min-h-[44px] justify-center text-center" })}
+          modalTitle="Delete log?"
+          modalDescription="This will permanently delete this workout session and all logged sets."
+          confirmLabel="Delete"
+          contextLines={[`${sessionSummary.routineTitle}`, `${formatDateShort(sessionSummary.startedAt)}${sessionSummary.durationSec ? ` • ${formatDurationShort(sessionSummary.durationSec)}` : ""}`]}
+        />
+      </>
+    );
+  }, [handleCancel, handleSave, handleStartEditing, isEditing, isPending, logId, sessionSummary.durationSec, sessionSummary.routineTitle, sessionSummary.startedAt]);
+
+  useEffect(() => {
+    onBottomActionsChange?.(actionsNode);
+    return () => onBottomActionsChange?.(null);
+  }, [actionsNode, onBottomActionsChange]);
 
   const updateEditableSet = (exerciseId: string, setId: string, updater: (set: EditableSet) => EditableSet) => {
     setEditableSets((current) => ({
@@ -477,40 +524,6 @@ export function LogAuditClient({
         })}
       </div>
 
-      <BottomActionBar variant="fixed">
-        {isEditing ? (
-          <div className="grid w-full grid-cols-2 gap-2">
-            <SecondaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
-            <PrimaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
-          </div>
-        ) : (
-          <>
-            <SecondaryButton
-              type="button"
-              size="md"
-              className="w-full min-h-[44px] justify-center text-center"
-              onClick={() => {
-                const firstSet = exercises.flatMap((exercise) => editableSets[exercise.id] ?? [])[0];
-                setExpandedSetId(firstSet?.id ?? null);
-                setIsEditing(true);
-              }}
-            >
-              Edit
-            </SecondaryButton>
-            <ConfirmedServerFormButton
-              action={deleteCompletedSessionAction}
-              hiddenFields={{ sessionId: logId }}
-              triggerLabel="Delete"
-              triggerAriaLabel="Delete log"
-              triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "w-full min-h-[44px] justify-center text-center" })}
-              modalTitle="Delete log?"
-              modalDescription="This will permanently delete this workout session and all logged sets."
-              confirmLabel="Delete"
-              contextLines={[`${sessionSummary.routineTitle}`, `${formatDateShort(sessionSummary.startedAt)}${sessionSummary.durationSec ? ` • ${formatDurationShort(sessionSummary.durationSec)}` : ""}`]}
-            />
-          </>
-        )}
-      </BottomActionBar>
 
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}

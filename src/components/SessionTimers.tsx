@@ -11,7 +11,6 @@ import {
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
@@ -95,6 +94,7 @@ export function SetLoggerCard({
   planTargetsHash,
   deleteSetAction,
   resetSignal,
+  onBottomActionsChange,
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -124,6 +124,7 @@ export function SetLoggerCard({
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
+  onBottomActionsChange?: (actions: React.ReactNode | null) => void;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -387,7 +388,7 @@ export function SetLoggerCard({
     resetLoggerState();
   }, [resetLoggerState, resetSignal]);
 
-  async function handleLogSet() {
+  const handleLogSet = useCallback(async () => {
     const parsedWeight = weight.trim() ? Number(weight) : 0;
     const parsedReps = reps.trim() ? Number(reps) : 0;
     const parsedDuration = parseDurationInput(durationInput);
@@ -636,7 +637,42 @@ export function SetLoggerCard({
     setRpe(parsedRpe === null ? "" : String(parsedRpe));
     setIsWarmup(isWarmup);
     setIsSubmitting(false);
-  }
+  }, [
+    activeMetrics.reps,
+    activeMetrics.weight,
+    calories,
+    distance,
+    distanceUnit,
+    durationInput,
+    isWarmup,
+    reps,
+    requiresDistance,
+    requiresDuration,
+    requiresReps,
+    rpe,
+    selectedWeightUnit,
+    sessionExerciseId,
+    sessionId,
+    setSets,
+    sets.length,
+    toast,
+    weight,
+    addSetAction,
+  ]);
+
+  const saveSetActions = useMemo(
+    () => (
+      <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
+        Save Set
+      </AppButton>
+    ),
+    [handleLogSet, isSaveDisabled],
+  );
+
+  useEffect(() => {
+    onBottomActionsChange?.(saveSetActions);
+    return () => onBottomActionsChange?.(null);
+  }, [onBottomActionsChange, saveSetActions]);
 
 
   async function handleDeleteSet(set: DisplaySet) {
@@ -802,11 +838,6 @@ export function SetLoggerCard({
         {sets.length === 0 ? <li className="px-3 py-2 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
       </ul>
 
-      <BottomActionBar variant="fixed">
-        <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
-          Save Set
-        </AppButton>
-      </BottomActionBar>
     </div>
   );
 }

@@ -34,6 +34,12 @@ export function BottomActionBar({
   variant?: "sticky" | "fixed";
 }) {
   const isFixed = variant === "fixed";
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && variant === "fixed") {
+      console.warn("[BottomActionBar] variant='fixed' is legacy; prefer sticky bottom actions rendered as last child of ScrollContainer.");
+    }
+  }, [variant]);
   const fixedContainerRef = useRef<HTMLDivElement | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
 

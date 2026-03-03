@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
-import { LogAuditClient } from "./LogAuditClient";
+import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
 
 export const dynamic = "force-dynamic";
@@ -165,7 +165,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
   return (
     <AppShell className="gap-4" topNavMode="none">
       <ScrollContainer className={`flex flex-col gap-3 px-1 ${FIXED_CTA_RESERVE_CLASS}`}>
-        <LogAuditClient
+        <HistoryLogPageClient
           logId={sessionRow.id}
           initialDayName={effectiveDayName}
           initialNotes={sessionRow.notes}

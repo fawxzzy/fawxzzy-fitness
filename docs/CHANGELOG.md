@@ -2431,3 +2431,11 @@ WHAT:
 WHY:
 - Prevents Exercise Info from querying stats with stale/non-canonical ids and restores reliable stat rendering for canonical exercises.
 - Reduces id-shape ambiguity at UI boundaries so Exercise Info consistently targets real exercise rows.
+
+### Fixed
+WHAT:
+- Normalized Session and History detail bottom actions to a screen-owned sticky pattern aligned with Today: Session Save Set and History Edit/Delete (plus Cancel/Save while editing) now render from screen-level sticky bottom action slots.
+- Removed feature-level fixed bottom action bar mounting from Session logger and History log audit components.
+WHY:
+- Eliminates fixed-overlay overlap issues at the bottom of long scrollable screens on iOS/mobile by making bottom actions layout-aware.
+- Keeps bottom action behavior consistent across key app surfaces and easier to maintain under the single-scroll-owner contract.
