@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Keep detail-surface sections structurally stable with explicit empty states
+- Type: Guardrail
+- Summary: In shared detail screens, always render core information sections (like Stats) and use explicit empty states when data is missing instead of conditionally removing sections.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents layout drift and user confusion when some entities have sparse data while others have populated data.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExerciseInfo.tsx, src/app/api/exercise-info/[exerciseId]/route.ts
+- Status: Proposed
+
 ## 2026-03-02 — Automate intentional tag-based release ritual
 - Type: Workflow
 - Summary: Standardize releases behind a SemVer bump command that updates changelog WHAT/WHY, commits, tags, and pushes in one deterministic flow.

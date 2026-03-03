@@ -110,7 +110,7 @@ export async function GET(
       });
     }
 
-    const payload = { exercise: exerciseWithImages, stats };
+    const payload = { exercise: exerciseWithImages, stats: stats ?? null };
 
     return runStep("respond", () =>
       NextResponse.json(
