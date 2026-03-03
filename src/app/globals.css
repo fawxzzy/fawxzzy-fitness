@@ -375,5 +375,5 @@ a:focus-visible {
 
 
 .safe-area-main {
-  padding-top: var(--app-top-inset);
+  padding-top: 0;
 }

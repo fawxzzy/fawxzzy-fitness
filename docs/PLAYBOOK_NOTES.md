@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Enforce mobile safe-area contracts with a single scroll-owner reserve
+- Type: Guardrail
+- Summary: Keep top/bottom viewport spacing deterministic by letting the page shell own both top inset/header offset and bottom fixed-bar reserve, and remove per-screen spacing compensation.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Mixed ownership of safe-area offsets causes phantom top gaps, content overlap under fixed bars, and inconsistent dead space across routes.
+- Evidence: src/components/ui/app/AppShell.tsx, src/components/ui/BottomActionBar.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-03 — Preserve route-instance context with explicit returnTo tokens in edit flows
 - Type: Pattern
 - Summary: When navigating from a detail screen into an edit screen, pass an explicit `returnTo` route (including current query params) so back controls return users to the exact originating screen state.
