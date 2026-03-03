@@ -2422,3 +2422,12 @@ WHAT:
 - Hardened the shared fixed bottom action bar contract used by Routine Day, Log Details, and Current Session so viewport-fixed actions remain reliable on iOS across browser/runtime variations.
 WHY:
 - Prevents regressions where bottom CTAs can overlap final scroll content when platform APIs behave differently, while preserving the single scroll-owner reserve model.
+
+### Fixed
+WHAT:
+- Standardized Exercise Info opening contracts to use canonical `exerciseId` values tied to `exercises.id` across History Exercises list interactions.
+- Updated legacy Pull-Up id alias resolution so non-canonical ids map to the canonical database exercise id before Exercise Info and stats lookups.
+- Hardened Exercise Info stats lookup to flag non-canonical `exerciseId` inputs with structured diagnostics in development.
+WHY:
+- Prevents Exercise Info from querying stats with stale/non-canonical ids and restores reliable stat rendering for canonical exercises.
+- Reduces id-shape ambiguity at UI boundaries so Exercise Info consistently targets real exercise rows.

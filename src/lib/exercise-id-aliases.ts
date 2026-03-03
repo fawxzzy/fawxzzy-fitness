@@ -1,7 +1,8 @@
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 
 const LEGACY_EXERCISE_ID_ALIASES: Record<string, string> = {
-  "66666666-6666-6666-6666-666666666666": "de1f9f53-120f-4f4e-88b4-bd30f6ce1240",
+  "66666666-6666-6666-6666-666666666666": "2466d550-004f-4b94-af04-26ae24f990b3",
+  "de1f9f53-120f-4f4e-88b4-bd30f6ce1240": "2466d550-004f-4b94-af04-26ae24f990b3",
 };
 
 const LEGACY_EXERCISE_IDS = new Set<string>([

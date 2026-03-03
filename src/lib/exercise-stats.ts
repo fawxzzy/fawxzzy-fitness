@@ -232,13 +232,65 @@ export async function getExerciseStatsForExercises(userId: string, exerciseIds: 
   return new Map(((data ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
 }
 
-export async function getExerciseStatsForExercise(userId: string, exerciseId: string): Promise<ExerciseStatsRow | null> {
+export type ExerciseStatsLookupError = {
+  code: "NON_CANONICAL_EXERCISE_ID";
+  message: string;
+  exerciseId: string;
+  details?: {
+    userId: string;
+    canonicalHintExerciseId: string | null;
+  };
+};
+
+export type ExerciseStatsLookupResult = {
+  row: ExerciseStatsRow | null;
+  error: ExerciseStatsLookupError | null;
+};
+
+export async function getExerciseStatsForExercise(userId: string, exerciseId: string): Promise<ExerciseStatsLookupResult> {
   noStore();
 
   const supabase = supabaseServer();
+
+  const { data: canonicalExercise, error: canonicalExerciseError } = await supabase
+    .from("exercises")
+    .select("id")
+    .eq("id", exerciseId)
+    .or(`user_id.is.null,user_id.eq.${userId}`)
+    .maybeSingle();
+
+  if (canonicalExerciseError) {
+    throw new Error(`failed to validate exercise id for stats lookup: ${canonicalExerciseError.message}`);
+  }
+
+  if (!canonicalExercise?.id) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[exercise-stats:getExerciseStatsForExercise] non-canonical exercise id", {
+        userId,
+        exerciseId,
+      });
+    }
+
+    return {
+      row: null,
+      error: {
+        code: "NON_CANONICAL_EXERCISE_ID",
+        message: "non-canonical exerciseId passed",
+        exerciseId,
+        details: process.env.NODE_ENV === "development"
+          ? {
+            userId,
+            canonicalHintExerciseId: null,
+          }
+          : undefined,
+      },
+    };
+  }
+
   if (process.env.NODE_ENV === "development") {
     console.log("[exercise-stats:getExerciseStatsForExercise] querying", { userId, exerciseId });
   }
+
   const { data } = await supabase
     .from("exercise_stats")
     .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at, actual_pr_weight, actual_pr_reps, actual_pr_at")
@@ -254,5 +306,8 @@ export async function getExerciseStatsForExercise(userId: string, exerciseId: st
     });
   }
 
-  return (data as ExerciseStatsRow | null) ?? null;
+  return {
+    row: (data as ExerciseStatsRow | null) ?? null,
+    error: null,
+  };
 }

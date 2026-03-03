@@ -87,7 +87,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   onOpen,
 }: {
   row: ExerciseBrowserRow;
-  onOpen: (canonicalExerciseId: string) => void;
+  onOpen: (exerciseId: string) => void;
 }) {
   const displayName = getExerciseDisplayName(row);
   const iconSrc = getExerciseIconSrc({
@@ -110,9 +110,9 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         type="button"
         onClick={() => {
           if (process.env.NODE_ENV === "development") {
-            console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.canonicalExerciseId, row: { id: row.id, name: row.name, slug: row.slug } });
+            console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
           }
-          onOpen(row.canonicalExerciseId);
+          onOpen(row.exerciseId);
         }}
         aria-label={`Open exercise info for ${displayName}`}
         className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
@@ -148,7 +148,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
       for (const raw of [...toTagArray(row.primary_muscle), ...toTagArray(row.movement_pattern), ...toTagArray(row.equipment)]) {
         tags.add(raw.toLowerCase());
       }
-      tagsById.set(row.id, tags);
+      tagsById.set(row.exerciseId, tags);
     }
 
     return tagsById;
@@ -177,7 +177,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
     return rows.filter((row) => {
       if (selectedTags.length > 0) {
-        const tags = exerciseTagsById.get(row.id);
+        const tags = exerciseTagsById.get(row.exerciseId);
         if (!tags || !selectedTags.every((tag) => tags.has(tag))) {
           return false;
         }
@@ -195,7 +195,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   }, [exerciseTagsById, query, rows, selectedTags]);
 
   const selectedRow = useMemo(
-    () => (selectedExerciseId ? rows.find((row) => row.canonicalExerciseId === selectedExerciseId) ?? null : null),
+    () => (selectedExerciseId ? rows.find((row) => row.exerciseId === selectedExerciseId) ?? null : null),
     [rows, selectedExerciseId],
   );
 
@@ -230,7 +230,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
       <div className="relative min-h-0">
         <ul className="space-y-2.5 scroll-py-2 pb-8">
           {filteredRows.map((row) => (
-            <li key={row.id}>
+            <li key={row.exerciseId}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} />
             </li>
           ))}
@@ -239,7 +239,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
       </div>
 
       <ExerciseInfo
-        exerciseId={selectedRow?.canonicalExerciseId ?? null}
+        exerciseId={selectedRow?.exerciseId ?? null}
         open={Boolean(selectedRow)}
         onOpenChange={(open) => {
           if (!open) {

@@ -32,8 +32,7 @@ type ExerciseStatsRow = {
 };
 
 export type ExerciseBrowserRow = {
-  id: string;
-  canonicalExerciseId: string;
+  exerciseId: string;
   name: string;
   slug: string | null;
   image_path: string | null;
@@ -124,12 +123,11 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
 
   return exercises
     .map((exercise) => {
-      const canonicalExerciseId = exercise.id;
-      const stats = statsByExerciseId.get(canonicalExerciseId);
+      const exerciseId = exercise.id;
+      const stats = statsByExerciseId.get(exerciseId);
 
       return {
-        id: exercise.id,
-        canonicalExerciseId,
+        exerciseId,
         name: exercise.name,
         slug: exercise.slug,
         image_path: null,
