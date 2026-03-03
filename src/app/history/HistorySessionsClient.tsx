@@ -85,7 +85,7 @@ function HistorySessionRow({
       aria-label={`View session details for ${session.name || "session"}`}
       className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      <AppPanel clip className="p-3 transition-colors hover:border-border/70 active:scale-[0.99]">
+      <AppPanel clip className={`${mode === "compact" ? "p-2" : "p-3"} transition-colors hover:border-border/70 active:scale-[0.99]`}>
         {mode === "list" ? (
           <div className="text-left">
             <p className="whitespace-normal break-words text-sm font-semibold text-slate-100">{routineTitle}</p>

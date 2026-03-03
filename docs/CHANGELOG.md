@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Reduced internal padding for History Sessions compact-view cards.
+WHY:
+- Decreases compact card height so more session rows fit on screen while preserving the existing details-view layout.
+
+### Fixed
+WHAT:
 - Fixed the Routines screen shell so the bottom Edit Routine action bar is truly viewport-pinned with safe-area support and the page content reserves matching bottom space.
 - Consolidated routine cycle metadata into the routine switcher trigger title line as `Routine Title | {cycle summary}` and removed the duplicate standalone gray metadata line from the page body.
 WHY:
