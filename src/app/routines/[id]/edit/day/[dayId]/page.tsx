@@ -6,6 +6,8 @@ import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
+import { AppShell } from "@/components/ui/app/AppShell";
+import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { controlClassName } from "@/components/ui/formClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction, updateRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
@@ -248,7 +250,9 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const backHref = resolveReturnTo(searchParams?.returnTo) ?? `/routines/${params.id}/edit`;
 
   return (
-    <section className="space-y-4">
+    <AppShell topNavMode="none">
+      <ScrollContainer>
+        <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{dayTitle}</h1>
         <TopRightBackButton href={backHref} />
@@ -417,6 +421,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </CollapsibleCard>
         </>
       )}
-    </section>
+        </section>
+      </ScrollContainer>
+    </AppShell>
   );
 }

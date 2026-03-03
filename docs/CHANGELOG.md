@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Fixed oversized and unstable top whitespace on screens without MainTopNav by making top header offset conditional and using a single safe-area top spacing contract for those screens.
+- Applied the no-nav top spacing mode to Current Session, Edit Day, and History log detail surfaces.
+WHY:
+- Prevents the top gap from over-allocating or growing after scroll-to-top on no-nav screens while keeping MainTopNav screen spacing unchanged.
+
+### Fixed
+WHAT:
 - Restored the top spacing between the floating NavBar and the Routines page primary container to match the Today tab rhythm.
 WHY:
 - Keeps primary tab layouts visually consistent and prevents Routines content from crowding the sticky header.

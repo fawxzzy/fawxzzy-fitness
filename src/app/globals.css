@@ -93,6 +93,9 @@
   --header-offset: calc(var(--top-inset) + var(--header-floating-gap));
   --header-h: 72px;
   --header-total: calc(var(--header-offset) + var(--header-h));
+  --screen-gutter-top: var(--header-floating-gap);
+  --app-top-inset: var(--top-inset);
+  --app-header-offset: var(--header-h);
 }
 
 :root[data-glass-effects="reduced"] {
@@ -368,5 +371,5 @@ a:focus-visible {
 
 
 .safe-area-main {
-  padding-top: var(--header-total);
+  padding-top: calc(var(--app-top-inset) + var(--screen-gutter-top, 12px) + var(--app-header-offset));
 }

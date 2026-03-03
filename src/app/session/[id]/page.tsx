@@ -1,4 +1,6 @@
 import { SessionPageClient } from "@/components/SessionPageClient";
+import { AppShell } from "@/components/ui/app/AppShell";
+import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import type { DisplayTarget } from "@/lib/session-targets";
@@ -112,7 +114,9 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
 
   return (
-    <SessionPageClient
+    <AppShell topNavMode="none">
+      <ScrollContainer>
+        <SessionPageClient
       sessionId={params.id}
       initialDurationSeconds={sessionRow.duration_seconds}
       performedAt={sessionRow.performed_at}
@@ -174,6 +178,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       toggleSkipAction={toggleSkipAction}
       removeExerciseAction={removeExerciseAction}
       deleteSetAction={deleteSetAction}
-    />
+        />
+      </ScrollContainer>
+    </AppShell>
   );
 }
