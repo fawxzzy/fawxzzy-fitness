@@ -18,7 +18,7 @@ export function AppShell({ children, className, topNavMode = "main" }: AppShellP
   } as CSSProperties);
 
   return (
-    <div className={cn("app-shell h-[100dvh] min-h-0 overflow-hidden flex flex-col pt-[var(--app-top-offset)]", className)} data-top-nav-mode={topNavMode} style={shellStyle}>
+    <div className={cn("app-shell min-h-[100dvh] min-h-0 flex flex-col pt-[var(--app-top-offset)]", className)} data-top-nav-mode={topNavMode} style={shellStyle}>
       {children}
     </div>
   );
