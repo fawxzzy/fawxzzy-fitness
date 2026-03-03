@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { cn } from "@/lib/cn";
 
 type ViewModeOption = {
@@ -15,10 +14,9 @@ type ViewModeSelectProps = {
   options: ViewModeOption[];
   onChange: (value: string) => void;
   className?: string;
-  withPanel?: boolean;
 };
 
-export function ViewModeSelect({ label, value, options, onChange, className, withPanel = true }: ViewModeSelectProps) {
+export function ViewModeSelect({ label, value, options, onChange, className }: ViewModeSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -40,27 +38,27 @@ export function ViewModeSelect({ label, value, options, onChange, className, wit
   }, [isOpen]);
 
   const content = (
-    <div className={cn("p-2", className)}>
-      <div ref={containerRef} className="space-y-1">
+    <div className={cn("w-full", className)}>
+      <div ref={containerRef} className="relative w-full">
         <button
           type="button"
           aria-expanded={isOpen}
           onClick={() => setIsOpen((prev) => !prev)}
-          className="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-0.5 text-left [-webkit-tap-highlight-color:transparent]"
+          className="flex min-h-9 w-full items-center justify-between gap-2 rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.56)] px-3 py-1.5 text-left [-webkit-tap-highlight-color:transparent]"
         >
-          <span className="min-w-0 truncate text-xs text-slate-400">
+          <span className="min-w-0 truncate text-xs text-slate-300">
             {label}: <span className="font-normal text-slate-200">{selectedOption?.label ?? value}</span>
           </span>
           <span
             aria-hidden="true"
-            className={cn("text-xs text-slate-400 transition-transform", isOpen ? "rotate-180" : "rotate-0")}
+            className={cn("text-xs text-slate-300 transition-transform", isOpen ? "rotate-180" : "rotate-0")}
           >
             ▾
           </span>
         </button>
 
         {isOpen ? (
-          <div className="grid grid-cols-2 gap-1">
+          <div className="absolute left-0 top-full z-20 mt-1 w-full overflow-hidden rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.3)] bg-[rgb(var(--glass-tint-rgb)/0.95)] p-1 shadow-xl">
             {options.map((option) => {
               const isSelected = option.value === value;
               return (
@@ -72,13 +70,16 @@ export function ViewModeSelect({ label, value, options, onChange, className, wit
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "min-h-8 rounded-md border px-2.5 py-1 text-xs font-medium transition",
+                    "flex min-h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition",
                     isSelected
-                      ? "border-border/70 bg-[rgb(var(--glass-tint-rgb)/0.75)] text-slate-100"
-                      : "border-border/35 bg-white/5 text-slate-300 opacity-65 hover:opacity-90",
+                      ? "bg-[rgb(var(--glass-tint-rgb)/0.86)] text-slate-100"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white",
                   )}
                 >
-                  {option.label}
+                  <span>{option.label}</span>
+                  <span aria-hidden="true" className={cn("text-xs", isSelected ? "text-emerald-300" : "text-transparent")}>
+                    ✓
+                  </span>
                 </button>
               );
             })}
@@ -88,9 +89,5 @@ export function ViewModeSelect({ label, value, options, onChange, className, wit
     </div>
   );
 
-  if (!withPanel) {
-    return content;
-  }
-
-  return <AppPanel>{content}</AppPanel>;
+  return content;
 }

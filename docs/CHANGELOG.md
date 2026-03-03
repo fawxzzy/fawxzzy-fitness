@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Fixed
+WHAT:
+- Polished History → Sessions view mode labeling and controls by renaming the user-facing “List” mode to “Details” and tightening the mode picker layout directly beneath the Sessions/Exercises segmented control.
+- Updated History → Sessions compact cards to render only a centered single-line summary in the format “Routine | Day | Date”.
+- Updated History → Sessions details cards to prioritize session duration metadata and move timestamp context beneath it with clearer time labeling.
+WHY:
+- Makes mode selection and card metadata easier to scan on mobile while normalizing how session timing information is understood across view modes.
+
 ## 0.2.0 — 2026-03-02
 
 ### Fixed
