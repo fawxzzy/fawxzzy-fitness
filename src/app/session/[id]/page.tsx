@@ -1,6 +1,7 @@
 import { SessionPageClient } from "@/components/SessionPageClient";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
-import { formatGoalStatLine, type DisplayTarget } from "@/lib/session-targets";
+import { formatExerciseGoal } from "@/lib/exercise-goal-format";
+import type { DisplayTarget } from "@/lib/session-targets";
 import {
   addSetAction,
   removeExerciseAction,
@@ -42,6 +43,24 @@ function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "
   }
 
   return Object.keys(prefill).length > 0 ? prefill : undefined;
+}
+
+function formatSessionGoalLabel(target: DisplayTarget | undefined, fallbackWeightUnit: "lbs" | "kg") {
+  const repsMin = target?.repsMin ?? target?.repsMax ?? null;
+  const repsMax = target?.repsMax ?? target?.repsMin ?? null;
+
+  return formatExerciseGoal({
+    target_sets: target?.setsMin ?? target?.setsMax ?? null,
+    target_reps: repsMin,
+    target_reps_min: repsMin,
+    target_reps_max: repsMax,
+    target_weight: target?.weightMin ?? target?.weightMax ?? null,
+    target_weight_unit: target?.weightUnit ?? fallbackWeightUnit,
+    target_duration_seconds: target?.durationSeconds ?? null,
+    target_distance: target?.distance ?? null,
+    target_distance_unit: target?.distanceUnit ?? null,
+    target_calories: target?.calories ?? null,
+  });
 }
 
 
@@ -136,7 +155,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
             return { reps: true, weight: true, time: false, distance: false, calories: false };
           })(),
-          goalStatLine: displayTarget ? formatGoalStatLine(displayTarget, routine?.weight_unit ?? null) : null,
+          goalLabel: formatSessionGoalLabel(displayTarget, unitLabel),
           prefill: getGoalPrefill(displayTarget, unitLabel),
           initialSets: setsByExercise.get(exercise.id) ?? [],
           loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,

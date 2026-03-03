@@ -73,7 +73,7 @@ export type SessionExerciseFocusItem = {
   };
   routineDayExerciseId: string | null;
   planTargetsHash: string | null;
-  goalStatLine: { primary: string; secondary: string[] } | null;
+  goalLabel: string;
   prefill?: SessionExercisePrefill;
   initialSets: SetRow[];
   loggedSetCount: number;
@@ -207,7 +207,7 @@ export function SessionExerciseFocus({
               >
                 <ExerciseCard
                   title={exercise.name}
-                  subtitle={exercise.goalStatLine ? [exercise.goalStatLine.primary || "Open", ...exercise.goalStatLine.secondary].filter(Boolean).join(" • ") : "Goal: Open"}
+                  subtitle={exercise.goalLabel}
                   onPress={() => onSelectedExerciseIdChange(exercise.id)}
                   className={tapFeedbackClass}
                   badgeText={`${setCount} ${exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}`}
@@ -285,18 +285,7 @@ export function SessionExerciseFocus({
           </div>
 
           <div className="border-t border-border/60 pt-3">
-            {selectedExercise.goalStatLine ? (
-              <p className="flex flex-wrap items-center gap-x-1 text-sm text-muted">
-                <span className="whitespace-nowrap font-semibold text-text">{selectedExercise.goalStatLine.primary || "Open"}</span>
-                {selectedExercise.goalStatLine.secondary.map((part) => (
-                  <span key={part} className="whitespace-nowrap text-muted">
-                    • {part}
-                  </span>
-                ))}
-              </p>
-            ) : (
-              <p className="text-sm text-muted">Open</p>
-            )}
+            <p className="text-sm text-muted">{selectedExercise.goalLabel}</p>
           </div>
           {selectedExercise.isSkipped ? <p className="text-sm text-amber-300">Marked skipped for this session.</p> : null}
 
