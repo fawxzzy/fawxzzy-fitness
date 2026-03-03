@@ -1,11 +1,26 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 
 export const BOTTOM_ACTION_BAR_HEIGHT_PX = 120;
-export const FIXED_CTA_RESERVE_CLASS = `pb-[calc(${BOTTOM_ACTION_BAR_HEIGHT_PX}px+env(safe-area-inset-bottom,0px)+3px)]`;
+export const FIXED_CTA_RESERVE_CLASS = `pb-[calc(var(--app-bottom-action-bar-height,${BOTTOM_ACTION_BAR_HEIGHT_PX}px)+env(safe-area-inset-bottom,0px)+3px)]`;
 export const BOTTOM_ACTION_BAR_CONTENT_RESERVE_CLASS = FIXED_CTA_RESERVE_CLASS;
+
+const BOTTOM_ACTION_BAR_ROOT_ID = "app-bottom-action-bar-root";
+
+const ensureBottomActionBarPortalRoot = () => {
+  const existing = document.getElementById(BOTTOM_ACTION_BAR_ROOT_ID);
+  if (existing) {
+    return existing;
+  }
+
+  const root = document.createElement("div");
+  root.id = BOTTOM_ACTION_BAR_ROOT_ID;
+  document.body.appendChild(root);
+  return root;
+};
 
 export function BottomActionBar({
   children,
@@ -19,9 +34,47 @@ export function BottomActionBar({
   variant?: "sticky" | "fixed";
 }) {
   const isFixed = variant === "fixed";
+  const fixedContainerRef = useRef<HTMLDivElement | null>(null);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
 
-  return (
+  useEffect(() => {
+    if (!isFixed) {
+      return;
+    }
+
+    setPortalRoot(ensureBottomActionBarPortalRoot());
+  }, [isFixed]);
+
+  useEffect(() => {
+    if (!isFixed || !fixedContainerRef.current) {
+      return;
+    }
+
+    const updateHeightVar = () => {
+      const nextHeight = fixedContainerRef.current?.getBoundingClientRect().height;
+      if (!nextHeight) {
+        return;
+      }
+      document.documentElement.style.setProperty("--app-bottom-action-bar-height", `${Math.ceil(nextHeight)}px`);
+    };
+
+    updateHeightVar();
+
+    const observer = new ResizeObserver(() => {
+      updateHeightVar();
+    });
+
+    observer.observe(fixedContainerRef.current);
+
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--app-bottom-action-bar-height");
+    };
+  }, [isFixed]);
+
+  const content = useMemo(() => (
     <div
+      ref={isFixed ? fixedContainerRef : undefined}
       className={cn(
         "app-bottom-action-bar",
         isFixed ? "pointer-events-none fixed inset-x-0 bottom-0 z-50" : "sticky bottom-0 z-50 pt-[3px]",
@@ -40,5 +93,11 @@ export function BottomActionBar({
         </div>
       </div>
     </div>
-  );
+  ), [children, className, innerClassName, isFixed]);
+
+  if (isFixed && portalRoot) {
+    return createPortal(content, portalRoot);
+  }
+
+  return content;
 }
