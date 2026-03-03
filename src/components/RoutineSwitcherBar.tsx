@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 
 type RoutineItem = {
@@ -24,6 +25,31 @@ export function RoutineSwitcherBar({
   setActiveRoutineAction,
 }: RoutineSwitcherBarProps) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  function handleSwitch(routineId: string) {
+    if (isPending) {
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("routineId", routineId);
+        await setActiveRoutineAction(formData);
+        router.refresh();
+        setOpen(false);
+      } catch (error) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[RoutineSwitcherBar] Failed to switch active routine", {
+            routineId,
+            error,
+          });
+        }
+      }
+    });
+  }
 
   return (
     <>
@@ -50,28 +76,27 @@ export function RoutineSwitcherBar({
             const isCurrent = routine.id === activeRoutineId;
 
             return (
-              <form key={routine.id} action={setActiveRoutineAction}>
-                <input type="hidden" name="routineId" value={routine.id} />
-                <button
-                  type="submit"
-                  onClick={() => setOpen(false)}
-                  className={`flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm ${
-                    isCurrent
-                      ? "border-accent/45 bg-accent/12 text-text"
-                      : "border-transparent bg-surface/45 text-muted hover:border-border/35 hover:text-text"
-                  }`}
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate">{routine.name}</span>
-                    {routine.summary ? <span className="block truncate pt-0.5 text-xs text-muted/80">{routine.summary}</span> : null}
+              <button
+                key={routine.id}
+                type="button"
+                onClick={() => handleSwitch(routine.id)}
+                disabled={isPending}
+                className={`flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-70 ${
+                  isCurrent
+                    ? "border-accent/45 bg-accent/12 text-text"
+                    : "border-transparent bg-surface/45 text-muted hover:border-border/35 hover:text-text"
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate">{routine.name}</span>
+                  {routine.summary ? <span className="block truncate pt-0.5 text-xs text-muted/80">{routine.summary}</span> : null}
+                </span>
+                {isCurrent ? (
+                  <span className="ml-3 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                    Active
                   </span>
-                  {isCurrent ? (
-                    <span className="ml-3 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-                      Active
-                    </span>
-                  ) : null}
-                </button>
-              </form>
+                ) : null}
+              </button>
             );
           })}
 
