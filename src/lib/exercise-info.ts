@@ -2,7 +2,7 @@ import "server-only";
 
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
-import { getExerciseStatsForExercise, type ExerciseStatsLookupError, type ExerciseStatsRow } from "@/lib/exercise-stats";
+import { getExerciseStatsForExercise, type ExerciseStatsLookupError } from "@/lib/exercise-stats";
 import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -17,31 +17,51 @@ export type ExerciseInfoExercise = {
   how_to_short: string | null;
   image_icon_path: string | null;
   slug: string | null;
+  measurement_type: string | null;
 };
 
-export type ExerciseInfoStatsViewModel = ExerciseStatsRow & {
-  total_sessions: number | null;
-  total_sets: number;
-  total_reps: number | null;
-  best_reps_at_best_weight: number | null;
-  pr_counts: { reps: number; weight: number; total: number };
-  pr_label: string;
-  best_bodyweight_reps: number | null;
-  best_weight: number | null;
-  best_set_weight: number | null;
-  best_set_reps: number | null;
-  best_set_unit: string | null;
+type ExerciseStatsKind = "strength" | "cardio";
+
+export type ExerciseStatsVM = {
+  exercise_id: string;
+  kind: ExerciseStatsKind;
+  recent: {
+    lastPerformedAt: string | null;
+    lastSummary: string | null;
+  };
+  totals: {
+    sessions: number;
+    sets: number;
+    reps?: number;
+    durationSeconds?: number;
+    distance?: number;
+    calories?: number;
+  };
+  bests: {
+    bestBodyweightReps?: number;
+    bestWeight?: number;
+    bestRepsAtBestWeight?: number;
+    bestSetSummary?: string;
+    bestDurationSeconds?: number;
+    bestDistance?: number;
+    bestPace?: number;
+    bestCalories?: number;
+  };
+  prLabel: string;
 };
 
 export type ExerciseInfoPayload = {
   exercise: ExerciseInfoExercise;
-  stats: ExerciseInfoStatsViewModel | null;
+  stats: ExerciseStatsVM | null;
 };
 
 type HistoricalSetRow = {
   set_index: number;
   weight: number | null;
   reps: number | null;
+  duration_seconds: number | null;
+  distance: number | null;
+  calories: number | null;
   weight_unit: "lbs" | "lb" | "kg" | null;
   session_exercise:
     | {
@@ -57,10 +77,73 @@ type HistoricalSetRow = {
     | null;
 };
 
+type NormalizedSet = {
+  sessionId: string;
+  performedAt: string;
+  setIndex: number;
+  weight: number | null;
+  reps: number | null;
+  durationSeconds: number | null;
+  distance: number | null;
+  calories: number | null;
+  weightUnit: "lbs" | "lb" | "kg" | null;
+};
+
+type ExerciseMeasurementType = "reps" | "bodyweight" | "weight" | "duration" | "distance" | "calories" | "time" | "time_distance";
+
+function resolveStatsKind(measurementType: string | null | undefined): ExerciseStatsKind {
+  const normalized = String(measurementType ?? "").trim().toLowerCase() as ExerciseMeasurementType;
+  if (normalized === "duration" || normalized === "distance" || normalized === "calories" || normalized === "time" || normalized === "time_distance") {
+    return "cardio";
+  }
+  return "strength";
+}
+
+function positive(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function formatCompactNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatWeightReps(weight: number | null, reps: number | null, unit: string | null) {
+  const weightValue = positive(weight);
+  const repsValue = positive(reps);
+  const normalizedUnit = unit === "lb" || unit === "lbs" ? "lb" : unit === "kg" ? "kg" : "";
+
+  if (weightValue > 0 && repsValue > 0) {
+    return `${formatCompactNumber(weightValue)}${normalizedUnit}×${formatCompactNumber(repsValue)}`;
+  }
+
+  if (weightValue > 0) {
+    return `${formatCompactNumber(weightValue)}${normalizedUnit}`;
+  }
+
+  if (repsValue > 0) {
+    return `${formatCompactNumber(repsValue)} reps`;
+  }
+
+  return null;
+}
+
+function formatCardioSummary(set: NormalizedSet) {
+  const duration = positive(set.durationSeconds);
+  const distance = positive(set.distance);
+  const calories = positive(set.calories);
+
+  const parts: string[] = [];
+  if (duration > 0) parts.push(`${formatCompactNumber(duration)}s`);
+  if (distance > 0) parts.push(`${formatCompactNumber(distance)} dist`);
+  if (calories > 0) parts.push(`${formatCompactNumber(calories)} cal`);
+
+  return parts.length > 0 ? parts.join(" • ") : null;
+}
+
 async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string) {
   return supabaseServer()
     .from("sets")
-    .select("set_index, weight, reps, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
+    .select("set_index, weight, reps, duration_seconds, distance, calories, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
     .eq("user_id", userId)
     .eq("session_exercise.user_id", userId)
     .eq("session_exercise.exercise_id", canonicalExerciseId)
@@ -103,12 +186,77 @@ function isNoRowsError(error: { code?: string; message?: string } | null): boole
   return typeof error.message === "string" && /no rows|0 rows/i.test(error.message);
 }
 
+
+function runDevStatsVerification(exercise: ExerciseInfoExercise, stats: ExerciseStatsVM | null) {
+  if (process.env.NODE_ENV !== "development" || !stats) return;
+
+  const name = exercise.name.trim().toLowerCase();
+  const checks: Array<{ label: string; ok: boolean; details?: Record<string, unknown> }> = [];
+
+  if (name === "pull-up" || name === "pull up") {
+    checks.push({
+      label: "Pull-Up hybrid bests",
+      ok: typeof stats.bests.bestBodyweightReps === "number" && typeof stats.bests.bestWeight === "number",
+      details: { bestBodyweightReps: stats.bests.bestBodyweightReps, bestWeight: stats.bests.bestWeight },
+    });
+  }
+
+  if (name === "dips") {
+    checks.push({
+      label: "Dips bodyweight-only best",
+      ok: typeof stats.bests.bestBodyweightReps === "number" && typeof stats.bests.bestWeight !== "number",
+      details: { bestBodyweightReps: stats.bests.bestBodyweightReps, bestWeight: stats.bests.bestWeight },
+    });
+  }
+
+  if (name === "incline walk") {
+    checks.push({
+      label: "Incline Walk cardio duration",
+      ok: typeof stats.totals.durationSeconds === "number" && typeof stats.bests.bestDurationSeconds === "number",
+      details: { durationSeconds: stats.totals.durationSeconds, bestDurationSeconds: stats.bests.bestDurationSeconds },
+    });
+  }
+
+  for (const check of checks) {
+    if (!check.ok) {
+      console.warn("[exercise-info] dev verification failed", { exerciseId: exercise.exercise_id, name: exercise.name, ...check });
+    }
+  }
+}
+
+function normalizeRows(historicalRows: HistoricalSetRow[]): NormalizedSet[] {
+  return historicalRows.flatMap((row) => {
+    const sessionExercise = Array.isArray(row.session_exercise)
+      ? (row.session_exercise[0] ?? null)
+      : (row.session_exercise ?? null);
+    const session = Array.isArray(sessionExercise?.session)
+      ? (sessionExercise?.session[0] ?? null)
+      : (sessionExercise?.session ?? null);
+
+    if (!sessionExercise?.session_id || !session?.performed_at || session.status !== "completed") {
+      return [];
+    }
+
+    return [{
+      sessionId: sessionExercise.session_id,
+      performedAt: session.performed_at,
+      setIndex: row.set_index,
+      weight: row.weight,
+      reps: row.reps,
+      durationSeconds: row.duration_seconds,
+      distance: row.distance,
+      calories: row.calories,
+      weightUnit: row.weight_unit,
+    }];
+  });
+}
+
 export async function getExerciseInfoBase(exerciseId: string, userId: string): Promise<ExerciseInfoExercise | null> {
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
     .from("exercises")
-    .select("id, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path")
+    .select("id, name, how_to_short, primary_muscle, movement_pattern, equipment, image_howto_path, measurement_type")
     .eq("id", exerciseId)
     .or(`user_id.is.null,user_id.eq.${userId}`)
     .maybeSingle();
@@ -138,6 +286,7 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
       how_to_short: fallbackExercise.how_to_short,
       image_icon_path: null,
       slug: null,
+      measurement_type: "reps",
     };
   }
 
@@ -152,18 +301,13 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
     how_to_short: data.how_to_short,
     image_icon_path: null,
     slug: null,
+    measurement_type: data.measurement_type ?? null,
   };
 }
 
-export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, requestId?: string): Promise<ExerciseInfoStatsViewModel | null> {
+export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, measurementType?: string | null, requestId?: string): Promise<ExerciseStatsVM | null> {
   try {
-    if (process.env.NODE_ENV === "development") {
-      console.debug("[exercise-info:getExerciseInfoStats] lookup boundary", {
-        requestId,
-        userId,
-        exerciseId: canonicalExerciseId,
-      });
-    }
+    const kind = resolveStatsKind(measurementType);
 
     const [statsLookup, historicalSetRows] = await Promise.all([
       getExerciseStatsForExercise(userId, canonicalExerciseId),
@@ -176,12 +320,8 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
         requestId,
         exerciseId: canonicalExerciseId,
         code: statsLookupError.code,
-        message: statsLookupError.message,
-        details: statsLookupError.details,
       });
     }
-
-    const stats = statsLookup.row;
 
     let historicalRows = historicalSetRows.data ?? [];
     if (!historicalRows.length) {
@@ -190,115 +330,116 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
       historicalRows = repairedRows.data ?? historicalRows;
     }
 
-    const normalizedRows = (historicalRows as HistoricalSetRow[]).flatMap((row) => {
-      const sessionExercise = Array.isArray(row.session_exercise)
-        ? (row.session_exercise[0] ?? null)
-        : (row.session_exercise ?? null);
-      const session = Array.isArray(sessionExercise?.session)
-        ? (sessionExercise?.session[0] ?? null)
-        : (sessionExercise?.session ?? null);
-      if (!sessionExercise?.session_id || !session?.performed_at || session.status !== "completed") {
-        return [];
-      }
-
-      return [{
-        sessionId: sessionExercise.session_id,
-        performedAt: session.performed_at,
-        setIndex: row.set_index,
-        weight: row.weight,
-        reps: row.reps,
-        weightUnit: row.weight_unit,
-      }];
-    });
-
-    const rows: PrEvaluationSet[] = normalizedRows.map((row) => ({
-      exerciseId: canonicalExerciseId,
-      sessionId: row.sessionId,
-      performedAt: row.performedAt,
-      setIndex: row.setIndex,
-      weight: row.weight,
-      reps: row.reps,
-    }));
-
-    const { exerciseSummaryById } = evaluatePrSummaries(rows);
-    const exerciseSummary = exerciseSummaryById.get(canonicalExerciseId);
-
-    if (!stats && normalizedRows.length === 0 && !exerciseSummary) return null;
-
-    const fallbackStats: ExerciseStatsRow = {
-      exercise_id: canonicalExerciseId,
-      last_weight: null,
-      last_reps: null,
-      last_unit: null,
-      last_performed_at: null,
-      pr_weight: null,
-      pr_reps: null,
-      pr_est_1rm: null,
-      pr_achieved_at: null,
-      actual_pr_weight: null,
-      actual_pr_reps: null,
-      actual_pr_at: null,
-    };
-
-    const resolvedStats = stats ?? fallbackStats;
-    const prCounts = exerciseSummary?.counts ?? { reps: 0, weight: 0, total: 0 };
-    const totalSessions = new Set(normalizedRows.map((row) => row.sessionId)).size;
-    const totalSets = normalizedRows.length;
-    const totalReps = normalizedRows.reduce((sum, row) => {
-      const reps = typeof row.reps === "number" && Number.isFinite(row.reps) && row.reps > 0 ? row.reps : 0;
-      return sum + reps;
-    }, 0);
+    const normalizedRows = normalizeRows(historicalRows as HistoricalSetRow[]);
+    if (!normalizedRows.length && !statsLookup.row) return null;
 
     const sortedRows = [...normalizedRows].sort((a, b) => {
       if (b.performedAt !== a.performedAt) return b.performedAt.localeCompare(a.performedAt);
       return b.setIndex - a.setIndex;
     });
+    const lastSet = sortedRows[0] ?? null;
 
-    const bestWeightedSet = [...normalizedRows]
-      .filter((row) => typeof row.weight === "number" && Number.isFinite(row.weight) && row.weight > 0)
-      .sort((a, b) => {
-        const aWeight = a.weight ?? 0;
-        const bWeight = b.weight ?? 0;
-        if (bWeight !== aWeight) return bWeight - aWeight;
+    const totals = {
+      sessions: new Set(normalizedRows.map((row) => row.sessionId)).size,
+      sets: normalizedRows.length,
+    };
 
-        const aReps = a.reps ?? 0;
-        const bReps = b.reps ?? 0;
-        if (bReps !== aReps) return bReps - aReps;
+    if (kind === "strength") {
+      const prSets: PrEvaluationSet[] = normalizedRows.map((row) => ({
+        exerciseId: canonicalExerciseId,
+        sessionId: row.sessionId,
+        performedAt: row.performedAt,
+        setIndex: row.setIndex,
+        weight: row.weight,
+        reps: row.reps,
+      }));
+      const { exerciseSummaryById } = evaluatePrSummaries(prSets);
+      const exerciseSummary = exerciseSummaryById.get(canonicalExerciseId);
+      const prCounts = exerciseSummary?.counts ?? { reps: 0, weight: 0, total: 0 };
 
-        if (b.performedAt !== a.performedAt) return b.performedAt.localeCompare(a.performedAt);
-        return b.setIndex - a.setIndex;
-      })[0] ?? null;
+      const totalReps = normalizedRows.reduce((sum, row) => sum + positive(row.reps), 0);
+      const weightedRows = normalizedRows.filter((row) => positive(row.weight) > 0);
+      const bodyweightRows = normalizedRows.filter((row) => positive(row.weight) === 0 && positive(row.reps) > 0);
+      const bestWeight = weightedRows.reduce((max, row) => Math.max(max, positive(row.weight)), 0);
+      const bestRepsAtBestWeight = bestWeight > 0
+        ? weightedRows.filter((row) => positive(row.weight) === bestWeight).reduce((max, row) => Math.max(max, positive(row.reps)), 0)
+        : 0;
+      const bestWeightedSet = bestWeight > 0
+        ? weightedRows
+          .filter((row) => positive(row.weight) === bestWeight)
+          .sort((a, b) => positive(b.reps) - positive(a.reps))[0] ?? null
+        : null;
+      const bestBodyweightReps = bodyweightRows.reduce((max, row) => Math.max(max, positive(row.reps)), 0);
+      const bestBodyweightSet = bestBodyweightReps > 0
+        ? bodyweightRows.filter((row) => positive(row.reps) === bestBodyweightReps).sort((a, b) => positive(b.reps) - positive(a.reps))[0] ?? null
+        : null;
 
-    const fallbackLastSet = sortedRows[0] ?? null;
-    const resolvedLastPerformedAt = resolvedStats.last_performed_at ?? fallbackLastSet?.performedAt ?? null;
-
-    // Tiny regression check: if any sets exist, last-performed + total-sets must be populated.
-    if (totalSets > 0 && (!resolvedLastPerformedAt || totalSets < 1)) {
-      console.warn("[exercise-info] stats invariant fallback", {
-        requestId,
-        canonicalExerciseId,
-        totalSets,
-        resolvedLastPerformedAt,
-      });
+      return {
+        exercise_id: canonicalExerciseId,
+        kind,
+        recent: {
+          lastPerformedAt: statsLookup.row?.last_performed_at ?? lastSet?.performedAt ?? null,
+          lastSummary: formatWeightReps(statsLookup.row?.last_weight ?? lastSet?.weight ?? null, statsLookup.row?.last_reps ?? lastSet?.reps ?? null, statsLookup.row?.last_unit ?? lastSet?.weightUnit ?? null),
+        },
+        totals: {
+          ...totals,
+          ...(totalReps > 0 ? { reps: totalReps } : {}),
+        },
+        bests: {
+          ...(bestBodyweightReps > 0 ? { bestBodyweightReps } : {}),
+          ...(bestWeight > 0 ? { bestWeight } : {}),
+          ...(bestRepsAtBestWeight > 0 ? { bestRepsAtBestWeight } : {}),
+          ...(bestWeight > 0
+            ? { bestSetSummary: formatWeightReps(bestWeightedSet?.weight ?? null, bestWeightedSet?.reps ?? null, bestWeightedSet?.weightUnit ?? null) ?? undefined }
+            : { bestSetSummary: formatWeightReps(0, bestBodyweightSet?.reps ?? null, null) ?? undefined }),
+        },
+        prLabel: formatPrBreakdown(prCounts),
+      };
     }
 
+    const totalDuration = normalizedRows.reduce((sum, row) => sum + positive(row.durationSeconds), 0);
+    const totalDistance = normalizedRows.reduce((sum, row) => sum + positive(row.distance), 0);
+    const totalCalories = normalizedRows.reduce((sum, row) => sum + positive(row.calories), 0);
+    const bestDurationSeconds = normalizedRows.reduce((max, row) => Math.max(max, positive(row.durationSeconds)), 0);
+    const bestDistance = normalizedRows.reduce((max, row) => Math.max(max, positive(row.distance)), 0);
+    const bestCalories = normalizedRows.reduce((max, row) => Math.max(max, positive(row.calories)), 0);
+
+    const paces = normalizedRows
+      .map((row) => {
+        const duration = positive(row.durationSeconds);
+        const distance = positive(row.distance);
+        if (duration <= 0 || distance <= 0) return null;
+        return duration / distance;
+      })
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0);
+    const bestPace = paces.length ? Math.min(...paces) : 0;
+
+    const durationPrs = normalizedRows.filter((row) => positive(row.durationSeconds) === bestDurationSeconds && bestDurationSeconds > 0).length;
+    const distancePrs = normalizedRows.filter((row) => positive(row.distance) === bestDistance && bestDistance > 0).length;
+    const prLabelParts: string[] = [];
+    if (durationPrs > 0) prLabelParts.push(`${durationPrs} Duration PR${durationPrs === 1 ? "" : "s"}`);
+    if (distancePrs > 0) prLabelParts.push(`${distancePrs} Distance PR${distancePrs === 1 ? "" : "s"}`);
+
     return {
-      ...resolvedStats,
-      last_weight: resolvedStats.last_weight ?? fallbackLastSet?.weight ?? null,
-      last_reps: resolvedStats.last_reps ?? fallbackLastSet?.reps ?? null,
-      last_unit: resolvedStats.last_unit ?? fallbackLastSet?.weightUnit ?? null,
-      last_performed_at: resolvedLastPerformedAt,
-      total_sessions: totalSessions > 0 ? totalSessions : null,
-      total_sets: totalSets,
-      total_reps: totalReps > 0 ? totalReps : null,
-      best_reps_at_best_weight: typeof bestWeightedSet?.reps === "number" && bestWeightedSet.reps > 0 ? bestWeightedSet.reps : null,
-      pr_counts: prCounts,
-      pr_label: formatPrBreakdown(prCounts),
-      best_bodyweight_reps: exerciseSummary && exerciseSummary.bestBodyweightReps > 0 ? exerciseSummary.bestBodyweightReps : null,
-      best_weight: exerciseSummary && exerciseSummary.bestWeight > 0 ? exerciseSummary.bestWeight : null,
-      best_set_weight: bestWeightedSet?.weight ?? null,
-      best_set_reps: bestWeightedSet?.reps ?? null,
-      best_set_unit: bestWeightedSet?.weightUnit ?? null,
+      exercise_id: canonicalExerciseId,
+      kind,
+      recent: {
+        lastPerformedAt: statsLookup.row?.last_performed_at ?? lastSet?.performedAt ?? null,
+        lastSummary: lastSet ? formatCardioSummary(lastSet) : null,
+      },
+      totals: {
+        ...totals,
+        ...(totalDuration > 0 ? { durationSeconds: totalDuration } : {}),
+        ...(totalDistance > 0 ? { distance: totalDistance } : {}),
+        ...(totalCalories > 0 ? { calories: totalCalories } : {}),
+      },
+      bests: {
+        ...(bestDurationSeconds > 0 ? { bestDurationSeconds } : {}),
+        ...(bestDistance > 0 ? { bestDistance } : {}),
+        ...(bestPace > 0 ? { bestPace } : {}),
+        ...(bestCalories > 0 ? { bestCalories } : {}),
+      },
+      prLabel: prLabelParts.join(" • "),
     };
   } catch (error) {
     console.warn("[exercise-info] non-fatal stats failure", {
@@ -307,7 +448,6 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
       userId,
       canonicalExerciseId,
       message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return null;
   }
@@ -327,8 +467,9 @@ export async function getExerciseInfoPayload(exerciseId: string, userId: string)
     return null;
   }
 
-  const stats = await getExerciseInfoStats(userId, exercise.exercise_id);
+  const stats = await getExerciseInfoStats(userId, exercise.exercise_id, exercise.measurement_type);
   const exerciseWithImages = resolveExerciseInfoImages(exercise);
+  runDevStatsVerification(exerciseWithImages, stats ?? null);
 
   return {
     exercise: exerciseWithImages,

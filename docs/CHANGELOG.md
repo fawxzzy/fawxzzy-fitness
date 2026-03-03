@@ -2480,8 +2480,12 @@ WHY:
 ## 0.3.17 — 2026-03-03
 
 ### WHAT
-- (fill in)
+- Made Exercise Info and History Exercises stats measurement-aware so strength and cardio exercises now render context-appropriate Recent/Totals/Bests summaries.
+- Reworked Exercise Info stats presentation into structured sections (Recent, Totals, Bests) that only show available fields.
+- Suppressed sentinel and legacy placeholder exercise rows from server-emitted exercise lists so they no longer appear in UI surfaces.
 
 ### WHY
-- (fill in)
+- Ensures users see meaningful exercise progress by measurement type instead of weight-centric stats on cardio entries.
+- Improves scanability and consistency of stats by grouping related metrics into predictable sections.
+- Prevents legacy placeholder records from leaking into production UI while preserving existing database rows.
 
