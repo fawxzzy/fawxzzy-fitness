@@ -682,3 +682,12 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Prevents dead-space drift and hidden end-of-list controls when fixed action panels vary across screens or evolve over time.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/today/page.tsx, src/app/routines/page.tsx, src/app/history/[sessionId]/page.tsx, src/components/SessionPageClient.tsx
 - Status: Proposed
+
+
+## 2026-03-03 — Measured fixed-bottom action bars must publish shell reserve height
+- Type: Guardrail
+- Summary: Viewport-fixed bottom action bars should measure their live panel height and publish `--app-bottom-bar-height`; scroll owners should reserve only via `pb-[var(--app-bottom-offset)]` (inset + gap + measured bar height).
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents both hidden end-of-scroll content and oversized dead-space drift caused by static/magic bottom reserve constants across variants and orientation changes.
+- Evidence: src/components/ui/BottomActionBar.tsx, src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx
+- Status: Proposed
