@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.3 — 2026-03-03
+
+### WHAT
+- Prepared a patch production release by bumping the app version from 0.3.2 to 0.3.3.
+
+### WHY
+- Keeps production deployments intentional and traceable through an explicit SemVer patch release.
+
 ## 0.3.2 — 2026-03-03
 
 ### WHAT
