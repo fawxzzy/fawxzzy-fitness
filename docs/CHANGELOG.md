@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.5 — 2026-03-03
+
+### WHAT
+- Added a small header-to-content spacing gap on main-nav routes by extending the shared AppShell top offset contract.
+
+### WHY
+- Prevents the fixed top nav container from visually touching the first content panel on initial load and keeps spacing more consistent across main-tab screens.
+
 ## 0.3.4 — 2026-03-03
 
 ### WHAT
