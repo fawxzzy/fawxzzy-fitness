@@ -106,7 +106,7 @@ export default async function RoutinesPage() {
   const restDays = sortedActiveRoutineDays.filter((day) => day.is_rest).length;
   const trainingDays = Math.max(totalDays - restDays, 0);
   const cycleLength = activeRoutine?.cycle_length_days ?? totalDays;
-  const cycleSummary = activeRoutine ? `${cycleLength}-day cycle ${trainingDays} training • ${restDays} rest` : undefined;
+  const cycleSummary = activeRoutine ? `${trainingDays} training • ${restDays} rest` : undefined;
   const todayRoutineDayComputation = activeRoutine?.start_date && cycleLength > 0
     ? getRoutineDayComputation({
         cycleLengthDays: cycleLength,
