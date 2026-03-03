@@ -1,3 +1,15 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+## 0.3.1 — 2026-03-03
+
+### WHAT
+- (fill in)
+
+### WHY
+- (fill in)
+
 ### Fixed
 WHAT:
 - Centralized shell safe-area contracts so top spacing is derived from one top-offset variable and bottom spacing reserves fixed action bars through a shared bottom-offset variable.
