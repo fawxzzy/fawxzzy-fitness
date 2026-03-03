@@ -25,7 +25,7 @@ function performanceParts(session: SessionSummary) {
     session.durationSec ? formatDurationShort(session.durationSec) : null,
     formatCount(session.exerciseCount, "exercise"),
     formatCount(session.setCount, "set"),
-    session.prCount > 0 ? formatCount(session.prCount, "PR") : null,
+    session.prLabel || null,
   ].filter((part): part is string => Boolean(part));
 
   return parts;
@@ -93,7 +93,7 @@ function HistorySessionRow({
   const performanceRow = performanceParts(session).join(" • ");
 
   return (
-    <AppPanel clip className={`${mode === "compact" ? "p-2.5" : "p-3"} transition-colors hover:border-border/70`}>
+    <AppPanel clip className={`${mode === "compact" ? "p-2.5" : "p-3"} transition-colors hover:border-border/70 ${session.prCounts.total > 0 ? "border-l-2 border-l-[rgb(var(--button-primary-border)/0.9)]" : ""}`}>
       <div className="relative flex min-h-[74px] flex-col gap-1 pr-12">
         <Link
           href={`/history/${session.id}?returnTab=sessions&view=${mode}`}

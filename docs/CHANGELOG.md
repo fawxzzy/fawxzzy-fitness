@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.8 — 2026-03-03
+
+### WHAT
+- Updated PR detection so bodyweight/0-weight sets can generate rep PRs and session summaries now expose PR counts split by Rep PRs vs Weight PRs.
+- Updated History session cards and History log header summaries to show PR breakdown labels (for example, `2 Rep PRs • 1 Weight PR`) instead of a single PR total.
+- Expanded Exercise Info stats to consistently show bodyweight-friendly best reps/weight and category-based PR breakdown details while keeping the Stats section visible with empty-state messaging.
+
+### WHY
+- Bodyweight movements now produce meaningful progression records instead of being excluded from PR logic.
+- Category-based PR labels make history summaries easier to interpret at a glance.
+- Consistent stats rendering improves trust in exercise insights even when a movement has sparse or bodyweight-only history.
+
 ## 0.3.7 — 2026-03-03
 
 ### WHAT

@@ -33,6 +33,10 @@ export type ExerciseInfoSheetStats = {
   actual_pr_weight: number | null;
   actual_pr_reps: number | null;
   actual_pr_at: string | null;
+  pr_counts?: { reps: number; weight: number; total: number };
+  pr_label?: string;
+  best_bodyweight_reps?: number | null;
+  best_weight?: number | null;
 };
 
 const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
@@ -111,6 +115,10 @@ export function ExerciseInfoSheet({
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const lastSummary = stats ? formatWeightReps(stats.last_weight, stats.last_reps, stats.last_unit) : null;
   const actualPrSummary = stats ? formatWeightReps(stats.actual_pr_weight, stats.actual_pr_reps, stats.last_unit) : null;
+  const bestBodyweightReps = typeof stats?.best_bodyweight_reps === "number" && stats.best_bodyweight_reps > 0 ? `${stats.best_bodyweight_reps} reps` : null;
+  const bestWeightSummary = typeof stats?.best_weight === "number" && stats.best_weight > 0 ? `${formatWeight(stats.best_weight)}${stats?.last_unit === "kg" ? "kg" : stats?.last_unit === "lb" || stats?.last_unit === "lbs" ? "lb" : ""}` : null;
+  const prBreakdown = stats?.pr_label?.trim() || null;
+
   const e1rmSummary = stats?.pr_est_1rm != null && stats.pr_est_1rm > 0
     ? `e1RM ${Math.round(stats.pr_est_1rm)}${stats.pr_weight != null && stats.pr_reps != null ? ` (from ${formatWeightReps(stats.pr_weight, stats.pr_reps, stats.last_unit) ?? `${stats.pr_weight}×${stats.pr_reps}`})` : ""}`
     : null;
@@ -215,8 +223,11 @@ export function ExerciseInfoSheet({
                         {stats?.actual_pr_at ? ` · ${formatShortDate(stats.actual_pr_at)}` : ""}
                       </p>
                     ) : null}
+                    {bestBodyweightReps ? <p>Best Reps (Bodyweight): {bestBodyweightReps}</p> : null}
+                    {bestWeightSummary ? <p>Best Weight: {bestWeightSummary}</p> : null}
+                    {prBreakdown ? <p>PRs: {prBreakdown}</p> : null}
                     {e1rmSummary ? <p>Strength PR: {e1rmSummary}</p> : null}
-                    {!lastSummary && !actualPrSummary && !e1rmSummary ? (
+                    {!lastSummary && !actualPrSummary && !e1rmSummary && !bestBodyweightReps && !bestWeightSummary && !prBreakdown ? (
                       <p className="text-muted">No stats yet — log a set to generate stats.</p>
                     ) : null}
                   </>

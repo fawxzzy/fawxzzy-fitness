@@ -5,6 +5,7 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
+import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { HistorySessionsClient } from "./HistorySessionsClient";
@@ -133,18 +134,54 @@ export default async function HistoryPage({
     exerciseNameById.set(exercise.id, exercise.name ?? "Exercise");
   }
 
-  const { data: exerciseStatsData } = exerciseIds.length
+  const { data: historicalSetRows } = exerciseIds.length
     ? await supabase
-      .from("exercise_stats_cache")
-      .select("exercise_id, actual_pr_at")
+      .from("sets")
+      .select("set_index, weight, reps, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
       .eq("user_id", user.id)
-      .in("exercise_id", exerciseIds)
+      .eq("session_exercise.user_id", user.id)
+      .eq("session_exercise.session.status", "completed")
+      .in("session_exercise.exercise_id", exerciseIds)
     : { data: [] };
 
-  const actualPrAtByExerciseId = new Map<string, string>();
-  for (const stat of exerciseStatsData ?? []) {
-    if (stat.actual_pr_at) actualPrAtByExerciseId.set(stat.exercise_id, stat.actual_pr_at);
-  }
+  const prEvaluationSets: PrEvaluationSet[] = ((historicalSetRows ?? []) as Array<{
+    set_index: number;
+    weight: number | null;
+    reps: number | null;
+    session_exercise:
+      | {
+        session_id: string;
+        exercise_id: string;
+        session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null;
+      }
+      | Array<{
+        session_id: string;
+        exercise_id: string;
+        session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null;
+      }>
+      | null;
+  }>).flatMap((row) => {
+    const sessionExercise = Array.isArray(row.session_exercise)
+      ? (row.session_exercise[0] ?? null)
+      : (row.session_exercise ?? null);
+    const session = Array.isArray(sessionExercise?.session)
+      ? (sessionExercise?.session[0] ?? null)
+      : (sessionExercise?.session ?? null);
+    if (!sessionExercise?.exercise_id || !sessionExercise?.session_id || !session?.performed_at || session.status !== "completed") {
+      return [];
+    }
+
+    return [{
+      exerciseId: sessionExercise.exercise_id,
+      sessionId: sessionExercise.session_id,
+      performedAt: session.performed_at,
+      setIndex: row.set_index,
+      weight: row.weight,
+      reps: row.reps,
+    }];
+  });
+
+  const { sessionCountsById } = evaluatePrSummaries(prEvaluationSets);
 
   const exercisesBySessionId = new Map<string, Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id">[]>();
   for (const row of sessionExercises) {
@@ -168,15 +205,6 @@ export default async function HistoryPage({
       || (session.routine_day_index ? `Day ${session.routine_day_index}` : null);
     const routineTitle = (session.routine_id ? routineNameById.get(session.routine_id) : null) ?? session.name;
     const exercisesForSession = exercisesBySessionId.get(session.id) ?? [];
-    const prExerciseIds = new Set<string>();
-
-    for (const exercise of exercisesForSession) {
-      const actualPrAt = actualPrAtByExerciseId.get(exercise.exercise_id);
-      if (actualPrAt && actualPrAt === session.performed_at) {
-        prExerciseIds.add(exercise.exercise_id);
-      }
-    }
-
     sessionSummaryById.set(session.id, buildSessionSummary({
       sessionRow: session,
       routineTitle,
@@ -184,7 +212,7 @@ export default async function HistoryPage({
       sessionExercises: exercisesForSession,
       setsBySessionExerciseId,
       exerciseNameById,
-      prExerciseIds,
+      prCounts: sessionCountsById.get(session.id) ?? { ...EMPTY_PR_COUNTS },
     }));
   }
 

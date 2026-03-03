@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Keep PR systems metric-aware and emit category counts from loaders
+- Type: Pattern
+- Summary: PR evaluation should distinguish rep-based vs weight-based progress (including bodyweight sets), then expose category counts and formatted labels from server-side loaders/transformers for reuse across detail and list surfaces.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents bodyweight progress from disappearing and avoids divergent per-component PR math in render loops.
+- Evidence: src/lib/pr-evaluator.ts, src/app/history/session-summary.ts, src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx, src/lib/exercise-info.ts
+- Status: Proposed
+
 ## 2026-03-03 — Derive feed summaries once in loaders for performance-first history cards
 - Type: Pattern
 - Summary: For list-heavy history surfaces, derive compact summary view models (counts, highlights, formatted-ready metadata) once in server loaders/transformers and pass only the summary shape to card renderers.

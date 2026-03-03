@@ -1,5 +1,6 @@
 import type { SessionRow } from "@/types/db";
 import { formatSetDisplay } from "@/lib/formatting";
+import { formatPrBreakdown, type PrCountByCategory } from "@/lib/pr-evaluator";
 
 export type SessionSummary = {
   id: string;
@@ -9,7 +10,8 @@ export type SessionSummary = {
   durationSec?: number;
   exerciseCount: number;
   setCount: number;
-  prCount: number;
+  prCounts: PrCountByCategory;
+  prLabel: string;
   topSet?: {
     exerciseName: string;
     display: string;
@@ -36,7 +38,7 @@ type BuildSummaryInput = {
   sessionExercises: SessionExerciseSummaryRow[];
   setsBySessionExerciseId: Map<string, SessionSetSummaryRow[]>;
   exerciseNameById: Map<string, string>;
-  prExerciseIds: Set<string>;
+  prCounts: PrCountByCategory;
 };
 
 export function buildSessionSummary({
@@ -46,7 +48,7 @@ export function buildSessionSummary({
   sessionExercises,
   setsBySessionExerciseId,
   exerciseNameById,
-  prExerciseIds,
+  prCounts,
 }: BuildSummaryInput): SessionSummary {
   const exerciseCount = sessionExercises.length;
   let setCount = 0;
@@ -73,8 +75,6 @@ export function buildSessionSummary({
       }
     }
   }
-
-  const prCount = sessionExercises.reduce((count, exercise) => count + (prExerciseIds.has(exercise.exercise_id) ? 1 : 0), 0);
 
   let topSet: SessionSummary["topSet"];
   if (bestWeighted) {
@@ -107,7 +107,8 @@ export function buildSessionSummary({
     durationSec,
     exerciseCount,
     setCount,
-    prCount,
+    prCounts,
+    prLabel: formatPrBreakdown(prCounts),
     topSet,
   };
 }
