@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Standardized Today in-progress actions so “Resume Workout” and “Discard Workout” now use the shared frosted bottom action bar in a side-by-side layout.
+- Standardized Current Session set logging so the “Save Set” action now uses the same bottom action bar surface.
+WHY:
+- Keeps core workout actions in one consistent, thumb-reachable location and removes heavier card-backed action treatments for a cleaner, more predictable mobile flow.
+
+### Fixed
+WHAT:
 - Added the shared frosted bottom page action bar to Routines → Day View with a single full-width “Edit Day” action.
 - Reserved matching bottom content space in Day View so planned exercise cards remain fully visible above the fixed action bar.
 WHY:

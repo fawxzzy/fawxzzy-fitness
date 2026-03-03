@@ -11,6 +11,7 @@ import {
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
@@ -765,12 +766,13 @@ export function SetLoggerCard({
           </div>
         </div>
 
-        <div className="sticky bottom-0 z-20 -mx-3 mt-3 border-t border-white/10 bg-surface/95 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur">
-          <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
-            Save set
-          </AppButton>
-        </div>
       </div>
+
+      <BottomActionBar>
+        <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
+          Save Set
+        </AppButton>
+      </BottomActionBar>
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
