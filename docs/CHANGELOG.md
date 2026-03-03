@@ -2326,8 +2326,10 @@ WHY:
 ## 0.3.6 — 2026-03-03
 
 ### WHAT
-- (fill in)
+- Tightened `BottomActionBar` internal spacing so sticky action panels use a single compact bottom inset and no extra dead zone under primary buttons.
+- Kept History Log Detail and Current Session exercise-detail actions in sticky in-flow BottomActionBar footers within their scroll containers so Edit/Delete and Save Set stay visible while scrolling.
 
 ### WHY
-- (fill in)
+- Removes excess empty space in the shared action panel and makes CTA placement feel tighter and more predictable on mobile.
+- Ensures critical actions remain reachable on long, scrollable detail screens without overlay-style content blocking.
 

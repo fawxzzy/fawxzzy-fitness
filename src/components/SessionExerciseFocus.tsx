@@ -243,6 +243,7 @@ export function SessionExerciseFocus({
       )}
 
       {selectedExercise ? (
+        <>
         <article
           ref={focusedRef}
           className="space-y-4 rounded-md border border-border/70 bg-surface p-4"
@@ -289,26 +290,27 @@ export function SessionExerciseFocus({
           </div>
           {selectedExercise.isSkipped ? <p className="text-sm text-amber-300">Marked skipped for this session.</p> : null}
 
-          <SetLoggerCard
-            sessionId={sessionId}
-            sessionExerciseId={selectedExercise.id}
-            addSetAction={addSetAction}
-            syncQueuedSetLogsAction={syncQueuedSetLogsAction}
-            unitLabel={unitLabel}
-            initialSets={selectedExercise.initialSets}
-            prefill={selectedExercise.prefill}
-            defaultDistanceUnit={selectedExercise.defaultUnit}
-            isCardio={selectedExercise.isCardio}
-            initialEnabledMetrics={selectedExercise.initialEnabledMetrics}
-            routineDayExerciseId={selectedExercise.routineDayExerciseId}
-            planTargetsHash={selectedExercise.planTargetsHash}
-            deleteSetAction={deleteSetAction}
-            resetSignal={setLoggerResetSignal}
-            onSetCountChange={(count) => {
-              setLoggedSetCounts((current) => ({ ...current, [selectedExercise.id]: count }));
-            }}
-          />
         </article>
+        <SetLoggerCard
+          sessionId={sessionId}
+          sessionExerciseId={selectedExercise.id}
+          addSetAction={addSetAction}
+          syncQueuedSetLogsAction={syncQueuedSetLogsAction}
+          unitLabel={unitLabel}
+          initialSets={selectedExercise.initialSets}
+          prefill={selectedExercise.prefill}
+          defaultDistanceUnit={selectedExercise.defaultUnit}
+          isCardio={selectedExercise.isCardio}
+          initialEnabledMetrics={selectedExercise.initialEnabledMetrics}
+          routineDayExerciseId={selectedExercise.routineDayExerciseId}
+          planTargetsHash={selectedExercise.planTargetsHash}
+          deleteSetAction={deleteSetAction}
+          resetSignal={setLoggerResetSignal}
+          onSetCountChange={(count) => {
+            setLoggedSetCounts((current) => ({ ...current, [selectedExercise.id]: count }));
+          }}
+        />
+        </>
       ) : null}
     </div>
   );
