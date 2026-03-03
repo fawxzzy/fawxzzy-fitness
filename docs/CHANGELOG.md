@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 WHAT:
+- Added the shared frosted bottom page action bar to Routines → Day View with a single full-width “Edit Day” action.
+- Reserved matching bottom content space in Day View so planned exercise cards remain fully visible above the fixed action bar.
+WHY:
+- Improves Edit Day action discoverability and aligns Day View with the new consistent bottom action-bar pattern used across primary app surfaces.
+
+### Fixed
+WHAT:
 - Standardized planned-exercise list UI across Routine Day, Today, and Session surfaces with one canonical `ExerciseCard` presentation contract.
 - Updated these screens to reuse the same card styling, subtitle treatment, chevron alignment, and optional set-count pill behavior.
 WHY:

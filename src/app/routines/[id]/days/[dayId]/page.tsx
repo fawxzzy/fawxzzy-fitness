@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { BottomActionBar, BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
@@ -81,9 +84,10 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
         .in("id", exerciseIds);
   const exerciseDetailsById = new Map((exerciseDetailsRows ?? []).map((exercise) => [exercise.id, exercise]));
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
+  const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}`;
 
   return (
-    <section className="space-y-4">
+    <section className={`space-y-4 ${BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}`}>
       <AppNav />
 
       <AppPanel className="space-y-3">
@@ -112,6 +116,15 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
           />
         )}
       </AppPanel>
+
+      <BottomActionBar>
+        <Link
+          href={editDayHref}
+          className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "w-full" })}
+        >
+          Edit Day
+        </Link>
+      </BottomActionBar>
     </section>
   );
 }
