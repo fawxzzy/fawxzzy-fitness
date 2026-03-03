@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Literalize layout-critical Tailwind arbitrary-value classes
+- Type: Guardrail
+- Summary: Layout-critical spacing utilities that rely on Tailwind arbitrary values (for example `pb-[calc(...)]`) should be stored as literal class strings (and optionally safelisted) instead of template-interpolated strings.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents Tailwind extraction misses that silently drop compiled spacing rules and cause overlap regressions in mobile fixed-action layouts.
+- Evidence: src/components/ui/BottomActionBar.tsx, tailwind.config.ts
+- Status: Proposed
+
 ## 2026-03-03 — Card summaries should be measurement-aware and server-derived
 - Type: Pattern
 - Summary: History/card surfaces should receive preformatted Last/Best summary strings from server loaders, with deterministic measurement-type priorities (cardio duration vs distance vs calories, with pace only when unit-safe).
