@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Portaled sticky bottom actions must pair with conditional scroll-owner reserve
+- Type: Guardrail
+- Summary: When bottom actions are viewport-pinned via portal/fixed positioning, reserve padding must be owned by the single scroll container and applied only when actions are actually present.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Keeps always-visible mobile CTAs reliable while preventing both content overlap and unnecessary bottom dead-space on routes without actions.
+- Evidence: src/components/ui/BottomActionBar.tsx, src/components/layout/ScrollScreenWithBottomActions.tsx, src/components/layout/bottom-actions.tsx
+- Status: Proposed
+
 
 ## 2026-03-03 — Enforce sticky action placement with a scroll-screen wrapper
 - Type: Pattern

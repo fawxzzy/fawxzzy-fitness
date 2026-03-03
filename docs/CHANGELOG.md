@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.16 — 2026-03-03
+
+### WHAT
+- Made `BottomActionBar` treat `variant="sticky"` as a viewport-pinned, portal-rendered bottom action bar using the same reliable fixed-position contract as legacy fixed usage.
+- Updated `ScrollScreenWithBottomActions` to auto-apply fixed bottom-action reserve spacing only when published bottom actions are present.
+
+### WHY
+- Restores Today-style always-visible bottom actions while scrolling across screens.
+- Prevents bottom-content overlap on iOS/mobile by enforcing one scroll-owner reserve contract without adding dead space on screens that have no bottom actions.
+
 ## 0.3.15 — 2026-03-03
 
 ### WHAT

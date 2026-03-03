@@ -29,6 +29,11 @@ export function useBottomActions(): BottomActionsApi {
   return context.api;
 }
 
+export function useHasBottomActions(): boolean {
+  const context = useContext(BottomActionsContext);
+  return Boolean(context?.node);
+}
+
 export function usePublishBottomActions(node: React.ReactNode | null) {
   const { set } = useBottomActions();
 
