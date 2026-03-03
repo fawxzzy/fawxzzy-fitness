@@ -3,6 +3,7 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
+import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 import { LogAuditClient } from "./LogAuditClient";
@@ -96,19 +97,53 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
   const backHref = `/history?tab=sessions&view=${returnView}`;
 
   const exerciseIds = orderedSessionExercises.map((exercise) => exercise.exercise_id);
-  const { data: exerciseStats } = exerciseIds.length
+  const { data: historicalSetRows } = exerciseIds.length
     ? await supabase
-      .from("exercise_stats_cache")
-      .select("exercise_id, actual_pr_at")
+      .from("sets")
+      .select("set_index, weight, reps, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
       .eq("user_id", user.id)
-      .in("exercise_id", exerciseIds)
+      .eq("session_exercise.user_id", user.id)
+      .eq("session_exercise.session.status", "completed")
+      .in("session_exercise.exercise_id", exerciseIds)
     : { data: [] };
-  const prExerciseIds = new Set<string>();
-  for (const stat of exerciseStats ?? []) {
-    if (stat.actual_pr_at && stat.actual_pr_at === sessionRow.performed_at) {
-      prExerciseIds.add(stat.exercise_id);
+
+  const prEvaluationSets: PrEvaluationSet[] = ((historicalSetRows ?? []) as Array<{
+    set_index: number;
+    weight: number | null;
+    reps: number | null;
+    session_exercise:
+      | {
+        session_id: string;
+        exercise_id: string;
+        session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null;
+      }
+      | Array<{
+        session_id: string;
+        exercise_id: string;
+        session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null;
+      }>
+      | null;
+  }>).flatMap((row) => {
+    const sessionExercise = Array.isArray(row.session_exercise)
+      ? (row.session_exercise[0] ?? null)
+      : (row.session_exercise ?? null);
+    const session = Array.isArray(sessionExercise?.session)
+      ? (sessionExercise?.session[0] ?? null)
+      : (sessionExercise?.session ?? null);
+    if (!sessionExercise?.exercise_id || !sessionExercise?.session_id || !session?.performed_at || session.status !== "completed") {
+      return [];
     }
-  }
+
+    return [{
+      exerciseId: sessionExercise.exercise_id,
+      sessionId: sessionExercise.session_id,
+      performedAt: session.performed_at,
+      setIndex: row.set_index,
+      weight: row.weight,
+      reps: row.reps,
+    }];
+  });
+  const { sessionCountsById } = evaluatePrSummaries(prEvaluationSets);
 
   const sessionSummary = buildSessionSummary({
     sessionRow,
@@ -121,7 +156,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
     })),
     setsBySessionExerciseId: new Map(Array.from(setsByExercise.entries())),
     exerciseNameById: exerciseNameMap,
-    prExerciseIds,
+    prCounts: sessionCountsById.get(sessionRow.id) ?? { ...EMPTY_PR_COUNTS },
   });
 
   const initialIsEditing = searchParams?.edit === "1";

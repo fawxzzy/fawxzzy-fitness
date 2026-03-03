@@ -348,7 +348,7 @@ export function LogAuditClient({
     sessionSummary.durationSec ? formatDurationShort(sessionSummary.durationSec) : null,
     formatCount(sessionSummary.exerciseCount, "exercise"),
     formatCount(sessionSummary.setCount, "set"),
-    sessionSummary.prCount > 0 ? formatCount(sessionSummary.prCount, "PR") : null,
+    sessionSummary.prLabel || null,
   ].filter((part): part is string => Boolean(part));
 
   return (

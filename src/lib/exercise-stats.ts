@@ -148,7 +148,8 @@ export async function recomputeExerciseStatsForExercises(userId: string, exercis
     const actualPrSet = sets
       .filter((set) => {
         const weight = typeof set.weight === "number" ? set.weight : 0;
-        return weight > 0;
+        const reps = typeof set.reps === "number" ? set.reps : 0;
+        return weight > 0 || reps > 0;
       })
       .sort((a, b) => {
         const aWeight = typeof a.weight === "number" ? a.weight : 0;

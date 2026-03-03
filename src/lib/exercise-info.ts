@@ -3,6 +3,7 @@ import "server-only";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { getExerciseStatsForExercise, type ExerciseStatsRow } from "@/lib/exercise-stats";
+import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export type ExerciseInfoExercise = {
@@ -18,9 +19,16 @@ export type ExerciseInfoExercise = {
   slug: string | null;
 };
 
+export type ExerciseInfoStats = ExerciseStatsRow & {
+  pr_counts: { reps: number; weight: number; total: number };
+  pr_label: string;
+  best_bodyweight_reps: number | null;
+  best_weight: number | null;
+};
+
 export type ExerciseInfoPayload = {
   exercise: ExerciseInfoExercise;
-  stats: ExerciseStatsRow | null;
+  stats: ExerciseInfoStats | null;
 };
 
 function isNoRowsError(error: { code?: string; message?: string } | null): boolean {
@@ -81,9 +89,78 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
   };
 }
 
-export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, requestId?: string): Promise<ExerciseStatsRow | null> {
+export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, requestId?: string): Promise<ExerciseInfoStats | null> {
   try {
-    return await getExerciseStatsForExercise(userId, canonicalExerciseId);
+    const [stats, historicalSetRows] = await Promise.all([
+      getExerciseStatsForExercise(userId, canonicalExerciseId),
+      supabaseServer()
+        .from("sets")
+        .select("set_index, weight, reps, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
+        .eq("user_id", userId)
+        .eq("session_exercise.user_id", userId)
+        .eq("session_exercise.exercise_id", canonicalExerciseId)
+        .eq("session_exercise.session.status", "completed"),
+    ]);
+
+    const rows = ((historicalSetRows.data ?? []) as Array<{
+      set_index: number;
+      weight: number | null;
+      reps: number | null;
+      session_exercise:
+        | { session_id: string; exercise_id: string; session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null }
+        | Array<{ session_id: string; exercise_id: string; session: { performed_at: string; status: "in_progress" | "completed" } | Array<{ performed_at: string; status: "in_progress" | "completed" }> | null }>
+        | null;
+    }>).flatMap((row): PrEvaluationSet[] => {
+      const sessionExercise = Array.isArray(row.session_exercise)
+        ? (row.session_exercise[0] ?? null)
+        : (row.session_exercise ?? null);
+      const session = Array.isArray(sessionExercise?.session)
+        ? (sessionExercise?.session[0] ?? null)
+        : (sessionExercise?.session ?? null);
+      if (!sessionExercise?.session_id || !session?.performed_at || session.status !== "completed") {
+        return [];
+      }
+
+      return [{
+        exerciseId: canonicalExerciseId,
+        sessionId: sessionExercise.session_id,
+        performedAt: session.performed_at,
+        setIndex: row.set_index,
+        weight: row.weight,
+        reps: row.reps,
+      }];
+    });
+
+    const { exerciseSummaryById } = evaluatePrSummaries(rows);
+    const exerciseSummary = exerciseSummaryById.get(canonicalExerciseId);
+
+    if (!stats && !exerciseSummary) return null;
+
+    const fallbackStats: ExerciseStatsRow = {
+      exercise_id: canonicalExerciseId,
+      last_weight: null,
+      last_reps: null,
+      last_unit: null,
+      last_performed_at: null,
+      pr_weight: null,
+      pr_reps: null,
+      pr_est_1rm: null,
+      pr_achieved_at: null,
+      actual_pr_weight: null,
+      actual_pr_reps: null,
+      actual_pr_at: null,
+    };
+
+    const resolvedStats = stats ?? fallbackStats;
+    const prCounts = exerciseSummary?.counts ?? { reps: 0, weight: 0, total: 0 };
+
+    return {
+      ...resolvedStats,
+      pr_counts: prCounts,
+      pr_label: formatPrBreakdown(prCounts),
+      best_bodyweight_reps: exerciseSummary && exerciseSummary.bestBodyweightReps > 0 ? exerciseSummary.bestBodyweightReps : null,
+      best_weight: exerciseSummary && exerciseSummary.bestWeight > 0 ? exerciseSummary.bestWeight : null,
+    };
   } catch (error) {
     console.warn("[exercise-info] non-fatal stats failure", {
       requestId,
