@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.13 — 2026-03-03
+
+### WHAT
+- Enforced canonical exercise linking in session/logging writes so new `session_exercises` rows must resolve to a real exercise id before sets can be logged.
+- Added a safe backfill for legacy `session_exercises` rows missing `exercise_id` when a linked routine-day exercise provides an unambiguous canonical match.
+- Hardened Exercise Info/History exercise stat loading to prioritize canonical id joins and avoid cross-exercise PR leakage when canonical linkage is missing.
+
+### WHY
+- Ensures newly logged Pull-Up/bodyweight sets immediately appear in Exercise Info stats.
+- Repairs prior unlinked rows safely so historical stats can recover without manual database edits.
+- Prevents PR/stat contamination between similarly named movements (for example Pull-Up vs Weighted Pull-Up).
+
 ## 0.3.12 — 2026-03-03
 
 ### WHAT
@@ -2404,4 +2416,3 @@ WHY:
 - Prevents recurring iOS overlap bugs where fixed bars rendered inside overflow scrollers clip/anchor inconsistently and hide final rows.
 - Keeps bottom reserve spacing resilient if fixed action bar height changes over time without requiring per-screen padding rewrites.
 - Reinforces one normalized, future-proof fixed-bottom-bar contract across affected routes.
-
