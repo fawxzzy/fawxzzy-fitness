@@ -674,3 +674,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Prevents action-surface drift, removes unnecessary background chrome, and preserves consistent touch target sizing while respecting iOS home-indicator safe area.
 - Evidence: src/components/ui/CompactActionStack.tsx, src/app/today/TodayDayPicker.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
 - Status: Proposed
+
+## 2026-03-03 — Reserve fixed bottom action space through one shell-level offset contract
+- Type: Guardrail
+- Summary: Any screen with viewport-fixed bottom actions should reserve content reachability via one shell-level `--app-bottom-offset` contract instead of ad hoc per-screen `env(safe-area-inset-bottom)` math.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents dead-space drift and hidden end-of-list controls when fixed action panels vary across screens or evolve over time.
+- Evidence: src/components/ui/BottomActionBar.tsx, src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/today/page.tsx, src/app/routines/page.tsx, src/app/history/[sessionId]/page.tsx, src/components/SessionPageClient.tsx
+- Status: Proposed

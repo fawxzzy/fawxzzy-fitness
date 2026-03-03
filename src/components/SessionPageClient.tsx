@@ -109,7 +109,7 @@ export function SessionPageClient({
   );
 
   return (
-    <section className={`space-y-4 pb-4 ${BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}`}>
+    <section className={`space-y-4 ${BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}`}>
       {!isExerciseOpen ? (
         <SessionHeaderControls
           sessionId={sessionId}

@@ -8,6 +8,7 @@ import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
 import { RestDayToggleCheckbox } from "@/app/routines/[id]/edit/RestDayToggleCheckbox";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
+import { AppShell } from "@/components/ui/app/AppShell";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
@@ -360,7 +361,8 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const copiedDayId = searchParams?.copiedDayId ?? "";
 
   return (
-    <section className="space-y-4">
+    <AppShell topNavMode="none">
+      <section className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Edit Routine</h1>
         <RoutineBackButton href="/routines" />
@@ -470,6 +472,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         <p className="text-xs text-red-100/80">Delete this routine permanently. This removes all routine days and exercises and cannot be undone.</p>
         <DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />
       </div>
-    </section>
+      </section>
+    </AppShell>
   );
 }

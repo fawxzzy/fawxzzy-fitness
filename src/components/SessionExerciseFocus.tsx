@@ -245,7 +245,7 @@ export function SessionExerciseFocus({
       {selectedExercise ? (
         <article
           ref={focusedRef}
-          className="space-y-4 rounded-md border border-border/70 bg-surface p-4 pb-28 pt-4"
+          className="space-y-4 rounded-md border border-border/70 bg-surface p-4"
           aria-hidden={false}
         >
           <div className="flex items-start justify-between gap-2">
