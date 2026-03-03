@@ -13,7 +13,7 @@ export function BottomActionBar({
   innerClassName?: string;
 }) {
   return (
-    <div className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-40", className)}>
+    <div className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-50", className)}>
       <div className="pointer-events-auto mx-auto w-full max-w-md px-3">
         <div
           className={cn(

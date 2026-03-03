@@ -64,7 +64,7 @@ export function RoutineSwitcherBar({
         aria-controls="routine-switcher-sheet"
       >
         <span className="min-w-0">
-          <span className="block truncate text-sm leading-5 text-text">
+          <span className="block overflow-hidden truncate whitespace-nowrap text-sm leading-5 text-text" title={activeRoutineSummary ? `${activeRoutineName} | ${activeRoutineSummary}` : activeRoutineName}>
             <span className="font-semibold">{activeRoutineName}</span>
             {activeRoutineSummary ? <span className="font-medium text-muted">{` | ${activeRoutineSummary}`}</span> : null}
           </span>
