@@ -11,6 +11,15 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 ## PROPOSED
 
 
+## 2026-03-03 — Enforce sticky action placement with a scroll-screen wrapper
+- Type: Pattern
+- Summary: Use a single screen wrapper that composes `BottomActionsProvider` + `ScrollContainer` + `BottomActionsSlot` in one fixed hierarchy so the slot is always the last child of the actual scroll owner.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Sticky bottom actions only work reliably when they are descendants of the real scroll owner; codifying the relationship removes placement drift and route-level regressions.
+- Evidence: src/components/layout/ScrollScreenWithBottomActions.tsx, src/app/today/page.tsx, src/app/session/[id]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
+- Status: Proposed
+
+
 ## 2026-03-03 — Screen-owned sticky bottom actions should be slotted once per scroll screen
 - Type: Pattern
 - Summary: Bottom actions should be screen-owned and rendered once via a sticky slot as the last child of the scroll-content stack, while feature components only publish action content.

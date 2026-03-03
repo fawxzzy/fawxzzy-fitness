@@ -5,10 +5,9 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
-import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { appTokens } from "@/components/ui/app/tokens";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
-import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { Glass } from "@/components/ui/Glass";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -135,8 +134,7 @@ export default async function RoutinesPage() {
     <AppShell className="h-[100dvh] gap-3">
       <AppNav />
       <div className="mt-3 flex-1 min-h-0">
-        <ScrollContainer className={FIXED_CTA_RESERVE_CLASS}>
-          <BottomActionsProvider>
+        <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
             <Glass variant="base" className="space-y-3 p-3" interactive={false}>
               {routines.length === 0 ? (
                 <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
@@ -207,9 +205,7 @@ export default async function RoutinesPage() {
                 </Link>
               </PublishBottomActions>
             ) : null}
-            <BottomActionsSlot />
-          </BottomActionsProvider>
-        </ScrollContainer>
+          </ScrollScreenWithBottomActions>
       </div>
     </AppShell>
   );

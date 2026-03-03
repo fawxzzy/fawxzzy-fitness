@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.15 — 2026-03-03
+
+### WHAT
+- Added a shared `ScrollScreenWithBottomActions` layout wrapper that always renders bottom actions inside the single `ScrollContainer` scroll owner with the slot as the final child.
+- Migrated Session, History Log Detail, Routines, Routine Day, and Today screens to use the wrapper so provider/slot placement is consistent across all bottom-action surfaces.
+- Added a lightweight development warning when `BottomActionsSlot` is mounted without a detected scrollable ancestor.
+
+### WHY
+- Restores Today-style sticky bottom action behavior everywhere by structurally enforcing the required “slot inside scroller” contract.
+- Prevents regressions where actions stop sticking because the slot is rendered outside the true scroll owner.
+
 ## 0.3.14 — 2026-03-03
 
 ### WHAT

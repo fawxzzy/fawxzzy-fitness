@@ -1,7 +1,7 @@
 import { SessionPageClient } from "@/components/SessionPageClient";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import type { DisplayTarget } from "@/lib/session-targets";
@@ -116,7 +116,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
   return (
     <AppShell topNavMode="none">
-      <ScrollContainer className={FIXED_CTA_RESERVE_CLASS}>
+      <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
         <SessionPageClient
           sessionId={params.id}
           initialDurationSeconds={sessionRow.duration_seconds}
@@ -180,7 +180,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           removeExerciseAction={removeExerciseAction}
           deleteSetAction={deleteSetAction}
         />
-      </ScrollContainer>
+      </ScrollScreenWithBottomActions>
     </AppShell>
   );
 }

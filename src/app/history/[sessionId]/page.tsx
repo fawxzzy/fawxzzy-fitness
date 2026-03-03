@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
@@ -164,7 +164,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
 
   return (
     <AppShell className="gap-4" topNavMode="none">
-      <ScrollContainer className={`flex flex-col gap-3 px-1 ${FIXED_CTA_RESERVE_CLASS}`}>
+      <ScrollScreenWithBottomActions className={`flex flex-col gap-3 px-1 ${FIXED_CTA_RESERVE_CLASS}`}>
         <HistoryLogPageClient
           logId={sessionRow.id}
           initialDayName={effectiveDayName}
@@ -194,7 +194,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
             })),
           }))}
         />
-      </ScrollContainer>
+      </ScrollScreenWithBottomActions>
     </AppShell>
   );
 }
