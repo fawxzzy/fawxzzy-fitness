@@ -7,7 +7,9 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { appTokens } from "@/components/ui/app/tokens";
-import { BottomActionBar, FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
+import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
+import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { Glass } from "@/components/ui/Glass";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -134,76 +136,79 @@ export default async function RoutinesPage() {
       <AppNav />
       <div className="mt-3 flex-1 min-h-0">
         <ScrollContainer className={FIXED_CTA_RESERVE_CLASS}>
-          <Glass variant="base" className="space-y-3 p-3" interactive={false}>
-            {routines.length === 0 ? (
-              <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
-                <p className="text-sm text-muted">No routines yet.</p>
+          <BottomActionsProvider>
+            <Glass variant="base" className="space-y-3 p-3" interactive={false}>
+              {routines.length === 0 ? (
+                <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
+                  <p className="text-sm text-muted">No routines yet.</p>
+                  <Link
+                    href="/routines/new"
+                    className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                  >
+                    Create your first routine
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <RoutineSwitcherBar
+                    activeRoutineId={activeRoutine?.id ?? null}
+                    activeRoutineName={activeRoutine?.name ?? "Select routine"}
+                    activeRoutineSummary={cycleSummary}
+                    routines={routines.map((routine) => ({
+                      id: routine.id,
+                      name: routine.name,
+                      summary: `${routine.cycle_length_days}-day cycle`,
+                    }))}
+                    setActiveRoutineAction={setActiveRoutineAction}
+                  />
+
+                  {activeRoutine ? (
+                    <AppPanel className="space-y-4">
+                      <ul className="space-y-3 text-sm text-muted">
+                        {sortedActiveRoutineDays.map((day, index) => {
+                          const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+                          const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
+                          const isToday = index === todayRowIndex;
+
+                          return (
+                            <li key={day.id}>
+                              <Link
+                                href={`/routines/${activeRoutine.id}/days/${day.id}`}
+                                className="block"
+                              >
+                                <AppRow
+                                  tone={isToday ? "active" : "default"}
+                                  leftTop={(<span className="text-xs font-semibold uppercase tracking-wide">Day {dayNumber}{isToday ? <span className="ml-2 inline-block align-middle"><AppBadge tone="today">Today</AppBadge></span> : null}</span>)}
+                                  rightTop={<span className={day.is_rest ? appTokens.accentText : undefined}>{day.is_rest ? "Rest" : dayLabel}</span>}
+                                  rightWrap
+                                  className="px-4"
+                                />
+                              </Link>
+                            </li>
+                          );
+                        })}
+                        {sortedActiveRoutineDays.length === 0 ? (
+                          <li className="py-2 text-sm text-muted">No days configured yet</li>
+                        ) : null}
+                      </ul>
+                    </AppPanel>
+                  ) : null}
+                </>
+              )}
+            </Glass>
+            {activeRoutine ? (
+              <PublishBottomActions>
                 <Link
-                  href="/routines/new"
+                  href={`/routines/${activeRoutine.id}/edit`}
+                  aria-label={`Edit ${activeRoutine.name} routine`}
                   className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
                 >
-                  Create your first routine
+                  Edit routine
                 </Link>
-              </div>
-            ) : (
-              <>
-                <RoutineSwitcherBar
-                  activeRoutineId={activeRoutine?.id ?? null}
-                  activeRoutineName={activeRoutine?.name ?? "Select routine"}
-                  activeRoutineSummary={cycleSummary}
-                  routines={routines.map((routine) => ({
-                    id: routine.id,
-                    name: routine.name,
-                    summary: `${routine.cycle_length_days}-day cycle`,
-                  }))}
-                  setActiveRoutineAction={setActiveRoutineAction}
-                />
-
-                {activeRoutine ? (
-                  <AppPanel className="space-y-4">
-                    <ul className="space-y-3 text-sm text-muted">
-                      {sortedActiveRoutineDays.map((day, index) => {
-                        const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
-                        const dayLabel = day.name?.trim() || (day.is_rest ? "Rest" : "Training");
-                        const isToday = index === todayRowIndex;
-
-                        return (
-                          <li key={day.id}>
-                            <Link
-                              href={`/routines/${activeRoutine.id}/days/${day.id}`}
-                              className="block"
-                            >
-                              <AppRow
-                                tone={isToday ? "active" : "default"}
-                                leftTop={(<span className="text-xs font-semibold uppercase tracking-wide">Day {dayNumber}{isToday ? <span className="ml-2 inline-block align-middle"><AppBadge tone="today">Today</AppBadge></span> : null}</span>)}
-                                rightTop={<span className={day.is_rest ? appTokens.accentText : undefined}>{day.is_rest ? "Rest" : dayLabel}</span>}
-                                rightWrap
-                                className="px-4"
-                              />
-                            </Link>
-                          </li>
-                        );
-                      })}
-                      {sortedActiveRoutineDays.length === 0 ? (
-                        <li className="py-2 text-sm text-muted">No days configured yet</li>
-                      ) : null}
-                    </ul>
-                  </AppPanel>
-                ) : null}
-              </>
-            )}
-          </Glass>
-          {activeRoutine ? (
-            <BottomActionBar variant="fixed">
-              <Link
-                href={`/routines/${activeRoutine.id}/edit`}
-                aria-label={`Edit ${activeRoutine.name} routine`}
-                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-              >
-                Edit routine
-              </Link>
-            </BottomActionBar>
-          ) : null}
+              </PublishBottomActions>
+            ) : null}
+            <BottomActionsSlot />
+          </BottomActionsProvider>
         </ScrollContainer>
       </div>
     </AppShell>
