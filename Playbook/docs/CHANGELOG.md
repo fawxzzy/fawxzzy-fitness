@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-03-03 — Added mobile navigation/history doctrine entries and release ritual checklist guidance
+
+### WHAT
+- Added six new entries in `docs/PATTERNS/mobile-interactions-and-navigation.md` covering history summary view models, returnTo edit context tokens, shared planned-exercise card contracts, stable detail-section empty states, shared tag-filter header contract, and route-configurable top safe-area/header mode.
+- Added one new entry in `docs/GUARDRAILS/guardrails.md` enforcing shell-owned safe-area and fixed-bar reserve spacing with a single scroll-owner contract.
+- Added one new entry in `docs/PATTERNS/server-client-boundaries.md` for explicit client invocation of server actions in transient sheets before close.
+- Added one new workflow entry in `docs/WORKFLOWS/checklists/release-checklist.md` for a deterministic SemVer/tag-based release ritual with verification gates.
+
+### WHY
+- Capture recurring mobile layout, navigation determinism, and mutation-race lessons as reusable doctrine that is easy to apply consistently across routes and shared UI surfaces.
+- Make release intent auditable and safer by standardizing on an explicit tag-driven flow with pre-tag verification requirements.
+
 ## 2026-03-02 — Added project governance contract entrypoint and guardrail catalog polish
 
 ### WHAT

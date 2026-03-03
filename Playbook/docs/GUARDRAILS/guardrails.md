@@ -154,3 +154,27 @@ Failure Mode: Users cannot access or review final content below CTA.
 Verification Method: Validate viewport behavior with and without sticky CTA in long flows.
 Related Patterns: [mobile-interactions-and-navigation](../PATTERNS/mobile-interactions-and-navigation.md)
 Last Updated: 2026-03-02
+
+## Enforce mobile safe-area contracts with a single scroll-owner reserve
+Type: UI
+Date: 2026-03-03
+Status: Proposed
+Summary: Keep top/bottom viewport spacing deterministic by letting the page shell own both top inset/header offset and bottom fixed-bar reserve, and remove per-screen spacing compensation.
+Invariant: Safe-area and fixed-bar spacing are allocated by one shell-level owner.
+Rationale: Mixed ownership of safe-area offsets causes phantom top gaps, content overlap under fixed bars, and inconsistent dead space across routes.
+Failure Mode: Route-specific spacing hacks accumulate and produce unstable layout behavior across mobile screens.
+Evidence: src/components/ui/app/AppShell.tsx, src/components/ui/BottomActionBar.tsx, src/app/history/[sessionId]/page.tsx
+Verification Method: Confirm page routes avoid local `pt-safe`/`pb-safe` compensation when shell reserves top and bottom spacing.
+Implementation Notes:
+- **Do:** Keep top inset/header offset and bottom fixed-bar reserve in `AppShell`/shared shell CSS vars.
+- **Do:** Let page content render naturally inside shell-provided padding contracts.
+- **Don't:** Add per-screen safe-area padding compensation when shell reserve is active.
+- Snippet:
+  ```css
+  .app-content {
+    padding-top: var(--app-top-inset);
+    padding-bottom: var(--app-bottom-reserve);
+  }
+  ```
+Related Patterns: [mobile-interactions-and-navigation](../PATTERNS/mobile-interactions-and-navigation.md)
+Last Updated: 2026-03-03

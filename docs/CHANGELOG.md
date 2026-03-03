@@ -2338,17 +2338,6 @@ WHY:
 - Removes top-gap drift and sticky inconsistencies on mobile devices with notches/Dynamic Island.
 - Reduces visual clutter during active exercise logging while preserving full controls in list mode.
 - Prevents perceived timer resets or pauses when UI sections are conditionally hidden.
-## 0.3.7 — 2026-03-03
-
-### WHAT
-- Made the History log detail and Current Session exercise-detail bottom actions use in-flow sticky BottomActionBar placement within the page scroll container contract.
-- Removed sticky offset drift by tightening BottomActionBar sticky positioning and ensuring no alternate action placement remains after content.
-- Updated the shared app shell to enforce app-contained vertical scrolling instead of body-level scrolling for no-nav detail flows.
-
-### WHY
-- Keeps Edit/Delete and Save Set actions pinned and reachable while users scroll long detail content.
-- Prevents sticky action bars from behaving like normal bottom-of-document content when scroll ownership is inconsistent.
-
 ## 0.3.6 — 2026-03-03
 
 ### WHAT

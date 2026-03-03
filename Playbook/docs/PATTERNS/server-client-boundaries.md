@@ -85,3 +85,27 @@ Fetch only `id/name/thumb/tag` in the initial picker query, then request full me
 - Dump A — `2) Core Principles / Enforce strict server/client boundaries`.
 - Dump A — `5) Auth & Security / Auth flow shape`.
 - `docs/PLAYBOOK_NOTES.md` (2026-02-23 to 2026-02-24): ActionResult + redirect semantics, lazy detail loading via strict server actions.
+
+## Explicit client action invocation for transient-sheet mutations
+- Date: 2026-03-03
+- Type: Pattern
+- Summary: In transient client overlays/sheets, trigger server actions explicitly from click handlers and refresh route state before closing the overlay.
+- Rationale: Form submissions tied to rapidly unmounted UI can race with close behavior and produce non-deterministic mutation feedback.
+- Evidence: src/components/RoutineSwitcherBar.tsx, src/app/routines/page.tsx
+- Status: Proposed
+
+### Implementation Notes
+**Do**
+- Invoke the server action explicitly in a click handler.
+- Await mutation completion, then run `router.refresh()`, then close the sheet.
+
+**Don't**
+- Depend on form submit semantics that may unmount the sheet before mutation and feedback resolve.
+
+```tsx
+const onSelect = async () => {
+  await switchRoutineAction(payload);
+  router.refresh();
+  closeSheet();
+};
+```

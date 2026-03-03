@@ -20,7 +20,7 @@ export function BottomActionBar({
     <div
       className={cn(
         "app-bottom-action-bar",
-        isFixed ? "pointer-events-none fixed inset-x-0 bottom-0 z-50" : "sticky bottom-0 z-50",
+        isFixed ? "pointer-events-none fixed inset-x-0 bottom-0 z-50" : "sticky bottom-0 z-50 pt-[3px]",
         className,
       )}
     >

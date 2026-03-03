@@ -404,3 +404,75 @@ Project-local inbox for candidate principles, guardrails, and patterns to be ups
 - Rationale: Eliminates repeated 404 spam from optimistic URL construction for missing media.
 - Evidence: scripts/generate-exercise-icon-manifest.mjs, src/generated/exerciseIconManifest.ts, src/lib/exerciseImages.ts
 - Status: Proposed
+
+## 2026-03-03 — Derive feed summaries once in loaders for performance-first history cards
+- Type: Pattern
+- Summary: For list-heavy history surfaces, derive compact summary view models (counts, highlights, formatted-ready metadata) once in server loaders/transformers and pass only the summary shape to card renderers.
+- Suggested Playbook File: docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents repeated per-card aggregation in render loops and keeps mobile scrolling predictable as history feeds grow.
+- Evidence: src/app/history/page.tsx, src/app/history/session-summary.ts, src/app/history/HistorySessionsClient.tsx
+- Status: Proposed
+
+## 2026-03-03 — Enforce mobile safe-area contracts with a single scroll-owner reserve
+- Type: Guardrail
+- Summary: Keep top/bottom viewport spacing deterministic by letting the page shell own both top inset/header offset and bottom fixed-bar reserve, and remove per-screen spacing compensation.
+- Suggested Playbook File: docs/GUARDRAILS/guardrails.md
+- Rationale: Mixed ownership of safe-area offsets causes phantom top gaps, content overlap under fixed bars, and inconsistent dead space across routes.
+- Evidence: src/components/ui/app/AppShell.tsx, src/components/ui/BottomActionBar.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
+
+## 2026-03-03 — Preserve route-instance context with explicit returnTo tokens in edit flows
+- Type: Pattern
+- Summary: When navigating from a detail screen into an edit screen, pass an explicit returnTo route (including current query params) so back controls return users to the exact originating screen state.
+- Suggested Playbook File: docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents context loss from generic fallbacks and keeps navigation deterministic across deep links and PWA/browser history behavior.
+- Evidence: src/app/routines/[id]/days/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
+## 2026-03-03 — Canonicalize shared exercise planning rows behind one reusable card contract
+- Type: Pattern
+- Summary: When multiple screens render the same “planned exercise” concept, centralize row/card UI into one reusable component with optional metadata props instead of per-screen markup forks.
+- Suggested Playbook File: docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents style drift and duplicated interaction behavior across Routine, Today, and Session surfaces while keeping UX updates low-risk.
+- Evidence: src/components/ExerciseCard.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx, src/app/today/TodayExerciseRows.tsx, src/app/today/TodayDayPicker.tsx, src/components/SessionExerciseFocus.tsx
+- Status: Proposed
+
+## 2026-03-03 — Prefer explicit client action invocation for transient-sheet mutations
+- Type: Pattern
+- Summary: In transient client overlays/sheets, trigger server actions explicitly from click handlers and refresh route state before closing the overlay.
+- Suggested Playbook File: docs/PATTERNS/server-client-boundaries.md
+- Rationale: Form submissions tied to rapidly unmounted UI can race with close behavior and produce non-deterministic mutation feedback.
+- Evidence: src/components/RoutineSwitcherBar.tsx, src/app/routines/page.tsx
+- Status: Proposed
+
+## 2026-03-03 — Keep detail-surface sections structurally stable with explicit empty states
+- Type: Guardrail
+- Summary: In shared detail screens, always render core information sections (like Stats) and use explicit empty states when data is missing instead of conditionally removing sections.
+- Suggested Playbook File: docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents layout drift and user confusion when some entities have sparse data while others have populated data.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExerciseInfo.tsx, src/app/api/exercise-info/[exerciseId]/route.ts
+- Status: Proposed
+
+## 2026-03-02 — Automate intentional tag-based release ritual
+- Type: Workflow
+- Summary: Standardize releases behind a SemVer bump command that updates changelog WHAT/WHY, commits, tags, and pushes in one deterministic flow.
+- Suggested Playbook File: docs/WORKFLOWS/checklists/release-checklist.md
+- Rationale: Reduces accidental production deploys and keeps deploy intent auditable through explicit version/tag events.
+- Evidence: scripts/release.mjs, package.json, docs/PROJECT_GOVERNANCE.md
+- Status: Proposed
+
+## 2026-03-02 — Keep app-wide filter headers on one shared contract
+- Type: Guardrail
+- Summary: Reuse ExerciseTagFilterControl for tag filters with a caret-only header, default count line shown only when selected tags are non-zero, and minimal prop-level extensibility (countDisplayMode, defaultOpen, headerLabel).
+- Suggested Playbook File: docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents per-screen filter header drift while still allowing intentional display variations without forking filter UIs.
+- Evidence: src/components/ExerciseTagFilterControl.tsx
+- Status: Proposed
+
+## 2026-03-03 — Make top safe-area/header offset route-configurable in shared shells
+- Type: Guardrail
+- Summary: Shared page shells should expose a route-level top-nav mode so no-nav screens can zero header reservation while keeping one top-padding source of truth.
+- Suggested Playbook File: docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents duplicated safe-area/header offsets and eliminates unstable top whitespace on detail screens that intentionally hide primary nav chrome.
+- Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/session/[id]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
