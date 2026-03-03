@@ -764,3 +764,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Nested overflow containers (especially iOS WebKit) can break fixed anchoring/clipping, causing last-row overlap even when reserve padding exists.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/session/[id]/page.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
 - Status: Proposed
+
+## 2026-03-03 — Screen-owned sticky bottom actions for scrollable mobile detail flows
+- Type: Pattern
+- Summary: Render bottom CTAs once at the screen layer as a sticky last child of the single scroll owner, while feature components publish CTA content upward instead of mounting fixed overlays.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Prevents overlay overlap/clipping bugs in iOS overflow contexts and keeps action-bar behavior consistent across deep detail screens.
+- Evidence: src/components/SessionTimers.tsx, src/components/SessionPageClient.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/app/history/[sessionId]/HistoryLogPageClient.tsx
+- Status: Proposed

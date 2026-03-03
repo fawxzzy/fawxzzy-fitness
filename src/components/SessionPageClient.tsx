@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
@@ -87,6 +88,7 @@ export function SessionPageClient({
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [bottomActions, setBottomActions] = useState<React.ReactNode | null>(null);
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(() => getElapsedDuration(baseDurationSeconds, performedAt));
 
@@ -106,6 +108,10 @@ export function SessionPageClient({
     () => (hasExercises ? null : <p className="rounded-md border border-border/70 bg-surface/70 p-3 text-sm text-muted">No exercises in this session yet.</p>),
     [hasExercises],
   );
+
+  const handleBottomActionsChange = useCallback((actions: React.ReactNode | null) => {
+    setBottomActions(actions);
+  }, []);
 
   return (
     <section className="space-y-4">
@@ -135,10 +141,12 @@ export function SessionPageClient({
           toggleSkipAction={toggleSkipAction}
           removeExerciseAction={removeExerciseAction}
           deleteSetAction={deleteSetAction}
+          onBottomActionsChange={handleBottomActionsChange}
         />
       ) : null}
 
       {emptyState}
+      {bottomActions ? <BottomActionBar variant="sticky">{bottomActions}</BottomActionBar> : null}
     </section>
   );
 }
