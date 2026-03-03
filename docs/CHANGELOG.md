@@ -1,3 +1,11 @@
+### Fixed
+WHAT:
+- Centralized shell safe-area contracts so top spacing is derived from one top-offset variable and bottom spacing reserves fixed action bars through a shared bottom-offset variable.
+- Normalized BottomActionBar/content reservation to use shared shell variables instead of per-screen `calc(env(...)+magic-number)` padding.
+- Removed duplicate per-surface bottom compensation in Current Session surfaces and aligned no-nav edit/detail screens to the shared top-nav mode contract.
+WHY:
+- Eliminates inconsistent extra top/bottom whitespace and ensures fixed bottom actions stay reachable without obscuring content across iOS Safari/PWA screens.
+
 # Changelog
 
 All notable changes to this project are documented in this file.

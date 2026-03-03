@@ -11,7 +11,7 @@ export function CompactActionStack({
   mode?: "inline" | "fixed";
 }) {
   const content = (
-    <div className={cn("mt-4 flex flex-col items-center gap-3 pb-[calc(env(safe-area-inset-bottom)+12px)]", className)}>
+    <div className={cn("mt-4 flex flex-col items-center gap-3 pb-[calc(var(--app-bottom-inset)+var(--app-bottom-gutter))]", className)}>
       {children}
     </div>
   );

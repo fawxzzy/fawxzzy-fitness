@@ -8,13 +8,20 @@ type AppShellProps = {
 };
 
 export function AppShell({ children, className, topNavMode = "main" }: AppShellProps) {
-  const shellStyle = topNavMode === "none"
-    ? ({
-        "--app-header-offset": "0px",
-        "--app-top-inset": "env(safe-area-inset-top, 0px)",
-        "--screen-gutter-top": "12px",
-      } as CSSProperties)
-    : undefined;
+  const shellStyle = ({
+    "--app-header-offset": topNavMode === "none" ? "0px" : "var(--header-h)",
+    "--app-top-inset": "env(safe-area-inset-top, 0px)",
+    "--app-top-gutter": "var(--screen-gutter-top, 12px)",
+    "--app-top-offset": "calc(var(--app-top-inset) + var(--app-header-offset) + var(--app-top-gutter))",
+    "--app-bottom-inset": "env(safe-area-inset-bottom, 0px)",
+    "--app-bottom-gutter": "12px",
+    "--app-bottom-bar-height": "0px",
+    "--app-bottom-offset": "calc(var(--app-bottom-inset) + var(--app-bottom-bar-height))",
+  } as CSSProperties);
 
-  return <div className={cn("min-h-[100dvh] min-h-0 flex flex-col", className)} style={shellStyle}>{children}</div>;
+  return (
+    <div className={cn("app-shell min-h-[100dvh] min-h-0 flex flex-col", className)} data-top-nav-mode={topNavMode} style={shellStyle}>
+      {children}
+    </div>
+  );
 }
