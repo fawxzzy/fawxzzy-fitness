@@ -477,19 +477,6 @@ export function LogAuditClient({
         })}
       </div>
 
-      <ConfirmDestructiveModal
-        open={exerciseToDelete !== null}
-        title="Delete exercise from completed log?"
-        description="This will remove the exercise and all logged sets from this completed session."
-        confirmLabel="Delete"
-        details={exerciseToDelete ? `Exercise: ${exerciseToDelete.name}` : undefined}
-        onCancel={() => setExerciseToDelete(null)}
-        onConfirm={() => {
-          if (!exerciseToDelete) return;
-          handleDeleteExercise(exerciseToDelete.id);
-        }}
-      />
-
       <BottomActionBar variant="sticky">
         {isEditing ? (
           <div className="grid w-full grid-cols-2 gap-2">
@@ -524,6 +511,19 @@ export function LogAuditClient({
           </>
         )}
       </BottomActionBar>
+
+      <ConfirmDestructiveModal
+        open={exerciseToDelete !== null}
+        title="Delete exercise from completed log?"
+        description="This will remove the exercise and all logged sets from this completed session."
+        confirmLabel="Delete"
+        details={exerciseToDelete ? `Exercise: ${exerciseToDelete.name}` : undefined}
+        onCancel={() => setExerciseToDelete(null)}
+        onConfirm={() => {
+          if (!exerciseToDelete) return;
+          handleDeleteExercise(exerciseToDelete.id);
+        }}
+      />
     </>
   );
 }
