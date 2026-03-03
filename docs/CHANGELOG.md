@@ -2477,3 +2477,11 @@ WHAT:
 WHY:
 - Standardizes bottom actions to the Today layout contract and prevents overlap/clipping issues from feature-level fixed bars on long mobile scroll screens.
 
+## 0.3.17 — 2026-03-03
+
+### WHAT
+- (fill in)
+
+### WHY
+- (fill in)
+
