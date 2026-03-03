@@ -110,7 +110,7 @@ export function TodayDayPicker({
         </AppPanel>
       ) : null}
 
-      <BottomActionBar>
+      <BottomActionBar variant="sticky">
         <TodayStartButton
           startSessionAction={startSessionAction}
           selectedDayIndex={selectedDayIndex}
