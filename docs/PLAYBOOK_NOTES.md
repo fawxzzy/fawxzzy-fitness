@@ -699,3 +699,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Prevents both hidden end-of-scroll content and oversized dead-space drift caused by static/magic bottom reserve constants across variants and orientation changes.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx
 - Status: Proposed
+
+## 2026-03-03 — Prefer in-flow sticky bottom actions over fixed overlays on scrollable screens
+- Type: Guardrail
+- Summary: On screens with scrollable content, render bottom action bars as the last in-flow child of the single scroll owner using `position: sticky; bottom: 0;` instead of viewport-fixed overlays plus reserve padding contracts.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Sticky in-flow actions eliminate overlap bugs and dead-space drift caused by fixed overlays, nested scroll owners, and bar-height reserve math.
+- Evidence: src/components/ui/BottomActionBar.tsx, src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx, src/components/SessionTimers.tsx, src/app/session/[id]/page.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed

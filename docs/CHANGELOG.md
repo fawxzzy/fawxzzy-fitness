@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.4 — 2026-03-03
+
+### WHAT
+- Converted BottomActionBar to support in-flow sticky footers by default, while preserving an explicit fixed variant for true viewport overlays.
+- Moved Today, Current Session set logging, Routines overview, Routines day view, and History log-detail bottom actions to sticky in-flow placement inside their scrollable page content.
+- Removed fixed-overlay compensation padding and measured reserve-height contracts tied to BottomActionBar.
+
+### WHY
+- Prevents bottom action bars from covering final content rows on mobile by placing actions under content in the same scroll flow without reserve-height math.
+
 ## 0.3.3 — 2026-03-03
 
 ### WHAT

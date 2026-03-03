@@ -14,8 +14,6 @@ export function AppShell({ children, className, topNavMode = "main" }: AppShellP
     "--app-top-offset": "calc(var(--app-top-inset) + var(--app-header-offset))",
     "--app-bottom-inset": "env(safe-area-inset-bottom, 0px)",
     "--app-bottom-gap": "3px",
-    "--app-bottom-bar-height": "0px",
-    "--app-bottom-offset": "calc(var(--app-bottom-inset) + var(--app-bottom-gap) + var(--app-bottom-bar-height))",
   } as CSSProperties);
 
   return (

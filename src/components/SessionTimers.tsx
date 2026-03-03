@@ -768,12 +768,6 @@ export function SetLoggerCard({
 
       </div>
 
-      <BottomActionBar>
-        <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
-          Save Set
-        </AppButton>
-      </BottomActionBar>
-
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
       <ul className="divide-y divide-border/70 overflow-hidden rounded-md border border-border/70 bg-surface/70 text-sm">
@@ -807,6 +801,12 @@ export function SetLoggerCard({
         ))}
         {sets.length === 0 ? <li className="px-3 py-2 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
       </ul>
+
+      <BottomActionBar variant="sticky">
+        <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
+          Save Set
+        </AppButton>
+      </BottomActionBar>
     </div>
   );
 }
