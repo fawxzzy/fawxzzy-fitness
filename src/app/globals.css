@@ -90,10 +90,12 @@
   --vv-top: 0px;
   --top-inset: max(var(--sat), var(--vv-top));
   --header-floating-gap: 10px;
+  /* Legacy only; do not use for layout. AppShell owns nav placement/content offsets via --app-nav-* vars. */
   --header-offset: calc(var(--top-inset) + var(--header-floating-gap));
   --header-h: 72px;
   --header-total: calc(var(--header-offset) + var(--header-h));
   --app-top-inset: env(safe-area-inset-top, 0px);
+  /* Legacy root fallback; AppShell sets route-scoped nav/content offsets via --app-nav-* vars. */
   --app-header-offset: var(--header-h);
   --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset));
   --app-bottom-inset: env(safe-area-inset-bottom, 0px);
