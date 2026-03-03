@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.14 — 2026-03-03
+
+### WHAT
+- Migrated remaining screen-level bottom actions to the shared Today-style slot pattern by removing direct `BottomActionBar` usage from Today, Routines, and Routine Day surfaces.
+- Added a reusable bottom-actions publisher helper so feature/UI nodes publish action content into one screen-owned sticky slot rendered once per scroll screen.
+
+### WHY
+- Eliminates fixed-bottom overlap/clipping regressions on mobile Safari by keeping bottom actions in-flow under a single scroll owner.
+- Standardizes bottom action placement across app surfaces, reducing UI drift and making action rendering easier to maintain.
+
 ## 0.3.13 — 2026-03-03
 
 ### WHAT

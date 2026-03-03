@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppBadge } from "@/components/ui/app/AppBadge";
@@ -8,7 +8,7 @@ import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { ExerciseCard } from "@/components/ExerciseCard";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -55,6 +55,32 @@ export function TodayDayPicker({
     () => days.find((day) => day.dayIndex === selectedDayIndex) ?? days.find((day) => day.dayIndex === currentDayIndex) ?? null,
     [currentDayIndex, days, selectedDayIndex],
   );
+
+  const togglePicker = useCallback(() => {
+    setIsPickerOpen((previous) => !previous);
+  }, []);
+
+  const actionsNode = useMemo(() => (
+    <>
+      <TodayStartButton
+        startSessionAction={startSessionAction}
+        selectedDayIndex={selectedDayIndex}
+        fullWidth
+        className="w-full"
+      />
+      <SecondaryButton
+        id="today-day-picker"
+        type="button"
+        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+        onClick={togglePicker}
+        aria-expanded={isPickerOpen}
+      >
+        <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
+      </SecondaryButton>
+    </>
+  ), [isPickerOpen, selectedDayIndex, startSessionAction, togglePicker]);
+
+  usePublishBottomActions(actionsNode);
 
   return (
     <div className="flex min-h-0 flex-col gap-4">
@@ -109,26 +135,6 @@ export function TodayDayPicker({
           </div>
         </AppPanel>
       ) : null}
-
-      <BottomActionBar variant="sticky">
-        <TodayStartButton
-          startSessionAction={startSessionAction}
-          selectedDayIndex={selectedDayIndex}
-          fullWidth
-          className="w-full"
-        />
-        <SecondaryButton
-          id="today-day-picker"
-          type="button"
-          className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-          onClick={() => {
-            setIsPickerOpen((previous) => !previous);
-          }}
-          aria-expanded={isPickerOpen}
-        >
-          <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
-        </SecondaryButton>
-      </BottomActionBar>
 
       <ExerciseInfo
         exerciseId={selectedExerciseId}

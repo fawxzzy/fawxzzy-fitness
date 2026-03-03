@@ -5,7 +5,9 @@ import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
-import { BottomActionBar, FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
+import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
+import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
@@ -102,41 +104,44 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
       <AppNav />
 
       <ScrollContainer className={FIXED_CTA_RESERVE_CLASS}>
-        <section className="space-y-4">
-          <AppPanel className="space-y-3">
-            <AppHeader
-              title={dayLabel}
-              action={<TopRightBackButton href="/routines" />}
-            />
-
-            {dayRow.is_rest || dayExercises.length === 0 ? (
-              <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
-                Rest day. No exercises planned for this day.
-              </p>
-            ) : (
-              <RoutineDayExerciseList
-                exercises={dayExercises.map((exercise) => {
-                  const details = exerciseDetailsById.get(exercise.exercise_id);
-                  const exerciseName = details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id;
-                  return {
-                    id: exercise.id,
-                    name: exerciseName,
-                    goalLine: formatExerciseGoal(exercise),
-                    exerciseId: details?.id ?? exercise.exercise_id,
-                  };
-                })}
+        <BottomActionsProvider>
+          <section className="space-y-4">
+            <AppPanel className="space-y-3">
+              <AppHeader
+                title={dayLabel}
+                action={<TopRightBackButton href="/routines" />}
               />
-            )}
-          </AppPanel>
-        </section>
-        <BottomActionBar variant="fixed">
-          <Link
-            href={editDayHref}
-            className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "w-full" })}
-          >
-            Edit Day
-          </Link>
-        </BottomActionBar>
+
+              {dayRow.is_rest || dayExercises.length === 0 ? (
+                <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
+                  Rest day. No exercises planned for this day.
+                </p>
+              ) : (
+                <RoutineDayExerciseList
+                  exercises={dayExercises.map((exercise) => {
+                    const details = exerciseDetailsById.get(exercise.exercise_id);
+                    const exerciseName = details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id;
+                    return {
+                      id: exercise.id,
+                      name: exerciseName,
+                      goalLine: formatExerciseGoal(exercise),
+                      exerciseId: details?.id ?? exercise.exercise_id,
+                    };
+                  })}
+                />
+              )}
+            </AppPanel>
+          </section>
+          <PublishBottomActions>
+            <Link
+              href={editDayHref}
+              className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "w-full" })}
+            >
+              Edit Day
+            </Link>
+          </PublishBottomActions>
+          <BottomActionsSlot />
+        </BottomActionsProvider>
       </ScrollContainer>
     </MainTabScreen>
   );

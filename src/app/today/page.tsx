@@ -11,7 +11,9 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
+import { BottomActionsProvider, BottomActionsSlot } from "@/components/layout/bottom-actions";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
@@ -396,81 +398,87 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   return (
     <MainTabScreen>
       <AppNav />
+      <ScrollContainer>
+        <BottomActionsProvider>
+          {todayPayload.routine && !fetchFailed ? (
+            <div className="space-y-4 px-1">
+              <OfflineSyncBadge />
+              {todayPayload.inProgressSessionId ? (
+                <div className="space-y-4">
+                  <AppPanel className="space-y-3">
+                    <AppHeader
+                      title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
+                      subtitleRight={`${todayPayload.exercises.length} exercises`}
+                      action={todayPayload.completedTodayCount > 0 ? <AppBadge>Completed</AppBadge> : undefined}
+                    />
 
-      {todayPayload.routine && !fetchFailed ? (
-        <div className="space-y-4 px-1">
-          <OfflineSyncBadge />
-        {todayPayload.inProgressSessionId ? (
-            <div className="space-y-4">
-              <AppPanel className="space-y-3">
-                <AppHeader
-                  title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
-                  subtitleRight={`${todayPayload.exercises.length} exercises`}
-                  action={todayPayload.completedTodayCount > 0 ? <AppBadge>Completed</AppBadge> : undefined}
+                    <TodayExerciseRows
+                      exercises={todayPayload.exercises}
+                      emptyMessage="No routine exercises planned today."
+                    />
+                  </AppPanel>
+                </div>
+              ) : (
+                <TodayDayPicker
+                  routineName={todayPayload.routine.name}
+                  days={routineDays.map((day) => ({
+                    id: day.id,
+                    dayIndex: day.day_index,
+                    name: day.name || `Day ${day.day_index}`,
+                    isRest: day.is_rest,
+                    exercises: allDayExercises
+                      .filter((exercise) => exercise.routine_day_id === day.id)
+                      .map((exercise) => {
+                        const details = exerciseDetailsById.get(exercise.exercise_id);
+                        return {
+                          id: exercise.id,
+                          exerciseId: details?.id ?? exercise.exercise_id,
+                          name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+                          targets: formatExerciseGoal(exercise),
+                          primary_muscle: details?.primary_muscle ?? null,
+                          equipment: details?.equipment ?? null,
+                          movement_pattern: details?.movement_pattern ?? null,
+                          image_howto_path: details?.image_howto_path ?? null,
+                          image_icon_path: details?.image_icon_path ?? null,
+                          slug: details?.slug ?? null,
+                          how_to_short: details?.how_to_short ?? null,
+                        };
+                      }),
+                  }))}
+                  currentDayIndex={todayPayload.routine.dayIndex}
+                  completedTodayCount={todayPayload.completedTodayCount}
+                  startSessionAction={startSessionAction}
                 />
-
-                <TodayExerciseRows
-                  exercises={todayPayload.exercises}
-                  emptyMessage="No routine exercises planned today."
-                />
-              </AppPanel>
-
-              <BottomActionBar variant="sticky">
-                <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true, className: "border-emerald-300/60 bg-emerald-500/28 text-emerald-50 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform hover:bg-emerald-500/34 active:scale-[0.98] active:bg-emerald-500/38" })}>
-                  Resume Workout
-                </Link>
-                <ConfirmedServerFormButton
-                  action={discardInProgressSessionAction}
-                  hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
-                  triggerLabel="Discard Workout"
-                  triggerClassName="w-full"
-                  size="md"
-                  modalTitle="Discard workout?"
-                  modalDescription="This will delete your in-progress workout, including exercises and sets."
-                  confirmLabel="Discard"
-                />
-              </BottomActionBar>
+              )}
             </div>
           ) : (
-            <TodayDayPicker
-              routineName={todayPayload.routine.name}
-              days={routineDays.map((day) => ({
-                id: day.id,
-                dayIndex: day.day_index,
-                name: day.name || `Day ${day.day_index}`,
-                isRest: day.is_rest,
-                exercises: allDayExercises
-                  .filter((exercise) => exercise.routine_day_id === day.id)
-                  .map((exercise) => {
-                    const details = exerciseDetailsById.get(exercise.exercise_id);
-                    return {
-                      id: exercise.id,
-                      exerciseId: details?.id ?? exercise.exercise_id,
-                      name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-                      targets: formatExerciseGoal(exercise),
-                      primary_muscle: details?.primary_muscle ?? null,
-                      equipment: details?.equipment ?? null,
-                      movement_pattern: details?.movement_pattern ?? null,
-                      image_howto_path: details?.image_howto_path ?? null,
-                      image_icon_path: details?.image_icon_path ?? null,
-                      slug: details?.slug ?? null,
-                      how_to_short: details?.how_to_short ?? null,
-                    };
-                  }),
-              }))}
-              currentDayIndex={todayPayload.routine.dayIndex}
-              completedTodayCount={todayPayload.completedTodayCount}
-              startSessionAction={startSessionAction}
-            />
+            <TodayClientShell payload={todayPayload} fetchFailed={fetchFailed} />
           )}
-        </div>
-      ) : (
-        <TodayClientShell payload={todayPayload} fetchFailed={fetchFailed} />
-      )}
 
-      <TodayOfflineBridge snapshot={todaySnapshot} />
+          {todayPayload.routine && todayPayload.inProgressSessionId && !fetchFailed ? (
+            <PublishBottomActions>
+              <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true, className: "border-emerald-300/60 bg-emerald-500/28 text-emerald-50 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform hover:bg-emerald-500/34 active:scale-[0.98] active:bg-emerald-500/38" })}>
+                Resume Workout
+              </Link>
+              <ConfirmedServerFormButton
+                action={discardInProgressSessionAction}
+                hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
+                triggerLabel="Discard Workout"
+                triggerClassName="w-full"
+                size="md"
+                modalTitle="Discard workout?"
+                modalDescription="This will delete your in-progress workout, including exercises and sets."
+                confirmLabel="Discard"
+              />
+            </PublishBottomActions>
+          ) : null}
 
-      {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
+          <TodayOfflineBridge snapshot={todaySnapshot} />
+
+          {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
+          <BottomActionsSlot />
+        </BottomActionsProvider>
+      </ScrollContainer>
     </MainTabScreen>
   );
 }
