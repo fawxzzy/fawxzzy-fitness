@@ -1,6 +1,6 @@
 # Governance Versioning
 
-Current Governance Version: **v0.3.3**
+Current Governance Version: **v0.3.5**
 
 ## Version bump rules
 - **MAJOR**: Breaking governance change (removes or redefines enforced contracts).
@@ -10,6 +10,8 @@ Current Governance Version: **v0.3.3**
 ## Governance changelog
 | Version | Date | Change |
 | --- | --- | --- |
+| v0.3.5 | 2026-03-03 | Added onboarding packaging docs (`GETTING_STARTED`, `EXAMPLES`, consumer templates) and discovery links; no doctrine semantics changed. |
+| v0.3.4 | 2026-03-03 | Added project router/overlays and route-aware workflow docs for multi-repo governance operations (engine plumbing only; no new guardrails/patterns). |
 | v0.3.3 | 2026-03-02 | Added project governance contract entrypoint, clarified empty guardrail index sections, and reduced guardrail catalog duplication. |
 | v0.3.2 | 2026-03-02 | Replaced remaining generic pattern framing with pattern-specific operational guidance and restored detailed mobile interaction sections. |
 | v0.3.1 | 2026-03-02 | Restored high-signal operational pattern guidance while preserving centralized guardrail canon and layered governance structure. |

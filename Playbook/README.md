@@ -1,5 +1,7 @@
 # Playbook
 
+Start here: [`docs/GETTING_STARTED.md`](./docs/GETTING_STARTED.md)
+
 Playbook is a versioned governance engine for engineering execution across repositories. It defines immutable principles, reusable patterns, enforceable guardrails, operational workflows, and reference contracts so teams can ship quickly without governance drift.
 
 This repository is maintained as doctrine infrastructure: governance updates are versioned, guardrails are indexed for enforcement, and downstream repositories consume updates through a defined sync strategy. Treat this as the source of truth for reusable governance assets.
@@ -8,6 +10,7 @@ This repository is maintained as doctrine infrastructure: governance updates are
 - `docs/PRINCIPLES/`: immutable philosophy.
 - `docs/PATTERNS/`: reusable implementation patterns.
 - `docs/GUARDRAILS/`: enforceable constraints and invariants.
+- `docs/PROJECTS/`: project routing overlays (additive to Core).
 - `docs/WORKFLOWS/`: execution workflows and checklists.
 - `docs/REFERENCE/`: definitions, standards, and decision records.
 - `docs/VERSIONING.md`: governance semantic version contract.

@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-03-03 — Added onboarding entrypoint, examples, and consumer doc templates
+
+### WHAT
+- Added `docs/GETTING_STARTED.md` as a concise adoption entrypoint with a 15–30 minute quickstart flow for consuming repositories.
+- Added `docs/EXAMPLES.md` with copyable examples for AI task prompts, upstreaming passes, and semantic version bump decisions.
+- Added consumer copy/paste templates under `docs/TEMPLATES/consumer-docs/` for `PROJECT_GOVERNANCE`, `ARCHITECTURE`, `CHANGELOG`, `PLAYBOOK_NOTES`, and `PLAYBOOK_CHECKLIST`.
+- Updated discovery links in `README.md` and `docs/INDEX.md` to surface onboarding and template entrypoints.
+- Bumped governance version from `v0.3.4` to `v0.3.5`.
+
+### WHY
+- Make Playbook dev-usable faster by giving new adopters a practical start path, concrete examples, and ready-to-customize local-doc scaffolding.
+- Improve discoverability of onboarding assets without changing doctrine meaning, patterns, or guardrail semantics.
+
+## 2026-03-03 — Added project routing and upstreaming workflow plumbing for multi-repo governance
+
+### WHAT
+- Added `docs/PROJECTS/index.md` as a project router and added per-project overlays for Fawxzzy Fitness and Nat-1 Games under `docs/PROJECTS/`.
+- Added `docs/WORKFLOWS/upstreaming-playbook-notes.md` to standardize periodic promotion from app-local Playbook notes into canonical doctrine.
+- Added `docs/WORKFLOWS/ai-task-prompt-template.md` as a route-aware template for AI task execution with project selection, verification tiering, and compliance steps.
+- Updated discovery links in `README.md`, `docs/INDEX.md`, and `docs/WORKFLOWS/_index.md`.
+- Bumped governance version from `v0.3.3` to `v0.3.4`.
+
+### WHY
+- Enable Playbook to operate as a multi-project governance engine with explicit project routing while keeping Core authoritative and overlays additive.
+- Standardize upstreaming ritual and AI task intake so downstream repositories can adopt doctrine updates predictably and with less governance drift.
+- Keep this release to engine plumbing only (no new patterns or guardrails).
+
 ## 2026-03-03 — Added mobile navigation/history doctrine entries and release ritual checklist guidance
 
 ### WHAT
