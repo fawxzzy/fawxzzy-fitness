@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.19 — 2026-03-03
+
+### WHAT
+- Made `FIXED_CTA_RESERVE_CLASS` a literal Tailwind utility string and safelisted it so bottom-action scroll reserve CSS is always emitted.
+
+### WHY
+- Tailwind may omit interpolated utility strings, which can remove bottom reserve padding and cause content overlap behind viewport-pinned action bars.
+
 ## 0.3.18 — 2026-03-03
 
 ### WHAT

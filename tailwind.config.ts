@@ -6,6 +6,9 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    "pb-[calc(var(--app-bottom-action-bar-height,120px)+env(safe-area-inset-bottom,0px)+3px)]",
+  ],
   theme: {
     extend: {
       colors: {
