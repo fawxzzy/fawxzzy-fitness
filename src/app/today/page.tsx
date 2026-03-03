@@ -11,8 +11,7 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
-import { StickyActionBar } from "@/components/ui/app/StickyActionBar";
+import { BottomActionBar, BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { getExerciseNameMap } from "@/lib/exercises";
@@ -437,20 +436,20 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 />
               </AppPanel>
 
-              <StickyActionBar
-                primary={<Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "h-12 border-emerald-300/60 bg-emerald-500/28 text-emerald-50 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform hover:bg-emerald-500/34 active:scale-[0.98] active:bg-emerald-500/38" })}>Resume Workout</Link>}
-                secondary={(
-                  <ConfirmedServerFormButton
-                    action={discardInProgressSessionAction}
-                    hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
-                    triggerLabel="Discard Workout"
-                    triggerClassName="w-full"
-                    modalTitle="Discard workout?"
-                    modalDescription="This will delete your in-progress workout, including exercises and sets."
-                    confirmLabel="Discard"
-                  />
-                )}
-              />
+              <BottomActionBar>
+                <Link href={`/session/${todayPayload.inProgressSessionId}`} className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "h-12 border-emerald-300/60 bg-emerald-500/28 text-emerald-50 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform hover:bg-emerald-500/34 active:scale-[0.98] active:bg-emerald-500/38" })}>
+                  Resume Workout
+                </Link>
+                <ConfirmedServerFormButton
+                  action={discardInProgressSessionAction}
+                  hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
+                  triggerLabel="Discard Workout"
+                  triggerClassName="w-full"
+                  modalTitle="Discard workout?"
+                  modalDescription="This will delete your in-progress workout, including exercises and sets."
+                  confirmLabel="Discard"
+                />
+              </BottomActionBar>
             </div>
           ) : (
             <TodayDayPicker
