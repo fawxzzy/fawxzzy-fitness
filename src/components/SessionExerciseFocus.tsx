@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { AppButton } from "@/components/ui/AppButton";
 import { BackButton } from "@/components/ui/BackButton";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
@@ -306,6 +307,13 @@ export function SessionExerciseFocus({
           planTargetsHash={selectedExercise.planTargetsHash}
           deleteSetAction={deleteSetAction}
           resetSignal={setLoggerResetSignal}
+          actionBar={({ onSave, isSaveDisabled }) => (
+            <BottomActionBar variant="sticky">
+              <AppButton type="button" onClick={() => { void onSave(); }} disabled={isSaveDisabled} variant="primary" fullWidth>
+                Save Set
+              </AppButton>
+            </BottomActionBar>
+          )}
           onSetCountChange={(count) => {
             setLoggedSetCounts((current) => ({ ...current, [selectedExercise.id]: count }));
           }}
