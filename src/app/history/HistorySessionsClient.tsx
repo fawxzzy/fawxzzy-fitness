@@ -27,9 +27,19 @@ const HISTORY_TIMEZONE = "America/Toronto";
 
 function formatDuration(seconds: number) {
   const safe = Math.max(0, Math.floor(seconds || 0));
-  const minutes = Math.floor(safe / 60);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
   const remainingSeconds = safe % 60;
-  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m`;
+  }
+
+  return `${remainingSeconds}s`;
 }
 
 function formatDate(value: string) {
@@ -63,11 +73,11 @@ function HistorySessionRow({
   const dayTitle = session.dayLabel || "Custom session";
   const timeOnly = formatTime(session.performedAt);
   const dateOnly = formatDate(session.performedAt);
-  const durationLabel = formatDuration(session.durationSeconds);
+  const durationLabel = `Duration: ${formatDuration(session.durationSeconds)}`;
 
-  const compactParts = [routineTitle, dayTitle, dateOnly, timeOnly].filter((part) => part.length > 0);
-  const listMetaParts = [dayTitle, dateOnly].filter((part) => part.length > 0);
-  const listFooterParts = [timeOnly, durationLabel].filter((part) => part.length > 0);
+  const compactParts = [routineTitle || "Routine", dayTitle || "Day", dateOnly].filter((part) => part.length > 0);
+  const detailsPrimaryParts = [dayTitle, durationLabel].filter((part) => part.length > 0);
+  const detailsSecondaryParts = [dateOnly, `Started: ${timeOnly}`].filter((part) => part.length > 0);
 
   return (
     <Link
@@ -79,12 +89,12 @@ function HistorySessionRow({
         {mode === "list" ? (
           <div className="text-left">
             <p className="whitespace-normal break-words text-sm font-semibold text-slate-100">{routineTitle}</p>
-            <p className="mt-1 whitespace-normal break-words text-sm text-slate-300">{listMetaParts.join(" | ")}</p>
-            <p className="mt-1 whitespace-normal break-words text-sm text-slate-400">{listFooterParts.join(" | ")}</p>
+            <p className="mt-1 whitespace-normal break-words text-sm text-slate-300">{detailsPrimaryParts.join(" | ")}</p>
+            <p className="mt-1 whitespace-normal break-words text-sm text-slate-400">{detailsSecondaryParts.join(" | ")}</p>
           </div>
         ) : (
-          <div className="text-left">
-            <p className="truncate text-sm font-semibold text-slate-100">{compactParts.join(" | ")}</p>
+          <div className="flex min-h-[40px] items-center justify-center text-center">
+            <p className="w-full truncate text-sm font-semibold text-slate-100">{compactParts.join(" | ")}</p>
           </div>
         )}
       </AppPanel>
@@ -127,7 +137,7 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <AppPanel className="space-y-2 p-2">
+      <AppPanel className="space-y-1.5 p-2">
         <SegmentedControl
           options={[
             { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${effectiveViewMode}` },
@@ -141,13 +151,12 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
           label="View Mode"
           value={effectiveViewMode}
           options={[
-            { label: "List", value: "list" },
+            { label: "Details", value: "list" },
             { label: "Compact", value: "compact" },
           ]}
           onChange={(next) => {
             if (next === "list" || next === "compact") setViewMode(next);
           }}
-          withPanel={false}
         />
       </AppPanel>
 
