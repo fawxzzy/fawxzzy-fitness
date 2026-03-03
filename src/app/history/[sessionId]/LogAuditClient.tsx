@@ -477,7 +477,7 @@ export function LogAuditClient({
         })}
       </div>
 
-      <BottomActionBar variant="sticky">
+      <BottomActionBar variant="fixed">
         {isEditing ? (
           <div className="grid w-full grid-cols-2 gap-2">
             <SecondaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>

@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.9 — 2026-03-03
+
+### WHAT
+- Restored viewport-fixed BottomActionBar behavior for History Log Detail and Current Session Exercise Detail actions, and standardized a shared bottom-content reserve class exported from the BottomActionBar component.
+- Applied the shared reserve padding only to the existing scroll owners on `/history/[sessionId]` and `/session/[id]` so Edit/Delete and Save Set no longer cover final content.
+- Tightened BottomActionBar bottom inset usage to the safe-area contract so there is no extra dead space below action buttons.
+
+### WHY
+- Keeps critical bottom actions always visible while ensuring long-form detail content remains fully reachable above the fixed bar.
+- Preserves the existing full-screen single-scroll-owner behavior without introducing new overflow ownership or in-flow footer changes.
+
 ## 0.3.8 — 2026-03-03
 
 ### WHAT
