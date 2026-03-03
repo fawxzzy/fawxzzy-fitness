@@ -7,6 +7,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { BackButton } from "@/components/ui/BackButton";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { formatCount, formatDateShort, formatWeight } from "@/lib/formatting";
+import { formatCalories, formatDistance, formatDurationShort, formatPace } from "@/lib/exercise-stats-formatting";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
@@ -28,6 +29,11 @@ export type ExerciseInfoSheetStats = {
   recent: {
     lastPerformedAt: string | null;
     lastSummary: string | null;
+    lastDurationSeconds?: number;
+    lastDistance?: number;
+    lastCalories?: number;
+    lastPaceSecondsPerUnit?: number;
+    lastDistanceUnit?: string | null;
   };
   totals: {
     sessions: number;
@@ -45,6 +51,7 @@ export type ExerciseInfoSheetStats = {
     bestDurationSeconds?: number;
     bestDistance?: number;
     bestPace?: number;
+    bestDistanceUnit?: string | null;
     bestCalories?: number;
   };
   prLabel: string;
@@ -58,10 +65,6 @@ function MetaTag({ value }: { value: string | null }) {
   return <span className={tagClassName}>{value}</span>;
 }
 
-function formatSimple(value: number | undefined) {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
-  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
-}
 
 function StatSection({ title, rows }: { title: string; rows: Array<{ label: string; value: string | null }> }) {
   const visibleRows = rows.filter((row) => row.value);
@@ -135,16 +138,22 @@ export function ExerciseInfoSheet({
   const recentRows = stats ? [
     { label: "Last performed", value: stats.recent.lastPerformedAt ? formatDateShort(stats.recent.lastPerformedAt) : null },
     { label: "Last", value: stats.recent.lastSummary ?? null },
-    { label: "PRs", value: stats.prLabel || null },
+    ...(stats.kind === "cardio" ? [
+      { label: "Duration", value: formatDurationShort(stats.recent.lastDurationSeconds) },
+      { label: "Distance", value: formatDistance(stats.recent.lastDistance, stats.recent.lastDistanceUnit) },
+      { label: "Pace", value: formatPace(stats.recent.lastPaceSecondsPerUnit, stats.recent.lastDistanceUnit) },
+      { label: "Calories", value: formatCalories(stats.recent.lastCalories) },
+    ] : []),
+    ...(stats.kind === "strength" ? [{ label: "PRs", value: stats.prLabel || null }] : []),
   ] : [];
 
   const totalsRows = stats ? [
     { label: "Sessions", value: stats.totals.sessions > 0 ? formatCount(stats.totals.sessions, "session") : null },
     { label: "Sets", value: stats.totals.sets > 0 ? formatCount(stats.totals.sets, "set") : null },
     { label: "Reps", value: stats.totals.reps ? formatCount(stats.totals.reps, "rep") : null },
-    { label: "Duration", value: stats.totals.durationSeconds ? `${formatSimple(stats.totals.durationSeconds)}s` : null },
-    { label: "Distance", value: stats.totals.distance ? formatSimple(stats.totals.distance) : null },
-    { label: "Calories", value: stats.totals.calories ? formatCount(stats.totals.calories, "cal") : null },
+    { label: "Duration", value: formatDurationShort(stats.totals.durationSeconds) },
+    { label: "Distance", value: formatDistance(stats.totals.distance, stats.bests.bestDistanceUnit) },
+    { label: "Calories", value: formatCalories(stats.totals.calories) },
   ] : [];
 
   const bestWeightLabel = stats?.bests.bestWeight ? formatWeight(stats.bests.bestWeight, null) : null;
@@ -153,10 +162,10 @@ export function ExerciseInfoSheet({
     { label: "Best weight", value: bestWeightLabel },
     { label: "Best reps at best weight", value: stats.bests.bestRepsAtBestWeight ? formatCount(stats.bests.bestRepsAtBestWeight, "rep") : null },
     { label: "Best set", value: stats.bests.bestSetSummary ?? null },
-    { label: "Best duration", value: stats.bests.bestDurationSeconds ? `${formatSimple(stats.bests.bestDurationSeconds)}s` : null },
-    { label: "Best distance", value: stats.bests.bestDistance ? formatSimple(stats.bests.bestDistance) : null },
-    { label: "Best pace", value: stats.bests.bestPace ? `${formatSimple(stats.bests.bestPace)} s/dist` : null },
-    { label: "Best calories", value: stats.bests.bestCalories ? formatCount(stats.bests.bestCalories, "cal") : null },
+    { label: "Best duration", value: formatDurationShort(stats.bests.bestDurationSeconds) },
+    { label: "Best distance", value: formatDistance(stats.bests.bestDistance, stats.bests.bestDistanceUnit) },
+    { label: "Best pace", value: formatPace(stats.bests.bestPace, stats.bests.bestDistanceUnit) },
+    { label: "Best calories", value: formatCalories(stats.bests.bestCalories) },
   ] : [];
 
   return createPortal(

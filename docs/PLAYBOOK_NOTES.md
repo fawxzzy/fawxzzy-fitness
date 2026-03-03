@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Card summaries should be measurement-aware and server-derived
+- Type: Pattern
+- Summary: History/card surfaces should receive preformatted Last/Best summary strings from server loaders, with deterministic measurement-type priorities (cardio duration vs distance vs calories, with pace only when unit-safe).
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Prevents random-feeling “best” labels, avoids client render-loop aggregation, and keeps bodyweight/cardio stats useful instead of blank placeholders.
+- Evidence: src/lib/exercises-browser.ts, src/lib/exercise-info.ts, src/components/ExerciseInfoSheet.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx
+- Status: Proposed
+
 
 ## 2026-03-03 — Prioritize deterministic reserve when portaled bottom actions are introduced
 - Type: Guardrail
