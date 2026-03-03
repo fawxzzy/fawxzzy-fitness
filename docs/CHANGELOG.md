@@ -2510,3 +2510,11 @@ WHY:
 - Improves scanability and consistency of stats by grouping related metrics into predictable sections.
 - Prevents legacy placeholder records from leaking into production UI while preserving existing database rows.
 
+## 0.3.20 — 2026-03-03
+
+### WHAT
+- (fill in)
+
+### WHY
+- (fill in)
+
