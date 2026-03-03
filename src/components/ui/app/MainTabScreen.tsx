@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { AppShell } from "@/components/ui/app/AppShell";
 
 type MainTabScreenProps = {
   children: ReactNode;
@@ -7,6 +8,10 @@ type MainTabScreenProps = {
 };
 
 export function MainTabScreen({ children, className }: MainTabScreenProps) {
-  return <section className={cn("space-y-3", className)}>{children}</section>;
+  return (
+    <AppShell className={cn("space-y-3", className)}>
+      {children}
+    </AppShell>
+  );
 }
 

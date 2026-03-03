@@ -93,7 +93,7 @@
   --header-offset: calc(var(--top-inset) + var(--header-floating-gap));
   --header-h: 72px;
   --header-total: calc(var(--header-offset) + var(--header-h));
-  --app-top-inset: var(--top-inset);
+  --app-top-inset: env(safe-area-inset-top, 0px);
   --app-header-offset: var(--header-h);
   --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset));
   --app-bottom-inset: env(safe-area-inset-bottom, 0px);
@@ -375,9 +375,5 @@ a:focus-visible {
 
 
 .safe-area-main {
-  padding-top: var(--app-top-offset);
-}
-
-.safe-area-main:has([data-top-nav-mode="none"]) {
-  --app-header-offset: 0px;
+  padding-top: var(--app-top-inset);
 }

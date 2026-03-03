@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
-import { BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import type { ActionResult } from "@/lib/action-result";
@@ -109,7 +108,7 @@ export function SessionPageClient({
   );
 
   return (
-    <section className={`space-y-4 ${BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}`}>
+    <section className="space-y-4">
       {!isExerciseOpen ? (
         <SessionHeaderControls
           sessionId={sessionId}

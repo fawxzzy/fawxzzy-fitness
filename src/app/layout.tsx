@@ -49,7 +49,7 @@ export default function RootLayout({
           <GlassEffectsBootstrap />
           <MobileViewportGuard />
           <AnimatedBackground />
-          <main className="safe-area-main relative z-10 mx-auto min-h-screen w-full max-w-md px-4 pb-6">
+          <main className="safe-area-main relative z-10 mx-auto min-h-screen w-full max-w-md px-4 pb-[var(--app-bottom-gap)]">
             {children}
           </main>
         </ToastProvider>

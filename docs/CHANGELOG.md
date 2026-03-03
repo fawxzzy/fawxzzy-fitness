@@ -26,6 +26,17 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Fixed
+WHAT:
+- Removed `:has(...)`-based top-offset switching and made shell top spacing deterministic: root applies safe-area top inset and `AppShell` applies only explicit `topNavMode` header offset.
+- Updated tab shells to always use `AppShell`, and moved Current Session bottom reserve to the single scroll owner instead of nested content.
+- Updated Day View to use the shared shell + scroll-owner reserve contract for BottomActionBar.
+- Tightened BottomActionBar height measurement to publish only visible overlap above `safe-area + 3px` from the measured panel height.
+- Restored a slight visual gap beneath the floating top navigation bar on main-nav screens while keeping no-nav screens safe-area-only.
+- Added additional History Log detail bottom reserve so the fixed Edit/Delete action bar no longer overlaps final content at full scroll.
+WHY:
+- Eliminates top-offset mismatch on no-nav routes and keeps bottom CTA reservation consistent so fixed bars do not cover content or create oversized dead space.
+
 ## 0.3.0 — 2026-03-03
 
 ### Changed

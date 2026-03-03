@@ -1,6 +1,7 @@
 import { SessionPageClient } from "@/components/SessionPageClient";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
+import { BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import type { DisplayTarget } from "@/lib/session-targets";
@@ -115,69 +116,69 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
   return (
     <AppShell topNavMode="none">
-      <ScrollContainer>
+      <ScrollContainer className={BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}>
         <SessionPageClient
-      sessionId={params.id}
-      initialDurationSeconds={sessionRow.duration_seconds}
-      performedAt={sessionRow.performed_at}
-      sessionTitle={sessionTitle}
-      searchError={searchParams?.error}
-      unitLabel={unitLabel}
-      exercises={sessionExercises.map((exercise) => {
-        const displayTarget = sessionTargets.get(exercise.id);
-        return {
-          id: exercise.id,
-          name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
-          isSkipped: exercise.is_skipped,
-          defaultUnit: exercise.default_unit ?? null,
-          isCardio: hasCardioTag(exerciseById.get(exercise.exercise_id)),
-          routineDayExerciseId: exercise.routine_day_exercise_id ?? null,
-          planTargetsHash: (() => {
-            const fromPlan = exercise.enabled_metrics;
-            if (!fromPlan) {
-              return null;
-            }
-            return [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories]
-              .map((value) => (value ? "1" : "0"))
-              .join("");
-          })(),
-          initialEnabledMetrics: (() => {
-            const fromPlan = exercise.enabled_metrics;
-            if (fromPlan && [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories].some((value) => value === true)) {
-              return {
-                reps: fromPlan.reps === true,
-                weight: fromPlan.weight === true,
-                time: fromPlan.time === true,
-                distance: fromPlan.distance === true,
-                calories: fromPlan.calories === true,
-              };
-            }
-
-            if (hasCardioTag(exerciseById.get(exercise.exercise_id))) {
-              return { reps: false, weight: false, time: true, distance: false, calories: false };
-            }
-
-            return { reps: true, weight: true, time: false, distance: false, calories: false };
-          })(),
-          goalLabel: formatSessionGoalLabel(displayTarget, unitLabel),
-          prefill: getGoalPrefill(displayTarget, unitLabel),
-          initialSets: setsByExercise.get(exercise.id) ?? [],
-          loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,
-        };
-      })}
-      saveSessionAction={saveSessionAction}
-      quickAddAction={(
-        <QuickAddExerciseSheet
           sessionId={params.id}
-          exercises={exerciseOptions}
-          quickAddExerciseAction={quickAddExerciseAction}
-        />
-      )}
-      addSetAction={addSetAction}
-      syncQueuedSetLogsAction={syncQueuedSetLogsAction}
-      toggleSkipAction={toggleSkipAction}
-      removeExerciseAction={removeExerciseAction}
-      deleteSetAction={deleteSetAction}
+          initialDurationSeconds={sessionRow.duration_seconds}
+          performedAt={sessionRow.performed_at}
+          sessionTitle={sessionTitle}
+          searchError={searchParams?.error}
+          unitLabel={unitLabel}
+          exercises={sessionExercises.map((exercise) => {
+            const displayTarget = sessionTargets.get(exercise.id);
+            return {
+              id: exercise.id,
+              name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+              isSkipped: exercise.is_skipped,
+              defaultUnit: exercise.default_unit ?? null,
+              isCardio: hasCardioTag(exerciseById.get(exercise.exercise_id)),
+              routineDayExerciseId: exercise.routine_day_exercise_id ?? null,
+              planTargetsHash: (() => {
+                const fromPlan = exercise.enabled_metrics;
+                if (!fromPlan) {
+                  return null;
+                }
+                return [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories]
+                  .map((value) => (value ? "1" : "0"))
+                  .join("");
+              })(),
+              initialEnabledMetrics: (() => {
+                const fromPlan = exercise.enabled_metrics;
+                if (fromPlan && [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories].some((value) => value === true)) {
+                  return {
+                    reps: fromPlan.reps === true,
+                    weight: fromPlan.weight === true,
+                    time: fromPlan.time === true,
+                    distance: fromPlan.distance === true,
+                    calories: fromPlan.calories === true,
+                  };
+                }
+
+                if (hasCardioTag(exerciseById.get(exercise.exercise_id))) {
+                  return { reps: false, weight: false, time: true, distance: false, calories: false };
+                }
+
+                return { reps: true, weight: true, time: false, distance: false, calories: false };
+              })(),
+              goalLabel: formatSessionGoalLabel(displayTarget, unitLabel),
+              prefill: getGoalPrefill(displayTarget, unitLabel),
+              initialSets: setsByExercise.get(exercise.id) ?? [],
+              loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,
+            };
+          })}
+          saveSessionAction={saveSessionAction}
+          quickAddAction={(
+            <QuickAddExerciseSheet
+              sessionId={params.id}
+              exercises={exerciseOptions}
+              quickAddExerciseAction={quickAddExerciseAction}
+            />
+          )}
+          addSetAction={addSetAction}
+          syncQueuedSetLogsAction={syncQueuedSetLogsAction}
+          toggleSkipAction={toggleSkipAction}
+          removeExerciseAction={removeExerciseAction}
+          deleteSetAction={deleteSetAction}
         />
       </ScrollContainer>
     </AppShell>

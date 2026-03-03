@@ -31,14 +31,11 @@ export function BottomActionBar({
     const target = shellRoot ?? document.documentElement;
 
     const updateHeight = () => {
-      const panelStyles = window.getComputedStyle(panel);
       const rootStyles = window.getComputedStyle(target);
-      const panelHeight = panel.offsetHeight;
+      const panelHeight = panel.getBoundingClientRect().height;
       const bottomInset = parseCssPx(rootStyles.getPropertyValue("--app-bottom-inset"));
       const bottomGap = parseCssPx(rootStyles.getPropertyValue("--app-bottom-gap"));
-      const panelBottomPadding = parseCssPx(panelStyles.paddingBottom);
-      const reservedBottomPadding = Math.max(panelBottomPadding, bottomInset + bottomGap);
-      const visibleHeight = Math.max(0, panelHeight - reservedBottomPadding);
+      const visibleHeight = Math.max(0, panelHeight - (bottomInset + bottomGap));
       target.style.setProperty("--app-bottom-bar-height", `${visibleHeight}px`);
     };
 

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
-import { BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS } from "@/components/ui/BottomActionBar";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { formatDurationClock } from "@/lib/duration";
@@ -102,7 +101,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
 
   return (
     <AppShell className="gap-4" topNavMode="none">
-      <ScrollContainer className={`flex flex-col gap-3 px-1 ${BOTTOM_ACTION_BAR_CONTENT_PADDING_CLASS}`}>
+      <ScrollContainer className="flex flex-col gap-3 px-1 pb-[calc(var(--app-bottom-offset)+var(--app-bottom-gap))]">
         <LogAuditClient
           logId={sessionRow.id}
           initialDayName={effectiveDayName}
