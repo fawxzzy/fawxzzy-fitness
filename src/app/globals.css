@@ -93,10 +93,14 @@
   --header-offset: calc(var(--top-inset) + var(--header-floating-gap));
   --header-h: 72px;
   --header-total: calc(var(--header-offset) + var(--header-h));
-  --app-top-inset: env(safe-area-inset-top, 0px);
+  --app-safe-top: env(safe-area-inset-top, 0px);
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --app-safe-left: env(safe-area-inset-left, 0px);
+  --app-safe-right: env(safe-area-inset-right, 0px);
+  --app-top-inset: var(--app-safe-top);
   --app-header-offset: var(--header-h);
   --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset));
-  --app-bottom-inset: env(safe-area-inset-bottom, 0px);
+  --app-bottom-inset: var(--app-safe-bottom);
   --app-bottom-gap: 3px;
 }
 

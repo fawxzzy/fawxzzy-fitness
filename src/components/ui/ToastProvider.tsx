@@ -53,7 +53,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 top-[max(env(safe-area-inset-top),0.75rem)] z-50 flex flex-col items-center gap-2 px-3">
+      <div className="pointer-events-none fixed inset-x-0 top-[max(var(--app-safe-top),0.75rem)] z-50 flex flex-col items-center gap-2 px-3">
         {toasts.map((toast) => (
           <div key={toast.id} className={`pointer-events-auto w-full max-w-md rounded-md border px-3 py-2 text-sm shadow ${toneClassName(toast.tone)}`}>
             <div className="flex items-center justify-between gap-3">

@@ -61,7 +61,7 @@ export function ConfirmDestructiveModal({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 pb-[max(1rem,var(--app-safe-bottom))] pt-[max(1rem,var(--app-safe-top))]">
       <button
         type="button"
         aria-label="Close confirmation"

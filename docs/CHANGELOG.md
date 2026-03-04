@@ -3,6 +3,29 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.43 — 2026-03-04
+
+### WHAT
+- Updated the pre-commit hook to run `npm run -s playbook:check` as a blocking gate before non-blocking Playbook maintenance.
+- Kept existing auto-staging behavior for `docs/PLAYBOOK_NOTES.md` and `docs/playbook-status.json`, and retained `npm run -s playbook` as best-effort/non-blocking after the check.
+
+### WHY
+- Fails fast locally when learning-zone requirements are missing for staged learning-zone code changes, preventing CI failures after push.
+- Preserves current developer ergonomics for Playbook maintenance and status artifact staging while enforcing required documentation parity.
+
+
+## 0.3.42 — 2026-03-04
+
+### WHAT
+- Centralized shell-owned safe-area tokens by defining `--app-safe-top|bottom|left|right` in the global/AppShell token layer and routing existing inset offsets through those shared variables.
+- Removed direct `env(safe-area-inset-*)` usage from `ExerciseInfoSheet`, `BottomSheet`, `ConfirmDestructiveModal`, `ToastProvider`, and `BottomActionBar` so feature components consume AppShell-owned safe-area vars instead.
+- Tightened the SAFE_AREA_OWNERSHIP allowlist by removing the `BottomActionBar` exception; only shell/global token files remain allowlisted.
+
+### WHY
+- Enforces the AppShell safe-area ownership contract so notch/home-indicator spacing is controlled from one shell source of truth instead of ad hoc component math.
+- Restores contract-audit reliability by ensuring non-shell UI surfaces cannot silently bypass safe-area governance with direct `env(...)` usage.
+
+
 ## 0.3.41 — 2026-03-04
 
 ### WHAT
