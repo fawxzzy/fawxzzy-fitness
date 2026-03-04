@@ -10,6 +10,15 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-04 — Cardio stats must be set-derived with metadata-only unit fallback
+- Type: Guardrail
+- Summary: Cardio Last/Totals/Bests rendering should aggregate from `sets.duration_seconds`, `sets.distance` + `sets.distance_unit`, and `sets.calories`; `default_unit` should only provide fallback formatting when set units are missing.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Prevents “Last: —” regressions for cardio exercises that have valid logged effort but stale/null session or exercise unit defaults.
+- Evidence: src/lib/exercise-info.ts, src/lib/exercises-browser.ts, src/components/ExerciseInfoSheet.tsx, supabase/migrations/033_normalize_cardio_measurement_units.sql
+- Status: Proposed
+
+
 ## 2026-03-04 — Preserve measurement metadata through API stat loaders
 - Type: Guardrail
 - Summary: API loaders that build measurement-aware stats must pass canonical `measurement_type` + `default_unit` through to server aggregation helpers; omitting these arguments can silently downgrade cardio exercises into strength/reps rendering paths.

@@ -2537,8 +2537,12 @@ WHY:
 ## 0.3.20 — 2026-03-03
 
 ### WHAT
-- (fill in)
+- Normalized cardio measurement metadata defaults so cardio exercises/session_exercises align to valid `minutes` and `miles` unit values without schema changes.
+- Updated cardio history summaries and Exercise Info stats to derive Last/Totals/Bests from set-level duration, distance, pace, and calories with measurement-aware formatting.
+- Polished Exercise Info stats layout into consistent two-column Recent/Totals/Bests rows and removed redundant cardio duplicate lines.
 
 ### WHY
-- (fill in)
+- Prevents cardio rows from falling back to reps semantics due to invalid/missing legacy unit metadata.
+- Ensures cardio exercises such as Incline Walk show meaningful summaries instead of blank placeholders when set data exists.
+- Improves scanability and trust in stats presentation by showing one clear recent effort line plus deterministic best effort lines.
 

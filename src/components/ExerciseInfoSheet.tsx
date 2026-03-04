@@ -75,7 +75,7 @@ function StatSection({ title, rows }: { title: string; rows: Array<{ label: stri
       <p className={sectionTitleClassName}>{title}</p>
       <div className="space-y-0.5">
         {visibleRows.map((row) => (
-          <div key={`${title}-${row.label}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3">
+          <div key={`${title}-${row.label}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 leading-5">
             <span>{row.label}</span>
             <span className="text-right text-[rgb(var(--text)/0.82)]">{row.value}</span>
           </div>
@@ -144,33 +144,30 @@ export function ExerciseInfoSheet({
 
   const recentRows = stats ? [
     { label: "Last performed", value: stats.recent.lastPerformedAt ? formatDateShort(stats.recent.lastPerformedAt) : null },
-    { label: "Last", value: stats.recent.lastSummary ?? null },
-    ...(stats.kind === "cardio" ? [
-      { label: "Duration", value: formatDurationShort(stats.recent.lastDurationSeconds) },
-      { label: "Distance", value: formatDistance(stats.recent.lastDistance, stats.recent.lastDistanceUnit) },
-      { label: "Pace", value: formatPace(stats.recent.lastPaceSecondsPerUnit, stats.recent.lastDistanceUnit) },
-      { label: "Calories", value: formatCalories(stats.recent.lastCalories) },
-    ] : []),
+    { label: stats.kind === "cardio" ? "Last effort" : "Last", value: stats.recent.lastSummary ?? null },
     ...(stats.kind === "strength" ? [{ label: "PRs", value: stats.prLabel || null }] : []),
   ] : [];
 
   const totalsRows = stats ? [
     { label: "Sessions", value: stats.totals.sessions > 0 ? formatCount(stats.totals.sessions, "session") : null },
     { label: "Sets", value: stats.totals.sets > 0 ? formatCount(stats.totals.sets, "set") : null },
-    { label: "Reps", value: stats.totals.reps ? formatCount(stats.totals.reps, "rep") : null },
-    { label: "Duration", value: formatDurationShort(stats.totals.durationSeconds) },
-    { label: "Distance", value: formatDistance(stats.totals.distance, stats.bests.bestDistanceUnit) },
-    { label: "Calories", value: formatCalories(stats.totals.calories) },
+    ...(stats.kind === "strength"
+      ? [{ label: "Reps", value: stats.totals.reps ? formatCount(stats.totals.reps, "rep") : null }]
+      : [
+        { label: "Duration", value: formatDurationShort(stats.totals.durationSeconds) },
+        { label: "Distance", value: formatDistance(stats.totals.distance, stats.bests.bestDistanceUnit) },
+        { label: "Calories", value: formatCalories(stats.totals.calories) },
+      ]),
   ] : [];
 
   const bestWeightLabel = stats?.bests.bestWeight ? formatWeight(stats.bests.bestWeight, null) : null;
   const bestRows = stats ? (stats.kind === "cardio"
     ? [
+      { label: "Best effort", value: stats.bests.bestSetSummary ?? null },
       { label: "Best duration", value: formatDurationShort(stats.bests.bestDurationSeconds) },
       { label: "Best distance", value: formatDistance(stats.bests.bestDistance, stats.bests.bestDistanceUnit) },
       { label: "Best pace", value: formatPace(stats.bests.bestPace, stats.bests.bestDistanceUnit) },
       { label: "Best calories", value: formatCalories(stats.bests.bestCalories) },
-      { label: "Best set", value: stats.bests.bestSetSummary ?? null },
     ]
     : [
       { label: "Best bodyweight reps", value: stats.bests.bestBodyweightReps ? formatCount(stats.bests.bestBodyweightReps, "rep") : null },
