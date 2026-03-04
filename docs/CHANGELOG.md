@@ -7,6 +7,15 @@ All notable changes to this project are documented in this file.
 
 
 
+
+## 0.3.53 — 2026-03-04
+
+### WHAT
+- Updated `npm run playbook` wrapper guidance so the “If unsure what to run → …” line follows `recommendation.nextCommand`, with a `playbook:auto:local` override when the recommendation is `playbook:update`.
+
+### WHY
+- Aligns uncertain-path guidance with Zac’s actual local workflow so Proposed-note states point to the correct ordered local automation instead of a generic command.
+
 ## 0.3.52 — 2026-03-04
 
 ### WHAT

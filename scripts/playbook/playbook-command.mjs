@@ -96,7 +96,18 @@ async function main() {
   if (!status.found) {
     console.log('Status snapshot not found. Run: node scripts/playbook/write-status-files.mjs');
   }
-  console.log('If unsure what to run → npm run playbook');
+
+  const nextCommand = typeof status.recommendation?.nextCommand === 'string'
+    ? status.recommendation.nextCommand.trim()
+    : '';
+
+  if (nextCommand.includes('playbook:update')) {
+    console.log('If unsure what to run → npm run playbook:auto:local');
+  } else if (nextCommand.length > 0) {
+    console.log(`If unsure what to run → ${nextCommand}`);
+  } else {
+    console.log('If unsure what to run → npm run playbook');
+  }
 
   if (typeof maintain.status === 'number' && maintain.status !== 0) {
     process.exit(maintain.status);
