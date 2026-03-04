@@ -7,6 +7,16 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.51 — 2026-03-04
+
+### WHAT
+- Added a repository-level `npm run sanity` script that runs the full health sequence in order: `playbook:doctor`, `playbook`, `playbook:status:ci -- --format=markdown`, `lint`, then `build`.
+- Documented the Sanity Check workflow and expected coverage in Codex guardrails docs.
+
+### WHY
+- Replaces the manual multi-step health checklist with one deterministic command while keeping the individual commands available.
+- Makes pre-push validation easier to run consistently across contributors and CI-like local checks.
+
 ## 0.3.50 — 2026-03-04
 
 ### WHAT

@@ -43,7 +43,8 @@
     "playbook:auto:local": "node scripts/playbook/auto.mjs --skip-sync",
     "playbook:precommit": "node scripts/playbook/precommit.mjs",
     "prepare": "node scripts/setup-githooks.mjs",
-    "playbook:doctor": "node ./Playbook/tools/doctor/cli.mjs --cwd=."
+    "playbook:doctor": "node ./Playbook/tools/doctor/cli.mjs --cwd=.",
+    "sanity": "npm run playbook:doctor && npm run playbook && npm run playbook:status:ci -- --format=markdown && npm run lint && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
