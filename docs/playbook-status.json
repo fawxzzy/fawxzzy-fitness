@@ -1,66 +1,33 @@
 {
-  "drafts": 0,
-  "proposed": 0,
-  "promoted": 94,
-  "upstreamed": 0,
-  "warnThreshold": 10,
-  "failThreshold": 20,
-  "knowledgeGate": {
-    "status": "PASS",
-    "warnCount": 0,
-    "failCount": 0,
-    "topOffenders": []
+  "schema_version": 1,
+  "repo": {
+    "name": "FawxzzyFitness",
+    "branch": "work",
+    "head_sha": "5cf4296d5e462431deba397140efc61338edd292"
+  },
+  "timestamps": {
+    "last_run_iso": "2026-03-04T18:35:00.602Z"
+  },
+  "notes": {
+    "draft": 0,
+    "proposed": 0,
+    "promoted": 0
   },
   "contracts": {
-    "status": "PASS",
-    "summary": {
-      "pass": 4,
-      "warn": 0,
-      "fail": 0
-    },
-    "byContract": [
-      {
-        "id": "SERVER_CLIENT_BOUNDARY",
-        "status": "PASS",
-        "violations": 0,
-        "items": []
-      },
-      {
-        "id": "SAFE_AREA_OWNERSHIP",
-        "status": "PASS",
-        "violations": 0,
-        "items": []
-      },
-      {
-        "id": "BOTTOM_ACTIONS_OWNERSHIP",
-        "status": "PASS",
-        "violations": 0,
-        "items": []
-      },
-      {
-        "id": "SINGLE_SCROLL_OWNER",
-        "status": "PASS",
-        "violations": 0,
-        "items": []
-      }
-    ]
+    "pass": 4,
+    "warn": 0,
+    "fail": 0
   },
-  "recommendation": {
-    "nextCommand": null,
-    "reason": "No action required."
+  "signals": {
+    "autoClassified": 1,
+    "duplicatesSkipped": 0,
+    "boundaryFlags": 0
   },
-  "smartSignals": {
-    "enabled": true,
-    "summary": {
-      "autoClassified": 1,
-      "duplicates": 0,
-      "nearDuplicates": 0,
-      "duplicatesSkipped": 0,
-      "boundaryFlags": [],
-      "boundaryFlagsCount": 0
-    }
-  },
-  "trendLength": 37,
-  "lastTrendTimestamp": "2026-03-04T18:08:09Z",
-  "updatedAt": "2026-03-04T18:08:34.323Z"
+  "recommended_next_action": "",
+  "reason": "No Proposed notes. Nothing to promote.",
+  "commands": {
+    "run": "npm run playbook",
+    "promote": "npm run playbook:update",
+    "auto": "npm run playbook:auto"
+  }
 }

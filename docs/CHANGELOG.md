@@ -4,9 +4,17 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.54 — 2026-03-04
 
+### WHAT
+- Added a shared Playbook status helper (`scripts/playbook/status.mjs`) and moved status generation to a stable, versioned `docs/playbook-status.json` schema with repo metadata, notes/contracts/signal counts, recommendation, and command hints.
+- Updated `npm run playbook` and `npm run playbook:update` to always refresh `docs/playbook-status.json`, including explicit no-op promotion status output when no Proposed notes exist.
+- Simplified `npm run playbook:auto` into a reliable run→promote-if-needed→final-summary flow that exits non-zero when `contracts.fail > 0`.
+- Updated CI to run `npm run playbook:auto` and always print the recommended next action from the status artifact.
 
-
+### WHY
+- Establishes one deterministic machine-readable Signals/status artifact for local and CI consumers so guidance and gates do not drift.
+- Makes Playbook automation easier and safer by giving developers a single command that handles promotion when needed and clearly reports what to do next.
 
 ## 0.3.53 — 2026-03-04
 

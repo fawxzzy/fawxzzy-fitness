@@ -3,89 +3,41 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-function normalizeStatus(status) {
-  const normalized = String(status || 'PASS').toUpperCase();
-  return ['PASS', 'WARN', 'FAIL'].includes(normalized) ? normalized : 'PASS';
-}
-
-function normalizeBoundaryFlags(value) {
-  if (Array.isArray(value)) {
-    return value.map((entry) => String(entry).trim()).filter(Boolean);
-  }
-  if (typeof value === 'number') {
-    return Array.from({ length: value }, () => 'unknown');
-  }
-  return [];
-}
-
 export function readDashboardModel(raw = {}) {
-  const contractsSummary = raw.contracts?.summary || {};
-  const failIds = Array.isArray(raw.contracts?.byContract)
-    ? raw.contracts.byContract.filter((entry) => normalizeStatus(entry.status) === 'FAIL').map((entry) => entry.id)
-    : [];
-
-  const contracts = {
-    status: normalizeStatus(raw.contracts?.status),
-    summary: {
-      pass: toNumber(contractsSummary.pass),
-      warn: toNumber(contractsSummary.warn),
-      fail: toNumber(contractsSummary.fail),
-    },
-    failingIds: failIds,
-  };
-
-  const recommendation = {
-    nextCommand:
-      typeof raw.recommendation?.nextCommand === 'string' && raw.recommendation.nextCommand.trim().length > 0
-        ? raw.recommendation.nextCommand.trim()
-        : null,
-    reason:
-      typeof raw.recommendation?.reason === 'string' && raw.recommendation.reason.trim().length > 0
-        ? raw.recommendation.reason.trim()
-        : 'No action required.',
-  };
-
-  const smartSignalsSummary = raw.smartSignals?.summary && typeof raw.smartSignals.summary === 'object'
-    ? raw.smartSignals.summary
-    : raw.smartSignals || {};
-  const boundaryFlags = normalizeBoundaryFlags(smartSignalsSummary.boundaryFlags);
-  const smartSignals = {
-    enabled: raw.smartSignals?.enabled !== false,
-    unavailable: raw.smartSignals?.status === 'unavailable',
-    reason: typeof raw.smartSignals?.reason === 'string' ? raw.smartSignals.reason : null,
-    autoClassified: toNumber(smartSignalsSummary.autoClassified, toNumber(smartSignalsSummary.autoClassifiedDrafts)),
-    duplicatesSkipped: toNumber(smartSignalsSummary.duplicatesSkipped),
-    boundaryFlags,
-    boundaryFlagsCount: toNumber(smartSignalsSummary.boundaryFlagsCount, boundaryFlags.length),
-  };
+  const notes = raw.notes && typeof raw.notes === 'object' ? raw.notes : raw;
+  const contracts = raw.contracts && typeof raw.contracts === 'object' ? raw.contracts : {};
+  const signals = raw.signals && typeof raw.signals === 'object' ? raw.signals : {};
 
   return {
-    drafts: toNumber(raw.drafts),
-    proposed: toNumber(raw.proposed),
-    promoted: toNumber(raw.promoted),
-    contracts,
-    recommendation,
-    smartSignals,
+    draft: toNumber(notes.draft, toNumber(raw.drafts)),
+    proposed: toNumber(notes.proposed, toNumber(raw.proposed)),
+    promoted: toNumber(notes.promoted, toNumber(raw.promoted)),
+    contracts: {
+      pass: toNumber(contracts.pass, toNumber(contracts.summary?.pass)),
+      warn: toNumber(contracts.warn, toNumber(contracts.summary?.warn)),
+      fail: toNumber(contracts.fail, toNumber(contracts.summary?.fail)),
+    },
+    recommendation: {
+      nextCommand: typeof raw.recommended_next_action === 'string' ? raw.recommended_next_action : '',
+      reason: typeof raw.reason === 'string' && raw.reason.trim().length > 0 ? raw.reason.trim() : 'No action required.',
+    },
+    signals: {
+      autoClassified: toNumber(signals.autoClassified),
+      duplicatesSkipped: toNumber(signals.duplicatesSkipped),
+      boundaryFlags: toNumber(signals.boundaryFlags),
+    },
   };
 }
 
 export function formatDashboardMarkdown(raw) {
   const model = readDashboardModel(raw);
-  const failingText = model.contracts.failingIds.length
-    ? ` (${model.contracts.failingIds.slice(0, 3).join(', ')})`
-    : '';
-
-  const smartSignalsLine = model.smartSignals.unavailable
-    ? `Smart Signals: unavailable (${model.smartSignals.reason || 'no summary'})`
-    : `Smart Signals: autoClassified=${model.smartSignals.autoClassified}, duplicatesSkipped=${model.smartSignals.duplicatesSkipped}, boundaryFlags=${model.smartSignals.boundaryFlagsCount}`;
-
   return [
     '## Playbook Learning Status',
     '',
-    `Knowledge Draft/Proposed/Promoted: ${model.drafts}/${model.proposed}/${model.promoted}`,
-    `Contracts: ${model.contracts.status}/WARN(${model.contracts.summary.warn})/FAIL(${model.contracts.summary.fail})${model.contracts.status === 'FAIL' ? failingText : ''}`,
-    smartSignalsLine,
-    `Next command: ${model.recommendation.nextCommand || 'No action required.'}`,
+    `Knowledge Draft/Proposed/Promoted: ${model.draft}/${model.proposed}/${model.promoted}`,
+    `Contracts: PASS(${model.contracts.pass})/WARN(${model.contracts.warn})/FAIL(${model.contracts.fail})`,
+    `Signals: autoClassified=${model.signals.autoClassified}, duplicatesSkipped=${model.signals.duplicatesSkipped}, boundaryFlags=${model.signals.boundaryFlags}`,
+    `Next command: ${model.recommendation.nextCommand || 'none'}`,
     `Reason: ${model.recommendation.reason}`,
     '',
   ].join('\n');

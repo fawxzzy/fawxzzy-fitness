@@ -1,35 +1,11 @@
 #!/usr/bin/env node
-import fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { runNpm } from './_lib/run-npm.mjs';
-import { formatDashboardPlain } from './_lib/status-dashboard.mjs';
+import { writePlaybookStatus, STATUS_PATH } from './status.mjs';
 
-const STATUS_PATH = path.resolve('docs/playbook-status.json');
 const STAGEABLE_STATUS_ARTIFACTS = ['docs/playbook-status.json', 'docs/playbook-trend.json'];
-
-async function readStatus() {
-  try {
-    const raw = await fs.readFile(STATUS_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
-    return { ...parsed, found: true };
-  } catch (error) {
-    if (error && error.code !== 'ENOENT') {
-      throw error;
-    }
-
-    return {
-      drafts: 0,
-      proposed: 0,
-      promoted: 0,
-      upstreamed: 0,
-      contracts: { status: 'PASS', summary: { pass: 4, warn: 0, fail: 0 }, byContract: [] },
-      recommendation: { nextCommand: null, reason: 'No action required.' },
-      found: false,
-    };
-  }
-}
 
 function runLocalSnapshot(scriptPath, args = []) {
   const absolutePath = path.resolve(scriptPath);
@@ -52,15 +28,15 @@ async function runFallbackMaintenance() {
   const guardianPath = path.resolve('scripts/playbook/guardian-generate-notes.mjs');
   const thresholdPath = path.resolve('scripts/playbook/check-proposed-notes-threshold.mjs');
 
-  await fs.access(guardianPath).then(
-    () => runLocalSnapshot('scripts/playbook/guardian-generate-notes.mjs'),
-    () => {},
-  );
+  if (existsSync(guardianPath)) {
+    runLocalSnapshot('scripts/playbook/guardian-generate-notes.mjs');
+  }
 
-  await fs.access(thresholdPath).then(
-    () => runLocalSnapshot('scripts/playbook/check-proposed-notes-threshold.mjs'),
-    () => runNpm(['run', '-s', 'playbook:threshold']),
-  );
+  if (existsSync(thresholdPath)) {
+    runLocalSnapshot('scripts/playbook/check-proposed-notes-threshold.mjs');
+  } else {
+    runNpm(['run', '-s', 'playbook:threshold']);
+  }
 
   console.log('[playbook] npm runner failed; ran fallback maintenance directly.');
 }
@@ -72,42 +48,25 @@ async function main() {
     await runFallbackMaintenance();
   }
 
-  await fs.access(path.resolve('scripts/playbook/contracts-audit.mjs')).then(
-    () => runLocalSnapshot('scripts/playbook/contracts-audit.mjs', ['--quiet']),
-    () => {},
-  );
+  if (existsSync(path.resolve('scripts/playbook/contracts-audit.mjs'))) {
+    runLocalSnapshot('scripts/playbook/contracts-audit.mjs', ['--quiet']);
+  }
 
-  await fs.access(path.resolve('scripts/playbook/write-status-files.mjs')).then(
-    () => runLocalSnapshot('scripts/playbook/write-status-files.mjs'),
-    () => {},
-  );
+  if (existsSync(path.resolve('scripts/playbook/write-trend-files.mjs'))) {
+    runLocalSnapshot('scripts/playbook/write-trend-files.mjs');
+  }
 
-  await fs.access(path.resolve('scripts/playbook/write-trend-files.mjs')).then(
-    () => runLocalSnapshot('scripts/playbook/write-trend-files.mjs'),
-    () => {},
-  );
-
+  const status = await writePlaybookStatus({ promoted: 0 });
   stageStatusArtifactsIfPresent();
 
-  const status = await readStatus();
   console.log('');
-  console.log(formatDashboardPlain(status));
-  console.log('');
-  if (!status.found) {
-    console.log('Status snapshot not found. Run: node scripts/playbook/write-status-files.mjs');
-  }
-
-  const nextCommand = typeof status.recommendation?.nextCommand === 'string'
-    ? status.recommendation.nextCommand.trim()
-    : '';
-
-  if (nextCommand.includes('playbook:update')) {
-    console.log('If unsure what to run → npm run playbook:auto:local');
-  } else if (nextCommand.length > 0) {
-    console.log(`If unsure what to run → ${nextCommand}`);
+  console.log(`[playbook] Complete. Proposed=${status.notes.proposed}, ContractsFail=${status.contracts.fail}.`);
+  if (status.recommended_next_action) {
+    console.log(`[playbook] Next: ${status.recommended_next_action} (${status.reason})`);
   } else {
-    console.log('If unsure what to run → npm run playbook');
+    console.log(`[playbook] Next: none (${status.reason})`);
   }
+  console.log(`[playbook] Status artifact: ${path.relative(process.cwd(), STATUS_PATH)}`);
 
   if (typeof maintain.status === 'number' && maintain.status !== 0) {
     process.exit(maintain.status);
