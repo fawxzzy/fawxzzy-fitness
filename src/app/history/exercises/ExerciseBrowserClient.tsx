@@ -99,14 +99,14 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
             <div className="mt-0.5 space-y-0.5 text-xs leading-snug text-[rgb(var(--text)/0.54)]">
               {row.kind === "strength" ? (
                 <>
-                  <p>Last: {lastDate ? `${lastDate} · ${row.lastSummary ?? "—"}` : "—"}</p>
-                  <p>PR: {row.bestSummary || row.prLabel || "—"}</p>
+                  {lastDate || row.lastSummary ? <p>Last: {[lastDate, row.lastSummary].filter(Boolean).join(" · ")}</p> : null}
+                  {row.bestSummary || row.prLabel ? <p>PR: {row.bestSummary || row.prLabel}</p> : null}
                   {strengthPrSummary ? <p>STR PR: {strengthPrSummary}</p> : null}
                 </>
               ) : (
                 <>
-                  <p className="text-[rgb(var(--text)/0.78)]">{lastDate ? `Last: ${lastDate} · ${row.lastSummary ?? "—"}` : "Last: —"}</p>
-                  <p>{row.bestSummary ? row.bestSummary : "Best effort: —"}</p>
+                  {lastDate || row.lastSummary ? <p className="text-[rgb(var(--text)/0.78)]">Last: {[lastDate, row.lastSummary].filter(Boolean).join(" · ")}</p> : null}
+                  {row.bestSummary ? <p>{row.bestSummary}</p> : null}
                 </>
               )}
             </div>

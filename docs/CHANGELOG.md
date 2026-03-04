@@ -2560,3 +2560,15 @@ WHY:
 - Prevents cardio entries from rendering `Last: —` when valid duration/distance sets exist but legacy unit metadata is null/invalid.
 - Ensures cardio effort summaries are deterministic, measurement-aware, and sourced from logged sets instead of empty metadata-only session rows.
 - Keeps exercise cards trustworthy by preserving visible PR context for bodyweight strength movements.
+
+## 0.3.22 — 2026-03-04
+
+### WHAT
+- Prevented cardio-only “Best” summaries from appearing on strength exercise cards and removed placeholder stat rows (Best/PR/Last) when values are missing.
+- Standardized Exercise Info stats rows to a deterministic two-column grid so labels and right-aligned values stay aligned without mid-value wrapping.
+- Updated cardio best-metric selection so Best now prefers distance when duration is missing, pace when both distance and duration exist, and duration when only duration exists.
+
+### WHY
+- Avoids misleading strength-card UI where cardio best lines leaked into lifting contexts.
+- Improves readability and trust in the stats panel by keeping row alignment stable on narrow screens.
+- Makes cardio Best values more meaningful and predictable across cards and Exercise Info surfaces.
