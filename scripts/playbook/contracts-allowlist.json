@@ -1,0 +1,12 @@
+{
+  "ignoredPaths": [],
+  "contracts": {
+    "SAFE_AREA_OWNERSHIP": {
+      "allowGlobs": [
+        "src/app/globals.css",
+        "src/components/ui/app/AppShell.tsx",
+        "src/components/ui/BottomActionBar.tsx"
+      ]
+    }
+  }
+}

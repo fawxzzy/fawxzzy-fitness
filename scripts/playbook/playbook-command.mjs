@@ -3,30 +3,15 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { runNpm } from './_lib/run-npm.mjs';
+import { formatDashboardPlain } from './_lib/status-dashboard.mjs';
 
 const STATUS_PATH = path.resolve('docs/playbook-status.json');
-
-function suggestCommand({ proposed, drafts, warnThreshold, failThreshold }) {
-  if (proposed >= failThreshold) return 'npm run playbook:sync-and-update';
-  if (proposed >= warnThreshold) return 'npm run playbook:sync-and-update';
-  if (proposed > 0) return 'npm run playbook:update';
-  if (drafts > 0) return 'npm run playbook:maintain';
-  return 'No action required.';
-}
 
 async function readStatus() {
   try {
     const raw = await fs.readFile(STATUS_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    return {
-      drafts: Number(parsed.drafts) || 0,
-      proposed: Number(parsed.proposed) || 0,
-      promoted: Number(parsed.promoted) || 0,
-      upstreamed: Number(parsed.upstreamed) || 0,
-      warnThreshold: Number(parsed.warnThreshold) || 10,
-      failThreshold: Number(parsed.failThreshold) || 20,
-      found: true,
-    };
+    return { ...parsed, found: true };
   } catch (error) {
     if (error && error.code !== 'ENOENT') {
       throw error;
@@ -37,17 +22,17 @@ async function readStatus() {
       proposed: 0,
       promoted: 0,
       upstreamed: 0,
-      warnThreshold: 10,
-      failThreshold: 20,
+      contracts: { status: 'PASS', summary: { pass: 4, warn: 0, fail: 0 }, byContract: [] },
+      recommendation: { nextCommand: null, reason: 'No action required.' },
       found: false,
     };
   }
 }
 
-function runLocalSnapshot(scriptPath) {
+function runLocalSnapshot(scriptPath, args = []) {
   const absolutePath = path.resolve(scriptPath);
   try {
-    spawnSync('node', [absolutePath], { stdio: 'inherit', shell: false });
+    spawnSync('node', [absolutePath, ...args], { stdio: 'inherit', shell: false });
   } catch {
     // Best-effort local snapshot generation only.
   }
@@ -77,6 +62,11 @@ async function main() {
     await runFallbackMaintenance();
   }
 
+  await fs.access(path.resolve('scripts/playbook/contracts-audit.mjs')).then(
+    () => runLocalSnapshot('scripts/playbook/contracts-audit.mjs', ['--quiet']),
+    () => {},
+  );
+
   await fs.access(path.resolve('scripts/playbook/write-status-files.mjs')).then(
     () => runLocalSnapshot('scripts/playbook/write-status-files.mjs'),
     () => {},
@@ -88,19 +78,12 @@ async function main() {
   );
 
   const status = await readStatus();
-  const recommendation = suggestCommand(status);
-
   console.log('');
-  console.log('Playbook Status');
-  console.log(`Drafts: ${status.drafts}`);
-  console.log(`Proposed: ${status.proposed}`);
-  console.log(`Promoted: ${status.promoted}`);
-  console.log(`Upstreamed: ${status.upstreamed}`);
+  console.log(formatDashboardPlain(status));
   console.log('');
   if (!status.found) {
     console.log('Status snapshot not found. Run: node scripts/playbook/write-status-files.mjs');
   }
-  console.log(`Recommended next action: ${recommendation}`);
   console.log('If unsure what to run → npm run playbook');
 
   if (typeof maintain.status === 'number' && maintain.status !== 0) {

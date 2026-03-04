@@ -1,13 +1,4 @@
 #!/bin/sh
 
-echo "Playbook pre-commit: running playbook"
-
-if ! npm run -s playbook; then
-  echo "Warning: Playbook tooling failed; continuing commit (non-blocking hook)."
-fi
-
-if git diff --name-only -- docs/PLAYBOOK_NOTES.md | grep -q '^docs/PLAYBOOK_NOTES\.md$'; then
-  git add docs/PLAYBOOK_NOTES.md
-fi
-
+node scripts/githooks/pre-commit.mjs
 exit 0

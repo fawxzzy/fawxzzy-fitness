@@ -33,49 +33,14 @@ jobs:
       - name: Learning zone gate
         run: npm run playbook:check
 
-      - name: Generate Playbook trend entry
-        run: node scripts/playbook/write-trend-files.mjs
+      - name: Run Playbook maintenance and emit status snapshot
+        run: npm run playbook
 
-      - name: Generate Playbook status snapshot
-        run: node scripts/playbook/write-status-files.mjs
-
-      - name: Build PR playbook status summary
+      - name: Build PR playbook status summary (status-file driven)
         if: github.event_name == 'pull_request'
-        env:
-          BASE_REF: ${{ github.base_ref }}
-          HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-
-          git checkout "origin/${BASE_REF}"
-          npm run --silent playbook:status:ci > base.json
-
-          git checkout "${HEAD_SHA}"
-          npm run --silent playbook:status:ci > head.json
-
-          node <<'NODE' > summary.md
-          const fs = require('node:fs');
-
-          const head = JSON.parse(fs.readFileSync('head.json', 'utf8'));
-          const statusSnapshot = JSON.parse(fs.readFileSync('docs/playbook-status.json', 'utf8'));
-
-          let md = '';
-          md += '## Playbook Learning Status\n\n';
-          md += `Drafts: ${head.drafts}\n`;
-          md += `Proposed: ${head.proposed}\n`;
-          md += `Promoted: ${head.promoted}\n`;
-          md += `Upstreamed: ${head.upstreamed}\n\n`;
-          md += 'Suggested command:\n';
-          md += `${head.suggestionPrimary}\n\n`;
-          md += 'Direct command:\n';
-          md += `${head.suggestionDirect}\n\n`;
-          md += 'Reminder:\n';
-          md += `${head.reminder}\n\n`;
-          md += `Trend history entries: ${Number(statusSnapshot.trendLength || 0)}\n`;
-
-          process.stdout.write(md);
-          NODE
-
+          npm run --silent playbook:status:ci -- --format=markdown > summary.md
           cat summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Playbook status artifact

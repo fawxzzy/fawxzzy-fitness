@@ -3,6 +3,53 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.40 — 2026-03-04
+
+### WHAT
+- Replaced the Playbook contracts threshold proxy with a real `scripts/playbook/contracts-audit.mjs` architecture audit that reports contract-level PASS/WARN/FAIL outcomes and per-violation file/line evidence.
+- Updated `docs/playbook-status.json` generation to embed real contracts audit results (`contracts.summary`, `contracts.byContract`, and overall `contracts.status`) while keeping knowledge note thresholds under a separate `knowledgeGate` field.
+- Updated Playbook dashboard rendering (`npm run playbook` and CI markdown status output) to show `Contracts: PASS/WARN(x)/FAIL(x)` and list top failing contract IDs when FAIL is present.
+- Added fixtures and a focused audit test runner under `scripts/playbook/__fixtures__/contracts` to validate each v1 contract detector.
+
+### WHY
+- Makes contract health reflect actual architecture boundaries instead of inferred note-count pressure, so reported failures map to concrete code issues.
+- Preserves existing learning-zone threshold guidance without conflating it with architecture contract compliance.
+- Improves local/CI reviewer clarity with per-contract statuses and explicit failing contract IDs from the status snapshot source of truth.
+- Adds lightweight regression coverage so future audit changes keep detecting the intended contract classes.
+
+
+## 0.3.39 — 2026-03-04
+
+### WHAT
+- Adopted status snapshot-first Playbook dashboards end-to-end: CI PR reporting now renders from `docs/playbook-status.json` via `scripts/playbook/status-ci.mjs` + shared dashboard formatter, and removed in-workflow duplicate contract/knowledge computations.
+- Strengthened pre-commit automation by moving staging logic to a cross-platform Node hook script that keeps Playbook maintenance non-blocking while auto-staging both `docs/PLAYBOOK_NOTES.md` and `docs/playbook-status.json`.
+- Extended Playbook status payload/contracts to include `topOffenders`, and updated `npm run playbook` dashboard output to use the same status-file formatter consumed by CI.
+- Updated Codex guardrails to require status-file-first execution, contract-fail-first remediation, recommendation command compliance (or explicit justification), and verification before finalization.
+
+### WHY
+- Enforces one status-file-driven source of truth for local and CI Playbook guidance while reducing drift from duplicated logic.
+- Improves developer reliability on Windows and non-Windows environments by avoiding shell-specific pre-commit staging assumptions.
+- Makes contract risk reporting more actionable by surfacing offenders directly in the dashboard output.
+- Tightens agent execution discipline so governance recommendations and verification requirements are consistently followed.
+
+
+
+## 0.3.38 — 2026-03-04
+
+### WHAT
+- Switched Playbook status reporting to a status-file-first contract: `scripts/playbook/write-status-files.mjs` now emits `contracts` and `recommendation` fields in `docs/playbook-status.json`, and `npm run playbook` now prints recommendations from that file.
+- Updated Playbook CI status reporting to read `docs/playbook-status.json` exclusively for PR output (`Knowledge`, `Contracts`, `Next`) and removed duplicate notes parsing logic from CI status generation.
+- Kept the pre-commit Playbook hook non-blocking while extending auto-staging to include `docs/playbook-status.json` alongside `docs/PLAYBOOK_NOTES.md`.
+- Added Codex guardrails requiring agents to read `docs/playbook-status.json`, fix failing contracts before shipping, and follow `recommendation.nextCommand` when present.
+- Expanded CI verification to run `npm run playbook` in addition to existing checks.
+
+### WHY
+- Makes Playbook status data the single source of truth for local and CI reporting, reducing drift from duplicated computations.
+- Keeps developer and CI outputs aligned around one machine-readable contract for recommendations and contract health.
+- Improves workflow composability by staging generated status snapshots that pre-commit already refreshes.
+- Tightens agent execution discipline so contract failures and prescribed next steps are consistently enforced.
+
+
 ## 0.3.37 — 2026-03-04
 
 ### WHAT

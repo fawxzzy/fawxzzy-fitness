@@ -50,3 +50,27 @@ Codex must not proceed with code generation until the request is corrected to sa
   - ad-hoc `pb-*` / `pt-*` added "to avoid overlap"
 - Reference: `Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md` and `Playbook/docs/GUARDRAILS/guardrails.md`.
 
+
+## Playbook Status Guardrails
+
+### 7) Read Playbook status first
+- Rule: Read `docs/playbook-status.json` before making changes so implementation decisions use current Playbook state.
+- Enforcement: Do not start patch work until status snapshot fields are reviewed.
+- Reference: `docs/playbook-status.json`.
+
+### 8) Resolve failing contracts before shipping
+- Rule: If `contracts.status == FAIL` (or `contracts.summary.fail > 0`) in `docs/playbook-status.json`, contract violations must be fixed before starting unrelated new work.
+- Enforcement: Treat contract FAIL state as release-blocking for patch delivery until violations are resolved.
+- Reference: `docs/playbook-status.json` (`contracts.status`, `contracts.summary.fail`).
+
+### 9) Follow Playbook recommended next action
+- Rule: When `recommendation.nextCommand` is present in `docs/playbook-status.json`, follow that command in the workflow.
+- Enforcement: If you intentionally do not follow it, explicitly document why in your delivery summary.
+- Reference: `docs/playbook-status.json` (`recommendation.nextCommand`).
+
+
+### 10) Verify before finalization
+- Rule: Run verification before finalizing work.
+- Enforcement: Run `npm run verify` when available; otherwise run the repository verification set (`npm run lint` and `npm run build`) and report results.
+- Reference: `docs/PROJECT_GOVERNANCE.md` quality gate.
+
