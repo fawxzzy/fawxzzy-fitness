@@ -63,6 +63,24 @@ This creates local commits only when both repositories are clean and never pushe
 
 ## Autonomous learning helpers
 
+### Playbook Guardian (auto draft generation)
+
+```bash
+npm run playbook:guardian
+```
+
+Optional PR/CI mode:
+
+```bash
+npm run playbook:guardian:pr
+```
+
+What Guardian does:
+- Reads recent git diff context (`HEAD~1..HEAD` by default, `--base <ref>` for custom compare, and `--pr` for `origin/<baseBranch>...HEAD`).
+- Clusters changed files into known learning themes (bottom actions, safe-area/nav, server shaping, API observability, Tailwind extraction).
+- Appends generated draft entries to `docs/PLAYBOOK_NOTES.md` under `## DRAFTS (auto)` with stable draft markers to prevent duplicate re-adds on re-run.
+- Prints added draft count and titles, then suggests: `Review drafts, edit wording, then later run npm run playbook:update`.
+
 ### Nudge from diff
 
 ```bash
@@ -79,6 +97,17 @@ npm run playbook:threshold
 ```
 
 `playbook:threshold` warns at 10 Proposed notes and fails at 20.
+
+### Optional local pre-commit hook (manual setup only)
+
+If you want draft capture during local commit flow, add this command sequence to your own pre-commit hook:
+
+```bash
+npm run playbook:guardian
+git add docs/PLAYBOOK_NOTES.md
+```
+
+This repository does not auto-install hooks.
 
 ## Conflict and re-run behavior
 

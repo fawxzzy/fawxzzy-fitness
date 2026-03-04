@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.28 — 2026-03-04
+
+### WHAT
+- Added Playbook Guardian automation to generate draft `docs/PLAYBOOK_NOTES.md` entries from recent git changes and append them under a dedicated `DRAFTS (auto)` section with duplicate-safe draft markers.
+- Added Playbook Guardian npm commands for local and PR-style diff ranges.
+- Documented Guardian workflow usage and optional manual pre-commit hook steps in Playbook learning docs.
+
+### WHY
+- Reduces missed reusable learnings by drafting candidate guardrails/patterns from real code changes with low manual overhead.
+- Keeps draft note generation idempotent and review-friendly so teams can curate wording before promoting notes upstream.
+- Makes the local learning capture loop easier to adopt in both developer flow and CI-oriented review flow.
+
 ## 0.3.26 — 2026-03-04
 
 ### WHAT

@@ -1042,5 +1042,16 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents destructive or ambiguous sync behavior across different wiring models and makes one-command doctrine updates deterministic and auditable.
 - Evidence: scripts/playbook/playbook-path.mjs, scripts/playbook/sync-playbook.mjs, scripts/playbook/check-proposed-notes-threshold.mjs
-- Status: Promoted
-- Upstream: Local (pending PR)
+- Status: Proposed
+
+## DRAFTS (auto)
+<!-- PLAYBOOK_DRAFT_ID:be66b72f8acc5180 -->
+## 2026-03-04 — Standardize bottom-action slot and publish contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a bottom actions learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
+- Evidence: src/components/ui/BottomActionBar.tsx
+- Status: Proposed
+
+
