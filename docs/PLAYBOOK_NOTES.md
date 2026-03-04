@@ -1068,6 +1068,16 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Upstream: Local (pending PR)
 
 ## DRAFTS (auto)
+<!-- PLAYBOOK_DRAFT_ID:1efaf5b005aa6065 -->
+## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
+- Type: Principle
+- Summary: Recent git changes indicate a safe area-nav learning candidate touching 2 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
+- Evidence: docs/CHANGELOG.md, docs/CODEX_GUARDRAILS.md, docs/playbook-status.json, docs/playbook-trend.json, tools/playbook/signals-map.json
+- Status: Promoted
+- Upstream: Local (pending PR)
+
 <!-- PLAYBOOK_DRAFT_ID:c33c73c63543061f -->
 ## 2026-03-04 — Standardize bottom-action slot and publish contracts
 - Type: Guardrail
