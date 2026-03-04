@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.44 — 2026-03-04
+
+### WHAT
+- Added cross-platform Playbook automation scripts: `npm run playbook:auto` for end-to-end sync/update/optional commit flow and `npm run playbook:precommit` for no-commit pre-commit hygiene checks.
+- Wired package scripts for new Playbook automation commands and added Husky `prepare` setup so the repo can install Husky-managed hooks.
+- Added a Husky pre-commit hook that runs Playbook pre-commit hygiene first and then continues with the existing staged Playbook notes check gate.
+
+### WHY
+- Gives developers one safe command for full Playbook maintenance (including explicit commit steps) while keeping git hooks free of nested commit behavior.
+- Enforces Playbook output staging and dirty-repo protections in commit flow so Playbook repo updates are handled intentionally and consistently.
+
+
 ## 0.3.43 — 2026-03-04
 
 ### WHAT
