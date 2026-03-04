@@ -103,5 +103,19 @@
     "proposed": 5,
     "promoted": 79,
     "upstreamed": 0
+  },
+  {
+    "timestamp": "2026-03-04T10:34:24Z",
+    "drafts": 0,
+    "proposed": 8,
+    "promoted": 79,
+    "upstreamed": 0
+  },
+  {
+    "timestamp": "2026-03-04T10:43:15Z",
+    "drafts": 0,
+    "proposed": 0,
+    "promoted": 87,
+    "upstreamed": 0
   }
 ]

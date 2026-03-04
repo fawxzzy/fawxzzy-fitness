@@ -20,7 +20,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: A single shell owner for `env(safe-area-inset-*)` prevents per-component inset drift, keeps overlay spacing consistent across routes, and ensures SAFE_AREA_OWNERSHIP contract enforcement remains deterministic.
 - Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/components/ExerciseInfoSheet.tsx, src/components/ui/BottomSheet.tsx, src/components/ui/ConfirmDestructiveModal.tsx, src/components/ui/ToastProvider.tsx, src/components/ui/BottomActionBar.tsx, scripts/playbook/contracts-allowlist.json
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Keep governance telemetry CI outputs artifact-only to avoid commit loops
 - Type: Guardrail
@@ -1067,6 +1068,36 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Upstream: Local (pending PR)
 
 ## DRAFTS (auto)
+<!-- PLAYBOOK_DRAFT_ID:8d73d44df0418d47 -->
+## 2026-03-04 — Standardize bottom-action slot and publish contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a bottom actions learning candidate touching 4 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
+- Evidence: docs/CHANGELOG.md, docs/PLAYBOOK_NOTES.md, scripts/playbook/contracts-allowlist.json, src/components/ui/BottomActionBar.tsx
+- Status: Promoted
+- Upstream: Local (pending PR)
+
+<!-- PLAYBOOK_DRAFT_ID:2740d62c1574feac -->
+## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a safe area-nav learning candidate touching 11 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
+- Evidence: docs/CHANGELOG.md, docs/PLAYBOOK_NOTES.md, docs/playbook-status.json, scripts/playbook/contracts-allowlist.json, src/app/globals.css, src/components/ExerciseInfoSheet.tsx, src/components/ui/BottomActionBar.tsx, src/components/ui/BottomSheet.tsx, src/components/ui/ConfirmDestructiveModal.tsx, src/components/ui/ToastProvider.tsx, src/components/ui/app/AppShell.tsx
+- Status: Promoted
+- Upstream: Local (pending PR)
+
+<!-- PLAYBOOK_DRAFT_ID:438df6bbc692958c -->
+## 2026-03-04 — Literalize layout-critical Tailwind arbitrary-value classes
+- Type: Guardrail
+- Summary: Recent git changes indicate a tailwind extraction learning candidate touching 2 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Literal class strings keep Tailwind extraction deterministic for spacing-critical utilities.
+- Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ui/BottomActionBar.tsx
+- Status: Promoted
+- Upstream: Local (pending PR)
+
 <!-- PLAYBOOK_DRAFT_ID:5947858ab863028e -->
 ## 2026-03-04 — Standardize bottom-action slot and publish contracts
 - Type: Guardrail
@@ -1074,7 +1105,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
 - Evidence: docs/PLAYBOOK_NOTES.md
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 <!-- PLAYBOOK_DRAFT_ID:dd5d40fccc8dcdb2 -->
 ## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
@@ -1083,7 +1115,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
 - Evidence: docs/PLAYBOOK_NOTES.md
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 <!-- PLAYBOOK_DRAFT_ID:369ce2be563b1c9d -->
 ## 2026-03-04 — Standardize bottom-action slot and publish contracts
@@ -1092,7 +1125,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
 - Evidence: scripts/playbook/__fixtures__/contracts/src/app/demo/bottom-actions-violation.tsx, scripts/playbook/contracts-allowlist.json, scripts/playbook/contracts-audit-lib.mjs
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 <!-- PLAYBOOK_DRAFT_ID:57342725278cba50 -->
 ## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
@@ -1101,7 +1135,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
 - Evidence: docs/playbook-status.json, scripts/playbook/__fixtures__/contracts/src/components/ui/safe-area-violation.tsx, scripts/playbook/contracts-allowlist.json, scripts/playbook/contracts-audit-lib.mjs
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 <!-- PLAYBOOK_DRAFT_ID:be66b72f8acc5180 -->
 ## 2026-03-04 — Standardize bottom-action slot and publish contracts
