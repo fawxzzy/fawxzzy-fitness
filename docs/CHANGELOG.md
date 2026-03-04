@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 
 
+
+## 0.3.47 — 2026-03-04
+
+### WHAT
+- Added `scripts/playbook/contracts-gate.mjs` to enforce `docs/playbook-status.json` as a hard gate: missing status snapshot or `contracts.status == FAIL` now exits non-zero and prints failing contract IDs.
+- Wired the contracts gate into `scripts/playbook/precommit.mjs` immediately after `npm run playbook` so commit-time Playbook runs block on contract FAIL.
+- Wired the same gate into both CI workflows (`.github/workflows/ci.yml` and `.github/workflows/playbook-learning.yml`) right after `npm run playbook` so merges are blocked when contract status is FAIL.
+- Clarified Codex guardrails to explicitly treat contract FAIL as blocking even for unrelated work and to require agents to run verification before finalization.
+
+### WHY
+- Enforces a single status-file source of truth for contract health in local hooks and CI instead of duplicating contract recomputation logic.
+- Prevents contract regressions from slipping through commit or merge flows by making FAIL states hard-stop gates.
+- Preserves existing failure UX while adding actionable contract-failure output that points contributors to `npm run playbook` and remediation.
+
 ## 0.3.46 — 2026-03-04
 
 ### WHAT

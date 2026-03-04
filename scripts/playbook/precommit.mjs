@@ -73,6 +73,7 @@ function fail(message) {
 
 function main() {
   run('npm', ['run', 'playbook']);
+  run('node', ['scripts/playbook/contracts-gate.mjs']);
   run('npm', ['run', 'playbook:update']);
   stageKnownOutputs();
 
