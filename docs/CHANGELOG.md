@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.56 — 2026-03-04
+
+### WHAT
+- Fixed `npm run playbook:auto` to resolve the npm executable cross-platform (`npm.cmd` on Windows) and to report explicit spawn failures when command resolution fails.
+
+### WHY
+- Ensures Playbook automation runs deterministically across operating systems and surfaces actionable ENOENT-style spawn errors instead of ambiguous unknown exit codes.
+
 ## 0.3.55 — 2026-03-04
 
 ### WHAT

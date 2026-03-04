@@ -3,16 +3,27 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { readPlaybookStatus, STATUS_PATH } from './status.mjs';
 
+function getNpmCommand() {
+  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: 'inherit', shell: false, cwd: process.cwd() });
+  const rendered = [command, ...args].join(' ');
+
+  if (result.error) {
+    const code = result.error.code ? ` (${result.error.code})` : '';
+    throw new Error(`Command spawn failed (${rendered})${code}: ${result.error.message}`);
+  }
+
   if (result.status !== 0) {
-    const rendered = [command, ...args].join(' ');
-    throw new Error(`Command failed (${rendered}) with exit code ${result.status ?? 'unknown'}.`);
+    throw new Error(`Command failed (${rendered}) with exit code ${result.status}.`);
   }
 }
 
 async function main() {
-  run('npm', ['run', 'playbook']);
+  const npmCommand = getNpmCommand();
+  run(npmCommand, ['run', 'playbook']);
 
   let status = await readPlaybookStatus();
   if (!status) {
@@ -20,7 +31,7 @@ async function main() {
   }
 
   if (Number(status?.notes?.proposed || 0) > 0) {
-    run('npm', ['run', 'playbook:update']);
+    run(npmCommand, ['run', 'playbook:update']);
     status = await readPlaybookStatus();
     if (!status) {
       throw new Error('Missing docs/playbook-status.json after playbook:update run.');
