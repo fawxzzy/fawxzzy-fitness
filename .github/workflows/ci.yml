@@ -30,6 +30,9 @@ jobs:
       - name: Playbook maintenance
         run: npm run playbook
 
+      - name: Contracts gate
+        run: node scripts/playbook/contracts-gate.mjs
+
       - name: Ensure Playbook status snapshot on failure
         if: failure()
         run: npm run playbook || true
