@@ -12,11 +12,11 @@
     "topOffenders": []
   },
   "contracts": {
-    "status": "FAIL",
+    "status": "PASS",
     "summary": {
-      "pass": 3,
+      "pass": 4,
       "warn": 0,
-      "fail": 1
+      "fail": 0
     },
     "byContract": [
       {
@@ -27,94 +27,9 @@
       },
       {
         "id": "SAFE_AREA_OWNERSHIP",
-        "status": "FAIL",
-        "violations": 12,
-        "items": [
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ExerciseInfoSheet.tsx",
-            "line": 197,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "env(safe-area-inset-top"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ExerciseInfoSheet.tsx",
-            "line": 218,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "env(safe-area-inset-bottom"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ExerciseInfoSheet.tsx",
-            "line": 197,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "safe-area-inset"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ExerciseInfoSheet.tsx",
-            "line": 218,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "safe-area-inset"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ui/BottomSheet.tsx",
-            "line": 52,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "env(safe-area-inset-bottom"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ui/BottomSheet.tsx",
-            "line": 52,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "safe-area-inset"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ui/ConfirmDestructiveModal.tsx",
-            "line": 64,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "env(safe-area-inset-bottom"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ui/ConfirmDestructiveModal.tsx",
-            "line": 64,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "env(safe-area-inset-top"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ui/ConfirmDestructiveModal.tsx",
-            "line": 64,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "safe-area-inset"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ui/ConfirmDestructiveModal.tsx",
-            "line": 64,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "safe-area-inset"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ui/ToastProvider.tsx",
-            "line": 56,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "env(safe-area-inset-top"
-          },
-          {
-            "contractId": "SAFE_AREA_OWNERSHIP",
-            "file": "src/components/ui/ToastProvider.tsx",
-            "line": 56,
-            "reason": "Safe-area inset usage is owned by AppShell/shells.",
-            "excerpt": "safe-area-inset"
-          }
-        ]
+        "status": "PASS",
+        "violations": 0,
+        "items": []
       },
       {
         "id": "BOTTOM_ACTIONS_OWNERSHIP",
@@ -131,10 +46,10 @@
     ]
   },
   "recommendation": {
-    "nextCommand": "npm run playbook",
-    "reason": "Contracts failing: 1 contract(s) in FAIL state (SAFE_AREA_OWNERSHIP)."
+    "nextCommand": "npm run playbook:update",
+    "reason": "Proposed notes are present and should be promoted upstream."
   },
-  "trendLength": 12,
-  "lastTrendTimestamp": "2026-03-04T09:54:23Z",
-  "updatedAt": "2026-03-04T10:04:20.381Z"
+  "trendLength": 13,
+  "lastTrendTimestamp": "2026-03-04T10:04:20Z",
+  "updatedAt": "2026-03-04T10:12:53.785Z"
 }

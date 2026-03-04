@@ -11,9 +11,13 @@ export function AppShell({ children, className, topNavMode = "main" }: AppShellP
   const shellStyle = ({
     "--app-header-offset": topNavMode === "none" ? "0px" : "var(--header-h)",
     "--app-header-gap": topNavMode === "main" ? "8px" : "0px",
-    "--app-top-inset": "env(safe-area-inset-top, 0px)",
+    "--app-safe-top": "env(safe-area-inset-top, 0px)",
+    "--app-safe-bottom": "env(safe-area-inset-bottom, 0px)",
+    "--app-safe-left": "env(safe-area-inset-left, 0px)",
+    "--app-safe-right": "env(safe-area-inset-right, 0px)",
+    "--app-top-inset": "var(--app-safe-top)",
     "--app-top-offset": "calc(var(--app-top-inset) + var(--app-header-offset) + var(--app-header-gap))",
-    "--app-bottom-inset": "env(safe-area-inset-bottom, 0px)",
+    "--app-bottom-inset": "var(--app-safe-bottom)",
     "--app-bottom-gap": "3px",
   } as CSSProperties);
 

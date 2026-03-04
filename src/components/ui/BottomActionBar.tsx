@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 export const BOTTOM_ACTION_BAR_HEIGHT_PX = 120;
 export const FIXED_CTA_RESERVE_CLASS =
-  "pb-[calc(var(--app-bottom-action-bar-height,120px)+env(safe-area-inset-bottom,0px)+12px)]";
+  "pb-[calc(var(--app-bottom-action-bar-height,120px)+var(--app-safe-bottom)+12px)]";
 export const BOTTOM_ACTION_BAR_CONTENT_RESERVE_CLASS = FIXED_CTA_RESERVE_CLASS;
 
 const BOTTOM_ACTION_BAR_ROOT_ID = "app-bottom-action-bar-root";
@@ -92,7 +92,7 @@ export function BottomActionBar({
       <div className={cn("mx-auto w-full max-w-md px-4 pointer-events-auto")}>
         <div
           className={cn(
-            "flex items-center justify-center gap-4 rounded-2xl bg-[rgb(var(--glass-tint-rgb)/0.20)] px-4 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+3px)] shadow-[0_6px_16px_rgb(0_0_0/0.35)] backdrop-blur-md",
+            "flex items-center justify-center gap-4 rounded-2xl bg-[rgb(var(--glass-tint-rgb)/0.20)] px-4 pt-2 pb-[calc(var(--app-safe-bottom)+3px)] shadow-[0_6px_16px_rgb(0_0_0/0.35)] backdrop-blur-md",
             "[&>*]:min-h-[44px] [&>*]:flex-1",
             innerClassName,
           )}

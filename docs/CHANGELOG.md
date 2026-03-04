@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.42 — 2026-03-04
+
+### WHAT
+- Centralized shell-owned safe-area tokens by defining `--app-safe-top|bottom|left|right` in the global/AppShell token layer and routing existing inset offsets through those shared variables.
+- Removed direct `env(safe-area-inset-*)` usage from `ExerciseInfoSheet`, `BottomSheet`, `ConfirmDestructiveModal`, `ToastProvider`, and `BottomActionBar` so feature components consume AppShell-owned safe-area vars instead.
+- Tightened the SAFE_AREA_OWNERSHIP allowlist by removing the `BottomActionBar` exception; only shell/global token files remain allowlisted.
+
+### WHY
+- Enforces the AppShell safe-area ownership contract so notch/home-indicator spacing is controlled from one shell source of truth instead of ad hoc component math.
+- Restores contract-audit reliability by ensuring non-shell UI surfaces cannot silently bypass safe-area governance with direct `env(...)` usage.
+
+
 ## 0.3.41 — 2026-03-04
 
 ### WHAT

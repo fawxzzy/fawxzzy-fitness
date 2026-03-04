@@ -194,7 +194,7 @@ export function ExerciseInfoSheet({
     >
       <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
         <section className="flex h-full w-full flex-col">
-          <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(env(safe-area-inset-top),0px)]">
+          <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(var(--app-safe-top),0px)]">
             <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
               <h2 className="text-2xl font-semibold">Exercise info</h2>
               <BackButton
@@ -215,7 +215,7 @@ export function ExerciseInfoSheet({
           </div>
 
           <div className="flex-1 overflow-y-auto overscroll-contain">
-            <div className="mx-auto w-full max-w-xl space-y-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+            <div className="mx-auto w-full max-w-xl space-y-3 px-4 pb-[calc(var(--app-safe-bottom)+1rem)] pt-3">
               <div>
                 <p className="text-base font-semibold text-text">{exercise.name}</p>
                 <div className="mt-1 flex flex-wrap gap-1">
