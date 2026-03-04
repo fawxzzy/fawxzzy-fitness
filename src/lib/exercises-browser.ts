@@ -110,7 +110,7 @@ function hasMeaningfulCardioSet(measurementType: string | null | undefined, row:
   if (normalized === "time") return duration > 0;
   if (normalized === "distance") return distance > 0;
   if (normalized === "time_distance") return duration > 0 || distance > 0;
-  return duration > 0 || distance > 0;
+  return false;
 }
 
 

@@ -75,9 +75,9 @@ function StatSection({ title, rows }: { title: string; rows: Array<{ label: stri
       <p className={sectionTitleClassName}>{title}</p>
       <div className="w-full space-y-1.5">
         {visibleRows.map((row) => (
-          <div key={`${title}-${row.label}`} className="grid grid-cols-[auto_1fr] items-start gap-x-2 text-sm">
+          <div key={`${title}-${row.label}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 text-sm">
             <span className="text-[rgb(var(--text)/0.55)]">{row.label}:</span>
-            <span className="min-w-0 break-words text-right text-[rgb(var(--text)/0.95)]">{row.value}</span>
+            <span className="whitespace-nowrap text-right tabular-nums text-[rgb(var(--text)/0.95)]">{row.value}</span>
           </div>
         ))}
       </div>

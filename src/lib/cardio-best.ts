@@ -27,13 +27,10 @@ export function resolveEffectiveKind(
   hasDurationSignal: boolean,
   hasDistanceSignal: boolean,
 ): "strength" | "cardio" {
-  const hasCardioSignal = hasDurationSignal || hasDistanceSignal;
   const isExplicitCardio = isCardioMeasurementType(measurementType);
+  if (!isExplicitCardio) return "strength";
 
-  if (isExplicitCardio) {
-    return hasCardioSignal ? "cardio" : "strength";
-  }
-
+  const hasCardioSignal = hasDurationSignal || hasDistanceSignal;
   return hasCardioSignal ? "cardio" : "strength";
 }
 

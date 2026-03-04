@@ -3,6 +3,22 @@
 All notable changes to this project are documented in this file.
 
 
+
+## 0.3.25 — 2026-03-04
+
+### WHAT
+- Locked cardio-vs-strength classification to explicit exercise measurement types so strength exercises no longer flip into cardio from incidental duration/distance set values.
+- Tightened History Exercises and Exercise Info cardio-set filtering so only explicit cardio measurement types contribute cardio Last/Best summaries.
+- Corrected Exercise Info stats row layout with a deterministic two-column grid where labels and values align consistently.
+- Added a lightweight verification script for cardio best-metric rule ordering and strength classification guardrails.
+
+### WHY
+- Prevents strength movements (for example Machine Row) from rendering cardio-style “Best” rows when metadata noise exists in set fields.
+- Ensures cardio Best metrics remain deterministic and only appear for truly-cardio exercises.
+- Fixes invisible alignment regressions caused by the wrong row grid behavior in the actual stats box component.
+- Adds a fast regression check for the exact classification and best-selection logic that caused this issue.
+
+
 ## 0.3.24 — 2026-03-04
 
 ### WHAT
