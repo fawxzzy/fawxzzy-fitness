@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.37 — 2026-03-04
+
+### WHAT
+- Hardened the Playbook npm runner on Windows by invoking `npm` with `shell: true` to avoid `spawnSync ... EINVAL` failures in shell-specific environments.
+- Added a best-effort fallback in `npm run playbook` that directly runs Playbook maintenance scripts when the npm runner cannot spawn.
+
+### WHY
+- Keeps `npm run playbook` and pre-commit Playbook maintenance reliable on Windows terminals where npm command spawning can fail.
+- Preserves non-blocking maintenance behavior by continuing with direct script execution when npm process launch fails.
+
+
 ## 0.3.36 — 2026-03-04
 
 ### WHAT

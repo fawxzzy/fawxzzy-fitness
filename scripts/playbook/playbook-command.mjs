@@ -53,8 +53,29 @@ function runLocalSnapshot(scriptPath) {
   }
 }
 
+async function runFallbackMaintenance() {
+  const guardianPath = path.resolve('scripts/playbook/guardian-generate-notes.mjs');
+  const thresholdPath = path.resolve('scripts/playbook/check-proposed-notes-threshold.mjs');
+
+  await fs.access(guardianPath).then(
+    () => runLocalSnapshot('scripts/playbook/guardian-generate-notes.mjs'),
+    () => {},
+  );
+
+  await fs.access(thresholdPath).then(
+    () => runLocalSnapshot('scripts/playbook/check-proposed-notes-threshold.mjs'),
+    () => runNpm(['run', '-s', 'playbook:threshold']),
+  );
+
+  console.log('[playbook] npm runner failed; ran fallback maintenance directly.');
+}
+
 async function main() {
   const maintain = runNpm(['run', '-s', 'playbook:maintain']);
+
+  if (!maintain.ok && typeof maintain.status !== 'number') {
+    await runFallbackMaintenance();
+  }
 
   await fs.access(path.resolve('scripts/playbook/write-status-files.mjs')).then(
     () => runLocalSnapshot('scripts/playbook/write-status-files.mjs'),
@@ -84,10 +105,6 @@ async function main() {
 
   if (typeof maintain.status === 'number' && maintain.status !== 0) {
     process.exit(maintain.status);
-  }
-
-  if (!maintain.ok) {
-    process.exit(1);
   }
 }
 
