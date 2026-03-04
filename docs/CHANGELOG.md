@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.21 — 2026-03-04
+
+### WHAT
+- Fixed Exercise Info stats loading so cardio exercises use their canonical measurement metadata when building RECENT/TOTALS/BESTS summaries.
+- Normalized cardio measurement/unit metadata for existing session exercise rows and canonical exercise defaults so cardio history surfaces consistently format time/distance stats.
+- Polished History → Exercises cards and Exercise Info stats presentation with clearer Last/Best hierarchy and compact aligned stat rows.
+- Added cardio diagnosis SQL snippets and a lightweight verification script for Incline Walk cardio totals and Dips bodyweight PR expectations.
+
+### WHY
+- Ensures logged cardio sets (duration/distance/calories) are counted and surfaced even when reps are empty.
+- Prevents cardio rows from falling back to reps-style metadata that hides meaningful Last/Best summaries.
+- Improves readability and scan speed on history/info surfaces while preserving the existing architecture.
+- Makes regression checks easier for the specific cardio/bodyweight failures observed.
+
 ## 0.3.20 — 2026-03-03
 
 ### WHAT

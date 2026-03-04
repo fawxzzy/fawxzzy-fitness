@@ -218,14 +218,25 @@ function runDevStatsVerification(exercise: ExerciseInfoExercise, stats: Exercise
       ok: typeof stats.bests.bestBodyweightReps === "number" && stats.bests.bestBodyweightReps > 0,
       details: { bestBodyweightReps: stats.bests.bestBodyweightReps, bestWeight: stats.bests.bestWeight },
     });
+    checks.push({
+      label: "Dips PR label includes Rep PR when bodyweight reps are present",
+      ok: stats.prLabel.includes("Rep PR"),
+      details: { prLabel: stats.prLabel },
+    });
   }
 
   if (name === "incline walk") {
     checks.push({
-      label: "Incline Walk has last + total duration signal",
-      ok: (typeof stats.recent.lastDurationSeconds === "number" && stats.recent.lastDurationSeconds > 0)
-        && (typeof stats.totals.durationSeconds === "number" && stats.totals.durationSeconds > 0),
-      details: { lastDurationSeconds: stats.recent.lastDurationSeconds, durationSeconds: stats.totals.durationSeconds },
+      label: "Incline Walk has expected cardio totals",
+      ok: stats.totals.sets === 3
+        && stats.totals.durationSeconds === 1200
+        && stats.bests.bestDurationSeconds === 1200,
+      details: {
+        sets: stats.totals.sets,
+        durationSeconds: stats.totals.durationSeconds,
+        bestDurationSeconds: stats.bests.bestDurationSeconds,
+        lastDurationSeconds: stats.recent.lastDurationSeconds,
+      },
     });
   }
 

@@ -93,7 +93,13 @@ export async function GET(
       return jsonError(404, "EXERCISE_INFO_NOT_FOUND", "Exercise not found.", requestId, step);
     }
 
-    const stats = await runStep("payload:stats", () => getExerciseInfoStats(user.id, exercise.exercise_id, requestId));
+    const stats = await runStep("payload:stats", () => getExerciseInfoStats(
+      user.id,
+      exercise.exercise_id,
+      exercise.measurement_type,
+      exercise.default_unit,
+      requestId,
+    ));
 
     let exerciseWithImages = exercise;
     try {

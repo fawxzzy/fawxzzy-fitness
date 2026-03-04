@@ -71,9 +71,16 @@ function StatSection({ title, rows }: { title: string; rows: Array<{ label: stri
   if (!visibleRows.length) return null;
 
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-1">
       <p className={sectionTitleClassName}>{title}</p>
-      {visibleRows.map((row) => <p key={`${title}-${row.label}`}>{row.label}: {row.value}</p>)}
+      <div className="space-y-0.5">
+        {visibleRows.map((row) => (
+          <div key={`${title}-${row.label}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3">
+            <span>{row.label}</span>
+            <span className="text-right text-[rgb(var(--text)/0.82)]">{row.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -157,16 +164,21 @@ export function ExerciseInfoSheet({
   ] : [];
 
   const bestWeightLabel = stats?.bests.bestWeight ? formatWeight(stats.bests.bestWeight, null) : null;
-  const bestRows = stats ? [
-    { label: "Best bodyweight reps", value: stats.bests.bestBodyweightReps ? formatCount(stats.bests.bestBodyweightReps, "rep") : null },
-    { label: "Best weight", value: bestWeightLabel },
-    { label: "Best reps at best weight", value: stats.bests.bestRepsAtBestWeight ? formatCount(stats.bests.bestRepsAtBestWeight, "rep") : null },
-    { label: "Best set", value: stats.bests.bestSetSummary ?? null },
-    { label: "Best duration", value: formatDurationShort(stats.bests.bestDurationSeconds) },
-    { label: "Best distance", value: formatDistance(stats.bests.bestDistance, stats.bests.bestDistanceUnit) },
-    { label: "Best pace", value: formatPace(stats.bests.bestPace, stats.bests.bestDistanceUnit) },
-    { label: "Best calories", value: formatCalories(stats.bests.bestCalories) },
-  ] : [];
+  const bestRows = stats ? (stats.kind === "cardio"
+    ? [
+      { label: "Best duration", value: formatDurationShort(stats.bests.bestDurationSeconds) },
+      { label: "Best distance", value: formatDistance(stats.bests.bestDistance, stats.bests.bestDistanceUnit) },
+      { label: "Best pace", value: formatPace(stats.bests.bestPace, stats.bests.bestDistanceUnit) },
+      { label: "Best calories", value: formatCalories(stats.bests.bestCalories) },
+      { label: "Best set", value: stats.bests.bestSetSummary ?? null },
+    ]
+    : [
+      { label: "Best bodyweight reps", value: stats.bests.bestBodyweightReps ? formatCount(stats.bests.bestBodyweightReps, "rep") : null },
+      { label: "Best weight", value: bestWeightLabel },
+      { label: "Best reps at best weight", value: stats.bests.bestRepsAtBestWeight ? formatCount(stats.bests.bestRepsAtBestWeight, "rep") : null },
+      { label: "Best set", value: stats.bests.bestSetSummary ?? null },
+      { label: "PRs", value: stats.prLabel || null },
+    ]) : [];
 
   return createPortal(
     <div
