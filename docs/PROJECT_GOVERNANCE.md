@@ -85,6 +85,27 @@ Allowed documentation files:
 
 All reusable patterns, templates, prompts, and checklists live in the central Playbook repository.
 
+
+## Command Playbook (Golden Path)
+
+Use these commands as the default workflow for humans and agents:
+
+### Golden path commands
+- `npm run playbook:install` — idempotently install/repair required local Playbook wiring.
+- `npm run playbook:doctor` — validate governance/script health and report actionable warnings/failures.
+- `npm run playbook:sync` — pull the vendored Playbook subtree updates intentionally.
+- `npm run playbook:auto` — default end-to-end Playbook maintenance flow.
+- `npm run playbook:local` — fast pre-commit check alias (currently wraps `playbook:auto`).
+- `npm run playbook:ci` — CI-style local gate (runs `playbook:auto`, `lint`, then `build`).
+
+### Debug / advanced commands
+- Keep specialized Playbook scripts (`playbook:*`) for debugging and maintenance as needed.
+- Legacy script names (`sanity`, `sanity:quick`, `verify`, `verify:strict`) remain supported as compatibility aliases and should gradually defer to the golden path commands above.
+
+### What CI runs
+- CI should run `npm run playbook:ci` as the primary repository health pipeline.
+- Contract enforcement remains additive via `npm run contracts:check` and/or `npm run playbook:contracts` where required by workflow.
+
 ## Release Ritual (Intentional Production Deploys)
 
 Production deploys are tag-driven and must be intentional:
