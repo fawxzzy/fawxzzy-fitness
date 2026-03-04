@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file.
 - Fixed Exercise Info stats loading so cardio exercises use their canonical measurement metadata when building RECENT/TOTALS/BESTS summaries.
 - Normalized cardio measurement/unit metadata for existing session exercise rows and canonical exercise defaults so cardio history surfaces consistently format time/distance stats.
 - Polished History → Exercises cards and Exercise Info stats presentation with clearer Last/Best hierarchy and compact aligned stat rows.
+- Standardized Exercise Info stats rows to a deterministic 2-column grid layout so labels and values stay aligned when stat values wrap.
 - Added cardio diagnosis SQL snippets and a lightweight verification script for Incline Walk cardio totals and Dips bodyweight PR expectations.
 - Removed glass background from BottomActionBar inner container (now transparent).
 - Tuned BottomActionBar inner container to remove border chrome, soften drop shadow, and slightly increase horizontal dock inset.
@@ -19,6 +20,7 @@ All notable changes to this project are documented in this file.
 - Ensures logged cardio sets (duration/distance/calories) are counted and surfaced even when reps are empty.
 - Prevents cardio rows from falling back to reps-style metadata that hides meaningful Last/Best summaries.
 - Improves readability and scan speed on history/info surfaces while preserving the existing architecture.
+- Prevents wrapped stat values from staggering label alignment in Exercise Info, especially on narrow/mobile viewports.
 - Makes regression checks easier for the specific cardio/bodyweight failures observed.
 - Improves visual integration and reduces heavy slab appearance while preserving sticky behavior and safe-area spacing.
 - Keeps the bottom action dock visually lighter and more floating while preserving blur, sticky behavior, and safe-area reachability.
