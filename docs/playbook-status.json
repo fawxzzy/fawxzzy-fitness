@@ -5,7 +5,7 @@
   "upstreamed": 0,
   "warnThreshold": 10,
   "failThreshold": 20,
-  "trendLength": 3,
-  "lastTrendTimestamp": "2026-03-04T08:21:38Z",
-  "updatedAt": "2026-03-04T08:21:54.537Z"
+  "trendLength": 4,
+  "lastTrendTimestamp": "2026-03-04T08:21:54Z",
+  "updatedAt": "2026-03-04T08:23:10.737Z"
 }
