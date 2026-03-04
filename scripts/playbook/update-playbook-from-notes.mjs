@@ -9,6 +9,7 @@ import {
   resolvePlaybookDestination,
   upsertMarkedSection,
 } from './notes-utils.mjs';
+import { writePlaybookStatus, STATUS_PATH } from './status.mjs';
 
 const NOTES_PATH = path.resolve('docs/PLAYBOOK_NOTES.md');
 
@@ -96,7 +97,13 @@ async function main() {
     .sort((a, b) => b.startLine - a.startLine);
 
   if (proposedEntries.length === 0) {
+    const status = await writePlaybookStatus({
+      promoted: 0,
+      recommendedNextAction: '',
+      reason: 'No Proposed notes. Nothing to promote.',
+    });
     console.log('No Proposed entries found in docs/PLAYBOOK_NOTES.md. Nothing to promote.');
+    console.log(`Status written: ${path.relative(process.cwd(), STATUS_PATH)} (Proposed=${status.notes.proposed}).`);
     return;
   }
 
@@ -146,6 +153,17 @@ async function main() {
   }
 
   console.log(`Promoted ${proposedEntries.length} note(s).`);
+
+  const refreshed = parsePlaybookNotes(notesNext);
+  const remainingProposed = refreshed.entries.filter((entry) => entry.fields.Status === 'Proposed').length;
+  const status = await writePlaybookStatus({
+    promoted: proposedEntries.length,
+    recommendedNextAction: remainingProposed > 0 ? 'npm run playbook:update' : '',
+    reason: remainingProposed > 0
+      ? `Promoted ${proposedEntries.length} note(s); Proposed notes still remain.`
+      : 'All Proposed promoted.',
+  });
+  console.log(`Status written: ${path.relative(process.cwd(), STATUS_PATH)} (Proposed=${status.notes.proposed}).`);
 
   await stageStatusArtifactsIfPresent(process.cwd());
 

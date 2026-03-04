@@ -4,10 +4,6 @@ import path from 'node:path';
 
 const STATUS_PATH = path.resolve('docs/playbook-status.json');
 
-function isFailStatus(value) {
-  return typeof value === 'string' && value.toUpperCase() === 'FAIL';
-}
-
 async function main() {
   let parsed;
 
@@ -23,22 +19,13 @@ async function main() {
     process.exit(1);
   }
 
-  const contracts = parsed?.contracts ?? {};
-  const byContract = Array.isArray(contracts.byContract) ? contracts.byContract : [];
+  const failCount = Number(parsed?.contracts?.fail ?? parsed?.contracts?.summary?.fail ?? 0);
 
-  if (!isFailStatus(contracts.status)) {
+  if (failCount <= 0) {
     process.exit(0);
   }
 
-  const failingContracts = byContract.filter((contract) => isFailStatus(contract?.status));
-
-  console.error('Contracts gate failed: contracts.status is FAIL in docs/playbook-status.json.');
-  if (failingContracts.length > 0) {
-    console.error('Failing contracts:');
-    for (const contract of failingContracts) {
-      console.error(`- ${contract.id ?? 'UNKNOWN_CONTRACT'}`);
-    }
-  }
+  console.error(`Contracts gate failed: contracts.fail=${failCount} in docs/playbook-status.json.`);
   console.error('Run: npm run playbook (then fix listed violations)');
   process.exit(1);
 }

@@ -27,11 +27,28 @@ jobs:
       - name: Playbook learning check
         run: npm run playbook:check
 
-      - name: Playbook maintenance
-        run: npm run playbook
+      - name: Playbook automation (run + promote + status gate)
+        run: npm run playbook:auto
 
-      - name: Contracts gate
-        run: node scripts/playbook/contracts-gate.mjs
+
+      - name: Print Playbook next command
+        if: always()
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'docs/playbook-status.json';
+          if (!fs.existsSync(path)) {
+            console.log('No docs/playbook-status.json found.');
+            process.exit(0);
+          }
+          const status = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const next = status.recommended_next_action || 'none';
+          const reason = status.reason || 'No reason provided.';
+          console.log(`Playbook next action: ${next}`);
+          console.log(`Reason: ${reason}`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n## Playbook Next Action\n- Next: \`${next}\`\n- Reason: ${reason}\n`);
+          NODE
 
       - name: Ensure Playbook status snapshot on failure
         if: failure()
