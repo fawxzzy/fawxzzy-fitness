@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.26 — 2026-03-04
+
+### WHAT
+- Standardized Exercise Info STATS rows to a locked two-column label/value layout with consistent section and row spacing across RECENT, TOTALS, and BESTS.
+
+### WHY
+- Keeps stat labels and values visually aligned and deterministic across mixed content lengths, improving scanability in the Exercise Info panel.
+
+
 ## 0.3.25 — 2026-03-04
 
 ### WHAT

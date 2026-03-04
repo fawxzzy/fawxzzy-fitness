@@ -71,13 +71,16 @@ function StatSection({ title, rows }: { title: string; rows: Array<{ label: stri
   if (!visibleRows.length) return null;
 
   return (
-    <div className="space-y-1.5">
+    <div className="mt-3 first:mt-0">
       <p className={sectionTitleClassName}>{title}</p>
-      <div className="w-full space-y-1.5">
+      <div className="w-full">
         {visibleRows.map((row) => (
-          <div key={`${title}-${row.label}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 text-sm">
-            <span className="text-[rgb(var(--text)/0.55)]">{row.label}:</span>
-            <span className="whitespace-nowrap text-right tabular-nums text-[rgb(var(--text)/0.95)]">{row.value}</span>
+          <div
+            key={`${title}-${row.label}`}
+            className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 first:mt-0"
+          >
+            <span className="min-w-0 text-sm text-white/60">{row.label}:</span>
+            <span className="text-sm text-right whitespace-nowrap tabular-nums text-[rgb(var(--text)/0.95)]">{row.value}</span>
           </div>
         ))}
       </div>
