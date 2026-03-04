@@ -363,13 +363,10 @@ Evidence (FawxzzyFitness):
 <!-- PLAYBOOK_NOTE_ID:2026-03-04-standardize-bottom-action-slot-and-publish-contracts -->
 ### Standardize bottom-action slot and publish contracts (from FawxzzyFitness notes, 2026-03-04)
 Type: Guardrail
-Summary: Recent git changes indicate a bottom actions learning candidate touching 4 file(s). Capture this as draft guidance for review before promotion.
+Summary: Recent git changes indicate a bottom actions learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
 Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
 Evidence (FawxzzyFitness):
-- docs/CHANGELOG.md
-- docs/PLAYBOOK_NOTES.md
-- scripts/playbook/contracts-allowlist.json
-- src/components/ui/BottomActionBar.tsx
+- Playbook/docs/CONTRACTS/BOTTOM_ACTIONS_OWNERSHIP.md
 
 <!-- PLAYBOOK_NOTE_ID:2026-03-04-literalize-layout-critical-tailwind-arbitrary-value-classes -->
 ### Literalize layout-critical Tailwind arbitrary-value classes (from FawxzzyFitness notes, 2026-03-04)
@@ -379,3 +376,15 @@ Rationale: Literal class strings keep Tailwind extraction deterministic for spac
 Evidence (FawxzzyFitness):
 - src/components/ExerciseInfoSheet.tsx
 - src/components/ui/BottomActionBar.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-standardize-api-error-envelopes-and-request-tracing-metadata -->
+### Standardize API error envelopes and request tracing metadata (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Recent git changes indicate a api observability learning candidate touching 5 file(s). Capture this as draft guidance for review before promotion.
+Rationale: Shared envelope and trace metadata improve incident triage and keep route contracts deterministic.
+Evidence (FawxzzyFitness):
+- Playbook/docs/CHANGELOG.md
+- Playbook/docs/CONSUMPTION.md
+- Playbook/docs/WORKFLOWS/ai-audit.md
+- Playbook/docs/WORKFLOWS/playbook-ci.md
+- Playbook/tools/doctor/cli.mjs
