@@ -1,6 +1,6 @@
 {
   "drafts": 0,
-  "proposed": 0,
+  "proposed": 3,
   "promoted": 87,
   "upstreamed": 0,
   "warnThreshold": 10,
@@ -46,10 +46,10 @@
     ]
   },
   "recommendation": {
-    "nextCommand": null,
-    "reason": "No action required."
+    "nextCommand": "npm run playbook:update",
+    "reason": "Proposed notes are present and should be promoted upstream."
   },
-  "trendLength": 17,
-  "lastTrendTimestamp": "2026-03-04T10:43:15Z",
-  "updatedAt": "2026-03-04T10:43:58.531Z"
+  "trendLength": 19,
+  "lastTrendTimestamp": "2026-03-04T10:44:27Z",
+  "updatedAt": "2026-03-04T10:44:48.385Z"
 }

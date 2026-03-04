@@ -1068,6 +1068,33 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Upstream: Local (pending PR)
 
 ## DRAFTS (auto)
+<!-- PLAYBOOK_DRAFT_ID:359d3b52d52bffcf -->
+## 2026-03-04 — Standardize bottom-action slot and publish contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a bottom actions learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
+- Evidence: Playbook/docs/CONTRACTS/BOTTOM_ACTIONS_OWNERSHIP.md
+- Status: Proposed
+
+<!-- PLAYBOOK_DRAFT_ID:1e9856491975a95c -->
+## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a safe area-nav learning candidate touching 6 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
+- Evidence: Playbook/docs/CHANGELOG.md, Playbook/docs/CODEX_GUARDRAILS.md, Playbook/docs/CONTRACTS/BOTTOM_ACTIONS_OWNERSHIP.md, Playbook/docs/CONTRACTS/SAFE_AREA_OWNERSHIP.md, Playbook/tools/contracts-audit/doc-rules.test.mjs, Playbook/tools/contracts-audit/index.mjs
+- Status: Proposed
+
+<!-- PLAYBOOK_DRAFT_ID:ecf84fe3255af0d8 -->
+## 2026-03-04 — Standardize API error envelopes and request tracing metadata
+- Type: Guardrail
+- Summary: Recent git changes indicate a api observability learning candidate touching 5 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Shared envelope and trace metadata improve incident triage and keep route contracts deterministic.
+- Evidence: Playbook/docs/CHANGELOG.md, Playbook/docs/CONSUMPTION.md, Playbook/docs/WORKFLOWS/ai-audit.md, Playbook/docs/WORKFLOWS/playbook-ci.md, Playbook/tools/doctor/cli.mjs
+- Status: Proposed
+
 <!-- PLAYBOOK_DRAFT_ID:8d73d44df0418d47 -->
 ## 2026-03-04 — Standardize bottom-action slot and publish contracts
 - Type: Guardrail
