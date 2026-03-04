@@ -106,7 +106,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
               ) : (
                 <>
                   <p className="text-[rgb(var(--text)/0.78)]">{lastDate ? `Last: ${lastDate} · ${row.lastSummary ?? "—"}` : "Last: —"}</p>
-                  <p>{row.bestSummary ?? "Best: —"}</p>
+                  <p>{row.bestSummary ? row.bestSummary : "Best effort: —"}</p>
                 </>
               )}
             </div>

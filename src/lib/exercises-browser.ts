@@ -44,8 +44,8 @@ type HistoricalSetRow = {
   calories: number | null;
   distance_unit: "mi" | "km" | "m" | null;
   session_exercise:
-    | { exercise_id: string; session: { status: "completed" | "in_progress"; performed_at: string } | Array<{ status: "completed" | "in_progress"; performed_at: string }> | null }
-    | Array<{ exercise_id: string; session: { status: "completed" | "in_progress"; performed_at: string } | Array<{ status: "completed" | "in_progress"; performed_at: string }> | null }>
+    | { session_id: string; exercise_id: string; session: { status: "completed" | "in_progress"; performed_at: string } | Array<{ status: "completed" | "in_progress"; performed_at: string }> | null }
+    | Array<{ session_id: string; exercise_id: string; session: { status: "completed" | "in_progress"; performed_at: string } | Array<{ status: "completed" | "in_progress"; performed_at: string }> | null }>
     | null;
 };
 
@@ -111,6 +111,29 @@ function formatCardioSummary(args: { durationSeconds?: number | null; distance?:
   return parts.length ? parts.join(" • ") : null;
 }
 
+function getDisplayPace(durationSeconds: number, distance: number, distanceUnit: "mi" | "km" | "m" | null) {
+  if (!distanceUnit) return null;
+  const safeDuration = positive(durationSeconds);
+  const safeDistance = positive(distance);
+  if (safeDuration <= 0 || safeDistance <= 0) return null;
+  if (distanceUnit === "m") {
+    const distanceKm = safeDistance / 1000;
+    if (distanceKm <= 0) return null;
+    return { paceSecondsPerUnit: safeDuration / distanceKm, distanceUnit: "km" as const };
+  }
+  return { paceSecondsPerUnit: safeDuration / safeDistance, distanceUnit };
+}
+
+function hasMeaningfulCardioSet(measurementType: string | null | undefined, row: HistoricalSetRow) {
+  const normalized = String(measurementType ?? "").trim().toLowerCase();
+  const duration = positive(row.duration_seconds);
+  const distance = positive(row.distance);
+  if (normalized === "time") return duration > 0;
+  if (normalized === "distance") return distance > 0;
+  if (normalized === "time_distance") return duration > 0 || distance > 0;
+  return duration > 0 || distance > 0;
+}
+
 
 function fallbackDistanceUnit(defaultUnit: string | null | undefined): "mi" | "km" | "m" | null {
   if (defaultUnit === "miles") return "mi";
@@ -147,6 +170,43 @@ function compareExerciseBrowserRows(a: ExerciseBrowserRow, b: ExerciseBrowserRow
 
 function isRelationOrColumnMissing(error: PostgrestError | null) {
   return error?.code === "42P01" || error?.code === "42703";
+}
+
+
+function runDevExerciseBrowserVerification(row: ExerciseBrowserRow) {
+  if (process.env.NODE_ENV !== "development") return;
+  const name = row.name.trim().toLowerCase();
+  const checks: Array<{ label: string; ok: boolean; details?: Record<string, unknown> }> = [];
+
+  if (name === "incline walk") {
+    checks.push({
+      label: "Incline Walk cardio card has last effort",
+      ok: !row.last_performed_at || Boolean(row.lastSummary),
+      details: { lastPerformedAt: row.last_performed_at, lastSummary: row.lastSummary },
+    });
+  }
+
+  if (row.kind === "cardio") {
+    checks.push({
+      label: "Cardio card ignores empty session exercise rows",
+      ok: !row.last_performed_at || Boolean(row.lastSummary),
+      details: { lastPerformedAt: row.last_performed_at, lastSummary: row.lastSummary },
+    });
+  }
+
+  if (name === "dips") {
+    checks.push({
+      label: "Dips card PR line has bodyweight signal",
+      ok: !row.prLabel || Boolean(row.bestSummary || row.prLabel),
+      details: { bestSummary: row.bestSummary, prLabel: row.prLabel },
+    });
+  }
+
+  for (const check of checks) {
+    if (!check.ok) {
+      console.warn("[history/exercises] dev verification failed", { exerciseId: row.exerciseId, name: row.name, ...check });
+    }
+  }
 }
 
 export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow[]> {
@@ -186,7 +246,7 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
       .in("exercise_id", canonicalIds),
     supabase
       .from("sets")
-      .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, session_exercise:session_exercises!inner(exercise_id, session:sessions!inner(status, performed_at))")
+      .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(status, performed_at))")
       .eq("user_id", user.id)
       .eq("session_exercise.user_id", user.id)
       .in("session_exercise.exercise_id", canonicalIds)
@@ -236,17 +296,19 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
       for (const row of setRows) {
         const sessionExercise = Array.isArray(row.session_exercise) ? (row.session_exercise[0] ?? null) : (row.session_exercise ?? null);
         const session = Array.isArray(sessionExercise?.session) ? (sessionExercise?.session[0] ?? null) : (sessionExercise?.session ?? null);
-        if (!sessionExercise?.exercise_id || !session?.performed_at) continue;
-        const current = latestSetBySession.get(`${session.performed_at}-${sessionExercise.exercise_id}`) ?? { performedAt: session.performed_at, sets: [] };
+        if (!sessionExercise?.session_id || !sessionExercise?.exercise_id || !session?.performed_at) continue;
+        const current = latestSetBySession.get(sessionExercise.session_id) ?? { performedAt: session.performed_at, sets: [] };
         current.sets.push(row);
-        latestSetBySession.set(`${session.performed_at}-${sessionExercise.exercise_id}`, current);
+        latestSetBySession.set(sessionExercise.session_id, current);
       }
       const latestSession = [...latestSetBySession.values()].sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0] ?? null;
       const toSessionAggregate = (performedAt: string, sessionRows: HistoricalSetRow[]) => {
-        const durationSeconds = sessionRows.reduce((sum, row) => sum + positive(row.duration_seconds), 0);
-        const calories = sessionRows.reduce((sum, row) => sum + positive(row.calories), 0);
+        const meaningfulRows = sessionRows.filter((row) => hasMeaningfulCardioSet(exercise.measurement_type, row));
+        if (!meaningfulRows.length) return null;
+        const durationSeconds = meaningfulRows.reduce((sum, row) => sum + positive(row.duration_seconds), 0);
+        const calories = meaningfulRows.reduce((sum, row) => sum + positive(row.calories), 0);
         const distanceByUnit = new Map<"mi" | "km" | "m", number>();
-        for (const row of sessionRows) {
+        for (const row of meaningfulRows) {
           if (!row.distance_unit) continue;
           const distance = positive(row.distance);
           if (distance <= 0) continue;
@@ -263,14 +325,10 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
           calories,
         };
       };
-      const sessionAggregates = [...latestSetBySession.values()].map((entry) => toSessionAggregate(entry.performedAt, entry.sets));
+      const sessionAggregates = [...latestSetBySession.values()]
+        .map((entry) => toSessionAggregate(entry.performedAt, entry.sets))
+        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
       const latestCardioSession = sessionAggregates.sort((a, b) => (b.performedAt ?? "").localeCompare(a.performedAt ?? ""))[0] ?? null;
-      const pace = (row: { durationSeconds: number; distance: number }) => {
-        const d = positive(row.durationSeconds);
-        const dist = positive(row.distance);
-        if (d <= 0 || dist <= 0) return null;
-        return d / dist;
-      };
       const cardioPriority = resolveCardioPrimaryMetric(exercise.measurement_type);
       const cardioScore = (row: (typeof sessionAggregates)[number]) => {
         const duration = row.durationSeconds;
@@ -300,8 +358,12 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         : formatCardioSummary({
           durationSeconds: latestCardioSession?.durationSeconds ?? null,
           distance: latestCardioSession?.distance ?? null,
-          paceSecondsPerUnit: latestCardioSession ? pace(latestCardioSession) : null,
-          distanceUnit: latestCardioSession?.distanceUnit,
+          paceSecondsPerUnit: latestCardioSession
+            ? getDisplayPace(latestCardioSession.durationSeconds, latestCardioSession.distance, latestCardioSession.distanceUnit)?.paceSecondsPerUnit
+            : null,
+          distanceUnit: latestCardioSession
+            ? getDisplayPace(latestCardioSession.durationSeconds, latestCardioSession.distance, latestCardioSession.distanceUnit)?.distanceUnit
+            : null,
         });
 
       const bestSummary = kind === "strength"
@@ -309,23 +371,24 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
           ? `${formatCompact(bodyweightPr)} reps`
           : formatStrengthSummary(stats?.actual_pr_weight ?? null, stats?.actual_pr_reps ?? null, stats?.last_unit ?? null))
         : (() => {
-          if (exercise.measurement_type === "time_distance" && bestCardioSession) {
-            const bestPace = formatPace(pace(bestCardioSession), bestCardioSession.distanceUnit);
-            if (bestPace) return `Best Pace: ${bestPace}`;
-          }
           if (resolveCardioPrimaryMetric(exercise.measurement_type) === "distance") {
-            const bestDistance = formatDistance(bestCardioSession?.distance, bestCardioSession?.distanceUnit);
+            const bestDistance = formatDistance(bestCardioSession?.distance, bestCardioSession?.distanceUnit ?? null);
             return bestDistance ? `Best: ${bestDistance}` : null;
           }
           const bestDuration = formatDurationShort(bestCardioSession?.durationSeconds);
-          return bestDuration ? `Best: ${bestDuration}` : null;
+          if (bestDuration) return `Best: ${bestDuration}`;
+          const bestPaceInfo = bestCardioSession
+            ? getDisplayPace(bestCardioSession.durationSeconds, bestCardioSession.distance, bestCardioSession.distanceUnit)
+            : null;
+          const bestPace = formatPace(bestPaceInfo?.paceSecondsPerUnit, bestPaceInfo?.distanceUnit);
+          return bestPace ? `Best: ${bestPace}` : null;
         })();
 
       const strengthPrLabel = stats?.pr_est_1rm && stats.pr_est_1rm > 0
         ? `${formatCompact(stats.pr_est_1rm)}${stats.last_unit === "kg" ? "kg" : stats.last_unit === "lb" || stats.last_unit === "lbs" ? "lb" : ""}`
         : null;
 
-      return {
+      const nextRow = {
         exerciseId,
         name: exercise.name,
         slug: exercise.slug,
@@ -336,7 +399,9 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         primary_muscle: exercise.primary_muscle,
         equipment: exercise.equipment,
         movement_pattern: exercise.movement_pattern,
-        last_performed_at: stats?.last_performed_at ?? latestSession?.performedAt ?? null,
+        last_performed_at: kind === "cardio"
+          ? (latestCardioSession?.performedAt ?? stats?.last_performed_at ?? latestSession?.performedAt ?? null)
+          : (stats?.last_performed_at ?? latestSession?.performedAt ?? null),
         last_weight: stats?.last_weight ?? null,
         last_reps: stats?.last_reps ?? null,
         last_unit: stats?.last_unit ?? null,
@@ -350,9 +415,14 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         lastSummary,
         bestSummary,
         prLabel: kind === "strength"
-          ? (!hasWeightedBest && bodyweightPr > 0 ? "" : (formatPrBreakdown({ reps: 0, weight: stats?.actual_pr_weight ? 1 : 0, total: stats?.actual_pr_weight ? 1 : 0 }) || strengthPrLabel || ""))
+          ? (!hasWeightedBest && bodyweightPr > 0
+            ? formatPrBreakdown({ reps: bodyweightPr > 0 ? 1 : 0, weight: 0, total: bodyweightPr > 0 ? 1 : 0 })
+            : (formatPrBreakdown({ reps: 0, weight: stats?.actual_pr_weight ? 1 : 0, total: stats?.actual_pr_weight ? 1 : 0 }) || strengthPrLabel || ""))
           : "",
       };
+
+      runDevExerciseBrowserVerification(nextRow);
+      return nextRow;
     })
     .sort(compareExerciseBrowserRows);
 }

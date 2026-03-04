@@ -2546,3 +2546,15 @@ WHY:
 - Ensures cardio exercises such as Incline Walk show meaningful summaries instead of blank placeholders when set data exists.
 - Improves scanability and trust in stats presentation by showing one clear recent effort line plus deterministic best effort lines.
 
+
+## 0.3.21 — 2026-03-04
+
+### WHAT
+- Added a values-only cardio metadata normalization migration so cardio exercises and linked session exercises use valid, measurement-aligned default units.
+- Fixed cardio History/Exercise Info summary derivation to select Last/Best effort from meaningful set data (and ignore empty cardio session rows).
+- Updated History → Exercises cards so cardio rows consistently show Last/Best effort summaries and bodyweight strength rows retain PR line signal when available.
+
+### WHY
+- Prevents cardio entries from rendering `Last: —` when valid duration/distance sets exist but legacy unit metadata is null/invalid.
+- Ensures cardio effort summaries are deterministic, measurement-aware, and sourced from logged sets instead of empty metadata-only session rows.
+- Keeps exercise cards trustworthy by preserving visible PR context for bodyweight strength movements.
