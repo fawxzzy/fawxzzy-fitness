@@ -954,3 +954,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: A suggestion-only workflow is easy to ignore, while enforcement-only creates friction; combining both improves adoption and consistency.
 - Evidence: scripts/playbook/suggest-notes-from-diff.mjs, scripts/playbook/check-notes-updated.mjs, .github/workflows/ci.yml
 - Status: Proposed
+
+## 2026-03-04 — Playbook sync automation should resolve integration mode explicitly before mutating repos
+- Type: Guardrail
+- Summary: Repository automation that syncs shared doctrine should first resolve explicit integration modes (submodule, in-tree repo, external path) and enforce clean-working-tree preconditions before running git update commands.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents destructive or ambiguous sync behavior across different wiring models and makes one-command doctrine updates deterministic and auditable.
+- Evidence: scripts/playbook/playbook-path.mjs, scripts/playbook/sync-playbook.mjs, scripts/playbook/check-proposed-notes-threshold.mjs
+- Status: Proposed
