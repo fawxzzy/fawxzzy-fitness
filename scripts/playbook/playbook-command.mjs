@@ -101,7 +101,7 @@ async function main() {
     console.log('Status snapshot not found. Run: node scripts/playbook/write-status-files.mjs');
   }
   console.log(`Recommended next action: ${recommendation}`);
-  console.log('If unsure what to run → npm run playbook:maintain');
+  console.log('If unsure what to run → npm run playbook');
 
   if (typeof maintain.status === 'number' && maintain.status !== 0) {
     process.exit(maintain.status);
