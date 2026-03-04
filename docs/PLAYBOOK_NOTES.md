@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-03 — Session exercise unit metadata should mirror measurement type
+- Type: Guardrail
+- Summary: Persist `session_exercises.default_unit` in lockstep with `session_exercises.measurement_type` (`reps/time/distance/time_distance`) and derive cardio UI behavior from measurement type, not legacy unit fallbacks.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Prevents cardio rows from being interpreted as reps-mode and avoids empty Last/Best cards when duration-based sets exist.
+- Evidence: src/app/session/[id]/actions.ts, src/app/today/page.tsx, src/app/actions/history.ts, src/app/history/[sessionId]/LogAuditClient.tsx, supabase/migrations/032_backfill_cardio_session_exercise_default_unit.sql
+- Status: Proposed
+
 ## 2026-03-03 — Literalize layout-critical Tailwind arbitrary-value classes
 - Type: Guardrail
 - Summary: Layout-critical spacing utilities that rely on Tailwind arbitrary values (for example `pb-[calc(...)]`) should be stored as literal class strings (and optionally safelisted) instead of template-interpolated strings.

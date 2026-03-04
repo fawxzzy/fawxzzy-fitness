@@ -7,6 +7,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateHistoryViews, revalidateSessionViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToSessionColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
+import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
@@ -369,6 +370,10 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
     throw new Error("Session exercise invariant failed: missing canonical exercise id.");
   }
 
+  const measurementType = resolveSessionExerciseMeasurementType(resolvedExercise.measurementType);
+  const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
+  warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "addExerciseBySearchAction" });
+
   const { data: insertedExercise, error } = await supabase.from("session_exercises").insert({
     session_id: sessionId,
     user_id: user.id,
@@ -376,8 +381,8 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
     routine_day_exercise_id: null,
     position: nextPosition,
     is_skipped: false,
-    measurement_type: resolvedExercise.measurementType,
-    default_unit: resolvedExercise.defaultUnit,
+    measurement_type: measurementType,
+    default_unit: defaultUnit,
   }).select("id, exercise_id").single();
 
   if (error) {
@@ -477,6 +482,9 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   }
 
   const mappedGoalColumns = mapExerciseGoalPayloadToSessionColumns(parsedGoals.payload);
+  const measurementType = resolveSessionExerciseMeasurementType(mappedGoalColumns.measurement_type ?? resolvedExercise.measurementType);
+  const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
+  warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "addExerciseAction" });
 
   const { data: insertedExercise, error } = await supabase.from("session_exercises").insert({
     session_id: sessionId,
@@ -486,8 +494,8 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     position: count ?? 0,
     is_skipped: false,
     ...mappedGoalColumns,
-    measurement_type: mappedGoalColumns.measurement_type ?? resolvedExercise.measurementType,
-    default_unit: mappedGoalColumns.default_unit ?? resolvedExercise.defaultUnit,
+    measurement_type: measurementType,
+    default_unit: defaultUnit,
   }).select("id, exercise_id").single();
 
   if (error) {

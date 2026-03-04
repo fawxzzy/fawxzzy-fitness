@@ -7,6 +7,7 @@ import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
+import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import type { SetRow } from "@/types/db";
 
 type ActionResult = {
@@ -342,14 +343,18 @@ export async function addLogExerciseAction(payload: { logId: string; exerciseId:
     .eq("session_id", logId)
     .eq("user_id", user.id);
 
+  const measurementType = resolveSessionExerciseMeasurementType(resolvedExercise.measurementType);
+  const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
+  warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "addLogExerciseAction" });
+
   const { error } = await supabase.from("session_exercises").insert({
     session_id: logId,
     user_id: user.id,
     exercise_id: resolvedExercise.id,
     position: count ?? 0,
     is_skipped: false,
-    measurement_type: resolvedExercise.measurementType,
-    default_unit: resolvedExercise.defaultUnit,
+    measurement_type: measurementType,
+    default_unit: defaultUnit,
   });
 
   if (error) {

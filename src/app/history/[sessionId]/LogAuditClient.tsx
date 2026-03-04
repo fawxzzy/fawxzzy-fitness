@@ -52,8 +52,13 @@ type AuditExercise = {
   exercise_id: string;
   notes: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance";
-  default_unit: "mi" | "km" | "m" | null;
+  default_unit: string | null;
   sets: AuditSet[];
+};
+
+const resolveDistanceUnit = (value: string | null | undefined): "mi" | "km" | "m" | null => {
+  if (value === "mi" || value === "km" || value === "m") return value;
+  return null;
 };
 
 const metricsForMeasurementType = (measurementType: AuditExercise["measurement_type"]): MeasurementMetrics => {
@@ -112,7 +117,7 @@ const formatSetSummary = (set: EditableSet, measurementType: AuditExercise["meas
   }
 
   if ((measurementType === "distance" || measurementType === "time_distance") && set.source.distance !== null) {
-    return `${set.source.distance} ${set.source.distance_unit ?? defaultUnit ?? "mi"}`;
+    return `${set.source.distance} ${set.source.distance_unit ?? resolveDistanceUnit(defaultUnit) ?? "mi"}`;
   }
 
   if (set.source.calories !== null) return `${set.source.calories} cal`;
@@ -325,7 +330,7 @@ export function LogAuditClient({
         reps: "0",
         duration: "",
         distance: "",
-        distanceUnit: exercise.default_unit ?? "mi",
+        distanceUnit: resolveDistanceUnit(exercise.default_unit) ?? "mi",
         calories: "",
         weightUnit: unitLabel,
       },

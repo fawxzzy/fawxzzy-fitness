@@ -23,7 +23,7 @@ export type SessionExerciseRow = {
   notes: string | null;
   is_skipped: boolean;
   measurement_type?: "reps" | "time" | "distance" | "time_distance";
-  default_unit?: "mi" | "km" | "m" | null;
+  default_unit?: string | null;
   target_sets_min?: number | null;
   target_sets_max?: number | null;
   target_reps_min?: number | null;

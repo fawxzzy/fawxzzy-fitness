@@ -20,7 +20,7 @@ type AuditExercise = {
   exercise_id: string;
   notes: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance";
-  default_unit: "mi" | "km" | "m" | null;
+  default_unit: string | null;
   sets: AuditSet[];
 };
 

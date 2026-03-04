@@ -1,6 +1,7 @@
 import "server-only";
 
 import { listExercises } from "@/lib/exercises";
+import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType } from "@/lib/session-exercise-measurement";
 import type { ExerciseRow } from "@/types/db";
 
 type ResolvedExercise = {
@@ -8,7 +9,7 @@ type ResolvedExercise = {
   name: string;
   slug: string | null;
   measurementType: "reps" | "time" | "distance" | "time_distance";
-  defaultUnit: "mi" | "km" | "m";
+  defaultUnit: "reps" | "time" | "distance" | "time_distance";
 };
 
 function normalizeExerciseText(value: string) {
@@ -46,18 +47,8 @@ export async function resolveCanonicalExercise(input: {
     return null;
   }
 
-  const measurementType = matched.measurement_type === "time"
-    || matched.measurement_type === "distance"
-    || matched.measurement_type === "time_distance"
-    || matched.measurement_type === "reps"
-    ? matched.measurement_type
-    : "reps";
-
-  const defaultUnit = matched.default_unit === "mi"
-    || matched.default_unit === "km"
-    || matched.default_unit === "m"
-    ? matched.default_unit
-    : "mi";
+  const measurementType = resolveSessionExerciseMeasurementType(matched.measurement_type);
+  const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
 
   return {
     id: matched.id,
