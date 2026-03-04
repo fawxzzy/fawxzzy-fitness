@@ -3,6 +3,15 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.57 — 2026-03-04
+
+### WHAT
+- Updated `npm run playbook:auto` to execute Playbook Node entrypoint scripts directly (`playbook-command.mjs` and `update-playbook-from-notes.mjs`) instead of spawning `npm`/`npm.cmd` wrappers.
+
+### WHY
+- Fixes Windows `spawnSync npm.cmd EINVAL` failures and makes Playbook automation deterministic across platforms by invoking the current Node runtime directly.
+
+
 
 ## 0.3.56 — 2026-03-04
 
