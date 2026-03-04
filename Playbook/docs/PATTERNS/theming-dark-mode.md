@@ -86,3 +86,11 @@ Run a final branch-level dark-mode pass on screens touched by multiple UI PRs.
 
 ## Sources
 - `docs/PLAYBOOK_NOTES.md` (2026-02-21 to 2026-02-22): dark-mode surface tokenization, glass intensity modes, fallback utility mapping, sheen tuning, and merge-validation guardrails.
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-02-add-appearance-none-to-absolute-full-card-button-overlays-in-mobile-dark-cards -->
+### Add `appearance-none` to absolute full-card button overlays in mobile dark cards (from FawxzzyFitness notes, 2026-03-02)
+Type: Guardrail
+Summary: When using an absolute inset button as a full-card tap target, explicitly include `appearance-none` so browser-native button painting cannot visually mask card content.
+Rationale: Mobile WebKit may apply default button surface styles that make cards look blank even though content is rendered underneath.
+Evidence (FawxzzyFitness):
+- src/app/history/exercises/ExerciseBrowserClient.tsx

@@ -63,3 +63,12 @@ A behavior PR fails contract tier when changelog is missing, then passes after a
 - Dump A — `6) Workflow Discipline / scripts and checks, CI status`.
 - Dump B — `Documentation & Workflow Discipline / verification tiers, CI guard script`.
 - Cross-repository governance audits — contract-integrity enforcement gaps (2026-02 doctrine patch request).
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-02-api-errors-should-ship-phase-correlation-metadata-by-default -->
+### API errors should ship phase + correlation metadata by default (from FawxzzyFitness notes, 2026-03-02)
+Type: Guardrail
+Summary: For multi-step API handlers, include the failing phase (`step`) and a per-request correlation id (`requestId`) in both JSON error payloads and response headers.
+Rationale: Reduces mean-time-to-diagnosis for production failures by making client-visible errors instantly traceable to server logs without exposing sensitive data.
+Evidence (FawxzzyFitness):
+- src/app/api/exercise-info/[exerciseId]/route.ts
+- src/components/ExerciseInfo.tsx

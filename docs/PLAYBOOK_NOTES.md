@@ -16,7 +16,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: A fixed envelope prevents ad hoc error shapes, makes client-side diagnostics deterministic, and improves production incident traceability without repro.
 - Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/components/ExerciseInfo.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-04 — Do not infer cardio modality from incidental set metrics on strength exercises
@@ -25,7 +26,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents strength cards from showing cardio-only Best rows when set payloads contain incidental timing/distance noise.
 - Evidence: src/lib/cardio-best.ts, src/lib/exercises-browser.ts, src/lib/exercise-info.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Cardio Best rows should be gated by metric signal and explicit measurement type
 - Type: Guardrail
@@ -33,7 +35,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents mixed-modality card regressions where strength rows show cardio “Best” placeholders and keeps summary lines meaningful.
 - Evidence: src/lib/cardio-best.ts, src/lib/exercises-browser.ts, src/lib/exercise-info.ts, src/app/history/exercises/ExerciseBrowserClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-04 — Cardio stats must be set-derived with metadata-only unit fallback
@@ -59,7 +62,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Prevents cardio rows from being interpreted as reps-mode and avoids empty Last/Best cards when duration-based sets exist.
 - Evidence: src/app/session/[id]/actions.ts, src/app/today/page.tsx, src/app/actions/history.ts, src/app/history/[sessionId]/LogAuditClient.tsx, supabase/migrations/032_backfill_cardio_session_exercise_default_unit.sql
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Literalize layout-critical Tailwind arbitrary-value classes
 - Type: Guardrail
@@ -75,7 +79,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Prevents random-feeling “best” labels, avoids client render-loop aggregation, and keeps bodyweight/cardio stats useful instead of blank placeholders.
 - Evidence: src/lib/exercises-browser.ts, src/lib/exercise-info.ts, src/components/ExerciseInfoSheet.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-03 — Prioritize deterministic reserve when portaled bottom actions are introduced
@@ -84,7 +89,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents final-content overlap regressions during hydration/transition edges where action presence may publish late.
 - Evidence: src/components/layout/ScrollScreenWithBottomActions.tsx, src/components/layout/bottom-actions.tsx, src/components/ui/BottomActionBar.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Portaled sticky bottom actions must pair with conditional scroll-owner reserve
 - Type: Guardrail
@@ -92,7 +98,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Keeps always-visible mobile CTAs reliable while preventing both content overlap and unnecessary bottom dead-space on routes without actions.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/components/layout/ScrollScreenWithBottomActions.tsx, src/components/layout/bottom-actions.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-03 — Enforce sticky action placement with a scroll-screen wrapper
@@ -101,7 +108,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Sticky bottom actions only work reliably when they are descendants of the real scroll owner; codifying the relationship removes placement drift and route-level regressions.
 - Evidence: src/components/layout/ScrollScreenWithBottomActions.tsx, src/app/today/page.tsx, src/app/session/[id]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-03 — Screen-owned sticky bottom actions should be slotted once per scroll screen
@@ -110,7 +118,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents iOS/mobile overlap and clipping regressions from feature-mounted fixed bars inside nested content wrappers while preserving a single scroll owner.
 - Evidence: src/components/layout/bottom-actions.tsx, src/components/SessionPageClient.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/HistoryLogPageClient.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Canonical exercise ids are required before session set logging
 - Type: Guardrail
@@ -118,7 +127,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/supabase-auth-rls.md
 - Rationale: Prevents missing stats/PRs and cross-exercise leakage caused by null or non-canonical session exercise links.
 - Evidence: src/app/session/[id]/actions.ts, src/app/actions/history.ts, src/lib/exercise-resolution.ts, src/lib/exercise-info.ts, supabase/migrations/030_backfill_session_exercises_exercise_id.sql
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — App shell should own top-nav placement variables
 - Type: Guardrail
@@ -126,7 +136,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents competing safe-area/header offset sources from creating route-specific whitespace drift and notch/header overlap bugs.
 - Evidence: src/components/ui/app/AppShell.tsx, src/components/AppNav.tsx, src/app/globals.css
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Portal dropdowns/menus out of glass/card stacking contexts
 - Type: Guardrail
@@ -134,7 +145,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents mobile overlay clipping, z-index fights, and awkward menu overlap when parent containers use blur, overflow, or local stacking contexts.
 - Evidence: src/components/ui/app/ViewModeSelect.tsx, src/app/history/HistorySessionsClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Keep PR systems metric-aware and emit category counts from loaders
 - Type: Pattern
@@ -142,7 +154,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents bodyweight progress from disappearing and avoids divergent per-component PR math in render loops.
 - Evidence: src/lib/pr-evaluator.ts, src/app/history/session-summary.ts, src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx, src/lib/exercise-info.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Derive feed summaries once in loaders for performance-first history cards
 - Type: Pattern
@@ -150,7 +163,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents repeated per-card aggregation in render loops and keeps mobile scrolling predictable as history feeds grow.
 - Evidence: src/app/history/page.tsx, src/app/history/session-summary.ts, src/app/history/HistorySessionsClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Enforce mobile safe-area contracts with a single scroll-owner reserve
 - Type: Guardrail
@@ -158,7 +172,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Mixed ownership of safe-area offsets causes phantom top gaps, content overlap under fixed bars, and inconsistent dead space across routes.
 - Evidence: src/components/ui/app/AppShell.tsx, src/components/ui/BottomActionBar.tsx, src/app/history/[sessionId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Preserve route-instance context with explicit returnTo tokens in edit flows
 - Type: Pattern
@@ -166,7 +181,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents context loss from generic fallbacks and keeps navigation deterministic across deep links and PWA/browser history behavior.
 - Evidence: src/app/routines/[id]/days/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Canonicalize shared exercise planning rows behind one reusable card contract
 - Type: Pattern
@@ -174,7 +190,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents style drift and duplicated interaction behavior across Routine, Today, and Session surfaces while keeping UX updates low-risk.
 - Evidence: src/components/ExerciseCard.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx, src/app/today/TodayExerciseRows.tsx, src/app/today/TodayDayPicker.tsx, src/components/SessionExerciseFocus.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Prefer explicit client action invocation for transient-sheet mutations
 - Type: Pattern
@@ -182,7 +199,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Form submissions tied to rapidly unmounted UI can race with close behavior and produce non-deterministic mutation feedback.
 - Evidence: src/components/RoutineSwitcherBar.tsx, src/app/routines/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Keep detail-surface sections structurally stable with explicit empty states
 - Type: Guardrail
@@ -190,7 +208,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents layout drift and user confusion when some entities have sparse data while others have populated data.
 - Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExerciseInfo.tsx, src/app/api/exercise-info/[exerciseId]/route.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — Automate intentional tag-based release ritual
 - Type: Workflow
@@ -198,7 +217,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/WORKFLOWS/checklists/release-checklist.md
 - Rationale: Reduces accidental production deploys and keeps deploy intent auditable through explicit version/tag events.
 - Evidence: scripts/release.mjs, package.json, docs/PROJECT_GOVERNANCE.md
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — Keep app-wide filter headers on one shared contract
 - Type: Guardrail
@@ -206,7 +226,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents per-screen filter header drift while still allowing intentional display variations without forking filter UIs.
 - Evidence: src/components/ExerciseTagFilterControl.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Make top safe-area/header offset route-configurable in shared shells
 - Type: Guardrail
@@ -214,7 +235,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents duplicated safe-area/header offsets and eliminates unstable top whitespace on detail screens that intentionally hide primary nav chrome.
 - Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/session/[id]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-03 — Standardize fixed CTA spacing through one shared reserve token
@@ -223,7 +245,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents overlap/dead-zone drift and keeps bottom-safe-area behavior consistent across screens without changing scroll ownership.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/session/[id]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## Implemented Already
 
@@ -233,7 +256,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Keeps header chrome lighter, preserves readability, and provides a normalized interaction contract reusable across view-mode and ordering controls.
 - Evidence: src/components/ui/app/ViewModeSelect.tsx, src/app/history/HistorySessionsClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — API errors should ship phase + correlation metadata by default
 - Type: Guardrail
@@ -241,7 +265,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/ci-guardrails-and-verification-tiers.md
 - Rationale: Reduces mean-time-to-diagnosis for production failures by making client-visible errors instantly traceable to server logs without exposing sensitive data.
 - Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/components/ExerciseInfo.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — Enforce one vertical scroll owner per app page shell
 - Type: Guardrail
@@ -249,7 +274,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Multiple scroll owners in mobile flex layouts can trap scroll, break sticky positioning context, and cause layout jumping.
 - Evidence: src/components/ui/app/AppShell.tsx, src/components/ui/app/ScrollContainer.tsx, src/app/history/page.tsx, src/app/history/exercises/page.tsx, src/app/history/[sessionId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — Keep token refresh exclusively in middleware for server-auth determinism
 - Type: Guardrail
@@ -257,7 +283,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Prevents split refresh ownership and cookie drift that can cause intermittent SSR/session auth failures.
 - Evidence: middleware.ts, src/lib/supabase/server.ts, src/app/auth/actions.ts, src/app/auth/confirm/route.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — Use deterministic sync reports instead of auto-renaming canonical media files
 - Type: Guardrail
@@ -265,7 +292,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/media-fallbacks.md
 - Rationale: Prevents hidden filesystem mutations and keeps media onboarding auditable/repeatable for manual asset workflows.
 - Evidence: scripts/syncExerciseIcons.mjs, icon-sync-report.md, src/generated/exerciseIconManifest.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — Pair sticky bottom CTAs with conditional content padding in long input flows
 - Type: Guardrail
@@ -273,7 +301,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Sticky footers can occlude final inputs and degrade keyboard/touch accessibility unless content offset is explicit.
 - Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-02 — Route repeated detail surfaces through one canonical renderer + resolver
@@ -282,7 +311,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/ui-controller-separation.md
 - Rationale: Prevents section/layout drift, inconsistent media fallback behavior, and per-flow data-shaping divergence that accumulates hidden UX bugs.
 - Evidence: src/components/ExerciseInfo.tsx, src/components/ExerciseInfoSheet.tsx, src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 
@@ -292,7 +322,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/media-fallbacks.md
 - Rationale: Database defaults can be truthy placeholder strings that unintentionally block deterministic fallback behavior and show low-value placeholder panels despite available icon assets.
 - Evidence: src/lib/exerciseImages.ts, src/components/ExerciseInfoSheet.tsx, src/app/exercises/[exerciseId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — Never conditionally suppress media sections when fallback assets are valid UX
 - Type: Guardrail
@@ -300,7 +331,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/frontend/media-fallbacks.md
 - Rationale: Gating section render on “non-placeholder” checks can regress into blank UI states and break consistency across list/detail surfaces.
 - Evidence: src/components/ExerciseInfoSheet.tsx, src/lib/exerciseImages.ts, src/components/ExerciseAssetImage.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — History exercise browsers must share the same canonical catalog loader as Add Exercise
 - Type: Guardrail
@@ -308,7 +340,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
 - Rationale: Prevents catalog drift where one surface silently shows only a partial DB subset while other flows show the full known catalog.
 - Evidence: src/lib/exercises-browser.ts, src/lib/exercises.ts, src/app/history/exercises/ExerciseBrowserClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — Degrade derived cache reads safely when schema rollout lags
 - Type: Guardrail
@@ -316,7 +349,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/cache-and-revalidation.md
 - Rationale: Production environments can lag migrations; hard-failing server components on optional cache tables causes avoidable route outages.
 - Evidence: src/lib/exercises-browser.ts, src/app/history/exercises/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-28 — Resolve cached/aggregated stats by canonical entity ID at render boundaries
 - Type: Guardrail
@@ -330,7 +364,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
 - Rationale: Prevents drift where one flow silently drops target fields while another persists them, causing inconsistent saved goals for identical UI input.
 - Evidence: src/lib/exercise-goal-payload.ts, src/app/routines/[id]/edit/day/actions.ts, src/app/session/[id]/actions.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-02-28 — Recompute derived performance caches after both additive and destructive history mutations
@@ -339,7 +374,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
 - Rationale: Prevents stale “best/last” claims after destructive history edits while keeping recomputation bounded and predictable.
 - Evidence: src/lib/exercise-stats.ts, src/app/session/[id]/actions.ts, src/app/history/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-28 — Render destructive confirmations in a body-level portal with full-viewport isolation
 - Type: Guardrail
@@ -347,7 +383,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Inline-mounted overlays can inherit card/list stacking and clipping behavior, causing text bleed and weaker destructive affordance clarity on mobile.
 - Evidence: src/components/ui/ConfirmDestructiveModal.tsx, src/app/history/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-28 — Pair risk-tiered destructive safeguards with reversible undo where feasible
 - Type: Pattern
@@ -355,7 +392,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
 - Rationale: Prevents accidental destructive loss while preserving fast workflows by reserving undo only for safely reversible operations.
 - Evidence: src/components/ui/ConfirmDestructiveModal.tsx, src/components/ui/useUndoAction.ts, src/components/SessionTimers.tsx, src/components/SessionExerciseFocus.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-27 — Generate runtime media manifests from public assets for deterministic lookups
 - Type: Guardrail
@@ -363,7 +401,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: patterns/frontend/media-fallbacks.md
 - Rationale: Prevents noisy production 404 spam caused by optimistic path construction when catalog slugs outpace available assets.
 - Evidence: scripts/generate-exercise-icon-manifest.mjs, src/generated/exerciseIconManifest.ts, src/lib/exerciseImages.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-27 — Cache known-missing media URLs per session in shared image components
 - Type: Guardrail
@@ -585,7 +624,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: patterns/frontend/offline-resilience.md
 - Rationale: Users expect “resume workout” continuity to include in-progress interaction state, not just server-fetched records.
 - Evidence: src/components/SessionTimers.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-24 — Resolve local-day status and timestamps from one timezone source
 - Type: Guardrail
@@ -703,7 +743,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Inline event handlers in Server Component trees can trigger production render/runtime failures and blur execution boundaries.
 - Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/RestDayToggleCheckbox.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-28 — Keep workout stats lookups keyed strictly by canonical exercise UUIDs
 - Type: Guardrail
@@ -711,7 +752,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Mismatched identifiers silently hide valid stats rows and create hard-to-debug UI drift in measurement panels.
 - Evidence: src/app/session/[id]/queries.ts, src/components/ExercisePicker.tsx, src/lib/exercise-stats.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-28 — Avoid nested server-action forms for row-level destructive actions
 - Type: Guardrail
@@ -719,7 +761,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Nested forms can cause implicit submit bubbling and React/Next runtime submit errors during destructive actions.
 - Evidence: src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/components/destructive/ConfirmedServerFormButton.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-28 — Treat mutable DB columns as additive during contract migrations and move reads first
 - Type: Guardrail
@@ -727,7 +770,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/versioned-persistence.md
 - Rationale: Querying legacy columns during partial rollout can trip schema-cache/runtime errors; additive-first plus read alignment keeps deployments safe and reversible.
 - Evidence: supabase/migrations/029_session_exercises_range_goal_columns.sql, src/app/session/[id]/queries.ts, src/lib/session-targets.ts, src/lib/exercise-goal-payload.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-28 — Keep session goal range-column parity across all tracked metrics
 - Type: Guardrail
@@ -735,7 +779,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/deterministic-reversible-state.md
 - Rationale: Partial migrations where one metric still uses legacy single-value columns can trigger schema-cache/runtime failures and silent goal persistence gaps.
 - Evidence: src/lib/exercise-goal-payload.ts, src/app/session/[id]/queries.ts, src/lib/session-targets.ts, supabase/migrations/030_session_exercises_target_sets_range_columns.sql
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-02-28 — Centralize fullscreen overlay scroll-lock in a single lifecycle with guaranteed cleanup
 - Type: Guardrail
@@ -743,7 +788,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Nested lock handlers can restore stale `overflow` values and leave the underlying page non-scrollable after close, especially on iOS/PWA.
 - Evidence: src/components/ExerciseInfoSheet.tsx, src/components/ExercisePicker.tsx, src/lib/useBodyScrollLock.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — Reuse existing in-context detail overlays instead of introducing dead detail-route links
 - Type: Guardrail
@@ -751,7 +797,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Preserving one detail interaction contract avoids navigation regressions (404s), keeps close/return behavior deterministic, and prevents duplicated UI pathways for the same content.
 - Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx, src/components/ExerciseInfoSheet.tsx, src/lib/exercises-browser.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — Centralize Back navigation UI behind one reusable primitive with per-screen intent hooks
 - Type: Guardrail
@@ -759,7 +806,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: A single Back primitive prevents icon/style drift while preserving local navigation intent (route back, push, or in-context panel close).
 - Evidence: src/components/ui/BackButton.tsx, src/components/ui/TopRightBackButton.tsx, src/components/ExerciseInfoSheet.tsx, src/components/SessionExerciseFocus.tsx, src/app/history/[sessionId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — For in-panel scroll screens, avoid sticky tab wrappers inside clipped glass containers
 - Type: Guardrail
@@ -767,7 +815,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Sticky wrappers inside clipped containers can produce visual clipping artifacts and increase the chance of pointer/scroll conflicts over list content.
 - Evidence: src/app/history/page.tsx, src/app/history/HistorySessionsClient.tsx, src/components/ui/SegmentedControl.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-01 — Normalize repeated routine/day UI through app-local primitives and tokens
 - Type: Pattern
@@ -775,7 +824,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Reduces repeated markup/classes, keeps visual tuning centralized, and prevents multi-screen UI drift during future screen updates.
 - Evidence: src/components/ui/app/AppPanel.tsx, src/components/ui/app/AppHeader.tsx, src/components/ui/app/AppRow.tsx, src/components/ui/app/AppBadge.tsx, src/components/ui/app/StickyActionBar.tsx, src/app/today/TodayDayPicker.tsx, src/app/today/page.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-01 — Treat List/Compact toggles as row-density variants on shared primitives
@@ -784,7 +834,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Keeps visual parity and interaction behavior consistent while reducing layout drift and duplicated rendering logic.
 - Evidence: src/components/ui/app/AppRow.tsx, src/app/history/HistorySessionsClient.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — Add `appearance-none` to absolute full-card button overlays in mobile dark cards
 - Type: Guardrail
@@ -792,7 +843,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/theming-dark-mode.md
 - Rationale: Mobile WebKit may apply default button surface styles that make cards look blank even though content is rendered underneath.
 - Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — Floating sticky top nav should anchor below safe-area via one shared offset token
 - Type: Pattern
@@ -800,7 +852,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Safe-area accommodation should adjust nav position, not expand nav background/panel height into the notch/status region.
 - Evidence: src/app/globals.css, src/components/AppNav.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — Standardize detail sheet back actions with optional local close handlers
 - Type: Guardrail
@@ -808,7 +861,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents hard-coded return routes, preserves origin screen state/scroll in modal contexts, and keeps deep-link route behavior correct.
 - Evidence: src/components/ExerciseInfoSheet.tsx, src/app/today/TodayDayPicker.tsx, src/app/today/TodayExerciseRows.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — API routes should emit phase-labeled failure logs with stable error envelopes
 - Type: Guardrail
@@ -816,7 +870,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Prevents opaque 500 debugging and avoids client drift from mixed/legacy error response shapes.
 - Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts, src/components/ExerciseInfo.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-02 — Reuse one measurement editor surface across logging and history correction
 - Type: Pattern
@@ -824,7 +879,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents behavior drift in metric visibility, unit selection, and value-entry expectations across closely related workout flows.
 - Evidence: src/components/ui/measurements/ModifyMeasurements.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Normalize bottom actions with compact fit-content stacks
 - Type: Pattern
@@ -832,7 +888,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents action-surface drift, removes unnecessary background chrome, and preserves consistent touch target sizing while respecting iOS home-indicator safe area.
 - Evidence: src/components/ui/CompactActionStack.tsx, src/app/today/TodayDayPicker.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Reserve fixed bottom action space through one shell-level offset contract
 - Type: Guardrail
@@ -840,7 +897,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents dead-space drift and hidden end-of-list controls when fixed action panels vary across screens or evolve over time.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/today/page.tsx, src/app/routines/page.tsx, src/app/history/[sessionId]/page.tsx, src/components/SessionPageClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 
 ## 2026-03-03 — Measured fixed-bottom action bars must publish shell reserve height
@@ -849,7 +907,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents both hidden end-of-scroll content and oversized dead-space drift caused by static/magic bottom reserve constants across variants and orientation changes.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/components/ui/app/AppShell.tsx, src/app/globals.css, src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Prefer in-flow sticky bottom actions over fixed overlays on scrollable screens
 - Type: Guardrail
@@ -857,7 +916,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Sticky in-flow actions eliminate overlap bugs and dead-space drift caused by fixed overlays, nested scroll owners, and bar-height reserve math.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx, src/components/SessionTimers.tsx, src/app/session/[id]/page.tsx, src/app/routines/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Portal viewport-fixed bottom action bars out of overflow scrollers
 - Type: Guardrail
@@ -865,7 +925,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Nested overflow containers (especially iOS WebKit) can break fixed anchoring/clipping, causing last-row overlap even when reserve padding exists.
 - Evidence: src/components/ui/BottomActionBar.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/session/[id]/page.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-03 — Screen-owned sticky bottom actions for scrollable mobile detail flows
 - Type: Pattern
@@ -873,7 +934,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Prevents overlay overlap/clipping bugs in iOS overflow contexts and keeps action-bar behavior consistent across deep detail screens.
 - Evidence: src/components/SessionTimers.tsx, src/components/SessionPageClient.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/app/history/[sessionId]/HistoryLogPageClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Resolve effective exercise modality from metric signal, not metadata alone
 - Type: Guardrail
@@ -881,7 +943,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents stale/incorrect metadata from causing strength histories to display cardio-only summaries and keeps modality decisions deterministic across surfaces.
 - Evidence: src/lib/cardio-best.ts, src/lib/exercises-browser.ts, src/lib/exercise-info.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Bottom actions provider/slot injection for screen-owned CTA surfaces
 - Type: Pattern
@@ -889,7 +952,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Centralizing CTA mounting prevents feature-level overlay drift and keeps action placement deterministic across Today, Session, and History-style flows.
 - Evidence: src/components/layout/bottom-actions.tsx, src/components/layout/ScrollScreenWithBottomActions.tsx, src/app/today/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Publish bottom actions upward from child features
 - Type: Practice
@@ -897,7 +961,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: Upward publishing keeps feature modules focused on action content while the screen shell owns placement, stickiness, and spacing behavior.
 - Evidence: src/components/layout/PublishBottomActions.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Treat direct BottomActionBar mounting as framework-only
 - Type: Guardrail
@@ -905,7 +970,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Restricting direct mounts removes duplicate fixed/sticky bars and enforces one architectural path for bottom action rendering.
 - Evidence: src/components/layout/bottom-actions.tsx, src/components/ui/BottomActionBar.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — AppShell owns mobile safe-area variables and offsets
 - Type: Pattern
@@ -913,7 +979,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
 - Rationale: A single safe-area owner prevents inconsistent notch/home-indicator spacing between routes and stabilizes layout behavior on iOS.
 - Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/components/ui/app/MainTabScreen.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Enforce a single scroll owner for bottom action compatibility
 - Type: Guardrail
@@ -921,7 +988,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Nested or missing scroll owners are a primary cause of clipped sticky/fixed actions and unreachable bottom content on mobile browsers.
 - Evidence: src/components/ui/app/ScrollContainer.tsx, src/components/layout/ScrollScreenWithBottomActions.tsx, src/components/layout/bottom-actions.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Build history feed cards from server-shaped session summaries
 - Type: Pattern
@@ -929,7 +997,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Loader-derived summaries reduce client recomputation drift and keep list surfaces deterministic across list and detail routes.
 - Evidence: src/app/history/session-summary.ts, src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Use defensive exercise-display fallbacks in list UIs
 - Type: Guardrail
@@ -937,7 +1006,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Defensive fallback rendering prevents blank or broken list cards when heterogeneous payloads contain partial exercise name shapes.
 - Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx, src/app/history/session-summary.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Validate exercise IDs at client-open and API-entry boundaries
 - Type: Guardrail
@@ -945,7 +1015,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Dual-boundary validation prevents malformed IDs from triggering noisy fetch failures and blocks legacy placeholder records from user-facing surfaces.
 - Evidence: src/components/ExerciseInfo.tsx, src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercises.ts
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Include request correlation + step metadata in API errors
 - Type: Practice
@@ -953,7 +1024,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/observability-and-operability.md
 - Rationale: Correlation and phase fields make production failures traceable across client reports, logs, and edge responses without requiring repro.
 - Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/components/ExerciseInfo.tsx
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Use two-layer playbook learning automation (nudge + enforce)
 - Type: Workflow
@@ -961,7 +1033,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/WORKFLOWS/upstreaming-playbook-notes.md
 - Rationale: A suggestion-only workflow is easy to ignore, while enforcement-only creates friction; combining both improves adoption and consistency.
 - Evidence: scripts/playbook/suggest-notes-from-diff.mjs, scripts/playbook/check-notes-updated.mjs, .github/workflows/ci.yml
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Playbook sync automation should resolve integration mode explicitly before mutating repos
 - Type: Guardrail

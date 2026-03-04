@@ -47,3 +47,14 @@ Exercise detail sheet and page both consume one controller/resolver output while
 ## Sources
 - Dump B — `Architectural Patterns / UI/controller separation pattern`.
 - Dump A — `2) Core Principles / strict server/client boundaries`.
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-02-route-repeated-detail-surfaces-through-one-canonical-renderer-resolver -->
+### Route repeated detail surfaces through one canonical renderer + resolver (from FawxzzyFitness notes, 2026-03-02)
+Type: Guardrail
+Summary: When the same detail experience is reachable from multiple product entry points, all flows should open one shared UI module and one shared data resolver keyed by canonical entity ID.
+Rationale: Prevents section/layout drift, inconsistent media fallback behavior, and per-flow data-shaping divergence that accumulates hidden UX bugs.
+Evidence (FawxzzyFitness):
+- src/components/ExerciseInfo.tsx
+- src/components/ExerciseInfoSheet.tsx
+- src/app/api/exercise-info/[exerciseId]/route.ts
+- src/lib/exercise-info.ts

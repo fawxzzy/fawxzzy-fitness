@@ -49,3 +49,23 @@ If DB media path is a seeded placeholder, resolver falls back to manifest icon; 
 
 ## Sources
 - `docs/PLAYBOOK_NOTES.md` (2026-02-27, 2026-02-28 media fallback guardrails).
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-01-treat-seeded-placeholder-media-defaults-as-unset-in-fallback-resolvers -->
+### Treat seeded placeholder media defaults as unset in fallback resolvers (from FawxzzyFitness notes, 2026-03-01)
+Type: Guardrail
+Summary: Canonical media resolvers should treat known seeded placeholder paths as unset values so fallback chains can select real assets (and optionally suppress sections when no non-placeholder asset exists).
+Rationale: Database defaults can be truthy placeholder strings that unintentionally block deterministic fallback behavior and show low-value placeholder panels despite available icon assets.
+Evidence (FawxzzyFitness):
+- src/lib/exerciseImages.ts
+- src/components/ExerciseInfoSheet.tsx
+- src/app/exercises/[exerciseId]/page.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-01-use-deterministic-sync-reports-instead-of-auto-renaming-canonical-media-files -->
+### Use deterministic sync reports instead of auto-renaming canonical media files (from FawxzzyFitness notes, 2026-03-01)
+Type: Guardrail
+Summary: Canonical media sync scripts should validate strict filename contracts and report suggested fixes, but must not auto-rename files in-place by default.
+Rationale: Prevents hidden filesystem mutations and keeps media onboarding auditable/repeatable for manual asset workflows.
+Evidence (FawxzzyFitness):
+- scripts/syncExerciseIcons.mjs
+- icon-sync-report.md
+- src/generated/exerciseIconManifest.ts

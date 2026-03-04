@@ -42,3 +42,13 @@ Make upstreaming mechanical, auditable, and repeatable across consuming reposito
 - Example source note: `FawxzzyFitness/docs/PLAYBOOK_NOTES.md`.
 - Example promotion: classify a reusable UI finding as a Pattern, update Playbook canonical pattern doc, then mark the original app-local note as Upstreamed with the Playbook version/reference.
 
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-use-two-layer-playbook-learning-automation-nudge-enforce -->
+### Use two-layer playbook learning automation (nudge + enforce) (from FawxzzyFitness notes, 2026-03-04)
+Type: Workflow
+Summary: Pair local diff-based note suggestions with CI enforcement so learning-zone code changes consistently produce `PLAYBOOK_NOTES` updates before merge.
+Rationale: A suggestion-only workflow is easy to ignore, while enforcement-only creates friction; combining both improves adoption and consistency.
+Evidence (FawxzzyFitness):
+- scripts/playbook/suggest-notes-from-diff.mjs
+- scripts/playbook/check-notes-updated.mjs
+- .github/workflows/ci.yml

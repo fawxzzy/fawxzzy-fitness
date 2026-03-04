@@ -198,3 +198,165 @@ Example
 Why It Matters
 Deterministic class extraction prevents hidden layout regressions where scroll content is clipped behind fixed mobile action bars.
 
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-playbook-sync-automation-should-resolve-integration-mode-explicitly-before-mutating-repos -->
+### Playbook sync automation should resolve integration mode explicitly before mutating repos (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Repository automation that syncs shared doctrine should first resolve explicit integration modes (submodule, in-tree repo, external path) and enforce clean-working-tree preconditions before running git update commands.
+Rationale: Prevents destructive or ambiguous sync behavior across different wiring models and makes one-command doctrine updates deterministic and auditable.
+Evidence (FawxzzyFitness):
+- scripts/playbook/playbook-path.mjs
+- scripts/playbook/sync-playbook.mjs
+- scripts/playbook/check-proposed-notes-threshold.mjs
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-validate-exercise-ids-at-client-open-and-api-entry-boundaries -->
+### Validate exercise IDs at client-open and API-entry boundaries (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Exercise-browser surfaces should reject invalid/sentinel IDs both before opening detail UI and again at API route ingress, while filtering sentinel/legacy placeholders from source lists.
+Rationale: Dual-boundary validation prevents malformed IDs from triggering noisy fetch failures and blocks legacy placeholder records from user-facing surfaces.
+Evidence (FawxzzyFitness):
+- src/components/ExerciseInfo.tsx
+- src/app/api/exercise-info/[exerciseId]/route.ts
+- src/lib/exercises.ts
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-use-defensive-exercise-display-fallbacks-in-list-uis -->
+### Use defensive exercise-display fallbacks in list UIs (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Exercise list UIs should resolve display text through a prioritized candidate chain and fall back to a neutral label when canonical name fields are absent.
+Rationale: Defensive fallback rendering prevents blank or broken list cards when heterogeneous payloads contain partial exercise name shapes.
+Evidence (FawxzzyFitness):
+- src/app/history/exercises/ExerciseBrowserClient.tsx
+- src/app/history/session-summary.ts
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-enforce-a-single-scroll-owner-for-bottom-action-compatibility -->
+### Enforce a single scroll owner for bottom action compatibility (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Keep one `ScrollContainer` as the vertical scroll owner and mount `BottomActionsSlot` inside it, with development warnings when no scroll ancestor is found.
+Rationale: Nested or missing scroll owners are a primary cause of clipped sticky/fixed actions and unreachable bottom content on mobile browsers.
+Evidence (FawxzzyFitness):
+- src/components/ui/app/ScrollContainer.tsx
+- src/components/layout/ScrollScreenWithBottomActions.tsx
+- src/components/layout/bottom-actions.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-treat-direct-bottomactionbar-mounting-as-framework-only -->
+### Treat direct BottomActionBar mounting as framework-only (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: `BottomActionBar` usage should be limited to the shared slot/framework layer; screen or feature code should not mount it directly.
+Rationale: Restricting direct mounts removes duplicate fixed/sticky bars and enforces one architectural path for bottom action rendering.
+Evidence (FawxzzyFitness):
+- src/components/layout/bottom-actions.tsx
+- src/components/ui/BottomActionBar.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-resolve-effective-exercise-modality-from-metric-signal-not-metadata-alone -->
+### Resolve effective exercise modality from metric signal, not metadata alone (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: When measurement metadata suggests cardio, UI classification should still require positive duration or distance signal before rendering cardio-mode summaries or Best lines.
+Rationale: Prevents stale/incorrect metadata from causing strength histories to display cardio-only summaries and keeps modality decisions deterministic across surfaces.
+Evidence (FawxzzyFitness):
+- src/lib/cardio-best.ts
+- src/lib/exercises-browser.ts
+- src/lib/exercise-info.ts
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-03-portal-viewport-fixed-bottom-action-bars-out-of-overflow-scrollers -->
+### Portal viewport-fixed bottom action bars out of overflow scrollers (from FawxzzyFitness notes, 2026-03-03)
+Type: Guardrail
+Summary: Any `position: fixed` bottom action bar should render through a top-level portal layer (`document.body`) while the screen’s single scroll owner reserves bottom space via the shared reserve class.
+Rationale: Nested overflow containers (especially iOS WebKit) can break fixed anchoring/clipping, causing last-row overlap even when reserve padding exists.
+Evidence (FawxzzyFitness):
+- src/components/ui/BottomActionBar.tsx
+- src/app/routines/[id]/days/[dayId]/page.tsx
+- src/app/history/[sessionId]/page.tsx
+- src/app/session/[id]/page.tsx
+- src/components/SessionTimers.tsx
+- src/app/history/[sessionId]/LogAuditClient.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-03-standardize-fixed-cta-spacing-through-one-shared-reserve-token -->
+### Standardize fixed CTA spacing through one shared reserve token (from FawxzzyFitness notes, 2026-03-03)
+Type: Guardrail
+Summary: When using viewport-fixed bottom CTAs, export and reuse one shared reserve class constant on the existing route scroll owner instead of screen-specific `pb-*` compensation.
+Rationale: Prevents overlap/dead-zone drift and keeps bottom-safe-area behavior consistent across screens without changing scroll ownership.
+Evidence (FawxzzyFitness):
+- src/components/ui/BottomActionBar.tsx
+- src/app/routines/page.tsx
+- src/app/routines/[id]/days/[dayId]/page.tsx
+- src/app/history/[sessionId]/page.tsx
+- src/app/session/[id]/page.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-03-enforce-mobile-safe-area-contracts-with-a-single-scroll-owner-reserve -->
+### Enforce mobile safe-area contracts with a single scroll-owner reserve (from FawxzzyFitness notes, 2026-03-03)
+Type: Guardrail
+Summary: Keep top/bottom viewport spacing deterministic by letting the page shell own both top inset/header offset and bottom fixed-bar reserve, and remove per-screen spacing compensation.
+Rationale: Mixed ownership of safe-area offsets causes phantom top gaps, content overlap under fixed bars, and inconsistent dead space across routes.
+Evidence (FawxzzyFitness):
+- src/components/ui/app/AppShell.tsx
+- src/components/ui/BottomActionBar.tsx
+- src/app/history/[sessionId]/page.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-03-portal-dropdowns-menus-out-of-glass-card-stacking-contexts -->
+### Portal dropdowns/menus out of glass/card stacking contexts (from FawxzzyFitness notes, 2026-03-03)
+Type: Guardrail
+Summary: Interactive overlays (dropdowns, popovers, context menus) must render through a top-level portal layer rather than inside card/glass containers that may create clipping or stacking contexts.
+Rationale: Prevents mobile overlay clipping, z-index fights, and awkward menu overlap when parent containers use blur, overflow, or local stacking contexts.
+Evidence (FawxzzyFitness):
+- src/components/ui/app/ViewModeSelect.tsx
+- src/app/history/HistorySessionsClient.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-03-app-shell-should-own-top-nav-placement-variables -->
+### App shell should own top-nav placement variables (from FawxzzyFitness notes, 2026-03-03)
+Type: Guardrail
+Summary: Treat app-level top spacing as a single `AppShell` contract (`--app-nav-top`, `--app-nav-h`, `--app-content-top`) and make nav components consume only those shell-scoped vars.
+Rationale: Prevents competing safe-area/header offset sources from creating route-specific whitespace drift and notch/header overlap bugs.
+Evidence (FawxzzyFitness):
+- src/components/ui/app/AppShell.tsx
+- src/components/AppNav.tsx
+- src/app/globals.css
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-03-portaled-sticky-bottom-actions-must-pair-with-conditional-scroll-owner-reserve -->
+### Portaled sticky bottom actions must pair with conditional scroll-owner reserve (from FawxzzyFitness notes, 2026-03-03)
+Type: Guardrail
+Summary: When bottom actions are viewport-pinned via portal/fixed positioning, reserve padding must be owned by the single scroll container and applied only when actions are actually present.
+Rationale: Keeps always-visible mobile CTAs reliable while preventing both content overlap and unnecessary bottom dead-space on routes without actions.
+Evidence (FawxzzyFitness):
+- src/components/ui/BottomActionBar.tsx
+- src/components/layout/ScrollScreenWithBottomActions.tsx
+- src/components/layout/bottom-actions.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-03-prioritize-deterministic-reserve-when-portaled-bottom-actions-are-introduced -->
+### Prioritize deterministic reserve when portaled bottom actions are introduced (from FawxzzyFitness notes, 2026-03-03)
+Type: Guardrail
+Summary: When migrating sticky actions to viewport-pinned portal/fixed behavior, default to always-on scroll-owner reserve until publish timing and mount order are proven stable.
+Rationale: Prevents final-content overlap regressions during hydration/transition edges where action presence may publish late.
+Evidence (FawxzzyFitness):
+- src/components/layout/ScrollScreenWithBottomActions.tsx
+- src/components/layout/bottom-actions.tsx
+- src/components/ui/BottomActionBar.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-cardio-best-rows-should-be-gated-by-metric-signal-and-explicit-measurement-type -->
+### Cardio Best rows should be gated by metric signal and explicit measurement type (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Cardio Best UI rows should render only when canonical cardio measurement metadata and selected best metric data are present; strength rows should omit Best placeholders entirely.
+Rationale: Prevents mixed-modality card regressions where strength rows show cardio “Best” placeholders and keeps summary lines meaningful.
+Evidence (FawxzzyFitness):
+- src/lib/cardio-best.ts
+- src/lib/exercises-browser.ts
+- src/lib/exercise-info.ts
+- src/app/history/exercises/ExerciseBrowserClient.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-do-not-infer-cardio-modality-from-incidental-set-metrics-on-strength-exercises -->
+### Do not infer cardio modality from incidental set metrics on strength exercises (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Cardio-vs-strength rendering should key from canonical `measurement_type`; duration/distance values in sets must not upcast non-cardio exercises into cardio UI paths.
+Rationale: Prevents strength cards from showing cardio-only Best rows when set payloads contain incidental timing/distance noise.
+Evidence (FawxzzyFitness):
+- src/lib/cardio-best.ts
+- src/lib/exercises-browser.ts
+- src/lib/exercise-info.ts
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-standardize-api-error-envelopes-with-request-phase-correlation-metadata -->
+### Standardize API error envelopes with request/phase correlation metadata (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: API routes should emit a consistent error envelope containing `requestId` and `step`, and mirror those fields in response headers for cross-boundary debugging.
+Rationale: A fixed envelope prevents ad hoc error shapes, makes client-side diagnostics deterministic, and improves production incident traceability without repro.
+Evidence (FawxzzyFitness):
+- src/app/api/exercise-info/[exerciseId]/route.ts
+- src/components/ExerciseInfo.tsx
