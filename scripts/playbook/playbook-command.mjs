@@ -11,17 +11,7 @@ async function readStatus() {
   try {
     const raw = await fs.readFile(STATUS_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    return {
-      drafts: Number(parsed.drafts) || 0,
-      proposed: Number(parsed.proposed) || 0,
-      promoted: Number(parsed.promoted) || 0,
-      upstreamed: Number(parsed.upstreamed) || 0,
-      warnThreshold: Number(parsed.warnThreshold) || 10,
-      failThreshold: Number(parsed.failThreshold) || 20,
-      contracts: parsed.contracts || { status: 'PASS', warnCount: 0, failCount: 0, topOffenders: [] },
-      recommendation: parsed.recommendation || { nextCommand: null, reason: 'No action required.' },
-      found: true,
-    };
+    return { ...parsed, found: true };
   } catch (error) {
     if (error && error.code !== 'ENOENT') {
       throw error;
@@ -32,19 +22,17 @@ async function readStatus() {
       proposed: 0,
       promoted: 0,
       upstreamed: 0,
-      warnThreshold: 10,
-      failThreshold: 20,
-      contracts: { status: 'PASS', warnCount: 0, failCount: 0, topOffenders: [] },
+      contracts: { status: 'PASS', summary: { pass: 4, warn: 0, fail: 0 }, byContract: [] },
       recommendation: { nextCommand: null, reason: 'No action required.' },
       found: false,
     };
   }
 }
 
-function runLocalSnapshot(scriptPath) {
+function runLocalSnapshot(scriptPath, args = []) {
   const absolutePath = path.resolve(scriptPath);
   try {
-    spawnSync('node', [absolutePath], { stdio: 'inherit', shell: false });
+    spawnSync('node', [absolutePath, ...args], { stdio: 'inherit', shell: false });
   } catch {
     // Best-effort local snapshot generation only.
   }
@@ -73,6 +61,11 @@ async function main() {
   if (!maintain.ok && typeof maintain.status !== 'number') {
     await runFallbackMaintenance();
   }
+
+  await fs.access(path.resolve('scripts/playbook/contracts-audit.mjs')).then(
+    () => runLocalSnapshot('scripts/playbook/contracts-audit.mjs', ['--quiet']),
+    () => {},
+  );
 
   await fs.access(path.resolve('scripts/playbook/write-status-files.mjs')).then(
     () => runLocalSnapshot('scripts/playbook/write-status-files.mjs'),

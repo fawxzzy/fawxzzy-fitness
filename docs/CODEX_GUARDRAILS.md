@@ -59,9 +59,9 @@ Codex must not proceed with code generation until the request is corrected to sa
 - Reference: `docs/playbook-status.json`.
 
 ### 8) Resolve failing contracts before shipping
-- Rule: If `contracts.failCount > 0` in `docs/playbook-status.json`, contract violations must be fixed before starting unrelated new work.
-- Enforcement: Treat contract failure counts as release-blocking for patch delivery until violations are resolved.
-- Reference: `docs/playbook-status.json` (`contracts.failCount`).
+- Rule: If `contracts.status == FAIL` (or `contracts.summary.fail > 0`) in `docs/playbook-status.json`, contract violations must be fixed before starting unrelated new work.
+- Enforcement: Treat contract FAIL state as release-blocking for patch delivery until violations are resolved.
+- Reference: `docs/playbook-status.json` (`contracts.status`, `contracts.summary.fail`).
 
 ### 9) Follow Playbook recommended next action
 - Rule: When `recommendation.nextCommand` is present in `docs/playbook-status.json`, follow that command in the workflow.
