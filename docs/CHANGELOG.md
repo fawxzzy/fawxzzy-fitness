@@ -7,6 +7,19 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.50 — 2026-03-04
+
+### WHAT
+- Added the standard repo-local Playbook config footprint at `tools/playbook/config.json` with Smart Signals enabled plus minimal contracts/notes defaults.
+- Updated Playbook status snapshot generation to persist a non-null `smartSignals` object, carrying forward prior snapshot artifacts when present and otherwise deriving a deterministic local summary during `npm run playbook`.
+- Kept CI status rendering status-file-driven by reading Smart Signals from `docs/playbook-status.json` only (including explicit `unavailable` fallback messaging instead of `null`).
+- Documented the repo-local Playbook config location in `docs/CODEX_GUARDRAILS.md`.
+
+### WHY
+- Restores the expected Playbook portable install footprint so Doctor and local automation have a canonical config path.
+- Ensures `docs/playbook-status.json` remains the single source of truth for Smart Signals without requiring CI recomputation.
+- Prevents ambiguous `smartSignals: null` snapshots by persisting a compact, machine-readable summary or explicit unavailability reason.
+
 ## 0.3.49 — 2026-03-04
 
 ### WHAT

@@ -8,6 +8,16 @@ function normalizeStatus(status) {
   return ['PASS', 'WARN', 'FAIL'].includes(normalized) ? normalized : 'PASS';
 }
 
+function normalizeBoundaryFlags(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean);
+  }
+  if (typeof value === 'number') {
+    return Array.from({ length: value }, () => 'unknown');
+  }
+  return [];
+}
+
 export function readDashboardModel(raw = {}) {
   const contractsSummary = raw.contracts?.summary || {};
   const failIds = Array.isArray(raw.contracts?.byContract)
@@ -35,10 +45,18 @@ export function readDashboardModel(raw = {}) {
         : 'No action required.',
   };
 
+  const smartSignalsSummary = raw.smartSignals?.summary && typeof raw.smartSignals.summary === 'object'
+    ? raw.smartSignals.summary
+    : raw.smartSignals || {};
+  const boundaryFlags = normalizeBoundaryFlags(smartSignalsSummary.boundaryFlags);
   const smartSignals = {
-    autoClassifiedDrafts: toNumber(raw.smartSignals?.autoClassifiedDrafts),
-    duplicatesSkipped: toNumber(raw.smartSignals?.duplicatesSkipped),
-    boundaryFlags: toNumber(raw.smartSignals?.boundaryFlags),
+    enabled: raw.smartSignals?.enabled !== false,
+    unavailable: raw.smartSignals?.status === 'unavailable',
+    reason: typeof raw.smartSignals?.reason === 'string' ? raw.smartSignals.reason : null,
+    autoClassified: toNumber(smartSignalsSummary.autoClassified, toNumber(smartSignalsSummary.autoClassifiedDrafts)),
+    duplicatesSkipped: toNumber(smartSignalsSummary.duplicatesSkipped),
+    boundaryFlags,
+    boundaryFlagsCount: toNumber(smartSignalsSummary.boundaryFlagsCount, boundaryFlags.length),
   };
 
   return {
@@ -57,7 +75,9 @@ export function formatDashboardMarkdown(raw) {
     ? ` (${model.contracts.failingIds.slice(0, 3).join(', ')})`
     : '';
 
-  const smartSignalsLine = `Smart Signals: autoClassifiedDrafts=${model.smartSignals.autoClassifiedDrafts}, duplicatesSkipped=${model.smartSignals.duplicatesSkipped}, boundaryFlags=${model.smartSignals.boundaryFlags}`;
+  const smartSignalsLine = model.smartSignals.unavailable
+    ? `Smart Signals: unavailable (${model.smartSignals.reason || 'no summary'})`
+    : `Smart Signals: autoClassified=${model.smartSignals.autoClassified}, duplicatesSkipped=${model.smartSignals.duplicatesSkipped}, boundaryFlags=${model.smartSignals.boundaryFlagsCount}`;
 
   return [
     '## Playbook Learning Status',

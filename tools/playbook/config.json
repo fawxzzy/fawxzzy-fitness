@@ -1,0 +1,13 @@
+{
+  "smartSignals": {
+    "enabled": true
+  },
+  "contracts": {
+    "enabled": true,
+    "allowlistGlobs": {},
+    "ignoredPaths": []
+  },
+  "notes": {
+    "notesPath": "docs/PLAYBOOK_NOTES.md"
+  }
+}

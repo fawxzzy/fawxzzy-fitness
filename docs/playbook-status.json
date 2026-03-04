@@ -49,8 +49,18 @@
     "nextCommand": null,
     "reason": "No action required."
   },
-  "smartSignals": null,
-  "trendLength": 33,
-  "lastTrendTimestamp": "2026-03-04T16:56:58Z",
-  "updatedAt": "2026-03-04T16:59:20.580Z"
+  "smartSignals": {
+    "enabled": true,
+    "summary": {
+      "autoClassified": 1,
+      "duplicates": 0,
+      "nearDuplicates": 0,
+      "duplicatesSkipped": 0,
+      "boundaryFlags": [],
+      "boundaryFlagsCount": 0
+    }
+  },
+  "trendLength": 36,
+  "lastTrendTimestamp": "2026-03-04T17:24:54Z",
+  "updatedAt": "2026-03-04T17:24:59.187Z"
 }
