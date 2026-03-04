@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.26 — 2026-03-04
+
+### WHAT
+- Added a one-command Playbook promotion workflow (`playbook:update`) that promotes `Proposed` notes into Playbook destination docs with idempotent marker-based updates and marks local note status as `Promoted` with upstream tracking.
+- Added autonomous learning scripts: `playbook:suggest` for git-diff-based note nudges and `playbook:check` for CI enforcement when learning-zone changes occur without note updates.
+- Added Playbook learning workflow documentation, parser self-test fixture/script coverage, and CI wiring for the new playbook notes enforcement check.
+
+### WHY
+- Makes local-to-global doctrine promotion repeatable and low-friction while preserving traceability across `Proposed` → `Promoted` → `Upstreamed`.
+- Reduces missed reusable learnings by nudging developers during local work and enforcing documentation discipline in pull requests.
+- Keeps governance automation explicit and maintainable without changing runtime application behavior.
+
+
 ## 0.3.25 — 2026-03-04
 
 ### WHAT
