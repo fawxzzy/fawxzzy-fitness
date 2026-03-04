@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { runNpm } from './_lib/run-npm.mjs';
 import { formatDashboardPlain } from './_lib/status-dashboard.mjs';
 
 const STATUS_PATH = path.resolve('docs/playbook-status.json');
+const STAGEABLE_STATUS_ARTIFACTS = ['docs/playbook-status.json', 'docs/playbook-trend.json'];
 
 async function readStatus() {
   try {
@@ -35,6 +37,14 @@ function runLocalSnapshot(scriptPath, args = []) {
     spawnSync('node', [absolutePath, ...args], { stdio: 'inherit', shell: false });
   } catch {
     // Best-effort local snapshot generation only.
+  }
+}
+
+function stageStatusArtifactsIfPresent() {
+  const existing = STAGEABLE_STATUS_ARTIFACTS.filter((relativePath) => existsSync(path.resolve(relativePath)));
+
+  if (existing.length > 0) {
+    spawnSync('git', ['add', ...existing], { stdio: 'inherit', shell: false });
   }
 }
 
@@ -76,6 +86,8 @@ async function main() {
     () => runLocalSnapshot('scripts/playbook/write-trend-files.mjs'),
     () => {},
   );
+
+  stageStatusArtifactsIfPresent();
 
   const status = await readStatus();
   console.log('');

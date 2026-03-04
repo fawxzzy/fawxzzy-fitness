@@ -49,6 +49,24 @@ function git(cwd, args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 }
 
+async function stageStatusArtifactsIfPresent(repoPath) {
+  const candidates = ['docs/playbook-status.json', 'docs/playbook-trend.json'];
+  const existing = [];
+
+  for (const relativePath of candidates) {
+    try {
+      await fs.access(path.resolve(repoPath, relativePath));
+      existing.push(relativePath);
+    } catch {
+      // Missing generated artifact; skip.
+    }
+  }
+
+  if (existing.length > 0) {
+    git(repoPath, ['add', ...existing]);
+  }
+}
+
 function isGitRepoClean(cwd) {
   try {
     git(cwd, ['rev-parse', '--is-inside-work-tree']);
@@ -128,6 +146,8 @@ async function main() {
   }
 
   console.log(`Promoted ${proposedEntries.length} note(s).`);
+
+  await stageStatusArtifactsIfPresent(process.cwd());
 
   if (options.commit) {
     const commitMessage = options.commitMessage ?? 'chore(playbook): promote local notes into playbook docs';
