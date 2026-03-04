@@ -9,6 +9,7 @@ function parseArgs(argv) {
     skipPlaybookCommit: argv.includes('--skip-playbook-commit'),
     skipSubtreeSync: argv.includes('--skip-subtree-sync'),
     skipMainCommit: argv.includes('--skip-main-commit'),
+    force: argv.includes('--force'),
   };
 }
 
@@ -51,6 +52,23 @@ function gitRoot(cwd) {
   return result.ok ? result.stdout.trim() : null;
 }
 
+function readChangedFiles(cwd) {
+  const status = tryRun('git', ['status', '--porcelain'], { cwd });
+  if (!status.ok || status.stdout.trim().length === 0) {
+    return [];
+  }
+
+  const diff = tryRun('git', ['diff', '--name-only', 'HEAD'], { cwd });
+  if (!diff.ok) {
+    return [];
+  }
+
+  return diff.stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 async function loadPackageScripts() {
   try {
     const raw = await fs.readFile(path.resolve('package.json'), 'utf8');
@@ -69,6 +87,32 @@ function commitIfDirty(cwd, message) {
 
   run('git', ['add', '-A'], { cwd });
   run('git', ['commit', '-m', message], { cwd });
+}
+
+function shouldRunUpdate(changedFiles, force) {
+  if (force) {
+    return true;
+  }
+
+  const hasDocsOrPlaybookChanges = changedFiles.some(
+    (file) => file.startsWith('docs/') || file.startsWith('Playbook/')
+  );
+
+  if (!hasDocsOrPlaybookChanges) {
+    return false;
+  }
+
+  const hasNotesChanges = changedFiles.includes('docs/PLAYBOOK_NOTES.md');
+  if (!hasNotesChanges) {
+    return false;
+  }
+
+  return true;
+}
+
+function printPlan(changedFiles, phases) {
+  console.log(`Detected changed files: ${changedFiles.length}`);
+  console.log(`Running phases: ${phases.join('/')}`);
 }
 
 async function runOptionalSubtreeSync() {
@@ -105,13 +149,30 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const root = process.cwd();
   const playbookPath = path.resolve(root, 'Playbook');
+  const changedFiles = readChangedFiles(root);
+  const runUpdate = shouldRunUpdate(changedFiles, args.force);
+
+  const phases = [
+    args.skipSync ? 'sync(skipped)' : 'sync',
+    'playbook',
+    runUpdate ? 'update' : 'update(skipped)',
+    args.skipPlaybookCommit ? 'commit(skipped)' : 'commit',
+    args.skipSubtreeSync ? 'subtree(skipped)' : 'subtree',
+    args.skipMainCommit ? 'main-commit(skipped)' : 'main-commit',
+  ];
+  printPlan(changedFiles, phases);
 
   if (!args.skipSync) {
     run('npm', ['run', 'playbook:sync']);
   }
 
   run('npm', ['run', 'playbook']);
-  run('npm', ['run', 'playbook:update']);
+
+  if (runUpdate) {
+    run('npm', ['run', 'playbook:update']);
+  } else {
+    console.log('Skipping playbook:update (no qualifying docs/Playbook + PLAYBOOK_NOTES changes detected). Use --force to run anyway.');
+  }
 
   if (!args.skipPlaybookCommit) {
     const mainRoot = gitRoot(root);
