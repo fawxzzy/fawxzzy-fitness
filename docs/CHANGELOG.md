@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 
 
 
+
+## 0.3.48 — 2026-03-04
+
+### WHAT
+- Added `scripts/playbook/signals-from-diff.mjs` as a thin adapter around the vendored central Playbook Signals Engine, including staged/PR diff modes and repo-local mapping support via `tools/playbook/signals-map.json`.
+- Updated both note-generation paths (`playbook:suggest` and Guardian draft generation) to pre-fill `Type`, `Suggested Playbook File`, and `Evidence` from Signals output and skip duplicate drafts when the engine reports a match.
+- Added fixture coverage for the adapter integration and documented auto-classification + duplicate-skip behavior in Codex guardrails.
+
+### WHY
+- Aligns local Playbook learning loops with central deterministic signal classification so note stubs are faster to review and less manual to fill.
+- Reduces note churn by suppressing duplicate draft creation when an equivalent doctrine heading already exists.
+- Preserves existing pre-commit and status/trend workflows while improving consistency between suggest and guardian draft paths.
+
 ## 0.3.47 — 2026-03-04
 
 ### WHAT

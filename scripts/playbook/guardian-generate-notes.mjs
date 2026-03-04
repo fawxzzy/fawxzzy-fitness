@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import { appendDraftsToNotes, formatDraftEntry } from './_lib/notes-parser.mjs';
 import { readDiffContext } from './_lib/diff-reader.mjs';
+import { getSignalsFromDiff } from './signals-from-diff.mjs';
 
 const NOTES_PATH = 'docs/PLAYBOOK_NOTES.md';
 
@@ -95,8 +96,13 @@ function createSummary(theme, evidenceFiles) {
   return `Recent git changes indicate a ${theme.key.replace('-', ' ')} learning candidate touching ${evidenceFiles.length} file(s). Capture this as draft guidance for review before promotion.`;
 }
 
-function buildDrafts({ range, files, fileDiffs }) {
+function buildDrafts({ range, files, fileDiffs, signal }) {
   const today = new Date().toISOString().slice(0, 10);
+  const sharedType = signal?.type || null;
+  const sharedSuggested = signal?.suggestedPlaybookFile || null;
+  const sharedEvidence = Array.isArray(signal?.evidence) && signal.evidence.length > 0
+    ? signal.evidence.slice(0, 10)
+    : null;
 
   return THEMES
     .map((theme) => {
@@ -110,11 +116,11 @@ function buildDrafts({ range, files, fileDiffs }) {
         id,
         date: today,
         title: theme.title,
-        type: theme.type,
+        type: sharedType || theme.type,
         summary: createSummary(theme, evidenceFiles),
-        suggestedPlaybookFile: theme.suggestedPlaybookFile,
+        suggestedPlaybookFile: sharedSuggested || theme.suggestedPlaybookFile,
         rationale: theme.rationale,
-        evidence: evidenceFiles,
+        evidence: sharedEvidence || evidenceFiles,
       });
 
       return {
@@ -128,7 +134,18 @@ function buildDrafts({ range, files, fileDiffs }) {
 
 function main() {
   const diffContext = readDiffContext(process.argv.slice(2));
-  const drafts = buildDrafts(diffContext);
+  const signal = getSignalsFromDiff({
+    staged: false,
+    base: diffContext.args.base,
+    changedFiles: diffContext.files,
+  });
+
+  if (signal.dedupe?.isDuplicate) {
+    console.log(`Skipped duplicate draft generation (matched: ${signal.dedupe.matchedTitle} @ ${signal.dedupe.matchedPath}).`);
+    return;
+  }
+
+  const drafts = buildDrafts({ ...diffContext, signal });
   const { added } = appendDraftsToNotes(NOTES_PATH, drafts);
 
   console.log(`Drafts added: ${added.length}`);
