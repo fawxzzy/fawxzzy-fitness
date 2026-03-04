@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.34 — 2026-03-04
+
+### WHAT
+- Added `docs/CODEX_GUARDRAILS.md` to codify pre-patch architecture enforcement rules for single scroll ownership, bottom-actions shell ownership, AppShell safe-area ownership, loader-derived summaries, and defensive UUID validation.
+- Updated `docs/WORKFLOWS/playbook-learning.md` with a Codex Guardrails pre-patch gate that requires refusal output when a request conflicts with declared guardrails.
+
+### WHY
+- Prevents architecture drift by making core Playbook-derived UI and boundary rules explicit and enforceable before code generation.
+- Establishes a deterministic refusal protocol so non-compliant requests are blocked until corrected.
+
+
 ## 0.3.33 — 2026-03-04
 
 ### WHAT

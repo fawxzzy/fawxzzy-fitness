@@ -2,6 +2,20 @@
 
 This workflow provides a one-command promotion path from local notes into the Playbook repository and lightweight automation to keep learning capture consistent.
 
+## Codex Guardrails Gate (Pre-Patch)
+
+Before generating patches, Codex must read `docs/CODEX_GUARDRAILS.md` and enforce its architecture rules.
+
+If a requested change violates any declared guardrail, Codex must refuse to generate the patch and return:
+
+```text
+Guardrail violation
+Rule: <rule name>
+Reference: <playbook doc>
+```
+
+Codex should resume patch generation only after the request is corrected to comply with guardrails.
+
 ## Playbook Learning Quick Ritual
 
 While coding:
