@@ -865,3 +865,75 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Prevents stale/incorrect metadata from causing strength histories to display cardio-only summaries and keeps modality decisions deterministic across surfaces.
 - Evidence: src/lib/cardio-best.ts, src/lib/exercises-browser.ts, src/lib/exercise-info.ts
 - Status: Proposed
+
+## 2026-03-04 — Bottom actions provider/slot injection for screen-owned CTA surfaces
+- Type: Pattern
+- Summary: Wrap scrollable screens in `BottomActionsProvider` and render a single `BottomActionsSlot` as the last child of the scroll owner so CTA UI is injected once at the screen layer.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Centralizing CTA mounting prevents feature-level overlay drift and keeps action placement deterministic across Today, Session, and History-style flows.
+- Evidence: src/components/layout/bottom-actions.tsx, src/components/layout/ScrollScreenWithBottomActions.tsx, src/app/today/page.tsx
+- Status: Proposed
+
+## 2026-03-04 — Publish bottom actions upward from child features
+- Type: Practice
+- Summary: Child feature clients should publish CTA nodes via `usePublishBottomActions`/`PublishBottomActions` instead of rendering their own bottom action wrappers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: Upward publishing keeps feature modules focused on action content while the screen shell owns placement, stickiness, and spacing behavior.
+- Evidence: src/components/layout/PublishBottomActions.tsx, src/components/SessionTimers.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed
+
+## 2026-03-04 — Treat direct BottomActionBar mounting as framework-only
+- Type: Guardrail
+- Summary: `BottomActionBar` usage should be limited to the shared slot/framework layer; screen or feature code should not mount it directly.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Restricting direct mounts removes duplicate fixed/sticky bars and enforces one architectural path for bottom action rendering.
+- Evidence: src/components/layout/bottom-actions.tsx, src/components/ui/BottomActionBar.tsx
+- Status: Proposed
+
+## 2026-03-04 — AppShell owns mobile safe-area variables and offsets
+- Type: Pattern
+- Summary: Define top/bottom safe-area offsets once in `AppShell` CSS variables and have screens consume those shared values rather than computing `env(safe-area-inset-*)` ad hoc.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: A single safe-area owner prevents inconsistent notch/home-indicator spacing between routes and stabilizes layout behavior on iOS.
+- Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/components/ui/app/MainTabScreen.tsx
+- Status: Proposed
+
+## 2026-03-04 — Enforce a single scroll owner for bottom action compatibility
+- Type: Guardrail
+- Summary: Keep one `ScrollContainer` as the vertical scroll owner and mount `BottomActionsSlot` inside it, with development warnings when no scroll ancestor is found.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Nested or missing scroll owners are a primary cause of clipped sticky/fixed actions and unreachable bottom content on mobile browsers.
+- Evidence: src/components/ui/app/ScrollContainer.tsx, src/components/layout/ScrollScreenWithBottomActions.tsx, src/components/layout/bottom-actions.tsx
+- Status: Proposed
+
+## 2026-03-04 — Build history feed cards from server-shaped session summaries
+- Type: Pattern
+- Summary: Derive History session cards from a shared server-side summary builder that aggregates exercises, sets, PR counts, and top-set display metadata before rendering.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Loader-derived summaries reduce client recomputation drift and keep list surfaces deterministic across list and detail routes.
+- Evidence: src/app/history/session-summary.ts, src/app/history/page.tsx, src/app/history/[sessionId]/page.tsx
+- Status: Proposed
+
+## 2026-03-04 — Use defensive exercise-display fallbacks in list UIs
+- Type: Guardrail
+- Summary: Exercise list UIs should resolve display text through a prioritized candidate chain and fall back to a neutral label when canonical name fields are absent.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Defensive fallback rendering prevents blank or broken list cards when heterogeneous payloads contain partial exercise name shapes.
+- Evidence: src/app/history/exercises/ExerciseBrowserClient.tsx, src/app/history/session-summary.ts
+- Status: Proposed
+
+## 2026-03-04 — Validate exercise IDs at client-open and API-entry boundaries
+- Type: Guardrail
+- Summary: Exercise-browser surfaces should reject invalid/sentinel IDs both before opening detail UI and again at API route ingress, while filtering sentinel/legacy placeholders from source lists.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Dual-boundary validation prevents malformed IDs from triggering noisy fetch failures and blocks legacy placeholder records from user-facing surfaces.
+- Evidence: src/components/ExerciseInfo.tsx, src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercises.ts
+- Status: Proposed
+
+## 2026-03-04 — Include request correlation + step metadata in API errors
+- Type: Practice
+- Summary: API handlers should return structured errors with a request correlation ID and processing step/phase metadata, and mirror those values in response headers.
+- Suggested Playbook File: Playbook/docs/PATTERNS/observability-and-operability.md
+- Rationale: Correlation and phase fields make production failures traceable across client reports, logs, and edge responses without requiring repro.
+- Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/components/ExerciseInfo.tsx
+- Status: Proposed
