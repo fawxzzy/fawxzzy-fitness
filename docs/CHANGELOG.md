@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.36 — 2026-03-04
+
+### WHAT
+- Added a cross-platform Playbook npm runner helper so `npm run playbook` invokes `npm.cmd` on Windows and avoids `spawnSync npm ENOENT` failures.
+- Updated `npm run playbook` flow to run maintenance, then best-effort local status/trend snapshot writers before reading and printing Playbook status.
+- Updated Playbook learning workflow docs to note that `npm run playbook` now generates local snapshots before status output.
+
+### WHY
+- Makes the one-command Playbook operator flow reliable across Windows and non-Windows shells.
+- Ensures `docs/playbook-status.json` exists locally when possible so status reporting is consistent outside CI.
+
+
 ## 0.3.35 — 2026-03-04
 
 ### WHAT
