@@ -7,6 +7,7 @@ import { readPlaybookStatus, STATUS_PATH } from './status.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const playbookCmd = path.join(__dirname, 'playbook-command.mjs');
 const updateCmd = path.join(__dirname, 'update-playbook-from-notes.mjs');
+const contractsCheckCmd = path.join(__dirname, 'contracts', 'check-contracts.mjs');
 
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: 'inherit', shell: false, cwd: process.cwd() });
@@ -45,6 +46,8 @@ async function main() {
   console.log(`[playbook:auto] Proposed=${status.notes.proposed}, Promoted(last action)=${status.notes.promoted}, ContractsFail=${status.contracts.fail}.`);
   console.log(`[playbook:auto] Next: ${next} (${status.reason})`);
   console.log(`[playbook:auto] See ${path.relative(process.cwd(), STATUS_PATH)} and docs/PLAYBOOK_NOTES.md.`);
+
+  run(node, [contractsCheckCmd]);
 
   process.exit(Number(status?.contracts?.fail || 0) > 0 ? 1 : 0);
 }

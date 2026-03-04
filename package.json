@@ -39,6 +39,8 @@
     "playbook:trend": "node scripts/playbook/write-trend-files.mjs",
     "playbook:contracts:audit": "node scripts/playbook/contracts-audit.mjs",
     "playbook:contracts:test": "node scripts/playbook/test-contracts-audit.mjs",
+    "contracts:gen": "node scripts/playbook/contracts/generate-contracts.mjs",
+    "contracts:check": "node scripts/playbook/contracts/check-contracts.mjs",
     "playbook:auto": "node scripts/playbook/auto.mjs",
     "playbook:auto:local": "node scripts/playbook/auto.mjs --skip-sync",
     "playbook:precommit": "node scripts/playbook/precommit.mjs",

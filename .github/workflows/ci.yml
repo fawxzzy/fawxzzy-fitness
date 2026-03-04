@@ -23,6 +23,9 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Contracts check
+        run: npm run contracts:check
+
 
       - name: Playbook learning check
         run: npm run playbook:check

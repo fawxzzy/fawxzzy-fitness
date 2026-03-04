@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.58 — 2026-03-04
+
+### WHAT
+- Added Contracts v1 governance artifacts via `docs/contracts.json` and new deterministic generation/check scripts under `scripts/playbook/contracts/`.
+- Wired `contracts:gen` and `contracts:check` npm scripts, added CI enforcement to run `npm run contracts:check`, and made `playbook:auto` run contracts checks before exit.
+
+### WHY
+- Establishes machine-readable architecture guardrails that CI and AI agents can enforce automatically to prevent architectural drift with low-noise deterministic checks.
+
+
+
 ## 0.3.57 — 2026-03-04
 
 ### WHAT
