@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.29 — 2026-03-04
+
+### WHAT
+- Added PR-visible Playbook Learning Status reporting so pull requests show current Drafts/Proposed/Promoted/Upstreamed note counts and per-push deltas.
+- Added a CI status command for Playbook notes so workflows can generate consistent machine-readable count snapshots.
+- Updated Playbook Learning workflow behavior to keep one persistent PR comment in sync with the latest status alongside a job summary.
+
+### WHY
+- Makes Playbook learning-state changes visible at review time without requiring maintainers to inspect raw notes files.
+- Improves governance feedback loops by surfacing trend direction (up/down) on every push.
+- Reduces PR noise by updating one stable status comment instead of posting duplicate comment threads.
+
 ## 0.3.28 — 2026-03-04
 
 ### WHAT
