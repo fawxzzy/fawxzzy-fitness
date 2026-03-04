@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.46 — 2026-03-04
+
+### WHAT
+- Added a local Playbook automation alias (`npm run playbook:auto:local`) that runs auto-mode without subtree sync.
+- Improved Playbook CI failure UX so workflows emit a failure-only Step Summary block with the recommended next command and reason from `docs/playbook-status.json`.
+- Hardened Playbook PR comment publishing so the workflow skips comment updates when `summary.md` is unavailable after earlier failures.
+
+### WHY
+- Makes day-to-day remediation faster by providing a predictable local command that avoids unnecessary sync work.
+- Gives contributors immediate, actionable recovery guidance directly in failed Actions runs.
+- Prevents secondary workflow errors from masking the original gate failure context.
+
 ## 0.3.45 — 2026-03-04
 
 ### WHAT

@@ -30,6 +30,36 @@ jobs:
       - name: Playbook maintenance
         run: npm run playbook
 
+      - name: Ensure Playbook status snapshot on failure
+        if: failure()
+        run: npm run playbook || true
+
+      - name: Print Playbook next command (on failure)
+        if: failure()
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'docs/playbook-status.json';
+          if (!fs.existsSync(path)) {
+            console.log('No docs/playbook-status.json found.');
+            process.exit(0);
+          }
+          const status = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const next = status.recommended_next_action ?? status.next_command ?? status.nextCommand ?? null;
+          const reason = status.reason ?? status.recommended_next_action_reason ?? status.next_reason ?? null;
+          const counts = status.counts ?? status.knowledge_counts ?? status.knowledge ?? null;
+
+          const lines = [];
+          lines.push('## Playbook Next Command (from playbook-status.json)');
+          if (next) lines.push(`**Next command:** \`${next}\``);
+          if (reason) lines.push(`**Reason:** ${reason}`);
+          if (counts) lines.push(`**Counts:** \`${JSON.stringify(counts)}\``);
+          lines.push('');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+          console.log(lines.join('\n'));
+          NODE
+
       - name: Lint
         run: npm run lint
 
