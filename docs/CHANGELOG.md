@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.60 — 2026-03-04
+
+### WHAT
+- Added a new advisory contract suggestion generator at `scripts/playbook/contracts/suggest-contracts-from-notes.mjs` that parses `docs/PLAYBOOK_NOTES.md`, filters Guardrail entries, applies low-noise heuristics, and writes deterministic suggestions to `docs/contracts.suggestions.json`.
+- Added `npm run contracts:suggest` to run the Guardrail-to-contract suggestion workflow on demand without mutating `docs/contracts.json`.
+- Standardized the suggestion output to include stable per-note hashing (`source_note_hash`), confidence levels, human-readable rationale, and machine-readable candidate contract payloads.
+
+### WHY
+- Enables repeatable, machine-readable proposal of enforceable governance contracts from authored Guardrail learnings while keeping v1 strictly advisory (no auto-enforcement or automatic contract mutation).
+- Improves governance scalability by making it faster to convert recurring note patterns (import boundaries, changelog/notes discipline) into candidate checks with clear confidence and rationale.
+
+
 ## 0.3.59 — 2026-03-04
 
 ### WHAT

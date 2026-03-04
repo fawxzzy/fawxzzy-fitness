@@ -41,6 +41,7 @@
     "playbook:contracts:test": "node scripts/playbook/test-contracts-audit.mjs",
     "contracts:gen": "node scripts/playbook/contracts/generate-contracts.mjs",
     "contracts:check": "node scripts/playbook/contracts/check-contracts.mjs",
+    "contracts:suggest": "node scripts/playbook/contracts/suggest-contracts-from-notes.mjs",
     "playbook:auto": "node scripts/playbook/auto.mjs",
     "playbook:local": "npm run playbook:auto",
     "playbook:ci": "npm run playbook:auto && npm run lint && npm run build",
