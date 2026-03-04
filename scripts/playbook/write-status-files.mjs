@@ -2,10 +2,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { runContractsAudit } from './contracts-audit-lib.mjs';
+import { getSignalsFromDiff } from './signals-from-diff.mjs';
 
 const NOTES_PATH = path.resolve('docs/PLAYBOOK_NOTES.md');
 const STATUS_PATH = path.resolve('docs/playbook-status.json');
 const TREND_PATH = path.resolve('docs/playbook-trend.json');
+const CONFIG_PATH = path.resolve('tools/playbook/config.json');
 const ALLOWLIST_PATH = path.resolve('scripts/playbook/contracts-allowlist.json');
 const DRAFTS_HEADER = '## DRAFTS (auto)';
 const ENTRY_HEADER_RE = /^##\s+\d{4}-\d{2}-\d{2}\s+—\s+/;
@@ -117,6 +119,101 @@ function countStatuses(lines) {
   return counts;
 }
 
+function toNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function normalizeBoundaryFlags(boundaryFlags) {
+  if (!Array.isArray(boundaryFlags)) return [];
+  return [...new Set(boundaryFlags.map((flag) => String(flag).trim()).filter(Boolean))].sort();
+}
+
+function normalizeSmartSignalsFromStatus(smartSignals) {
+  if (!smartSignals || typeof smartSignals !== 'object') return null;
+
+  if (smartSignals.status === 'unavailable') {
+    return {
+      status: 'unavailable',
+      reason: typeof smartSignals.reason === 'string' && smartSignals.reason.trim().length > 0
+        ? smartSignals.reason.trim()
+        : 'Smart Signals data unavailable.',
+    };
+  }
+
+  const candidateSummary = smartSignals.summary && typeof smartSignals.summary === 'object'
+    ? smartSignals.summary
+    : smartSignals;
+
+  const boundaryFlags = normalizeBoundaryFlags(candidateSummary.boundaryFlags);
+  const autoClassified = toNumber(
+    candidateSummary.autoClassified ?? candidateSummary.autoClassifiedDrafts,
+  );
+  const duplicates = toNumber(candidateSummary.duplicates);
+  const nearDuplicates = toNumber(candidateSummary.nearDuplicates);
+  const duplicatesSkipped = toNumber(
+    candidateSummary.duplicatesSkipped,
+    duplicates,
+  );
+
+  return {
+    enabled: smartSignals.enabled !== false,
+    summary: {
+      autoClassified,
+      duplicates,
+      nearDuplicates,
+      duplicatesSkipped,
+      boundaryFlags,
+      boundaryFlagsCount: toNumber(candidateSummary.boundaryFlagsCount, boundaryFlags.length),
+    },
+  };
+}
+
+function deriveSmartSignalsFromSignal(signal, enabled) {
+  if (!enabled) {
+    return {
+      enabled: false,
+      status: 'unavailable',
+      reason: 'Smart Signals disabled in tools/playbook/config.json.',
+    };
+  }
+
+  if (!signal || typeof signal !== 'object') {
+    return {
+      status: 'unavailable',
+      reason: 'No Smart Signals artifact available from this run.',
+    };
+  }
+
+  const dedupeKind = signal.dedupe?.kind;
+  const boundaryFlags = normalizeBoundaryFlags(signal.boundaryFlags);
+  const duplicates = dedupeKind === 'duplicate' ? 1 : 0;
+  const nearDuplicates = dedupeKind === 'near-duplicate' ? 1 : 0;
+
+  return {
+    enabled: true,
+    summary: {
+      autoClassified: signal.type ? 1 : 0,
+      duplicates,
+      nearDuplicates,
+      duplicatesSkipped: duplicates,
+      boundaryFlags,
+      boundaryFlagsCount: boundaryFlags.length,
+    },
+  };
+}
+
+async function readConfig() {
+  try {
+    const raw = await fs.readFile(CONFIG_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    if (!error || error.code !== 'ENOENT') throw error;
+    return {};
+  }
+}
+
 async function main() {
   const content = await fs.readFile(NOTES_PATH, 'utf8');
   const lines = content.split(/\r?\n/);
@@ -125,6 +222,7 @@ async function main() {
   const contracts = await runContractsAudit({ rootDir: process.cwd(), allowlistPath: ALLOWLIST_PATH });
   const knowledgeGate = buildKnowledgeGate(statusCounts.proposed);
   const recommendation = buildRecommendation({ proposed: statusCounts.proposed, drafts, contracts, knowledgeGate });
+  const config = await readConfig();
 
   let existingStatus = null;
   try {
@@ -144,6 +242,11 @@ async function main() {
     if (!error || error.code !== 'ENOENT') throw error;
   }
 
+  const signalEnabled = config?.smartSignals?.enabled !== false;
+  const persistedSmartSignals = normalizeSmartSignalsFromStatus(existingStatus?.smartSignals);
+  const computedSignal = getSignalsFromDiff({ staged: false });
+  const smartSignals = persistedSmartSignals || deriveSmartSignalsFromSignal(computedSignal, signalEnabled);
+
   const lastTrendEntry = trend.at(-1);
 
   const payload = {
@@ -156,9 +259,7 @@ async function main() {
     knowledgeGate,
     contracts,
     recommendation,
-    smartSignals: existingStatus?.smartSignals && typeof existingStatus.smartSignals === 'object'
-      ? existingStatus.smartSignals
-      : null,
+    smartSignals,
     trendLength: trend.length,
     lastTrendTimestamp: lastTrendEntry && typeof lastTrendEntry.timestamp === 'string' ? lastTrendEntry.timestamp : null,
     updatedAt: new Date().toISOString(),

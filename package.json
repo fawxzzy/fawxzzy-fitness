@@ -42,7 +42,8 @@
     "playbook:auto": "node scripts/playbook/auto.mjs",
     "playbook:auto:local": "node scripts/playbook/auto.mjs --skip-sync",
     "playbook:precommit": "node scripts/playbook/precommit.mjs",
-    "prepare": "node scripts/setup-githooks.mjs"
+    "prepare": "node scripts/setup-githooks.mjs",
+    "playbook:doctor": "node ./Playbook/tools/doctor/cli.mjs --cwd=."
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

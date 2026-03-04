@@ -53,6 +53,8 @@ Codex must not proceed with code generation until the request is corrected to sa
 
 ## Playbook Status Guardrails
 
+Playbook repo-local config lives at `tools/playbook/config.json`.
+
 ### 7) Read Playbook status first
 - Rule: Read `docs/playbook-status.json` before making changes so implementation decisions use current Playbook state.
 - Enforcement: Do not start patch work until status snapshot fields are reviewed.
