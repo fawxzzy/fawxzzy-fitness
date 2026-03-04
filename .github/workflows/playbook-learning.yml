@@ -36,7 +36,7 @@ jobs:
       - name: Run Playbook maintenance and emit status snapshot
         run: npm run playbook
 
-      - name: Build PR playbook status summary
+      - name: Build PR playbook status summary (status-file driven)
         if: github.event_name == 'pull_request'
         run: |
           set -euo pipefail

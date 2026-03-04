@@ -3,6 +3,21 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.40 — 2026-03-04
+
+### WHAT
+- Replaced the Playbook contracts threshold proxy with a real `scripts/playbook/contracts-audit.mjs` architecture audit that reports contract-level PASS/WARN/FAIL outcomes and per-violation file/line evidence.
+- Updated `docs/playbook-status.json` generation to embed real contracts audit results (`contracts.summary`, `contracts.byContract`, and overall `contracts.status`) while keeping knowledge note thresholds under a separate `knowledgeGate` field.
+- Updated Playbook dashboard rendering (`npm run playbook` and CI markdown status output) to show `Contracts: PASS/WARN(x)/FAIL(x)` and list top failing contract IDs when FAIL is present.
+- Added fixtures and a focused audit test runner under `scripts/playbook/__fixtures__/contracts` to validate each v1 contract detector.
+
+### WHY
+- Makes contract health reflect actual architecture boundaries instead of inferred note-count pressure, so reported failures map to concrete code issues.
+- Preserves existing learning-zone threshold guidance without conflating it with architecture contract compliance.
+- Improves local/CI reviewer clarity with per-contract statuses and explicit failing contract IDs from the status snapshot source of truth.
+- Adds lightweight regression coverage so future audit changes keep detecting the intended contract classes.
+
+
 ## 0.3.39 — 2026-03-04
 
 ### WHAT

@@ -9,12 +9,19 @@ function normalizeStatus(status) {
 }
 
 export function readDashboardModel(raw = {}) {
-  const contractsStatus = normalizeStatus(raw.contracts?.status);
+  const contractsSummary = raw.contracts?.summary || {};
+  const failIds = Array.isArray(raw.contracts?.byContract)
+    ? raw.contracts.byContract.filter((entry) => normalizeStatus(entry.status) === 'FAIL').map((entry) => entry.id)
+    : [];
+
   const contracts = {
-    status: contractsStatus,
-    warnCount: toNumber(raw.contracts?.warnCount),
-    failCount: toNumber(raw.contracts?.failCount),
-    topOffenders: Array.isArray(raw.contracts?.topOffenders) ? raw.contracts.topOffenders : [],
+    status: normalizeStatus(raw.contracts?.status),
+    summary: {
+      pass: toNumber(contractsSummary.pass),
+      warn: toNumber(contractsSummary.warn),
+      fail: toNumber(contractsSummary.fail),
+    },
+    failingIds: failIds,
   };
 
   const recommendation = {
@@ -39,19 +46,15 @@ export function readDashboardModel(raw = {}) {
 
 export function formatDashboardMarkdown(raw) {
   const model = readDashboardModel(raw);
-  const offenders = model.contracts.topOffenders.length
-    ? model.contracts.topOffenders
-        .map((offender) => `- ${offender.name || 'Unknown'}: ${toNumber(offender.count)} (threshold ${toNumber(offender.threshold)})`)
-        .join('\n')
-    : '- None';
+  const failingText = model.contracts.failingIds.length
+    ? ` (${model.contracts.failingIds.slice(0, 3).join(', ')})`
+    : '';
 
   return [
     '## Playbook Learning Status',
     '',
     `Knowledge Draft/Proposed/Promoted: ${model.drafts}/${model.proposed}/${model.promoted}`,
-    `Contracts PASS/WARN/FAIL: ${model.contracts.status}/${model.contracts.warnCount}/${model.contracts.failCount}`,
-    'Top offenders:',
-    offenders,
+    `Contracts: ${model.contracts.status}/WARN(${model.contracts.summary.warn})/FAIL(${model.contracts.summary.fail})${model.contracts.status === 'FAIL' ? failingText : ''}`,
     `Next command: ${model.recommendation.nextCommand || 'No action required.'}`,
     `Reason: ${model.recommendation.reason}`,
     '',
