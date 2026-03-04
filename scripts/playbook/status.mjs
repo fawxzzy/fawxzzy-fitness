@@ -37,6 +37,36 @@ function countNotes(content) {
   return counts;
 }
 
+function countPromotedTotal(content) {
+  const parsed = parsePlaybookNotes(content);
+  let promotedByStatus = 0;
+  let parseableStatusCount = 0;
+
+  for (const entry of parsed.entries) {
+    const rawStatus = String(entry.fields.Status || '').trim().toLowerCase();
+    if (!rawStatus) continue;
+
+    if (['draft', 'proposed', 'promoted', 'upstreamed', 'rejected'].includes(rawStatus)) {
+      parseableStatusCount += 1;
+      if (rawStatus === 'promoted') {
+        promotedByStatus += 1;
+      }
+    }
+  }
+
+  if (parseableStatusCount === 0) {
+    return {
+      count: parsed.entries.length,
+      fallbackUsed: true,
+    };
+  }
+
+  return {
+    count: promotedByStatus,
+    fallbackUsed: false,
+  };
+}
+
 function deriveSignalSummary(signal) {
   if (!signal || typeof signal !== 'object') {
     return { autoClassified: 0, duplicatesSkipped: 0, boundaryFlags: 0 };
@@ -57,6 +87,7 @@ function deriveSignalSummary(signal) {
 export async function computePlaybookStatus({ promoted = 0, reason = null, recommendedNextAction = null } = {}) {
   const notesContent = await fs.readFile(NOTES_PATH, 'utf8');
   const notes = countNotes(notesContent);
+  const promotedTotal = countPromotedTotal(notesContent);
   const contracts = await runContractsAudit({ rootDir: process.cwd(), allowlistPath: ALLOWLIST_PATH });
   const signal = getSignalsFromDiff({ staged: false });
 
@@ -83,6 +114,9 @@ export async function computePlaybookStatus({ promoted = 0, reason = null, recom
       draft: notes.draft,
       proposed: notes.proposed,
       promoted,
+      promoted_last_action: promoted,
+      promoted_total: promotedTotal.count,
+      promoted_total_fallback_used: promotedTotal.fallbackUsed,
     },
     contracts: {
       pass: Number(contracts?.summary?.pass || 0),
