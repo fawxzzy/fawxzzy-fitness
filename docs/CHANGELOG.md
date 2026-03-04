@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.59 — 2026-03-04
+
+### WHAT
+- Added curated top-level workflow scripts `playbook:local` and `playbook:ci` so contributors can run a consistent golden-path local check and CI-style pipeline without memorizing longer command chains.
+- Kept all existing scripts intact while repointing legacy validation aliases (`sanity`, `sanity:quick`, `verify`, `verify:strict`) to the curated playbook commands for compatibility.
+- Documented golden-path, debug/advanced, and CI command expectations in `docs/PROJECT_GOVERNANCE.md`.
+
+### WHY
+- Reduces command sprawl and onboarding friction by making the intended workflow explicit and stable while preserving backward compatibility for existing habits and automation.
+
+
+
 ## 0.3.58 — 2026-03-04
 
 ### WHAT
