@@ -3,13 +3,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const NOTES_PATH = path.resolve('docs/PLAYBOOK_NOTES.md');
-const STATUS_PATH = path.resolve('docs/playbook-status.json');
 const TREND_PATH = path.resolve('docs/playbook-trend.json');
 const DRAFTS_HEADER = '## DRAFTS (auto)';
 const ENTRY_HEADER_RE = /^##\s+\d{4}-\d{2}-\d{2}\s+—\s+/;
 const STATUS_RE = /^-\s+Status:\s*(.+)$/i;
-const WARN_THRESHOLD = 10;
-const FAIL_THRESHOLD = 20;
+const MAX_ENTRIES = 200;
 
 function normalizeStatus(rawStatus) {
   return rawStatus.trim().toLowerCase();
@@ -46,41 +44,43 @@ function countStatuses(lines) {
   return counts;
 }
 
+async function readTrendEntries() {
+  try {
+    const content = await fs.readFile(TREND_PATH, 'utf8');
+    const parsed = JSON.parse(content);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return [];
+    throw error;
+  }
+}
+
+function toISOSecond(now = new Date()) {
+  return now.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
 async function main() {
-  const content = await fs.readFile(NOTES_PATH, 'utf8');
-  const lines = content.split(/\r?\n/);
+  const notesContent = await fs.readFile(NOTES_PATH, 'utf8');
+  const lines = notesContent.split(/\r?\n/);
+
   const drafts = countDrafts(lines);
   const statusCounts = countStatuses(lines);
-  let trend = [];
+  const timestamp = toISOSecond();
 
-  try {
-    const trendContent = await fs.readFile(TREND_PATH, 'utf8');
-    const parsedTrend = JSON.parse(trendContent);
-    trend = Array.isArray(parsedTrend) ? parsedTrend : [];
-  } catch (error) {
-    if (!error || error.code !== 'ENOENT') {
-      throw error;
-    }
-  }
-
-  const lastTrendEntry = trend.at(-1);
-
-  const payload = {
+  const entry = {
+    timestamp,
     drafts,
     proposed: statusCounts.proposed,
     promoted: statusCounts.promoted,
     upstreamed: statusCounts.upstreamed,
-    warnThreshold: WARN_THRESHOLD,
-    failThreshold: FAIL_THRESHOLD,
-    trendLength: trend.length,
-    lastTrendTimestamp:
-      lastTrendEntry && typeof lastTrendEntry.timestamp === 'string'
-        ? lastTrendEntry.timestamp
-        : null,
-    updatedAt: new Date().toISOString(),
   };
 
-  await fs.writeFile(STATUS_PATH, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  const existingEntries = await readTrendEntries();
+  const filteredEntries = existingEntries.filter((item) => item && item.timestamp !== timestamp);
+  const nextEntries = [...filteredEntries, entry].slice(-MAX_ENTRIES);
+
+  await fs.writeFile(TREND_PATH, `${JSON.stringify(nextEntries, null, 2)}\n`, 'utf8');
 }
 
 main().catch((error) => {

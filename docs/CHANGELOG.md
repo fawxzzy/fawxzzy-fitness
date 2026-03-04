@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.32 — 2026-03-04
+
+### WHAT
+- Added Playbook knowledge trend tracking with CI-generated trend history artifacts and status snapshots that include trend metadata.
+- Improved Playbook CI suggestions to favor maintain/update/sync-and-update commands based on proposed-note pressure and available drafts.
+- Updated Playbook Learning workflow/status comment formatting to include command guidance, reminder text, and trend entry counts.
+
+### WHY
+- Makes the Playbook Learning system easier to operate by reducing command-memory burden with clearer next-step guidance.
+- Preserves historical visibility into knowledge growth over time for future trend visualization.
+- Keeps governance telemetry observable in CI without introducing commit-loop risk.
+
+
 ## 0.3.31 — 2026-03-04
 
 ### WHAT

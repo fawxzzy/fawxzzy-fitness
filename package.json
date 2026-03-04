@@ -33,7 +33,8 @@
     "playbook:sync": "node scripts/playbook/sync-playbook.mjs",
     "playbook:sync:commit": "node scripts/playbook/sync-playbook.mjs --commit",
     "playbook:sync-and-update": "npm run playbook:sync && npm run playbook:update",
-    "playbook:status:ci": "node scripts/playbook/status-ci.mjs"
+    "playbook:status:ci": "node scripts/playbook/status-ci.mjs",
+    "playbook:trend": "node scripts/playbook/write-trend-files.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

@@ -140,6 +140,39 @@ Promotion is marker-based and idempotent. If a destination section already exist
 - rerun `npm run playbook:update`,
 - verify the generated section blocks and note statuses.
 
+
+## Playbook Knowledge Trends
+
+CI records Playbook knowledge growth over time.
+
+Trend artifacts contain historical counts of:
+- Draft notes
+- Proposed notes
+- Promoted doctrine entries
+- Upstreamed doctrine entries
+
+These artifacts allow future visualization of engineering knowledge growth.
+
+Typical workflow remains:
+
+While coding:
+
+```bash
+npm run playbook:guardian
+```
+
+If unsure what to run:
+
+```bash
+npm run playbook:maintain
+```
+
+When notes accumulate:
+
+```bash
+npm run playbook:sync-and-update
+```
+
 ## Status lifecycle
 
 Use these local note statuses to track doctrine maturity:
