@@ -3,6 +3,21 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.39 — 2026-03-04
+
+### WHAT
+- Adopted status snapshot-first Playbook dashboards end-to-end: CI PR reporting now renders from `docs/playbook-status.json` via `scripts/playbook/status-ci.mjs` + shared dashboard formatter, and removed in-workflow duplicate contract/knowledge computations.
+- Strengthened pre-commit automation by moving staging logic to a cross-platform Node hook script that keeps Playbook maintenance non-blocking while auto-staging both `docs/PLAYBOOK_NOTES.md` and `docs/playbook-status.json`.
+- Extended Playbook status payload/contracts to include `topOffenders`, and updated `npm run playbook` dashboard output to use the same status-file formatter consumed by CI.
+- Updated Codex guardrails to require status-file-first execution, contract-fail-first remediation, recommendation command compliance (or explicit justification), and verification before finalization.
+
+### WHY
+- Enforces one status-file-driven source of truth for local and CI Playbook guidance while reducing drift from duplicated logic.
+- Improves developer reliability on Windows and non-Windows environments by avoiding shell-specific pre-commit staging assumptions.
+- Makes contract risk reporting more actionable by surfacing offenders directly in the dashboard output.
+- Tightens agent execution discipline so governance recommendations and verification requirements are consistently followed.
+
+
 
 ## 0.3.38 — 2026-03-04
 

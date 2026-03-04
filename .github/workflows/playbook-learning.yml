@@ -38,36 +38,9 @@ jobs:
 
       - name: Build PR playbook status summary
         if: github.event_name == 'pull_request'
-        env:
-          HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-
-          git checkout "${HEAD_SHA}"
-          npm run --silent playbook:status:ci > head.json
-
-          node <<'NODE' > summary.md
-          const fs = require('node:fs');
-
-          const head = JSON.parse(fs.readFileSync('head.json', 'utf8'));
-          const contractsStatus = String(head.contracts?.status || 'PASS').toUpperCase();
-          const contractsSuffix = contractsStatus === 'WARN'
-            ? `(${Number(head.contracts?.warnCount || 0)})`
-            : contractsStatus === 'FAIL'
-              ? `(${Number(head.contracts?.failCount || 0)})`
-              : '';
-          const nextCommand = head.recommendation?.nextCommand || 'No action required.';
-          const nextReason = head.recommendation?.reason || 'No action required.';
-
-          let md = '';
-          md += '## Playbook Learning Status\n\n';
-          md += `Knowledge: ${Number(head.drafts || 0)}/${Number(head.proposed || 0)}/${Number(head.promoted || 0)}\n`;
-          md += `Contracts: ${contractsStatus}${contractsSuffix}\n`;
-          md += `Next: ${nextCommand} (${nextReason})\n`;
-
-          process.stdout.write(md);
-          NODE
-
+          npm run --silent playbook:status:ci -- --format=markdown > summary.md
           cat summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Playbook status artifact

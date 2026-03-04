@@ -59,12 +59,18 @@ Codex must not proceed with code generation until the request is corrected to sa
 - Reference: `docs/playbook-status.json`.
 
 ### 8) Resolve failing contracts before shipping
-- Rule: If Playbook contracts are failing, violations must be fixed before shipping changes.
-- Enforcement: Treat `contracts.status == "FAIL"` in `docs/playbook-status.json` as a release-blocking condition for patch delivery.
-- Reference: `docs/playbook-status.json` (`contracts` section).
+- Rule: If `contracts.failCount > 0` in `docs/playbook-status.json`, contract violations must be fixed before starting unrelated new work.
+- Enforcement: Treat contract failure counts as release-blocking for patch delivery until violations are resolved.
+- Reference: `docs/playbook-status.json` (`contracts.failCount`).
 
 ### 9) Follow Playbook recommended next action
-- Rule: When `recommendation.nextCommand` is present in `docs/playbook-status.json`, execute/follow that recommendation in the workflow.
-- Enforcement: Do not substitute ad hoc commands when a recommendation is provided.
+- Rule: When `recommendation.nextCommand` is present in `docs/playbook-status.json`, follow that command in the workflow.
+- Enforcement: If you intentionally do not follow it, explicitly document why in your delivery summary.
 - Reference: `docs/playbook-status.json` (`recommendation.nextCommand`).
+
+
+### 10) Verify before finalization
+- Rule: Run verification before finalizing work.
+- Enforcement: Run `npm run verify` when available; otherwise run the repository verification set (`npm run lint` and `npm run build`) and report results.
+- Reference: `docs/PROJECT_GOVERNANCE.md` quality gate.
 
