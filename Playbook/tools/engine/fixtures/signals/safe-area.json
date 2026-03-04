@@ -1,0 +1,9 @@
+{
+  "changedFiles": [
+    "app/AppShell.tsx",
+    "src/layout/safe-area.ts",
+    "components/BottomActionBar.tsx"
+  ],
+  "commitMessage": "fix safe-area overlap on bottom actions",
+  "branchName": "fix/safe-area-overlap"
+}

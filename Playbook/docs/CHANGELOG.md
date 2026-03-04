@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-03-04 — Implemented deterministic Smart Signals engine for draft auto-classification
+
+### WHAT
+- Added `tools/engine/signals.mjs` with deterministic heuristics for type classification, evidence extraction, suggested doctrine location, failure-mode tagging, architecture boundary flags, confidence scoring, and duplicate detection against doctrine headings + notes.
+- Integrated Smart Signals into the engine learning flow so Draft note parsing can auto-fill missing Type/Evidence/Suggested Playbook File fields in-memory and publish latest signal metadata in `docs/playbook-status.json` without breaking required schema fields.
+- Extended dashboard formatting to optionally include compact Smart Signals metrics (`autoClassifiedDrafts`, `duplicatesSkipped`, `boundaryFlags`) via `node ./tools/engine/format-dashboard.mjs --include-signals`.
+- Added deterministic fixtures and tests for classification, suggested-file selection, dedupe behavior, confidence scoring bounds, and dashboard rendering.
+- Documented safe rule-table extension practices in `tools/engine/README.md`.
+
+### WHY
+- Improve first-pass Draft quality so maintainers get more actionable doctrine suggestions with less manual triage.
+- Keep CI/hook workflows deterministic by deriving all signal outputs from stable inputs (file paths, commit/branch text, and rule ordering).
+- Reduce duplicate doctrine churn by surfacing near-matches early and encouraging linkage to existing contracts/patterns.
+
 ## 2026-03-04 — Added Playbook Doctor health checks for consumer-repo readiness
 
 ### WHAT

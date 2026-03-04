@@ -74,10 +74,25 @@
       "missingFieldCount": 0,
       "contractsStatus": "PASS",
       "suggestedCommand": "npm run playbook:promote -- --stage=promoted"
+    },
+    {
+      "timestamp": "2026-03-04T16:09:12.862Z",
+      "mode": "run",
+      "counts": {
+        "Observation": 0,
+        "Draft": 0,
+        "Proposed": 59,
+        "Promoted": 0,
+        "Contract": 0,
+        "Other": 0
+      },
+      "missingFieldCount": 0,
+      "contractsStatus": "PASS",
+      "suggestedCommand": "npm run playbook:promote -- --stage=promoted"
     }
   ],
   "latest": {
-    "timestamp": "2026-03-04T09:34:12.251Z",
+    "timestamp": "2026-03-04T16:09:12.862Z",
     "mode": "run",
     "counts": {
       "Observation": 0,

@@ -7,7 +7,8 @@ function topFailingContracts(status, limit = 3) {
     .slice(0, limit);
 }
 
-export function formatDashboard(status, statusPath = 'docs/playbook-status.json') {
+export function formatDashboard(status, statusPath = 'docs/playbook-status.json', options = {}) {
+  const includeSignals = options.includeSignals === true;
   const failing = topFailingContracts(status);
   const contractSummary = status.contracts.summary;
   const contractHeadline = contractSummary.fail > 0
@@ -24,6 +25,15 @@ export function formatDashboard(status, statusPath = 'docs/playbook-status.json'
 
   if (failing.length > 0) {
     lines.push(`- Top failing contracts: ${failing.map((item) => `${item.id}(${item.violations})`).join(', ')}`);
+  }
+
+  if (includeSignals && status.smartSignals?.summary) {
+    const summary = status.smartSignals.summary;
+    const boundaries = Array.isArray(summary.boundaryFlags) && summary.boundaryFlags.length > 0
+      ? summary.boundaryFlags.join(', ')
+      : 'none';
+    lines.push(`- Auto-classified drafts: ${summary.autoClassifiedDrafts} / duplicates skipped: ${summary.duplicatesSkipped}`);
+    lines.push(`- Boundary flags: ${boundaries}`);
   }
 
   lines.push(`- Next: \`${status.recommendation.nextCommand}\` — ${status.recommendation.reason}`);

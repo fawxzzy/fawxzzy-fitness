@@ -1,0 +1,9 @@
+{
+  "changedFiles": [
+    "supabase/migrations/202603040001_add_policy.sql",
+    "src/server/auth/session.ts",
+    "src/client/auth/useSession.ts"
+  ],
+  "commitMessage": "harden token refresh race with rls migration",
+  "branchName": "chore/server-client-boundary"
+}

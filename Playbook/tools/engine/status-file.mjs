@@ -85,7 +85,7 @@ export function buildStatusPayload({ report, cwd, engineVersion, engineCommit })
 
   const recommendationMeta = getRecommendationMeta(report.suggestedCommand, report.contracts.status);
 
-  return {
+  const payload = {
     version: STATUS_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
     engine: {
@@ -113,6 +113,19 @@ export function buildStatusPayload({ report, cwd, engineVersion, engineCommit })
       suggestedWhen: recommendationMeta.suggestedWhen
     }
   };
+
+  if (report.smartSignal) {
+    payload.smartSignals = {
+      latest: report.smartSignal,
+      summary: {
+        autoClassifiedDrafts: report.signalSummary?.autoClassifiedDrafts || 0,
+        duplicatesSkipped: report.signalSummary?.duplicatesSkipped || 0,
+        boundaryFlags: report.signalSummary?.boundaryFlags || []
+      }
+    };
+  }
+
+  return payload;
 }
 
 export function writeStatusFile({ statusPath, payload }) {

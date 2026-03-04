@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { runContractsAudit } from '../contracts-audit/index.mjs';
 import { buildStatusPayload, validateStatusPayload, writeStatusFile } from './status-file.mjs';
+import { generateSmartSignal } from './signals.mjs';
 
 const REQUIRED_FIELDS = [
   'Type',
@@ -114,6 +116,46 @@ function getStatusPath(cwd) {
   return path.resolve(cwd, 'docs/playbook-status.json');
 }
 
+function gitOutput(cwd, args) {
+  try {
+    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    return '';
+  }
+}
+
+function collectSignalInputs(cwd) {
+  const changedFiles = gitOutput(cwd, ['diff', '--name-only', '--relative'])
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return {
+    changedFiles,
+    commitMessage: gitOutput(cwd, ['log', '-1', '--pretty=%s']),
+    branchName: gitOutput(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'])
+  };
+}
+
+
+function autoFillDraftFields(entry, smartSignal) {
+  const status = toStatus(entry.fields.Status);
+  if (status !== 'draft' || !smartSignal) return entry;
+
+  const next = { ...entry.fields };
+  if (!next.Type) next.Type = smartSignal.type;
+  if (!next['Suggested Playbook File'] && smartSignal.suggestedPlaybookFile) {
+    next['Suggested Playbook File'] = smartSignal.suggestedPlaybookFile;
+  }
+  if (!next.Evidence && smartSignal.evidence.length > 0) {
+    next.Evidence = smartSignal.evidence.join(', ');
+  }
+  if (!next.Tags && smartSignal.failureModeTags.length > 0) {
+    next.Tags = smartSignal.failureModeTags.join(', ');
+  }
+  return { ...entry, fields: next, missing: REQUIRED_FIELDS.filter((field) => !next[field]) };
+}
+
 function ensureTrendFile(trendPath) {
   const dir = path.dirname(trendPath);
   fs.mkdirSync(dir, { recursive: true });
@@ -132,7 +174,7 @@ export function runEngine({ cwd = process.cwd(), mode = 'run' } = {}) {
   }
 
   const notes = fs.readFileSync(notesPath, 'utf8');
-  const entries = parsePlaybookNotes(notes);
+  const parsedEntries = parsePlaybookNotes(notes);
   const counts = {
     Observation: 0,
     Draft: 0,
@@ -141,6 +183,10 @@ export function runEngine({ cwd = process.cwd(), mode = 'run' } = {}) {
     Contract: 0,
     Other: 0
   };
+
+  const signalInput = collectSignalInputs(cwd);
+  const smartSignal = generateSmartSignal({ cwd, ...signalInput });
+  const entries = parsedEntries.map((entry) => autoFillDraftFields(entry, smartSignal));
 
   let missingFieldCount = 0;
   for (const entry of entries) {
@@ -175,11 +221,18 @@ export function runEngine({ cwd = process.cwd(), mode = 'run' } = {}) {
 
   const statusPath = getStatusPath(cwd);
   const engineMeta = readPackageMeta(cwd);
+  const signalSummary = {
+    autoClassifiedDrafts: smartSignal.type ? 1 : 0,
+    duplicatesSkipped: smartSignal.dedupe.isDuplicate ? 1 : 0,
+    boundaryFlags: smartSignal.boundaryFlags
+  };
   const statusPayload = buildStatusPayload({
     report: {
       counts,
       contracts: contractsReport,
-      suggestedCommand
+      suggestedCommand,
+      smartSignal,
+      signalSummary
     },
     cwd,
     engineVersion: engineMeta.version,
@@ -201,6 +254,7 @@ export function runEngine({ cwd = process.cwd(), mode = 'run' } = {}) {
     notesPath,
     trendPath,
     statusPath,
-    policy: config.thresholds.missingFieldPolicy
+    policy: config.thresholds.missingFieldPolicy,
+    smartSignal
   };
 }
