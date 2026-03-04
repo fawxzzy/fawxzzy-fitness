@@ -5,7 +5,16 @@
   "upstreamed": 0,
   "warnThreshold": 10,
   "failThreshold": 20,
-  "trendLength": 3,
-  "lastTrendTimestamp": "2026-03-04T08:21:38Z",
-  "updatedAt": "2026-03-04T08:21:54.537Z"
+  "contracts": {
+    "status": "PASS",
+    "warnCount": 0,
+    "failCount": 0
+  },
+  "recommendation": {
+    "nextCommand": null,
+    "reason": "No action required."
+  },
+  "trendLength": 4,
+  "lastTrendTimestamp": "2026-03-04T08:21:54Z",
+  "updatedAt": "2026-03-04T08:58:53.888Z"
 }
