@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 export const BOTTOM_ACTION_BAR_HEIGHT_PX = 120;
 export const FIXED_CTA_RESERVE_CLASS =
-  "pb-[calc(var(--app-bottom-action-bar-height,120px)+env(safe-area-inset-bottom,0px)+3px)]";
+  "pb-[calc(var(--app-bottom-action-bar-height,120px)+env(safe-area-inset-bottom,0px)+12px)]";
 export const BOTTOM_ACTION_BAR_CONTENT_RESERVE_CLASS = FIXED_CTA_RESERVE_CLASS;
 
 const BOTTOM_ACTION_BAR_ROOT_ID = "app-bottom-action-bar-root";
