@@ -1,6 +1,6 @@
 # Governance Versioning
 
-Current Governance Version: **v0.3.5**
+Current Governance Version: **v0.3.7**
 
 ## Version bump rules
 - **MAJOR**: Breaking governance change (removes or redefines enforced contracts).
@@ -10,6 +10,8 @@ Current Governance Version: **v0.3.5**
 ## Governance changelog
 | Version | Date | Change |
 | --- | --- | --- |
+| v0.3.7 | 2026-03-03 | Cleaned router redundancy, added verification tiers reference doc, and clarified Core-vs-Overlay template boundary for governance clarity. |
+| v0.3.6 | 2026-03-03 | Added FawxzzyFinance overlay and project router entry to pre-wire multi-project governance routing (engine plumbing only). |
 | v0.3.5 | 2026-03-03 | Added onboarding packaging docs (`GETTING_STARTED`, `EXAMPLES`, consumer templates) and discovery links; no doctrine semantics changed. |
 | v0.3.4 | 2026-03-03 | Added project router/overlays and route-aware workflow docs for multi-repo governance operations (engine plumbing only; no new guardrails/patterns). |
 | v0.3.3 | 2026-03-02 | Added project governance contract entrypoint, clarified empty guardrail index sections, and reduced guardrail catalog duplication. |

@@ -1,5 +1,106 @@
 # Changelog
 
+## 2026-03-04 — Added Playbook Doctor health checks for consumer-repo readiness
+
+### WHAT
+- Added `tools/doctor/cli.mjs` as a new Playbook Doctor CLI with deterministic `OK/WARN/FAIL` checks, `--cwd` targeting, optional `--strict` behavior, and actionable fix commands.
+- Added `playbook:doctor` npm script in the central Playbook `package.json`, and updated install kit wiring to add the same script in consuming repositories.
+- Updated installer behavior to run doctor automatically after install for immediate post-setup validation feedback.
+- Added Playbook Doctor docs at `docs/WORKFLOWS/playbook-doctor.md` and linked it from workflow/core indexes plus consumption guidance.
+- Added migration hints in doctor output when legacy repo-local `scripts/playbook/*` layouts are detected.
+
+### WHY
+- Give maintainers one fast command to verify installation health, close setup gaps, and standardize next-step remediation before CI or contributor workflows fail.
+- Reduce migration friction from legacy repo-local Playbook scripts to central-engine consumption with explicit, command-level guidance.
+
+## 2026-03-04 — Portable engine/install-kit hardening for cross-repo rollout
+
+### WHAT
+- Added portable CI workflow guidance at `docs/WORKFLOWS/playbook-ci.md` and linked it from the workflows index.
+- Extended installer outputs/scripts with `playbook:status:ci`, expanded config scaffolding (contracts allowlist/exceptions + guardian tuning), and pre-commit auto-staging for both notes and status artifacts.
+- Added `tools/engine/format-dashboard.mjs` and updated docs/snippets to standardize status-file dashboard rendering in CI.
+- Extended contracts audit output shape to include `summary` + `byContract`, added JSON CLI output mode, and threaded repo-local contract exception/allowlist config hooks.
+- Expanded consumption docs with a concrete migration sequence for replacing repo-local FawxzzyFitness scripts while keeping status/trend output contracts stable.
+
+### WHY
+- Complete the “engine + install kit” portability loop so adopting repositories can install once, keep output compatibility, and wire local hooks/CI without bespoke script copying.
+- Make contracts and status artifacts easier for automation consumers to parse deterministically across local runs, pre-commit hooks, and CI dashboards.
+
+## 2026-03-04 — Added status-driven dashboard + contract doc-rule generation (v1)
+
+### WHAT
+- Extended contracts audit to parse strict `Audit Rules (v1)` sections from contract docs, generate regex/glob checks, and report violations with file + line metadata while preserving hand-written fallback checks when rules are absent.
+- Added a shared dashboard formatter (`tools/engine/dashboard.mjs`) and updated summary/engine output paths to print compact PR/CI status blocks sourced only from `docs/playbook-status.json`.
+- Strengthened status artifact version metadata by adding `engine.statusSchemaVersion`, updated schema/docs, and ensured deterministic by-contract sorting for stable snapshots.
+- Updated contract and workflow docs to document rule format, precedence, and CI guidance to run `npm run playbook` then consume status/dashboard output without recounting logic.
+- Added contract audit tests for doc-rule parsing precedence and violation line reporting, plus status tests for schema/version metadata and deterministic output.
+
+### WHY
+- Keep governance reporting canonical and composable by making one status snapshot the single source of truth for local runs, CI output, and PR automation.
+- Allow contract checks to evolve from documentation in a controlled, auditable format while retaining explicit code checks for complex invariants.
+
+## 2026-03-04 — Added canonical Playbook status artifact for local, CI, and agent workflows
+
+### WHAT
+- Added canonical status artifact docs in `docs/WORKFLOWS/playbook-status-file.md` and machine schema in `tools/schemas/playbook-status.schema.json`, with explicit compatibility guarantees.
+- Updated the engine to write `docs/playbook-status.json` on every run with atomic writes, deterministic key ordering, and engine/repo metadata.
+- Updated CI summary tooling (`tools/engine/pr-summary.mjs`, `tools/install/CI_SNIPPET.md`) to read `docs/playbook-status.json` as the source of truth for Draft/Proposed/Promoted, contracts PASS/WARN/FAIL, and next command.
+- Added `docs/WORKFLOWS/ai-audit.md` and workflow index links to require agents to inspect `docs/playbook-status.json` before patch generation and prioritize contract failures.
+- Added engine unit tests for status payload generation, schema-style validation, and atomic status write behavior.
+
+### WHY
+- Provide one stable machine-readable artifact that local tooling, CI checks, and AI agents can share to avoid drift and duplicate status logic.
+- Make governance status deterministic and automatable across macOS/Linux/Windows environments with safe write semantics.
+
+## 2026-03-04 — Added repeatable cross-repo adoption path and AI governance guardrails
+
+### WHAT
+- Added a repeatable adoption path in `docs/CONSUMPTION.md` for vendoring Playbook via subtree/submodule, creating `tools/playbook/config.json`, wiring `playbook`/`playbook:status`/`verify` scripts, installing the non-blocking pre-commit hook, and publishing CI PR summaries.
+- Added `docs/CODEX_GUARDRAILS.md` to require Codex/Claude workflows to run `verify`/`verify:strict` and honor architecture + contract constraints.
+- Added repo-local config at `tools/playbook/config.json` and updated the engine to prefer this location (with legacy `playbook.config.json` fallback).
+- Added `tools/engine/pr-summary.mjs` and `playbook:summary` script for CI-friendly PR check summaries (Draft/Proposed/Promoted, Contracts status, suggested next command).
+- Updated installer/docs (`tools/install/cli.mjs`, `tools/install/README.md`, `tools/install/CI_SNIPPET.md`, `package.json`) so consuming repos can adopt with minimal repo-specific changes.
+
+### WHY
+- Make the FawxzzyFitness Playbook engine replication path explicit and repeatable for new repositories (for example, Nat-1 Games) without forking the engine.
+- Standardize local and CI governance signals so teams get consistent lifecycle status, contracts health, and next-step guidance across repositories.
+
+## 2026-03-04 — Productized lifecycle engine, contracts audit, and install kit for cross-repo adoption
+
+### WHAT
+- Added `docs/WORKFLOWS/playbook-knowledge-lifecycle.md` as the canonical lifecycle model (Observation → Draft → Proposed → Promoted → Contract), required note fields, promotion criteria, contract-elevation criteria, and operator UX expectations for `npm run playbook`.
+- Added Playbook contracts docs under `docs/CONTRACTS/` for server/client boundaries, scroll ownership, bottom actions ownership, and safe-area ownership with v1 machine signals.
+- Added reusable Node CLIs: `tools/engine` (lifecycle parsing, threshold checks, trend telemetry, next-step suggestions), `tools/contracts-audit` (heuristic contract checks), and `tools/install` (script wiring, non-blocking pre-commit hook, CI guidance).
+- Added `package.json` scripts and `playbook.config.json` for minimal per-repo customization without forking engine code.
+- Updated index/discovery docs (`README.md`, `docs/INDEX.md`, `docs/WORKFLOWS/_index.md`) to surface the new lifecycle and contracts layers.
+
+### WHY
+- Convert Playbook from a docs-only governance source into an installable learning + governance loop engine that downstream repositories can adopt with minimal glue.
+- Standardize promotion flow, status reporting, and contract visibility so teams can operationalize doctrine updates consistently across macOS/Linux/Windows environments.
+- Reduce governance drift by adding telemetry and install primitives that make routine execution (`npm run playbook`) easy to automate locally and in CI.
+
+## 2026-03-03 — Router cleanup and verification clarity updates
+
+### WHAT
+- Removed the redundant Finance placeholder router entry.
+- Added a verification tier reference document.
+- Clarified the Core vs Overlay boundary in the AI task prompt template.
+
+### WHY
+- Reduce routing ambiguity.
+- Prevent overlay drift.
+- Strengthen multi-project governance clarity.
+
+## 2026-03-03 — Added FawxzzyFinance project overlay routing scaffold
+
+### WHAT
+- Added a new `FawxzzyFinance` project overlay document.
+- Added a `FawxzzyFinance` router entry in `docs/PROJECTS/index.md`.
+
+### WHY
+- Pre-wire multi-project governance routing for FawxzzyFinance.
+- Isolate project-specific posture in an overlay without polluting Core doctrine.
+
 ## 2026-03-03 — Added onboarding entrypoint, examples, and consumer doc templates
 
 ### WHAT

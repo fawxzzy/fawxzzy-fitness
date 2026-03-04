@@ -1,0 +1,17 @@
+{
+  "name": "playbook",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "playbook": "node ./tools/engine/cli.mjs run",
+    "playbook:status": "node ./tools/engine/cli.mjs status",
+    "playbook:status:ci": "node ./tools/engine/format-dashboard.mjs",
+    "playbook:promote": "node ./tools/engine/cli.mjs promote",
+    "playbook:contracts": "node ./tools/contracts-audit/cli.mjs",
+    "playbook:install": "node ./tools/install/cli.mjs",
+    "playbook:summary": "node ./tools/engine/pr-summary.mjs",
+    "verify": "npm run playbook",
+    "verify:strict": "npm run playbook && npm run playbook:contracts",
+    "playbook:doctor": "node ./tools/doctor/cli.mjs"
+  }
+}

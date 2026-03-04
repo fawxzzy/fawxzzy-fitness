@@ -13,6 +13,7 @@ This repository is maintained as doctrine infrastructure: governance updates are
 - `docs/PROJECTS/`: project routing overlays (additive to Core).
 - `docs/WORKFLOWS/`: execution workflows and checklists.
 - `docs/REFERENCE/`: definitions, standards, and decision records.
+- `docs/CONTRACTS/`: machine-checkable governance contracts.
 - `docs/VERSIONING.md`: governance semantic version contract.
 
 ## Proposing a new pattern

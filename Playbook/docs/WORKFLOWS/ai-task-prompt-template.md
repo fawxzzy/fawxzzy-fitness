@@ -12,6 +12,8 @@ Target project:
 - Project router: docs/PROJECTS/index.md
 - Project overlay: docs/PROJECTS/<overlay>.md
 
+Core doctrine is authoritative. Project overlays are additive routing context only and must not duplicate or redefine Core rules.
+
 Change classification:
 - Type: UI-only | API | Data/Schema | Refactor | Performance | Release | Docs
 - Scope summary: <1-3 bullets>
