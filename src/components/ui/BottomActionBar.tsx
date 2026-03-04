@@ -92,7 +92,7 @@ export function BottomActionBar({
       <div className={cn("mx-auto w-full max-w-md px-4 pointer-events-auto")}>
         <div
           className={cn(
-            "flex items-center justify-center gap-3 rounded-2xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+3px)] shadow-[0_8px_18px_rgb(0_0_0/0.28)] backdrop-blur-md",
+            "flex items-center justify-center gap-3 rounded-2xl bg-[rgb(var(--glass-tint-rgb)/0.22)] px-4 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+3px)] shadow-[0_8px_18px_rgb(0_0_0/0.28)] backdrop-blur-md",
             "[&>*]:min-h-[44px] [&>*]:flex-1",
             innerClassName,
           )}

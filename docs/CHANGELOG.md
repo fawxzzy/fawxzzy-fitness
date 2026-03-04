@@ -11,6 +11,7 @@ All notable changes to this project are documented in this file.
 - Added cardio diagnosis SQL snippets and a lightweight verification script for Incline Walk cardio totals and Dips bodyweight PR expectations.
 - Removed glass background from BottomActionBar inner container (now transparent).
 - Tuned BottomActionBar inner container to remove border chrome, soften drop shadow, and slightly increase horizontal dock inset.
+- Added back an ultra-subtle BottomActionBar inner tint (`rgb(var(--glass-tint-rgb)/0.22)`) while keeping the borderless dock treatment.
 
 ### WHY
 - Ensures logged cardio sets (duration/distance/calories) are counted and surfaced even when reps are empty.
@@ -19,6 +20,7 @@ All notable changes to this project are documented in this file.
 - Makes regression checks easier for the specific cardio/bodyweight failures observed.
 - Improves visual integration and reduces heavy slab appearance while preserving sticky behavior and safe-area spacing.
 - Keeps the bottom action dock visually lighter and more floating while preserving blur, sticky behavior, and safe-area reachability.
+- Restores a minimal glass separation cue over varied page backgrounds without reintroducing the heavier slab effect.
 
 ## 0.3.20 — 2026-03-03
 
