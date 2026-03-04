@@ -43,7 +43,7 @@
     "playbook:auto:local": "node scripts/playbook/auto.mjs --skip-sync",
     "playbook:precommit": "node scripts/playbook/precommit.mjs",
     "prepare": "node scripts/setup-githooks.mjs",
-    "playbook:doctor": "node ./Playbook/tools/doctor/cli.mjs --cwd=.",
+    "playbook:doctor": "node scripts/playbook/doctor.mjs",
     "sanity": "npm run playbook:notes:dedupe && npm run playbook:doctor && npm run playbook && npm run playbook:status:ci -- --format=markdown && npm run lint && npm run build",
     "playbook:notes:dedupe": "node scripts/playbook/notes-dedupe.mjs",
     "playbook:notes:dedupe:write": "node scripts/playbook/notes-dedupe.mjs --write",
@@ -54,7 +54,8 @@
     "playbook:promote": "node ./Playbook/tools/engine/cli.mjs promote",
     "playbook:contracts": "node ./Playbook/tools/contracts-audit/cli.mjs",
     "verify": "npm run playbook",
-    "verify:strict": "npm run playbook && npm run playbook:contracts"
+    "verify:strict": "npm run playbook && npm run playbook:contracts",
+    "playbook:install": "node scripts/playbook/install.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.55 — 2026-03-04
+
+### WHAT
+- Added an idempotent local Playbook installer (`npm run playbook:install`) that ensures bootstrap docs/status files and required package scripts exist without overwriting existing repo-authored content.
+- Added a local Playbook doctor (`npm run playbook:doctor`) that reports OK/WARN/FAIL for core governance artifacts, script coverage, package script wiring, and optional repo-local playbook helpers, with both human and JSON output modes.
+- Added/standardized the repo-level `CODEX.md` bootstrap instructions so Codex prompts can stay short while still deterministically loading governance + required local context.
+
+### WHY
+- Makes the repository self-healing so contributors can rehydrate required Playbook wiring at any time with a safe, repeatable command.
+- Reduces governance drift and repetitive prompt boilerplate by making Codex startup expectations explicit and versioned in-repo.
+
 ## 0.3.54 — 2026-03-04
 
 ### WHAT
