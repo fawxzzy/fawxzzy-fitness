@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.62 — 2026-03-04
+
+### WHAT
+- Removed duplicate Playbook runtime import enforcement from `docs/contracts.json` and kept a single fail contract with a clearer ID (`no-runtime-imports-playbook`).
+- Updated `scripts/playbook/auto.mjs` status output so `Promoted(last action)` reads `notes.promoted_last_action` with fallback to `notes.promoted` for compatibility.
+- Refined contract suggestion heuristics by matching `server` and `client` keywords directly and updated repo/process suggestions to emit repo-contract fields (`watch_paths`, `require_touched`, `ci_only`) only.
+
+### WHY
+- Eliminates redundant contract noise while preserving a clear runtime boundary guardrail.
+- Keeps automation output aligned with the new status schema without breaking older snapshots.
+- Produces cleaner, directly actionable advisory repo contract suggestions that better reflect real enforcement behavior.
+
+
 ## 0.3.61 — 2026-03-04
 
 ### WHAT

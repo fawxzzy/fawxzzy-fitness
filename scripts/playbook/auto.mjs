@@ -43,7 +43,8 @@ async function main() {
 
   const next = status.recommended_next_action ? status.recommended_next_action : 'none';
   console.log('');
-  console.log(`[playbook:auto] Proposed=${status.notes.proposed}, Promoted(last action)=${status.notes.promoted}, ContractsFail=${status.contracts.fail}.`);
+  const promotedLastAction = status.notes.promoted_last_action ?? status.notes.promoted;
+  console.log(`[playbook:auto] Proposed=${status.notes.proposed}, Promoted(last action)=${promotedLastAction}, ContractsFail=${status.contracts.fail}.`);
   console.log(`[playbook:auto] Next: ${next} (${status.reason})`);
   console.log(`[playbook:auto] See ${path.relative(process.cwd(), STATUS_PATH)} and docs/PLAYBOOK_NOTES.md.`);
 

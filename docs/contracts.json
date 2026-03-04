@@ -34,20 +34,7 @@
       ]
     },
     {
-      "id": "client-cannot-import-playbook",
-      "severity": "fail",
-      "type": "imports",
-      "description": "Runtime code must not import Playbook documentation or doctrine.",
-      "forbid_imports": [
-        "Playbook/**"
-      ],
-      "match_from": [
-        "src/**/*.ts",
-        "src/**/*.tsx"
-      ]
-    },
-    {
-      "id": "prevent-playbook-runtime-import",
+      "id": "no-runtime-imports-playbook",
       "severity": "fail",
       "type": "imports",
       "description": "Application runtime code must never import from the Playbook directory.",
