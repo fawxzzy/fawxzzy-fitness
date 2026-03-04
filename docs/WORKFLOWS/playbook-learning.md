@@ -16,6 +16,19 @@ Reference: <playbook doc>
 
 Codex should resume patch generation only after the request is corrected to comply with guardrails.
 
+## One-time setup
+
+```bash
+npm run hooks:install
+```
+
+Git hooks run with Git Bash on Windows.
+
+What happens on commit:
+- pre-commit runs `npm run playbook`
+- `docs/PLAYBOOK_NOTES.md` is auto-staged if changed
+- the hook is non-blocking (commit never fails due to Playbook tooling)
+
 ## Playbook Learning Quick Ritual
 
 While coding:
@@ -34,7 +47,7 @@ Weekly / batch promotion:
 npm run playbook:sync-and-update
 ```
 
-Primary command:
+Primary operator command:
 
 ```bash
 npm run playbook
@@ -44,7 +57,9 @@ Which automatically:
 - runs Playbook maintenance
 - prints recommended next step
 
-Quick maintenance:
+Direct commands are optional power-user shortcuts (`playbook:update`, `playbook:sync-and-update`, `playbook:maintain`, `playbook:guardian`).
+
+Quick maintenance (optional direct command):
 
 ```bash
 npm run playbook:maintain
@@ -146,16 +161,20 @@ npm run playbook:threshold
 
 `playbook:threshold` warns at 10 Proposed notes and fails at 20.
 
-### Optional local pre-commit hook (manual setup only)
+### Repository pre-commit hook
 
-If you want draft capture during local commit flow, add this command sequence to your own pre-commit hook:
+Install once:
 
 ```bash
-npm run playbook:guardian
-git add docs/PLAYBOOK_NOTES.md
+npm run hooks:install
 ```
 
-This repository does not auto-install hooks.
+Behavior on commit:
+- runs `npm run playbook`
+- auto-stages `docs/PLAYBOOK_NOTES.md` when modified
+- never blocks commits if Playbook tooling fails
+
+Hooks execute in a POSIX shell (Git Bash on Windows).
 
 ## Conflict and re-run behavior
 
@@ -188,10 +207,10 @@ npm run playbook:guardian
 If unsure what to run:
 
 ```bash
-npm run playbook:maintain
+npm run playbook
 ```
 
-When notes accumulate:
+When notes accumulate (optional direct command):
 
 ```bash
 npm run playbook:sync-and-update

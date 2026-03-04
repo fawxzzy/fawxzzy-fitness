@@ -21,6 +21,7 @@
     "cleanup:repo": "node scripts/cleanup-repo.mjs",
     "cleanup:repo:archive": "node scripts/cleanup-repo.mjs --archive",
     "cleanup:repo:full": "node scripts/cleanup-repo.mjs --include-build-cache",
+    "hooks:install": "node scripts/setup-githooks.mjs",
     "playbook:update": "node scripts/playbook/update-playbook-from-notes.mjs",
     "playbook:update:commit": "node scripts/playbook/update-playbook-from-notes.mjs --commit",
     "playbook:suggest": "node scripts/playbook/suggest-notes-from-diff.mjs",

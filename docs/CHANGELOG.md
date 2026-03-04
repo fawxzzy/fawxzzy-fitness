@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.35 — 2026-03-04
+
+### WHAT
+- Added `hooks:install` plus a repo-local `.githooks/pre-commit` hook that runs `npm run playbook` and auto-stages `docs/PLAYBOOK_NOTES.md` updates without blocking commits.
+- Updated Playbook CI status UX to recommend `npm run playbook` as the primary suggested command while also reporting a direct command for power users.
+- Added a Codex UI layout guardrail: AppShell owns safe-area insets and fixed-bar reserves.
+
+### WHY
+- Reduces operator memory burden with one default command and automatic local hook behavior for Playbook maintenance.
+- Improves PR guidance clarity by showing both the unified command and a context-specific direct command.
+- Prevents recurring mobile spacing/layout regressions by centralizing inset/reserve ownership at the AppShell/page-shell layer.
+
+
 ## 0.3.34 — 2026-03-04
 
 ### WHAT

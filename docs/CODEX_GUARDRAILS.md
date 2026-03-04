@@ -38,3 +38,15 @@ Codex must not proceed with code generation until the request is corrected to sa
 - Rule: Client surfaces must reject malformed UUID inputs.
 - Enforcement: Validate IDs before opening UI/detail fetch flows and preserve API boundary validation.
 - Reference: `Playbook/docs/GUARDRAILS/guardrails.md` ("Validate exercise IDs at client-open and API-entry boundaries").
+
+### 6) AppShell owns safe-area insets and fixed-bar reserves
+- Rule: Only the AppShell/page shell may apply safe-area inset padding/margins and fixed-bar reserve spacing.
+- Enforcement: Screens/components must not introduce `env(safe-area-inset-*)` usage or ad-hoc padding/margins intended to compensate for nav/header/footer overlap.
+- Enforcement: Bottom action bars must be published into the screen-owned slot/provider pattern, not mounted ad-hoc inside scrollers or glass/overflow contexts.
+- Violation examples to flag:
+  - `env(safe-area-inset-top)`
+  - `env(safe-area-inset-bottom)`
+  - `safe-area-inset`
+  - ad-hoc `pb-*` / `pt-*` added "to avoid overlap"
+- Reference: `Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md` and `Playbook/docs/GUARDRAILS/guardrails.md`.
+
