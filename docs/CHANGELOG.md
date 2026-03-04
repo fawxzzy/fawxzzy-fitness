@@ -12,6 +12,7 @@ All notable changes to this project are documented in this file.
 - Removed glass background from BottomActionBar inner container (now transparent).
 - Tuned BottomActionBar inner container to remove border chrome, soften drop shadow, and slightly increase horizontal dock inset.
 - Added back an ultra-subtle BottomActionBar inner tint (`rgb(var(--glass-tint-rgb)/0.22)`) while keeping the borderless dock treatment.
+- Fine-tuned BottomActionBar dock tokens to `gap-4`, `pt-2`, tint `rgb(var(--glass-tint-rgb)/0.20)`, and shadow `0 6px 16px rgb(0 0 0 / 0.35)` while keeping the borderless rounded/blur treatment.
 
 ### WHY
 - Ensures logged cardio sets (duration/distance/calories) are counted and surfaced even when reps are empty.
@@ -21,6 +22,7 @@ All notable changes to this project are documented in this file.
 - Improves visual integration and reduces heavy slab appearance while preserving sticky behavior and safe-area spacing.
 - Keeps the bottom action dock visually lighter and more floating while preserving blur, sticky behavior, and safe-area reachability.
 - Restores a minimal glass separation cue over varied page backgrounds without reintroducing the heavier slab effect.
+- Improves dock rhythm and contrast balance with slightly tighter vertical padding and refined separation from varied backgrounds without returning to a heavy slab look.
 
 ## 0.3.20 — 2026-03-03
 
