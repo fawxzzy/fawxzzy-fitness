@@ -12,6 +12,32 @@ All notable changes to this project are documented in this file.
 ### WHY
 - Keeps stat labels and values visually aligned and deterministic across mixed content lengths, improving scanability in the Exercise Info panel.
 
+## 0.3.27 — 2026-03-04
+
+### WHAT
+- Added deterministic Playbook sync automation with mode detection for submodule, in-tree sibling repo, or external repo path, plus `playbook:sync` and `playbook:sync-and-update` commands.
+- Added a Proposed-notes threshold gate script with explicit warning/failure behavior (warn at 10, fail at 20) and mode-aware operator guidance.
+- Added Playbook learning workflow CI coverage for the threshold gate and a non-blocking Playbook revision print step.
+- Updated Playbook learning docs to include sync setup/usage and command responsibilities.
+
+### WHY
+- Makes Playbook pulls repeatable and deterministic across supported repository wiring patterns.
+- Prevents local learning-note backlog from growing silently by surfacing clear escalation thresholds and actionable next commands.
+- Improves CI visibility into Playbook linkage state without making informational revision reporting a failure condition.
+- Keeps operator workflows discoverable so note promotion and Playbook sync are used together consistently.
+
+## 0.3.26 — 2026-03-04
+
+### WHAT
+- Added a one-command Playbook promotion workflow (`playbook:update`) that promotes `Proposed` notes into Playbook destination docs with idempotent marker-based updates and marks local note status as `Promoted` with upstream tracking.
+- Added autonomous learning scripts: `playbook:suggest` for git-diff-based note nudges and `playbook:check` for CI enforcement when learning-zone changes occur without note updates.
+- Added Playbook learning workflow documentation, parser self-test fixture/script coverage, and CI wiring for the new playbook notes enforcement check.
+
+### WHY
+- Makes local-to-global doctrine promotion repeatable and low-friction while preserving traceability across `Proposed` → `Promoted` → `Upstreamed`.
+- Reduces missed reusable learnings by nudging developers during local work and enforcing documentation discipline in pull requests.
+- Keeps governance automation explicit and maintainable without changing runtime application behavior.
+
 
 ## 0.3.25 — 2026-03-04
 

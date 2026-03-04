@@ -1,0 +1,32 @@
+name: Playbook Learning
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  playbook-learning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Threshold gate
+        run: npm run playbook:threshold
+
+      - name: Learning zone gate
+        run: npm run playbook:check
+
+      - name: Print Playbook revision (informational)
+        if: always()
+        run: node scripts/playbook/print-playbook-revision.mjs
