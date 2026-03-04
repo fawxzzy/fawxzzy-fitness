@@ -1055,6 +1055,24 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Upstream: Local (pending PR)
 
 ## DRAFTS (auto)
+<!-- PLAYBOOK_DRAFT_ID:369ce2be563b1c9d -->
+## 2026-03-04 — Standardize bottom-action slot and publish contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a bottom actions learning candidate touching 3 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
+- Evidence: scripts/playbook/__fixtures__/contracts/src/app/demo/bottom-actions-violation.tsx, scripts/playbook/contracts-allowlist.json, scripts/playbook/contracts-audit-lib.mjs
+- Status: Proposed
+
+<!-- PLAYBOOK_DRAFT_ID:57342725278cba50 -->
+## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a safe area-nav learning candidate touching 4 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
+- Evidence: docs/playbook-status.json, scripts/playbook/__fixtures__/contracts/src/components/ui/safe-area-violation.tsx, scripts/playbook/contracts-allowlist.json, scripts/playbook/contracts-audit-lib.mjs
+- Status: Proposed
+
 <!-- PLAYBOOK_DRAFT_ID:be66b72f8acc5180 -->
 ## 2026-03-04 — Standardize bottom-action slot and publish contracts
 - Type: Guardrail
