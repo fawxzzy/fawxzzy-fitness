@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.31 — 2026-03-04
+
+### WHAT
+- Added a `playbook:maintain` command to run guardian capture plus the proposed-notes threshold check in one step.
+- Added CI-generated Playbook status snapshot artifact output (`docs/playbook-status.json`) for machine-readable visibility in workflow runs.
+- Improved Playbook status suggestion logic to recommend sync-and-update at warning/fail thresholds and update/guardian for lower-note states.
+- Added README and workflow documentation updates for the Playbook Learning status/reporting workflow.
+
+### WHY
+- Improves Playbook Learning visibility in CI while keeping automation artifact-only and non-noisy.
+- Reduces manual command recall by providing a single maintenance command and clearer state-based next-step guidance.
+
+
 ## 0.3.30 — 2026-03-04
 
 ### WHAT
