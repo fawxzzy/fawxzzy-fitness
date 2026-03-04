@@ -6,14 +6,6 @@ import { runNpm } from './_lib/run-npm.mjs';
 
 const STATUS_PATH = path.resolve('docs/playbook-status.json');
 
-function suggestCommand({ proposed, drafts, warnThreshold, failThreshold }) {
-  if (proposed >= failThreshold) return 'npm run playbook:sync-and-update';
-  if (proposed >= warnThreshold) return 'npm run playbook:sync-and-update';
-  if (proposed > 0) return 'npm run playbook:update';
-  if (drafts > 0) return 'npm run playbook:maintain';
-  return 'No action required.';
-}
-
 async function readStatus() {
   try {
     const raw = await fs.readFile(STATUS_PATH, 'utf8');
@@ -25,6 +17,8 @@ async function readStatus() {
       upstreamed: Number(parsed.upstreamed) || 0,
       warnThreshold: Number(parsed.warnThreshold) || 10,
       failThreshold: Number(parsed.failThreshold) || 20,
+      contracts: parsed.contracts || { status: 'PASS', warnCount: 0, failCount: 0 },
+      recommendation: parsed.recommendation || { nextCommand: null, reason: 'No action required.' },
       found: true,
     };
   } catch (error) {
@@ -39,6 +33,8 @@ async function readStatus() {
       upstreamed: 0,
       warnThreshold: 10,
       failThreshold: 20,
+      contracts: { status: 'PASS', warnCount: 0, failCount: 0 },
+      recommendation: { nextCommand: null, reason: 'No action required.' },
       found: false,
     };
   }
@@ -88,7 +84,10 @@ async function main() {
   );
 
   const status = await readStatus();
-  const recommendation = suggestCommand(status);
+  const recommendation =
+    typeof status.recommendation?.nextCommand === 'string'
+      ? status.recommendation.nextCommand
+      : 'No action required.';
 
   console.log('');
   console.log('Playbook Status');
@@ -96,11 +95,23 @@ async function main() {
   console.log(`Proposed: ${status.proposed}`);
   console.log(`Promoted: ${status.promoted}`);
   console.log(`Upstreamed: ${status.upstreamed}`);
+  console.log(
+    `Contracts: ${status.contracts.status}${
+      status.contracts.status === 'WARN'
+        ? `(${Number(status.contracts.warnCount) || 0})`
+        : status.contracts.status === 'FAIL'
+          ? `(${Number(status.contracts.failCount) || 0})`
+          : ''
+    }`,
+  );
   console.log('');
   if (!status.found) {
     console.log('Status snapshot not found. Run: node scripts/playbook/write-status-files.mjs');
   }
   console.log(`Recommended next action: ${recommendation}`);
+  if (status.recommendation?.reason) {
+    console.log(`Reason: ${status.recommendation.reason}`);
+  }
   console.log('If unsure what to run → npm run playbook');
 
   if (typeof maintain.status === 'number' && maintain.status !== 0) {

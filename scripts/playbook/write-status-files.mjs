@@ -11,6 +11,65 @@ const STATUS_RE = /^-\s+Status:\s*(.+)$/i;
 const WARN_THRESHOLD = 10;
 const FAIL_THRESHOLD = 20;
 
+function buildContracts(proposed) {
+  if (proposed >= FAIL_THRESHOLD) {
+    return {
+      status: 'FAIL',
+      warnCount: 0,
+      failCount: proposed - FAIL_THRESHOLD + 1,
+    };
+  }
+
+  if (proposed >= WARN_THRESHOLD) {
+    return {
+      status: 'WARN',
+      warnCount: proposed - WARN_THRESHOLD + 1,
+      failCount: 0,
+    };
+  }
+
+  return {
+    status: 'PASS',
+    warnCount: 0,
+    failCount: 0,
+  };
+}
+
+function buildRecommendation({ proposed, drafts, contracts }) {
+  if (contracts.status === 'FAIL') {
+    return {
+      nextCommand: 'npm run playbook:sync-and-update',
+      reason: `Contracts failing: ${contracts.failCount} threshold breach(es) at fail threshold ${FAIL_THRESHOLD}.`,
+    };
+  }
+
+  if (contracts.status === 'WARN') {
+    return {
+      nextCommand: 'npm run playbook:sync-and-update',
+      reason: `Contracts warning: ${contracts.warnCount} threshold breach(es) at warn threshold ${WARN_THRESHOLD}.`,
+    };
+  }
+
+  if (proposed > 0) {
+    return {
+      nextCommand: 'npm run playbook:update',
+      reason: 'Proposed notes are present and should be promoted upstream.',
+    };
+  }
+
+  if (drafts > 0) {
+    return {
+      nextCommand: 'npm run playbook:maintain',
+      reason: 'Draft notes exist; run maintenance to refine and validate entries.',
+    };
+  }
+
+  return {
+    nextCommand: null,
+    reason: 'No action required.',
+  };
+}
+
 function normalizeStatus(rawStatus) {
   return rawStatus.trim().toLowerCase();
 }
@@ -51,6 +110,12 @@ async function main() {
   const lines = content.split(/\r?\n/);
   const drafts = countDrafts(lines);
   const statusCounts = countStatuses(lines);
+  const contracts = buildContracts(statusCounts.proposed);
+  const recommendation = buildRecommendation({
+    proposed: statusCounts.proposed,
+    drafts,
+    contracts,
+  });
   let trend = [];
 
   try {
@@ -72,6 +137,8 @@ async function main() {
     upstreamed: statusCounts.upstreamed,
     warnThreshold: WARN_THRESHOLD,
     failThreshold: FAIL_THRESHOLD,
+    contracts,
+    recommendation,
     trendLength: trend.length,
     lastTrendTimestamp:
       lastTrendEntry && typeof lastTrendEntry.timestamp === 'string'

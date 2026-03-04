@@ -3,6 +3,23 @@
 All notable changes to this project are documented in this file.
 
 
+
+## 0.3.38 — 2026-03-04
+
+### WHAT
+- Switched Playbook status reporting to a status-file-first contract: `scripts/playbook/write-status-files.mjs` now emits `contracts` and `recommendation` fields in `docs/playbook-status.json`, and `npm run playbook` now prints recommendations from that file.
+- Updated Playbook CI status reporting to read `docs/playbook-status.json` exclusively for PR output (`Knowledge`, `Contracts`, `Next`) and removed duplicate notes parsing logic from CI status generation.
+- Kept the pre-commit Playbook hook non-blocking while extending auto-staging to include `docs/playbook-status.json` alongside `docs/PLAYBOOK_NOTES.md`.
+- Added Codex guardrails requiring agents to read `docs/playbook-status.json`, fix failing contracts before shipping, and follow `recommendation.nextCommand` when present.
+- Expanded CI verification to run `npm run playbook` in addition to existing checks.
+
+### WHY
+- Makes Playbook status data the single source of truth for local and CI reporting, reducing drift from duplicated computations.
+- Keeps developer and CI outputs aligned around one machine-readable contract for recommendations and contract health.
+- Improves workflow composability by staging generated status snapshots that pre-commit already refreshes.
+- Tightens agent execution discipline so contract failures and prescribed next steps are consistently enforced.
+
+
 ## 0.3.37 — 2026-03-04
 
 ### WHAT

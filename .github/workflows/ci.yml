@@ -27,6 +27,9 @@ jobs:
       - name: Playbook learning check
         run: npm run playbook:check
 
+      - name: Playbook maintenance
+        run: npm run playbook
+
       - name: Lint
         run: npm run lint
 

@@ -10,4 +10,8 @@ if git diff --name-only -- docs/PLAYBOOK_NOTES.md | grep -q '^docs/PLAYBOOK_NOTE
   git add docs/PLAYBOOK_NOTES.md
 fi
 
+if git diff --name-only -- docs/playbook-status.json | grep -q '^docs/playbook-status\.json$'; then
+  git add docs/playbook-status.json
+fi
+
 exit 0
