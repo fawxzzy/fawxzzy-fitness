@@ -20,6 +20,16 @@ Weekly / batch promotion:
 npm run playbook:sync-and-update
 ```
 
+Primary command:
+
+```bash
+npm run playbook
+```
+
+Which automatically:
+- runs Playbook maintenance
+- prints recommended next step
+
 Quick maintenance:
 
 ```bash

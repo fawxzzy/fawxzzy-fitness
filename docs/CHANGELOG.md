@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.33 — 2026-03-04
+
+### WHAT
+- Added a unified `npm run playbook` command that runs Playbook maintenance and then prints a clear status snapshot with a recommended next action.
+- Updated the Playbook learning workflow docs to make `npm run playbook` the primary operator command for maintenance plus guidance.
+
+### WHY
+- Reduces workflow memory burden by giving operators one default command that both maintains notes and explains what to run next.
+- Improves day-to-day Playbook operability with deterministic, visible next-step recommendations after each maintenance run.
+
+
 ## 0.3.32 — 2026-03-04
 
 ### WHAT
