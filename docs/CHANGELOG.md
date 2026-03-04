@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.61 — 2026-03-04
+
+### WHAT
+- Extended Playbook status output to publish both run-scoped and lifetime note metrics by adding `notes.promoted_last_action` and `notes.promoted_total` while keeping `notes.promoted` for backward compatibility.
+- Added promoted-total derivation from `docs/PLAYBOOK_NOTES.md` using `Status: Promoted` parsing, with a documented fallback to count dated note entries when status fields are missing/unparseable.
+- Updated the Playbook Learning Status dashboard wording to separately report last-action promotion counts and lifetime promoted totals.
+
+### WHY
+- Restores accurate historical learning visibility after `notes.promoted` shifted to last-action semantics, preventing the dashboard from implying learning was lost.
+- Preserves CI/tooling compatibility by keeping existing fields while introducing additive metrics for clearer operator guidance.
+
+
 ## 0.3.60 — 2026-03-04
 
 ### WHAT

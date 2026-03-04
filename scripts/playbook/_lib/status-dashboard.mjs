@@ -12,6 +12,8 @@ export function readDashboardModel(raw = {}) {
     draft: toNumber(notes.draft, toNumber(raw.drafts)),
     proposed: toNumber(notes.proposed, toNumber(raw.proposed)),
     promoted: toNumber(notes.promoted, toNumber(raw.promoted)),
+    promotedLastAction: toNumber(notes.promoted_last_action, toNumber(notes.promoted, toNumber(raw.promoted))),
+    promotedTotal: toNumber(notes.promoted_total, toNumber(notes.promoted, toNumber(raw.promoted))),
     contracts: {
       pass: toNumber(contracts.pass, toNumber(contracts.summary?.pass)),
       warn: toNumber(contracts.warn, toNumber(contracts.summary?.warn)),
@@ -34,7 +36,8 @@ export function formatDashboardMarkdown(raw) {
   return [
     '## Playbook Learning Status',
     '',
-    `Knowledge Draft/Proposed/Promoted: ${model.draft}/${model.proposed}/${model.promoted}`,
+    `Notes Draft/Proposed/Promoted(last action): ${model.draft}/${model.proposed}/${model.promotedLastAction}`,
+    `Notes Promoted(total): ${model.promotedTotal}`,
     `Contracts: PASS(${model.contracts.pass})/WARN(${model.contracts.warn})/FAIL(${model.contracts.fail})`,
     `Signals: autoClassified=${model.signals.autoClassified}, duplicatesSkipped=${model.signals.duplicatesSkipped}, boundaryFlags=${model.signals.boundaryFlags}`,
     `Next command: ${model.recommendation.nextCommand || 'none'}`,
