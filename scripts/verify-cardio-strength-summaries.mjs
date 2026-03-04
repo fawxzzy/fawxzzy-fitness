@@ -11,26 +11,38 @@ function pace(durationSeconds, distance) {
   return d / dist;
 }
 
-function summarizeCardioRows(rows) {
-  const totals = {
-    sets: rows.length,
-    durationSeconds: rows.reduce((sum, row) => sum + positive(row.durationSeconds), 0),
+function formatDurationShort(seconds) {
+  const safe = positive(seconds);
+  if (safe <= 0) return null;
+  const minutes = Math.floor(safe / 60);
+  const remainderSeconds = Math.floor(safe % 60);
+  return `${minutes}:${String(remainderSeconds).padStart(2, "0")}`;
+}
+
+function summarizeCardioSession(rows) {
+  const durationSeconds = rows.reduce((sum, row) => sum + positive(row.durationSeconds), 0);
+  const distance = rows.reduce((sum, row) => sum + positive(row.distance), 0);
+  const calories = rows.reduce((sum, row) => sum + positive(row.calories), 0);
+  const p = pace(durationSeconds, distance);
+  const parts = [formatDurationShort(durationSeconds), distance > 0 ? `${distance.toFixed(1)} mi` : null, p ? `${formatDurationShort(p)}/mi` : null, calories > 0 ? `${calories} cal` : null].filter(Boolean);
+  return {
+    durationSeconds,
+    distance,
+    calories,
+    lastSummary: parts.join(" • "),
   };
-  const bestDurationSeconds = rows.reduce((max, row) => Math.max(max, positive(row.durationSeconds)), 0);
-  const bestPace = rows.map((row) => pace(row.durationSeconds, row.distance)).filter((value) => typeof value === "number").sort((a, b) => a - b)[0] ?? null;
-  return { totals, bestDurationSeconds, bestPace };
 }
 
 {
   const inclineWalkRows = [
-    { durationSeconds: 1200, distance: 1.0 },
-    { durationSeconds: 0, distance: 0 },
-    { durationSeconds: 0, distance: 0 },
+    { durationSeconds: 1200, distance: 1.0, calories: 130 },
+    { durationSeconds: 0, distance: 0, calories: 0 },
+    { durationSeconds: 0, distance: 0, calories: 0 },
   ];
-  const stats = summarizeCardioRows(inclineWalkRows);
-  assert.equal(stats.totals.sets, 3);
-  assert.equal(stats.totals.durationSeconds, 1200);
-  assert.equal(stats.bestDurationSeconds, 1200);
+  const stats = summarizeCardioSession(inclineWalkRows);
+  assert.equal(stats.durationSeconds, 1200);
+  assert.equal(stats.lastSummary.includes("20:00"), true);
+  assert.notEqual(stats.lastSummary, "—");
 }
 
 {
