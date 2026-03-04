@@ -128,4 +128,4 @@ jobs:
 
       - name: Print Playbook revision (informational)
         if: always()
-        run: node scripts/playbook/print-playbook-revision.mjs
+        run: node scripts/playbook/print-playbook-revision.mjs || true
