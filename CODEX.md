@@ -1,30 +1,26 @@
-# Codex Operating Instructions
+# Codex Bootstrap
 
-Before implementing any non-trivial change:
+Always follow repository governance.
 
-1. Read:
+Required reading before implementing changes:
 
-docs/ARCHITECTURE.md
+1. docs/PROJECT_GOVERNANCE.md
+2. docs/ARCHITECTURE.md (if present)
+3. docs/PLAYBOOK_CHECKLIST.md
+4. docs/playbook-status.json
 
-docs/PROJECT_GOVERNANCE.md
+Development loop:
 
-docs/PLAYBOOK_CHECKLIST.md
+1. Plan implementation.
+2. Implement smallest clear diff.
+3. Run:
 
-docs/PLAYBOOK_NOTES.md
+npm run playbook:auto
 
-docs/CHANGELOG.md
+4. Update docs/CHANGELOG.md if required.
 
-2. Respect product priorities:
-   - Speed > polish
-   - Deterministic logic
-   - No feature bloat
+If a change introduces reusable engineering knowledge:
 
-3. For merge-worthy changes:
-   - Update docs/CHANGELOG.md
-   - Summarize WHAT changed and WHY
-   - Do not describe implementation details
+Append an entry to docs/PLAYBOOK_NOTES.md.
 
-4. Ensure:
-   - npm run build succeeds
-   - No server/client boundary violations
-   - No static export configuration
+Never violate architectural contracts defined in governance documents.
