@@ -230,3 +230,21 @@ Evidence (FawxzzyFitness):
 - src/app/actions/history.ts
 - src/app/history/[sessionId]/LogAuditClient.tsx
 - supabase/migrations/032_backfill_cardio_session_exercise_default_unit.sql
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-enforce-single-source-safe-area-and-top-nav-offset-contracts -->
+### Enforce single-source safe-area and top-nav offset contracts (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Recent git changes indicate a safe area-nav learning candidate touching 11 file(s). Capture this as draft guidance for review before promotion.
+Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
+Evidence (FawxzzyFitness):
+- docs/CHANGELOG.md
+- docs/PLAYBOOK_NOTES.md
+- docs/playbook-status.json
+- scripts/playbook/contracts-allowlist.json
+- src/app/globals.css
+- src/components/ExerciseInfoSheet.tsx
+- src/components/ui/BottomActionBar.tsx
+- src/components/ui/BottomSheet.tsx
+- src/components/ui/ConfirmDestructiveModal.tsx
+- src/components/ui/ToastProvider.tsx
+- src/components/ui/app/AppShell.tsx

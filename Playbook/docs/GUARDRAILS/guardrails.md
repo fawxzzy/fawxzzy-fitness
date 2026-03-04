@@ -363,7 +363,19 @@ Evidence (FawxzzyFitness):
 <!-- PLAYBOOK_NOTE_ID:2026-03-04-standardize-bottom-action-slot-and-publish-contracts -->
 ### Standardize bottom-action slot and publish contracts (from FawxzzyFitness notes, 2026-03-04)
 Type: Guardrail
-Summary: Recent git changes indicate a bottom actions learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
+Summary: Recent git changes indicate a bottom actions learning candidate touching 4 file(s). Capture this as draft guidance for review before promotion.
 Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
 Evidence (FawxzzyFitness):
+- docs/CHANGELOG.md
+- docs/PLAYBOOK_NOTES.md
+- scripts/playbook/contracts-allowlist.json
+- src/components/ui/BottomActionBar.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-literalize-layout-critical-tailwind-arbitrary-value-classes -->
+### Literalize layout-critical Tailwind arbitrary-value classes (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Recent git changes indicate a tailwind extraction learning candidate touching 2 file(s). Capture this as draft guidance for review before promotion.
+Rationale: Literal class strings keep Tailwind extraction deterministic for spacing-critical utilities.
+Evidence (FawxzzyFitness):
+- src/components/ExerciseInfoSheet.tsx
 - src/components/ui/BottomActionBar.tsx

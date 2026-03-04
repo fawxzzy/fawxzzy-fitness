@@ -589,3 +589,18 @@ Evidence (FawxzzyFitness):
 - src/app/history/[sessionId]/page.tsx
 - src/app/routines/page.tsx
 - src/app/routines/[id]/days/[dayId]/page.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-enforce-appshell-as-the-only-env-safe-area-inset-reader -->
+### Enforce AppShell as the only env(safe-area-inset-*) reader (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Safe-area env insets must be read only in the AppShell/global token layer; feature screens and shared UI components should consume shell-owned `var(--app-safe-*)` variables for notch/home-indicator spacing.
+Rationale: A single shell owner for `env(safe-area-inset-*)` prevents per-component inset drift, keeps overlay spacing consistent across routes, and ensures SAFE_AREA_OWNERSHIP contract enforcement remains deterministic.
+Evidence (FawxzzyFitness):
+- src/components/ui/app/AppShell.tsx
+- src/app/globals.css
+- src/components/ExerciseInfoSheet.tsx
+- src/components/ui/BottomSheet.tsx
+- src/components/ui/ConfirmDestructiveModal.tsx
+- src/components/ui/ToastProvider.tsx
+- src/components/ui/BottomActionBar.tsx
+- scripts/playbook/contracts-allowlist.json
