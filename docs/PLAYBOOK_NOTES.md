@@ -25,7 +25,7 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Prevents “Last: —” regressions for cardio exercises that have valid logged effort but stale/null session or exercise unit defaults.
 - Evidence: src/lib/exercise-info.ts, src/lib/exercises-browser.ts, src/components/ExerciseInfoSheet.tsx, supabase/migrations/033_normalize_cardio_measurement_units.sql
-- Status: Proposed
+- Status: Promoted
 
 
 ## 2026-03-04 — Preserve measurement metadata through API stat loaders
@@ -34,7 +34,7 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Prevents cardio stats regressions where valid duration/distance history exists but Last/Best/Totals appear empty because the wrong aggregation branch executes.
 - Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts
-- Status: Proposed
+- Status: Promoted
 
 ## 2026-03-03 — Session exercise unit metadata should mirror measurement type
 - Type: Guardrail
@@ -50,7 +50,7 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents Tailwind extraction misses that silently drop compiled spacing rules and cause overlap regressions in mobile fixed-action layouts.
 - Evidence: src/components/ui/BottomActionBar.tsx, tailwind.config.ts
-- Status: Proposed
+- Status: Promoted
 
 ## 2026-03-03 — Card summaries should be measurement-aware and server-derived
 - Type: Pattern

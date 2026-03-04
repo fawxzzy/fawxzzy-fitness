@@ -109,3 +109,42 @@ const onSelect = async () => {
   closeSheet();
 };
 ```
+
+### Pattern: Preserve Modality Metadata Through Loader Boundaries
+
+Problem
+Stat loaders can silently choose the wrong aggregation path when modality metadata is dropped between API handlers and server helpers.
+
+Solution
+Pass canonical modality metadata (`measurement_type` and `default_unit`) through every loader boundary and require downstream aggregators to use that metadata plus set-level data when selecting stat branches.
+
+Implementation Guidance
+- Treat modality metadata as required input for any stats helper that branches behavior by exercise type.
+- Validate incoming metadata at API boundaries and default only when explicitly documented.
+- Keep branch selection deterministic: metadata selects candidate path, set-level signal confirms renderable metrics.
+
+Example
+`src/app/api/exercise-info/[exerciseId]/route.ts` forwards canonical measurement metadata into `src/lib/exercise-info.ts` aggregation helpers so cardio rows do not degrade into strength/reps fallbacks.
+
+Why It Matters
+Preserving modality metadata prevents silent regressions where valid history exists but Last/Best/Totals render empty because the wrong aggregation branch executed.
+
+### Pattern: Derive Measurement-Aware Summaries Server-Side
+
+Problem
+Card/list surfaces become inconsistent when each client renderer recomputes Last/Best summaries with slightly different modality rules.
+
+Solution
+Build compact, measurement-aware summary strings in server loaders once, then send the preformatted summary view model to client cards.
+
+Implementation Guidance
+- Derive Last/Best using deterministic modality priorities from canonical set data.
+- Keep client card components render-only and avoid per-card aggregation logic.
+- Use metadata defaults only as formatting fallback when set-level units are missing.
+
+Example
+`src/lib/exercises-browser.ts` and `src/lib/exercise-info.ts` produce server-shaped summary rows consumed by `src/app/history/exercises/ExerciseBrowserClient.tsx` and `src/components/ExerciseInfoSheet.tsx`.
+
+Why It Matters
+Server-shaped summaries improve consistency, reduce client render cost on long lists, and avoid modality drift across surfaces.
+

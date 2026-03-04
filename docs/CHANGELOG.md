@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+
+## 0.3.24 — 2026-03-04
+
+### WHAT
+- Promoted reusable Playbook guidance for preserving modality metadata through server stat-loader boundaries and deriving measurement-aware card summaries server-side.
+- Promoted a reusable Playbook guardrail requiring literalized Tailwind arbitrary-value classes for layout-critical spacing.
+- Marked the corresponding local Playbook notes as Promoted after upstreaming into Playbook docs.
+
+### WHY
+- Reduces cross-app regressions where metric-heavy stats silently downgrade due to metadata loss between API and aggregation layers.
+- Prevents production-only UI overlap bugs caused by Tailwind extraction missing interpolated arbitrary-value spacing classes.
+- Keeps project-local Playbook notes in sync with upstreamed doctrine.
+
 ## 0.3.21 — 2026-03-04
 
 ### WHAT
