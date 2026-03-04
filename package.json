@@ -25,7 +25,11 @@
     "playbook:update:commit": "node scripts/playbook/update-playbook-from-notes.mjs --commit",
     "playbook:suggest": "node scripts/playbook/suggest-notes-from-diff.mjs",
     "playbook:check": "node scripts/playbook/check-notes-updated.mjs",
-    "playbook:test": "node scripts/playbook/test-parse-notes.mjs"
+    "playbook:test": "node scripts/playbook/test-parse-notes.mjs",
+    "playbook:threshold": "node scripts/playbook/check-proposed-notes-threshold.mjs",
+    "playbook:sync": "node scripts/playbook/sync-playbook.mjs",
+    "playbook:sync:commit": "node scripts/playbook/sync-playbook.mjs --commit",
+    "playbook:sync-and-update": "npm run playbook:sync && npm run playbook:update"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

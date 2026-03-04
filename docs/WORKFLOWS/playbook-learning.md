@@ -2,19 +2,41 @@
 
 This workflow provides a one-command promotion path from local notes into the Playbook repository and lightweight automation to keep learning capture consistent.
 
-## Clone Playbook next to this repo
+## Playbook Sync
 
-From the parent folder of `FawxzzyFitness`:
+### Submodule setup (recommended for deterministic pointer updates)
+
+```bash
+git submodule add <Playbook repo url> Playbook
+git submodule update --init --recursive
+```
+
+### Sibling repo setup
+
+Clone Playbook next to `FawxzzyFitness` (or at `./Playbook`):
 
 ```bash
 git clone https://github.com/ZachariahRedfield/Playbook.git ../Playbook
 ```
 
-Optional: set an explicit path if your clone lives elsewhere.
+Optionally set an explicit external path:
 
 ```bash
 export PLAYBOOK_REPO_PATH=/absolute/or/relative/path/to/Playbook
 ```
+
+### Sync and update commands
+
+```bash
+npm run playbook:sync
+npm run playbook:update
+npm run playbook:sync-and-update
+```
+
+What each command changes:
+- `playbook:sync`: pulls the latest Playbook content into this repo integration mode (submodule pointer update, in-tree sibling fast-forward, or external repo fast-forward) and prints the synced commit SHA.
+- `playbook:update`: promotes local `Proposed` notes into Playbook destination docs and marks note status as `Promoted`.
+- `playbook:sync-and-update`: runs sync first, then performs note promotion.
 
 ## Promote notes into Playbook
 
@@ -53,9 +75,10 @@ This checks recent changes (`HEAD~1` by default) and prints a suggested `docs/PL
 
 ```bash
 npm run playbook:check
+npm run playbook:threshold
 ```
 
-This fails when learning-zone files changed but `docs/PLAYBOOK_NOTES.md` was not updated.
+`playbook:threshold` warns at 10 Proposed notes and fails at 20.
 
 ## Conflict and re-run behavior
 
