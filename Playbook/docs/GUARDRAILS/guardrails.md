@@ -178,3 +178,23 @@ Implementation Notes:
   ```
 Related Patterns: [mobile-interactions-and-navigation](../PATTERNS/mobile-interactions-and-navigation.md)
 Last Updated: 2026-03-03
+
+### Pattern: Literalize Layout-Critical Tailwind Arbitrary Classes
+
+Problem
+Template-interpolated Tailwind arbitrary-value classes can be missed by extraction, causing critical spacing rules to disappear in production builds.
+
+Solution
+Keep layout-critical arbitrary-value utilities as literal class strings (and safelist when needed) so build-time extraction is deterministic.
+
+Implementation Guidance
+- Store classes like `pb-[calc(...)]` as literal constants, not runtime string templates.
+- Safelist known critical classes when they may be assembled indirectly.
+- Apply this guardrail specifically to spacing that prevents overlap with sticky/fixed UI.
+
+Example
+`src/components/ui/BottomActionBar.tsx` defines reserve padding classes literally and `tailwind.config.ts` safelists the class used to preserve bottom-action spacing.
+
+Why It Matters
+Deterministic class extraction prevents hidden layout regressions where scroll content is clipped behind fixed mobile action bars.
+
