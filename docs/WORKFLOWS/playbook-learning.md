@@ -55,6 +55,7 @@ npm run playbook
 
 Which automatically:
 - runs Playbook maintenance
+- generates local status/trend snapshots before printing status (for consistent local behavior outside CI)
 - prints recommended next step
 
 Direct commands are optional power-user shortcuts (`playbook:update`, `playbook:sync-and-update`, `playbook:maintain`, `playbook:guardian`).

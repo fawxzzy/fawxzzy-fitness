@@ -2,6 +2,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { runNpm } from './_lib/run-npm.mjs';
 
 const STATUS_PATH = path.resolve('docs/playbook-status.json');
 
@@ -43,8 +44,28 @@ async function readStatus() {
   }
 }
 
+function runLocalSnapshot(scriptPath) {
+  const absolutePath = path.resolve(scriptPath);
+  try {
+    spawnSync('node', [absolutePath], { stdio: 'inherit', shell: false });
+  } catch {
+    // Best-effort local snapshot generation only.
+  }
+}
+
 async function main() {
-  const maintain = spawnSync('npm', ['run', 'playbook:maintain'], { stdio: 'inherit' });
+  const maintain = runNpm(['run', '-s', 'playbook:maintain']);
+
+  await fs.access(path.resolve('scripts/playbook/write-status-files.mjs')).then(
+    () => runLocalSnapshot('scripts/playbook/write-status-files.mjs'),
+    () => {},
+  );
+
+  await fs.access(path.resolve('scripts/playbook/write-trend-files.mjs')).then(
+    () => runLocalSnapshot('scripts/playbook/write-trend-files.mjs'),
+    () => {},
+  );
+
   const status = await readStatus();
   const recommendation = suggestCommand(status);
 
@@ -56,7 +77,7 @@ async function main() {
   console.log(`Upstreamed: ${status.upstreamed}`);
   console.log('');
   if (!status.found) {
-    console.log('Status file not found: docs/playbook-status.json');
+    console.log('Status snapshot not found. Run: node scripts/playbook/write-status-files.mjs');
   }
   console.log(`Recommended next action: ${recommendation}`);
   console.log('If unsure what to run → npm run playbook:maintain');
@@ -65,8 +86,8 @@ async function main() {
     process.exit(maintain.status);
   }
 
-  if (maintain.error) {
-    throw maintain.error;
+  if (!maintain.ok) {
+    process.exit(1);
   }
 }
 
