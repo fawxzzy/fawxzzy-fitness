@@ -857,3 +857,11 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Rationale: Prevents overlay overlap/clipping bugs in iOS overflow contexts and keeps action-bar behavior consistent across deep detail screens.
 - Evidence: src/components/SessionTimers.tsx, src/components/SessionPageClient.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/app/history/[sessionId]/HistoryLogPageClient.tsx
 - Status: Proposed
+
+## 2026-03-04 — Resolve effective exercise modality from metric signal, not metadata alone
+- Type: Guardrail
+- Summary: When measurement metadata suggests cardio, UI classification should still require positive duration or distance signal before rendering cardio-mode summaries or Best lines.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents stale/incorrect metadata from causing strength histories to display cardio-only summaries and keeps modality decisions deterministic across surfaces.
+- Evidence: src/lib/cardio-best.ts, src/lib/exercises-browser.ts, src/lib/exercise-info.ts
+- Status: Proposed
