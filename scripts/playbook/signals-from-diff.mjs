@@ -134,6 +134,39 @@ function applyMapping(signal, changedFiles, mapping) {
   };
 }
 
+function normalizeDedupe(rawDedupe) {
+  if (!rawDedupe || typeof rawDedupe !== 'object') {
+    return { kind: 'none', score: 0 };
+  }
+
+  if (typeof rawDedupe.kind === 'string') {
+    const kind = rawDedupe.kind;
+    const isKnownKind = kind === 'duplicate' || kind === 'near-duplicate' || kind === 'none';
+    return {
+      ...rawDedupe,
+      kind: isKnownKind ? kind : 'none',
+      score: Number.isFinite(Number(rawDedupe.score)) ? Number(rawDedupe.score) : 0,
+      isDuplicate: kind === 'duplicate',
+    };
+  }
+
+  if (rawDedupe.isDuplicate === true) {
+    return {
+      ...rawDedupe,
+      kind: 'duplicate',
+      score: 1,
+      isDuplicate: true,
+    };
+  }
+
+  return {
+    ...rawDedupe,
+    kind: 'none',
+    score: Number.isFinite(Number(rawDedupe.score)) ? Number(rawDedupe.score) : 0,
+    isDuplicate: false,
+  };
+}
+
 export function getSignalsFromDiff(options = {}) {
   const cwd = options.cwd || process.cwd();
   const parsed = options.argv ? parseArgs(options.argv) : {
@@ -165,9 +198,11 @@ export function getSignalsFromDiff(options = {}) {
   });
 
   const mapped = applyMapping(signal, changedFiles, mapping);
+  const dedupe = normalizeDedupe(mapped.dedupe);
 
   return {
     ...mapped,
+    dedupe,
     changedFiles,
     mappingPath: fs.existsSync(mappingPath) ? path.relative(repoRoot, mappingPath).replace(/\\/g, '/') : null,
   };

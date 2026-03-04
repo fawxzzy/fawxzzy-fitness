@@ -64,35 +64,55 @@ function capEvidence(evidence, max = 8) {
   return [...limited, `(+${evidence.length - max} more)`];
 }
 
+function formatDedupeMatch(dedupe) {
+  const matchedTitle = dedupe?.matchedTitle || 'Unknown doctrine';
+  const matchedPath = dedupe?.matchedPath || 'unknown-path';
+  const anchor = dedupe?.matchedAnchor ? `#${dedupe.matchedAnchor}` : '';
+  return `${matchedTitle} at ${matchedPath}${anchor}`;
+}
+
+function formatScore(score) {
+  const numeric = Number(score);
+  if (!Number.isFinite(numeric)) return '0.00';
+  return numeric.toFixed(2);
+}
+
 export function buildSuggestedNote({ changedFiles, signal }) {
   const matched = changedFiles.filter(matchesLearningZone);
   if (matched.length === 0) {
     return { skipped: true, reason: 'no-learning-zone' };
   }
 
-  if (signal.dedupe?.isDuplicate) {
+  if (signal.dedupe?.kind === 'duplicate') {
     return {
       skipped: true,
       reason: 'duplicate',
-      matchedTitle: signal.dedupe.matchedTitle,
-      matchedPath: signal.dedupe.matchedPath,
+      score: signal.dedupe.score,
+      match: formatDedupeMatch(signal.dedupe),
     };
   }
 
   const evidence = capEvidence(signal.evidence.length > 0 ? signal.evidence : matched);
   const suggestedPlaybookFile = signal.suggestedPlaybookFile || 'Playbook/docs/INBOX/from-fawxzzyfitness.md';
 
+  const lines = [
+    `## ${new Date().toISOString().slice(0, 10)} — ${guessTitle(matched)}`,
+    `- Type: ${signal.type}`,
+    '- Summary: <1–2 sentences>',
+    `- Suggested Playbook File: ${suggestedPlaybookFile}`,
+    '- Rationale: <why this matters / what it prevents>',
+    `- Evidence: ${evidence.join(', ')}`,
+  ];
+
+  if (signal.dedupe?.kind === 'near-duplicate') {
+    lines.push(`- Possible duplicate (score=${formatScore(signal.dedupe.score)}): ${formatDedupeMatch(signal.dedupe)}`);
+  }
+
+  lines.push('- Status: Proposed');
+
   return {
     skipped: false,
-    lines: [
-      `## ${new Date().toISOString().slice(0, 10)} — ${guessTitle(matched)}`,
-      `- Type: ${signal.type}`,
-      '- Summary: <1–2 sentences>',
-      `- Suggested Playbook File: ${suggestedPlaybookFile}`,
-      '- Rationale: <why this matters / what it prevents>',
-      `- Evidence: ${evidence.join(', ')}`,
-      '- Status: Proposed',
-    ],
+    lines,
   };
 }
 
@@ -107,8 +127,12 @@ function main() {
   }
 
   if (result.skipped && result.reason === 'duplicate') {
-    console.log(`Skipped duplicate draft suggestion (matched: ${result.matchedTitle} @ ${result.matchedPath}).`);
+    console.log(`Skipped duplicate draft (score=${formatScore(result.score)}). Matches: ${result.match}. Prefer linking or extending existing doctrine.`);
     process.exit(0);
+  }
+
+  if (signal.dedupe?.kind === 'near-duplicate') {
+    console.log(`Possible duplicate detected (score=${formatScore(signal.dedupe.score)}): ${formatDedupeMatch(signal.dedupe)}.`);
   }
 
   console.log('Suggested PLAYBOOK_NOTES.md entry:\n');

@@ -126,6 +126,15 @@ async function main() {
   const knowledgeGate = buildKnowledgeGate(statusCounts.proposed);
   const recommendation = buildRecommendation({ proposed: statusCounts.proposed, drafts, contracts, knowledgeGate });
 
+  let existingStatus = null;
+  try {
+    const existingStatusContent = await fs.readFile(STATUS_PATH, 'utf8');
+    const parsedStatus = JSON.parse(existingStatusContent);
+    existingStatus = parsedStatus && typeof parsedStatus === 'object' ? parsedStatus : null;
+  } catch (error) {
+    if (!error || error.code !== 'ENOENT') throw error;
+  }
+
   let trend = [];
   try {
     const trendContent = await fs.readFile(TREND_PATH, 'utf8');
@@ -147,6 +156,9 @@ async function main() {
     knowledgeGate,
     contracts,
     recommendation,
+    smartSignals: existingStatus?.smartSignals && typeof existingStatus.smartSignals === 'object'
+      ? existingStatus.smartSignals
+      : null,
     trendLength: trend.length,
     lastTrendTimestamp: lastTrendEntry && typeof lastTrendEntry.timestamp === 'string' ? lastTrendEntry.timestamp : null,
     updatedAt: new Date().toISOString(),
