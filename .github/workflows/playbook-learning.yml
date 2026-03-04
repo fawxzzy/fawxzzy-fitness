@@ -80,12 +80,22 @@ jobs:
           }
 
           md += `\n- Proposed threshold: **${proposedThreshold}**\n`;
-          md += '- Suggested command: `npm run playbook:update`\n';
+          md += `- Suggested command: \`${head.suggestion || 'npm run playbook:update'}\`\n`;
 
           process.stdout.write(md);
           NODE
 
           cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+
+      - name: Generate Playbook status snapshot
+        run: node scripts/playbook/write-status-files.mjs
+
+      - name: Upload Playbook status snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: playbook-status
+          path: docs/playbook-status.json
 
       - name: Update Playbook status PR comment
         if: github.event_name == 'pull_request'

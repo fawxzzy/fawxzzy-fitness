@@ -2,6 +2,30 @@
 
 This workflow provides a one-command promotion path from local notes into the Playbook repository and lightweight automation to keep learning capture consistent.
 
+## Playbook Learning Quick Ritual
+
+While coding:
+
+```bash
+npm run playbook:guardian
+```
+
+PR:
+
+Status automatically appears in PR checks and comments.
+
+Weekly / batch promotion:
+
+```bash
+npm run playbook:sync-and-update
+```
+
+Quick maintenance:
+
+```bash
+npm run playbook:maintain
+```
+
 ## Playbook Sync
 
 ### Submodule setup (recommended for deterministic pointer updates)
