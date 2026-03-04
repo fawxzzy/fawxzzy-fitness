@@ -1075,7 +1075,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
 - Evidence: Playbook/docs/GUARDRAILS/guardrails.md, Playbook/docs/PATTERNS/server-client-boundaries.md
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 <!-- PLAYBOOK_DRAFT_ID:06bdd401ab0ec23d -->
 ## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
@@ -1084,7 +1085,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
 - Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
 - Evidence: Playbook/docs/PATTERNS/server-client-boundaries.md, docs/PLAYBOOK_NOTES.md
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 <!-- PLAYBOOK_DRAFT_ID:359d3b52d52bffcf -->
 ## 2026-03-04 — Standardize bottom-action slot and publish contracts
