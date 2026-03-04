@@ -48,7 +48,13 @@
     "playbook:notes:dedupe": "node scripts/playbook/notes-dedupe.mjs",
     "playbook:notes:dedupe:write": "node scripts/playbook/notes-dedupe.mjs --write",
     "playbook:notes:archive": "node scripts/playbook/notes-archive.mjs",
-    "sanity:quick": "npm run playbook:doctor && npm run playbook && npm run playbook:status:ci -- --format=markdown && npm run lint"
+    "sanity:quick": "npm run playbook:doctor && npm run playbook && npm run playbook:status:ci -- --format=markdown && npm run lint",
+    "playbook:status": "node ./Playbook/tools/engine/cli.mjs status",
+    "playbook:summary": "node ./Playbook/tools/engine/pr-summary.mjs",
+    "playbook:promote": "node ./Playbook/tools/engine/cli.mjs promote",
+    "playbook:contracts": "node ./Playbook/tools/contracts-audit/cli.mjs",
+    "verify": "npm run playbook",
+    "verify:strict": "npm run playbook && npm run playbook:contracts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
