@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
+import { chooseCardioBestMetric, getDisplayPace, shouldShowCardioBest } from "@/lib/cardio-best";
 
 type ExerciseCatalogRow = {
   id: string;
@@ -78,7 +79,7 @@ export type ExerciseBrowserRow = {
 
 function resolveStatsKind(measurementType: string | null | undefined): "strength" | "cardio" {
   const normalized = String(measurementType ?? "").trim().toLowerCase();
-  if (normalized === "duration" || normalized === "distance" || normalized === "calories" || normalized === "time" || normalized === "time_distance") {
+  if (normalized === "distance" || normalized === "time" || normalized === "time_distance") {
     return "cardio";
   }
   return "strength";
@@ -109,19 +110,6 @@ function formatCardioSummary(args: { durationSeconds?: number | null; distance?:
     formatPace(args.paceSecondsPerUnit, args.distanceUnit),
   ].filter((value): value is string => Boolean(value));
   return parts.length ? parts.join(" • ") : null;
-}
-
-function getDisplayPace(durationSeconds: number, distance: number, distanceUnit: "mi" | "km" | "m" | null) {
-  if (!distanceUnit) return null;
-  const safeDuration = positive(durationSeconds);
-  const safeDistance = positive(distance);
-  if (safeDuration <= 0 || safeDistance <= 0) return null;
-  if (distanceUnit === "m") {
-    const distanceKm = safeDistance / 1000;
-    if (distanceKm <= 0) return null;
-    return { paceSecondsPerUnit: safeDuration / distanceKm, distanceUnit: "km" as const };
-  }
-  return { paceSecondsPerUnit: safeDuration / safeDistance, distanceUnit };
 }
 
 function hasMeaningfulCardioSet(measurementType: string | null | undefined, row: HistoricalSetRow) {
@@ -371,17 +359,20 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
           ? `${formatCompact(bodyweightPr)} reps`
           : formatStrengthSummary(stats?.actual_pr_weight ?? null, stats?.actual_pr_reps ?? null, stats?.last_unit ?? null))
         : (() => {
-          if (resolveCardioPrimaryMetric(exercise.measurement_type) === "distance") {
-            const bestDistance = formatDistance(bestCardioSession?.distance, bestCardioSession?.distanceUnit ?? null);
-            return bestDistance ? `Best: ${bestDistance}` : null;
+          if (!shouldShowCardioBest({
+            measurementType: exercise.measurement_type,
+            bestDurationSeconds: bestCardioSession?.durationSeconds ?? null,
+            bestDistance: bestCardioSession?.distance ?? null,
+          })) {
+            return null;
           }
-          const bestDuration = formatDurationShort(bestCardioSession?.durationSeconds);
-          if (bestDuration) return `Best: ${bestDuration}`;
-          const bestPaceInfo = bestCardioSession
-            ? getDisplayPace(bestCardioSession.durationSeconds, bestCardioSession.distance, bestCardioSession.distanceUnit)
-            : null;
-          const bestPace = formatPace(bestPaceInfo?.paceSecondsPerUnit, bestPaceInfo?.distanceUnit);
-          return bestPace ? `Best: ${bestPace}` : null;
+
+          const metric = chooseCardioBestMetric({
+            durationSeconds: bestCardioSession?.durationSeconds ?? null,
+            distance: bestCardioSession?.distance ?? null,
+            distanceUnit: bestCardioSession?.distanceUnit ?? null,
+          });
+          return metric ? `Best: ${metric.value}` : null;
         })();
 
       const strengthPrLabel = stats?.pr_est_1rm && stats.pr_est_1rm > 0

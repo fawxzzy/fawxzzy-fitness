@@ -6,6 +6,7 @@ import { getExerciseStatsForExercise, type ExerciseStatsLookupError } from "@/li
 import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
+import { chooseCardioBestMetric, getDisplayPace, shouldShowCardioBest } from "@/lib/cardio-best";
 
 export type ExerciseInfoExercise = {
   id: string;
@@ -103,7 +104,7 @@ type ExerciseMeasurementType = "reps" | "bodyweight" | "weight" | "duration" | "
 
 function resolveStatsKind(measurementType: string | null | undefined): ExerciseStatsKind {
   const normalized = String(measurementType ?? "").trim().toLowerCase() as ExerciseMeasurementType;
-  if (normalized === "duration" || normalized === "distance" || normalized === "calories" || normalized === "time" || normalized === "time_distance") {
+  if (normalized === "distance" || normalized === "time" || normalized === "time_distance") {
     return "cardio";
   }
   return "strength";
@@ -143,18 +144,6 @@ function formatCardioSummary(args: { durationSeconds?: number | null; distance?:
   ].filter((value): value is string => Boolean(value));
 
   return parts.length > 0 ? parts.join(" • ") : null;
-}
-
-function getDisplayPace(durationSeconds: number, distance: number, distanceUnit: "mi" | "km" | "m" | null) {
-  const safeDuration = positive(durationSeconds);
-  const safeDistance = positive(distance);
-  if (safeDuration <= 0 || safeDistance <= 0 || !distanceUnit) return null;
-  if (distanceUnit === "m") {
-    const distanceKm = safeDistance / 1000;
-    if (distanceKm <= 0) return null;
-    return { paceSecondsPerUnit: safeDuration / distanceKm, distanceUnit: "km" as const };
-  }
-  return { paceSecondsPerUnit: safeDuration / safeDistance, distanceUnit };
 }
 
 function hasMeaningfulCardioSet(measurementType: string | null | undefined, row: NormalizedSet) {
@@ -537,6 +526,11 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
     const distanceUnitForPace = (latestSessionAggregate ? aggregatePace(latestSessionAggregate)?.distanceUnit : null)
       ?? (bestAggregate ? aggregatePace(bestAggregate)?.distanceUnit : null)
       ?? fallbackDistanceUnit(defaultUnit);
+    const selectedCardioBest = chooseCardioBestMetric({
+      durationSeconds: bestAggregate?.durationSeconds ?? null,
+      distance: bestAggregate?.distance ?? null,
+      distanceUnit: bestAggregate?.distanceUnit ?? distanceUnitForPace,
+    });
 
     return {
       exercise_id: canonicalExerciseId,
@@ -572,15 +566,13 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
         ...(bestPace > 0 ? { bestPace } : {}),
         ...(bestCalories > 0 ? { bestCalories } : {}),
         bestDistanceUnit: distanceUnitForPace,
-        ...(bestAggregate ? {
-          bestSetSummary: formatCardioSummary({
-            durationSeconds: bestAggregate.durationSeconds,
-            distance: bestAggregate.distance,
-            calories: bestAggregate.calories,
-            paceSecondsPerUnit: aggregatePace(bestAggregate)?.paceSecondsPerUnit,
-            distanceUnit: bestAggregate.distanceUnit ?? distanceUnitForPace,
-          }) ?? undefined,
-        } : {}),
+        ...(shouldShowCardioBest({
+          measurementType,
+          bestDurationSeconds: bestAggregate?.durationSeconds ?? null,
+          bestDistance: bestAggregate?.distance ?? null,
+        }) && selectedCardioBest
+          ? { bestSetSummary: selectedCardioBest.value }
+          : {}),
       },
       prLabel: "",
     };

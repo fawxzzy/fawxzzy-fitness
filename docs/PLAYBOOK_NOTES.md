@@ -10,6 +10,15 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-04 — Cardio Best rows should be gated by metric signal and explicit measurement type
+- Type: Guardrail
+- Summary: Cardio Best UI rows should render only when canonical cardio measurement metadata and selected best metric data are present; strength rows should omit Best placeholders entirely.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents mixed-modality card regressions where strength rows show cardio “Best” placeholders and keeps summary lines meaningful.
+- Evidence: src/lib/cardio-best.ts, src/lib/exercises-browser.ts, src/lib/exercise-info.ts, src/app/history/exercises/ExerciseBrowserClient.tsx
+- Status: Proposed
+
+
 ## 2026-03-04 — Cardio stats must be set-derived with metadata-only unit fallback
 - Type: Guardrail
 - Summary: Cardio Last/Totals/Bests rendering should aggregate from `sets.duration_seconds`, `sets.distance` + `sets.distance_unit`, and `sets.calories`; `default_unit` should only provide fallback formatting when set units are missing.
