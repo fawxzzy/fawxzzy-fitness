@@ -10,6 +10,15 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+
+## 2026-03-04 — Do not infer cardio modality from incidental set metrics on strength exercises
+- Type: Guardrail
+- Summary: Cardio-vs-strength rendering should key from canonical `measurement_type`; duration/distance values in sets must not upcast non-cardio exercises into cardio UI paths.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Prevents strength cards from showing cardio-only Best rows when set payloads contain incidental timing/distance noise.
+- Evidence: src/lib/cardio-best.ts, src/lib/exercises-browser.ts, src/lib/exercise-info.ts
+- Status: Proposed
+
 ## 2026-03-04 — Cardio Best rows should be gated by metric signal and explicit measurement type
 - Type: Guardrail
 - Summary: Cardio Best UI rows should render only when canonical cardio measurement metadata and selected best metric data are present; strength rows should omit Best placeholders entirely.
