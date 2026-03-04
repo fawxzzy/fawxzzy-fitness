@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-04 — Preserve measurement metadata through API stat loaders
+- Type: Guardrail
+- Summary: API loaders that build measurement-aware stats must pass canonical `measurement_type` + `default_unit` through to server aggregation helpers; omitting these arguments can silently downgrade cardio exercises into strength/reps rendering paths.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Prevents cardio stats regressions where valid duration/distance history exists but Last/Best/Totals appear empty because the wrong aggregation branch executes.
+- Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/lib/exercise-info.ts
+- Status: Proposed
+
 ## 2026-03-03 — Session exercise unit metadata should mirror measurement type
 - Type: Guardrail
 - Summary: Persist `session_exercises.default_unit` in lockstep with `session_exercises.measurement_type` (`reps/time/distance/time_distance`) and derive cardio UI behavior from measurement type, not legacy unit fallbacks.

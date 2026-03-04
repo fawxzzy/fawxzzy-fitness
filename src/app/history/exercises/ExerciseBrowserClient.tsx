@@ -77,9 +77,11 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const strengthPrSummary = typeof row.pr_est_1rm === "number" && Number.isFinite(row.pr_est_1rm) && row.pr_est_1rm > 0
     ? `${row.pr_est_1rm.toFixed(0)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
     : null;
+  const hasSignal = Boolean(row.bestSummary || row.prLabel || strengthPrSummary);
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-border/25 bg-surface/45 transition-colors hover:border-border/35 active:scale-[0.99]">
+      {hasSignal ? <div className="absolute inset-y-0 left-0 w-0.5 bg-[rgb(var(--brand)/0.68)]" aria-hidden="true" /> : null}
       <button
         type="button"
         onClick={() => {
@@ -93,8 +95,8 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       >
         <div className="flex min-h-[88px] items-stretch">
           <div className="min-w-0 flex-1 p-3 text-left">
-            <p className="line-clamp-2 text-base font-semibold leading-tight text-[rgb(var(--text)/0.98)]">{displayName}</p>
-            <div className="mt-1 space-y-0.5 text-xs leading-snug text-[rgb(var(--text)/0.54)]">
+            <p className="line-clamp-2 text-base font-bold leading-tight text-[rgb(var(--text)/0.98)]">{displayName}</p>
+            <div className="mt-0.5 space-y-0.5 text-xs leading-snug text-[rgb(var(--text)/0.54)]">
               {row.kind === "strength" ? (
                 <>
                   <p>Last: {lastDate ? `${lastDate} · ${row.lastSummary ?? "—"}` : "—"}</p>
@@ -103,7 +105,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
                 </>
               ) : (
                 <>
-                  <p>Last: {lastDate ? `${lastDate} · ${row.lastSummary ?? "—"}` : "—"}</p>
+                  <p className="text-[rgb(var(--text)/0.78)]">Last: {lastDate ? `${lastDate} · ${row.lastSummary ?? "—"}` : "—"}</p>
                   <p>Best: {row.bestSummary ?? "—"}</p>
                 </>
               )}
