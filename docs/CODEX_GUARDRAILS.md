@@ -76,6 +76,22 @@ Playbook repo-local config lives at `tools/playbook/config.json`.
 - Enforcement: Run `npm run verify` when available; otherwise run the repository verification set (`npm run lint` and `npm run build`) and report results.
 - Reference: `docs/PROJECT_GOVERNANCE.md` quality gate.
 
+
+## Sanity Check
+
+Run before pushing major changes:
+
+```bash
+npm run sanity
+```
+
+This verifies:
+- Playbook installation health
+- Playbook learning engine
+- CI status rendering
+- lint rules
+- production build
+
 ## Playbook Draft Automation
 
 ### 11) Signals-prefilled drafts are authoritative
