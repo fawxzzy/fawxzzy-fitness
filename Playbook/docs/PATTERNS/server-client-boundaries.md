@@ -242,3 +242,14 @@ Evidence (FawxzzyFitness):
 - docs/playbook-status.json
 - docs/playbook-trend.json
 - tools/playbook/signals-map.json
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-keep-server-loaders-as-canonical-data-shaping-boundary -->
+### Keep server loaders as canonical data-shaping boundary (from FawxzzyFitness notes, 2026-03-04)
+Type: Principle
+Summary: Recent git changes indicate a server shaping learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
+Rationale: Centralized server shaping prevents duplicated client inference and inconsistent stats behavior.
+Evidence (FawxzzyFitness):
+- docs/CHANGELOG.md
+- docs/COMMANDS.md
+- docs/playbook-status.json
+- docs/playbook-trend.json

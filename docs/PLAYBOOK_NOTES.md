@@ -1068,6 +1068,16 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Upstream: Local (pending PR)
 
 ## DRAFTS (auto)
+<!-- PLAYBOOK_DRAFT_ID:8108d8c8bf0d88bf -->
+## 2026-03-04 — Keep server loaders as canonical data-shaping boundary
+- Type: Principle
+- Summary: Recent git changes indicate a server shaping learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Centralized server shaping prevents duplicated client inference and inconsistent stats behavior.
+- Evidence: docs/CHANGELOG.md, docs/COMMANDS.md, docs/playbook-status.json, docs/playbook-trend.json
+- Status: Promoted
+- Upstream: Local (pending PR)
+
 <!-- PLAYBOOK_DRAFT_ID:1efaf5b005aa6065 -->
 ## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
 - Type: Principle
