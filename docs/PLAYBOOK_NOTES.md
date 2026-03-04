@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-04 — Standardize API error envelopes with request/phase correlation metadata
+- Type: Guardrail
+- Summary: API routes should emit a consistent error envelope containing `requestId` and `step`, and mirror those fields in response headers for cross-boundary debugging.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: A fixed envelope prevents ad hoc error shapes, makes client-side diagnostics deterministic, and improves production incident traceability without repro.
+- Evidence: src/app/api/exercise-info/[exerciseId]/route.ts, src/components/ExerciseInfo.tsx
+- Status: Proposed
+
 
 ## 2026-03-04 — Do not infer cardio modality from incidental set metrics on strength exercises
 - Type: Guardrail
