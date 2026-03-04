@@ -7,6 +7,20 @@ All notable changes to this project are documented in this file.
 
 
 
+## 0.3.52 — 2026-03-04
+
+### WHAT
+- Added `docs/COMMANDS.md` as a concise script glossary grouped by workflow domain with What/How/Why summaries and recommended command flows.
+- Added Playbook notes hygiene tooling: fingerprint helper + duplicate reporting/removal (`playbook:notes:dedupe`, `playbook:notes:dedupe:write`) and age-based monthly archiving (`playbook:notes:archive`) with non-destructive backups.
+- Added `npm run sanity:quick`, and updated `npm run sanity` to run notes dedupe reporting before doctor/playbook/status/lint/build.
+- Upgraded `scripts/playbook/auto.mjs` with diff-aware `playbook:update` skipping and `--force` override, plus startup phase-plan output including detected changed-file count.
+
+### WHY
+- Makes command discovery faster and lowers onboarding friction without requiring contributors to inspect script source.
+- Controls `docs/PLAYBOOK_NOTES.md` growth by deduping repeated blocks and moving stale entries to archives instead of deleting history.
+- Speeds daily validation loops with a quick-check path while keeping full preflight deterministic.
+- Reduces unnecessary Playbook promotion runs and improves operator clarity on what automation will execute before work begins.
+
 ## 0.3.51 — 2026-03-04
 
 ### WHAT
