@@ -67,24 +67,27 @@ function MetaTag({ value }: { value: string | null }) {
 
 
 function StatSection({ title, rows }: { title: string; rows: Array<{ label: string; value: string | null }> }) {
-  const visibleRows = rows.filter((row) => row.value);
+  const visibleRows = rows.filter((row): row is { label: string; value: string } => Boolean(row.value));
   if (!visibleRows.length) return null;
 
   return (
-    <div className="mt-3 first:mt-0">
+    <div className="space-y-1.5">
       <p className={sectionTitleClassName}>{title}</p>
-      <div className="w-full">
+      <div className="space-y-1.5 text-left">
         {visibleRows.map((row) => (
-          <div
-            key={`${title}-${row.label}`}
-            className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 first:mt-0"
-          >
-            <span className="min-w-0 text-sm text-white/60">{row.label}:</span>
-            <span className="text-sm text-right whitespace-nowrap tabular-nums text-[rgb(var(--text)/0.95)]">{row.value}</span>
-          </div>
+          <StatLine key={`${title}-${row.label}`} label={row.label} value={row.value} />
         ))}
       </div>
     </div>
+  );
+}
+
+function StatLine({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="text-left text-sm leading-5 text-[rgb(var(--text)/0.95)]">
+      <span className="text-white/60">{label}:</span>{" "}
+      <span className="break-words">{value}</span>
+    </p>
   );
 }
 
@@ -234,7 +237,7 @@ export function ExerciseInfoSheet({
               <div
                 id={statsPanelId}
                 data-testid="exercise-info-stats-box"
-                className="min-h-[94px] space-y-2 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-2.5 py-2 text-xs text-muted"
+                className="min-h-[94px] space-y-3 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-3 py-2.5 text-xs text-muted"
               >
                 <p className={sectionTitleClassName}>Stats</p>
                 {statsLoading ? (

@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.63 — 2026-03-04
+
+### WHAT
+- Updated Exercise Info Stats rows to render as a single left-aligned text flow (`Label: Value`) via a local `StatLine` renderer, replacing the prior split label/value row layout.
+- Lightly normalized Exercise Info Stats card spacing/padding so RECENT, TOTALS, and BESTS use a consistent and deterministic vertical rhythm across device widths.
+
+### WHY
+- Prevents label/value splitting into opposite columns on smaller screens and keeps stat rows readable as one contiguous line that wraps naturally.
+- Improves scan-ability and visual consistency for the full Stats section without introducing architectural changes.
+
+
 ## 0.3.62 — 2026-03-04
 
 ### WHAT
