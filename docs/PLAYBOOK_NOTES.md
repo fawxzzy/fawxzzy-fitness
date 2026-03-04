@@ -1042,7 +1042,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Prevents destructive or ambiguous sync behavior across different wiring models and makes one-command doctrine updates deterministic and auditable.
 - Evidence: scripts/playbook/playbook-path.mjs, scripts/playbook/sync-playbook.mjs, scripts/playbook/check-proposed-notes-threshold.mjs
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## DRAFTS (auto)
 <!-- PLAYBOOK_DRAFT_ID:be66b72f8acc5180 -->
@@ -1052,6 +1053,5 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
 - Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
 - Evidence: src/components/ui/BottomActionBar.tsx
-- Status: Proposed
-
-
+- Status: Promoted
+- Upstream: Local (pending PR)

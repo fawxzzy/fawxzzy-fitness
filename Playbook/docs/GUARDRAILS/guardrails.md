@@ -198,7 +198,6 @@ Example
 Why It Matters
 Deterministic class extraction prevents hidden layout regressions where scroll content is clipped behind fixed mobile action bars.
 
-
 <!-- PLAYBOOK_NOTE_ID:2026-03-04-playbook-sync-automation-should-resolve-integration-mode-explicitly-before-mutating-repos -->
 ### Playbook sync automation should resolve integration mode explicitly before mutating repos (from FawxzzyFitness notes, 2026-03-04)
 Type: Guardrail
@@ -360,3 +359,11 @@ Rationale: A fixed envelope prevents ad hoc error shapes, makes client-side diag
 Evidence (FawxzzyFitness):
 - src/app/api/exercise-info/[exerciseId]/route.ts
 - src/components/ExerciseInfo.tsx
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-standardize-bottom-action-slot-and-publish-contracts -->
+### Standardize bottom-action slot and publish contracts (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: Recent git changes indicate a bottom actions learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
+Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
+Evidence (FawxzzyFitness):
+- src/components/ui/BottomActionBar.tsx
