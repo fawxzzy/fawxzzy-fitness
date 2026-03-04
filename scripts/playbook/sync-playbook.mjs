@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { getPlaybookIntegration, getPlaybookMissingInstructions, MODE } from './playbook-path.mjs';
 
+const ALLOWED_DIRTY_PATHS = new Set(['docs/playbook-status.json', 'docs/playbook-trend.json']);
+
 function parseArgs(argv) {
   const args = { commit: false, message: 'chore(playbook): sync Playbook to latest' };
   for (let index = 0; index < argv.length; index += 1) {
@@ -18,6 +20,30 @@ function parseArgs(argv) {
 
 function git(args, cwd = process.cwd()) {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+}
+
+function getRepoRoot(cwd = process.cwd()) {
+  return git(['rev-parse', '--show-toplevel'], cwd);
+}
+
+function getDirtyPaths(cwd = process.cwd()) {
+  const output = execFileSync('git', ['status', '--porcelain'], { cwd, encoding: 'utf8' });
+  if (!output) return [];
+
+  return output
+    .split('\n')
+    .map((line) => line.slice(3).trim())
+    .filter(Boolean)
+    .map((filePath) => (filePath.startsWith('"') && filePath.endsWith('"') ? filePath.slice(1, -1) : filePath));
+}
+
+function hasOnlyAllowedDirtyPaths(cwd = process.cwd()) {
+  const dirtyPaths = getDirtyPaths(cwd);
+  return dirtyPaths.length > 0 && dirtyPaths.every((filePath) => ALLOWED_DIRTY_PATHS.has(filePath));
+}
+
+function hasDirtyPlaybookPaths(cwd = process.cwd()) {
+  return getDirtyPaths(cwd).some((filePath) => filePath === 'Playbook' || filePath.startsWith('Playbook/'));
 }
 
 function isCleanRepo(cwd) {
@@ -76,14 +102,23 @@ function main() {
     process.exit(1);
   }
 
-  if (!isCleanRepo(integration.repoPath)) {
+  if (hasDirtyPlaybookPaths(process.cwd())) {
     console.error(`Playbook working tree is dirty (${integration.repoPath}). Commit/stash changes before syncing.`);
     process.exit(1);
   }
 
-  if (integration.mode === MODE.SUBMODULE && !isCleanRepo(process.cwd())) {
+  if (!isCleanRepo(process.cwd()) && !hasOnlyAllowedDirtyPaths(process.cwd())) {
     console.error('FawxzzyFitness working tree is dirty. SUBMODULE sync updates git index; commit/stash first.');
     process.exit(1);
+  }
+
+  if (integration.mode !== MODE.SUBMODULE) {
+    const repoRoot = getRepoRoot(process.cwd());
+    const playbookRoot = getRepoRoot(integration.repoPath);
+    if (repoRoot !== playbookRoot && !isCleanRepo(integration.repoPath)) {
+      console.error(`Playbook working tree is dirty (${integration.repoPath}). Commit/stash changes before syncing.`);
+      process.exit(1);
+    }
   }
 
   let sha = '';

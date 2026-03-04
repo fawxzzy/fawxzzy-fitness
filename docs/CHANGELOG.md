@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.41 — 2026-03-04
+
+### WHAT
+- Updated Playbook sync dirty-tree checks to allow top-level dirty state only when limited to `docs/playbook-status.json` and/or `docs/playbook-trend.json`, while preserving existing blocking behavior for any other dirty paths and Playbook subtree changes.
+- Added automatic staging for generated Playbook status artifacts so update/maintenance flows stage `docs/playbook-status.json` and `docs/playbook-trend.json` when present without auto-committing.
+- Documented the new status-artifact staging and sync-ignore behavior in local Playbook notes docs.
+
+### WHY
+- Removes recurring workflow friction where generated status snapshots keep the repo perpetually dirty and prevent intended Playbook sync/update flows.
+- Keeps sync safety intact for real working-tree changes while allowing generated telemetry artifacts to coexist with normal Playbook operations.
+
+
 ## 0.3.40 — 2026-03-04
 
 ### WHAT

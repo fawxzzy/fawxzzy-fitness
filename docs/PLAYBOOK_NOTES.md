@@ -8,6 +8,10 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Evidence: <file paths in this repo that triggered the note>
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
+## Playbook tooling behavior
+- Status artifacts (`docs/playbook-status.json` and `docs/playbook-trend.json`) are auto-staged when Playbook update/maintenance tooling runs and the files exist.
+- Playbook sync ignores dirty top-level changes when dirt is limited to those status artifacts, but still blocks when any other repo path (or `Playbook/`) is dirty.
+
 ## PROPOSED
 
 ## 2026-03-04 — Keep governance telemetry CI outputs artifact-only to avoid commit loops
