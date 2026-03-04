@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.20 — 2026-03-03
+
+### WHAT
+- Corrected cardio `session_exercises` defaults so `default_unit` stays aligned with `measurement_type` for new and previously logged rows.
+- Updated cardio history/info rendering contracts to key display behavior from measurement type while treating stored default unit values as non-authoritative formatting hints.
+
+### WHY
+- Prevents cardio surfaces (including Incline Walk history/info) from falling back to reps-style empty states when time-based metrics are present.
+- Keeps session-exercise measurement metadata internally consistent so server-derived summaries remain deterministic.
+
 ## 0.3.19 — 2026-03-03
 
 ### WHAT
@@ -2509,4 +2519,3 @@ WHY:
 - Ensures users see meaningful exercise progress by measurement type instead of weight-centric stats on cardio entries.
 - Improves scanability and consistency of stats by grouping related metrics into predictable sections.
 - Prevents legacy placeholder records from leaking into production UI while preserving existing database rows.
-

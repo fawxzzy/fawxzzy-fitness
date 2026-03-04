@@ -20,6 +20,7 @@ import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
+import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/action-result";
@@ -133,6 +134,10 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
           default_unit: exercise.default_unit,
         });
 
+        const measurementType = resolveSessionExerciseMeasurementType(mappedGoalColumns.measurement_type ?? fallback?.measurement_type);
+        const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
+        warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "startSessionAction" });
+
         return {
           session_id: session.id,
           user_id: user.id,
@@ -142,8 +147,8 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
           notes: exercise.notes,
           is_skipped: false,
           ...mappedGoalColumns,
-          measurement_type: mappedGoalColumns.measurement_type ?? fallback?.measurement_type ?? "reps",
-          default_unit: mappedGoalColumns.default_unit ?? fallback?.default_unit ?? "mi",
+          measurement_type: measurementType,
+          default_unit: defaultUnit,
         };
       }),
     );

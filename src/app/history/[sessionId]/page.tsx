@@ -40,7 +40,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
     .eq("user_id", user.id)
     .order("position", { ascending: true });
 
-  const sessionExercises = (sessionExercisesData ?? []) as Array<SessionExerciseRow & { exercise?: { measurement_type?: "reps" | "time" | "distance" | "time_distance"; default_unit?: "mi" | "km" | "m" | null } | null }>;
+  const sessionExercises = (sessionExercisesData ?? []) as Array<SessionExerciseRow & { exercise?: { measurement_type?: "reps" | "time" | "distance" | "time_distance"; default_unit?: string | null } | null }>;
   const orderedSessionExercises = (() => {
     const performed = sessionExercises
       .filter((exercise) => typeof exercise.performed_index === "number")
@@ -180,7 +180,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
             exercise_id: exercise.exercise_id,
             notes: exercise.notes,
             measurement_type: exercise.measurement_type ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.measurement_type : exercise.exercise?.measurement_type) ?? "reps",
-            default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? "mi",
+            default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? null,
             sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
               id: set.id,
               set_index: set.set_index,
