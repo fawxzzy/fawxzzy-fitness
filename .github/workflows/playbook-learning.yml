@@ -66,9 +66,11 @@ jobs:
           md += `Promoted: ${head.promoted}\n`;
           md += `Upstreamed: ${head.upstreamed}\n\n`;
           md += 'Suggested command:\n';
-          md += `${head.suggestion}\n\n`;
+          md += `${head.suggestionPrimary}\n\n`;
+          md += 'Direct command:\n';
+          md += `${head.suggestionDirect}\n\n`;
           md += 'Reminder:\n';
-          md += 'If unsure what to run → npm run playbook:maintain\n\n';
+          md += `${head.reminder}\n\n`;
           md += `Trend history entries: ${Number(statusSnapshot.trendLength || 0)}\n`;
 
           process.stdout.write(md);

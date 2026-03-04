@@ -53,7 +53,7 @@ function countStatuses(lines) {
   return counts;
 }
 
-function suggestCommand(proposed, drafts) {
+function suggestDirectCommand(proposed, drafts) {
   if (proposed >= FAIL_THRESHOLD) return 'npm run playbook:sync-and-update';
   if (proposed >= WARN_THRESHOLD) return 'npm run playbook:sync-and-update';
   if (proposed > 0) return 'npm run playbook:update';
@@ -75,8 +75,9 @@ async function main() {
     upstreamed: statusCounts.upstreamed,
     warnThreshold: WARN_THRESHOLD,
     failThreshold: FAIL_THRESHOLD,
-    suggestion: suggestCommand(statusCounts.proposed, draftsCount),
-    reminder: 'If unsure what to run, use: npm run playbook:maintain',
+    suggestionPrimary: 'npm run playbook',
+    suggestionDirect: suggestDirectCommand(statusCounts.proposed, draftsCount),
+    reminder: 'If unsure what to run → npm run playbook',
   };
 
   process.stdout.write(`${JSON.stringify(output)}\n`);
