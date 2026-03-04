@@ -59,6 +59,20 @@ const THEMES = [
   },
 ];
 
+
+function formatDedupeMatch(dedupe) {
+  const matchedTitle = dedupe?.matchedTitle || 'Unknown doctrine';
+  const matchedPath = dedupe?.matchedPath || 'unknown-path';
+  const anchor = dedupe?.matchedAnchor ? `#${dedupe.matchedAnchor}` : '';
+  return `${matchedTitle} at ${matchedPath}${anchor}`;
+}
+
+function formatScore(score) {
+  const numeric = Number(score);
+  if (!Number.isFinite(numeric)) return '0.00';
+  return numeric.toFixed(2);
+}
+
 function matchesAny(value, regexes) {
   return regexes.some((regex) => regex.test(value));
 }
@@ -123,10 +137,14 @@ function buildDrafts({ range, files, fileDiffs, signal }) {
         evidence: sharedEvidence || evidenceFiles,
       });
 
+      const annotatedBody = signal?.dedupe?.kind === 'near-duplicate'
+        ? `${body}\n- Possible duplicate (score=${formatScore(signal.dedupe.score)}): ${formatDedupeMatch(signal.dedupe)}`
+        : body;
+
       return {
         id,
         title: theme.title,
-        body,
+        body: annotatedBody,
       };
     })
     .filter(Boolean);
@@ -140,9 +158,13 @@ function main() {
     changedFiles: diffContext.files,
   });
 
-  if (signal.dedupe?.isDuplicate) {
-    console.log(`Skipped duplicate draft generation (matched: ${signal.dedupe.matchedTitle} @ ${signal.dedupe.matchedPath}).`);
+  if (signal.dedupe?.kind === 'duplicate') {
+    console.log(`Skipped duplicate draft (score=${formatScore(signal.dedupe.score)}). Matches: ${formatDedupeMatch(signal.dedupe)}. Prefer linking or extending existing doctrine.`);
     return;
+  }
+
+  if (signal.dedupe?.kind === 'near-duplicate') {
+    console.log(`Possible duplicate detected (score=${formatScore(signal.dedupe.score)}): ${formatDedupeMatch(signal.dedupe)}.`);
   }
 
   const drafts = buildDrafts({ ...diffContext, signal });

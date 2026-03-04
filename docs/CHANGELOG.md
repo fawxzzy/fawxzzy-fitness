@@ -6,6 +6,21 @@ All notable changes to this project are documented in this file.
 
 
 
+
+## 0.3.49 — 2026-03-04
+
+### WHAT
+- Updated Playbook signal adaptation to normalize dedupe metadata across legacy (`isDuplicate`) and new (`kind`, `score`, match details) signal shapes so downstream draft workflows consume one deterministic interface.
+- Updated `playbook:suggest` and Guardian draft generation to treat `duplicate` as a success-path skip with explicit linkage guidance, and to keep `near-duplicate` drafts while appending a `Possible duplicate` context line plus console info output.
+- Updated status-file dashboard formatting so CI summaries include Smart Signals metrics from `docs/playbook-status.json` when present, and preserved status-file-driven behavior by carrying forward existing `smartSignals` payload data.
+- Expanded local signal fixture coverage for dedupe normalization and near-duplicate annotation behavior.
+- Refreshed Codex guardrail docs to clarify duplicate-vs-near-duplicate behavior and operator action guidance (link vs refine).
+
+### WHY
+- Keeps local automation compatible with evolving central Playbook dedupe contracts without breaking older snapshots.
+- Reduces noisy duplicate doctrine churn while still surfacing potentially overlapping ideas for human review.
+- Improves CI/operator visibility into Smart Signals outcomes without re-running signal computation logic.
+
 ## 0.3.48 — 2026-03-04
 
 ### WHAT

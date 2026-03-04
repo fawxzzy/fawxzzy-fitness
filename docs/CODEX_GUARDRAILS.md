@@ -81,7 +81,8 @@ Codex must not proceed with code generation until the request is corrected to sa
 - Enforcement: Do not hand-wave or leave these fields blank in generated draft flows; preserve deterministic signal output.
 - Reference: `scripts/playbook/signals-from-diff.mjs`.
 
-### 12) Duplicate draft suppression
-- Rule: When Signals Engine duplicate detection reports `isDuplicate: true`, draft generation should skip creating a new note entry.
-- Enforcement: Treat duplicate skips as success (informational), not as an error path.
+### 12) Duplicate draft suppression + near-duplicate operator feedback
+- Rule: Treat dedupe signals with two outcomes: `kind: "duplicate"` must skip draft creation, while `kind: "near-duplicate"` must keep draft creation but annotate it with a possible-duplicate line for reviewer context.
+- Enforcement: Duplicate skips are informational success paths (not failures); near-duplicates should recommend refining/splitting scope when creating new doctrine and linking existing doctrine when overlap is direct.
+- Recommended action: Link or extend existing doctrine for hard duplicates; refine wording/scope and keep explicit cross-links for near-duplicates.
 - Reference: `scripts/playbook/signals-from-diff.mjs`, `scripts/playbook/suggest-notes-from-diff.mjs`, `scripts/playbook/guardian-generate-notes.mjs`.

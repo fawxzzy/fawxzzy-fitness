@@ -35,12 +35,19 @@ export function readDashboardModel(raw = {}) {
         : 'No action required.',
   };
 
+  const smartSignals = {
+    autoClassifiedDrafts: toNumber(raw.smartSignals?.autoClassifiedDrafts),
+    duplicatesSkipped: toNumber(raw.smartSignals?.duplicatesSkipped),
+    boundaryFlags: toNumber(raw.smartSignals?.boundaryFlags),
+  };
+
   return {
     drafts: toNumber(raw.drafts),
     proposed: toNumber(raw.proposed),
     promoted: toNumber(raw.promoted),
     contracts,
     recommendation,
+    smartSignals,
   };
 }
 
@@ -50,11 +57,14 @@ export function formatDashboardMarkdown(raw) {
     ? ` (${model.contracts.failingIds.slice(0, 3).join(', ')})`
     : '';
 
+  const smartSignalsLine = `Smart Signals: autoClassifiedDrafts=${model.smartSignals.autoClassifiedDrafts}, duplicatesSkipped=${model.smartSignals.duplicatesSkipped}, boundaryFlags=${model.smartSignals.boundaryFlags}`;
+
   return [
     '## Playbook Learning Status',
     '',
     `Knowledge Draft/Proposed/Promoted: ${model.drafts}/${model.proposed}/${model.promoted}`,
     `Contracts: ${model.contracts.status}/WARN(${model.contracts.summary.warn})/FAIL(${model.contracts.summary.fail})${model.contracts.status === 'FAIL' ? failingText : ''}`,
+    smartSignalsLine,
     `Next command: ${model.recommendation.nextCommand || 'No action required.'}`,
     `Reason: ${model.recommendation.reason}`,
     '',
