@@ -8,7 +8,7 @@ import { parsePlaybookNotes } from '../notes-utils.mjs';
 const NOTES_PATH = path.resolve('docs/PLAYBOOK_NOTES.md');
 const OUTPUT_PATH = path.resolve('docs/contracts.suggestions.json');
 
-const IMPORT_KEYWORDS = ['server/client', 'use client', 'boundary', 'loader', 'import'];
+const IMPORT_KEYWORDS = ['server', 'client', 'use client', 'boundary', 'loader', 'import'];
 const REPO_KEYWORDS = ['changelog', 'notes', 'must update'];
 
 function normalizeFieldMap(fields) {
@@ -73,8 +73,9 @@ function buildRepoSuggestion(note, matches) {
       severity: 'warn',
       type: 'repo',
       description: `Track documentation/update discipline from guardrail note: ${note.title}.`,
-      match_from: ['docs/CHANGELOG.md', 'docs/PLAYBOOK_NOTES.md'],
-      forbid_imports: [],
+      watch_paths: ['src/**'],
+      require_touched: ['docs/CHANGELOG.md', 'docs/PLAYBOOK_NOTES.md'],
+      ci_only: true,
     },
     rationale: `Matched repo/process keywords: ${matches.join(', ')}.`,
   };
