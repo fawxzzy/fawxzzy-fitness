@@ -10,6 +10,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-04 — Keep governance telemetry CI outputs artifact-only to avoid commit loops
+- Type: Guardrail
+- Summary: CI-generated governance telemetry files (status/trend snapshots) should be uploaded as workflow artifacts and never auto-committed from CI jobs.
+- Suggested Playbook File: Playbook/docs/WORKFLOWS/upstreaming-playbook-notes.md
+- Rationale: Artifact-only telemetry preserves historical visibility without creating bot commit churn or recursive workflow triggers.
+- Evidence: .github/workflows/playbook-learning.yml, scripts/playbook/write-status-files.mjs, scripts/playbook/write-trend-files.mjs
+- Status: Proposed
+
 ## 2026-03-04 — Standardize API error envelopes with request/phase correlation metadata
 - Type: Guardrail
 - Summary: API routes should emit a consistent error envelope containing `requestId` and `step`, and mirror those fields in response headers for cross-boundary debugging.

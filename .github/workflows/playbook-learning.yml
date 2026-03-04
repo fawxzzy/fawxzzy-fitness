@@ -33,6 +33,12 @@ jobs:
       - name: Learning zone gate
         run: npm run playbook:check
 
+      - name: Generate Playbook trend entry
+        run: node scripts/playbook/write-trend-files.mjs
+
+      - name: Generate Playbook status snapshot
+        run: node scripts/playbook/write-status-files.mjs
+
       - name: Build PR playbook status summary
         if: github.event_name == 'pull_request'
         env:
@@ -50,52 +56,37 @@ jobs:
           node <<'NODE' > summary.md
           const fs = require('node:fs');
 
-          const base = JSON.parse(fs.readFileSync('base.json', 'utf8'));
           const head = JSON.parse(fs.readFileSync('head.json', 'utf8'));
-
-          const keys = [
-            ['drafts', 'Drafts (auto)'],
-            ['proposed', 'Proposed'],
-            ['promoted', 'Promoted'],
-            ['upstreamed', 'Upstreamed'],
-          ];
-
-          const delta = (value) => (value > 0 ? `+${value}` : `${value}`);
-          const proposedThreshold =
-            head.proposed >= 20
-              ? '❌ fail (>= 20)'
-              : head.proposed >= 10
-                ? '⚠️ warning (10-19)'
-                : '✅ ok (< 10)';
+          const statusSnapshot = JSON.parse(fs.readFileSync('docs/playbook-status.json', 'utf8'));
 
           let md = '';
           md += '## Playbook Learning Status\n\n';
-          md += '| Metric | Base | Head | Delta |\n';
-          md += '| --- | ---: | ---: | ---: |\n';
-
-          for (const [key, label] of keys) {
-            const baseValue = Number(base[key] ?? 0);
-            const headValue = Number(head[key] ?? 0);
-            md += `| ${label} | ${baseValue} | ${headValue} | ${delta(headValue - baseValue)} |\n`;
-          }
-
-          md += `\n- Proposed threshold: **${proposedThreshold}**\n`;
-          md += `- Suggested command: \`${head.suggestion || 'npm run playbook:update'}\`\n`;
+          md += `Drafts: ${head.drafts}\n`;
+          md += `Proposed: ${head.proposed}\n`;
+          md += `Promoted: ${head.promoted}\n`;
+          md += `Upstreamed: ${head.upstreamed}\n\n`;
+          md += 'Suggested command:\n';
+          md += `${head.suggestion}\n\n`;
+          md += 'Reminder:\n';
+          md += 'If unsure what to run → npm run playbook:maintain\n\n';
+          md += `Trend history entries: ${Number(statusSnapshot.trendLength || 0)}\n`;
 
           process.stdout.write(md);
           NODE
 
           cat summary.md >> "$GITHUB_STEP_SUMMARY"
 
-
-      - name: Generate Playbook status snapshot
-        run: node scripts/playbook/write-status-files.mjs
-
-      - name: Upload Playbook status snapshot
+      - name: Upload Playbook status artifact
         uses: actions/upload-artifact@v4
         with:
           name: playbook-status
           path: docs/playbook-status.json
+
+      - name: Upload Playbook trend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: playbook-trend
+          path: docs/playbook-trend.json
 
       - name: Update Playbook status PR comment
         if: github.event_name == 'pull_request'
