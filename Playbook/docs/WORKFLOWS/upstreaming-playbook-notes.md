@@ -52,3 +52,13 @@ Evidence (FawxzzyFitness):
 - scripts/playbook/suggest-notes-from-diff.mjs
 - scripts/playbook/check-notes-updated.mjs
 - .github/workflows/ci.yml
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-04-keep-governance-telemetry-ci-outputs-artifact-only-to-avoid-commit-loops -->
+### Keep governance telemetry CI outputs artifact-only to avoid commit loops (from FawxzzyFitness notes, 2026-03-04)
+Type: Guardrail
+Summary: CI-generated governance telemetry files (status/trend snapshots) should be uploaded as workflow artifacts and never auto-committed from CI jobs.
+Rationale: Artifact-only telemetry preserves historical visibility without creating bot commit churn or recursive workflow triggers.
+Evidence (FawxzzyFitness):
+- .github/workflows/playbook-learning.yml
+- scripts/playbook/write-status-files.mjs
+- scripts/playbook/write-trend-files.mjs

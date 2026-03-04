@@ -16,7 +16,8 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Suggested Playbook File: Playbook/docs/WORKFLOWS/upstreaming-playbook-notes.md
 - Rationale: Artifact-only telemetry preserves historical visibility without creating bot commit churn or recursive workflow triggers.
 - Evidence: .github/workflows/playbook-learning.yml, scripts/playbook/write-status-files.mjs, scripts/playbook/write-trend-files.mjs
-- Status: Proposed
+- Status: Promoted
+- Upstream: Local (pending PR)
 
 ## 2026-03-04 — Standardize API error envelopes with request/phase correlation metadata
 - Type: Guardrail
