@@ -233,9 +233,12 @@ Evidence (FawxzzyFitness):
 
 <!-- PLAYBOOK_NOTE_ID:2026-03-04-enforce-single-source-safe-area-and-top-nav-offset-contracts -->
 ### Enforce single-source safe-area and top-nav offset contracts (from FawxzzyFitness notes, 2026-03-04)
-Type: Guardrail
+Type: Principle
 Summary: Recent git changes indicate a safe area-nav learning candidate touching 2 file(s). Capture this as draft guidance for review before promotion.
 Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
 Evidence (FawxzzyFitness):
-- Playbook/docs/PATTERNS/server-client-boundaries.md
-- docs/PLAYBOOK_NOTES.md
+- docs/CHANGELOG.md
+- docs/CODEX_GUARDRAILS.md
+- docs/playbook-status.json
+- docs/playbook-trend.json
+- tools/playbook/signals-map.json
