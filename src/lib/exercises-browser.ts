@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
-import { chooseCardioBestMetric, getDisplayPace, shouldShowCardioBest } from "@/lib/cardio-best";
+import { chooseCardioBestMetric, getDisplayPace, isCardioMeasurementType, resolveEffectiveKind, shouldShowCardioBest } from "@/lib/cardio-best";
 
 type ExerciseCatalogRow = {
   id: string;
@@ -76,15 +76,6 @@ export type ExerciseBrowserRow = {
   bestSummary: string | null;
   prLabel: string;
 };
-
-function resolveStatsKind(measurementType: string | null | undefined): "strength" | "cardio" {
-  const normalized = String(measurementType ?? "").trim().toLowerCase();
-  if (normalized === "distance" || normalized === "time" || normalized === "time_distance") {
-    return "cardio";
-  }
-  return "strength";
-}
-
 
 function formatCompact(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
@@ -277,7 +268,6 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
     .map((exercise) => {
       const exerciseId = exercise.id;
       const stats = statsByExerciseId.get(exerciseId);
-      const kind = resolveStatsKind(exercise.measurement_type);
       const setRows = setRowsByExerciseId.get(exerciseId) ?? [];
 
       const latestSetBySession = new Map<string, { performedAt: string; sets: HistoricalSetRow[] }>();
@@ -335,6 +325,22 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         return b.setIndex - a.setIndex;
       })[0] : null;
 
+      const hasDurationSignal = positive(bestCardioSession?.durationSeconds) > 0
+        || sessionAggregates.some((row) => positive(row.durationSeconds) > 0);
+      const hasDistanceSignal = positive(bestCardioSession?.distance) > 0
+        || sessionAggregates.some((row) => positive(row.distance) > 0);
+      const kind = resolveEffectiveKind(exercise.measurement_type, hasDurationSignal, hasDistanceSignal);
+
+      if (process.env.NODE_ENV === "development"
+        && isCardioMeasurementType(exercise.measurement_type)
+        && kind === "strength") {
+        console.warn("[history/exercises] cardio measurement_type resolved to strength due to missing cardio signal", {
+          exerciseId,
+          name: exercise.name,
+          measurement_type: exercise.measurement_type,
+        });
+      }
+
       const hasWeightedBest = positive(stats?.actual_pr_weight) > 0;
       const bodyweightPr = setRows.reduce((max, row) => Math.max(max, positive(row.weight) === 0 ? positive(row.reps) : 0), 0);
       const lastBodyweightReps = latestSession ? latestSession.sets.reduce((max, row) => Math.max(max, positive(row.weight) === 0 ? positive(row.reps) : 0), 0) : 0;
@@ -354,6 +360,12 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
             : null,
         });
 
+      const selectedCardioBest = chooseCardioBestMetric({
+        durationSeconds: bestCardioSession?.durationSeconds ?? null,
+        distance: bestCardioSession?.distance ?? null,
+        distanceUnit: bestCardioSession?.distanceUnit ?? null,
+      });
+
       const bestSummary = kind === "strength"
         ? (!hasWeightedBest && bodyweightPr > 0
           ? `${formatCompact(bodyweightPr)} reps`
@@ -367,12 +379,7 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
             return null;
           }
 
-          const metric = chooseCardioBestMetric({
-            durationSeconds: bestCardioSession?.durationSeconds ?? null,
-            distance: bestCardioSession?.distance ?? null,
-            distanceUnit: bestCardioSession?.distanceUnit ?? null,
-          });
-          return metric ? `Best: ${metric.value}` : null;
+          return selectedCardioBest ? `Best: ${selectedCardioBest.value}` : null;
         })();
 
       const strengthPrLabel = stats?.pr_est_1rm && stats.pr_est_1rm > 0

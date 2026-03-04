@@ -2580,3 +2580,15 @@ WHY:
 - Avoids misleading strength-card UI where cardio best lines leaked into lifting contexts.
 - Improves readability and trust in the stats panel by keeping row alignment stable on narrow screens.
 - Makes cardio Best values more meaningful and predictable across cards and Exercise Info surfaces.
+
+## 0.3.23 — 2026-03-04
+
+### WHAT
+- Changed cardio-vs-strength stats classification to require meaningful cardio signal (duration/distance) before an exercise is treated as cardio in History Exercises and Exercise Info.
+- Tightened cardio Best gating so cardio Best lines only render when positive duration or distance metrics exist.
+- Added development warnings when cardio-labeled measurement metadata resolves to effective strength due to missing cardio signal.
+
+### WHY
+- Prevents strength exercises with stale or incorrect cardio measurement metadata from rendering misleading cardio summaries.
+- Keeps Best/Last stats consistent across surfaces by deriving modality from actual logged effort, not metadata alone.
+- Improves data-quality visibility in development without breaking production UX.

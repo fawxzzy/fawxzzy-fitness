@@ -6,7 +6,7 @@ import { getExerciseStatsForExercise, type ExerciseStatsLookupError } from "@/li
 import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatCalories, formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
-import { chooseCardioBestMetric, getDisplayPace, shouldShowCardioBest } from "@/lib/cardio-best";
+import { chooseCardioBestMetric, getDisplayPace, isCardioMeasurementType, resolveEffectiveKind, shouldShowCardioBest } from "@/lib/cardio-best";
 
 export type ExerciseInfoExercise = {
   id: string;
@@ -99,17 +99,6 @@ type NormalizedSet = {
   calories: number | null;
   weightUnit: "lbs" | "lb" | "kg" | null;
 };
-
-type ExerciseMeasurementType = "reps" | "bodyweight" | "weight" | "duration" | "distance" | "calories" | "time" | "time_distance";
-
-function resolveStatsKind(measurementType: string | null | undefined): ExerciseStatsKind {
-  const normalized = String(measurementType ?? "").trim().toLowerCase() as ExerciseMeasurementType;
-  if (normalized === "distance" || normalized === "time" || normalized === "time_distance") {
-    return "cardio";
-  }
-  return "strength";
-}
-
 
 function formatCompactNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
@@ -359,8 +348,6 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
 
 export async function getExerciseInfoStats(userId: string, canonicalExerciseId: string, measurementType?: string | null, defaultUnit?: string | null, requestId?: string): Promise<ExerciseStatsVM | null> {
   try {
-    const kind = resolveStatsKind(measurementType);
-
     const [statsLookup, historicalSetRows] = await Promise.all([
       getExerciseStatsForExercise(userId, canonicalExerciseId),
       loadHistoricalSetRows(userId, canonicalExerciseId),
@@ -395,6 +382,43 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
       sessions: new Set(normalizedRows.map((row) => row.sessionId)).size,
       sets: normalizedRows.length,
     };
+
+    const meaningfulRows = normalizedRows.filter((row) => hasMeaningfulCardioSet(measurementType, row));
+    const bySession = new Map<string, NormalizedSet[]>();
+    for (const row of meaningfulRows) {
+      const existing = bySession.get(row.sessionId) ?? [];
+      existing.push(row);
+      bySession.set(row.sessionId, existing);
+    }
+    const toSessionAggregate = (rows: NormalizedSet[]) => {
+      const durationSeconds = rows.reduce((sum, row) => sum + positive(row.durationSeconds), 0);
+      const calories = rows.reduce((sum, row) => sum + positive(row.calories), 0);
+      const distanceByUnit = new Map<"mi" | "km" | "m", number>();
+      for (const row of rows) {
+        const unit = row.distanceUnit;
+        const distance = positive(row.distance);
+        if (!unit || distance <= 0) continue;
+        distanceByUnit.set(unit, (distanceByUnit.get(unit) ?? 0) + distance);
+      }
+      const preferredUnit = ["mi", "km", "m"].find((candidate) => distanceByUnit.has(candidate as "mi" | "km" | "m")) as "mi" | "km" | "m" | undefined;
+      const distanceUnit = preferredUnit ?? fallbackDistanceUnit(defaultUnit);
+      const distance = distanceUnit ? (distanceByUnit.get(distanceUnit) ?? 0) : 0;
+      return {
+        performedAt: rows[0]?.performedAt ?? null,
+        setIndex: Math.max(...rows.map((row) => row.setIndex), 0),
+        durationSeconds,
+        distance,
+        distanceUnit,
+        calories,
+      };
+    };
+
+    const sessionAggregates = [...bySession.values()]
+      .map((rows) => toSessionAggregate(rows))
+      .filter((row) => row.performedAt);
+    const hasDurationSignal = sessionAggregates.some((row) => positive(row.durationSeconds) > 0);
+    const hasDistanceSignal = sessionAggregates.some((row) => positive(row.distance) > 0);
+    const kind = resolveEffectiveKind(measurementType, hasDurationSignal, hasDistanceSignal) as ExerciseStatsKind;
 
     if (kind === "strength") {
       const prSets: PrEvaluationSet[] = normalizedRows.map((row) => ({
@@ -449,42 +473,8 @@ export async function getExerciseInfoStats(userId: string, canonicalExerciseId: 
       };
     }
 
-    const meaningfulRows = normalizedRows.filter((row) => hasMeaningfulCardioSet(measurementType, row));
     const totalDuration = meaningfulRows.reduce((sum, row) => sum + positive(row.durationSeconds), 0);
     const totalCalories = meaningfulRows.reduce((sum, row) => sum + positive(row.calories), 0);
-
-    const bySession = new Map<string, NormalizedSet[]>();
-    for (const row of meaningfulRows) {
-      const existing = bySession.get(row.sessionId) ?? [];
-      existing.push(row);
-      bySession.set(row.sessionId, existing);
-    }
-    const toSessionAggregate = (rows: NormalizedSet[]) => {
-      const durationSeconds = rows.reduce((sum, row) => sum + positive(row.durationSeconds), 0);
-      const calories = rows.reduce((sum, row) => sum + positive(row.calories), 0);
-      const distanceByUnit = new Map<"mi" | "km" | "m", number>();
-      for (const row of rows) {
-        const unit = row.distanceUnit;
-        const distance = positive(row.distance);
-        if (!unit || distance <= 0) continue;
-        distanceByUnit.set(unit, (distanceByUnit.get(unit) ?? 0) + distance);
-      }
-      const preferredUnit = ["mi", "km", "m"].find((candidate) => distanceByUnit.has(candidate as "mi" | "km" | "m")) as "mi" | "km" | "m" | undefined;
-      const distanceUnit = preferredUnit ?? fallbackDistanceUnit(defaultUnit);
-      const distance = distanceUnit ? (distanceByUnit.get(distanceUnit) ?? 0) : 0;
-      return {
-        performedAt: rows[0]?.performedAt ?? null,
-        setIndex: Math.max(...rows.map((row) => row.setIndex), 0),
-        durationSeconds,
-        distance,
-        distanceUnit,
-        calories,
-      };
-    };
-
-    const sessionAggregates = [...bySession.values()]
-      .map((rows) => toSessionAggregate(rows))
-      .filter((row) => row.performedAt);
     const latestSessionAggregate = [...sessionAggregates].sort((a, b) => (b.performedAt ?? "").localeCompare(a.performedAt ?? ""))[0] ?? null;
 
     const aggregatePace = (row: { durationSeconds: number; distance: number; distanceUnit: "mi" | "km" | "m" | null }) => getDisplayPace(
@@ -604,6 +594,17 @@ export async function getExerciseInfoPayload(exerciseId: string, userId: string)
 
   const stats = await getExerciseInfoStats(userId, exercise.exercise_id, exercise.measurement_type, exercise.default_unit);
   const exerciseWithImages = resolveExerciseInfoImages(exercise);
+
+  if (process.env.NODE_ENV === "development"
+    && isCardioMeasurementType(exercise.measurement_type)
+    && stats?.kind === "strength") {
+    console.warn("[exercise-info] cardio measurement_type resolved to strength due to missing cardio signal", {
+      exerciseId: exercise.exercise_id,
+      name: exercise.name,
+      measurement_type: exercise.measurement_type,
+    });
+  }
+
   runDevStatsVerification(exerciseWithImages, stats ?? null);
 
   return {

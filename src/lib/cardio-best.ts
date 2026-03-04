@@ -14,6 +14,29 @@ export type CardioBestMetric = {
   value: string;
 };
 
+export function isCardioMeasurementType(measurementType: string | null | undefined) {
+  const normalized = String(measurementType ?? "").trim().toLowerCase();
+  return normalized === "time"
+    || normalized === "distance"
+    || normalized === "time_distance"
+    || normalized === "duration";
+}
+
+export function resolveEffectiveKind(
+  measurementType: string | null | undefined,
+  hasDurationSignal: boolean,
+  hasDistanceSignal: boolean,
+): "strength" | "cardio" {
+  const hasCardioSignal = hasDurationSignal || hasDistanceSignal;
+  const isExplicitCardio = isCardioMeasurementType(measurementType);
+
+  if (isExplicitCardio) {
+    return hasCardioSignal ? "cardio" : "strength";
+  }
+
+  return hasCardioSignal ? "cardio" : "strength";
+}
+
 export function getDisplayPace(durationSeconds: number, distance: number, distanceUnit: DistanceUnit | null) {
   const safeDuration = positive(durationSeconds);
   const safeDistance = positive(distance);
@@ -68,9 +91,8 @@ export function shouldShowCardioBest(args: {
   const isExplicitStrength = normalized === "reps";
   if (isExplicitStrength) return false;
 
-  const isExplicitCardio = normalized === "time" || normalized === "distance" || normalized === "time_distance" || normalized === "duration" || normalized === "calories";
   const hasCardioMetrics = positive(args.bestDurationSeconds) > 0 || positive(args.bestDistance) > 0;
-  return isExplicitCardio || hasCardioMetrics;
+  return hasCardioMetrics;
 }
 
 if (process.env.NODE_ENV === "development") {
