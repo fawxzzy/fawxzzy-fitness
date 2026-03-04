@@ -8,28 +8,17 @@ function run(command, args) {
   });
 }
 
-console.log('Playbook pre-commit: running blocking playbook:check');
-const playbookCheck = run('npm', ['run', '-s', 'playbook:check', '--', '--staged']);
-if (playbookCheck.status !== 0) {
-  console.error('Playbook pre-commit check failed. Update required learning-zone notes before committing.');
-  process.exit(playbookCheck.status ?? 1);
-}
+const steps = [
+  ['playbook:precommit', ['run', '-s', 'playbook:precommit']],
+  ['playbook:check -- --staged', ['run', '-s', 'playbook:check', '--', '--staged']],
+];
 
-console.log('Playbook pre-commit: running playbook maintenance');
-const playbookRun = run('npm', ['run', '-s', 'playbook']);
-if (playbookRun.status !== 0) {
-  console.warn('Warning: Playbook tooling failed; continuing commit (non-blocking hook).');
-}
+for (const [label, args] of steps) {
+  console.log(`Playbook pre-commit: running ${label}`);
+  const result = run('npm', args);
 
-for (const filePath of ['docs/PLAYBOOK_NOTES.md', 'docs/playbook-status.json']) {
-  const changed = spawnSync('git', ['diff', '--quiet', '--', filePath], {
-    stdio: 'ignore',
-    shell: process.platform === 'win32',
-  });
-
-  if (changed.status === 1) {
-    run('git', ['add', filePath]);
+  if (result.status !== 0) {
+    console.error(`Playbook pre-commit failed while running ${label}.`);
+    process.exit(result.status ?? 1);
   }
 }
-
-process.exit(0);

@@ -3,6 +3,22 @@
 All notable changes to this project are documented in this file.
 
 
+
+## 0.3.45 — 2026-03-04
+
+### WHAT
+- Rewired the active `.githooks` pre-commit runner to execute `npm run -s playbook:precommit` and then `npm run -s playbook:check -- --staged` as blocking steps.
+- Simplified `scripts/githooks/pre-commit.mjs` by removing legacy Playbook maintenance and auto-staging behavior so hook logic only orchestrates the two required pre-commit checks.
+- Updated npm `prepare` to `node scripts/setup-githooks.mjs` so install-time hook setup matches the repo’s `.githooks` strategy without requiring Husky.
+- Added `.gitattributes` normalization for `docs/*.json` files to enforce LF line endings and reduce cross-platform churn.
+
+### WHY
+- Aligns commit-time enforcement with the new Playbook pre-commit workflow while preserving fail-fast blocking behavior.
+- Eliminates duplicate or conflicting hook responsibilities now that Playbook pre-commit orchestration lives in dedicated scripts.
+- Prevents `npm install` failures caused by missing Husky and keeps hook installation relevant to configured Git hooksPath behavior.
+- Reduces noisy diffs in generated Playbook JSON artifacts across Windows/macOS/Linux contributors.
+
+
 ## 0.3.44 — 2026-03-04
 
 ### WHAT

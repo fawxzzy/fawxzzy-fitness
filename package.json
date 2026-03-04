@@ -41,7 +41,7 @@
     "playbook:contracts:test": "node scripts/playbook/test-contracts-audit.mjs",
     "playbook:auto": "node scripts/playbook/auto.mjs",
     "playbook:precommit": "node scripts/playbook/precommit.mjs",
-    "prepare": "husky install"
+    "prepare": "node scripts/setup-githooks.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
