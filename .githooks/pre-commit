@@ -1,4 +1,4 @@
 #!/bin/sh
 
 node scripts/githooks/pre-commit.mjs
-exit 0
+exit $?

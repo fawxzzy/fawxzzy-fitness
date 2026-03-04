@@ -14,6 +14,14 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 
 ## PROPOSED
 
+## 2026-03-04 — Enforce AppShell as the only env(safe-area-inset-*) reader
+- Type: Guardrail
+- Summary: Safe-area env insets must be read only in the AppShell/global token layer; feature screens and shared UI components should consume shell-owned `var(--app-safe-*)` variables for notch/home-indicator spacing.
+- Suggested Playbook File: Playbook/docs/PATTERNS/mobile-interactions-and-navigation.md
+- Rationale: A single shell owner for `env(safe-area-inset-*)` prevents per-component inset drift, keeps overlay spacing consistent across routes, and ensures SAFE_AREA_OWNERSHIP contract enforcement remains deterministic.
+- Evidence: src/components/ui/app/AppShell.tsx, src/app/globals.css, src/components/ExerciseInfoSheet.tsx, src/components/ui/BottomSheet.tsx, src/components/ui/ConfirmDestructiveModal.tsx, src/components/ui/ToastProvider.tsx, src/components/ui/BottomActionBar.tsx, scripts/playbook/contracts-allowlist.json
+- Status: Proposed
+
 ## 2026-03-04 — Keep governance telemetry CI outputs artifact-only to avoid commit loops
 - Type: Guardrail
 - Summary: CI-generated governance telemetry files (status/trend snapshots) should be uploaded as workflow artifacts and never auto-committed from CI jobs.
@@ -1059,6 +1067,24 @@ This file is a project-local inbox for suggestions that should be upstreamed int
 - Upstream: Local (pending PR)
 
 ## DRAFTS (auto)
+<!-- PLAYBOOK_DRAFT_ID:5947858ab863028e -->
+## 2026-03-04 — Standardize bottom-action slot and publish contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a bottom actions learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md
+- Rationale: Bottom action ownership drift causes sticky/fixed regressions that are expensive to catch late.
+- Evidence: docs/PLAYBOOK_NOTES.md
+- Status: Proposed
+
+<!-- PLAYBOOK_DRAFT_ID:dd5d40fccc8dcdb2 -->
+## 2026-03-04 — Enforce single-source safe-area and top-nav offset contracts
+- Type: Guardrail
+- Summary: Recent git changes indicate a safe area-nav learning candidate touching 1 file(s). Capture this as draft guidance for review before promotion.
+- Suggested Playbook File: Playbook/docs/PATTERNS/server-client-boundaries.md
+- Rationale: Competing safe-area and header offset sources create route-specific spacing regressions.
+- Evidence: docs/PLAYBOOK_NOTES.md
+- Status: Proposed
+
 <!-- PLAYBOOK_DRAFT_ID:369ce2be563b1c9d -->
 ## 2026-03-04 — Standardize bottom-action slot and publish contracts
 - Type: Guardrail

@@ -8,7 +8,14 @@ function run(command, args) {
   });
 }
 
-console.log('Playbook pre-commit: running playbook');
+console.log('Playbook pre-commit: running blocking playbook:check');
+const playbookCheck = run('npm', ['run', '-s', 'playbook:check', '--', '--staged']);
+if (playbookCheck.status !== 0) {
+  console.error('Playbook pre-commit check failed. Update required learning-zone notes before committing.');
+  process.exit(playbookCheck.status ?? 1);
+}
+
+console.log('Playbook pre-commit: running playbook maintenance');
 const playbookRun = run('npm', ['run', '-s', 'playbook']);
 if (playbookRun.status !== 0) {
   console.warn('Warning: Playbook tooling failed; continuing commit (non-blocking hook).');

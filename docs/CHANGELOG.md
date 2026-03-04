@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.43 — 2026-03-04
+
+### WHAT
+- Updated the pre-commit hook to run `npm run -s playbook:check` as a blocking gate before non-blocking Playbook maintenance.
+- Kept existing auto-staging behavior for `docs/PLAYBOOK_NOTES.md` and `docs/playbook-status.json`, and retained `npm run -s playbook` as best-effort/non-blocking after the check.
+
+### WHY
+- Fails fast locally when learning-zone requirements are missing for staged learning-zone code changes, preventing CI failures after push.
+- Preserves current developer ergonomics for Playbook maintenance and status artifact staging while enforcing required documentation parity.
+
+
 ## 0.3.42 — 2026-03-04
 
 ### WHAT
