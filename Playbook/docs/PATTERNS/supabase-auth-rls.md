@@ -50,3 +50,15 @@ A user-specific table enforces `owner_id = auth.uid()` for select/update/delete 
 ## Sources
 - Dump A — `5) Auth & Security / Auth flow shape`, `RLS assumptions and enforcement`, `Security constraints in docs`.
 - Dump B — `Auth & Security Patterns / RLS pattern status`.
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-03-canonical-exercise-ids-are-required-before-session-set-logging -->
+### Canonical exercise ids are required before session set logging (from FawxzzyFitness notes, 2026-03-03)
+Type: Guardrail
+Summary: Session/log-history write paths must resolve exercise identifiers to canonical `exercises.id` before inserting `session_exercises`; unresolved identifiers should fail fast and never create unlinked rows.
+Rationale: Prevents missing stats/PRs and cross-exercise leakage caused by null or non-canonical session exercise links.
+Evidence (FawxzzyFitness):
+- src/app/session/[id]/actions.ts
+- src/app/actions/history.ts
+- src/lib/exercise-resolution.ts
+- src/lib/exercise-info.ts
+- supabase/migrations/030_backfill_session_exercises_exercise_id.sql

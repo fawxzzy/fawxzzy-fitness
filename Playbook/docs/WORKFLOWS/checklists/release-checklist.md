@@ -40,3 +40,13 @@ npm run release -- patch
 - [ ] Test suite or defined contract checks pass.
 - [ ] Changelog WHAT/WHY reviewed.
 - [ ] Tag points at the release commit.
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-02-automate-intentional-tag-based-release-ritual -->
+### Automate intentional tag-based release ritual (from FawxzzyFitness notes, 2026-03-02)
+Type: Workflow
+Summary: Standardize releases behind a SemVer bump command that updates changelog WHAT/WHY, commits, tags, and pushes in one deterministic flow.
+Rationale: Reduces accidental production deploys and keeps deploy intent auditable through explicit version/tag events.
+Evidence (FawxzzyFitness):
+- scripts/release.mjs
+- package.json
+- docs/PROJECT_GOVERNANCE.md

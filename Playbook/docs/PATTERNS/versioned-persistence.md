@@ -67,3 +67,14 @@ Cache per-session/per-item state using a stable key (`sessionId:itemId`) and inc
 
 ## Sources (addendum)
 - `docs/PLAYBOOK_NOTES.md` (2026-02-22 to 2026-02-24): versioned/timestamped offline snapshots and deterministic local state keys for resumable flows.
+
+<!-- PLAYBOOK_NOTE_ID:2026-02-28-treat-mutable-db-columns-as-additive-during-contract-migrations-and-move-reads-first -->
+### Treat mutable DB columns as additive during contract migrations and move reads first (from FawxzzyFitness notes, 2026-02-28)
+Type: Guardrail
+Summary: For evolving DB contracts, ship additive migrations that introduce the new columns and immediately align read/query projections to the new contract before any cleanup of legacy columns.
+Rationale: Querying legacy columns during partial rollout can trip schema-cache/runtime errors; additive-first plus read alignment keeps deployments safe and reversible.
+Evidence (FawxzzyFitness):
+- supabase/migrations/029_session_exercises_range_goal_columns.sql
+- src/app/session/[id]/queries.ts
+- src/lib/session-targets.ts
+- src/lib/exercise-goal-payload.ts

@@ -51,3 +51,12 @@ After saving an exercise update, invalidate only the affected exercise tag and k
 - Dump A — `3) Architectural Patterns / Route-local server actions for mutations + revalidation`.
 - Dump A — `4) Data Modeling & Storage / server-side caching used for exercise catalog`.
 - `docs/PLAYBOOK_NOTES.md` (2026-03-01 safe derived-cache degradation guardrail).
+
+<!-- PLAYBOOK_NOTE_ID:2026-03-01-degrade-derived-cache-reads-safely-when-schema-rollout-lags -->
+### Degrade derived cache reads safely when schema rollout lags (from FawxzzyFitness notes, 2026-03-01)
+Type: Guardrail
+Summary: Routes that enrich primary entities with derived cache tables should treat missing relation/column errors as a non-fatal fallback path (base rows + null stats) while logging full server diagnostics.
+Rationale: Production environments can lag migrations; hard-failing server components on optional cache tables causes avoidable route outages.
+Evidence (FawxzzyFitness):
+- src/lib/exercises-browser.ts
+- src/app/history/exercises/page.tsx
