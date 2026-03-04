@@ -3,6 +3,16 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.30 — 2026-03-04
+
+### WHAT
+- Hardened Playbook Learning workflow revision reporting so the informational revision-print step cannot fail the CI job.
+- Made the Playbook revision printer script gracefully handle missing integration or git read errors while always succeeding.
+
+### WHY
+- Keeps Playbook revision visibility available in CI logs without introducing flaky failures when Playbook isn't present in a checkout.
+- Ensures informational governance telemetry remains non-blocking across all repository integration modes.
+
 
 ## 0.3.29 — 2026-03-04
 
