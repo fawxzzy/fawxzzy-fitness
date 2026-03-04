@@ -74,3 +74,14 @@ Codex must not proceed with code generation until the request is corrected to sa
 - Enforcement: Run `npm run verify` when available; otherwise run the repository verification set (`npm run lint` and `npm run build`) and report results.
 - Reference: `docs/PROJECT_GOVERNANCE.md` quality gate.
 
+## Playbook Draft Automation
+
+### 11) Signals-prefilled drafts are authoritative
+- Rule: Diff-generated Playbook draft notes must use the Signals Engine auto-classification fields (`Type`, `Suggested Playbook File`, `Evidence`) when available.
+- Enforcement: Do not hand-wave or leave these fields blank in generated draft flows; preserve deterministic signal output.
+- Reference: `scripts/playbook/signals-from-diff.mjs`.
+
+### 12) Duplicate draft suppression
+- Rule: When Signals Engine duplicate detection reports `isDuplicate: true`, draft generation should skip creating a new note entry.
+- Enforcement: Treat duplicate skips as success (informational), not as an error path.
+- Reference: `scripts/playbook/signals-from-diff.mjs`, `scripts/playbook/suggest-notes-from-diff.mjs`, `scripts/playbook/guardian-generate-notes.mjs`.

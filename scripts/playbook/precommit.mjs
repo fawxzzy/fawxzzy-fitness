@@ -13,7 +13,7 @@ const STAGEABLE_OUTPUTS = [
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     stdio: 'inherit',
-    shell: false,
+    shell: process.platform === 'win32',
     cwd: options.cwd ?? process.cwd(),
   });
 
@@ -27,7 +27,7 @@ function tryRun(command, args, options = {}) {
   const result = spawnSync(command, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     encoding: 'utf8',
-    shell: false,
+    shell: process.platform === 'win32',
     cwd: options.cwd ?? process.cwd(),
   });
 

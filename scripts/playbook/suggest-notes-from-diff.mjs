@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process';
+import { getSignalsFromDiff } from './signals-from-diff.mjs';
 
 const zones = [
   'src/components/layout/',
@@ -11,27 +11,28 @@ const zones = [
 ];
 
 function parseArgs(argv) {
-  const args = { base: 'HEAD~1' };
+  const args = {
+    base: null,
+    head: null,
+    staged: true,
+  };
+
   for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index] === '--base') {
-      args.base = argv[index + 1] ?? args.base;
+    const token = argv[index];
+    if (token === '--base') {
+      args.base = argv[index + 1] ?? null;
+      args.staged = false;
+      index += 1;
+      continue;
+    }
+    if (token === '--head') {
+      args.head = argv[index + 1] ?? null;
+      args.staged = false;
       index += 1;
     }
   }
-  return args;
-}
 
-function changedFiles(base) {
-  try {
-    const output = execFileSync(
-      'git',
-      ['diff', '--name-only', '--diff-filter=ACMRTUXB', base],
-      { encoding: 'utf8' },
-    );
-    return output.split('\n').map((line) => line.trim()).filter(Boolean);
-  } catch {
-    return [];
-  }
+  return args;
 }
 
 function matchesLearningZone(filePath) {
@@ -57,30 +58,65 @@ function guessTitle(files) {
   return 'Reusable implementation learning';
 }
 
-function guessType(files) {
-  if (files.some((file) => file.startsWith('supabase/migrations/') || file.startsWith('src/app/api/'))) {
-    return 'Guardrail';
-  }
-  if (files.some((file) => file.startsWith('src/components/layout/') || file.startsWith('src/components/ui/app/'))) {
-    return 'Pattern';
-  }
-  return 'Practice';
+function capEvidence(evidence, max = 8) {
+  if (evidence.length <= max) return evidence;
+  const limited = evidence.slice(0, max);
+  return [...limited, `(+${evidence.length - max} more)`];
 }
 
-const { base } = parseArgs(process.argv.slice(2));
-const files = changedFiles(base);
-const matched = files.filter(matchesLearningZone);
+export function buildSuggestedNote({ changedFiles, signal }) {
+  const matched = changedFiles.filter(matchesLearningZone);
+  if (matched.length === 0) {
+    return { skipped: true, reason: 'no-learning-zone' };
+  }
 
-if (matched.length === 0) {
-  console.log(`No learning-zone changes detected from base ${base}.`);
-  process.exit(0);
+  if (signal.dedupe?.isDuplicate) {
+    return {
+      skipped: true,
+      reason: 'duplicate',
+      matchedTitle: signal.dedupe.matchedTitle,
+      matchedPath: signal.dedupe.matchedPath,
+    };
+  }
+
+  const evidence = capEvidence(signal.evidence.length > 0 ? signal.evidence : matched);
+  const suggestedPlaybookFile = signal.suggestedPlaybookFile || 'Playbook/docs/INBOX/from-fawxzzyfitness.md';
+
+  return {
+    skipped: false,
+    lines: [
+      `## ${new Date().toISOString().slice(0, 10)} — ${guessTitle(matched)}`,
+      `- Type: ${signal.type}`,
+      '- Summary: <1–2 sentences>',
+      `- Suggested Playbook File: ${suggestedPlaybookFile}`,
+      '- Rationale: <why this matters / what it prevents>',
+      `- Evidence: ${evidence.join(', ')}`,
+      '- Status: Proposed',
+    ],
+  };
 }
 
-console.log('Suggested PLAYBOOK_NOTES.md entry:\n');
-console.log(`## ${new Date().toISOString().slice(0, 10)} — ${guessTitle(matched)}`);
-console.log(`- Type: ${guessType(matched)}`);
-console.log('- Summary: <1–2 sentences>');
-console.log('- Suggested Playbook File: Playbook/docs/GUARDRAILS/guardrails.md');
-console.log('- Rationale: <why this matters / what it prevents>');
-console.log(`- Evidence: ${matched.join(', ')}`);
-console.log('- Status: Proposed');
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const signal = getSignalsFromDiff(args);
+  const result = buildSuggestedNote({ changedFiles: signal.changedFiles, signal });
+
+  if (result.skipped && result.reason === 'no-learning-zone') {
+    console.log('No learning-zone changes detected in diff scope.');
+    process.exit(0);
+  }
+
+  if (result.skipped && result.reason === 'duplicate') {
+    console.log(`Skipped duplicate draft suggestion (matched: ${result.matchedTitle} @ ${result.matchedPath}).`);
+    process.exit(0);
+  }
+
+  console.log('Suggested PLAYBOOK_NOTES.md entry:\n');
+  for (const line of result.lines) {
+    console.log(line);
+  }
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
