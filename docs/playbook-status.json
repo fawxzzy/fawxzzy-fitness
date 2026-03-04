@@ -1,6 +1,6 @@
 {
   "drafts": 0,
-  "proposed": 0,
+  "proposed": 2,
   "promoted": 79,
   "upstreamed": 0,
   "warnThreshold": 10,
@@ -134,7 +134,7 @@
     "nextCommand": "npm run playbook",
     "reason": "Contracts failing: 1 contract(s) in FAIL state (SAFE_AREA_OWNERSHIP)."
   },
-  "trendLength": 8,
-  "lastTrendTimestamp": "2026-03-04T09:33:52Z",
-  "updatedAt": "2026-03-04T09:35:18.641Z"
+  "trendLength": 10,
+  "lastTrendTimestamp": "2026-03-04T09:53:39Z",
+  "updatedAt": "2026-03-04T09:54:02.477Z"
 }
