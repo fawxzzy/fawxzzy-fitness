@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { runNpm } from './_lib/run-npm.mjs';
+import { formatDashboardPlain } from './_lib/status-dashboard.mjs';
 
 const STATUS_PATH = path.resolve('docs/playbook-status.json');
 
@@ -17,7 +18,7 @@ async function readStatus() {
       upstreamed: Number(parsed.upstreamed) || 0,
       warnThreshold: Number(parsed.warnThreshold) || 10,
       failThreshold: Number(parsed.failThreshold) || 20,
-      contracts: parsed.contracts || { status: 'PASS', warnCount: 0, failCount: 0 },
+      contracts: parsed.contracts || { status: 'PASS', warnCount: 0, failCount: 0, topOffenders: [] },
       recommendation: parsed.recommendation || { nextCommand: null, reason: 'No action required.' },
       found: true,
     };
@@ -33,7 +34,7 @@ async function readStatus() {
       upstreamed: 0,
       warnThreshold: 10,
       failThreshold: 20,
-      contracts: { status: 'PASS', warnCount: 0, failCount: 0 },
+      contracts: { status: 'PASS', warnCount: 0, failCount: 0, topOffenders: [] },
       recommendation: { nextCommand: null, reason: 'No action required.' },
       found: false,
     };
@@ -84,33 +85,11 @@ async function main() {
   );
 
   const status = await readStatus();
-  const recommendation =
-    typeof status.recommendation?.nextCommand === 'string'
-      ? status.recommendation.nextCommand
-      : 'No action required.';
-
   console.log('');
-  console.log('Playbook Status');
-  console.log(`Drafts: ${status.drafts}`);
-  console.log(`Proposed: ${status.proposed}`);
-  console.log(`Promoted: ${status.promoted}`);
-  console.log(`Upstreamed: ${status.upstreamed}`);
-  console.log(
-    `Contracts: ${status.contracts.status}${
-      status.contracts.status === 'WARN'
-        ? `(${Number(status.contracts.warnCount) || 0})`
-        : status.contracts.status === 'FAIL'
-          ? `(${Number(status.contracts.failCount) || 0})`
-          : ''
-    }`,
-  );
+  console.log(formatDashboardPlain(status));
   console.log('');
   if (!status.found) {
     console.log('Status snapshot not found. Run: node scripts/playbook/write-status-files.mjs');
-  }
-  console.log(`Recommended next action: ${recommendation}`);
-  if (status.recommendation?.reason) {
-    console.log(`Reason: ${status.recommendation.reason}`);
   }
   console.log('If unsure what to run → npm run playbook');
 

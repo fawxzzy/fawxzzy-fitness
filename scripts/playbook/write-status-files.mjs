@@ -17,6 +17,13 @@ function buildContracts(proposed) {
       status: 'FAIL',
       warnCount: 0,
       failCount: proposed - FAIL_THRESHOLD + 1,
+      topOffenders: [
+        {
+          name: 'Proposed notes threshold',
+          count: proposed,
+          threshold: FAIL_THRESHOLD,
+        },
+      ],
     };
   }
 
@@ -25,6 +32,13 @@ function buildContracts(proposed) {
       status: 'WARN',
       warnCount: proposed - WARN_THRESHOLD + 1,
       failCount: 0,
+      topOffenders: [
+        {
+          name: 'Proposed notes threshold',
+          count: proposed,
+          threshold: WARN_THRESHOLD,
+        },
+      ],
     };
   }
 
@@ -32,6 +46,7 @@ function buildContracts(proposed) {
     status: 'PASS',
     warnCount: 0,
     failCount: 0,
+    topOffenders: [],
   };
 }
 
