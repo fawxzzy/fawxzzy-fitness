@@ -29,7 +29,6 @@
     "playbook:guardian:pr": "node scripts/playbook/guardian-generate-notes.mjs --pr",
     "playbook:check": "node scripts/playbook/check-notes-updated.mjs",
     "playbook:test": "node scripts/playbook/test-parse-notes.mjs",
-    "playbook:test:external": "node scripts/playbook/test-external-pilot.mjs",
     "playbook:threshold": "node scripts/playbook/check-proposed-notes-threshold.mjs",
     "playbook:maintain": "npm run playbook:guardian && npm run playbook:threshold",
     "playbook": "node scripts/playbook/playbook-command.mjs",
