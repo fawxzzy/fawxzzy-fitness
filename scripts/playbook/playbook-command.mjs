@@ -4,6 +4,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { runNpm } from './_lib/run-npm.mjs';
 import { writePlaybookStatus, STATUS_PATH } from './status.mjs';
+import {
+  initExternalRuntime,
+  buildRepoIndex,
+  buildRepoGraph,
+  verifyExternalRepo,
+  buildPlan,
+} from './external-runtime.mjs';
 
 const STAGEABLE_STATUS_ARTIFACTS = ['docs/playbook-status.json', 'docs/playbook-trend.json'];
 
@@ -41,7 +48,7 @@ async function runFallbackMaintenance() {
   console.log('[playbook] npm runner failed; ran fallback maintenance directly.');
 }
 
-async function main() {
+async function runLegacyMaintenance() {
   const maintain = runNpm(['run', '-s', 'playbook:maintain']);
 
   if (!maintain.ok && typeof maintain.status !== 'number') {
@@ -71,6 +78,68 @@ async function main() {
   if (typeof maintain.status === 'number' && maintain.status !== 0) {
     process.exit(maintain.status);
   }
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const command = args[0] || 'run';
+
+  if (command === 'init') {
+    const result = initExternalRuntime();
+    console.log(`[playbook] initialized external runtime at ${path.relative(process.cwd(), result.runtimePath)}`);
+    return;
+  }
+
+  if (command === 'index') {
+    initExternalRuntime();
+    const { indexPath, index } = buildRepoIndex();
+    const { graphPath, graph } = buildRepoGraph({ index });
+    console.log(`[playbook] index created at ${path.relative(process.cwd(), indexPath)} (${index.summary.totalFiles} files)`);
+    console.log(`[playbook] graph created at ${path.relative(process.cwd(), graphPath)} (${graph.summary.nodeCount} nodes)`);
+    return;
+  }
+
+  if (command === 'verify') {
+    initExternalRuntime();
+    const { index } = buildRepoIndex();
+    const { graph } = buildRepoGraph({ index });
+    const verify = verifyExternalRepo({ index, graph });
+    console.log(`[playbook] verify completed with ${verify.findingCount} findings`);
+    for (const finding of verify.findings) {
+      console.log(`[${finding.level}] ${finding.code}: ${finding.message}`);
+    }
+    return;
+  }
+
+  if (command === 'plan') {
+    initExternalRuntime();
+    const plan = buildPlan();
+    if (args.includes('--json')) {
+      process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
+    } else {
+      for (const step of plan.steps) {
+        console.log(`${step.id}: ${step.description}`);
+      }
+    }
+    return;
+  }
+
+  if (command === 'apply') {
+    initExternalRuntime();
+    const { index } = buildRepoIndex();
+    const { graph } = buildRepoGraph({ index });
+    const verify = verifyExternalRepo({ index, graph });
+    console.log(`[playbook] apply completed in external mode (${verify.findingCount} findings)`);
+    return;
+  }
+
+  if (command === 'run') {
+    await runLegacyMaintenance();
+    return;
+  }
+
+  console.error(`[playbook] unknown command: ${command}`);
+  process.exit(1);
 }
 
 main().catch((error) => {
