@@ -82,6 +82,27 @@ npm run
 | `npm run playbook:notes:dedupe:write` | Remove duplicate note blocks in-place. | Runs dedupe script with `--write` and backup. | Keep hot notes file concise while preserving first occurrence. |
 | `npm run playbook:notes:archive` | Archive stale note blocks by age. | Moves older blocks into monthly archive files. | Keep active notes file fast to scan without deleting history. |
 
+
+## Playbook canonical command surface
+
+Use the canonical operator-facing Playbook commands:
+
+```bash
+pnpm playbook init
+pnpm playbook index
+pnpm playbook verify
+pnpm playbook plan
+pnpm playbook apply
+```
+
+### External Pilot / External Repository
+
+Playbook supports external repositories that do not already have Playbook-native governance/docs structure.
+
+- Runtime/index/graph/findings artifacts are written under `.playbook/`.
+- `verify` reports deterministic findings/warnings instead of hard-failing solely because Playbook governance files are missing.
+- Use the same canonical `pnpm playbook <command>` flow in internal and external repositories.
+
 ## Recommended flows
 
 - **Quick local check:** `npm run sanity:quick`
