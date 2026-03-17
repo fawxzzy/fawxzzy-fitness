@@ -83,7 +83,7 @@ Consumer-integration success criteria (must be reproducible in a clean environme
 - `npm install` succeeds without hard-requiring `@fawxzzy/playbook-cli` in the base dependency graph.
 - Playbook acquisition is explicit: run `npm run playbook-runtime:install-package` when package access is available.
 - If package acquisition is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`.
-- CI must define `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to a pinned official distribution artifact so registry outages cannot block core runtime acquisition.
+- CI must pin `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to an immutable official distribution artifact in workflow config so registry outages cannot block core runtime acquisition.
 - CI acquisition sequence is explicit and deterministic: attempt `playbook-runtime:install-package` first, then run `playbook-runtime:install-official-fallback` when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`).
 - With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package acquisition first, then official fallback, then optional dev fallback.
 - Canonical proof runs must set `PLAYBOOK_DISABLE_DEV_FALLBACK=1` to prevent dev-checkout fallback capture.

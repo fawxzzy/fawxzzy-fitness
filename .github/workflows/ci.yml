@@ -43,8 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Deterministic official fallback source used when package acquisition is blocked.
-      # Keep this pinned to an approved upstream Playbook distribution artifact.
-      PLAYBOOK_OFFICIAL_FALLBACK_SPEC: ${{ vars.PLAYBOOK_OFFICIAL_FALLBACK_SPEC }}
+      # Pinned to an immutable official release artifact to keep clean-environment CI reproducible.
+      PLAYBOOK_OFFICIAL_FALLBACK_SPEC: https://github.com/fawxzzy/playbook-cli/releases/download/v0.3.77/playbook-cli-0.3.77.tgz
     steps:
       - name: Checkout
         uses: actions/checkout@v4
