@@ -1,31 +1,17 @@
 # FawxzzyFitness
 
-## Playbook Learning Status
+Fawxzzy Fitness is a Next.js app for tracking workouts, routines, and exercise history.
 
-This repository uses an automated Playbook Learning system to capture reusable engineering patterns and guardrails.
+## Local development
 
-PRs display a live Playbook Learning Status comment showing:
+```bash
+npm install
+npm run dev
+```
 
-- Draft notes detected from recent changes
-- Proposed notes waiting promotion
-- Promoted doctrine entries
+## Quality checks
 
-Example metrics:
-
-Drafts | Proposed | Promoted | Upstreamed
-
-Status is automatically computed in CI and visible in pull request checks.
-
-Typical workflow:
-
-While coding:
-`npm run playbook:guardian`
-
-PR feedback:
-CI automatically reports Playbook Learning status.
-
-Batch promotion:
-`npm run playbook:sync-and-update`
-
-Quick maintenance:
-`npm run playbook:maintain`
+```bash
+npm run lint
+npm run build
+```

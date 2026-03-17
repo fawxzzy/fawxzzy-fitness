@@ -3,6 +3,20 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.64 — 2026-03-17
+
+### WHAT
+- Removed the legacy vendored Playbook integration surface by deleting the `Playbook/` subtree, `scripts/playbook/`, and `tools/playbook/` helper mappings.
+- Removed Playbook-only automation from GitHub Actions and git hooks, including the dedicated Playbook Learning workflow and pre-commit Playbook runner.
+- Simplified `package.json` by removing `playbook:*` / `contracts:*` commands and repointing compatibility aliases (`sanity`, `verify`) to app quality checks (`lint` + `build`).
+- Rewrote governance and README documentation to remove legacy Playbook learning/subtree workflow references and document the migration rationale.
+
+### WHY
+- Eliminates shadow governance surfaces that depended on vendored doctrine and legacy learning flows.
+- Enforces a single ownership model for repository governance and quality checks.
+- Prevents stale Playbook scripts/hooks from continuing to behave like required product/runtime paths after migration.
+
+
 ## 0.3.63 — 2026-03-04
 
 ### WHAT

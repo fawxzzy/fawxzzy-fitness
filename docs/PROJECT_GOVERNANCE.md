@@ -3,63 +3,23 @@
 ## Governance Scope Declaration
 
 Governance Scope: Normative
-Playbook Version Pin: v0.3.3
-Sync Cadence: per release
+Owner: Fawxzzy Fitness maintainers
 
-This repository adopts the Playbook as a Normative governance source. Any divergence must be explicitly documented in this file with a reason and owner, and Playbook subtree sync updates must also update the version pin.
+This repository is governed by project-local documentation and quality checks.
 
-This repository is governed by the Product Engineering Playbook.
-
-Source of truth:
-https://github.com/ZachariahRedfield/Playbook
-
-## Updating Playbook (Subtree Model)
-
-When the central Playbook repository changes and you want to bring updates into this repository:
-
-```bash
-git subtree pull --prefix=Playbook https://github.com/ZachariahRedfield/Playbook.git main --squash
-```
-
-This pulls the latest `main` from the Playbook repository, squashes upstream changes into a single commit, and updates only the local `Playbook/` subtree to keep history compact.
-
-If your git alias is already configured, use:
-
-```bash
-git sync-playbook
-```
-
-Mental model: treat subtree-managed Playbook content as vendored doctrine with controlled, intentional updates. Nothing auto-updates unless you run the sync command.
-
-### Clean workflow
-
-1. Commit and push changes in the central Playbook repository.
-2. In this repository, run `git sync-playbook`.
-3. Commit subtree update changes if needed (subtree may auto-commit in some cases).
-4. Push and merge.
+Primary local sources of truth:
+- `docs/ARCHITECTURE.md`
+- `docs/PROJECT_GOVERNANCE.md`
+- `docs/CHANGELOG.md`
 
 ## Rules for Codex / Agents
 
-1. Follow the central Playbook principles and patterns.
-2. Follow local docs/ARCHITECTURE.md for project-specific structure.
-3. Update docs/CHANGELOG.md (WHAT + WHY) for all non-trivial changes.
-4. Capture reusable learnings:
-   - If a change introduces a reusable pattern, guardrail, failure mode, or decision:
-     - Add an entry to docs/PLAYBOOK_NOTES.md (see format below)
-     - Include a brief “Playbook Impact” section in your output (optional but preferred)
-
-## Playbook Compliance Workflow (Required Before Changes)
-
-Before implementing repository code or structural changes:
-
-1. Read Playbook/ (vendored subtree) sections relevant to the request.
-2. Read docs/PLAYBOOK_CHECKLIST.md.
-3. Perform a Playbook Compliance Review:
-   - Identify applicable Playbook + checklist rules.
-   - Identify request conflicts against those rules.
-   - Propose compliant alternatives when needed.
-   - Provide a short implementation plan before coding.
-4. Do not modify the central Playbook subtree unless explicitly requested.
+1. Follow `docs/ARCHITECTURE.md` for project-specific structure and boundaries.
+2. Update `docs/CHANGELOG.md` (WHAT + WHY) for non-trivial changes.
+3. Prefer the smallest clear diff over abstraction-heavy changes.
+4. Run quality gates after implementation:
+   - `npm run lint`
+   - `npm run build`
 
 ## Enforcement Guardrails
 
@@ -67,53 +27,20 @@ Before implementing repository code or structural changes:
 - Do not create new structural layers without clear justification.
 - Preserve strict server/client boundaries, RLS safety, and server-owned data writes.
 - Use strict server actions for protected mutations (`requireUser()` + `supabaseServer()`).
-- Prefer the smallest clear diff over abstraction-heavy changes.
-- Run quality gates after implementation:
-  - `npm run lint`
-  - `npm run build`
 
 ## Documentation Scope in This Repo
 
-This repository keeps only project-specific governance contracts and the local change log. All reusable doctrine (patterns, guardrails, templates, prompts) lives in the central Playbook subtree.
+Allowed governance documentation files:
+- `docs/PROJECT_GOVERNANCE.md`
+- `docs/ARCHITECTURE.md`
+- `docs/CHANGELOG.md`
 
-Allowed documentation files:
-- docs/PROJECT_GOVERNANCE.md
-- docs/ARCHITECTURE.md
-- docs/CHANGELOG.md
-- docs/PLAYBOOK_NOTES.md
-- docs/PLAYBOOK_CHECKLIST.md
+## Migration Note (Legacy Vendored Playbook Removal)
 
-All reusable patterns, templates, prompts, and checklists live in the central Playbook repository.
+The repository removed the legacy vendored Playbook integration surface, including:
+- `Playbook/` vendored subtree content
+- `scripts/playbook/` maintenance/learning scripts
+- Playbook-only CI and hook wiring
+- npm scripts prefixed with `playbook:` and `contracts:`
 
-
-## Command Playbook (Golden Path)
-
-Use these commands as the default workflow for humans and agents:
-
-### Golden path commands
-- `npm run playbook:install` — idempotently install/repair required local Playbook wiring.
-- `npm run playbook:doctor` — validate governance/script health and report actionable warnings/failures.
-- `npm run playbook:sync` — pull the vendored Playbook subtree updates intentionally.
-- `npm run playbook:auto` — default end-to-end Playbook maintenance flow.
-- `npm run playbook:local` — fast pre-commit check alias (currently wraps `playbook:auto`).
-- `npm run playbook:ci` — CI-style local gate (runs `playbook:auto`, `lint`, then `build`).
-
-### Debug / advanced commands
-- Keep specialized Playbook scripts (`playbook:*`) for debugging and maintenance as needed.
-- Legacy script names (`sanity`, `sanity:quick`, `verify`, `verify:strict`) remain supported as compatibility aliases and should gradually defer to the golden path commands above.
-
-### What CI runs
-- CI should run `npm run playbook:ci` as the primary repository health pipeline.
-- Contract enforcement remains additive via `npm run contracts:check` and/or `npm run playbook:contracts` where required by workflow.
-
-## Release Ritual (Intentional Production Deploys)
-
-Production deploys are tag-driven and must be intentional:
-
-1. Verify changes locally before release (`npm run lint`, `npm run build`, plus feature checks as needed).
-2. Run one release command:
-   - `pnpm release:patch`
-   - `pnpm release:minor`
-   - `pnpm release:major`
-3. The release command updates `package.json` SemVer, prepends a WHAT/WHY release entry in `docs/CHANGELOG.md`, commits, creates an annotated `vX.Y.Z` tag, and pushes commit + tag.
-4. Pushing a `v*` tag triggers the production deploy workflow in GitHub Actions.
+Reason: the vendored doctrine/learning engine created a second ownership model in this repository and caused shadow governance surfaces. The repo now keeps a single, local ownership model for governance and quality checks.
