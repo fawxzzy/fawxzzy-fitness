@@ -19,6 +19,7 @@ npm run pilot
 Migration note:
 - Legacy learning/sync/update command families were removed.
 - Legacy vendored subtree workflow guidance no longer applies in this repository.
+- Remaining migration-era surfaces are inventoried in `docs/PLAYBOOK_MIGRATION_INVENTORY.md`.
 
 ## Local development
 
