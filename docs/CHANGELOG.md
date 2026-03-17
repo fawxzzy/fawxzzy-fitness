@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.71 — 2026-03-17
+
+### WHAT
+- Added a repo-local Playbook package dependency (`@fawxzzy/playbook-cli` via `file:tools/playbook-cli`) so `npm install` provisions `node_modules/.bin/playbook` as the canonical consumer runtime path.
+- Added a minimal `PLAYBOOK_DISABLE_DEV_FALLBACK=1` switch in `scripts/playbook-runtime.mjs` to support package-first proof runs without machine-specific fallback capture.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` with explicit canonical setup/proof commands and backup-only fallback positioning.
+
+### WHY
+- Proves the package-first consumer model in a clean repo-local install flow instead of relying on developer-specific `PLAYBOOK_BIN` or fallback checkouts.
+- Prevents temporary fallback infrastructure from silently becoming the de facto runtime path.
+- Makes success criteria auditable: deterministic repo-local resolution, `.playbook/` state output, and precise unresolved failure messaging.
+
 All notable changes to this project are documented in this file.
 
 

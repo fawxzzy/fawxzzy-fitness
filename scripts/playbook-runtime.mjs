@@ -27,6 +27,7 @@ const COMPAT_ALIASES = new Set([
   'pilot'
 ]);
 const DEV_FALLBACK_ROOT = 'C:\\Users\\zjhre\\dev\\playbook';
+const DEV_FALLBACK_DISABLED = process.env.PLAYBOOK_DISABLE_DEV_FALLBACK === '1';
 const command = process.argv[2];
 
 if (!command || !COMPAT_ALIASES.has(command)) {
@@ -136,10 +137,14 @@ function resolveRuntimeBin() {
     return { ...packageBin, checks };
   }
 
-  const devFallbackBin = resolveDevFallbackBin();
-  checks.push(`dev fallback path (${DEV_FALLBACK_ROOT})`);
-  if (devFallbackBin) {
-    return { ...devFallbackBin, checks };
+  if (DEV_FALLBACK_DISABLED) {
+    checks.push('dev fallback disabled (PLAYBOOK_DISABLE_DEV_FALLBACK=1)');
+  } else {
+    const devFallbackBin = resolveDevFallbackBin();
+    checks.push(`dev fallback path (${DEV_FALLBACK_ROOT})`);
+    if (devFallbackBin) {
+      return { ...devFallbackBin, checks };
+    }
   }
 
   return { bin: null, source: null, checks };
@@ -155,6 +160,7 @@ if (!resolution.bin) {
   console.error('  1) Set PLAYBOOK_BIN to an explicit Playbook executable path.');
   console.error('  2) Install Playbook as a local package so node_modules/.bin/playbook exists.');
   console.error(`  3) (Dev-only temporary fallback) ensure ${DEV_FALLBACK_ROOT} contains a runnable Playbook checkout.`);
+  console.error('     Set PLAYBOOK_DISABLE_DEV_FALLBACK=1 to prove package-first resolution only.');
   process.exit(1);
 }
 
