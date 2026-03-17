@@ -22,6 +22,7 @@
     "cleanup:repo:archive": "node scripts/cleanup-repo.mjs --archive",
     "cleanup:repo:full": "node scripts/cleanup-repo.mjs --include-build-cache",
     "prepare": "node scripts/setup-githooks.mjs",
+    "playbook-runtime:install-official-fallback": "node scripts/playbook-runtime.mjs --install-official-fallback",
     "ai-context": "node scripts/playbook-runtime.mjs ai-context",
     "ai-contract": "node scripts/playbook-runtime.mjs ai-contract",
     "context": "node scripts/playbook-runtime.mjs context",

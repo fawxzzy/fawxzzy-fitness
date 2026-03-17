@@ -74,16 +74,18 @@ Runtime contracts:
 Runtime resolution order is deterministic and must remain:
 1. `PLAYBOOK_BIN` environment override (`PLAYBOOK_RUNTIME_BIN` is transitional compatibility only).
 2. Repo-local package install resolution (prefer `node_modules/.bin/playbook`, then package entrypoint lookup).
-3. Dev-only temporary fallback at `C:\Users\zjhre\dev\playbook` (backup-only; disable with `PLAYBOOK_DISABLE_DEV_FALLBACK=1` when validating canonical behavior).
-4. Explicit actionable failure if unresolved.
+3. Official non-registry fallback install resolution at `.playbook/runtime/node_modules/.bin/playbook`.
+4. Dev-only temporary fallback at `C:\Users\zjhre\dev\playbook` (backup-only; disable with `PLAYBOOK_DISABLE_DEV_FALLBACK=1` when validating canonical behavior).
+5. Explicit actionable failure if unresolved.
 
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
-- `npm install` provisions a repo-local Playbook binary through the published `@fawxzzy/playbook-cli` package metadata.
-- With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package installation.
-- Canonical proof runs must set `PLAYBOOK_DISABLE_DEV_FALLBACK=1` to prevent fallback capture.
+- `npm install` provisions a repo-local Playbook binary through the published `@fawxzzy/playbook-cli` package metadata when registry access is available.
+- With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package installation first.
+- If registry install is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`.
+- Canonical proof runs must set `PLAYBOOK_DISABLE_DEV_FALLBACK=1` to prevent dev-checkout fallback capture.
 - Runtime outputs continue to land only under `.playbook/`.
-- CI must validate the same package-first proof path in a clean environment (`npm install`, no `PLAYBOOK_BIN` / `PLAYBOOK_RUNTIME_BIN`, `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, canonical command ladder, and `.playbook/` artifact assertion).
+- CI/local validation should assert the same ladder/artifact outcome after whichever official acquisition path succeeded (registry-first or official fallback).
 
 Policy constraints:
 - Global `PATH` lookup is **not** canonical and must not be relied on for repo scripts.

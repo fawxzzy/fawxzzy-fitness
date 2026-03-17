@@ -28,7 +28,30 @@ const COMPAT_ALIASES = new Set([
 ]);
 const DEV_FALLBACK_ROOT = 'C:\\Users\\zjhre\\dev\\playbook';
 const DEV_FALLBACK_DISABLED = process.env.PLAYBOOK_DISABLE_DEV_FALLBACK === '1';
+const OFFICIAL_FALLBACK_ROOT = path.join('.playbook', 'runtime');
+const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC;
 const command = process.argv[2];
+
+if (command === '--install-official-fallback') {
+  if (!OFFICIAL_FALLBACK_SPEC) {
+    console.error('[playbook-runtime] PLAYBOOK_OFFICIAL_FALLBACK_SPEC is required for official fallback install.');
+    console.error('[playbook-runtime] Example: PLAYBOOK_OFFICIAL_FALLBACK_SPEC="https://<official-distribution>.tgz" npm run playbook-runtime:install-official-fallback');
+    process.exit(1);
+  }
+
+  const installResult = spawnSync('npm', [
+    'install',
+    '--no-save',
+    '--prefix',
+    OFFICIAL_FALLBACK_ROOT,
+    OFFICIAL_FALLBACK_SPEC
+  ], {
+    stdio: 'inherit',
+    env: process.env
+  });
+
+  process.exit(installResult.status ?? 1);
+}
 
 if (!command || !COMPAT_ALIASES.has(command)) {
   console.log('Usage: node scripts/playbook-runtime.mjs <ai-context|ai-contract|context|index|query|explain|ask|ignore|verify|plan|pilot>');
@@ -137,6 +160,16 @@ function resolveRuntimeBin() {
     return { ...packageBin, checks };
   }
 
+  const officialFallbackBin = findExecutable(path.join(process.cwd(), OFFICIAL_FALLBACK_ROOT, 'node_modules', '.bin', 'playbook'));
+  checks.push(`official fallback install (${OFFICIAL_FALLBACK_ROOT})`);
+  if (officialFallbackBin) {
+    return {
+      bin: officialFallbackBin,
+      source: `official fallback install (${OFFICIAL_FALLBACK_ROOT})`,
+      checks
+    };
+  }
+
   if (DEV_FALLBACK_DISABLED) {
     checks.push('dev fallback disabled (PLAYBOOK_DISABLE_DEV_FALLBACK=1)');
   } else {
@@ -159,8 +192,9 @@ if (!resolution.bin) {
   console.error('[playbook-runtime] Fix one of the following:');
   console.error('  1) Set PLAYBOOK_BIN to an explicit Playbook executable path.');
   console.error('  2) Install Playbook as a local package so node_modules/.bin/playbook exists.');
-  console.error(`  3) (Dev-only fallback) ensure ${DEV_FALLBACK_ROOT} contains a runnable Playbook checkout.`);
-  console.error('     Set PLAYBOOK_DISABLE_DEV_FALLBACK=1 to prove package-first resolution only.');
+  console.error(`  3) Install the official fallback distribution into ${OFFICIAL_FALLBACK_ROOT} (set PLAYBOOK_OFFICIAL_FALLBACK_SPEC and run npm run playbook-runtime:install-official-fallback).`);
+  console.error(`  4) (Dev-only fallback) ensure ${DEV_FALLBACK_ROOT} contains a runnable Playbook checkout.`);
+  console.error('     Set PLAYBOOK_DISABLE_DEV_FALLBACK=1 to prove package-first + official fallback resolution only.');
   process.exit(1);
 }
 
