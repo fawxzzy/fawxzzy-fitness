@@ -50,6 +50,7 @@ Canonical command path for local operations:
 Migration constraints:
 - Do not document or reintroduce deprecated Playbook maintenance/sync commands.
 - Do not document vendored Playbook subtree workflows in this repository.
+- Keep retirement decisions in sync with `docs/PLAYBOOK_MIGRATION_INVENTORY.md`.
 
 ## Playbook Runtime Model (Shared Core + Local State)
 

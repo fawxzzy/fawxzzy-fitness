@@ -3,6 +3,20 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.67 — 2026-03-17
+
+### WHAT
+- Added `docs/PLAYBOOK_MIGRATION_INVENTORY.md` with a deterministic inventory of all remaining legacy-Playbook-adjacent surfaces, explicit retirement classification (`KEEP_TEMPORARILY`, `REPLACE_WITH_NEW_PLAYBOOK`, `INVESTIGATE_USAGE`, `REMOVE_AFTER_PARITY`), and per-surface removal preconditions.
+- Removed redundant, unreferenced `scripts/githooks/pre-commit.mjs` and retained `.githooks/pre-commit` as the single active pre-commit implementation.
+- Simplified package hook setup surface by removing `hooks:install` and keeping `prepare` as the single install-time hook setup entrypoint.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` migration guidance to point directly to the migration inventory for ongoing retirement decisions.
+
+### WHY
+- Prevents half-migrated workflow drift by making all remaining legacy surfaces explicit, classified, and tied to deterministic removal gates.
+- Reduces duplicate/discoverable command and hook entrypoints that can silently fork contributor behavior.
+- Keeps governance, top-level docs, and executable surfaces aligned to one Playbook ownership model per repository.
+
+
 ## 0.3.66 — 2026-03-17
 
 ### WHAT

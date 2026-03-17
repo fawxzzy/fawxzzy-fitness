@@ -21,7 +21,6 @@
     "cleanup:repo": "node scripts/cleanup-repo.mjs",
     "cleanup:repo:archive": "node scripts/cleanup-repo.mjs --archive",
     "cleanup:repo:full": "node scripts/cleanup-repo.mjs --include-build-cache",
-    "hooks:install": "node scripts/setup-githooks.mjs",
     "prepare": "node scripts/setup-githooks.mjs",
     "ai-context": "node scripts/playbook-runtime.mjs ai-context",
     "ai-contract": "node scripts/playbook-runtime.mjs ai-contract",
