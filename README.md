@@ -45,6 +45,8 @@ Expected behavior:
 
 Use `PLAYBOOK_BIN` only for temporary overrides. Treat the dev fallback checkout path as backup-only recovery, not primary setup.
 
+CI now enforces this exact clean-environment proof path by running `npm install`, unsetting `PLAYBOOK_BIN`/`PLAYBOOK_RUNTIME_BIN`, setting `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, executing the canonical command ladder, and failing if `.playbook/` has no runtime artifacts.
+
 ## Playbook workflow: bootstrap → intelligence → remediation
 
 ### 1) Bootstrap commands

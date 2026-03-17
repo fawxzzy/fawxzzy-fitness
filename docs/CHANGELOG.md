@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.72 — 2026-03-17
+
+### WHAT
+- Added a dedicated `playbook-clean-environment` CI job in `.github/workflows/ci.yml` that performs a clean `npm install`, unsets `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN`, sets `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, and runs the canonical Playbook command ladder (`ai-context`, `ai-contract`, `context`, `index`, `verify`, `plan`, `pilot`).
+- Added an explicit CI assertion that `.playbook/` exists and contains runtime artifact files after the ladder run, with clear failure messages when output is missing.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to document that clean-environment package-first proof is now enforced in CI, not just expected locally.
+
+### WHY
+- Closes the local-success illusion where Playbook integration can appear healthy on one machine due to developer-specific state, but fail for real consumers in fresh environments.
+- Enforces the operational rule that consumer-repo integration is only complete once it passes package-first validation outside local developer context.
+- Keeps CI deterministic by removing local path overrides/fallback dependencies and verifying observable `.playbook/` runtime outputs.
+
 ## 0.3.71 — 2026-03-17
 
 ### WHAT
