@@ -35,32 +35,29 @@ Allowed governance documentation files:
 - `docs/ARCHITECTURE.md`
 - `docs/CHANGELOG.md`
 
-## Migration Note (Temporary Bridge, Canonical Upstream Runtime)
+## Playbook Operator Path (Single Active Surface)
 
-The local Playbook wrapper is compatibility scaffolding only.
+The repository uses one active Playbook operator surface: the top-level npm commands that execute `scripts/playbook-runtime.mjs`.
 
-Canonical bridge command path for local operations:
-- `npm run playbook:ai-context`
-- `npm run playbook:ai-contract`
-- `npm run playbook:context`
-- `npm run playbook:index`
-- `npm run playbook:query-modules`
-- `npm run playbook:explain-architecture`
-- `npm run playbook:ask-repo-context`
-- `npm run playbook:ignore-suggest`
-- `npm run playbook:ignore-apply`
-- `npm run playbook:verify`
-- `npm run playbook:plan`
-- `npm run playbook:pilot`
+Canonical local command path:
+- `npm run ai-context`
+- `npm run ai-contract`
+- `npm run context`
+- `npm run index`
+- `npm run query:modules`
+- `npm run explain:architecture`
+- `npm run ask:repo-context`
+- `npm run ignore:suggest`
+- `npm run ignore:apply`
+- `npm run verify`
+- `npm run plan`
+- `npm run pilot`
 
-Temporary compatibility aliases may exist during migration, but they must remain strict forwards to canonical behavior.
-
-Migration constraints:
-- Do not add repo-specific runtime output semantics in the bridge.
+Retirement constraints:
+- Do not add secondary `playbook:*` command families or duplicate wrappers.
 - Do not document or reintroduce deprecated Playbook maintenance/sync commands.
 - Do not document vendored Playbook subtree workflows in this repository.
-- Keep retirement decisions in sync with `docs/PLAYBOOK_MIGRATION_INVENTORY.md`.
-- Remove/minimize wrapper logic once direct shared-runtime parity is proven.
+- Keep transitional surface decisions in sync with `docs/PLAYBOOK_MIGRATION_INVENTORY.md`.
 
 ## Playbook Runtime Model (Shared Core + Local State)
 
@@ -75,7 +72,7 @@ Runtime contracts:
 ## Playbook Resolution Policy (Package-First Consumer Model)
 
 Runtime resolution order is deterministic and must remain:
-1. `PLAYBOOK_BIN` environment override (legacy `PLAYBOOK_RUNTIME_BIN` allowed for compatibility).
+1. `PLAYBOOK_BIN` environment override (`PLAYBOOK_RUNTIME_BIN` is transitional compatibility only).
 2. Repo-local package install resolution (prefer `node_modules/.bin/playbook`, then package entrypoint lookup).
 3. Dev-only temporary fallback at `C:\Users\zjhre\dev\playbook` (backup-only; disable with `PLAYBOOK_DISABLE_DEV_FALLBACK=1` when validating canonical behavior).
 4. Explicit actionable failure if unresolved.
