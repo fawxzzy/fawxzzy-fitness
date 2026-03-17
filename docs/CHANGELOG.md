@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.75 — 2026-03-17
+
+### WHAT
+- Added official non-registry Playbook fallback support in `scripts/playbook-runtime.mjs` by resolving `.playbook/runtime/node_modules/.bin/playbook` before the dev checkout fallback.
+- Added `npm run playbook-runtime:install-official-fallback` to install the official fallback distribution into `.playbook/runtime` via `PLAYBOOK_OFFICIAL_FALLBACK_SPEC`.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` with explicit registry-failure behavior, fallback installation steps, and package-first precedence guidance.
+
+### WHY
+- Unblocks Playbook runtime acquisition in restricted environments where npm registry access to `@fawxzzy/playbook-cli` is unavailable.
+- Preserves the long-term package-first consumer model by keeping registry install canonical and fallback install conditional.
+- Prevents false runtime-quality diagnosis when missing `.playbook` artifacts are caused by acquisition failure rather than Playbook execution behavior.
+
 ## 0.3.74 — 2026-03-17
 
 ### WHAT
