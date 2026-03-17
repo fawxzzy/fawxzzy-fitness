@@ -55,7 +55,8 @@ env -u PLAYBOOK_BIN -u PLAYBOOK_RUNTIME_BIN PLAYBOOK_DISABLE_DEV_FALLBACK=1 npm 
 ```
 
 Notes:
-- `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` must point to the official upstream fallback package spec (for example, an official tarball URL or file path provided by Playbook maintainers).
+- `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` is a direct distribution target and is installed verbatim (for example: `file:/tmp/playbook-cli.tgz`, `./dist/playbook-cli.tgz`, `https://.../playbook-cli.tgz`, or `git+https://...`).
+- Registry package specs (for example `@fawxzzy/playbook-cli@x.y.z`) are intentionally rejected for fallback acquisition and should use `npm run playbook-runtime:install-package` instead.
 - This fallback does **not** replace package acquisition behavior; it is only for environments where package install is unavailable.
 - Keep `PLAYBOOK_DISABLE_DEV_FALLBACK=1` during proof runs so fallback results are not masked by local checkout state.
 
