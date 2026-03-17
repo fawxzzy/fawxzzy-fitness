@@ -1,7 +1,22 @@
+# Dependency + package manager artifacts
 node_modules/
+
+# Build outputs and coverage
 .next/
+out/
 dist/
 build/
 coverage/
-.git/
+
+# Tool/runtime caches and transient state
 .playbook/
+.cache/
+.tmp/
+tmp/
+
+# VCS internals
+.git/
+
+# Archived or generated content that is non-authoritative for architecture
+/docs/_archive/
+/public/exercise-icons/

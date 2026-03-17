@@ -3,6 +3,20 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.69 — 2026-03-17
+
+### WHAT
+- Expanded the Playbook bridge command surface to include canonical repo-intelligence and ignore flows (`context`, `query modules`, `explain architecture`, `ask --repo-context`, `ignore suggest`, `ignore apply --safe-defaults`) while preserving thin-forwarder behavior in `scripts/playbook-runtime.mjs`.
+- Added npm script aliases and explicit `playbook:*` mappings for richer read surfaces and deterministic ignore tuning workflows.
+- Tuned `.playbookignore` to reduce scan noise from dependency/build/archive/generated areas without excluding core application and architecture truth sources.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to document the bootstrap → intelligence → remediation pattern, verification/planning flow, and ignore tuning expectations.
+
+### WHY
+- Graduates the integration from bootstrap-only usage to a more canonical repo-intelligence workflow that supports architectural understanding and module-level querying.
+- Makes ignore tuning repeatable and safe by default so scans stay focused while preserving critical system visibility.
+- Aligns contributor guidance with the operational sequence needed for dependable Playbook-assisted planning and remediation.
+
+
 ## 0.3.68 — 2026-03-17
 
 ### WHAT
