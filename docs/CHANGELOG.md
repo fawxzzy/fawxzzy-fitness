@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.79 — 2026-03-17
+
+### WHAT
+- Refactored `scripts/playbook-runtime.mjs` acquisition flow into typed paths so package acquisition still installs package specs, while official fallback acquisition validates and installs direct distribution specs verbatim into `.playbook/runtime` without reinterpretation as registry syntax.
+- Added acquisition diagnostics that print package/fallback targets plus the npm command shape used for each path to make CI and local failure modes explicit.
+- Added `scripts/playbook-runtime.test.mjs` coverage for local tarball fallback specs, https tarball URL normalization/acceptance, and missing/registry-like fallback spec failure output.
+- Updated `README.md` fallback guidance to document accepted direct fallback spec shapes and explicitly route registry package specs to package acquisition.
+
+### WHY
+- Fixes spec-shape conflation where direct tarball/git fallback targets could be treated like registry package/version specs and fail before runtime execution.
+- Preserves package-first behavior while making fallback acquisition deterministic, typed, and auditable for clean CI environments.
+
 ## 0.3.78 — 2026-03-17
 
 ### WHAT
@@ -2101,6 +2113,18 @@ WHY:
 - This keeps the Today UI cleaner and avoids cramped nested card layering while preserving temporary day selection before starting a workout.
 
 # Changelog
+
+## 0.3.79 — 2026-03-17
+
+### WHAT
+- Refactored `scripts/playbook-runtime.mjs` acquisition flow into typed paths so package acquisition still installs package specs, while official fallback acquisition validates and installs direct distribution specs verbatim into `.playbook/runtime` without reinterpretation as registry syntax.
+- Added acquisition diagnostics that print package/fallback targets plus the npm command shape used for each path to make CI and local failure modes explicit.
+- Added `scripts/playbook-runtime.test.mjs` coverage for local tarball fallback specs, https tarball URL normalization/acceptance, and missing/registry-like fallback spec failure output.
+- Updated `README.md` fallback guidance to document accepted direct fallback spec shapes and explicitly route registry package specs to package acquisition.
+
+### WHY
+- Fixes spec-shape conflation where direct tarball/git fallback targets could be treated like registry package/version specs and fail before runtime execution.
+- Preserves package-first behavior while making fallback acquisition deterministic, typed, and auditable for clean CI environments.
 
 ## 0.3.74 — 2026-03-17
 
