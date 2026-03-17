@@ -35,22 +35,26 @@ Allowed governance documentation files:
 - `docs/ARCHITECTURE.md`
 - `docs/CHANGELOG.md`
 
-## Migration Note (Canonical Runtime Path)
+## Migration Note (Temporary Bridge, Canonical Upstream Runtime)
 
-This repository has completed migration to a single Playbook runtime path.
+The local Playbook wrapper is compatibility scaffolding only.
 
-Canonical command path for local operations:
-- `npm run ai-context`
-- `npm run ai-contract`
-- `npm run index`
-- `npm run verify`
-- `npm run plan`
-- `npm run pilot` (runs the full baseline flow)
+Canonical command path for local operations uses explicit bridge aliases:
+- `npm run playbook:ai-context`
+- `npm run playbook:ai-contract`
+- `npm run playbook:index`
+- `npm run playbook:verify`
+- `npm run playbook:plan`
+- `npm run playbook:pilot`
+
+Temporary compatibility aliases (`ai-context`, `ai-contract`, `index`, `verify`, `plan`, `pilot`) may exist during migration, but they must remain strict forwards to canonical behavior.
 
 Migration constraints:
+- Do not add repo-specific runtime output semantics in the bridge.
 - Do not document or reintroduce deprecated Playbook maintenance/sync commands.
 - Do not document vendored Playbook subtree workflows in this repository.
 - Keep retirement decisions in sync with `docs/PLAYBOOK_MIGRATION_INVENTORY.md`.
+- Remove/minimize wrapper logic once direct shared-runtime parity is proven.
 
 ## Playbook Runtime Model (Shared Core + Local State)
 
