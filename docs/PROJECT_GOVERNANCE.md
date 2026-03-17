@@ -77,8 +77,15 @@ Runtime contracts:
 Runtime resolution order is deterministic and must remain:
 1. `PLAYBOOK_BIN` environment override (legacy `PLAYBOOK_RUNTIME_BIN` allowed for compatibility).
 2. Repo-local package install resolution (prefer `node_modules/.bin/playbook`, then package entrypoint lookup).
-3. Dev-only temporary fallback at `C:\Users\zjhre\dev\playbook`.
+3. Dev-only temporary fallback at `C:\Users\zjhre\dev\playbook` (backup-only; disable with `PLAYBOOK_DISABLE_DEV_FALLBACK=1` when validating canonical behavior).
 4. Explicit actionable failure if unresolved.
+
+
+Consumer-integration success criteria (must be reproducible in a clean environment):
+- `npm install` provisions a repo-local Playbook binary through package metadata.
+- With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package installation.
+- Canonical proof runs must set `PLAYBOOK_DISABLE_DEV_FALLBACK=1` to prevent fallback capture.
+- Runtime outputs continue to land only under `.playbook/`.
 
 Policy constraints:
 - Global `PATH` lookup is **not** canonical and must not be relied on for repo scripts.

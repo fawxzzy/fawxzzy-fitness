@@ -1,6 +1,6 @@
 {
   "name": "fawxzzyfitness",
-  "version": "0.3.20",
+  "version": "0.3.71",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -66,6 +66,7 @@
     "@types/react-dom": "^18.3.5",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.5",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "@fawxzzy/playbook-cli": "file:tools/playbook-cli"
   }
 }

@@ -18,13 +18,32 @@ Deterministic Playbook resolution is package-first and does **not** rely on a gl
 Resolution order used by `scripts/playbook-runtime.mjs`:
 1. `PLAYBOOK_BIN` (or legacy `PLAYBOOK_RUNTIME_BIN`) environment override.
 2. Repo-local Playbook install (prefers `node_modules/.bin/playbook`, then installed package entrypoint resolution).
-3. **Dev-only temporary fallback** to local checkout at `C:\Users\zjhre\dev\playbook`.
+3. **Dev-only temporary fallback** to local checkout at `C:\Users\zjhre\dev\playbook` (disabled by default during proof checks via `PLAYBOOK_DISABLE_DEV_FALLBACK=1`).
 4. Otherwise fail with a precise actionable error describing what was checked.
 
 Expected unresolved error shape:
 - `Unable to resolve a Playbook executable.`
 - `Checked: PLAYBOOK_BIN... -> repo-local package/bin resolution -> dev fallback path ...`
 - action list for env override / local package install / optional dev fallback.
+
+
+### Canonical package-first install (consumer proof path)
+
+This repository now installs Playbook as a repo-local dev dependency (`@fawxzzy/playbook-cli` via `file:tools/playbook-cli`).
+
+Use this exact setup path:
+
+```bash
+npm install
+env -u PLAYBOOK_BIN -u PLAYBOOK_RUNTIME_BIN PLAYBOOK_DISABLE_DEV_FALLBACK=1 npm run ai-context
+```
+
+Expected behavior:
+- command resolves through `node_modules/.bin/playbook`
+- runtime writes under `.playbook/`
+- no dependency on machine-specific fallback checkouts
+
+Use `PLAYBOOK_BIN` only for temporary overrides. Treat the dev fallback checkout path as backup-only recovery, not primary setup.
 
 ## Playbook workflow: bootstrap → intelligence → remediation
 
