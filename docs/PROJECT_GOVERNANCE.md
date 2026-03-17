@@ -39,15 +39,21 @@ Allowed governance documentation files:
 
 The local Playbook wrapper is compatibility scaffolding only.
 
-Canonical command path for local operations uses explicit bridge aliases:
+Canonical bridge command path for local operations:
 - `npm run playbook:ai-context`
 - `npm run playbook:ai-contract`
+- `npm run playbook:context`
 - `npm run playbook:index`
+- `npm run playbook:query-modules`
+- `npm run playbook:explain-architecture`
+- `npm run playbook:ask-repo-context`
+- `npm run playbook:ignore-suggest`
+- `npm run playbook:ignore-apply`
 - `npm run playbook:verify`
 - `npm run playbook:plan`
 - `npm run playbook:pilot`
 
-Temporary compatibility aliases (`ai-context`, `ai-contract`, `index`, `verify`, `plan`, `pilot`) may exist during migration, but they must remain strict forwards to canonical behavior.
+Temporary compatibility aliases may exist during migration, but they must remain strict forwards to canonical behavior.
 
 Migration constraints:
 - Do not add repo-specific runtime output semantics in the bridge.
@@ -65,3 +71,15 @@ Runtime contracts:
 - `.playbook/` is ignored via `.gitignore` to prevent ad hoc committed runtime noise.
 - Scan tuning is controlled via `.playbookignore`.
 - Optional runtime config is in `playbook.config.json` when project-local defaults need to be explicit.
+
+## Operational Sequence
+
+Follow this deterministic operating sequence when using Playbook in this repo:
+1. **Bootstrap first:** `ai-context`, `ai-contract`, `index`.
+2. **Then intelligence:** `context`, `query modules`, `explain architecture`, optional `ask --repo-context`.
+3. **Then remediation:** `verify`, `plan`, `pilot`.
+4. **Ignore tuning as needed:** run `ignore suggest` and `ignore apply --safe-defaults`, then re-run core reads (`context`/`query`/`explain`) to confirm architecture truth remains visible.
+
+## Ignore Tuning Rule
+
+Ignore tuning must narrow scan noise, not hide system truth. Keep architectural sources (app code, architecture docs, migration/runtime bridge scripts, and canonical governance docs) in-bounds for indexing and analysis.
