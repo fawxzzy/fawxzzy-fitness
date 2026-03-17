@@ -35,19 +35,9 @@ Allowed governance documentation files:
 - `docs/ARCHITECTURE.md`
 - `docs/CHANGELOG.md`
 
-## Migration Note (Legacy Vendored Playbook Removal)
+## Migration Note (Canonical Runtime Path)
 
-The repository removed the legacy vendored Playbook integration surface, including:
-- `Playbook/` vendored subtree content
-- `scripts/playbook/` maintenance/learning scripts
-- Playbook-only CI and hook wiring
-- npm scripts prefixed with `playbook:` and `contracts:`
-
-Reason: the vendored doctrine/learning engine created a second ownership model in this repository and caused shadow governance surfaces. The repo now keeps a single, local ownership model for governance and quality checks.
-
-## Playbook Runtime Model (Shared Core + Local State)
-
-This repository now uses the shared Playbook runtime model with project-local runtime state under `.playbook/`.
+This repository has completed migration to a single Playbook runtime path.
 
 Canonical command path for local operations:
 - `npm run ai-context`
@@ -57,9 +47,16 @@ Canonical command path for local operations:
 - `npm run plan`
 - `npm run pilot` (runs the full baseline flow)
 
+Migration constraints:
+- Do not document or reintroduce deprecated Playbook maintenance/sync commands.
+- Do not document vendored Playbook subtree workflows in this repository.
+
+## Playbook Runtime Model (Shared Core + Local State)
+
+This repository uses the shared Playbook runtime model with project-local runtime state under `.playbook/`.
+
 Runtime contracts:
 - Runtime artifacts are written under `.playbook/` only.
 - `.playbook/` is ignored via `.gitignore` to prevent ad hoc committed runtime noise.
 - Scan tuning is controlled via `.playbookignore`.
 - Optional runtime config is in `playbook.config.json` when project-local defaults need to be explicit.
-

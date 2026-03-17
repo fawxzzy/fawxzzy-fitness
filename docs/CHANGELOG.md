@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.66 — 2026-03-17
+
+### WHAT
+- Normalized Playbook workflow documentation to one canonical operator path in `README.md` and `docs/PROJECT_GOVERNANCE.md` using `ai-context`, `ai-contract`, `index`, `verify`, `plan`, and `pilot`.
+- Removed stale migration wording that could imply legacy learning/subtree maintenance paths were still active operator flows.
+- Revalidated GitHub Actions workflow docs/config to ensure CI references only active repository commands.
+
+### WHY
+- Prevents documentation drift from reintroducing fake or removed commands during onboarding and daily operations.
+- Keeps local governance and top-level docs aligned with the actual installed command surface.
+- Reinforces one clear Playbook runtime workflow after migration.
+
+
 ## 0.3.65 — 2026-03-17
 
 ### WHAT
