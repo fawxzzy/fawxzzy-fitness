@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.74 — 2026-03-17
+
+### WHAT
+- Switched `@fawxzzy/playbook-cli` from the repo-local `file:tools/playbook-cli` bootstrap package to the published upstream wrapper dependency model in `package.json`/`package-lock.json`.
+- Removed the temporary repo-local wrapper package at `tools/playbook-cli` now that upstream package parity is available.
+- Kept `scripts/playbook-runtime.mjs` as a thin command bridge and refreshed wording to reflect steady-state upstream package usage.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to document that consumer repos should use the published package model and treat local fallback only as backup recovery.
+
+### WHY
+- Enforces the migration rule that temporary bootstrap packages must be retired once upstream package parity is proven.
+- Prevents local wrapper drift from masking whether real consumer package integration actually works.
+- Keeps clean-environment Playbook proof runs aligned with the canonical upstream dependency path.
+
 ## 0.3.73 — 2026-03-17
 
 ### WHAT
@@ -2040,6 +2053,19 @@ WHY:
 - This keeps the Today UI cleaner and avoids cramped nested card layering while preserving temporary day selection before starting a workout.
 
 # Changelog
+
+## 0.3.74 — 2026-03-17
+
+### WHAT
+- Switched `@fawxzzy/playbook-cli` from the repo-local `file:tools/playbook-cli` bootstrap package to the published upstream wrapper dependency model in `package.json`/`package-lock.json`.
+- Removed the temporary repo-local wrapper package at `tools/playbook-cli` now that upstream package parity is available.
+- Kept `scripts/playbook-runtime.mjs` as a thin command bridge and refreshed wording to reflect steady-state upstream package usage.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to document that consumer repos should use the published package model and treat local fallback only as backup recovery.
+
+### WHY
+- Enforces the migration rule that temporary bootstrap packages must be retired once upstream package parity is proven.
+- Prevents local wrapper drift from masking whether real consumer package integration actually works.
+- Keeps clean-environment Playbook proof runs aligned with the canonical upstream dependency path.
 
 ## [Unreleased]
 
