@@ -72,6 +72,19 @@ Runtime contracts:
 - Scan tuning is controlled via `.playbookignore`.
 - Optional runtime config is in `playbook.config.json` when project-local defaults need to be explicit.
 
+## Playbook Resolution Policy (Package-First Consumer Model)
+
+Runtime resolution order is deterministic and must remain:
+1. `PLAYBOOK_BIN` environment override (legacy `PLAYBOOK_RUNTIME_BIN` allowed for compatibility).
+2. Repo-local package install resolution (prefer `node_modules/.bin/playbook`, then package entrypoint lookup).
+3. Dev-only temporary fallback at `C:\Users\zjhre\dev\playbook`.
+4. Explicit actionable failure if unresolved.
+
+Policy constraints:
+- Global `PATH` lookup is **not** canonical and must not be relied on for repo scripts.
+- The local checkout fallback is temporary compatibility scaffolding, not the documented standard install model.
+- Keep bridge scope thin: resolution + forwarding only.
+
 ## Operational Sequence
 
 Follow this deterministic operating sequence when using Playbook in this repo:

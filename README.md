@@ -11,6 +11,21 @@ Canonical long-term model:
 - repo-local state in `.playbook/`
 - minimal/no repo wrapper once direct parity is proven
 
+## Playbook runtime setup
+
+Deterministic Playbook resolution is package-first and does **not** rely on a globally installed `playbook` on `PATH`.
+
+Resolution order used by `scripts/playbook-runtime.mjs`:
+1. `PLAYBOOK_BIN` (or legacy `PLAYBOOK_RUNTIME_BIN`) environment override.
+2. Repo-local Playbook install (prefers `node_modules/.bin/playbook`, then installed package entrypoint resolution).
+3. **Dev-only temporary fallback** to local checkout at `C:\Users\zjhre\dev\playbook`.
+4. Otherwise fail with a precise actionable error describing what was checked.
+
+Expected unresolved error shape:
+- `Unable to resolve a Playbook executable.`
+- `Checked: PLAYBOOK_BIN... -> repo-local package/bin resolution -> dev fallback path ...`
+- action list for env override / local package install / optional dev fallback.
+
 ## Playbook workflow: bootstrap → intelligence → remediation
 
 ### 1) Bootstrap commands

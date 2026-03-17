@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.70 — 2026-03-17
+
+### WHAT
+- Refactored `scripts/playbook-runtime.mjs` to resolve Playbook deterministically via `PLAYBOOK_BIN` override first, repo-local package/bin resolution second, and a clearly marked dev-only fallback at `C:\Users\zjhre\dev\playbook` third.
+- Removed default global `playbook` PATH assumptions from the runtime bridge and added precise failure output that lists all resolution checks and concrete remediation steps.
+- Updated `README.md` with a dedicated **Playbook runtime setup** section documenting canonical package-first usage, env override behavior, optional dev fallback, and expected unresolved failure messaging.
+- Updated `docs/PROJECT_GOVERNANCE.md` to codify the package-first consumer model, temporary fallback policy, and prohibition on treating global PATH resolution as canonical.
+
+### WHY
+- Prevents global-shadow dependency drift where Playbook appears to work on one machine due to PATH leakage but fails in clean environments/CI.
+- Makes this repo behave like a real consumer of Playbook tooling with deterministic, auditable runtime resolution.
+- Preserves migration compatibility for local developer checkouts without promoting them to long-term repository doctrine.
+
 ## 0.3.69 — 2026-03-17
 
 ### WHAT
