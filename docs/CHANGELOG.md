@@ -3,6 +3,19 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.68 — 2026-03-17
+
+### WHAT
+- Refactored `scripts/playbook-runtime.mjs` into explicit temporary compatibility scaffolding that only validates known command aliases and forwards to the canonical Playbook runtime binary, removing local fake artifact/workflow behavior.
+- Added explicit `playbook:*` npm scripts as the canonical local command names while keeping existing short names as temporary aliases that forward to the canonical names.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to document the bridge as temporary, the long-term shared-core + local `.playbook/` model, and the requirement to retire wrapper logic once parity is proven.
+
+### WHY
+- Prevents the local helper from becoming a shadow product surface with repo-specific runtime semantics.
+- Keeps local command behavior aligned to upstream Playbook docs by enforcing thin-adapter forwarding only.
+- Makes the migration end-state explicit so compatibility aliases do not become permanent doctrine.
+
+
 ## 0.3.67 — 2026-03-17
 
 ### WHAT
