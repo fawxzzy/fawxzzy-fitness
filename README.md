@@ -59,7 +59,7 @@ Notes:
 - This fallback does **not** replace package acquisition behavior; it is only for environments where package install is unavailable.
 - Keep `PLAYBOOK_DISABLE_DEV_FALLBACK=1` during proof runs so fallback results are not masked by local checkout state.
 
-CI now enforces this clean-environment proof path by running `npm install`, acquiring Playbook explicitly (`playbook-runtime:install-package` with official fallback contingency), unsetting `PLAYBOOK_BIN`/`PLAYBOOK_RUNTIME_BIN`, setting `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, executing the canonical command ladder, and failing if `.playbook/` has no runtime artifacts.
+CI now enforces this clean-environment proof path with an explicit deterministic fallback spec: `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` must be defined in CI, package acquisition is attempted first, and official fallback acquisition is always executed when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`). CI then unsets `PLAYBOOK_BIN`/`PLAYBOOK_RUNTIME_BIN`, sets `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, runs the canonical ladder, and asserts required artifacts exist: `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json`.
 
 ## Playbook workflow: bootstrap → intelligence → remediation
 

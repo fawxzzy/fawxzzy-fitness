@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.77 — 2026-03-17
+
+### WHAT
+- Updated `.github/workflows/ci.yml` to define `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` at job scope as a required deterministic input and fail fast when it is missing.
+- Refined Playbook acquisition logic in CI to follow the explicit sequence `install -> acquire package -> acquire official fallback -> run`, including an opt-in `PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1` path for deterministic fallback-only simulations.
+- Tightened CI runtime validation to require `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json` instead of only checking for any file under `.playbook/`.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to codify the deterministic fallback requirement and required artifact contract.
+
+### WHY
+- Closes the acquisition gap where install could succeed but runtime remained unavailable when package access failed and fallback wiring was implicit or absent.
+- Makes registry-failure behavior explicit, auditable, and reproducible in CI instead of relying on silent fallback assumptions.
+- Aligns CI success criteria with canonical Playbook ladder outputs required for downstream verification and planning.
+
 ## 0.3.76 — 2026-03-17
 
 ### WHAT
