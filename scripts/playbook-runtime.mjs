@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
 /**
@@ -73,6 +74,74 @@ export function classifyFallbackSpec(rawSpec) {
   return { valid: false, kind: 'registry-like', normalized: spec };
 }
 
+function sanitizeFilenamePart(value) {
+  return value.replace(/[^A-Za-z0-9._-]/g, '-');
+}
+
+function toAbsolutePath(inputPath) {
+  return path.isAbsolute(inputPath) ? inputPath : path.resolve(process.cwd(), inputPath);
+}
+
+function formatNpmInstallCommand(args) {
+  return ['npm', ...args].join(' ');
+}
+
+function buildRemoteDownloadPath({ url, runtimeRoot }) {
+  const parsed = new URL(url);
+  const basename = path.posix.basename(parsed.pathname) || 'playbook-cli.tgz';
+  const filename = basename.includes('.') ? basename : `${basename}.tgz`;
+  const hash = createHash('sha256').update(url).digest('hex').slice(0, 16);
+  const cacheDir = path.join(toAbsolutePath(runtimeRoot), 'cache');
+  const downloadName = `official-fallback-${hash}-${sanitizeFilenamePart(filename)}`;
+  return path.join(cacheDir, downloadName);
+}
+
+export async function normalizeFallbackInstallTarget({
+  rawSpec,
+  runtimeRoot = OFFICIAL_FALLBACK_ROOT,
+  fetchImpl = globalThis.fetch
+}) {
+  const fallbackSpec = classifyFallbackSpec(rawSpec);
+  if (!fallbackSpec.valid) {
+    return { fallbackSpec, installSpec: null, downloadedFrom: null };
+  }
+
+  if (fallbackSpec.kind !== 'https-url') {
+    return { fallbackSpec, installSpec: fallbackSpec.normalized, downloadedFrom: null };
+  }
+
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('Global fetch is unavailable; unable to download https fallback spec.');
+  }
+
+  const downloadPath = buildRemoteDownloadPath({
+    url: fallbackSpec.normalized,
+    runtimeRoot
+  });
+
+  mkdirSync(path.dirname(downloadPath), { recursive: true });
+
+  let response;
+  try {
+    response = await fetchImpl(fallbackSpec.normalized);
+  } catch (error) {
+    throw new Error(`Failed to download fallback artifact: ${error.message}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to download fallback artifact: HTTP ${response.status} ${response.statusText}`.trim());
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  writeFileSync(downloadPath, buffer);
+
+  return {
+    fallbackSpec,
+    installSpec: pathToFileURL(downloadPath).href,
+    downloadedFrom: fallbackSpec.normalized
+  };
+}
+
 function installViaNpm({ targetSpec, prefix }) {
   const args = ['install', '--no-save'];
   if (prefix) {
@@ -81,10 +150,13 @@ function installViaNpm({ targetSpec, prefix }) {
 
   args.push(targetSpec);
 
-  return spawnSync('npm', args, {
+  return {
+    args,
+    result: spawnSync('npm', args, {
     stdio: 'inherit',
     env: process.env
-  });
+    })
+  };
 }
 
 function handleInstallPackage() {
@@ -92,12 +164,24 @@ function handleInstallPackage() {
   console.log(`[playbook-runtime] Package acquisition target: ${targetSpec}`);
   console.log('[playbook-runtime] Command shape: npm install --no-save <package-spec>');
 
-  const installResult = installViaNpm({ targetSpec });
-  process.exit(installResult.status ?? 1);
+  const installPlan = installViaNpm({ targetSpec });
+  console.log(`[playbook-runtime] Command shape: ${formatNpmInstallCommand(installPlan.args)}`);
+  process.exit(installPlan.result.status ?? 1);
 }
 
-function handleInstallOfficialFallback() {
-  const fallbackSpec = classifyFallbackSpec(OFFICIAL_FALLBACK_SPEC);
+async function handleInstallOfficialFallback() {
+  let resolvedFallback;
+  try {
+    resolvedFallback = await normalizeFallbackInstallTarget({
+      rawSpec: OFFICIAL_FALLBACK_SPEC,
+      runtimeRoot: OFFICIAL_FALLBACK_ROOT
+    });
+  } catch (error) {
+    console.error(`[playbook-runtime] ${error.message}`);
+    process.exit(1);
+  }
+
+  const { fallbackSpec } = resolvedFallback;
 
   if (!fallbackSpec.valid) {
     if (fallbackSpec.kind === 'missing') {
@@ -112,25 +196,29 @@ function handleInstallOfficialFallback() {
     process.exit(1);
   }
 
-  console.log(`[playbook-runtime] Fallback acquisition target: ${fallbackSpec.normalized}`);
-  console.log('[playbook-runtime] Command shape: npm install --no-save --prefix .playbook/runtime <direct-spec>');
+  console.log(`[playbook-runtime] Fallback acquisition target (original): ${fallbackSpec.normalized}`);
   console.log(`[playbook-runtime] Fallback spec type: ${fallbackSpec.kind}`);
+  if (resolvedFallback.downloadedFrom) {
+    console.log(`[playbook-runtime] Fallback download source: ${resolvedFallback.downloadedFrom}`);
+    console.log(`[playbook-runtime] Fallback normalized install target: ${resolvedFallback.installSpec}`);
+  }
 
-  const installResult = installViaNpm({
-    targetSpec: fallbackSpec.normalized,
+  const installPlan = installViaNpm({
+    targetSpec: resolvedFallback.installSpec,
     prefix: OFFICIAL_FALLBACK_ROOT
   });
+  console.log(`[playbook-runtime] Command shape: ${formatNpmInstallCommand(installPlan.args)}`);
 
-  process.exit(installResult.status ?? 1);
+  process.exit(installPlan.result.status ?? 1);
 }
 
-function main() {
+async function main() {
   if (command === '--install-package') {
     handleInstallPackage();
   }
 
   if (command === '--install-official-fallback') {
-    handleInstallOfficialFallback();
+    await handleInstallOfficialFallback();
   }
 
   if (!command || !COMPAT_ALIASES.has(command)) {
@@ -298,5 +386,8 @@ function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  main().catch((error) => {
+    console.error(`[playbook-runtime] Unexpected runtime bridge failure: ${error.message}`);
+    process.exit(1);
+  });
 }
