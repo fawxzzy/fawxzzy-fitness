@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.78 — 2026-03-17
+
+### WHAT
+- Updated `.github/workflows/ci.yml` to set `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` directly to a pinned official release tarball URL (`https://github.com/fawxzzy/playbook-cli/releases/download/v0.3.77/playbook-cli-0.3.77.tgz`) for the clean-environment Playbook CI job.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` wording to reflect that CI now pins the fallback spec in workflow configuration rather than expecting runtime provision through repository variables.
+
+### WHY
+- Fixes the guard-without-provisioning failure mode where CI enforced fallback input presence but did not provide a deterministic fallback source.
+- Keeps runtime acquisition deterministic and reproducible across clean CI environments by using an explicit immutable fallback artifact.
+
 ## 0.3.77 — 2026-03-17
 
 ### WHAT
