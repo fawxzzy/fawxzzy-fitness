@@ -3,11 +3,17 @@
 ## 0.3.71 — 2026-03-17
 
 ### WHAT
+- Removed the redundant `playbook:*` npm script family so repo operators have one active command surface (top-level Playbook scripts only).
+- Reclassified remaining Playbook migration surfaces in `docs/PLAYBOOK_MIGRATION_INVENTORY.md` using explicit retirement states (`REMOVE_NOW`, `KEEP_TEMPORARILY_WITH_NOTE`, `HISTORICAL_ONLY`) and completed immediate removals.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to isolate retained compatibility behavior (`PLAYBOOK_RUNTIME_BIN`, dev fallback path) as transitional and non-canonical.
 - Added a repo-local Playbook package dependency (`@fawxzzy/playbook-cli` via `file:tools/playbook-cli`) so `npm install` provisions `node_modules/.bin/playbook` as the canonical consumer runtime path.
 - Added a minimal `PLAYBOOK_DISABLE_DEV_FALLBACK=1` switch in `scripts/playbook-runtime.mjs` to support package-first proof runs without machine-specific fallback capture.
 - Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` with explicit canonical setup/proof commands and backup-only fallback positioning.
 
 ### WHY
+- Prevents dual-truth operator behavior where both legacy and package-first command families remain discoverable.
+- Retires redundant migration-era surfaces now that package-first runtime resolution is proven.
+- Keeps temporary compatibility scaffolding explicit so contributors converge on one canonical path while preserving short-term recovery options.
 - Proves the package-first consumer model in a clean repo-local install flow instead of relying on developer-specific `PLAYBOOK_BIN` or fallback checkouts.
 - Prevents temporary fallback infrastructure from silently becoming the de facto runtime path.
 - Makes success criteria auditable: deterministic repo-local resolution, `.playbook/` state output, and precise unresolved failure messaging.

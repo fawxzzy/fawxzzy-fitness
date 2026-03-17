@@ -2,23 +2,23 @@
 
 Fawxzzy Fitness is a Next.js app for tracking workouts, routines, and exercise history.
 
-## Playbook runtime bridge (temporary compatibility only)
+## Playbook runtime command path (canonical)
 
-This repository includes a **temporary** bridge at `scripts/playbook-runtime.mjs`. The bridge must remain a thin adapter that forwards to the shared Playbook runtime and must not grow repo-specific runtime behavior.
+This repository uses `scripts/playbook-runtime.mjs` as the single repo command adapter to the shared Playbook runtime. Treat this as the only supported operator path for Playbook commands in this repo.
 
-Canonical long-term model:
+Canonical model:
 - shared Playbook core runtime
 - repo-local state in `.playbook/`
-- minimal/no repo wrapper once direct parity is proven
+- one documented operator path in repo scripts/docs
 
 ## Playbook runtime setup
 
 Deterministic Playbook resolution is package-first and does **not** rely on a globally installed `playbook` on `PATH`.
 
 Resolution order used by `scripts/playbook-runtime.mjs`:
-1. `PLAYBOOK_BIN` (or legacy `PLAYBOOK_RUNTIME_BIN`) environment override.
+1. `PLAYBOOK_BIN` environment override (`PLAYBOOK_RUNTIME_BIN` is transitional compatibility only).
 2. Repo-local Playbook install (prefers `node_modules/.bin/playbook`, then installed package entrypoint resolution).
-3. **Dev-only temporary fallback** to local checkout at `C:\Users\zjhre\dev\playbook` (disabled by default during proof checks via `PLAYBOOK_DISABLE_DEV_FALLBACK=1`).
+3. Transitional dev fallback to local checkout at `C:\Users\zjhre\dev\playbook` (disable during proof checks via `PLAYBOOK_DISABLE_DEV_FALLBACK=1`).
 4. Otherwise fail with a precise actionable error describing what was checked.
 
 Expected unresolved error shape:
@@ -55,13 +55,6 @@ npm run ai-contract
 npm run index
 ```
 
-Canonical explicit names are also available:
-
-```bash
-npm run playbook:ai-context
-npm run playbook:ai-contract
-npm run playbook:index
-```
 
 ### 2) Repo-intelligence commands
 
@@ -97,9 +90,9 @@ Rule: ignore tuning should narrow scan noise, **not** hide system truth. Keep ar
 
 ## Migration note
 
-- Legacy learning/sync/update command families were removed.
-- Legacy vendored subtree workflow guidance no longer applies in this repository.
-- Remaining migration-era surfaces are inventoried in `docs/PLAYBOOK_MIGRATION_INVENTORY.md`.
+- Legacy learning/sync/update command families are retired.
+- Vendored subtree workflow guidance is retired.
+- Transitional compatibility surfaces are tracked in `docs/PLAYBOOK_MIGRATION_INVENTORY.md` and are non-canonical.
 
 ## Local development
 
