@@ -23,9 +23,14 @@
     "cleanup:repo:full": "node scripts/cleanup-repo.mjs --include-build-cache",
     "hooks:install": "node scripts/setup-githooks.mjs",
     "prepare": "node scripts/setup-githooks.mjs",
+    "ai-context": "node scripts/playbook-runtime.mjs ai-context",
+    "ai-contract": "node scripts/playbook-runtime.mjs ai-contract",
+    "index": "node scripts/playbook-runtime.mjs index",
+    "plan": "node scripts/playbook-runtime.mjs plan",
+    "pilot": "node scripts/playbook-runtime.mjs pilot",
     "sanity": "npm run lint && npm run build",
     "sanity:quick": "npm run lint",
-    "verify": "npm run lint && npm run build",
+    "verify": "node scripts/playbook-runtime.mjs verify",
     "verify:strict": "npm run lint && npm run build"
   },
   "dependencies": {

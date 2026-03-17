@@ -1,0 +1,9 @@
+{
+  "runtime": {
+    "stateRoot": ".playbook"
+  },
+  "commands": {
+    "verify": "npm run verify",
+    "plan": "npm run plan"
+  }
+}

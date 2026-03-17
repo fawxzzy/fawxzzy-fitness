@@ -44,3 +44,22 @@ The repository removed the legacy vendored Playbook integration surface, includi
 - npm scripts prefixed with `playbook:` and `contracts:`
 
 Reason: the vendored doctrine/learning engine created a second ownership model in this repository and caused shadow governance surfaces. The repo now keeps a single, local ownership model for governance and quality checks.
+
+## Playbook Runtime Model (Shared Core + Local State)
+
+This repository now uses the shared Playbook runtime model with project-local runtime state under `.playbook/`.
+
+Canonical command path for local operations:
+- `npm run ai-context`
+- `npm run ai-contract`
+- `npm run index`
+- `npm run verify`
+- `npm run plan`
+- `npm run pilot` (runs the full baseline flow)
+
+Runtime contracts:
+- Runtime artifacts are written under `.playbook/` only.
+- `.playbook/` is ignored via `.gitignore` to prevent ad hoc committed runtime noise.
+- Scan tuning is controlled via `.playbookignore`.
+- Optional runtime config is in `playbook.config.json` when project-local defaults need to be explicit.
+

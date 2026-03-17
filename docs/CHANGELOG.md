@@ -3,6 +3,20 @@
 All notable changes to this project are documented in this file.
 
 
+## 0.3.65 — 2026-03-17
+
+### WHAT
+- Reintroduced a minimal Playbook runtime integration using project-local state under `.playbook/`, including the command bridge script at `scripts/playbook-runtime.mjs`.
+- Added package command surface for the current Playbook flow: `ai-context`, `ai-contract`, `index`, `verify`, `plan`, and `pilot`.
+- Added `playbook.config.json` and `.playbookignore` to formalize local runtime state and scan behavior.
+- Updated `.gitignore` and governance documentation so runtime artifacts remain local and uncommitted by default.
+
+### WHY
+- Restores the current shared-Playbook-core integration pattern without reintroducing vendored Playbook code.
+- Ensures contributors can run a canonical local flow end-to-end while keeping generated runtime artifacts out of normal source control diffs.
+- Prevents half-migration drift by aligning scripts, ignore behavior, and governance docs to one consistent runtime contract.
+
+
 ## 0.3.64 — 2026-03-17
 
 ### WHAT
