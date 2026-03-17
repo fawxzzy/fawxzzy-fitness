@@ -37,3 +37,50 @@ jobs:
             echo "$oversized"
             exit 1
           fi
+
+  playbook-clean-environment:
+    name: Playbook clean-environment validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies from a clean environment
+        run: npm install
+
+      - name: Validate package-first Playbook command ladder
+        env:
+          PLAYBOOK_DISABLE_DEV_FALLBACK: '1'
+        run: |
+          # Canonical consumer proof path: package-local install only (no machine-local overrides/fallbacks).
+          unset PLAYBOOK_BIN
+          unset PLAYBOOK_RUNTIME_BIN
+
+          npm run ai-context
+          npm run ai-contract
+          npm run context
+          npm run index
+          npm run verify
+          npm run plan
+          npm run pilot
+
+      - name: Assert runtime artifacts are written under .playbook/
+        run: |
+          if [ ! -d .playbook ]; then
+            echo "Expected .playbook/ to exist after Playbook runtime commands, but it was not created."
+            exit 1
+          fi
+
+          artifact_count=$(find .playbook -type f | wc -l | tr -d ' ')
+          if [ "$artifact_count" -eq 0 ]; then
+            echo "Expected Playbook runtime outputs under .playbook/, but no files were found."
+            exit 1
+          fi
+
+          echo "Detected $artifact_count Playbook artifact files under .playbook/."

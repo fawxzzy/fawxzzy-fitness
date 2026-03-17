@@ -83,6 +83,7 @@ Consumer-integration success criteria (must be reproducible in a clean environme
 - With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package installation.
 - Canonical proof runs must set `PLAYBOOK_DISABLE_DEV_FALLBACK=1` to prevent fallback capture.
 - Runtime outputs continue to land only under `.playbook/`.
+- CI must validate the same package-first proof path in a clean environment (`npm install`, no `PLAYBOOK_BIN` / `PLAYBOOK_RUNTIME_BIN`, `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, canonical command ladder, and `.playbook/` artifact assertion).
 
 Policy constraints:
 - Global `PATH` lookup is **not** canonical and must not be relied on for repo scripts.
