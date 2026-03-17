@@ -54,11 +54,27 @@ jobs:
       - name: Install dependencies from a clean environment
         run: npm install
 
-      - name: Validate package-first Playbook command ladder
+      - name: Acquire Playbook runtime explicitly
+        env:
+          PLAYBOOK_OFFICIAL_FALLBACK_SPEC: ${{ secrets.PLAYBOOK_OFFICIAL_FALLBACK_SPEC }}
+        run: |
+          set -euo pipefail
+
+          if npm run playbook-runtime:install-package; then
+            echo "Playbook acquired via package install path."
+          elif [ -n "${PLAYBOOK_OFFICIAL_FALLBACK_SPEC:-}" ]; then
+            echo "Package acquisition failed; falling back to official runtime distribution."
+            npm run playbook-runtime:install-official-fallback
+          else
+            echo "Playbook package acquisition failed and PLAYBOOK_OFFICIAL_FALLBACK_SPEC is not set."
+            exit 1
+          fi
+
+      - name: Validate canonical Playbook command ladder
         env:
           PLAYBOOK_DISABLE_DEV_FALLBACK: '1'
         run: |
-          # Canonical consumer proof path: package-local install only (no machine-local overrides/fallbacks).
+          # Canonical proof path: explicit acquisition + deterministic runtime resolution, with dev fallback disabled.
           unset PLAYBOOK_BIN
           unset PLAYBOOK_RUNTIME_BIN
 

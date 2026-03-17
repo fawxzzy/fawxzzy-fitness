@@ -30,7 +30,21 @@ const DEV_FALLBACK_ROOT = 'C:\\Users\\zjhre\\dev\\playbook';
 const DEV_FALLBACK_DISABLED = process.env.PLAYBOOK_DISABLE_DEV_FALLBACK === '1';
 const OFFICIAL_FALLBACK_ROOT = path.join('.playbook', 'runtime');
 const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC;
+const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? '@fawxzzy/playbook-cli';
 const command = process.argv[2];
+
+if (command === '--install-package') {
+  const installResult = spawnSync('npm', [
+    'install',
+    '--no-save',
+    PACKAGE_INSTALL_SPEC
+  ], {
+    stdio: 'inherit',
+    env: process.env
+  });
+
+  process.exit(installResult.status ?? 1);
+}
 
 if (command === '--install-official-fallback') {
   if (!OFFICIAL_FALLBACK_SPEC) {
@@ -55,6 +69,7 @@ if (command === '--install-official-fallback') {
 
 if (!command || !COMPAT_ALIASES.has(command)) {
   console.log('Usage: node scripts/playbook-runtime.mjs <ai-context|ai-contract|context|index|query|explain|ask|ignore|verify|plan|pilot>');
+  console.log('       node scripts/playbook-runtime.mjs <--install-package|--install-official-fallback>');
   process.exit(command ? 1 : 0);
 }
 

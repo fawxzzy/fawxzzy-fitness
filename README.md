@@ -28,27 +28,26 @@ Expected unresolved error shape:
 - action list for env override / local package install / official fallback install / optional dev fallback.
 
 
-### Canonical package-first install (consumer proof path)
+### Canonical package acquisition path (when package access is available)
 
-This repository now installs Playbook as the published upstream wrapper package (`@fawxzzy/playbook-cli`).
-
-Use this exact setup path:
+Base install intentionally does **not** hard-require `@fawxzzy/playbook-cli` in `package.json`. Install dependencies first, then acquire Playbook explicitly:
 
 ```bash
 npm install
+npm run playbook-runtime:install-package
 env -u PLAYBOOK_BIN -u PLAYBOOK_RUNTIME_BIN PLAYBOOK_DISABLE_DEV_FALLBACK=1 npm run ai-context
 ```
 
 Expected behavior:
-- command resolves through `node_modules/.bin/playbook`
+- base dependency install succeeds without Playbook registry access
+- explicit acquisition installs package-local `playbook` into `node_modules/.bin/playbook`
 - runtime writes under `.playbook/`
-- no dependency on machine-specific fallback checkouts
 
-Use `PLAYBOOK_BIN` only for temporary overrides. Treat the dev fallback checkout path as backup-only recovery, not primary setup, and keep repo dependencies on the published Playbook packages.
+Use `PLAYBOOK_BIN` only for temporary overrides. Treat the dev fallback checkout path as backup-only recovery, not primary setup.
 
 ### Official non-registry fallback install (when npm registry access is blocked)
 
-If `npm install` fails with an auth/403 error for `@fawxzzy/playbook-cli`, install the official distribution artifact into `.playbook/runtime` and keep dev fallback disabled:
+If package acquisition (`npm run playbook-runtime:install-package`) fails with an auth/403 error, install the official distribution artifact into `.playbook/runtime` and keep dev fallback disabled:
 
 ```bash
 PLAYBOOK_OFFICIAL_FALLBACK_SPEC="<official-playbook-distribution-spec>" npm run playbook-runtime:install-official-fallback
@@ -57,10 +56,10 @@ env -u PLAYBOOK_BIN -u PLAYBOOK_RUNTIME_BIN PLAYBOOK_DISABLE_DEV_FALLBACK=1 npm 
 
 Notes:
 - `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` must point to the official upstream fallback package spec (for example, an official tarball URL or file path provided by Playbook maintainers).
-- This fallback does **not** replace package-first behavior; it is only for environments where registry install is unavailable.
+- This fallback does **not** replace package acquisition behavior; it is only for environments where package install is unavailable.
 - Keep `PLAYBOOK_DISABLE_DEV_FALLBACK=1` during proof runs so fallback results are not masked by local checkout state.
 
-CI now enforces this exact clean-environment proof path by running `npm install`, unsetting `PLAYBOOK_BIN`/`PLAYBOOK_RUNTIME_BIN`, setting `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, executing the canonical command ladder, and failing if `.playbook/` has no runtime artifacts.
+CI now enforces this clean-environment proof path by running `npm install`, acquiring Playbook explicitly (`playbook-runtime:install-package` with official fallback contingency), unsetting `PLAYBOOK_BIN`/`PLAYBOOK_RUNTIME_BIN`, setting `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, executing the canonical command ladder, and failing if `.playbook/` has no runtime artifacts.
 
 ## Playbook workflow: bootstrap → intelligence → remediation
 
