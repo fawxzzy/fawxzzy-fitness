@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.80 — 2026-03-17
+
+### WHAT
+- Updated `scripts/playbook-runtime.mjs` official fallback acquisition to normalize remote `https/http` fallback specs into deterministic local tarball cache files under `.playbook/runtime/cache` before invoking npm install.
+- Added fallback normalization/download diagnostics that log the original fallback spec, normalized local install target, and exact npm command shape executed for acquisition.
+- Expanded `scripts/playbook-runtime.test.mjs` with coverage for local-file passthrough normalization, deterministic remote download normalization, and explicit download failure output handling.
+- Clarified `README.md` fallback semantics to document the download-first/install-second behavior for remote fallback URLs.
+
+### WHY
+- Prevents environment-dependent npm parsing ambiguity for direct remote tarball URLs by always installing fallback artifacts from deterministic local file targets.
+- Makes fallback acquisition behavior auditable and reproducible across local/CI environments while preserving runtime resolution order and package-first acquisition policy.
+
 ## 0.3.79 — 2026-03-17
 
 ### WHAT
