@@ -80,16 +80,17 @@ Runtime resolution order is deterministic and must remain:
 
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
-- `npm install` provisions a repo-local Playbook binary through the published `@fawxzzy/playbook-cli` package metadata when registry access is available.
-- With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package installation first.
-- If registry install is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`.
+- `npm install` succeeds without hard-requiring `@fawxzzy/playbook-cli` in the base dependency graph.
+- Playbook acquisition is explicit: run `npm run playbook-runtime:install-package` when package access is available.
+- If package acquisition is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`.
+- With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package acquisition first, then official fallback, then optional dev fallback.
 - Canonical proof runs must set `PLAYBOOK_DISABLE_DEV_FALLBACK=1` to prevent dev-checkout fallback capture.
 - Runtime outputs continue to land only under `.playbook/`.
-- CI/local validation should assert the same ladder/artifact outcome after whichever official acquisition path succeeded (registry-first or official fallback).
+- CI/local validation should assert the same ladder/artifact outcome after whichever official acquisition path succeeded (package install or official fallback).
 
 Policy constraints:
 - Global `PATH` lookup is **not** canonical and must not be relied on for repo scripts.
-- The local checkout fallback is temporary compatibility scaffolding, not the documented standard install model; consumer repos must depend on the published upstream Playbook package model.
+- The local checkout fallback is temporary compatibility scaffolding, not the documented standard install model; consumer repos must use explicit acquisition rather than hard dependency coupling.
 - Keep bridge scope thin: resolution + forwarding only.
 
 ## Operational Sequence

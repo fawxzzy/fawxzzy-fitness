@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.76 — 2026-03-17
+
+### WHAT
+- Removed `@fawxzzy/playbook-cli` from `devDependencies` in `package.json` and regenerated `package-lock.json` so base `npm install` no longer hard-requires Playbook package resolution.
+- Added `npm run playbook-runtime:install-package` in `package.json` and `scripts/playbook-runtime.mjs` as an explicit package acquisition step (`PLAYBOOK_PACKAGE_SPEC` override supported).
+- Updated the clean-environment Playbook CI job in `.github/workflows/ci.yml` to acquire Playbook explicitly (package install first, then official fallback if `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` is configured) before running the canonical ladder with dev fallback disabled.
+- Updated `README.md` and `docs/PROJECT_GOVERNANCE.md` to codify the install-then-acquire model and the official fallback contingency path.
+
+### WHY
+- Eliminates install-graph deadlock where fallback acquisition exists but cannot be reached because `npm install` fails first on a constrained registry.
+- Keeps `scripts/playbook-runtime.mjs` as the single Playbook acquisition/resolution surface while preserving canonical precedence (env override → repo-local package → official fallback → dev fallback).
+- Makes CI behavior deterministic across registry-constrained environments by separating dependency installation from tool acquisition.
+
 ## 0.3.75 — 2026-03-17
 
 ### WHAT

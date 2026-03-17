@@ -22,6 +22,7 @@
     "cleanup:repo:archive": "node scripts/cleanup-repo.mjs --archive",
     "cleanup:repo:full": "node scripts/cleanup-repo.mjs --include-build-cache",
     "prepare": "node scripts/setup-githooks.mjs",
+    "playbook-runtime:install-package": "node scripts/playbook-runtime.mjs --install-package",
     "playbook-runtime:install-official-fallback": "node scripts/playbook-runtime.mjs --install-official-fallback",
     "ai-context": "node scripts/playbook-runtime.mjs ai-context",
     "ai-contract": "node scripts/playbook-runtime.mjs ai-contract",
@@ -55,7 +56,6 @@
     "@types/react-dom": "^18.3.5",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.5",
-    "sharp": "^0.33.5",
-    "@fawxzzy/playbook-cli": "^0.1.0"
+    "sharp": "^0.33.5"
   }
 }
