@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.73 — 2026-03-17
+
+### WHAT
+- Added `docs/PLAYBOOK_ANALYSIS_REPORT.md` documenting the full requested Playbook analysis/verify/plan cycle run, observed artifact outputs, and a structured architecture/correctness risk assessment for this repository.
+- Captured that the current repo-local Playbook package is command-logging only and does not yet emit `findings.json`, `plan.json`, or `repo-graph.json`.
+- Recorded prioritized recommendations for enabling true product-level Playbook insights and tightening progression/data-integrity invariants.
+
+### WHY
+- Preserves a deterministic first product-level Playbook run record so the team can act on tooling and system-correctness gaps from a single source of truth.
+- Makes the present analysis limitation explicit to avoid false confidence from successful command exits without semantic outputs.
+- Creates a concrete, prioritized improvement backlog before implementation work begins.
+
 ## 0.3.72 — 2026-03-17
 
 ### WHAT
