@@ -5,13 +5,13 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 
 /**
- * TEMPORARY COMPATIBILITY BRIDGE.
+ * Playbook runtime bridge (thin adapter only).
  *
- * This file must stay a thin adapter only:
- * - resolves the Playbook CLI deterministically
- * - forwards repo aliases to the canonical shared Playbook runtime
- * - keeps local runtime writes under `.playbook/` via env/config only
- * - must not add repo-specific workflow, artifact shaping, or fake runtime outputs
+ * Responsibilities:
+ * - resolve the Playbook CLI deterministically
+ * - forward repo command aliases to canonical upstream runtime
+ * - keep runtime writes under `.playbook/` via env/config only
+ * - avoid repo-specific workflow, artifact shaping, or fake runtime outputs
  */
 const COMPAT_ALIASES = new Set([
   'ai-context',
@@ -159,7 +159,7 @@ if (!resolution.bin) {
   console.error('[playbook-runtime] Fix one of the following:');
   console.error('  1) Set PLAYBOOK_BIN to an explicit Playbook executable path.');
   console.error('  2) Install Playbook as a local package so node_modules/.bin/playbook exists.');
-  console.error(`  3) (Dev-only temporary fallback) ensure ${DEV_FALLBACK_ROOT} contains a runnable Playbook checkout.`);
+  console.error(`  3) (Dev-only fallback) ensure ${DEV_FALLBACK_ROOT} contains a runnable Playbook checkout.`);
   console.error('     Set PLAYBOOK_DISABLE_DEV_FALLBACK=1 to prove package-first resolution only.');
   process.exit(1);
 }

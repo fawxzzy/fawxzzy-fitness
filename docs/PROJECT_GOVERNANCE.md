@@ -79,7 +79,7 @@ Runtime resolution order is deterministic and must remain:
 
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
-- `npm install` provisions a repo-local Playbook binary through package metadata.
+- `npm install` provisions a repo-local Playbook binary through the published `@fawxzzy/playbook-cli` package metadata.
 - With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package installation.
 - Canonical proof runs must set `PLAYBOOK_DISABLE_DEV_FALLBACK=1` to prevent fallback capture.
 - Runtime outputs continue to land only under `.playbook/`.
@@ -87,7 +87,7 @@ Consumer-integration success criteria (must be reproducible in a clean environme
 
 Policy constraints:
 - Global `PATH` lookup is **not** canonical and must not be relied on for repo scripts.
-- The local checkout fallback is temporary compatibility scaffolding, not the documented standard install model.
+- The local checkout fallback is temporary compatibility scaffolding, not the documented standard install model; consumer repos must depend on the published upstream Playbook package model.
 - Keep bridge scope thin: resolution + forwarding only.
 
 ## Operational Sequence

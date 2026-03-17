@@ -29,7 +29,7 @@ Expected unresolved error shape:
 
 ### Canonical package-first install (consumer proof path)
 
-This repository now installs Playbook as a repo-local dev dependency (`@fawxzzy/playbook-cli` via `file:tools/playbook-cli`).
+This repository now installs Playbook as the published upstream wrapper package (`@fawxzzy/playbook-cli`).
 
 Use this exact setup path:
 
@@ -43,7 +43,7 @@ Expected behavior:
 - runtime writes under `.playbook/`
 - no dependency on machine-specific fallback checkouts
 
-Use `PLAYBOOK_BIN` only for temporary overrides. Treat the dev fallback checkout path as backup-only recovery, not primary setup.
+Use `PLAYBOOK_BIN` only for temporary overrides. Treat the dev fallback checkout path as backup-only recovery, not primary setup, and keep repo dependencies on the published Playbook packages.
 
 CI now enforces this exact clean-environment proof path by running `npm install`, unsetting `PLAYBOOK_BIN`/`PLAYBOOK_RUNTIME_BIN`, setting `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, executing the canonical command ladder, and failing if `.playbook/` has no runtime artifacts.
 
