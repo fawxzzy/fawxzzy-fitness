@@ -43,25 +43,25 @@ export function ModifyMeasurements({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-lg border border-border/80 bg-surface-2-soft/70">
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-surface/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
         <button
           type="button"
           aria-expanded={isExpanded}
           aria-controls={metricsPanelId}
           onClick={() => onExpandedChange(!isExpanded)}
-          className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 [-webkit-tap-highlight-color:transparent] ${tapFeedbackClass}`}
+          className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-surface-2-soft active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 [-webkit-tap-highlight-color:transparent] ${tapFeedbackClass}`}
         >
-          <span className="text-xs font-medium text-[rgb(var(--text)/0.72)]">Modify measurements</span>
+          <span><span className="block text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.58)]">Configure</span><span className="block text-sm font-medium text-text">Measurements</span></span>
           {isExpanded ? <ChevronUpIcon className="h-4 w-4 shrink-0 text-[rgb(var(--text)/0.72)]" /> : <ChevronDownIcon className="h-4 w-4 shrink-0 text-[rgb(var(--text)/0.72)]" />}
         </button>
         {isExpanded ? (
-          <div id={metricsPanelId} className="flex flex-wrap gap-2 border-t border-border/70 bg-surface/65 p-2.5">
+          <div id={metricsPanelId} className="flex flex-wrap gap-2 border-t border-border/60 bg-surface/65 p-2.5">
             {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
               <button
                 key={metric}
                 type="button"
                 onClick={() => onMetricToggle(metric)}
-                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${activeMetrics[metric] ? "border-emerald-300/45 bg-emerald-400/15 text-emerald-100" : "border-white/15 bg-surface-2-soft text-[rgb(var(--text)/0.85)]"}`}
+                className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${activeMetrics[metric] ? "border-accent/40 bg-accent/15 text-text" : "border-white/10 bg-surface-2-soft text-[rgb(var(--text)/0.85)]"}`}
               >
                 {activeMetrics[metric] ? "Hide" : "Show"} {metric}
               </button>
@@ -70,7 +70,7 @@ export function ModifyMeasurements({
         ) : null}
       </div>
 
-      <div className="rounded-xl border border-border/70 bg-surface/70 p-3">
+      <div className="rounded-xl border border-border/60 bg-surface/55 p-3">
         <div className="grid grid-cols-2 gap-2">
           <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
             <InlineHintInput type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="reps" />

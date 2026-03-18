@@ -751,14 +751,20 @@ export function SetLoggerCard({
         tapFeedbackClass={tapFeedbackClass}
       />
 
-      <div className="rounded-xl border border-border/70 bg-surface/70 p-3">
+      <div className="rounded-xl border border-border/60 bg-surface/55 p-3">
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Finish details</p>
+              <p className="text-sm font-medium text-text">RPE and warm-up</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
 
-            <div className="col-span-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="relative">
                 <div className="mb-1 flex items-center gap-1">
-                  <span className="text-[11px] font-medium text-slate-600">RPE</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">RPE</span>
                   <button
                     type="button"
                     onClick={() => setShowRpeTooltip((value) => !value)}
@@ -782,17 +788,20 @@ export function SetLoggerCard({
                   value={rpe}
                   onChange={(event) => setRpe(event.target.value)}
                   placeholder="RPE"
-                  className="min-h-11 w-full rounded-md border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
+                  className="min-h-11 w-full rounded-xl border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
                 />
               </div>
-              <label className="flex min-h-11 items-center gap-2 text-sm text-text">
+              <label className="flex min-h-11 items-center gap-3 rounded-xl border border-border/60 bg-surface/50 px-3 text-sm text-text">
                 <input
                   type="checkbox"
                   checked={isWarmup}
                   onChange={(event) => setIsWarmup(event.target.checked)}
                   className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                 />
-                Warm-up
+                <span>
+                  <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Warm-up</span>
+                  <span className="block text-sm text-text">Mark this set as prep work</span>
+                </span>
               </label>
             </div>
           </div>
