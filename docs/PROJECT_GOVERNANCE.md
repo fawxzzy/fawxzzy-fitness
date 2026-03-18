@@ -80,9 +80,9 @@ Runtime resolution order is deterministic and must remain:
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
 - `npm install` succeeds without hard-requiring `@fawxzzy/playbook-cli` in the base dependency graph.
-- Playbook acquisition is explicit: run `npm run playbook-runtime:install-package` when package access is available.
-- If package acquisition is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`.
-- CI must pin `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to an immutable official distribution artifact in workflow config so registry outages cannot block core runtime acquisition.
+- Playbook acquisition is explicit: run `npm run playbook-runtime:install-package` when package access is available, using the verified published package coordinate `@fawxzzy/playbook-cli@0.1.8` unless intentionally overridden.
+- If package acquisition is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`; the verified fallback asset is `https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz`.
+- CI must pin `PLAYBOOK_PACKAGE_SPEC` and `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to immutable verified upstream coordinates in workflow config so namespace/release drift cannot block core runtime acquisition.
 - CI acquisition sequence is explicit and deterministic: attempt `playbook-runtime:install-package` first, then run `playbook-runtime:install-official-fallback` when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`).
 - With `PLAYBOOK_BIN` unset, commands resolve through repo-local package acquisition first, then official fallback.
 - Runtime outputs continue to land only under `.playbook/`.

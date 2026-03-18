@@ -29,11 +29,11 @@ Expected unresolved error shape:
 
 ### Canonical package acquisition path (when package access is available)
 
-Base install intentionally does **not** hard-require `@fawxzzy/playbook-cli` in `package.json`. Install dependencies first, then acquire Playbook explicitly:
+Base install intentionally does **not** hard-require `@fawxzzy/playbook-cli` in `package.json`. The verified published package coordinate for this repo is `@fawxzzy/playbook-cli@0.1.8`. Install dependencies first, then acquire Playbook explicitly:
 
 ```bash
 npm install
-npm run playbook-runtime:install-package
+PLAYBOOK_PACKAGE_SPEC="@fawxzzy/playbook-cli@0.1.8" npm run playbook-runtime:install-package
 env -u PLAYBOOK_BIN npm run ai-context
 ```
 
@@ -46,19 +46,19 @@ Use `PLAYBOOK_BIN` only for temporary overrides. The supported steady-state path
 
 ### Official non-registry fallback install (when npm registry access is blocked)
 
-If package acquisition (`npm run playbook-runtime:install-package`) fails with an auth/403 error, install the official distribution artifact into `.playbook/runtime`:
+If package acquisition (`npm run playbook-runtime:install-package`) fails with an auth/403 error, install the verified official distribution artifact from `ZachariahRedfield/playbook` into `.playbook/runtime`:
 
 ```bash
-PLAYBOOK_OFFICIAL_FALLBACK_SPEC="<official-playbook-distribution-spec>" npm run playbook-runtime:install-official-fallback
+PLAYBOOK_OFFICIAL_FALLBACK_SPEC="https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz" npm run playbook-runtime:install-official-fallback
 env -u PLAYBOOK_BIN npm run ai-context
 ```
 
 Notes:
 - `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` supports `file:` URLs, local filesystem tarball paths, and remote `https/http` tarball URLs; remote URLs are downloaded first to a deterministic local cache file under `.playbook/runtime/cache` and then installed from that local file target.
-- Registry package specs (for example `@fawxzzy/playbook-cli@x.y.z`) are intentionally rejected for fallback acquisition and should use `npm run playbook-runtime:install-package` instead.
+- Registry package specs (for example `@fawxzzy/playbook-cli@0.1.8`) are intentionally rejected for fallback acquisition and should use `npm run playbook-runtime:install-package` instead.
 - This fallback does **not** replace package acquisition behavior; it is only for environments where package install is unavailable.
 
-CI now enforces this clean-environment proof path with an explicit deterministic fallback spec pinned in workflow config (`PLAYBOOK_OFFICIAL_FALLBACK_SPEC`): package acquisition is attempted first, and official fallback acquisition is executed when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`). CI then unsets `PLAYBOOK_BIN`, runs the canonical ladder, and asserts required artifacts exist: `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json`.
+CI now enforces this clean-environment proof path with explicit verified coordinates pinned in workflow config: `PLAYBOOK_PACKAGE_SPEC=@fawxzzy/playbook-cli@0.1.8` and `PLAYBOOK_OFFICIAL_FALLBACK_SPEC=https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz`. Package acquisition is attempted first, and official fallback acquisition is executed when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`). CI then unsets `PLAYBOOK_BIN`, runs the canonical ladder, and asserts required artifacts exist: `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json`.
 
 ## Playbook workflow: bootstrap → intelligence → remediation
 

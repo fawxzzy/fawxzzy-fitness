@@ -3,7 +3,9 @@
 ## 2026-03-18 — Playbook integration reset cleanup
 - Removed transitional Playbook resolution leftovers from `scripts/playbook-runtime.mjs`, including `PLAYBOOK_RUNTIME_BIN` compatibility and the machine-specific dev checkout fallback path, so repo command resolution is deterministic across environments.
 - Updated `README.md`, `docs/PROJECT_GOVERNANCE.md`, and `.github/workflows/ci.yml` to describe the active package-first Playbook path without the retired transitional surfaces.
+- Corrected the verified upstream Playbook coordinates to use package acquisition from `@fawxzzy/playbook-cli@0.1.8` and official fallback assets from `ZachariahRedfield/playbook` release `v0.1.8`.
 - Deleted stale migration-only Playbook docs (`docs/PLAYBOOK_MIGRATION_INVENTORY.md` and `docs/PLAYBOOK_ANALYSIS_REPORT.md`) so active repo guidance no longer competes with historical cleanup notes.
+- Added a new `docs/PLAYBOOK_NOTES.md` scaffold so Playbook governance has its required companion notes file and the initial integration lessons are captured in-repo.
 
 ## 0.3.80 — 2026-03-17
 

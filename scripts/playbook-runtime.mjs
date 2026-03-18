@@ -30,7 +30,10 @@ const COMPAT_ALIASES = new Set([
 ]);
 const OFFICIAL_FALLBACK_ROOT = path.join('.playbook', 'runtime');
 const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC;
-const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? '@fawxzzy/playbook-cli';
+const DEFAULT_PLAYBOOK_VERSION = '0.1.8';
+const DEFAULT_PACKAGE_SPEC = `@fawxzzy/playbook-cli@${DEFAULT_PLAYBOOK_VERSION}`;
+const DEFAULT_OFFICIAL_FALLBACK_SPEC = `https://github.com/ZachariahRedfield/playbook/releases/download/v${DEFAULT_PLAYBOOK_VERSION}/playbook-cli-${DEFAULT_PLAYBOOK_VERSION}.tgz`;
+const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? DEFAULT_PACKAGE_SPEC;
 const command = process.argv[2];
 
 function normalizeSpec(spec) {
@@ -184,7 +187,7 @@ async function handleInstallOfficialFallback() {
   if (!fallbackSpec.valid) {
     if (fallbackSpec.kind === 'missing') {
       console.error('[playbook-runtime] PLAYBOOK_OFFICIAL_FALLBACK_SPEC is required for official fallback install.');
-      console.error('[playbook-runtime] Example: PLAYBOOK_OFFICIAL_FALLBACK_SPEC="https://<official-distribution>.tgz" npm run playbook-runtime:install-official-fallback');
+      console.error(`[playbook-runtime] Example: PLAYBOOK_OFFICIAL_FALLBACK_SPEC="${DEFAULT_OFFICIAL_FALLBACK_SPEC}" npm run playbook-runtime:install-official-fallback`);
     } else {
       console.error(`[playbook-runtime] Invalid PLAYBOOK_OFFICIAL_FALLBACK_SPEC for direct fallback acquisition: ${fallbackSpec.normalized}`);
       console.error('[playbook-runtime] Fallback acquisition requires a direct install target (file:, local tarball path, https tarball URL, or git+ URL).');
