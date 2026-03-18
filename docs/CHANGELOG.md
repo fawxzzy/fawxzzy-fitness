@@ -3500,3 +3500,14 @@ WHY:
 - Prevents strength exercises with stale or incorrect cardio measurement metadata from rendering misleading cardio summaries.
 - Keeps Best/Last stats consistent across surfaces by deriving modality from actual logged effort, not metadata alone.
 - Improves data-quality visibility in development without breaking production UX.
+
+## 0.3.74 — 2026-03-18
+
+### WHAT
+- Reworked the active workout overview into a lighter scan-first shell with a compact header layout: back on the left, centered routine name plus timer, quick add on the right, and the primary save action moved into a sticky bottom bar.
+- Simplified active-session exercise rows by reducing nested visual layers, tightening spacing, standardizing a smaller set-count pill, and keeping row tap as the single primary path into set entry.
+- Added an in-session discard action beside the sticky Save Session CTA so commit/cancel actions stay anchored at the bottom without changing workout-save or navigation logic.
+
+### WHY
+- Makes the workout overview faster to scan on mobile by preserving one clear hierarchy: header, list, bottom commit action.
+- Reduces visual noise that previously made the overview feel heavier than the underlying interaction required.

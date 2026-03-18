@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
+import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { AppButton } from "@/components/ui/AppButton";
+import { useToast } from "@/components/ui/ToastProvider";
+import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
@@ -44,6 +50,7 @@ type SyncQueuedSetLogsAction = (payload: {
 }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
 type ServerAction = (formData: FormData) => Promise<ActionResult<{ sessionId: string }>>;
+type VoidServerAction = (formData: FormData) => Promise<ActionResult>;
 
 function getElapsedDuration(baseDurationSeconds: number, performedAt: string) {
   const parsed = Date.parse(performedAt);
@@ -64,6 +71,7 @@ export function SessionPageClient({
   unitLabel,
   exercises,
   saveSessionAction,
+  discardSessionAction,
   quickAddAction,
   addSetAction,
   syncQueuedSetLogsAction,
@@ -79,6 +87,7 @@ export function SessionPageClient({
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
   saveSessionAction: ServerAction;
+  discardSessionAction: VoidServerAction;
   quickAddAction: React.ReactNode;
   addSetAction: (payload: AddSetPayload) => Promise<ActionResult<{ set: SetRow }>>;
   syncQueuedSetLogsAction: SyncQueuedSetLogsAction;
@@ -89,6 +98,8 @@ export function SessionPageClient({
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(() => getElapsedDuration(baseDurationSeconds, performedAt));
+  const toast = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     setDurationSeconds(getElapsedDuration(baseDurationSeconds, performedAt));
@@ -103,7 +114,7 @@ export function SessionPageClient({
   const hasExercises = exercises.length > 0;
 
   const emptyState = useMemo(
-    () => (hasExercises ? null : <p className="rounded-md border border-border/70 bg-surface/70 p-3 text-sm text-muted">No exercises in this session yet.</p>),
+    () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises in this session yet.</p>),
     [hasExercises],
   );
 
@@ -111,18 +122,10 @@ export function SessionPageClient({
     <section className="space-y-4 pb-2">
       {!isExerciseOpen ? (
         <SessionHeaderControls
-          sessionId={sessionId}
+          sessionTitle={sessionTitle}
           durationSeconds={durationSeconds}
-          saveSessionAction={saveSessionAction}
           quickAddAction={quickAddAction}
         />
-      ) : null}
-
-      {!isExerciseOpen ? (
-        <div className="space-y-1 px-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Active session</p>
-          <h1 className="text-lg font-semibold leading-tight text-text">{sessionTitle}</h1>
-        </div>
       ) : null}
 
       {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
@@ -144,6 +147,51 @@ export function SessionPageClient({
       ) : null}
 
       {emptyState}
+
+      {!isExerciseOpen ? (
+        <BottomActionBar innerClassName="grid grid-cols-1 gap-2 rounded-[1.75rem] border border-white/10 bg-[rgb(var(--surface-rgb)/0.96)] px-3 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:grid-cols-[minmax(0,1fr)_auto] [&>*]:min-h-[48px] [&>*]:w-full [&>*]:flex-none">
+          <form
+            action={async (formData) => {
+              const result = await saveSessionAction(formData);
+              toastActionResult(toast, result, {
+                success: "Workout saved.",
+                error: "Could not save workout.",
+              });
+
+              if (result.ok) {
+                router.push(result.data?.sessionId ? `/history/${result.data.sessionId}` : "/history");
+              }
+            }}
+            className="w-full"
+          >
+            <input type="hidden" name="sessionId" value={sessionId} />
+            <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
+            <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
+              Save Session
+            </AppButton>
+          </form>
+          <ConfirmedServerFormButton
+            action={async (formData) => {
+              const result = await discardSessionAction(formData);
+              toastActionResult(toast, result, {
+                success: "Workout discarded.",
+                error: "Could not discard workout.",
+              });
+
+              if (result.ok) {
+                router.push("/today");
+              }
+            }}
+            hiddenFields={{ sessionId }}
+            triggerLabel="Discard"
+            triggerClassName="w-full"
+            size="md"
+            modalTitle="Discard workout?"
+            modalDescription="This will delete your in-progress workout, including exercises and sets."
+            confirmLabel="Discard"
+          />
+        </BottomActionBar>
+      ) : null}
     </section>
   );
 }

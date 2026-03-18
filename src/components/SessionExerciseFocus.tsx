@@ -193,7 +193,7 @@ export function SessionExerciseFocus({
   return (
     <div className="space-y-3">
       {selectedExerciseId === null ? (
-        <ul className="space-y-3">
+        <ul className="space-y-2">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
@@ -211,13 +211,15 @@ export function SessionExerciseFocus({
                   title={exercise.name}
                   subtitle={exercise.goalLabel}
                   onPress={() => onSelectedExerciseIdChange(exercise.id)}
-                  className={tapFeedbackClass}
+                  className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.72)] px-3 py-3 shadow-none"
+                  trailingClassName="self-start pt-1 text-muted"
+                  rightIcon={null}
                   badgeText={setCountLabel}
                 >
                   {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
-                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                      {exercise.routineDayExerciseId === null ? <Pill className="border border-accent/35 bg-accent/12 px-2.5 py-1 normal-case tracking-normal text-[11px] text-text">Added today</Pill> : null}
-                      {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-amber-200">Skipped</Pill> : null}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      {exercise.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-text">Added today</Pill> : null}
+                      {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill> : null}
                     </div>
                   ) : null}
                 </ExerciseCard>
@@ -226,10 +228,10 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="rounded-xl border border-border/55 bg-surface/75 p-3 shadow-[0_6px_14px_rgba(0,0,0,0.16)]">
+        <div className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.72)] p-3 shadow-none">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Active exercise</p>
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Set entry</p>
               <p className="text-base font-semibold leading-tight text-text">{selectedExercise?.name ?? "Exercise"}</p>
               <p className="text-xs text-muted">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
             </div>
@@ -246,25 +248,18 @@ export function SessionExerciseFocus({
         </div>
       )}
 
-            {selectedExercise ? (
+      {selectedExercise ? (
         <>
           <article
             ref={focusedRef}
-            className="space-y-4 rounded-2xl border border-border/65 bg-surface/80 p-4"
+            className="space-y-3 rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.74)] p-4"
             aria-hidden={false}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                  Set entry
-                </p>
-                <p className="text-xl font-semibold leading-tight text-text">
-                  {selectedExercise.name}
-                </p>
-                <p className="text-sm text-muted">
-                  {(loggedSetCounts[selectedExercise.id] ?? selectedExercise.loggedSetCount)}{" "}
-                  {selectedExercise.isCardio ? "intervals logged" : "sets logged"}
-                </p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Ready to log</p>
+                <p className="text-lg font-semibold leading-tight text-text">{selectedExercise.name}</p>
+                <p className="text-sm text-muted">{(loggedSetCounts[selectedExercise.id] ?? selectedExercise.loggedSetCount)} {selectedExercise.isCardio ? "intervals logged" : "sets logged"}</p>
               </div>
               <div className="flex gap-2">
                 <form
@@ -300,7 +295,7 @@ export function SessionExerciseFocus({
               </div>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-surface/55 p-3">
+            <div className="rounded-xl bg-black/10 px-3 py-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Goal</p>
               <p className="mt-1 text-sm text-text">{selectedExercise.goalLabel}</p>
             </div>
