@@ -7,7 +7,15 @@ import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { deleteRoutineAction } from "@/app/routines/actions";
 
-export function DeleteRoutineButton({ routineId, routineName }: { routineId: string; routineName: string }) {
+export function DeleteRoutineButton({
+  routineId,
+  routineName,
+  className = "w-full",
+}: {
+  routineId: string;
+  routineName: string;
+  className?: string;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -15,7 +23,14 @@ export function DeleteRoutineButton({ routineId, routineName }: { routineId: str
 
   return (
     <>
-      <AppButton type="button" variant="destructive" size="md" onClick={() => setIsOpen(true)} disabled={isPending} className="w-full">
+      <AppButton
+        type="button"
+        variant="destructive"
+        size="md"
+        onClick={() => setIsOpen(true)}
+        disabled={isPending}
+        className={className}
+      >
         {isPending ? "Deleting..." : "Delete Routine"}
       </AppButton>
 
