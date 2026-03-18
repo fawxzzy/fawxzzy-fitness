@@ -7,6 +7,7 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
+import { AppHeader } from "@/components/ui/app/AppHeader";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { controlClassName } from "@/components/ui/formClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
@@ -253,10 +254,11 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     <AppShell topNavMode="none">
       <ScrollContainer>
         <section className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">{dayTitle}</h1>
-        <TopRightBackButton href={backHref} />
-      </div>
+      <AppHeader
+        title={dayTitle}
+        action={<TopRightBackButton href={backHref} />}
+        actionClassName="-mt-1"
+      />
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}

@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Shared mobile back controls should be history-first with safe route fallbacks
+- Type: Pattern
+- Summary: Shared page-shell and back-button primitives should own mobile back navigation semantics by preferring prior in-app history, then falling back to a screen-defined internal route when no usable in-app history exists.
+- Suggested Playbook File: docs/PATTERNS/navigation-semantics.md
+- Rationale: Prevents route-hardcoded back buttons from feeling correct only for one entry path while deep links, refreshes, and external referrers bounce users out of the app.
+- Evidence: src/components/ui/useBackNavigation.ts, src/components/ui/BackButton.tsx, src/components/ui/TopRightBackButton.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Mutation paths should emit affected entity IDs for derived recomputes
 - Type: Pattern
 - Summary: When persisting source-of-truth writes that affect derived history stats, mutation handlers should explicitly derive the affected canonical entity IDs from the write boundary and then call one centralized recompute entry point for only those IDs.

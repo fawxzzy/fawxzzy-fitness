@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-03-18 — Normalize shared in-app back navigation
+
+### WHAT
+- Added a shared `useBackNavigation` history stack for mobile back controls so route-level back buttons prefer prior in-app history and fall back to a safe per-screen route on direct loads or refreshes.
+- Updated shared back-button primitives plus routine, history, and session header surfaces to use the same history-first/fallback-second semantics instead of bespoke screen-local back rules.
+- Normalized routine mobile page-header composition onto the shared `AppHeader` spacing contract so top-right back-button placement is consistent across detail and edit screens.
+
+### WHY
+- Prevents browser back from ejecting users to an external referrer when the previous usable screen is not inside the app.
+- Keeps mobile header navigation semantics centralized in shared page-shell primitives so future cleanup work does not reintroduce route-hardcoded back behavior.
+
 ## 2026-03-18 — Deterministic exercise stat invalidation on session writes
 
 ### WHAT
@@ -2155,6 +2166,17 @@ WHY:
 - This keeps the Today UI cleaner and avoids cramped nested card layering while preserving temporary day selection before starting a workout.
 
 # Changelog
+
+## 2026-03-18 — Normalize shared in-app back navigation
+
+### WHAT
+- Added a shared `useBackNavigation` history stack for mobile back controls so route-level back buttons prefer prior in-app history and fall back to a safe per-screen route on direct loads or refreshes.
+- Updated shared back-button primitives plus routine, history, and session header surfaces to use the same history-first/fallback-second semantics instead of bespoke screen-local back rules.
+- Normalized routine mobile page-header composition onto the shared `AppHeader` spacing contract so top-right back-button placement is consistent across detail and edit screens.
+
+### WHY
+- Prevents browser back from ejecting users to an external referrer when the previous usable screen is not inside the app.
+- Keeps mobile header navigation semantics centralized in shared page-shell primitives so future cleanup work does not reintroduce route-hardcoded back behavior.
 
 ## 0.3.79 — 2026-03-17
 

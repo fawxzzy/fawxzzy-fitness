@@ -6,14 +6,18 @@ export function AppHeader({
   subtitleLeft,
   subtitleRight,
   action,
+  className,
+  actionClassName,
 }: {
   title: ReactNode;
   subtitleLeft?: ReactNode;
   subtitleRight?: ReactNode;
   action?: ReactNode;
+  className?: string;
+  actionClassName?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div className={["flex items-start justify-between gap-3", className].filter(Boolean).join(" ")}>
       <div className="min-w-0 space-y-1">
         <h2 className="text-xl font-bold leading-tight text-[rgb(var(--text)/0.98)]">{title}</h2>
         {(subtitleLeft || subtitleRight) ? (
@@ -23,7 +27,7 @@ export function AppHeader({
           </div>
         ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className={["shrink-0 pt-0.5", actionClassName].filter(Boolean).join(" ")}>{action}</div> : null}
     </div>
   );
 }

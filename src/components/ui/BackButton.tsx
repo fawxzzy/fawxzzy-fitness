@@ -1,17 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { MouseEventHandler } from "react";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { useBackNavigation } from "@/components/ui/useBackNavigation";
 
 type BackButtonProps = {
   href?: string;
+  fallbackHref?: string;
   label?: string;
   ariaLabel?: string;
   className?: string;
   onClick?: MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>;
   iconOnly?: boolean;
+  historyBehavior?: "history-first" | "fallback-only";
 };
 
 const baseClassName =
@@ -32,13 +33,18 @@ function BackIcon() {
 
 export function BackButton({
   href,
+  fallbackHref,
   label = "Back",
   ariaLabel,
   className = "",
   onClick,
   iconOnly = false,
+  historyBehavior = "fallback-only",
 }: BackButtonProps) {
-  const router = useRouter();
+  const { navigateBack } = useBackNavigation({
+    fallbackHref: fallbackHref ?? href,
+    historyBehavior,
+  });
   const classes = iconOnly
     ? getAppButtonClassName({
         variant: "ghost",
@@ -57,14 +63,6 @@ export function BackButton({
         </>
       );
 
-  if (href) {
-    return (
-      <Link href={href} onClick={onClick} aria-label={resolvedAriaLabel} className={`group ${classes}`}>
-        {content}
-      </Link>
-    );
-  }
-
   return (
     <button
       type="button"
@@ -76,7 +74,7 @@ export function BackButton({
           return;
         }
 
-        router.back();
+        navigateBack();
       }}
     >
       {content}

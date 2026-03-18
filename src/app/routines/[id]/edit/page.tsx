@@ -9,6 +9,7 @@ import { RestDayToggleCheckbox } from "@/app/routines/[id]/edit/RestDayToggleChe
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
+import { AppHeader } from "@/components/ui/app/AppHeader";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
@@ -363,10 +364,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   return (
     <AppShell topNavMode="none">
       <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Edit Routine</h1>
-        <RoutineBackButton href="/routines" />
-      </div>
+      <AppHeader title="Edit Routine" action={<RoutineBackButton href="/routines" />} actionClassName="-mt-1" />
 
       {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
