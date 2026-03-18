@@ -33,6 +33,17 @@
 
 # Changelog
 
+## 2026-03-18 — Normalize session set-entry and Quick Add mobile hierarchy
+
+### WHAT
+- Reworked the active session set-entry header into a clearer mobile hierarchy with an explicit `Set entry` label, a dedicated goal block, lighter measurement controls, and a cleaner finish-details section for RPE plus warm-up.
+- Simplified `Quick Add` into one linear mobile sheet flow: search, optional filter, choose, configure set count, then add, while reducing nested bordered panels and keeping `Add to Session` as the final primary action.
+- Upgraded the shared `BottomSheet` and measurement primitives so adjacent workout-entry flows share the same section framing and softer mobile form hierarchy.
+
+### WHY
+- Prevents adjacent workout-entry surfaces from feeling like unrelated systems with different hierarchy, spacing, and panel weight.
+- Reinforces the product rule that workout entry should follow one interaction language: search, choose, configure, save/add.
+
 ## 2026-03-18 — Make mobile History density modes materially different
 
 ### WHAT

@@ -246,17 +246,25 @@ export function SessionExerciseFocus({
         </div>
       )}
 
-      {selectedExercise ? (
+            {selectedExercise ? (
         <>
           <article
             ref={focusedRef}
-            className="space-y-4 rounded-xl border border-border/70 bg-surface p-4"
+            className="space-y-4 rounded-2xl border border-border/65 bg-surface/80 p-4"
             aria-hidden={false}
           >
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Exercise details</p>
-                <p className="text-lg font-semibold leading-tight text-text">{selectedExercise.name}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  Set entry
+                </p>
+                <p className="text-xl font-semibold leading-tight text-text">
+                  {selectedExercise.name}
+                </p>
+                <p className="text-sm text-muted">
+                  {(loggedSetCounts[selectedExercise.id] ?? selectedExercise.loggedSetCount)}{" "}
+                  {selectedExercise.isCardio ? "intervals logged" : "sets logged"}
+                </p>
               </div>
               <div className="flex gap-2">
                 <form
@@ -292,12 +300,16 @@ export function SessionExerciseFocus({
               </div>
             </div>
 
-            <div className="space-y-2 border-t border-border/60 pt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Goal</p>
-              <p className="text-sm leading-relaxed text-[rgb(var(--text)/0.8)]">{selectedExercise.goalLabel}</p>
+            <div className="rounded-xl border border-border/60 bg-surface/55 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Goal</p>
+              <p className="mt-1 text-sm text-text">{selectedExercise.goalLabel}</p>
             </div>
-            {selectedExercise.isSkipped ? <p className="text-sm text-amber-300">Marked skipped for this session.</p> : null}
+
+            {selectedExercise.isSkipped ? (
+              <p className="text-sm text-amber-300">Marked skipped for this session.</p>
+            ) : null}
           </article>
+
           <SetLoggerCard
             sessionId={sessionId}
             sessionExerciseId={selectedExercise.id}

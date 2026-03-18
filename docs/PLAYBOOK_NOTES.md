@@ -148,4 +148,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Suggested Playbook File: docs/PATTERNS/mobile-card-hierarchy.md
 - Rationale: Prevents session-overview screens from feeling dense and control-heavy when the user's main job is choosing the next exercise and entering sets quickly.
 - Evidence: src/components/SessionHeaderControls.tsx, src/components/SessionPageClient.tsx, src/components/SessionExerciseFocus.tsx, src/components/ExerciseCard.tsx
+
+## 2026-03-18 — Workout-entry mobile sheets and forms should share one hierarchy
+- Type: Pattern
+- Summary: Related mobile workout-entry flows should use the same interaction language—search/choose/configure/save—with shared sheet headers, section framing, and one dominant final action instead of stacked nested panels.
+- Suggested Playbook File: docs/PATTERNS/mobile-workout-entry-hierarchy.md
+- Rationale: Prevents Quick Add, set entry, and adjacent logging flows from looking like separate subsystems, which increases hesitation and makes write actions feel less trustworthy.
+- Evidence: src/app/session/[id]/QuickAddExerciseSheet.tsx, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/ui/BottomSheet.tsx, src/components/ui/measurements/ModifyMeasurements.tsx
 - Status: Proposed
