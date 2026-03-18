@@ -75,41 +75,53 @@ export function RoutineSwitcherBar({
       </button>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title="Switch routine">
-        <div id="routine-switcher-sheet" className="max-h-[70vh] space-y-1 overflow-y-auto pb-2">
-          {routines.map((routine) => {
-            const isCurrent = routine.id === activeRoutineId;
+        <div id="routine-switcher-sheet" className="space-y-3 pb-2">
+          <div className="rounded-xl border border-border/50 bg-surface/45 px-3 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Active routine</p>
+            <p className="mt-1 text-sm font-semibold text-text">{activeRoutineName}</p>
+            {activeRoutineSummary ? <p className="mt-1 text-xs text-muted">{activeRoutineSummary}</p> : null}
+          </div>
 
-            return (
-              <button
-                key={routine.id}
-                type="button"
-                onClick={() => handleSwitch(routine.id)}
-                disabled={isPending}
-                className={`flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-70 ${
-                  isCurrent
-                    ? "border-accent/45 bg-accent/12 text-text"
-                    : "border-transparent bg-surface/45 text-muted hover:border-border/35 hover:text-text"
-                }`}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate">{routine.name}</span>
-                  {routine.summary ? <span className="block truncate pt-0.5 text-xs text-muted/80">{routine.summary}</span> : null}
-                </span>
-                {isCurrent ? (
-                  <span className="ml-3 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-                    Active
+          <div className="max-h-[52vh] space-y-1 overflow-y-auto pr-1">
+            {routines.map((routine) => {
+              const isCurrent = routine.id === activeRoutineId;
+
+              return (
+                <button
+                  key={routine.id}
+                  type="button"
+                  onClick={() => handleSwitch(routine.id)}
+                  disabled={isPending}
+                  className={`flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-70 ${
+                    isCurrent
+                      ? "border-accent/45 bg-accent/12 text-text"
+                      : "border-transparent bg-surface/45 text-muted hover:border-border/35 hover:text-text"
+                  }`}
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate">{routine.name}</span>
+                    {routine.summary ? <span className="block truncate pt-0.5 text-xs text-muted/80">{routine.summary}</span> : null}
                   </span>
-                ) : null}
-              </button>
-            );
-          })}
+                  {isCurrent ? (
+                    <span className="ml-3 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                      Active
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
 
           <Link
             href="/routines/new"
             onClick={() => setOpen(false)}
-            className="mt-2 flex min-h-11 items-center rounded-lg border border-border/45 bg-surface/45 px-3 py-2 text-sm font-medium text-text hover:bg-surface-2-soft"
+            className="flex min-h-11 items-center justify-between rounded-xl border border-accent/35 bg-accent/10 px-3 py-3 text-sm font-medium text-text hover:bg-accent/15"
           >
-            Create New Routine
+            <span>
+              <span className="block">Create new routine</span>
+              <span className="block pt-0.5 text-xs font-normal text-muted">Start a separate routine without leaving this flow unclear.</span>
+            </span>
+            <span aria-hidden="true" className="text-base text-accent">＋</span>
           </Link>
         </div>
       </BottomSheet>

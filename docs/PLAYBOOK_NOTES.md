@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Parent editors should stop at parent metadata boundaries
+- Type: Pattern
+- Summary: When a flow has both parent-level and child-level editors, the parent screen should own only parent metadata and high-level summaries, while child workflow controls stay inside the dedicated child editor.
+- Suggested Playbook File: docs/PATTERNS/editor-boundaries.md
+- Rationale: Prevents one screen from trying to manage both the parent record and nested child composition, which creates redundant controls, heavier mobile layouts, and weaker information architecture.
+- Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/components/ExercisePicker.tsx, src/components/RoutineSwitcherBar.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Browser entry should coach install but never block auth
 - Type: Pattern
 - Summary: Browser auth entry points for install-first mobile products should recommend the installed app shell, but must keep login, account creation, email confirmation, and password recovery fully usable in-browser.

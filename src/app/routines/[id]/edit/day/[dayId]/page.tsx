@@ -265,6 +265,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
       <form action={saveRoutineDayAction} className="space-y-3 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.5)] p-4">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Day settings</p>
+          <p className="text-xs text-muted">Use this screen for day-specific changes like naming, rest-day status, and workout composition.</p>
+        </div>
         <input type="hidden" name="routineId" value={params.id} />
         <input type="hidden" name="routineDayId" value={params.dayId} />
         <label className="block text-sm">Day name
@@ -280,7 +284,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         <>
           <section className="space-y-2 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] p-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-text">Currently added workouts</h2>
+              <div className="space-y-0.5">
+                <h2 className="text-sm font-semibold text-text">Planned workouts</h2>
+                <p className="text-[11px] text-muted">Review and adjust what belongs on this day.</p>
+              </div>
               <span className="rounded-full border border-border/60 bg-[rgb(var(--bg)/0.45)] px-2 py-0.5 text-xs font-medium text-text">{dayExercises.length}</span>
             </div>
             <ul className="space-y-2">
@@ -374,6 +381,9 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </section>
 
           <CollapsibleCard title="Add exercises" summary={`${dayExercises.length} added`} defaultOpen={searchParams?.addExerciseOpen === "1"}>
+            <div className="mb-3 rounded-lg border border-border/50 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-xs text-muted">
+              Pick an exercise, set optional targets, then add it to this day.
+            </div>
             <CollapsibleCard
               title="Add custom exercise"
               summary={`${customExercises.length} saved`}

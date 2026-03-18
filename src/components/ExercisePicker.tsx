@@ -168,7 +168,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [hasMounted, setHasMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(false);
+  const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(true);
   const scrollContainerRef = useRef<HTMLUListElement | null>(null);
   const scrollPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -358,7 +358,11 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2 rounded-md border border-border/70 bg-[rgb(var(--bg)/0.28)] p-2.5">
+      <div className="space-y-2 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.28)] p-3">
+        <div className="space-y-0.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">1. Find an exercise</p>
+          <p className="text-xs text-muted">Search or filter, then choose the movement you want to add.</p>
+        </div>
         <div className="relative">
           <Input
             value={search}
@@ -388,10 +392,10 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
       <input type="hidden" name="exerciseListScroll" value={scrollTopSnapshot} />
 
-      <div className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] px-3 py-2 text-sm text-[rgb(var(--text))]">
+      <div className="rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.45)] px-3 py-3 text-sm text-[rgb(var(--text))]">
         {selectedExercise ? (
           <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Selected exercise</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">2. Selected exercise</p>
             <p
               className="overflow-hidden font-medium leading-5 text-text"
               style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
@@ -413,7 +417,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <ul
           ref={scrollContainerRef}
           onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-          className="max-h-64 overflow-y-auto overscroll-contain rounded-md border border-border/60 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
+          className="max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
         >
           {filteredExercises.map((exercise) => {
             const isSelected = exercise.id === selectedId;
@@ -473,20 +477,24 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       />
 
       {routineTargetConfig && selectedExercise ? (
-        <div className="space-y-2 border-t border-border/50 pt-2">
+        <div className="space-y-3 rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.22)] p-3">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">3. Configure targets</p>
+            <p className="text-xs text-muted">Set required sets first, then add any measurements that help define this workout.</p>
+          </div>
           {selectedMeasurements.map((metric) => (
             <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />
           ))}
           <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
 
-          <div className="space-y-2 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-2">
+          <div className="space-y-2 rounded-lg border border-border/60 bg-[rgb(var(--bg)/0.28)] p-2">
             <button
               type="button"
               aria-expanded={isMeasurementsOpen}
               onClick={() => setIsMeasurementsOpen((prev) => !prev)}
               className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm font-medium text-text transition-colors hover:bg-surface-2-soft/80 active:bg-surface-2-active/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [-webkit-tap-highlight-color:transparent]"
             >
-              <span>Measurements</span>
+              <span>Optional measurements</span>
               {isMeasurementsOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
             </button>
             <div className="flex justify-end">

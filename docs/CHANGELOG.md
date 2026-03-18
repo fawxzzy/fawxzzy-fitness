@@ -1,5 +1,9 @@
 ## 2026-03-18
 
+- Simplified routine editing information architecture so Edit Routine focuses on routine metadata, day cards act as lighter summaries/entry points, Edit Day owns day naming/rest/workout composition, and the switch-routine sheet more clearly distinguishes the active routine from the create-new action.
+- Reduced nesting in the Edit Day workout-composition flow by clarifying planned-workout hierarchy and turning exercise search, selection, and optional targets into one more linear add-exercise sequence.
+- Reinforced the editor-boundary rule that parent editors should not duplicate child-editor workflows, improving mobile scanability without adding new routine features.
+
 - Added a reusable auth shell and refreshed the login, signup, and forgot-password screens with stronger visual hierarchy, roomier spacing, and clearer secondary actions for mobile auth flows.
 - Added browser-only install guidance on the login screen that recommends installing the app, includes Android Chrome and iPhone Safari steps, and stays dismissible so browser auth, recovery, and email-link flows still work.
 - Reinforced the app-first auth entry pattern without hard-blocking browser access, preventing install coaching from breaking recovery and deep-link flows.
