@@ -181,3 +181,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents crowded headers, layered cards, and split tap targets from slowing the core scan → tap → log loop during an active workout.
 - Evidence: src/components/SessionHeaderControls.tsx, src/components/SessionPageClient.tsx, src/components/SessionExerciseFocus.tsx, src/components/ExerciseCard.tsx
 - Status: Proposed
+
+## 2026-03-18 — Edit Day finishing passes should reuse shared mobile list language
+- Type: Pattern
+- Summary: When a child editor is already structurally correct, final polish should bias toward shared mobile header, list-row, and configure-panel language instead of introducing new bespoke controls or heavier framing.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents last-mile refinement work from reopening solved architecture and keeps adjacent workout-management surfaces feeling like one system.
+- Evidence: src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/components/ExerciseCard.tsx
+- Status: Proposed
+

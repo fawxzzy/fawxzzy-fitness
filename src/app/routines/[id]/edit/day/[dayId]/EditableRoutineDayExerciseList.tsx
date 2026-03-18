@@ -139,7 +139,7 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
 
-      <ul className="space-y-2">
+      <ul className="space-y-2.5">
         {orderedExercises.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
           const isDragging = activeDragId === exercise.id;
@@ -167,22 +167,22 @@ export function EditableRoutineDayExerciseList({
                 setActiveDragId(null);
                 commitOrder(orderedIds);
               }}
-              className={cn("rounded-xl border border-border/60", isDragging ? "opacity-70" : undefined)}
+              className={cn("overflow-hidden rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.45)] shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-colors", isDragging ? "opacity-70" : "hover:border-border/60") }
             >
               <ExerciseCard
                 title={exercise.name}
                 subtitle={exercise.targetSummary}
                 onPress={() => setSelectedExerciseId(exercise.exerciseId)}
                 rightIcon={
-                  <div className="flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
+                  <div className="flex items-center gap-1.5 self-start" onClick={(event) => event.stopPropagation()}>
                     <button
                       type="button"
                       draggable
                       aria-label={`Reorder ${exercise.name}`}
                       title="Drag to reorder"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-[rgb(var(--bg)/0.45)] text-sm text-muted transition-colors hover:bg-[rgb(var(--bg)/0.6)]"
+                      className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-border/50 bg-[rgb(var(--bg)/0.38)] px-2 text-[13px] font-semibold tracking-[0.18em] text-muted transition-colors hover:bg-[rgb(var(--bg)/0.55)]"
                     >
-                      ☰
+                      ⋮⋮
                     </button>
                     <AppButton
                       type="button"
@@ -207,13 +207,15 @@ export function EditableRoutineDayExerciseList({
                     />
                   </div>
                 }
-                className="rounded-none border-0 bg-transparent shadow-none"
+                badgeText={`#${index + 1}`}
+                trailingClassName="pt-0.5"
+                className="rounded-none border-0 bg-transparent px-3 py-3 shadow-none"
               >
-                <p className="text-[11px] text-muted">Tap the row for exercise info. Drag to reorder.</p>
+                <p className="text-[11px] text-muted">Tap for exercise info. Drag the handle to move.</p>
               </ExerciseCard>
 
               {isExpanded ? (
-                <div className="border-t border-border/50 px-3 pb-3 pt-3">
+                <div className="border-t border-border/35 bg-[rgb(var(--bg)/0.16)] px-3 pb-3 pt-3">
                   <form action={updateAction} className="space-y-2">
                     <input type="hidden" name="routineId" value={routineId} />
                     <input type="hidden" name="routineDayId" value={routineDayId} />
