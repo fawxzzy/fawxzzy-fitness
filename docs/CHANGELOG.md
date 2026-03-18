@@ -1,4 +1,14 @@
-- Fixed partial-day consistency so Day View now renders runnable exercises with a warning, Today no longer shows stale global error banners during normal browsing, and workout starts use canonical day summaries to skip only invalid rows.
+## 0.3.74 — 2026-03-18
+
+### WHAT
+- Normalized active session set-entry hierarchy with a stronger exercise title, lighter target block, softer measurement panels, clearer finish-details framing, and a simpler logged-sets list for faster mobile scanning.
+- Simplified Quick Add into one continuous choose → configure → commit sheet with less nested panel chrome, clearer selection state, and a lighter set-count configuration block.
+- Aligned shared workout-entry primitives so BottomSheet and measurement controls use the same section language and reduced visual weight across session write flows.
+
+### WHY
+- Keeps detailed workout entry flows consistent with the cleaned-up session overview instead of feeling like a different app.
+- Improves mobile scan speed and confidence by emphasizing one dominant path: choose, configure, commit.
+
 ## 0.3.73 — 2026-03-18
 
 ### WHAT

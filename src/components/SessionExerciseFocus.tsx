@@ -228,12 +228,12 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.72)] p-3 shadow-none">
+        <div className="rounded-2xl bg-surface/45 p-3 shadow-none">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 space-y-0.5">
+            <div className="min-w-0 space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Set entry</p>
-              <p className="text-base font-semibold leading-tight text-text">{selectedExercise?.name ?? "Exercise"}</p>
-              <p className="text-xs text-muted">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "Intervals" : "Sets"}</p>
+              <p className="text-lg font-semibold leading-tight text-text">{selectedExercise?.name ?? "Exercise"}</p>
+              <p className="text-sm text-muted">{(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "intervals logged" : "sets logged"}</p>
             </div>
             <BackButton
               onClick={(event) => {
@@ -252,13 +252,13 @@ export function SessionExerciseFocus({
         <>
           <article
             ref={focusedRef}
-            className="space-y-3 rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.74)] p-4"
+            className="space-y-4 rounded-2xl bg-surface/45 p-4"
             aria-hidden={false}
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Ready to log</p>
-                <p className="text-lg font-semibold leading-tight text-text">{selectedExercise.name}</p>
+              <div className="min-w-0 space-y-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Set entry</p>
+                <p className="text-xl font-semibold leading-tight text-text">{selectedExercise.name}</p>
                 <p className="text-sm text-muted">{(loggedSetCounts[selectedExercise.id] ?? selectedExercise.loggedSetCount)} {selectedExercise.isCardio ? "intervals logged" : "sets logged"}</p>
               </div>
               <div className="flex gap-2">
@@ -295,9 +295,9 @@ export function SessionExerciseFocus({
               </div>
             </div>
 
-            <div className="rounded-xl bg-black/10 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Goal</p>
-              <p className="mt-1 text-sm text-text">{selectedExercise.goalLabel}</p>
+            <div className="rounded-2xl bg-surface/60 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Target</p>
+              <p className="mt-1 text-sm font-medium text-text">{selectedExercise.goalLabel}</p>
             </div>
 
             {selectedExercise.isSkipped ? (

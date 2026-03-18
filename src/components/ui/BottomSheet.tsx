@@ -51,16 +51,17 @@ export function BottomSheet({ open, title, onClose, children, className, descrip
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative z-10 w-full max-w-[640px] rounded-t-[1.75rem] border border-border/45 bg-[rgb(var(--surface-rgb)/0.98)] shadow-2xl ${className ?? ""}`}
+        className={`relative z-10 w-full max-w-[640px] rounded-t-[1.9rem] border border-border/35 bg-[rgb(var(--surface-rgb)/0.98)] shadow-2xl ${className ?? ""}`}
       >
-        <div className="mx-auto mb-2 mt-2 h-1.5 w-12 rounded-full bg-white/20" aria-hidden="true" />
-        <div className="border-b border-border/50 px-4 pb-3">
-          <h2 id={titleId} className="text-sm font-semibold text-text">
+        <div className="mx-auto mb-3 mt-2 h-1.5 w-12 rounded-full bg-white/20" aria-hidden="true" />
+        <div className="px-4 pb-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Workout entry</p>
+          <h2 id={titleId} className="mt-1 text-base font-semibold text-text">
             {title}
           </h2>
-          {description ? <div className="mt-1 text-xs text-muted">{description}</div> : null}
+          {description ? <div className="mt-1 text-sm text-muted">{description}</div> : null}
         </div>
-        <div className={`px-4 pb-[max(1rem,var(--app-safe-bottom))] pt-3 ${contentClassName ?? ""}`}>{children}</div>
+        <div className={`px-4 pb-[max(1rem,var(--app-safe-bottom))] pt-2 ${contentClassName ?? ""}`}>{children}</div>
       </div>
     </div>,
     document.body,
