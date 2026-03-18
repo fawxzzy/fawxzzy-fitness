@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-03-18T06:12:13.488Z",
+  "command": [
+    "verify"
+  ],
+  "cwd": "/workspace/fawxzzy-fitness",
+  "stateRoot": ".playbook",
+  "via": "PLAYBOOK_BIN override",
+  "note": "Temporary local Playbook shim used to bootstrap required execution-state artifact in a network-restricted environment."
+}
