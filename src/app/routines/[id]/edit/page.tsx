@@ -2,10 +2,8 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
-import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
-import { RestDayToggleCheckbox } from "@/app/routines/[id]/edit/RestDayToggleCheckbox";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
@@ -273,37 +271,6 @@ async function pasteRoutineDayAction(formData: FormData) {
   redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ success: "Day pasted.", copiedDayId: sourceDayId })}`);
 }
 
-async function toggleRoutineDayRestAction(formData: FormData) {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const routineId = String(formData.get("routineId") ?? "");
-  const dayId = String(formData.get("dayId") ?? "");
-  const isRest = formData.get("isRest") === "on";
-
-  if (!routineId || !dayId) {
-    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: "Missing day info." })}`);
-  }
-
-  const { error } = await supabase
-    .from("routine_days")
-    .update({ is_rest: isRest })
-    .eq("id", dayId)
-    .eq("routine_id", routineId)
-    .eq("user_id", user.id);
-
-  if (error) {
-    redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ error: error.message })}`);
-  }
-
-  revalidateRoutinesViews();
-  revalidatePath(getRoutineEditPath(routineId));
-  revalidatePath(`/routines/${routineId}/edit/day/${dayId}`);
-  redirect(`/routines/${routineId}/edit${buildRoutineEditQuery({ success: "Rest day updated." })}`);
-}
-
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -406,7 +373,20 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         <RoutineSaveButton formId="routine-update-form" originalCycleLength={(routine as RoutineRow).cycle_length_days} />
       </form>
 
-      <div className="space-y-2">
+      <section className="space-y-3 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] p-4">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-text">Manage days</h2>
+            <span className="rounded-full border border-border/60 bg-[rgb(var(--bg)/0.45)] px-2 py-0.5 text-xs font-medium text-text">
+              {routineDays.length} day{routineDays.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p className="text-xs text-muted">
+            Edit Routine is for routine-level setup only. Open a day to rename it, toggle rest day, or manage workouts.
+          </p>
+        </div>
+
+        <div className="space-y-2">
         {routineDays.map((day) => {
           const count = dayExerciseCount.get(day.id) ?? 0;
           const preview = dayExercisePreview.get(day.id) ?? [];
@@ -414,7 +394,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
           return (
             <div
               key={day.id}
-              className="rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] p-4"
+              className="rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.3)] p-4"
             >
               <Link
                 href={`/routines/${params.id}/edit/day/${day.id}`}
@@ -422,7 +402,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold">{formatRoutineDayLabel(day.day_index, day.name)}</p>
-                  <span className="text-xs text-muted">Tap to edit</span>
+                  <span className="rounded-full border border-border/50 px-2 py-0.5 text-[11px] text-muted">Edit day</span>
                 </div>
                 <p className="mt-1 text-xs text-muted">{day.is_rest ? "Rest day" : `${count} exercise${count === 1 ? "" : "s"}`}</p>
                 {!day.is_rest && preview.length > 0 ? (
@@ -433,20 +413,16 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                 ) : null}
               </Link>
 
-              <form action={toggleRoutineDayRestAction} className="mt-3">
-                <input type="hidden" name="routineId" value={params.id} />
-                <input type="hidden" name="dayId" value={day.id} />
-                <label className="inline-flex items-center gap-2 text-xs text-muted">
-                  <RestDayToggleCheckbox defaultChecked={day.is_rest} />
-                  Rest day
-                </label>
-              </form>
-
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <form action={copyRoutineDayAction}>
                   <input type="hidden" name="routineId" value={params.id} />
                   <input type="hidden" name="dayId" value={day.id} />
-                  <AppButton type="submit" variant="secondary" size="sm" fullWidth>Copy day</AppButton>
+                  <button
+                    type="submit"
+                    className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-border/60 bg-surface/40 px-3 text-sm font-medium text-text transition hover:bg-surface-2-soft"
+                  >
+                    Copy day
+                  </button>
                 </form>
                 <ConfirmedServerFormButton
                   action={pasteRoutineDayAction}
@@ -464,7 +440,8 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             </div>
           );
         })}
-      </div>
+        </div>
+      </section>
 
       <div className="space-y-2 rounded-xl border border-red-500/35 bg-red-950/20 p-4">
         <h2 className="text-sm font-semibold text-red-200">Danger Zone</h2>
