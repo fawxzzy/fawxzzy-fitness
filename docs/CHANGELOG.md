@@ -6,6 +6,17 @@
 
 # Changelog
 
+## 2026-03-18 — Rebalance History Sessions cards for mobile scanability
+
+### WHAT
+- Reworked `HistorySessionsClient` mobile cards around a clearer hierarchy: title row with menu, separate day/date context row, wrapped compact metric chips, and a lower-priority top-set line with overflow-safe truncation.
+- Lightened the History Sessions controls by shrinking the Sessions/Exercises segmented control and replacing the heavier dropdown-style view selector with a compact in-panel density pill switch.
+- Preserved existing history data semantics and routes while reducing text density and improving narrow-width resilience for session cards.
+
+### WHY
+- Prevents important session metadata from being clipped or buried inside dense one-line prose on mobile widths.
+- Makes the history timeline easier to scan quickly without changing workout history logic or regresssing exercise-history mode.
+
 ## 2026-03-18 — Seal exercise display normalization boundary and polish exercise info
 
 ### WHAT
@@ -2181,8 +2192,6 @@ WHAT:
 - Added explicit `OK`/`Cancel` confirmation in that dedicated chooser card before applying a new pre-start day selection.
 WHY:
 - This keeps the Today UI cleaner and avoids cramped nested card layering while preserving temporary day selection before starting a workout.
-
-# Changelog
 
 ## 2026-03-18 — Normalize shared in-app back navigation
 

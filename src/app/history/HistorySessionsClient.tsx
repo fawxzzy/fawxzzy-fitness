@@ -6,9 +6,9 @@ import { createPortal } from "react-dom";
 import { deleteCompletedSessionAction } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { ViewModeSelect } from "@/components/ui/app/ViewModeSelect";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { cn } from "@/lib/cn";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
 
@@ -22,22 +22,20 @@ type HistorySessionsClientProps = {
 const VIEW_MODE_STORAGE_KEY = "history:sessions:view-mode";
 
 function performanceParts(session: SessionSummary) {
-  const parts = [
-    session.durationSec ? formatDurationShort(session.durationSec) : null,
-    formatCount(session.exerciseCount, "exercise"),
-    formatCount(session.setCount, "set"),
-    session.prLabel || null,
-  ].filter((part): part is string => Boolean(part));
-
-  return parts;
+  return [
+    session.durationSec ? { label: "Time", value: formatDurationShort(session.durationSec) } : null,
+    { label: "Exercises", value: formatCount(session.exerciseCount, "exercise") },
+    { label: "Sets", value: formatCount(session.setCount, "set") },
+    session.prCounts.total > 0 ? { label: "PRs", value: session.prLabel } : null,
+  ].filter((part): part is { label: string; value: string | null } => Boolean(part?.value));
 }
-
 
 function isWeekdayTitle(value?: string) {
   if (!value) return false;
   const normalized = value.trim().toLowerCase();
   return ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "mon", "tue", "wed", "thu", "fri", "sat", "sun"].includes(normalized);
 }
+
 function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec }: {
   sessionId: string;
   mode: ViewMode;
@@ -70,30 +68,26 @@ function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec
       }
     };
 
-    const handleViewportChange = () => {
-      updatePosition();
-    };
-
     window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("resize", handleViewportChange);
-    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
 
     return () => {
       window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("resize", handleViewportChange);
-      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
     };
   }, [open, sessionId]);
 
   return (
-    <div className="relative" onClick={(event) => event.stopPropagation()}>
+    <div className="relative z-20" onClick={(event) => event.stopPropagation()}>
       <button
         ref={triggerRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/15 bg-black/20 text-sm text-slate-200 transition-colors hover:bg-black/35"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/20 text-base text-slate-200 transition-colors hover:bg-black/35"
       >
         ⋯
       </button>
@@ -131,6 +125,53 @@ function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec
   );
 }
 
+function MetricChip({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
+        emphasized
+          ? "border-[rgb(var(--button-primary-border)/0.45)] bg-[rgb(var(--button-primary-bg)/0.18)] text-slate-100"
+          : "border-white/10 bg-white/5 text-slate-300",
+      )}
+    >
+      <span className="text-slate-400">{label}</span>
+      <span className="ml-1 text-slate-100">{value}</span>
+    </div>
+  );
+}
+
+function ViewModePills({ value, onChange }: { value: ViewMode; onChange: (next: ViewMode) => void }) {
+  const options: Array<{ label: string; value: ViewMode }> = [
+    { label: "Details", value: "list" },
+    { label: "Compact", value: "compact" },
+  ];
+
+  return (
+    <div className="flex items-center gap-1 self-start rounded-full border border-white/10 bg-black/15 p-1">
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={selected}
+            className={cn(
+              "min-h-8 rounded-full px-3 text-[11px] font-semibold transition",
+              selected
+                ? "bg-white/12 text-slate-50 shadow-[inset_0_-1px_0_0_rgb(var(--accent-rgb)/0.85)]"
+                : "text-slate-300 hover:bg-white/5 hover:text-white",
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function HistorySessionRow({
   session,
   mode,
@@ -140,26 +181,37 @@ function HistorySessionRow({
 }) {
   const routineTitle = session.routineTitle || "Unknown routine";
   const dateLabel = formatDateShort(session.startedAt);
-  const secondaryLine = session.dayTitle && !isWeekdayTitle(session.dayTitle) ? `${session.dayTitle} · ${dateLabel}` : dateLabel;
-  const performanceRow = performanceParts(session).join(" • ");
+  const dayLabel = session.dayTitle?.trim();
+  const showDayLabel = dayLabel && !isWeekdayTitle(dayLabel);
+  const metrics = performanceParts(session);
 
   return (
-    <AppPanel clip className={`${mode === "compact" ? "p-2" : "p-3"} transition-colors hover:border-border/70 ${session.prCounts.total > 0 ? "border-l-2 border-l-[rgb(var(--button-primary-border)/0.9)]" : ""}`}>
-      <div className={`relative flex ${mode === "compact" ? "min-h-[64px] gap-0.5" : "min-h-[74px] gap-1"} flex-col pr-12`}>
+    <AppPanel
+      clip
+      className={cn(
+        "transition-colors hover:border-border/70",
+        mode === "compact" ? "p-3" : "p-3.5",
+        session.prCounts.total > 0 ? "border-[rgb(var(--button-primary-border)/0.38)]" : undefined,
+      )}
+    >
+      <div className="relative min-h-[120px]">
         <Link
           href={`/history/${session.id}?returnTab=sessions&view=${mode}`}
           aria-label={`View session details for ${routineTitle}`}
-          className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+          className="absolute inset-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
         />
 
-        <p className="line-clamp-1 text-sm font-semibold text-slate-100">{routineTitle}</p>
-        <p className="line-clamp-1 text-xs text-slate-300">{secondaryLine}</p>
-        <p className={`line-clamp-1 ${mode === "compact" ? "text-[11px]" : "text-xs"} text-slate-400`}>{performanceRow}</p>
-        {mode === "list" && session.topSet ? (
-          <p className="line-clamp-1 text-xs text-slate-400">Top Set: {session.topSet.exerciseName} — {session.topSet.display}</p>
-        ) : null}
+        <div className="relative z-10 flex items-start gap-3">
+          <div className="min-w-0 flex-1 pr-1">
+            <div className="flex items-start gap-2">
+              <p className="min-w-0 flex-1 text-[15px] font-semibold leading-5 text-slate-50 sm:text-base">{routineTitle}</p>
+            </div>
+            <p className="mt-1 text-xs leading-4 text-slate-300">
+              {showDayLabel ? `${dayLabel} · ` : null}
+              <span>{dateLabel}</span>
+            </p>
+          </div>
 
-        <div className="absolute right-0 top-0">
           <SessionCardMenu
             sessionId={session.id}
             mode={mode}
@@ -168,6 +220,26 @@ function HistorySessionRow({
             durationSec={session.durationSec}
           />
         </div>
+
+        <div className="relative z-10 mt-3 flex flex-wrap gap-1.5">
+          {metrics.map((metric) => (
+            <MetricChip key={metric.label} label={metric.label} value={metric.value ?? ""} emphasized={metric.label === "PRs"} />
+          ))}
+        </div>
+
+        {session.topSet ? (
+          <p
+            className={cn(
+              "relative z-10 mt-3 overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-4 text-slate-400",
+              mode === "compact" ? "max-w-full" : "max-w-full",
+            )}
+            title={`Top set: ${session.topSet.exerciseName} — ${session.topSet.display}`}
+          >
+            <span className="text-slate-500">Top set</span>
+            <span className="mx-1 text-slate-600">•</span>
+            <span className="truncate">{session.topSet.exerciseName} — {session.topSet.display}</span>
+          </p>
+        ) : null}
       </div>
     </AppPanel>
   );
@@ -208,32 +280,26 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <AppPanel className="space-y-1.5 p-2">
+      <AppPanel className="space-y-2 p-2.5">
         <SegmentedControl
           options={[
             { label: "Sessions", value: "sessions", href: `/history?tab=sessions&view=${effectiveViewMode}` },
             { label: "Exercises", value: "exercises", href: "/history/exercises" },
           ]}
           value="sessions"
+          size="sm"
           ariaLabel="History tabs"
         />
 
-        <ViewModeSelect
-          label="View Mode"
-          value={effectiveViewMode}
-          options={[
-            { label: "Details", value: "list" },
-            { label: "Compact", value: "compact" },
-          ]}
-          onChange={(next) => {
-            if (next === "list" || next === "compact") setViewMode(next);
-          }}
-        />
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/8 bg-black/10 px-2 py-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">Card density</p>
+          <ViewModePills value={effectiveViewMode} onChange={setViewMode} />
+        </div>
       </AppPanel>
 
       {sessions.length > 0 ? (
         <div className="relative">
-          <ul className={effectiveViewMode === "compact" ? "space-y-1.5 pb-8" : "space-y-3 pb-8"}>
+          <ul className={effectiveViewMode === "compact" ? "space-y-2 pb-8" : "space-y-2.5 pb-8"}>
             {sessions.map((session) => (
               <li key={session.id} className="relative">
                 <HistorySessionRow session={session} mode={effectiveViewMode} />

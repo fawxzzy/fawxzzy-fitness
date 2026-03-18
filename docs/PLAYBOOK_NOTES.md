@@ -21,6 +21,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Suggested Playbook File: docs/PATTERNS/mobile-install-entry.md
 - Rationale: Prevents teams from overcorrecting into browser lockouts that break deep links, recovery flows, and first-run account access while still steering users toward the intended app shell.
 - Evidence: src/app/login/page.tsx, src/app/login/LoginScreen.tsx, src/components/auth/InstallGuidance.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx
+## 2026-03-18 — Mobile history cards should prefer hierarchy over inline completeness
+- Type: Pattern
+- Summary: On narrow mobile surfaces, history cards should follow a consistent order of title, context, compact metrics, then optional detail so the most important workout information survives even when width is constrained.
+- Suggested Playbook File: docs/PATTERNS/mobile-card-hierarchy.md
+- Rationale: Prevents scan-heavy audit surfaces from collapsing into clipped prose rows where menus, dates, and performance signals compete for the same single-line space.
+- Evidence: src/app/history/HistorySessionsClient.tsx
 - Status: Proposed
 
 ## 2026-03-18 — Never let migration or sentinel exercise entities leak past the normalization boundary
