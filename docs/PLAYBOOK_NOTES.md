@@ -165,3 +165,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents Quick Add, set entry, and adjacent logging flows from looking like separate subsystems, which increases hesitation and makes write actions feel less trustworthy.
 - Evidence: src/app/session/[id]/QuickAddExerciseSheet.tsx, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/ui/BottomSheet.tsx, src/components/ui/measurements/ModifyMeasurements.tsx
 - Status: Proposed
+
+## 2026-03-18 — Workout overview should optimize for scan speed before control density
+- Type: Pattern
+- Summary: Active workout overview screens should keep the header light, make each exercise row a single tap target with one strong title line plus secondary goal text, and reserve Save/Discard for a sticky bottom action zone.
+- Suggested Playbook File: docs/PATTERNS/mobile-card-hierarchy.md
+- Rationale: Prevents crowded headers, layered cards, and split tap targets from slowing the core scan → tap → log loop during an active workout.
+- Evidence: src/components/SessionHeaderControls.tsx, src/components/SessionPageClient.tsx, src/components/SessionExerciseFocus.tsx, src/components/ExerciseCard.tsx
+- Status: Proposed

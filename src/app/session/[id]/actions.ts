@@ -545,6 +545,66 @@ export async function removeExerciseAction(formData: FormData): Promise<ActionRe
   return { ok: true };
 }
 
+
+export async function discardSessionAction(formData: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const sessionId = String(formData.get("sessionId") ?? "").trim();
+
+  if (!sessionId) {
+    return { ok: false, error: "Missing session info" };
+  }
+
+  const { data: sessionExerciseRows, error: sessionExerciseReadError } = await supabase
+    .from("session_exercises")
+    .select("id")
+    .eq("session_id", sessionId)
+    .eq("user_id", user.id);
+
+  if (sessionExerciseReadError) {
+    return { ok: false, error: sessionExerciseReadError.message };
+  }
+
+  const sessionExerciseIds = (sessionExerciseRows ?? []).map((row) => row.id);
+
+  if (sessionExerciseIds.length > 0) {
+    const { error: setDeleteError } = await supabase
+      .from("sets")
+      .delete()
+      .eq("user_id", user.id)
+      .in("session_exercise_id", sessionExerciseIds);
+
+    if (setDeleteError) {
+      return { ok: false, error: setDeleteError.message };
+    }
+
+    const { error: sessionExerciseDeleteError } = await supabase
+      .from("session_exercises")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("user_id", user.id);
+
+    if (sessionExerciseDeleteError) {
+      return { ok: false, error: sessionExerciseDeleteError.message };
+    }
+  }
+
+  const { error: sessionDeleteError } = await supabase
+    .from("sessions")
+    .delete()
+    .eq("id", sessionId)
+    .eq("user_id", user.id);
+
+  if (sessionDeleteError) {
+    return { ok: false, error: sessionDeleteError.message };
+  }
+
+  revalidatePath("/today");
+  revalidateSessionViews(sessionId);
+  return { ok: true };
+}
+
 export async function saveSessionAction(formData: FormData): Promise<ActionResult<{ sessionId: string }>> {
   const user = await requireUser();
   const supabase = supabaseServer();
