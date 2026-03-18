@@ -44,7 +44,7 @@ test('normalizeFallbackInstallTarget downloads https fallback to deterministic l
     url
   });
 
-  const spec = 'https://example.com/releases/playbook-cli-0.3.80.tgz';
+  const spec = 'https://example.com/releases/playbook-cli-0.1.8.tgz';
   const first = await normalizeFallbackInstallTarget({ rawSpec: spec, runtimeRoot, fetchImpl });
   const second = await normalizeFallbackInstallTarget({ rawSpec: spec, runtimeRoot, fetchImpl });
 
@@ -76,7 +76,7 @@ test('install-official-fallback rejects registry-like fallback specs', () => {
     encoding: 'utf8',
     env: {
       ...process.env,
-      PLAYBOOK_OFFICIAL_FALLBACK_SPEC: '@fawxzzy/playbook-cli@0.3.77'
+      PLAYBOOK_OFFICIAL_FALLBACK_SPEC: '@fawxzzy/playbook-cli@0.1.8'
     }
   });
 

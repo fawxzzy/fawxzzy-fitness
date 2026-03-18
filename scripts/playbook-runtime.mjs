@@ -28,11 +28,12 @@ const COMPAT_ALIASES = new Set([
   'plan',
   'pilot'
 ]);
-const DEV_FALLBACK_ROOT = 'C:\\Users\\zjhre\\dev\\playbook';
-const DEV_FALLBACK_DISABLED = process.env.PLAYBOOK_DISABLE_DEV_FALLBACK === '1';
 const OFFICIAL_FALLBACK_ROOT = path.join('.playbook', 'runtime');
 const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC;
-const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? '@fawxzzy/playbook-cli';
+const DEFAULT_PLAYBOOK_VERSION = '0.1.8';
+const DEFAULT_PACKAGE_SPEC = `@fawxzzy/playbook-cli@${DEFAULT_PLAYBOOK_VERSION}`;
+const DEFAULT_OFFICIAL_FALLBACK_SPEC = `https://github.com/ZachariahRedfield/playbook/releases/download/v${DEFAULT_PLAYBOOK_VERSION}/playbook-cli-${DEFAULT_PLAYBOOK_VERSION}.tgz`;
+const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? DEFAULT_PACKAGE_SPEC;
 const command = process.argv[2];
 
 function normalizeSpec(spec) {
@@ -186,7 +187,7 @@ async function handleInstallOfficialFallback() {
   if (!fallbackSpec.valid) {
     if (fallbackSpec.kind === 'missing') {
       console.error('[playbook-runtime] PLAYBOOK_OFFICIAL_FALLBACK_SPEC is required for official fallback install.');
-      console.error('[playbook-runtime] Example: PLAYBOOK_OFFICIAL_FALLBACK_SPEC="https://<official-distribution>.tgz" npm run playbook-runtime:install-official-fallback');
+      console.error(`[playbook-runtime] Example: PLAYBOOK_OFFICIAL_FALLBACK_SPEC="${DEFAULT_OFFICIAL_FALLBACK_SPEC}" npm run playbook-runtime:install-official-fallback`);
     } else {
       console.error(`[playbook-runtime] Invalid PLAYBOOK_OFFICIAL_FALLBACK_SPEC for direct fallback acquisition: ${fallbackSpec.normalized}`);
       console.error('[playbook-runtime] Fallback acquisition requires a direct install target (file:, local tarball path, https tarball URL, or git+ URL).');
@@ -298,30 +299,16 @@ async function main() {
   return null;
   }
 
-  function resolveDevFallbackBin() {
-  const localCheckoutBin = findExecutable(path.join(DEV_FALLBACK_ROOT, 'node_modules', '.bin', 'playbook'));
-  if (localCheckoutBin) {
-    return { bin: localCheckoutBin, source: `dev fallback local checkout (${DEV_FALLBACK_ROOT})` };
-  }
-
-  const packageBin = resolveBinFromPackageRoot(DEV_FALLBACK_ROOT);
-  if (packageBin) {
-    return { bin: packageBin, source: `dev fallback package entrypoint (${DEV_FALLBACK_ROOT})` };
-  }
-
-  return null;
-  }
-
   function resolveRuntimeBin() {
   const checks = [];
 
-  const envOverride = process.env.PLAYBOOK_BIN ?? process.env.PLAYBOOK_RUNTIME_BIN;
+  const envOverride = process.env.PLAYBOOK_BIN;
   if (envOverride) {
-    checks.push(`PLAYBOOK_BIN/PLAYBOOK_RUNTIME_BIN=${envOverride}`);
+    checks.push(`PLAYBOOK_BIN=${envOverride}`);
     return { bin: envOverride, source: 'PLAYBOOK_BIN environment override', checks };
   }
 
-  checks.push('PLAYBOOK_BIN/PLAYBOOK_RUNTIME_BIN not set');
+  checks.push('PLAYBOOK_BIN not set');
 
   const packageBin = resolveInstalledPackageBin();
   checks.push('repo-local package/bin resolution');
@@ -339,16 +326,6 @@ async function main() {
     };
   }
 
-  if (DEV_FALLBACK_DISABLED) {
-    checks.push('dev fallback disabled (PLAYBOOK_DISABLE_DEV_FALLBACK=1)');
-  } else {
-    const devFallbackBin = resolveDevFallbackBin();
-    checks.push(`dev fallback path (${DEV_FALLBACK_ROOT})`);
-    if (devFallbackBin) {
-      return { ...devFallbackBin, checks };
-    }
-  }
-
   return { bin: null, source: null, checks };
   }
 
@@ -362,8 +339,6 @@ async function main() {
     console.error('  1) Set PLAYBOOK_BIN to an explicit Playbook executable path.');
     console.error('  2) Install Playbook as a local package so node_modules/.bin/playbook exists.');
     console.error(`  3) Install the official fallback distribution into ${OFFICIAL_FALLBACK_ROOT} (set PLAYBOOK_OFFICIAL_FALLBACK_SPEC and run npm run playbook-runtime:install-official-fallback).`);
-    console.error(`  4) (Dev-only fallback) ensure ${DEV_FALLBACK_ROOT} contains a runnable Playbook checkout.`);
-    console.error('     Set PLAYBOOK_DISABLE_DEV_FALLBACK=1 to prove package-first + official fallback resolution only.');
     process.exit(1);
   }
 

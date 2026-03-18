@@ -4,7 +4,7 @@ Fawxzzy Fitness is a Next.js app for tracking workouts, routines, and exercise h
 
 ## Playbook runtime command path (canonical)
 
-This repository uses `scripts/playbook-runtime.mjs` as the single repo command adapter to the shared Playbook runtime. Treat this as the only supported operator path for Playbook commands in this repo.
+This repository uses the package-installed Playbook CLI through the repo's top-level npm commands, with `scripts/playbook-runtime.mjs` retained only as the thin package/fallback resolver. Treat those top-level npm commands as the only supported operator path for Playbook in this repo.
 
 Canonical model:
 - shared Playbook core runtime
@@ -16,26 +16,25 @@ Canonical model:
 Deterministic Playbook resolution is package-first and does **not** rely on a globally installed `playbook` on `PATH`.
 
 Resolution order used by `scripts/playbook-runtime.mjs`:
-1. `PLAYBOOK_BIN` environment override (`PLAYBOOK_RUNTIME_BIN` is transitional compatibility only).
+1. `PLAYBOOK_BIN` environment override.
 2. Repo-local Playbook install (prefers `node_modules/.bin/playbook`, then installed package entrypoint resolution).
 3. Official non-registry fallback install at `.playbook/runtime/node_modules/.bin/playbook`.
-4. Transitional dev fallback to local checkout at `C:\Users\zjhre\dev\playbook` (disable during proof checks via `PLAYBOOK_DISABLE_DEV_FALLBACK=1`).
-5. Otherwise fail with a precise actionable error describing what was checked.
+4. Otherwise fail with a precise actionable error describing what was checked.
 
 Expected unresolved error shape:
 - `Unable to resolve a Playbook executable.`
-- `Checked: PLAYBOOK_BIN... -> repo-local package/bin resolution -> official fallback install ... -> dev fallback path ...`
-- action list for env override / local package install / official fallback install / optional dev fallback.
+- `Checked: PLAYBOOK_BIN... -> repo-local package/bin resolution -> official fallback install ...`
+- action list for env override / local package install / official fallback install.
 
 
 ### Canonical package acquisition path (when package access is available)
 
-Base install intentionally does **not** hard-require `@fawxzzy/playbook-cli` in `package.json`. Install dependencies first, then acquire Playbook explicitly:
+Base install intentionally does **not** hard-require `@fawxzzy/playbook-cli` in `package.json`. The verified published package coordinate for this repo is `@fawxzzy/playbook-cli@0.1.8`. Install dependencies first, then acquire Playbook explicitly:
 
 ```bash
 npm install
-npm run playbook-runtime:install-package
-env -u PLAYBOOK_BIN -u PLAYBOOK_RUNTIME_BIN PLAYBOOK_DISABLE_DEV_FALLBACK=1 npm run ai-context
+PLAYBOOK_PACKAGE_SPEC="@fawxzzy/playbook-cli@0.1.8" npm run playbook-runtime:install-package
+env -u PLAYBOOK_BIN npm run ai-context
 ```
 
 Expected behavior:
@@ -43,24 +42,23 @@ Expected behavior:
 - explicit acquisition installs package-local `playbook` into `node_modules/.bin/playbook`
 - runtime writes under `.playbook/`
 
-Use `PLAYBOOK_BIN` only for temporary overrides. Treat the dev fallback checkout path as backup-only recovery, not primary setup.
+Use `PLAYBOOK_BIN` only for temporary overrides. The supported steady-state path is the repo-local Playbook package install, with the official fallback install reserved for environments where package acquisition is blocked.
 
 ### Official non-registry fallback install (when npm registry access is blocked)
 
-If package acquisition (`npm run playbook-runtime:install-package`) fails with an auth/403 error, install the official distribution artifact into `.playbook/runtime` and keep dev fallback disabled:
+If package acquisition (`npm run playbook-runtime:install-package`) fails with an auth/403 error, install the verified official distribution artifact from `ZachariahRedfield/playbook` into `.playbook/runtime`:
 
 ```bash
-PLAYBOOK_OFFICIAL_FALLBACK_SPEC="<official-playbook-distribution-spec>" npm run playbook-runtime:install-official-fallback
-env -u PLAYBOOK_BIN -u PLAYBOOK_RUNTIME_BIN PLAYBOOK_DISABLE_DEV_FALLBACK=1 npm run ai-context
+PLAYBOOK_OFFICIAL_FALLBACK_SPEC="https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz" npm run playbook-runtime:install-official-fallback
+env -u PLAYBOOK_BIN npm run ai-context
 ```
 
 Notes:
 - `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` supports `file:` URLs, local filesystem tarball paths, and remote `https/http` tarball URLs; remote URLs are downloaded first to a deterministic local cache file under `.playbook/runtime/cache` and then installed from that local file target.
-- Registry package specs (for example `@fawxzzy/playbook-cli@x.y.z`) are intentionally rejected for fallback acquisition and should use `npm run playbook-runtime:install-package` instead.
+- Registry package specs (for example `@fawxzzy/playbook-cli@0.1.8`) are intentionally rejected for fallback acquisition and should use `npm run playbook-runtime:install-package` instead.
 - This fallback does **not** replace package acquisition behavior; it is only for environments where package install is unavailable.
-- Keep `PLAYBOOK_DISABLE_DEV_FALLBACK=1` during proof runs so fallback results are not masked by local checkout state.
 
-CI now enforces this clean-environment proof path with an explicit deterministic fallback spec pinned in workflow config (`PLAYBOOK_OFFICIAL_FALLBACK_SPEC`): package acquisition is attempted first, and official fallback acquisition is always executed when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`). CI then unsets `PLAYBOOK_BIN`/`PLAYBOOK_RUNTIME_BIN`, sets `PLAYBOOK_DISABLE_DEV_FALLBACK=1`, runs the canonical ladder, and asserts required artifacts exist: `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json`.
+CI now enforces this clean-environment proof path with explicit verified coordinates pinned in workflow config: `PLAYBOOK_PACKAGE_SPEC=@fawxzzy/playbook-cli@0.1.8` and `PLAYBOOK_OFFICIAL_FALLBACK_SPEC=https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz`. Package acquisition is attempted first, and official fallback acquisition is executed when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`). CI then unsets `PLAYBOOK_BIN`, runs the canonical ladder, and asserts required artifacts exist: `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json`.
 
 ## Playbook workflow: bootstrap → intelligence → remediation
 
@@ -109,7 +107,7 @@ Rule: ignore tuning should narrow scan noise, **not** hide system truth. Keep ar
 
 - Legacy learning/sync/update command families are retired.
 - Vendored subtree workflow guidance is retired.
-- Transitional compatibility surfaces are tracked in `docs/PLAYBOOK_MIGRATION_INVENTORY.md` and are non-canonical.
+- Historical migration notes remain in `docs/CHANGELOG.md`, but they are not part of the active operator workflow.
 
 ## Local development
 

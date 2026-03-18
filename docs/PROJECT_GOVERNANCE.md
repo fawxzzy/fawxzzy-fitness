@@ -37,7 +37,7 @@ Allowed governance documentation files:
 
 ## Playbook Operator Path (Single Active Surface)
 
-The repository uses one active Playbook operator surface: the top-level npm commands that execute `scripts/playbook-runtime.mjs`.
+The repository uses one active Playbook operator surface: the top-level npm commands backed by the package-installed Playbook CLI, with `scripts/playbook-runtime.mjs` limited to thin package/fallback resolution.
 
 Canonical local command path:
 - `npm run ai-context`
@@ -57,7 +57,7 @@ Retirement constraints:
 - Do not add secondary `playbook:*` command families or duplicate wrappers.
 - Do not document or reintroduce deprecated Playbook maintenance/sync commands.
 - Do not document vendored Playbook subtree workflows in this repository.
-- Keep transitional surface decisions in sync with `docs/PLAYBOOK_MIGRATION_INVENTORY.md`.
+- Keep historical migration detail in `docs/CHANGELOG.md`, not in active operator docs.
 
 ## Playbook Runtime Model (Shared Core + Local State)
 
@@ -72,21 +72,19 @@ Runtime contracts:
 ## Playbook Resolution Policy (Package-First Consumer Model)
 
 Runtime resolution order is deterministic and must remain:
-1. `PLAYBOOK_BIN` environment override (`PLAYBOOK_RUNTIME_BIN` is transitional compatibility only).
+1. `PLAYBOOK_BIN` environment override.
 2. Repo-local package install resolution (prefer `node_modules/.bin/playbook`, then package entrypoint lookup).
 3. Official non-registry fallback install resolution at `.playbook/runtime/node_modules/.bin/playbook`.
-4. Dev-only temporary fallback at `C:\Users\zjhre\dev\playbook` (backup-only; disable with `PLAYBOOK_DISABLE_DEV_FALLBACK=1` when validating canonical behavior).
-5. Explicit actionable failure if unresolved.
+4. Explicit actionable failure if unresolved.
 
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
 - `npm install` succeeds without hard-requiring `@fawxzzy/playbook-cli` in the base dependency graph.
-- Playbook acquisition is explicit: run `npm run playbook-runtime:install-package` when package access is available.
-- If package acquisition is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`.
-- CI must pin `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to an immutable official distribution artifact in workflow config so registry outages cannot block core runtime acquisition.
+- Playbook acquisition is explicit: run `npm run playbook-runtime:install-package` when package access is available, using the verified published package coordinate `@fawxzzy/playbook-cli@0.1.8` unless intentionally overridden.
+- If package acquisition is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`; the verified fallback asset is `https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz`.
+- CI must pin `PLAYBOOK_PACKAGE_SPEC` and `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to immutable verified upstream coordinates in workflow config so namespace/release drift cannot block core runtime acquisition.
 - CI acquisition sequence is explicit and deterministic: attempt `playbook-runtime:install-package` first, then run `playbook-runtime:install-official-fallback` when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`).
-- With `PLAYBOOK_BIN` and `PLAYBOOK_RUNTIME_BIN` unset, commands resolve through repo-local package acquisition first, then official fallback, then optional dev fallback.
-- Canonical proof runs must set `PLAYBOOK_DISABLE_DEV_FALLBACK=1` to prevent dev-checkout fallback capture.
+- With `PLAYBOOK_BIN` unset, commands resolve through repo-local package acquisition first, then official fallback.
 - Runtime outputs continue to land only under `.playbook/`.
 - CI/local validation must assert required runtime artifacts exist: `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json`.
 
