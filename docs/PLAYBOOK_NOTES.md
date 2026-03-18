@@ -100,3 +100,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents namespace/release-source drift where package installs and fallback downloads point at different upstreams, creating a fake “integration complete” state that only works with local overrides.
 - Evidence: scripts/playbook-runtime.mjs, .github/workflows/ci.yml, README.md, docs/PROJECT_GOVERNANCE.md
 - Status: Proposed
+
+## 2026-03-18 — Mobile secondary history actions belong in sheets
+- Type: Pattern
+- Summary: On mobile history surfaces, secondary per-card actions should open in a bottom sheet, and density modes should remove whole information tiers rather than shrinking the same card into a faux-compact variant.
+- Suggested Playbook File: docs/PATTERNS/mobile-action-sheets.md
+- Rationale: Prevents fragile anchored menus and avoids “compact” toggles that preserve almost all content, which adds UI complexity without creating a meaningful scan-speed difference.
+- Evidence: src/app/history/HistorySessionsClient.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx
+- Status: Proposed
+

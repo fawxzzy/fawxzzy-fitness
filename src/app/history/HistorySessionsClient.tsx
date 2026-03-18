@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import React, { useEffect, useState } from "react";
 import { deleteCompletedSessionAction } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -30,10 +30,23 @@ function performanceParts(session: SessionSummary) {
   ].filter((part): part is { label: string; value: string | null } => Boolean(part?.value));
 }
 
+function compactMetricsSummary(session: SessionSummary) {
+  return [
+    session.durationSec ? formatDurationShort(session.durationSec) : null,
+    formatCount(session.exerciseCount, "exercise"),
+    formatCount(session.setCount, "set"),
+    session.prCounts.total > 0 ? session.prLabel : null,
+  ].filter((value): value is string => Boolean(value));
+}
+
 function isWeekdayTitle(value?: string) {
   if (!value) return false;
   const normalized = value.trim().toLowerCase();
   return ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "mon", "tue", "wed", "thu", "fri", "sat", "sun"].includes(normalized);
+}
+
+function SheetActionRow({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-2xl border border-white/10 bg-black/10 p-1">{children}</div>;
 }
 
 function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec }: {
@@ -44,83 +57,64 @@ function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec
   durationSec?: number;
 }) {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const updatePosition = () => {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setMenuPosition({ top: rect.bottom + 6, left: rect.right - 176 });
-    };
-
-    updatePosition();
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (!triggerRef.current?.contains(target)) {
-        const menu = document.getElementById(`history-session-menu-${sessionId}`);
-        if (!menu?.contains(target)) {
-          setOpen(false);
-        }
-      }
-    };
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [open, sessionId]);
 
   return (
     <div className="relative z-20" onClick={(event) => event.stopPropagation()}>
       <button
-        ref={triggerRef}
         type="button"
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => setOpen(true)}
         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/20 text-base text-slate-200 transition-colors hover:bg-black/35"
       >
         ⋯
       </button>
 
-      {open && menuPosition ? createPortal((
-        <div
-          id={`history-session-menu-${sessionId}`}
-          className="fixed z-[80] w-44 rounded-lg border border-white/15 bg-[rgb(var(--surface-rgb)/0.98)] p-1 shadow-xl"
-          style={{ top: `${menuPosition.top}px`, left: `${Math.max(8, menuPosition.left)}px` }}
-        >
-          <Link
-            href={`/history/${sessionId}?returnTab=sessions&view=${mode}&edit=1`}
-            className="block rounded-md px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
-          >
-            Edit
-          </Link>
-          <button type="button" disabled className="block w-full cursor-not-allowed rounded-md px-3 py-2 text-left text-sm text-slate-500">Perform Again (Coming soon)</button>
-          <button type="button" disabled className="block w-full cursor-not-allowed rounded-md px-3 py-2 text-left text-sm text-slate-500">Save as Template (Coming soon)</button>
-          <div className="px-1 py-1">
-            <ConfirmedServerFormButton
-              action={deleteCompletedSessionAction}
-              hiddenFields={{ sessionId }}
-              triggerLabel="Delete"
-              triggerAriaLabel="Delete session"
-              triggerClassName={getAppButtonClassName({ variant: "destructive", size: "sm", className: "w-full justify-center" })}
-              modalTitle="Delete log?"
-              modalDescription="This will permanently delete this workout session and all logged sets."
-              confirmLabel="Delete"
-              contextLines={[routineTitle, `${formatDateShort(startedAt)}${durationSec ? ` • ${formatDurationShort(durationSec)}` : ""}`]}
-            />
+      <BottomSheet open={open} title="Session actions" onClose={() => setOpen(false)}>
+        <div className="space-y-3 pb-2">
+          <div className="px-1">
+            <p className="text-sm font-semibold text-slate-50">{routineTitle}</p>
+            <p className="mt-1 text-xs text-slate-400">
+              {formatDateShort(startedAt)}
+              {durationSec ? ` • ${formatDurationShort(durationSec)}` : ""}
+            </p>
           </div>
+
+          <SheetActionRow>
+            <Link
+              href={`/history/${sessionId}?returnTab=sessions&view=${mode}&edit=1`}
+              onClick={() => setOpen(false)}
+              className="flex min-h-12 w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-100 transition hover:bg-white/8"
+            >
+              <span>Edit log</span>
+              <span className="text-xs text-slate-400">Open editor</span>
+            </Link>
+          </SheetActionRow>
+
+          <SheetActionRow>
+            <button type="button" disabled className="flex min-h-12 w-full cursor-not-allowed items-center justify-between rounded-xl px-4 py-3 text-left text-sm text-slate-500">
+              <span>Perform again</span>
+              <span className="text-xs text-slate-600">Coming soon</span>
+            </button>
+            <button type="button" disabled className="flex min-h-12 w-full cursor-not-allowed items-center justify-between rounded-xl px-4 py-3 text-left text-sm text-slate-500">
+              <span>Save as template</span>
+              <span className="text-xs text-slate-600">Coming soon</span>
+            </button>
+          </SheetActionRow>
+
+          <ConfirmedServerFormButton
+            action={deleteCompletedSessionAction}
+            hiddenFields={{ sessionId }}
+            triggerLabel="Delete log"
+            triggerAriaLabel="Delete session"
+            triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "w-full justify-center" })}
+            modalTitle="Delete log?"
+            modalDescription="This will permanently delete this workout session and all logged sets."
+            confirmLabel="Delete"
+            contextLines={[routineTitle, `${formatDateShort(startedAt)}${durationSec ? ` • ${formatDurationShort(durationSec)}` : ""}`]}
+          />
         </div>
-      ), document.body) : null}
+      </BottomSheet>
     </div>
   );
 }
@@ -184,6 +178,7 @@ function HistorySessionRow({
   const dayLabel = session.dayTitle?.trim();
   const showDayLabel = dayLabel && !isWeekdayTitle(dayLabel);
   const metrics = performanceParts(session);
+  const condensedMetrics = compactMetricsSummary(session).join(" • ");
 
   return (
     <AppPanel
@@ -194,7 +189,7 @@ function HistorySessionRow({
         session.prCounts.total > 0 ? "border-[rgb(var(--button-primary-border)/0.38)]" : undefined,
       )}
     >
-      <div className="relative min-h-[120px]">
+      <div className={cn("relative", mode === "compact" ? "min-h-[92px]" : "min-h-[156px]")}>
         <Link
           href={`/history/${session.id}?returnTab=sessions&view=${mode}`}
           aria-label={`View session details for ${routineTitle}`}
@@ -203,10 +198,18 @@ function HistorySessionRow({
 
         <div className="relative z-10 flex items-start gap-3">
           <div className="min-w-0 flex-1 pr-1">
-            <div className="flex items-start gap-2">
-              <p className="min-w-0 flex-1 text-[15px] font-semibold leading-5 text-slate-50 sm:text-base">{routineTitle}</p>
-            </div>
-            <p className="mt-1 text-xs leading-4 text-slate-300">
+            <p className={cn(
+              "min-w-0 pr-1 text-slate-50",
+              mode === "compact" ? "line-clamp-2 text-[15px] font-semibold leading-5" : "line-clamp-2 text-base font-semibold leading-5",
+            )}
+            >
+              {routineTitle}
+            </p>
+            <p className={cn(
+              "mt-1 text-slate-300",
+              mode === "compact" ? "text-[11px] leading-4" : "text-xs leading-4",
+            )}
+            >
               {showDayLabel ? `${dayLabel} · ` : null}
               <span>{dateLabel}</span>
             </p>
@@ -221,25 +224,37 @@ function HistorySessionRow({
           />
         </div>
 
-        <div className="relative z-10 mt-3 flex flex-wrap gap-1.5">
-          {metrics.map((metric) => (
-            <MetricChip key={metric.label} label={metric.label} value={metric.value ?? ""} emphasized={metric.label === "PRs"} />
-          ))}
-        </div>
+        {mode === "compact" ? (
+          <div className="relative z-10 mt-3 rounded-2xl border border-white/8 bg-black/10 px-3 py-2">
+            <p className="line-clamp-2 text-[11px] leading-4 text-slate-300">{condensedMetrics}</p>
+          </div>
+        ) : (
+          <>
+            <div className="relative z-10 mt-3 flex flex-wrap gap-1.5">
+              {metrics.map((metric) => (
+                <MetricChip key={metric.label} label={metric.label} value={metric.value ?? ""} emphasized={metric.label === "PRs"} />
+              ))}
+            </div>
 
-        {session.topSet ? (
-          <p
-            className={cn(
-              "relative z-10 mt-3 overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-4 text-slate-400",
-              mode === "compact" ? "max-w-full" : "max-w-full",
-            )}
-            title={`Top set: ${session.topSet.exerciseName} — ${session.topSet.display}`}
-          >
-            <span className="text-slate-500">Top set</span>
-            <span className="mx-1 text-slate-600">•</span>
-            <span className="truncate">{session.topSet.exerciseName} — {session.topSet.display}</span>
-          </p>
-        ) : null}
+            {session.prCounts.total > 0 ? (
+              <div className="relative z-10 mt-3 rounded-2xl border border-[rgb(var(--button-primary-border)/0.26)] bg-[rgb(var(--button-primary-bg)/0.08)] px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">PR summary</p>
+                <p className="mt-1 text-sm font-medium leading-5 text-slate-100">{session.prLabel}</p>
+              </div>
+            ) : null}
+
+            {session.topSet ? (
+              <div className="relative z-10 mt-3 rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Top set</p>
+                <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-300" title={`Top set: ${session.topSet.exerciseName} — ${session.topSet.display}`}>
+                  <span className="font-medium text-slate-100">{session.topSet.exerciseName}</span>
+                  <span className="mx-1 text-slate-600">•</span>
+                  <span>{session.topSet.display}</span>
+                </p>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
     </AppPanel>
   );
@@ -291,7 +306,7 @@ export function HistorySessionsClient({ sessions, initialViewMode }: HistorySess
           ariaLabel="History tabs"
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/8 bg-black/10 px-2 py-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/8 bg-black/10 px-2.5 py-1.5">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">Card density</p>
           <ViewModePills value={effectiveViewMode} onChange={setViewMode} />
         </div>

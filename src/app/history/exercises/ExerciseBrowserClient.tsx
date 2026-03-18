@@ -32,7 +32,6 @@ function getExerciseDisplayName(row: ExerciseBrowserRow) {
   return "Unknown exercise";
 }
 
-
 function formatShortDate(dateValue: string | null) {
   if (!dateValue) return null;
 
@@ -78,9 +77,15 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     ? `${row.pr_est_1rm.toFixed(0)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
     : null;
   const hasSignal = Boolean(row.bestSummary || row.prLabel || strengthPrSummary);
+  const primaryLine = row.kind === "strength"
+    ? [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" • ")
+    : [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" • ");
+  const secondaryLine = row.kind === "strength"
+    ? [row.bestSummary ? `Best ${row.bestSummary}` : null, row.prLabel ? `PRs ${row.prLabel}` : null, strengthPrSummary ? `1RM ${strengthPrSummary}` : null].filter(Boolean).join(" • ")
+    : row.bestSummary ? `Best ${row.bestSummary}` : null;
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border/25 bg-surface/45 transition-colors hover:border-border/35 active:scale-[0.99]">
+    <div className="relative overflow-hidden rounded-2xl border border-border/25 bg-surface/45 transition-colors hover:border-border/35 active:scale-[0.99]">
       {hasSignal ? <div className="absolute inset-y-0 left-0 w-0.5 bg-[rgb(var(--brand)/0.68)]" aria-hidden="true" /> : null}
       <button
         type="button"
@@ -93,26 +98,25 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         aria-label={`Open exercise info for ${displayName}`}
         className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
       >
-        <div className="flex min-h-[88px] items-stretch">
-          <div className="min-w-0 flex-1 p-3 text-left">
-            <p className="line-clamp-2 text-base font-bold leading-tight text-[rgb(var(--text)/0.98)]">{displayName}</p>
-            <div className="mt-0.5 space-y-0.5 text-xs leading-snug text-[rgb(var(--text)/0.54)]">
-              {row.kind === "strength" ? (
-                <>
-                  {lastDate || row.lastSummary ? <p>Last: {[lastDate, row.lastSummary].filter(Boolean).join(" · ")}</p> : null}
-                  {row.bestSummary || row.prLabel ? <p>PR: {row.bestSummary || row.prLabel}</p> : null}
-                  {strengthPrSummary ? <p>STR PR: {strengthPrSummary}</p> : null}
-                </>
-              ) : (
-                <>
-                  {lastDate || row.lastSummary ? <p className="text-[rgb(var(--text)/0.78)]">Last: {[lastDate, row.lastSummary].filter(Boolean).join(" · ")}</p> : null}
-                  {row.bestSummary ? <p>{row.bestSummary}</p> : null}
-                </>
-              )}
+        <div className="flex min-h-[96px] items-stretch gap-0">
+          <div className="min-w-0 flex-1 p-3.5 text-left">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-[15px] font-semibold leading-5 text-[rgb(var(--text)/0.98)]">{displayName}</p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.5)]">
+                  {row.kind === "strength" ? "Strength history" : "Cardio history"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-2 space-y-1 text-xs leading-4">
+              {primaryLine ? <p className="line-clamp-2 text-[rgb(var(--text)/0.8)]">{primaryLine}</p> : null}
+              {secondaryLine ? <p className="line-clamp-2 text-[rgb(var(--text)/0.58)]">{secondaryLine}</p> : null}
             </div>
           </div>
-          <div className="basis-[40%] max-w-[180px] shrink-0 self-stretch overflow-hidden border-l border-border/20">
-            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full object-cover" />
+
+          <div className="w-[34%] max-w-[132px] min-w-[104px] shrink-0 self-stretch overflow-hidden border-l border-border/20 bg-black/10">
+            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full object-cover object-center" />
           </div>
         </div>
       </button>
@@ -186,13 +190,14 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <AppPanel className="space-y-2 p-3">
+      <AppPanel className="space-y-2 p-2.5">
         <SegmentedControl
           options={[
             { label: "Sessions", value: "sessions", href: "/history" },
             { label: "Exercises", value: "exercises", href: "/history/exercises" },
           ]}
           value="exercises"
+          size="sm"
           ariaLabel="History tabs"
         />
 
