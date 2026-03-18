@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Mobile history cards should prefer hierarchy over inline completeness
+- Type: Pattern
+- Summary: On narrow mobile surfaces, history cards should follow a consistent order of title, context, compact metrics, then optional detail so the most important workout information survives even when width is constrained.
+- Suggested Playbook File: docs/PATTERNS/mobile-card-hierarchy.md
+- Rationale: Prevents scan-heavy audit surfaces from collapsing into clipped prose rows where menus, dates, and performance signals compete for the same single-line space.
+- Evidence: src/app/history/HistorySessionsClient.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Never let migration or sentinel exercise entities leak past the normalization boundary
 - Type: Guardrail
 - Summary: User-facing UI should consume normalized exercise presentation data only; unresolved exercise rows must be collapsed once near the data boundary into either a canonical exercise name or an explicit unknown-exercise fallback.
