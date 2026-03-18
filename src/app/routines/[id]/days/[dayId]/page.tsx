@@ -108,6 +108,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
               <AppHeader
                 title={dayLabel}
                 action={<TopRightBackButton href="/routines" />}
+                actionClassName="-mt-1"
               />
 
               {dayRow.is_rest || dayExercises.length === 0 ? (

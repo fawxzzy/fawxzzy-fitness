@@ -5,6 +5,7 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 export function SessionBackButton() {
   return (
     <TopRightBackButton
+      href="/today"
       ariaLabel="Back to Today"
       onClick={() => {
         window.dispatchEvent(

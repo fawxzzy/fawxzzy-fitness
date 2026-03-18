@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { useBackNavigation } from "@/components/ui/useBackNavigation";
 
 type Props = {
   href: string;
@@ -12,8 +12,8 @@ type Props = {
 };
 
 export function RoutineBackButton({ href, hasUnsavedChanges = true }: Props) {
-  const router = useRouter();
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const { navigateBack } = useBackNavigation({ fallbackHref: href, historyBehavior: "history-first" });
 
   return (
     <>
@@ -40,7 +40,7 @@ export function RoutineBackButton({ href, hasUnsavedChanges = true }: Props) {
                   className="min-w-20 border-red-300/70 bg-red-500/30 text-white hover:bg-red-500/45"
                   onClick={() => {
                     setShowDiscardModal(false);
-                    router.push(href);
+                    navigateBack();
                   }}
                 >
                   Discard

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { AppButton } from "@/components/ui/AppButton";
+import { AppHeader } from "@/components/ui/app/AppHeader";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { RoutineLocalDefaults } from "@/components/RoutineLocalDefaults";
 import { requireUser } from "@/lib/auth";
@@ -77,10 +78,7 @@ export default async function NewRoutinePage() {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">New Routine</h1>
-        <RoutineBackButton href="/routines" />
-      </div>
+      <AppHeader title="New Routine" action={<RoutineBackButton href="/routines" />} actionClassName="-mt-1" />
       <form action={createRoutineAction} className="space-y-3 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.5)] p-4">
         <RoutineLocalDefaults timezoneOptions={ROUTINE_TIMEZONE_OPTIONS} />
         <label className="block text-sm">
