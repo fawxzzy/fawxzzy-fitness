@@ -1,3 +1,4 @@
+- Fixed partial-day consistency so Day View now renders runnable exercises with a warning, Today no longer shows stale global error banners during normal browsing, and workout starts use canonical day summaries to skip only invalid rows.
 ## 0.3.73 — 2026-03-18
 
 ### WHAT

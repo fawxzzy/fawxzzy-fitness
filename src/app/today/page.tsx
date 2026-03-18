@@ -18,11 +18,12 @@ import { requireUser } from "@/lib/auth";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
-import { getRunnableDayState, getSessionStartErrorMessage, normalizeRunnableDayExercises } from "@/lib/runnable-day";
-import { buildCanonicalDaySummaries, loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
+import { getRunnableDayState, getSessionStartErrorMessage } from "@/lib/runnable-day";
+import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getTodayGlobalErrorMessage } from "@/lib/today-page-state";
 import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
@@ -62,7 +63,7 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
 
   const { data: routineDay, error: routineDayError } = await supabase
     .from("routine_days")
-    .select("id, name, is_rest")
+    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
     .eq("routine_id", activeRoutine.id)
     .eq("day_index", routineDayIndex)
     .eq("user_id", user.id)
@@ -76,7 +77,7 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
 
   const { data: templateExercises, error: templateError } = await supabase
     .from("routine_day_exercises")
-    .select("id, exercise_id, position, notes, measurement_type, default_unit, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories")
+    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, notes, measurement_type, default_unit")
     .eq("routine_day_id", routineDay.id)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -85,25 +86,14 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
     return { ok: false, error: "Could not load exercises for this day." };
   }
 
-  const { exerciseDetailsById, canonicalExerciseIdSet, canonicalExerciseIdByRawId } = await loadCanonicalExerciseCatalog({
+  const { summaries } = await buildCanonicalDaySummaries({
     supabase,
-    exercises: templateExercises ?? [],
+    routineDays: [routineDay as RoutineDayRow],
+    allDayExercises: (templateExercises ?? []) as RoutineDayExerciseRow[],
   });
-  const normalizedTemplateExercises = (templateExercises ?? []).map((exercise) => ({
-    ...exercise,
-    exercise_id: canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id,
-  }));
-
-  const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(normalizedTemplateExercises, canonicalExerciseIdSet, {
-    logSource: "startSessionAction",
-    getExerciseName: (exercise) => {
-      const details = exerciseDetailsById.get(exercise.exercise_id)
-        ?? (typeof exercise.exercise_id === "string" ? exerciseDetailsById.get(exercise.exercise_id.trim()) : null)
-        ?? null;
-
-      return details?.name ?? null;
-    },
-  });
+  const canonicalDay = summaries[0] ?? null;
+  const runnableExercises = canonicalDay?.runnableExercises ?? [];
+  const invalidExercises = canonicalDay?.invalidExercises ?? [];
   const startError = getSessionStartErrorMessage({
     isRest: Boolean(routineDay.is_rest),
     runnableExerciseCount: runnableExercises.length,
@@ -132,14 +122,8 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
   }
 
   if (runnableExercises.length > 0) {
-    const exerciseFallbackById = new Map(Array.from(exerciseDetailsById.values()).map((exercise) => [exercise.id, {
-      measurement_type: exercise.measurement_type,
-      default_unit: exercise.default_unit,
-    }]));
-
     const { error: exerciseError } = await supabase.from("session_exercises").insert(
       runnableExercises.map((exercise) => {
-        const fallback = exerciseFallbackById.get(exercise.exercise_id);
         const mappedGoalColumns = mapRoutineDayGoalToSessionColumns({
           target_sets: exercise.target_sets,
           target_reps: exercise.target_reps,
@@ -151,11 +135,11 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
           target_distance: exercise.target_distance,
           target_distance_unit: exercise.target_distance_unit,
           target_calories: exercise.target_calories,
-          measurement_type: exercise.measurement_type,
-          default_unit: exercise.default_unit,
+          measurement_type: exercise.measurement_type ?? null,
+          default_unit: exercise.default_unit ?? null,
         });
 
-        const measurementType = resolveSessionExerciseMeasurementType(mappedGoalColumns.measurement_type ?? fallback?.measurement_type);
+        const measurementType = resolveSessionExerciseMeasurementType(mappedGoalColumns.measurement_type ?? exercise.details?.measurement_type);
         const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
         warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "startSessionAction" });
 
@@ -406,6 +390,12 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     inProgressSessionId: inProgressSession?.id ?? null,
   };
 
+  const todayGlobalError = getTodayGlobalErrorMessage({
+    searchParamError: searchParams?.error,
+    hasInProgressSession: Boolean(todayPayload.inProgressSessionId),
+    fetchFailed,
+  });
+
   const todaySnapshot: TodayCacheSnapshot | null =
     todayPayload.routine === null
       ? null
@@ -498,7 +488,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
           <TodayOfflineBridge snapshot={todaySnapshot} />
 
-          {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
+          {todayGlobalError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{todayGlobalError}</p> : null}
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );
