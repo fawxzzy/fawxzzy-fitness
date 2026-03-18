@@ -32,7 +32,7 @@ export function RoutineSaveButton({ formId, originalCycleLength }: { formId: str
         open={open}
         title="Reduce cycle length?"
         description="Reducing cycle length will delete days beyond the new length."
-        confirmLabel="Delete"
+        confirmLabel="Save and remove extra days"
         onCancel={() => setOpen(false)}
         onConfirm={submitForm}
       />
