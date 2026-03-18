@@ -52,5 +52,5 @@ export const EXERCISE_OPTIONS = [
 const exerciseNameMap = new Map<string, string>(EXERCISE_OPTIONS.map((exercise) => [exercise.id, exercise.name]));
 
 export function getExerciseName(exerciseId: string) {
-  return exerciseNameMap.get(exerciseId) ?? exerciseId;
+  return exerciseNameMap.get(exerciseId) ?? "Unknown exercise";
 }

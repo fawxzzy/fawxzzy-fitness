@@ -13,6 +13,7 @@ import { controlClassName } from "@/components/ui/formClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, deleteRoutineDayExerciseAction, saveRoutineDayAction, updateRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { requireUser } from "@/lib/auth";
+import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
@@ -313,10 +314,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                       <span className="flex min-w-0 flex-1 items-center gap-2">
                         <ExerciseInfoIconButton
                           exerciseId={matchingExercise?.id ?? exercise.exercise_id}
-                          exerciseName={exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}
+                          exerciseName={normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null })}
                         />
                         <span className="min-w-0 truncate">
-                          <span className="font-semibold">{exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}</span>
+                          <span className="font-semibold">{normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null })}</span>
                           <span className="text-muted"> · {targetSummary}</span>
                         </span>
                       </span>
@@ -361,7 +362,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                           modalTitle="Delete routine day exercise?"
                           modalDescription="This will remove this exercise from the routine day."
                           confirmLabel="Delete"
-                          details={`Exercise: ${exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id}`}
+                          details={`Exercise: ${normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null })}`}
                         />
                       </div>
                     </div>

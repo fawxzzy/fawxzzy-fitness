@@ -4,6 +4,7 @@ import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
+import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
   addSetAction,
@@ -128,7 +129,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             const displayTarget = sessionTargets.get(exercise.id);
             return {
               id: exercise.id,
-              name: exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+              name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
               isSkipped: exercise.is_skipped,
               defaultUnit: exercise.default_unit ?? null,
               isCardio: hasCardioTag(exerciseById.get(exercise.exercise_id)),

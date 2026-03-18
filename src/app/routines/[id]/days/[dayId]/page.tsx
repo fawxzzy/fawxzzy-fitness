@@ -12,6 +12,7 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
+import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
@@ -119,7 +120,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                 <RoutineDayExerciseList
                   exercises={dayExercises.map((exercise) => {
                     const details = exerciseDetailsById.get(exercise.exercise_id);
-                    const exerciseName = details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id;
+                    const exerciseName = normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, name: details?.name, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null });
                     return {
                       id: exercise.id,
                       name: exerciseName,

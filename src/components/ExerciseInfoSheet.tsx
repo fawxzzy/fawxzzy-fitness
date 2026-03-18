@@ -57,7 +57,7 @@ export type ExerciseInfoSheetStats = {
   prLabel: string;
 };
 
-const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
+const tagClassName = "rounded-full border border-border/50 bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-[0.18em] text-muted";
 const sectionTitleClassName = "text-xs font-semibold uppercase tracking-wide text-muted";
 
 function MetaTag({ value }: { value: string | null }) {
@@ -71,9 +71,9 @@ function StatSection({ title, rows }: { title: string; rows: Array<{ label: stri
   if (!visibleRows.length) return null;
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <p className={sectionTitleClassName}>{title}</p>
-      <div className="space-y-1.5 text-left">
+      <div className="grid gap-2 text-left sm:grid-cols-2">
         {visibleRows.map((row) => (
           <StatLine key={`${title}-${row.label}`} label={row.label} value={row.value} />
         ))}
@@ -84,10 +84,10 @@ function StatSection({ title, rows }: { title: string; rows: Array<{ label: stri
 
 function StatLine({ label, value }: { label: string; value: string }) {
   return (
-    <p className="text-left text-sm leading-5 text-[rgb(var(--text)/0.95)]">
-      <span className="text-white/60">{label}:</span>{" "}
-      <span className="break-words">{value}</span>
-    </p>
+    <div className="rounded-lg border border-border/45 bg-[rgb(var(--bg)/0.34)] px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
+      <p className="mt-1 break-words text-sm leading-5 text-[rgb(var(--text)/0.95)]">{value}</p>
+    </div>
   );
 }
 
@@ -198,8 +198,8 @@ export function ExerciseInfoSheet({
       <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
         <section className="flex h-full w-full flex-col">
           <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(var(--app-safe-top),0px)]">
-            <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-3">
-              <h2 className="text-2xl font-semibold">Exercise info</h2>
+            <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2 px-4 py-2.5">
+              <h2 className="text-xl font-semibold tracking-tight">Exercise info</h2>
               <BackButton
                 onClick={(event) => {
                   event.preventDefault();
@@ -218,10 +218,12 @@ export function ExerciseInfoSheet({
           </div>
 
           <div className="flex-1 overflow-y-auto overscroll-contain">
-            <div className="mx-auto w-full max-w-xl space-y-3 px-4 pb-[calc(var(--app-safe-bottom)+1rem)] pt-3">
-              <div>
-                <p className="text-base font-semibold text-text">{exercise.name}</p>
-                <div className="mt-1 flex flex-wrap gap-1">
+            <div className="mx-auto w-full max-w-xl space-y-4 px-4 pb-[calc(var(--app-safe-bottom)+1rem)] pt-4">
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xl font-semibold leading-tight text-text">{exercise.name}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
                   <MetaTag value={exercise.equipment} />
                   <MetaTag value={exercise.primary_muscle} />
                   <MetaTag value={exercise.movement_pattern} />
@@ -229,7 +231,7 @@ export function ExerciseInfoSheet({
               </div>
 
               {exercise.how_to_short ? (
-                <div className="rounded-md border border-white px-2.5 py-2">
+                <div className="rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.38)] px-3 py-3">
                   <p className="text-sm text-text">{exercise.how_to_short}</p>
                 </div>
               ) : null}
@@ -237,7 +239,7 @@ export function ExerciseInfoSheet({
               <div
                 id={statsPanelId}
                 data-testid="exercise-info-stats-box"
-                className="min-h-[94px] space-y-3 rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] px-3 py-2.5 text-xs text-muted"
+                className="min-h-[94px] space-y-3 rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.28)] px-3.5 py-3 text-xs text-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
               >
                 <p className={sectionTitleClassName}>Stats</p>
                 {statsLoading ? (
@@ -257,7 +259,7 @@ export function ExerciseInfoSheet({
                 )}
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">
                   <ExerciseAssetImage
                     key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}

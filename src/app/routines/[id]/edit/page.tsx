@@ -12,6 +12,7 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { requireUser } from "@/lib/auth";
+import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
 import { getRoutineEditPath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -353,7 +354,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
     dayExerciseCount.set(row.routine_day_id, (dayExerciseCount.get(row.routine_day_id) ?? 0) + 1);
     const preview = dayExercisePreview.get(row.routine_day_id) ?? [];
     if (preview.length < 3) {
-      preview.push(exerciseNameById.get(row.exercise_id) ?? "Exercise");
+      preview.push(normalizeExerciseDisplayName({ exerciseId: row.exercise_id, fallbackName: exerciseNameById.get(row.exercise_id) ?? null }));
       dayExercisePreview.set(row.routine_day_id, preview);
     }
   }

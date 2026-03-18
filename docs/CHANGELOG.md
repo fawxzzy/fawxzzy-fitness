@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-03-18 — Seal exercise display normalization boundary and polish exercise info
+
+### WHAT
+- Added a shared exercise display normalizer that resolves legacy aliases, suppresses UUID/sentinel placeholder labels, and guarantees user-facing exercise surfaces receive either a canonical name or the deliberate `Unknown exercise` fallback.
+- Applied the shared exercise-name normalization across Today, routine day detail, active session, and routine day edit flows so raw IDs and migration-only placeholder strings do not leak into cards, lists, or edit affordances.
+- Tightened the exercise info sheet header/content spacing, upgraded the stats presentation into clearer labeled tiles, and removed raw exercise IDs from user-visible load-error toasts while preserving internal logging.
+
+### WHY
+- Prevents migration/sentinel artifacts from leaking into production UI and making valid routine/session data look broken.
+- Keeps exercise-name integrity enforced once at the shared data/presentation boundary instead of relying on per-screen ad hoc cleanup.
+
 ## 2026-03-18 — Normalize shared in-app back navigation
 
 ### WHAT
