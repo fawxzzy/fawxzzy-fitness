@@ -22,7 +22,7 @@ export type RunnableDayExercise = {
   default_unit?: string | null;
 };
 
-export type RunnableDayState = "rest" | "empty" | "runnable";
+export type RunnableDayState = "rest" | "empty" | "partial" | "runnable";
 export type RunnableDayInvalidReason = "sentinel" | "missing_canonical" | "missing_identity" | "invalid_data";
 
 type NormalizeRunnableDayExercisesOptions<T extends RunnableDayExercise> = {
@@ -113,8 +113,10 @@ export function normalizeRunnableDayExercises<T extends RunnableDayExercise>(
 export function getRunnableDayState(args: {
   isRest: boolean;
   runnableExerciseCount: number;
+  invalidExerciseCount?: number;
 }): RunnableDayState {
   if (args.isRest) return "rest";
+  if (args.runnableExerciseCount > 0 && (args.invalidExerciseCount ?? 0) > 0) return "partial";
   if (args.runnableExerciseCount > 0) return "runnable";
   return "empty";
 }
@@ -134,10 +136,6 @@ export function getSessionStartErrorMessage(args: {
     }
 
     return "Add at least one exercise to this day before starting a workout.";
-  }
-
-  if (args.invalidExerciseCount > 0) {
-    return "This day contains invalid exercises. Edit the day before starting a workout.";
   }
 
   return null;

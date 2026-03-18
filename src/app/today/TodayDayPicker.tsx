@@ -28,7 +28,7 @@ type TodayExercise = {
   how_to_short: string | null;
 };
 
-type TodayDayState = "rest" | "empty" | "runnable";
+type TodayDayState = "rest" | "empty" | "partial" | "runnable";
 
 type TodayDay = {
   id: string;
@@ -45,12 +45,28 @@ function getDaySummary(day: TodayDay) {
     return "Rest day. Recovery and mobility only.";
   }
 
-  if (day.invalidExerciseCount > 0) {
+  if (day.state === "empty" && day.invalidExerciseCount > 0) {
     return "This day has invalid exercises. Edit the day before starting a workout.";
   }
 
   if (day.state === "empty") {
     return "No exercises are planned for this day yet.";
+  }
+
+  if (day.state === "partial") {
+    return "Some exercises could not be loaded and will be skipped when you start this workout.";
+  }
+
+  return null;
+}
+
+function getDaySummaryTone(day: TodayDay): "blocking" | "warning" | null {
+  if (day.state === "empty" && day.invalidExerciseCount > 0) {
+    return "blocking";
+  }
+
+  if (day.state === "partial") {
+    return "warning";
   }
 
   return null;
@@ -86,8 +102,9 @@ export function TodayDayPicker({
 
   const viewDayHref = selectedDay ? `/routines/${routineId}/days/${selectedDay.id}` : null;
   const editDayHref = selectedDay ? `/routines/${routineId}/edit/day/${selectedDay.id}` : null;
-  const isRunnableDay = selectedDay?.state === "runnable";
+  const isRunnableDay = selectedDay?.state === "runnable" || selectedDay?.state === "partial";
   const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
+  const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
 
   const actionsNode = useMemo(() => (
     <>
@@ -145,7 +162,18 @@ export function TodayDayPicker({
           />
 
           {daySummary ? (
-            <p className="rounded-md border border-border/70 bg-[rgb(var(--bg)/0.35)] px-3 py-2 text-sm text-muted">{daySummary}</p>
+            <p
+              className={[
+                "rounded-md px-3 py-2 text-sm",
+                daySummaryTone === "blocking"
+                  ? "border border-red-400/30 bg-red-500/10 text-red-100"
+                  : daySummaryTone === "warning"
+                    ? "border border-amber-400/20 bg-amber-500/10 text-amber-100"
+                    : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
+              ].join(" ")}
+            >
+              {daySummary}
+            </p>
           ) : null}
 
           <ul className="space-y-2">
@@ -180,7 +208,7 @@ export function TodayDayPicker({
                   key={day.id}
                   tone={isSelected ? "active" : "default"}
                   leftTop={<span>{day.name}{day.isRest ? " (Rest)" : ""}</span>}
-                  leftBottom={day.state === "runnable" ? `${day.exercises.length} exercises` : getDaySummary(day) ?? undefined}
+                  leftBottom={day.state === "runnable" || day.state === "partial" ? `${day.exercises.length} exercises` : getDaySummary(day) ?? undefined}
                   onClick={() => {
                     setSelectedDayIndex(day.dayIndex);
                     setIsPickerOpen(false);
