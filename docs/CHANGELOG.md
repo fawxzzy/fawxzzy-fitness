@@ -20,6 +20,16 @@
 ### WHY
 - Prevents density toggles from feeling fake by removing lower-priority information in Compact mode instead of merely shrinking the same layout.
 - Follows the mobile action rule that secondary card actions should live in stable bottom sheets rather than fragile anchored popovers.
+## 2026-03-18 — Normalize Edit Day planned-workout list interactions
+
+### WHAT
+- Renamed the day editor header to `Edit Day — <day name>` so the screen reads as a dedicated day editor instead of a generic detail view.
+- Reworked the Edit Day planned-workouts section onto the shared exercise-card row pattern, moved exercise info access to primary row tap, demoted edit/delete into trailing controls, and added direct drag-and-drop reordering that persists by rewriting routine-day exercise positions.
+- Kept the Add Exercises composer visually separate but aligned its card treatment with the rest of the Edit Day screen.
+
+### WHY
+- Prevents one-off list controls from making the same exercise entity behave differently across Today, Day View, and Edit Day.
+- Makes planned-workout management easier to learn by reserving row tap for entity access and keeping row actions secondary.
 
 ## 2026-03-18 — Enforce runnable-day integrity before Today session writes
 

@@ -13,6 +13,7 @@ export function ExerciseCard({
   badgeText,
   disabled = false,
   className,
+  trailingClassName,
 }: {
   title: string;
   subtitle?: string;
@@ -22,6 +23,7 @@ export function ExerciseCard({
   badgeText?: string;
   disabled?: boolean;
   className?: string;
+  trailingClassName?: string;
 }) {
   const content = (
     <>
@@ -39,7 +41,7 @@ export function ExerciseCard({
         {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal break-words", appTokens.metaText)}>{subtitle}</p> : null}
         {children}
       </div>
-      <div className="shrink-0 text-sm font-medium leading-snug text-[rgb(var(--text)/0.98)]">{rightIcon}</div>
+      <div className={cn("shrink-0 text-sm font-medium leading-snug text-[rgb(var(--text)/0.98)]", trailingClassName)}>{rightIcon}</div>
     </>
   );
 

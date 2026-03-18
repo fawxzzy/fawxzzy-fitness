@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Reuse one list interaction pattern for the same entity across screens
+- Type: Pattern
+- Summary: When the same entity appears in browse, detail, and edit flows, the app should keep one primary row-tap access pattern and move screen-specific actions into secondary trailing controls instead of inventing route-local buttons.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents adjacent screens from feeling unrelated, reduces relearning cost, and keeps exercise-info discovery predictable even when edit affordances differ.
+- Evidence: src/components/ExerciseCard.tsx, src/app/today/TodayExerciseRows.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Runnable-day UI must match session-write invariants
 - Type: Guardrail
 - Summary: A day may offer workout-start actions only when the same normalized canonical exercise set is valid for session materialization; rest days, empty days, and invalid placeholder/sentinel days must render as non-runnable states.
