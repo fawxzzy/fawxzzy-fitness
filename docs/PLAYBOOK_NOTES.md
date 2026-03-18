@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Browser entry should coach install but never block auth
+- Type: Pattern
+- Summary: Browser auth entry points for install-first mobile products should recommend the installed app shell, but must keep login, account creation, email confirmation, and password recovery fully usable in-browser.
+- Suggested Playbook File: docs/PATTERNS/mobile-install-entry.md
+- Rationale: Prevents teams from overcorrecting into browser lockouts that break deep links, recovery flows, and first-run account access while still steering users toward the intended app shell.
+- Evidence: src/app/login/page.tsx, src/app/login/LoginScreen.tsx, src/components/auth/InstallGuidance.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Never let migration or sentinel exercise entities leak past the normalization boundary
 - Type: Guardrail
 - Summary: User-facing UI should consume normalized exercise presentation data only; unresolved exercise rows must be collapsed once near the data boundary into either a canonical exercise name or an explicit unknown-exercise fallback.

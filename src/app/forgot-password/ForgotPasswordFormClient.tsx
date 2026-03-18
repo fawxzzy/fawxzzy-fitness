@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { BackButton } from "@/components/ui/BackButton";
 import { requestPasswordReset } from "@/app/auth/actions";
+import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import { BackButton } from "@/components/ui/BackButton";
+import { PrimaryButton } from "@/components/ui/AppButton";
+import { Input } from "@/components/ui/Input";
 
 const COOLDOWN_SECONDS = 60;
 const NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
@@ -16,13 +19,9 @@ function SubmitButton({ cooldownRemaining }: { cooldownRemaining: number }) {
   const label = pending ? "Sending..." : isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
 
   return (
-    <button
-      type="submit"
-      disabled={isDisabled}
-      className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60"
-    >
+    <PrimaryButton type="submit" disabled={isDisabled} fullWidth>
       {label}
-    </button>
+    </PrimaryButton>
   );
 }
 
@@ -41,13 +40,11 @@ export default function ForgotPasswordFormClient({
 
   const message = useMemo(() => {
     if (errorMessage) {
-      return <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>;
+      return <AuthMessage tone="error">{errorMessage}</AuthMessage>;
     }
 
     if (infoMessage) {
-      return (
-        <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{infoMessage}</p>
-      );
+      return <AuthMessage tone="success">{infoMessage}</AuthMessage>;
     }
 
     return null;
@@ -82,23 +79,30 @@ export default function ForgotPasswordFormClient({
   }, [cooldownRemaining]);
 
   return (
-    <form action={requestPasswordReset} className="space-y-4 rounded-lg bg-white p-4 shadow-sm">
-      <h1 className="text-2xl font-semibold">Forgot password</h1>
-      <p className="text-sm text-slate-600">Enter your email and we’ll send a reset link.</p>
-      <div>
-        <label className="mb-1 block text-sm">Email</label>
-        <input
-          type="email"
-          name="email"
-          required
-          autoComplete="email"
-          className="w-full rounded-md border border-slate-300 px-3 py-2"
-        />
-      </div>
-      {message}
-      <SubmitButton cooldownRemaining={cooldownRemaining} />
-      <p className="text-xs text-slate-500">For security, you can request a new link once per minute.</p>
-      <BackButton href="/login" label="Back to log in" />
-    </form>
+    <AuthShell>
+      <AuthIntro
+        eyebrow="Password recovery"
+        title="Reset your password"
+        subtitle="Recovery still works in the browser, so you can request a new link without being forced into an install-only dead end."
+      />
+
+      <AuthCard>
+        <form action={requestPasswordReset} className="space-y-5">
+          <div className="space-y-3">
+            <p className="text-sm leading-6 text-slate-300">Enter your email and we’ll send a reset link.</p>
+            <AuthField label="Email">
+              <Input type="email" name="email" required autoComplete="email" placeholder="you@example.com" />
+            </AuthField>
+          </div>
+          {message}
+          <SubmitButton cooldownRemaining={cooldownRemaining} />
+          <p className="text-xs leading-5 text-slate-500">For security, you can request a new link once per minute.</p>
+        </form>
+
+        <AuthFooter>
+          <BackButton href="/login" label="Back to log in" />
+        </AuthFooter>
+      </AuthCard>
+    </AuthShell>
   );
 }
