@@ -108,7 +108,7 @@ export function SessionPageClient({
   );
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 pb-2">
       {!isExerciseOpen ? (
         <SessionHeaderControls
           sessionId={sessionId}
@@ -118,7 +118,12 @@ export function SessionPageClient({
         />
       ) : null}
 
-      {!isExerciseOpen ? <h1 className="text-lg font-semibold leading-tight text-text">{sessionTitle}</h1> : null}
+      {!isExerciseOpen ? (
+        <div className="space-y-1 px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Active session</p>
+          <h1 className="text-lg font-semibold leading-tight text-text">{sessionTitle}</h1>
+        </div>
+      ) : null}
 
       {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
       <ActionFeedbackToasts />

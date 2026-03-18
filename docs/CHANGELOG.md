@@ -1,3 +1,15 @@
+## 0.3.72 — 2026-03-18
+
+### WHAT
+- Refined the active session shell with a lighter two-row sticky header that separates Back, elapsed time, Quick Add, and a full-width Save Session action for clearer mobile scanning.
+- Simplified collapsed active-workout exercise rows so titles lead, the goal stays on one concise secondary line, set-count pills sit consistently at the trailing edge, and optional status chips stay visually secondary.
+- Tightened the current-session title block and expanded-card heading/goal hierarchy so overview scanning feels lighter without changing exercise logging, navigation, or save behavior.
+
+### WHY
+- Reduces header chrome density that made the workout overview feel cramped on mobile.
+- Improves list scanability by keeping the primary read order to title first, goal second, and metadata only when needed.
+- Preserves the existing session flow while aligning the active workout overview more closely with the app's simpler list patterns.
+
 ## 2026-03-18
 
 - Consolidated Today and routine day detail onto one shared canonical day-loader boundary that resolves routine-day exercises, canonical exercise metadata, runnable filtering, and display normalization from the same source model.
