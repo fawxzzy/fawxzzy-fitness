@@ -117,3 +117,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: src/app/history/HistorySessionsClient.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx
 - Status: Proposed
 
+
+## 2026-03-18 — Parent routine editors should use compact child rows, not embedded child workflows
+- Type: Pattern
+- Summary: Parent editors should keep routine metadata as the main content and represent child days as compact navigation rows with only status/count context; the full child edit surface belongs in the child editor.
+- Suggested Playbook File: docs/PATTERNS/editor-boundaries.md
+- Rationale: Prevents parent edit screens from becoming bloated with embedded child cards, inline previews, and duplicated workflow controls that weaken hierarchy and mobile scanability.
+- Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/EditRoutineManageDaysList.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
