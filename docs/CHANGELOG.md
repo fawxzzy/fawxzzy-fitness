@@ -10,6 +10,16 @@
 
 # Changelog
 
+## 2026-03-18 — Make mobile History density modes materially different
+
+### WHAT
+- Refactored `HistorySessionsClient` so Compact cards now collapse to a title, one context line, and a single condensed metrics row, while Details cards keep richer metric chips plus dedicated PR summary and top-set sections.
+- Replaced the anchored per-session 3-dot popover with a mobile-first bottom-sheet action surface that preserves Edit/Delete plus the existing placeholder actions as full-width sheet rows.
+- Cleaned up History → Exercises cards with tighter type hierarchy, clamped secondary lines, and a more balanced text/image split so key stats stay visible on narrow screens.
+
+### WHY
+- Prevents density toggles from feeling fake by removing lower-priority information in Compact mode instead of merely shrinking the same layout.
+- Follows the mobile action rule that secondary card actions should live in stable bottom sheets rather than fragile anchored popovers.
 ## 2026-03-18 — Normalize Edit Day planned-workout list interactions
 
 ### WHAT
