@@ -1,7 +1,7 @@
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseNameMap } from "@/lib/exercises";
-import { getRunnableDayState, normalizeRunnableDayExercises, type RunnableDayState } from "@/lib/runnable-day";
+import { getRunnableDayState, normalizeRunnableDayExercises, type RunnableDayInvalidReason, type RunnableDayState } from "@/lib/runnable-day";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 import type { RoutineDayExerciseRow, RoutineDayRow } from "@/types/db";
@@ -42,7 +42,7 @@ export type CanonicalDaySummary = {
   day: RoutineDayRow;
   state: RunnableDayState;
   runnableExercises: CanonicalDayExercise[];
-  invalidExercises: Array<{ id: string; exerciseId: string; reason: "sentinel" | "missing_canonical" }>;
+  invalidExercises: Array<{ id: string; exerciseId: string; reason: RunnableDayInvalidReason }>;
 };
 
 export type LoadedCanonicalExerciseCatalog = {
@@ -124,13 +124,19 @@ export async function loadCanonicalExerciseCatalog(args: {
     return legacyName ? [legacyName] : [];
   })));
 
-  const [exerciseRowsByIdResult, exerciseRowsByNameResult] = await Promise.all([
+  const [exerciseRowsByIdResult, exerciseRowsByAliasResult, exerciseRowsByNameResult] = await Promise.all([
     candidateExerciseIds.length === 0
       ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
       : args.supabase
           .from("exercises")
           .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit")
           .in("id", candidateExerciseIds),
+    rawExerciseIds.length === 0
+      ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
+      : args.supabase
+          .from("exercises")
+          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit")
+          .in("exercise_id", rawExerciseIds),
     legacyExerciseNames.length === 0
       ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
       : args.supabase
@@ -140,7 +146,7 @@ export async function loadCanonicalExerciseCatalog(args: {
   ]);
 
   const exerciseDetailsRows = Array.from(new Map(
-    [...(exerciseRowsByIdResult.data ?? []), ...(exerciseRowsByNameResult.data ?? [])].map((exercise) => [exercise.id, exercise]),
+    [...(exerciseRowsByIdResult.data ?? []), ...(exerciseRowsByAliasResult.data ?? []), ...(exerciseRowsByNameResult.data ?? [])].map((exercise) => [exercise.id, exercise]),
   ).values());
   const canonicalExerciseIdByRawId = buildCanonicalExerciseIdByRawId({ rawExerciseIds, exerciseDetailsRows });
   const canonicalExerciseIdSet = new Set(exerciseDetailsRows.map((exercise) => exercise.id));
@@ -173,7 +179,16 @@ export async function buildCanonicalDaySummaries(args: {
 
   const summaries = routineDays.map((day) => {
     const dayExercises = normalizedDayExercises.filter((exercise) => exercise.routine_day_id === day.id);
-    const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(dayExercises, canonicalExerciseIdSet);
+    const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(dayExercises, canonicalExerciseIdSet, {
+      logSource: "buildCanonicalDaySummaries",
+      getExerciseName: (exercise) => {
+        const details = exerciseDetailsById.get(exercise.exercise_id)
+          ?? (typeof exercise.exercise_id === "string" ? exerciseDetailsById.get(resolveCanonicalExerciseId(exercise.exercise_id)) : null)
+          ?? null;
+
+        return details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? null;
+      },
+    });
 
     return {
       day,

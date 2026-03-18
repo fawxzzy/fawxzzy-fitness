@@ -94,7 +94,16 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
     exercise_id: canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id,
   }));
 
-  const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(normalizedTemplateExercises, canonicalExerciseIdSet);
+  const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(normalizedTemplateExercises, canonicalExerciseIdSet, {
+    logSource: "startSessionAction",
+    getExerciseName: (exercise) => {
+      const details = exerciseDetailsById.get(exercise.exercise_id)
+        ?? (typeof exercise.exercise_id === "string" ? exerciseDetailsById.get(exercise.exercise_id.trim()) : null)
+        ?? null;
+
+      return details?.name ?? null;
+    },
+  });
   const startError = getSessionStartErrorMessage({
     isRest: Boolean(routineDay.is_rest),
     runnableExerciseCount: runnableExercises.length,

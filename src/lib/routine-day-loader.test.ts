@@ -20,7 +20,7 @@ function createSupabaseStub(exercises: ExerciseRow[]) {
         select() {
           return {
             in(column: string, values: string[]) {
-              const filtered = exercises.filter((exercise) => values.includes(column === "id" ? exercise.id : exercise.name));
+              const filtered = exercises.filter((exercise) => values.includes(column === "id" ? exercise.id : column === "exercise_id" ? (exercise.exercise_id ?? "") : exercise.name));
               return Promise.resolve({ data: filtered, error: null });
             },
           };
@@ -63,7 +63,7 @@ test("loadCanonicalExerciseCatalog resolves legacy placeholder ids by exercise n
   assert.equal(canonicalExerciseIdByRawId.get(legacyBenchPressId), canonicalId);
 });
 
-test("normalizeRunnableDayExercises keeps valid canonical, alias-resolved, and custom rows while rejecting sentinel placeholders", async () => {
+test("normalizeRunnableDayExercises keeps valid canonical, alias-resolved, fallback-valid, and custom rows while rejecting sentinel placeholders", async () => {
   const legacyBenchPressId = "11111111-1111-1111-1111-111111111111";
   const sentinelId = "66666666-6666-6666-6666-666666666666";
   const catalog = await loadCanonicalExerciseCatalog({
@@ -78,6 +78,7 @@ test("normalizeRunnableDayExercises keeps valid canonical, alias-resolved, and c
       { exercise_id: "canonical-direct" } as never,
       { exercise_id: sentinelId } as never,
       { exercise_id: "missing-id" } as never,
+      { exercise_id: "orphan-custom" } as never,
     ],
   });
 
@@ -87,13 +88,17 @@ test("normalizeRunnableDayExercises keeps valid canonical, alias-resolved, and c
     { id: "row-3", exercise_id: catalog.canonicalExerciseIdByRawId.get("canonical-direct") ?? "canonical-direct", position: 3, notes: null },
     { id: "row-4", exercise_id: sentinelId, position: 4, notes: null },
     { id: "row-5", exercise_id: "missing-id", position: 5, notes: null },
+    { id: "row-6", exercise_id: "orphan-custom", position: 6, notes: null, measurement_type: "reps" as const, target_sets: 3 },
   ];
 
-  const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(normalizedExercises, catalog.canonicalExerciseIdSet);
+  const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(normalizedExercises, catalog.canonicalExerciseIdSet, {
+    getExerciseName: (exercise) => exercise.id === "row-6" ? "Garage Floor Press" : null,
+    logSource: "routine-day-loader.test",
+  });
 
   assert.deepEqual(
     runnableExercises.map((exercise) => exercise.exercise_id),
-    ["canonical-bench", "canonical-custom", "canonical-direct"],
+    ["canonical-bench", "canonical-custom", "canonical-direct", "orphan-custom"],
   );
   assert.deepEqual(
     invalidExercises.map((exercise) => ({ id: exercise.id, reason: exercise.reason })),
