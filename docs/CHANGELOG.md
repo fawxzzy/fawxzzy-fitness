@@ -1,3 +1,14 @@
+## 0.3.73 — 2026-03-18
+
+### WHAT
+- Hardened the shared canonical runnable-day loader so legacy planned workout ids can resolve through current `exercises.id`, `exercises.exercise_id` aliases, or legacy global exercise names before Today, Day View, and Start Workout decide a day is invalid.
+- Rewired Today session-start validation to use that same shared canonical catalog/normalization boundary instead of a route-local exercise lookup.
+- Added runnable-day regression tests covering direct canonical rows, alias-resolved rows, legacy placeholder/global rows, sentinel placeholders, and mixed valid/invalid day payloads.
+
+### WHY
+- Fixes the broken-day inconsistency where Edit Day still rendered saved workouts while Today and Day View silently dropped the same planned rows as non-runnable.
+- Preserves deterministic invalid-day handling for true sentinel or missing-canonical rows while making all day surfaces agree on the same runnable truth.
+
 ## 0.3.72 — 2026-03-18
 
 ### WHAT

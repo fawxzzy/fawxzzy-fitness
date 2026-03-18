@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Canonical day loaders must resolve legacy planned exercise ids before invalidating a day
+- Type: Guardrail
+- Summary: Shared runnable-day loaders should canonicalize planned exercise rows through every supported legacy identifier path (`exercises.id`, alias columns, and approved legacy-name mappings) before deciding a saved workout is invalid.
+- Suggested Playbook File: docs/GUARDRAILS/data-normalization-boundaries.md
+- Rationale: Prevents Today, Day View, and Start Workout from disagreeing with Edit Day when older routine rows still point at legacy or aliased exercise identifiers that are recoverable to a real canonical exercise.
+- Evidence: src/lib/routine-day-loader.ts, src/app/today/page.tsx, src/lib/runnable-day.ts, src/lib/routine-day-loader.test.ts
+- Status: Proposed
+
 ## 2026-03-18 — Same day state must share one canonical loader
 - Type: Guardrail
 - Summary: If Today, View Day, Edit Day, or any routine-day surface represent the same routine day, they should all consume one canonical loader/normalization boundary instead of adding route-local shaping for exercises, runnable filtering, or rest/empty handling.
