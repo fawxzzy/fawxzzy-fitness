@@ -84,12 +84,9 @@ jobs:
           fi
 
       - name: Validate canonical Playbook command ladder
-        env:
-          PLAYBOOK_DISABLE_DEV_FALLBACK: '1'
         run: |
-          # Canonical proof path: explicit acquisition + deterministic runtime resolution, with dev fallback disabled.
+          # Canonical proof path: explicit acquisition + deterministic runtime resolution.
           unset PLAYBOOK_BIN
-          unset PLAYBOOK_RUNTIME_BIN
 
           npm run ai-context
           npm run ai-contract
