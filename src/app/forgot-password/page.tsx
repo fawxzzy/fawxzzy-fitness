@@ -35,12 +35,10 @@ export default function ForgotPasswordPage({ searchParams }: ForgotPasswordPageP
   const shouldStartCooldown = searchParams?.info === "reset_requested";
 
   return (
-    <main className="mx-auto min-h-screen max-w-md px-4 py-10">
-      <ForgotPasswordFormClient
-        errorMessage={errorMessage}
-        infoMessage={infoMessage}
-        shouldStartCooldown={shouldStartCooldown}
-      />
-    </main>
+    <ForgotPasswordFormClient
+      errorMessage={errorMessage}
+      infoMessage={infoMessage}
+      shouldStartCooldown={shouldStartCooldown}
+    />
   );
 }

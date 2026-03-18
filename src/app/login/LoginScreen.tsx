@@ -1,0 +1,59 @@
+"use client";
+
+import Link from "next/link";
+import { login } from "@/app/auth/actions";
+import { InstallGuidance } from "@/components/auth/InstallGuidance";
+import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import { PrimaryButton } from "@/components/ui/AppButton";
+import { Input } from "@/components/ui/Input";
+
+export function LoginScreen({ error, info }: { error?: string; info?: string }) {
+  return (
+    <AuthShell>
+      <AuthIntro
+        eyebrow="Welcome back"
+        title="Log in to your training app"
+        subtitle="Pick up your routine, recovery, and email-link flows without losing the install-first experience on mobile."
+      />
+
+      <InstallGuidance />
+
+      <AuthCard>
+        <form action={login} className="space-y-5">
+          <div className="space-y-4">
+            <AuthField label="Email">
+              <Input type="email" name="email" required autoComplete="email" placeholder="you@example.com" />
+            </AuthField>
+            <AuthField label="Password">
+              <Input type="password" name="password" minLength={6} required autoComplete="current-password" placeholder="Enter your password" />
+            </AuthField>
+          </div>
+
+          {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
+          {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
+
+          <div className="space-y-3">
+            <PrimaryButton type="submit" fullWidth>
+              Log in
+            </PrimaryButton>
+            <p className="text-center text-sm leading-6 text-slate-400">
+              You can continue in the browser for email links, password recovery, or account access whenever you need to.
+            </p>
+          </div>
+        </form>
+
+        <AuthFooter>
+          <Link className="block rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center font-medium text-slate-100 transition hover:bg-white/10" href="/signup">
+            Create account
+          </Link>
+          <div className="flex flex-col gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+            <Link className="font-medium text-accent underline-offset-4 hover:underline" href="/forgot-password">
+              Forgot password?
+            </Link>
+            <p className="text-xs leading-5 text-slate-500">Didn’t get the email? Check spam, promotions, or junk.</p>
+          </div>
+        </AuthFooter>
+      </AuthCard>
+    </AuthShell>
+  );
+}

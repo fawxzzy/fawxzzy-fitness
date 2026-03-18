@@ -1,3 +1,9 @@
+## 2026-03-18
+
+- Added a reusable auth shell and refreshed the login, signup, and forgot-password screens with stronger visual hierarchy, roomier spacing, and clearer secondary actions for mobile auth flows.
+- Added browser-only install guidance on the login screen that recommends installing the app, includes Android Chrome and iPhone Safari steps, and stays dismissible so browser auth, recovery, and email-link flows still work.
+- Reinforced the app-first auth entry pattern without hard-blocking browser access, preventing install coaching from breaking recovery and deep-link flows.
+
 # Changelog
 
 ## 2026-03-18 — Rebalance History Sessions cards for mobile scanability

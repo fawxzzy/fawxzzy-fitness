@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { signup } from "@/app/auth/actions";
+import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import { PrimaryButton } from "@/components/ui/AppButton";
+import { Input } from "@/components/ui/Input";
 
 export const dynamic = "force-dynamic";
 
@@ -12,42 +15,41 @@ type SignupPageProps = {
 
 export default function SignupPage({ searchParams }: SignupPageProps) {
   return (
-    <main className="mx-auto min-h-screen max-w-md px-4 py-10">
-      <form action={signup} className="space-y-4 rounded-lg bg-white p-4 shadow-sm">
-        <h1 className="text-2xl font-semibold">Sign up</h1>
-        <div>
-          <label className="mb-1 block text-sm">Email</label>
-          <input
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm">Password</label>
-          <input
-            type="password"
-            name="password"
-            minLength={6}
-            required
-            autoComplete="new-password"
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
-          />
-        </div>
-        {searchParams?.error ? <p className="text-sm text-red-600">{searchParams.error}</p> : null}
-        {searchParams?.info ? <p className="text-sm text-accent">{searchParams.info}</p> : null}
-        <button type="submit" className="w-full rounded-md bg-accent px-3 py-2 text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25">
-          Sign up
-        </button>
-        <p className="text-sm text-slate-600">
-          Already have an account?{" "}
-          <Link href="/login" className="underline">
-            Log in
-          </Link>
-        </p>
-      </form>
-    </main>
+    <AuthShell>
+      <AuthIntro
+        eyebrow="Get started"
+        title="Create your account"
+        subtitle="Set up your account in the browser when needed, then jump back into the installed app shell for the best day-to-day experience."
+      />
+
+      <AuthCard>
+        <form action={signup} className="space-y-5">
+          <div className="space-y-4">
+            <AuthField label="Email">
+              <Input type="email" name="email" required autoComplete="email" placeholder="you@example.com" />
+            </AuthField>
+            <AuthField label="Password">
+              <Input type="password" name="password" minLength={6} required autoComplete="new-password" placeholder="Create a password" />
+            </AuthField>
+          </div>
+
+          {searchParams?.error ? <AuthMessage tone="error">{searchParams.error}</AuthMessage> : null}
+          {searchParams?.info ? <AuthMessage tone="success">{searchParams.info}</AuthMessage> : null}
+
+          <PrimaryButton type="submit" fullWidth>
+            Sign up
+          </PrimaryButton>
+        </form>
+
+        <AuthFooter>
+          <p className="text-center leading-6 text-slate-300">
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-accent underline-offset-4 hover:underline">
+              Log in
+            </Link>
+          </p>
+        </AuthFooter>
+      </AuthCard>
+    </AuthShell>
   );
 }
