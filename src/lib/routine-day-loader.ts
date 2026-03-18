@@ -192,7 +192,11 @@ export async function buildCanonicalDaySummaries(args: {
 
     return {
       day,
-      state: getRunnableDayState({ isRest: day.is_rest, runnableExerciseCount: runnableExercises.length }),
+      state: getRunnableDayState({
+        isRest: day.is_rest,
+        runnableExerciseCount: runnableExercises.length,
+        invalidExerciseCount: invalidExercises.length,
+      }),
       invalidExercises,
       runnableExercises: runnableExercises.map((exercise) => {
         const details = exerciseDetailsById.get(exercise.exercise_id) ?? null;

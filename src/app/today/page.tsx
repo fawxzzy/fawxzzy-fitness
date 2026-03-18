@@ -377,7 +377,11 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             dayIndex: effectiveDayIndex,
             dayName: routineDayName,
             isRest: effectiveRoutineDay.is_rest,
-            state: effectiveDaySummary?.state ?? getRunnableDayState({ isRest: effectiveRoutineDay.is_rest, runnableExerciseCount: 0 }),
+            state: effectiveDaySummary?.state ?? getRunnableDayState({
+              isRest: effectiveRoutineDay.is_rest,
+              runnableExerciseCount: 0,
+              invalidExerciseCount: 0,
+            }),
             routineId: activeRoutine.id,
             routineDayId: effectiveRoutineDay.id,
           }

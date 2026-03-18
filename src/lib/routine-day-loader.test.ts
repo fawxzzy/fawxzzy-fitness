@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { normalizeRunnableDayExercises } from "./runnable-day";
+import { getRunnableDayState, getSessionStartErrorMessage, normalizeRunnableDayExercises } from "./runnable-day";
 import { loadCanonicalExerciseCatalog } from "./routine-day-loader";
 
 type ExerciseRow = {
@@ -106,5 +106,22 @@ test("normalizeRunnableDayExercises keeps valid canonical, alias-resolved, fallb
       { id: "row-4", reason: "sentinel" },
       { id: "row-5", reason: "missing_canonical" },
     ],
+  );
+});
+
+test("getRunnableDayState treats mixed valid and invalid exercise days as partial and still runnable", () => {
+  assert.equal(getRunnableDayState({ isRest: false, runnableExerciseCount: 2, invalidExerciseCount: 1 }), "partial");
+  assert.equal(getRunnableDayState({ isRest: false, runnableExerciseCount: 2, invalidExerciseCount: 0 }), "runnable");
+  assert.equal(getRunnableDayState({ isRest: false, runnableExerciseCount: 0, invalidExerciseCount: 2 }), "empty");
+});
+
+test("getSessionStartErrorMessage only blocks fully invalid or empty days", () => {
+  assert.equal(
+    getSessionStartErrorMessage({ isRest: false, runnableExerciseCount: 1, invalidExerciseCount: 2 }),
+    null,
+  );
+  assert.equal(
+    getSessionStartErrorMessage({ isRest: false, runnableExerciseCount: 0, invalidExerciseCount: 2 }),
+    "This day has invalid exercises. Edit the day before starting a workout.",
   );
 });
