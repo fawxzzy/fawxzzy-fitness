@@ -1,5 +1,11 @@
 ## 2026-03-18
 
+- Refocused Edit Routine into a true routine-level editor by making Routine Details the primary expanded content, replacing oversized day cards with compact day management rows, and moving save/delete into a cleaner sticky bottom action area.
+- Preserved routine update/delete behavior while keeping copy/replace available as lightweight row actions so day-level composition still lives in Edit Day instead of being previewed inline on the parent screen.
+- Reinforced the parent-vs-child editor boundary rule for mobile routine management so parent screens stay metadata-first and child entities stay navigable through compact rows.
+
+## 2026-03-18
+
 - Simplified routine editing information architecture so Edit Routine focuses on routine metadata, day cards act as lighter summaries/entry points, Edit Day owns day naming/rest/workout composition, and the switch-routine sheet more clearly distinguishes the active routine from the create-new action.
 - Reduced nesting in the Edit Day workout-composition flow by clarifying planned-workout hierarchy and turning exercise search, selection, and optional targets into one more linear add-exercise sequence.
 - Reinforced the editor-boundary rule that parent editors should not duplicate child-editor workflows, improving mobile scanability without adding new routine features.
