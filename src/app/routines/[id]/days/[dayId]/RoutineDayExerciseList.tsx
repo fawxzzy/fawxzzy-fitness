@@ -7,7 +7,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 type RoutineDayExerciseItem = {
   id: string;
   name: string;
-  goalLine: string;
+  goalLine: string | null;
   exerciseId: string;
 };
 
@@ -28,7 +28,9 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
                 setSelectedExerciseId(exercise.exerciseId);
               }}
             >
-              <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.goalLine}</p>
+              {exercise.goalLine ? (
+                <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.goalLine}</p>
+              ) : null}
             </ExerciseCard>
           </li>
         ))}

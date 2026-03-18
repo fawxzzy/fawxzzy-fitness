@@ -23,6 +23,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: src/lib/routine-day-loader.ts, src/app/today/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
 - Status: Proposed
 
+## 2026-03-18 — UI prop contracts should match nullable domain truth
+- Type: Guardrail
+- Summary: When a domain field is legitimately nullable, shared UI list/item props should accept that nullability and let render logic decide whether to hide or fallback the display instead of coercing fake defaults upstream.
+- Suggested Playbook File: docs/GUARDRAILS/data-normalization-boundaries.md
+- Rationale: Prevents production build failures and silent data distortion caused by narrowing UI prop types more than the underlying normalized domain model supports.
+- Evidence: src/lib/routine-day-loader.ts, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Reuse one list interaction pattern for the same entity across screens
 - Type: Pattern
 - Summary: When the same entity appears in browse, detail, and edit flows, the app should keep one primary row-tap access pattern and move screen-specific actions into secondary trailing controls instead of inventing route-local buttons.
