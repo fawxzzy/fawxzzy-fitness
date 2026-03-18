@@ -1,3 +1,4 @@
+import { isExerciseDisplayArtifact } from "@/lib/exercise-display";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 
 const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
@@ -22,32 +23,88 @@ export type RunnableDayExercise = {
 };
 
 export type RunnableDayState = "rest" | "empty" | "runnable";
+export type RunnableDayInvalidReason = "sentinel" | "missing_canonical" | "missing_identity" | "invalid_data";
+
+type NormalizeRunnableDayExercisesOptions<T extends RunnableDayExercise> = {
+  getExerciseName?: (exercise: T) => string | null | undefined;
+  logSource?: string;
+};
+
+function hasRunnableExerciseGoalData(exercise: RunnableDayExercise) {
+  return Boolean(
+    exercise.measurement_type
+      || exercise.default_unit
+      || exercise.target_sets != null
+      || exercise.target_reps != null
+      || exercise.target_reps_min != null
+      || exercise.target_reps_max != null
+      || exercise.target_weight != null
+      || exercise.target_weight_unit != null
+      || exercise.target_duration_seconds != null
+      || exercise.target_distance != null
+      || exercise.target_distance_unit != null
+      || exercise.target_calories != null,
+  );
+}
+
+function normalizeRunnableExerciseName(name: string | null | undefined) {
+  const normalized = typeof name === "string" ? name.trim().replace(/\s+/g, " ") : "";
+  if (!normalized || isExerciseDisplayArtifact(normalized)) return "";
+  return normalized;
+}
 
 export function normalizeRunnableDayExercises<T extends RunnableDayExercise>(
   exercises: readonly T[],
   canonicalExerciseIds: ReadonlySet<string>,
+  options: NormalizeRunnableDayExercisesOptions<T> = {},
 ): {
   runnableExercises: Array<T & { exercise_id: string }>;
-  invalidExercises: Array<{ id: string; exerciseId: string; reason: "sentinel" | "missing_canonical" }>;
+  invalidExercises: Array<{ id: string; exerciseId: string; reason: RunnableDayInvalidReason }>;
 } {
   const runnableExercises: Array<T & { exercise_id: string }> = [];
-  const invalidExercises: Array<{ id: string; exerciseId: string; reason: "sentinel" | "missing_canonical" }> = [];
+  const invalidExercises: Array<{ id: string; exerciseId: string; reason: RunnableDayInvalidReason }> = [];
 
   for (const exercise of exercises) {
     const rawExerciseId = typeof exercise.exercise_id === "string" ? exercise.exercise_id.trim() : "";
-    const canonicalExerciseId = rawExerciseId ? resolveCanonicalExerciseId(rawExerciseId) : "";
+    const resolvedExerciseId = rawExerciseId ? resolveCanonicalExerciseId(rawExerciseId) : "";
+    const canonicalMatch = Boolean(resolvedExerciseId) && canonicalExerciseIds.has(resolvedExerciseId);
+    const normalizedExerciseName = normalizeRunnableExerciseName(options.getExerciseName?.(exercise) ?? null);
+    const hasValidName = normalizedExerciseName.length > 0;
+    const hasGoalData = hasRunnableExerciseGoalData(exercise);
+
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[runnable-day] normalize exercise", {
+        source: options.logSource ?? "unknown",
+        exerciseId: exercise.id,
+        rawExerciseId,
+        resolvedExerciseId,
+        canonicalMatch,
+        hasValidName,
+        hasGoalData,
+      });
+    }
 
     if (!rawExerciseId || rawExerciseId === SENTINEL_EXERCISE_ID) {
       invalidExercises.push({ id: exercise.id, exerciseId: rawExerciseId, reason: "sentinel" });
       continue;
     }
 
-    if (!canonicalExerciseId || !canonicalExerciseIds.has(canonicalExerciseId)) {
-      invalidExercises.push({ id: exercise.id, exerciseId: rawExerciseId, reason: "missing_canonical" });
+    if (canonicalMatch) {
+      runnableExercises.push({ ...exercise, exercise_id: resolvedExerciseId });
       continue;
     }
 
-    runnableExercises.push({ ...exercise, exercise_id: canonicalExerciseId });
+    if (hasValidName && hasGoalData) {
+      runnableExercises.push({ ...exercise, exercise_id: resolvedExerciseId || rawExerciseId });
+      continue;
+    }
+
+    if (!rawExerciseId && !hasValidName) {
+      invalidExercises.push({ id: exercise.id, exerciseId: rawExerciseId, reason: "missing_identity" });
+      continue;
+    }
+
+    invalidExercises.push({ id: exercise.id, exerciseId: rawExerciseId, reason: hasValidName ? "invalid_data" : "missing_canonical" });
   }
 
   return { runnableExercises, invalidExercises };
