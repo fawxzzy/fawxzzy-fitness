@@ -137,6 +137,55 @@ export async function updateRoutineDayExerciseAction(formData: FormData) {
   redirect(`${returnTo}?success=${encodeURIComponent("Exercise updated")}`);
 }
 
+
+export async function reorderRoutineDayExercisesAction(formData: FormData) {
+  const user = await requireUser();
+  const supabase = supabaseServer();
+
+  const routineId = String(formData.get("routineId") ?? "");
+  const routineDayId = String(formData.get("routineDayId") ?? "");
+  const orderedExerciseRowIds = String(formData.get("orderedExerciseRowIds") ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const returnTo = `/routines/${routineId}/edit/day/${routineDayId}`;
+
+  if (!routineId || !routineDayId || orderedExerciseRowIds.length === 0) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Missing reorder info")}`);
+  }
+
+  const { data: existingRows, error: existingRowsError } = await supabase
+    .from("routine_day_exercises")
+    .select("id")
+    .eq("routine_day_id", routineDayId)
+    .eq("user_id", user.id)
+    .order("position", { ascending: true });
+
+  if (existingRowsError) {
+    redirect(`${returnTo}?error=${encodeURIComponent(existingRowsError.message)}`);
+  }
+
+  const existingIds = (existingRows ?? []).map((row) => row.id);
+  if (existingIds.length !== orderedExerciseRowIds.length || existingIds.some((id) => !orderedExerciseRowIds.includes(id))) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Invalid reorder payload")}`);
+  }
+
+  for (const [position, exerciseRowId] of orderedExerciseRowIds.entries()) {
+    const { error } = await supabase
+      .from("routine_day_exercises")
+      .update({ position })
+      .eq("id", exerciseRowId)
+      .eq("routine_day_id", routineDayId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+    }
+  }
+
+  revalidateRoutineEditPaths(routineId, routineDayId);
+}
+
 export async function deleteRoutineDayExerciseAction(formData: FormData) {
   const user = await requireUser();
   const supabase = supabaseServer();
