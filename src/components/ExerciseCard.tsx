@@ -27,26 +27,26 @@ export function ExerciseCard({
 }) {
   const content = (
     <>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-start justify-between gap-2">
-          <p className="min-w-0 text-[0.96rem] font-semibold leading-snug text-[rgb(var(--text)/0.98)] [overflow-wrap:anywhere]">
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <p className="min-w-0 flex-1 text-[1rem] font-semibold leading-snug text-[rgb(var(--text)/0.98)] [overflow-wrap:anywhere]">
             {title}
           </p>
           {badgeText ? (
-            <span className="shrink-0 rounded-full border border-border/70 bg-surface-2-soft px-2 py-0.5 text-xs font-medium text-text">
+            <span className="shrink-0 rounded-full border border-border/60 bg-surface-2-soft px-2 py-0.5 text-[11px] font-semibold text-[rgb(var(--text)/0.74)]">
               {badgeText}
             </span>
           ) : null}
         </div>
-        {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal break-words", appTokens.metaText)}>{subtitle}</p> : null}
+        {subtitle ? <p className={cn("min-w-0 text-[0.8rem] leading-snug whitespace-normal break-words", appTokens.metaText)}>{subtitle}</p> : null}
         {children}
       </div>
-      <div className={cn("shrink-0 text-sm font-medium leading-snug text-[rgb(var(--text)/0.98)]", trailingClassName)}>{rightIcon}</div>
+      <div className={cn("shrink-0 self-center text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", trailingClassName)}>{rightIcon}</div>
     </>
   );
 
   const baseClassName = cn(
-    "flex w-full items-start justify-between gap-3 text-left",
+    "flex w-full items-start justify-between gap-3.5 text-left",
     appTokens.rowBase,
     onPress ? appTokens.rowInteractive : undefined,
     appTokens.rowDefault,

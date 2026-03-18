@@ -142,6 +142,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/EditRoutineManageDaysList.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
 - Status: Proposed
 
+## 2026-03-18 — Active workout overview rows should keep one primary line of intent
+- Type: Pattern
+- Summary: Active workout overview lists should use a strong session shell plus simple exercise rows where the title leads, the goal stays to one concise line, and status/count metadata remains secondary until the set-entry screen opens.
+- Suggested Playbook File: docs/PATTERNS/mobile-card-hierarchy.md
+- Rationale: Prevents session-overview screens from feeling dense and control-heavy when the user's main job is choosing the next exercise and entering sets quickly.
+- Evidence: src/components/SessionHeaderControls.tsx, src/components/SessionPageClient.tsx, src/components/SessionExerciseFocus.tsx, src/components/ExerciseCard.tsx
 
 ## 2026-03-18 — Workout-entry mobile sheets and forms should share one hierarchy
 - Type: Pattern
