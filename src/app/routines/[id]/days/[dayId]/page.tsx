@@ -12,6 +12,7 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
+import { isRunnableDayState } from "@/lib/runnable-day";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -107,11 +108,19 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                 actionClassName="-mt-1"
               />
 
-              {canonicalDay?.state !== "runnable" ? (
+              {canonicalDay?.state === "partial" ? (
+                <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                  Some exercises could not be loaded and will be skipped when you start this workout.
+                </p>
+              ) : null}
+
+              {canonicalDay && !isRunnableDayState(canonicalDay.state) ? (
                 <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
-                  {canonicalDay?.state === "rest"
+                  {canonicalDay.state === "rest"
                     ? "Rest day. No exercises planned for this day."
-                    : "No runnable exercises planned for this day."}
+                    : canonicalDay.invalidExercises.length > 0
+                      ? "This day has invalid exercises. Edit the day before starting a workout."
+                      : "No runnable exercises planned for this day."}
                 </p>
               ) : (
                 <RoutineDayExerciseList

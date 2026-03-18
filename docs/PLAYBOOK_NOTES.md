@@ -1,3 +1,4 @@
+- Fixed partial-day consistency so Day View now renders runnable exercises with a warning, Today no longer shows stale global error banners during normal browsing, and workout starts use canonical day summaries to skip only invalid rows.
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 ## Playbook integration status

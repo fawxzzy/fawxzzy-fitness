@@ -23,6 +23,10 @@ export type RunnableDayExercise = {
 };
 
 export type RunnableDayState = "rest" | "empty" | "partial" | "runnable";
+
+export function isRunnableDayState(state: RunnableDayState) {
+  return state === "runnable" || state === "partial";
+}
 export type RunnableDayInvalidReason = "sentinel" | "missing_canonical" | "missing_identity" | "invalid_data";
 
 type NormalizeRunnableDayExercisesOptions<T extends RunnableDayExercise> = {

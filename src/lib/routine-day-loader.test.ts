@@ -125,3 +125,55 @@ test("getSessionStartErrorMessage only blocks fully invalid or empty days", () =
     "This day has invalid exercises. Edit the day before starting a workout.",
   );
 });
+
+
+test("isRunnableDayState treats partial days as runnable", async () => {
+  const { isRunnableDayState } = await import("./runnable-day");
+
+  assert.equal(isRunnableDayState("partial"), true);
+  assert.equal(isRunnableDayState("runnable"), true);
+  assert.equal(isRunnableDayState("empty"), false);
+});
+
+test("buildCanonicalDaySummaries keeps partial days startable while fully invalid days stay blocked", async () => {
+  const canonicalId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  const supabase = createSupabaseStub([{ id: canonicalId, name: "Pull Up", measurement_type: "reps", default_unit: "reps" }]) as never;
+  const routineDays = [
+    { id: "day-partial", user_id: "user-1", routine_id: "routine-1", day_index: 1, name: "Pull", is_rest: false, notes: null },
+    { id: "day-invalid", user_id: "user-1", routine_id: "routine-1", day_index: 2, name: "Broken", is_rest: false, notes: null },
+  ] as never;
+  const allDayExercises = [
+    { id: "ex-valid", user_id: "user-1", routine_day_id: "day-partial", exercise_id: canonicalId, position: 1, notes: null, target_sets: 3, measurement_type: "reps", default_unit: "reps" },
+    { id: "ex-invalid", user_id: "user-1", routine_day_id: "day-partial", exercise_id: "missing-id", position: 2, notes: null },
+    { id: "ex-only-invalid", user_id: "user-1", routine_day_id: "day-invalid", exercise_id: "missing-id", position: 1, notes: null },
+  ] as never;
+
+  const { buildCanonicalDaySummaries } = await import("./routine-day-loader");
+  const { summaries } = await buildCanonicalDaySummaries({ supabase, routineDays, allDayExercises });
+  const partialDay = summaries.find((summary) => summary.day.id === "day-partial");
+  const invalidDay = summaries.find((summary) => summary.day.id === "day-invalid");
+
+  assert.ok(partialDay);
+  assert.equal(partialDay.state, "partial");
+  assert.equal(partialDay.runnableExercises.length, 1);
+  assert.equal(
+    getSessionStartErrorMessage({
+      isRest: partialDay.day.is_rest,
+      runnableExerciseCount: partialDay.runnableExercises.length,
+      invalidExerciseCount: partialDay.invalidExercises.length,
+    }),
+    null,
+  );
+
+  assert.ok(invalidDay);
+  assert.equal(invalidDay.state, "empty");
+  assert.equal(invalidDay.runnableExercises.length, 0);
+  assert.equal(
+    getSessionStartErrorMessage({
+      isRest: invalidDay.day.is_rest,
+      runnableExerciseCount: invalidDay.runnableExercises.length,
+      invalidExerciseCount: invalidDay.invalidExercises.length,
+    }),
+    "This day has invalid exercises. Edit the day before starting a workout.",
+  );
+});

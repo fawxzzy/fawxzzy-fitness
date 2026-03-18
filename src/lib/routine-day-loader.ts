@@ -35,6 +35,8 @@ export type CanonicalDayExercise = RoutineDayExerciseRow & {
     image_icon_path: string | null;
     slug: string | null;
     how_to_short: string | null;
+    measurement_type: ExerciseDetailsRow["measurement_type"];
+    default_unit: ExerciseDetailsRow["default_unit"];
   } | null;
 };
 
@@ -218,6 +220,8 @@ export async function buildCanonicalDaySummaries(args: {
                 image_icon_path: details.image_icon_path,
                 slug: details.slug,
                 how_to_short: details.how_to_short,
+                measurement_type: details.measurement_type ?? null,
+                default_unit: details.default_unit ?? null,
               }
             : null,
         };
