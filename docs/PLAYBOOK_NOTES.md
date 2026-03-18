@@ -141,3 +141,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents parent edit screens from becoming bloated with embedded child cards, inline previews, and duplicated workflow controls that weaken hierarchy and mobile scanability.
 - Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/EditRoutineManageDaysList.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
 - Status: Proposed
+
+
+## 2026-03-18 — Workout-entry mobile sheets and forms should share one hierarchy
+- Type: Pattern
+- Summary: Related mobile workout-entry flows should use the same interaction language—search/choose/configure/save—with shared sheet headers, section framing, and one dominant final action instead of stacked nested panels.
+- Suggested Playbook File: docs/PATTERNS/mobile-workout-entry-hierarchy.md
+- Rationale: Prevents Quick Add, set entry, and adjacent logging flows from looking like separate subsystems, which increases hesitation and makes write actions feel less trustworthy.
+- Evidence: src/app/session/[id]/QuickAddExerciseSheet.tsx, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/ui/BottomSheet.tsx, src/components/ui/measurements/ModifyMeasurements.tsx
+- Status: Proposed

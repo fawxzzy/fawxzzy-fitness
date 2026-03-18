@@ -68,26 +68,19 @@ export function QuickAddExerciseSheet({
   }, [exercises]);
 
   const selectedSetCount = setCountByExerciseId[selectedExerciseId] ?? 3;
+  const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
 
   const filteredExercises = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return exercises
-        .filter((exercise) => {
-          if (selectedTags.length === 0) return true;
-          const tags = normalizeExerciseTags(exercise);
-          return selectedTags.every((tag) => tags.includes(tag));
-        })
-        .slice(0, 40);
-    }
+    const matchesTags = (exercise: ExerciseOption) => {
+      if (selectedTags.length === 0) return true;
+      const tags = normalizeExerciseTags(exercise);
+      return selectedTags.every((tag) => tags.includes(tag));
+    };
 
     return exercises
-      .filter((exercise) => exercise.name.toLowerCase().includes(normalizedQuery))
-      .filter((exercise) => {
-        if (selectedTags.length === 0) return true;
-        const tags = normalizeExerciseTags(exercise);
-        return selectedTags.every((tag) => tags.includes(tag));
-      })
+      .filter((exercise) => (!normalizedQuery ? true : exercise.name.toLowerCase().includes(normalizedQuery)))
+      .filter(matchesTags)
       .slice(0, 40);
   }, [exercises, query, selectedTags]);
 
@@ -123,94 +116,130 @@ export function QuickAddExerciseSheet({
       <AppButton type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
         + Quick Add
       </AppButton>
-      <BottomSheet open={open} onClose={() => setOpen(false)} title="Quick Add">
-        <div className="space-y-3 pb-2">
-          <label className="space-y-1">
-            <span className="text-xs font-medium text-muted">Exercise</span>
+      <BottomSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Quick Add"
+        description="Search, choose, set count, then add without leaving the session."
+        contentClassName="space-y-4"
+      >
+        <section className="space-y-2">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">1. Search</p>
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search exercises"
-              className="w-full rounded-md border border-border/70 bg-[rgb(var(--bg)/0.45)] px-3 py-2 text-sm text-text"
+              className="w-full rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] px-3 py-3 text-sm text-text"
             />
-          </label>
+          </div>
+          {filterGroups.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">2. Filter</p>
+              <ExerciseTagFilterControl selectedTags={selectedTags} onChange={setSelectedTags} groups={filterGroups} />
+            </div>
+          ) : null}
+        </section>
 
-          <ExerciseTagFilterControl selectedTags={selectedTags} onChange={setSelectedTags} groups={filterGroups} />
-
-          <ul className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-border/60 p-1">
+        <section className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">3. Choose</p>
+            <p className="text-xs text-muted">{filteredExercises.length} shown</p>
+          </div>
+          <ul className="max-h-64 space-y-2 overflow-y-auto">
             {filteredExercises.map((exercise) => {
               const isSelected = selectedExerciseId === exercise.id;
+              const tags = [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean);
               return (
                 <li key={exercise.id}>
                   <button
                     type="button"
                     onClick={() => setSelectedExerciseId(exercise.id)}
-                    className={`w-full rounded-md border px-3 py-2 text-left text-sm ${isSelected ? "border-accent/50 bg-accent/20 text-text ring-1 ring-accent/30" : "border-transparent text-muted hover:bg-surface-2-soft"}`}
+                    className={[
+                      "w-full rounded-xl border px-3 py-3 text-left transition-colors",
+                      isSelected
+                        ? "border-accent/45 bg-accent/10 shadow-[inset_0_0_0_1px_rgba(var(--accent-rgb),0.18)]"
+                        : "border-border/55 bg-surface/55 hover:bg-surface-2-soft",
+                    ].join(" ")}
                   >
-                    <span className="inline-flex items-center gap-2">
-                      {isSelected ? <span className="text-accent">✓</span> : null}
-                      {exercise.name}
-                    </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className={`text-sm font-medium ${isSelected ? "text-text" : "text-[rgb(var(--text)/0.9)]"}`}>{exercise.name}</p>
+                        {tags.length > 0 ? <p className="mt-1 text-xs text-muted">{tags.join(" • ")}</p> : null}
+                      </div>
+                      <span className={`mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border text-[11px] ${isSelected ? "border-accent/45 bg-accent/20 text-text" : "border-border/55 text-muted"}`}>
+                        {isSelected ? "✓" : ""}
+                      </span>
+                    </div>
                   </button>
                 </li>
               );
             })}
-            {filteredExercises.length === 0 ? <li className="px-3 py-2 text-sm text-muted">No matches.</li> : null}
+            {filteredExercises.length === 0 ? <li className="rounded-xl border border-dashed border-border/60 px-3 py-4 text-sm text-muted">No matches.</li> : null}
           </ul>
+        </section>
 
-          <label className="space-y-1">
-            <span className="text-xs font-medium text-muted">Set count (optional)</span>
-            <div className="flex items-center gap-2">
-              <AppButton
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  if (!selectedExerciseId) return;
-                  setSetCountByExerciseId((current) => ({
-                    ...current,
-                    [selectedExerciseId]: Math.max(1, (current[selectedExerciseId] ?? 3) - 1),
-                  }));
-                }}
-              >
-                -
-              </AppButton>
-              <input
-                type="number"
-                min={1}
-                value={selectedSetCount}
-                onChange={(event) => {
-                  const parsed = Number.parseInt(event.target.value, 10);
-                  if (!selectedExerciseId) return;
-                  setSetCountByExerciseId((current) => ({
-                    ...current,
-                    [selectedExerciseId]: Number.isFinite(parsed) && parsed > 0 ? parsed : 1,
-                  }));
-                }}
-                className="w-20 rounded-md border border-border/70 bg-[rgb(var(--bg)/0.45)] px-2 py-1.5 text-sm text-text"
-              />
-              <AppButton
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  if (!selectedExerciseId) return;
-                  setSetCountByExerciseId((current) => ({
-                    ...current,
-                    [selectedExerciseId]: (current[selectedExerciseId] ?? 3) + 1,
-                  }));
-                }}
-              >
-                +
-              </AppButton>
+        <section className="rounded-xl border border-border/60 bg-surface/55 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">4. Configure</p>
+              <p className="mt-1 text-sm font-medium text-text">{selectedExercise?.name ?? "Choose an exercise to continue"}</p>
             </div>
-          </label>
+            <div className="rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted">Sets</div>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <AppButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={!selectedExerciseId}
+              onClick={() => {
+                if (!selectedExerciseId) return;
+                setSetCountByExerciseId((current) => ({
+                  ...current,
+                  [selectedExerciseId]: Math.max(1, (current[selectedExerciseId] ?? 3) - 1),
+                }));
+              }}
+            >
+              -
+            </AppButton>
+            <input
+              type="number"
+              min={1}
+              value={selectedSetCount}
+              disabled={!selectedExerciseId}
+              onChange={(event) => {
+                const parsed = Number.parseInt(event.target.value, 10);
+                if (!selectedExerciseId) return;
+                setSetCountByExerciseId((current) => ({
+                  ...current,
+                  [selectedExerciseId]: Number.isFinite(parsed) && parsed > 0 ? parsed : 1,
+                }));
+              }}
+              className="w-24 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] px-3 py-2.5 text-sm text-text disabled:opacity-60"
+            />
+            <AppButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={!selectedExerciseId}
+              onClick={() => {
+                if (!selectedExerciseId) return;
+                setSetCountByExerciseId((current) => ({
+                  ...current,
+                  [selectedExerciseId]: (current[selectedExerciseId] ?? 3) + 1,
+                }));
+              }}
+            >
+              +
+            </AppButton>
+          </div>
+        </section>
 
-          <AppButton type="button" variant="primary" fullWidth loading={isPending} onClick={handleSubmit}>
-            Add to Session
-          </AppButton>
-        </div>
+        <AppButton type="button" variant="primary" fullWidth loading={isPending} onClick={handleSubmit}>
+          Add to Session
+        </AppButton>
       </BottomSheet>
     </>
   );
