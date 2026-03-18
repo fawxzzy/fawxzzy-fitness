@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { getExerciseIdsForSessionExercises, recomputeExerciseStatsForExercises, recomputeExerciseStatsForSessionExercises } from "@/lib/exercise-stats";
 import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
@@ -113,7 +113,6 @@ export async function updateLogExerciseNotesAction(payload: { logId: string; log
   return { ok: true };
 }
 
-
 async function ensureCompletedLogOwner(logId: string, userId: string) {
   const supabase = supabaseServer();
   const { data: session } = await supabase
@@ -203,6 +202,8 @@ export async function addLogExerciseSetAction(payload: {
     return { ok: false, error: error.message };
   }
 
+  await recomputeExerciseStatsForSessionExercises(user.id, [logExerciseId]);
+
   revalidateHistoryViews();
   revalidatePath(getHistoryDetailPath(logId));
   if (!insertedSet) {
@@ -275,6 +276,8 @@ export async function updateLogExerciseSetAction(payload: {
     return { ok: false, error: error.message };
   }
 
+  await recomputeExerciseStatsForSessionExercises(user.id, [logExerciseId]);
+
   revalidateHistoryViews();
   revalidatePath(getHistoryDetailPath(logId));
   return { ok: true };
@@ -307,6 +310,8 @@ export async function deleteLogExerciseSetAction(payload: { logId: string; logEx
   if (error) {
     return { ok: false, error: error.message };
   }
+
+  await recomputeExerciseStatsForSessionExercises(user.id, [logExerciseId]);
 
   revalidateHistoryViews();
   revalidatePath(getHistoryDetailPath(logId));
@@ -382,6 +387,8 @@ export async function deleteLogExerciseAction(payload: { logId: string; logExerc
     return { ok: false, error: "Log not found." };
   }
 
+  const affectedExerciseIds = await getExerciseIdsForSessionExercises(user.id, [logExerciseId]);
+
   const { error } = await supabase
     .from("session_exercises")
     .delete()
@@ -392,6 +399,8 @@ export async function deleteLogExerciseAction(payload: { logId: string; logExerc
   if (error) {
     return { ok: false, error: error.message };
   }
+
+  await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds);
 
   revalidateHistoryViews();
   revalidatePath(getHistoryDetailPath(logId));

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { recomputeExerciseStatsForSession } from "@/lib/exercise-stats";
+import { getExerciseIdsForSession, recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateHistoryViews, revalidateSessionViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToSessionColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
@@ -571,7 +571,8 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
     return { ok: false, error: error.message };
   }
 
-  await recomputeExerciseStatsForSession(user.id, sessionId);
+  const affectedExerciseIds = await getExerciseIdsForSession(user.id, sessionId);
+  await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds);
 
   revalidatePath("/today");
   revalidateHistoryViews();

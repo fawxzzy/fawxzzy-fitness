@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-03-18 — Deterministic exercise stat invalidation on session writes
+
+### WHAT
+- Added exercise-stat helpers that deterministically derive affected canonical `exercise_id` values from `session_exercises` rows before recomputing, while keeping one centralized `recomputeExerciseStatsForExercises(userId, exerciseIds)` write target.
+- Updated session completion and completed-history set/exercise mutation actions to emit affected exercise IDs explicitly and recompute only those exercises after add/edit/delete/write flows that change completed workout history.
+- Preserved the shared history aggregation boundary so recompute continues to rebuild `exercise_stats` purely from completed source-of-truth sets instead of UI state or incremental patch logic.
+
+### WHY
+- Prevents stats drift caused by missing or inconsistent recompute triggers across session write paths.
+- Makes invalidation idempotent and auditable because every relevant mutation now follows the same pattern: derive affected IDs from the write, then rerun centralized aggregation only for those IDs.
+
 ## 2026-03-18 — Consolidate exercise history aggregation
 
 ### WHAT

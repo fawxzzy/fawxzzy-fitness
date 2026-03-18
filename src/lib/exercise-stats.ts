@@ -17,8 +17,11 @@ export type ExerciseStatsRow = {
   actual_pr_at: string | null;
 };
 
+function uniqueExerciseIds(exerciseIds: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(exerciseIds.filter((exerciseId): exerciseId is string => Boolean(exerciseId))));
+}
 
-async function getExerciseIdsForSession(userId: string, sessionId: string): Promise<string[]> {
+export async function getExerciseIdsForSession(userId: string, sessionId: string): Promise<string[]> {
   const supabase = supabaseServer();
   const { data, error } = await supabase
     .from("session_exercises")
@@ -30,7 +33,27 @@ async function getExerciseIdsForSession(userId: string, sessionId: string): Prom
     return [];
   }
 
-  return Array.from(new Set(data.map((row) => row.exercise_id)));
+  return uniqueExerciseIds(data.map((row) => row.exercise_id));
+}
+
+export async function getExerciseIdsForSessionExercises(userId: string, sessionExerciseIds: string[]): Promise<string[]> {
+  const uniqueSessionExerciseIds = Array.from(new Set(sessionExerciseIds.filter(Boolean)));
+  if (!uniqueSessionExerciseIds.length) {
+    return [];
+  }
+
+  const supabase = supabaseServer();
+  const { data, error } = await supabase
+    .from("session_exercises")
+    .select("exercise_id")
+    .eq("user_id", userId)
+    .in("id", uniqueSessionExerciseIds);
+
+  if (error || !data) {
+    return [];
+  }
+
+  return uniqueExerciseIds(data.map((row) => row.exercise_id));
 }
 
 export async function recomputeExerciseStatsForSession(userId: string, sessionId: string): Promise<void> {
@@ -39,20 +62,29 @@ export async function recomputeExerciseStatsForSession(userId: string, sessionId
   await recomputeExerciseStatsForExercises(userId, exerciseIds);
 }
 
-export async function recomputeExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<void> {
+export async function recomputeExerciseStatsForSessionExercises(userId: string, sessionExerciseIds: string[]): Promise<void> {
+  const exerciseIds = await getExerciseIdsForSessionExercises(userId, sessionExerciseIds);
   if (!exerciseIds.length) {
     return;
   }
 
-  const uniqueExerciseIds = Array.from(new Set(exerciseIds));
+  await recomputeExerciseStatsForExercises(userId, exerciseIds);
+}
+
+export async function recomputeExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<void> {
+  const uniqueIds = uniqueExerciseIds(exerciseIds);
+  if (!uniqueIds.length) {
+    return;
+  }
+
   const supabase = supabaseServer();
 
   const { data: historySets, error } = await supabase
     .from("sets")
-    .select("set_index, weight, reps, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
+    .select("set_index, weight, reps, weight_unit, duration_seconds, distance, calories, distance_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
     .eq("user_id", userId)
     .eq("session_exercise.user_id", userId)
-    .in("session_exercise.exercise_id", uniqueExerciseIds)
+    .in("session_exercise.exercise_id", uniqueIds)
     .eq("session_exercise.session.status", "completed");
 
   if (error) {
@@ -61,7 +93,7 @@ export async function recomputeExerciseStatsForExercises(userId: string, exercis
 
   const aggregatedStats = aggregateExerciseStatsFromSets((historySets ?? []) as HistoricalSetRow[]);
 
-  const upserts = uniqueExerciseIds
+  const upserts = uniqueIds
     .map((exerciseId) => {
       const stats = aggregatedStats.get(exerciseId);
       if (!stats) return null;
@@ -85,7 +117,7 @@ export async function recomputeExerciseStatsForExercises(userId: string, exercis
     })
     .filter((row): row is NonNullable<typeof row> => Boolean(row));
 
-  const exerciseIdsWithoutHistory = uniqueExerciseIds.filter((exerciseId) => !aggregatedStats.has(exerciseId));
+  const exerciseIdsWithoutHistory = uniqueIds.filter((exerciseId) => !aggregatedStats.has(exerciseId));
 
   if (exerciseIdsWithoutHistory.length) {
     await supabase

@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Mutation paths should emit affected entity IDs for derived recomputes
+- Type: Pattern
+- Summary: When persisting source-of-truth writes that affect derived history stats, mutation handlers should explicitly derive the affected canonical entity IDs from the write boundary and then call one centralized recompute entry point for only those IDs.
+- Suggested Playbook File: docs/PATTERNS/domain-write-invalidation.md
+- Rationale: Prevents partial or UI-coupled invalidation logic from letting derived tables drift away from the underlying completed-session records.
+- Evidence: src/lib/exercise-stats.ts, src/app/session/[id]/actions.ts, src/app/actions/history.ts
+- Status: Proposed
+
 ## 2026-03-18 — Derived history data should share one canonical aggregation boundary
 - Type: Pattern
 - Summary: When multiple product surfaces consume fitness performance history, raw set/session aggregation should live in one shared module keyed by canonical entity IDs, while each surface keeps only presentation formatting locally.
