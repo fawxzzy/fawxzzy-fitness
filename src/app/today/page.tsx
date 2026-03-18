@@ -15,12 +15,11 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
-import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
 import { getRunnableDayState, getSessionStartErrorMessage, normalizeRunnableDayExercises } from "@/lib/runnable-day";
-import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
+import { buildCanonicalDaySummaries, loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -86,20 +85,16 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
     return { ok: false, error: "Could not load exercises for this day." };
   }
 
-  const templateExerciseIds = Array.from(new Set((templateExercises ?? []).map((exercise) => resolveCanonicalExerciseId(exercise.exercise_id)).filter((value): value is string => typeof value === "string" && value.trim().length > 0)));
-  const { data: canonicalExerciseRows, error: canonicalExerciseError } = templateExerciseIds.length
-    ? await supabase
-        .from("exercises")
-        .select("id, measurement_type, default_unit")
-        .in("id", templateExerciseIds)
-    : { data: [], error: null };
+  const { exerciseDetailsById, canonicalExerciseIdSet, canonicalExerciseIdByRawId } = await loadCanonicalExerciseCatalog({
+    supabase,
+    exercises: templateExercises ?? [],
+  });
+  const normalizedTemplateExercises = (templateExercises ?? []).map((exercise) => ({
+    ...exercise,
+    exercise_id: canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id,
+  }));
 
-  if (canonicalExerciseError) {
-    return { ok: false, error: "Could not validate exercises for this day." };
-  }
-
-  const canonicalExerciseIds = new Set((canonicalExerciseRows ?? []).map((exercise) => exercise.id));
-  const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(templateExercises ?? [], canonicalExerciseIds);
+  const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(normalizedTemplateExercises, canonicalExerciseIdSet);
   const startError = getSessionStartErrorMessage({
     isRest: Boolean(routineDay.is_rest),
     runnableExerciseCount: runnableExercises.length,
@@ -128,7 +123,7 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
   }
 
   if (runnableExercises.length > 0) {
-    const exerciseFallbackById = new Map((canonicalExerciseRows ?? []).map((exercise) => [exercise.id, {
+    const exerciseFallbackById = new Map(Array.from(exerciseDetailsById.values()).map((exercise) => [exercise.id, {
       measurement_type: exercise.measurement_type,
       default_unit: exercise.default_unit,
     }]));
