@@ -15,14 +15,12 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
-import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
-import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
-import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
 import { getRunnableDayState, getSessionStartErrorMessage, normalizeRunnableDayExercises } from "@/lib/runnable-day";
+import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -192,9 +190,10 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
   const user = await requireUser();
   const supabase = supabaseServer();
   const sessionId = String(formData.get("sessionId") ?? "").trim();
+  const safeError = "Unable to discard the in-progress workout.";
 
   if (!sessionId) {
-    redirect(`/today?error=${encodeURIComponent("Missing session")}`);
+    redirect(`/today?error=${encodeURIComponent(safeError)}`);
   }
 
   const { data: session, error: sessionError } = await supabase
@@ -206,11 +205,11 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
     .maybeSingle();
 
   if (sessionError) {
-    redirect(`/today?error=${encodeURIComponent(sessionError.message)}`);
+    redirect(`/today?error=${encodeURIComponent(safeError)}`);
   }
 
   if (!session) {
-    redirect(`/today?error=${encodeURIComponent("In-progress session not found")}`);
+    redirect(`/today?error=${encodeURIComponent(safeError)}`);
   }
 
   const { data: sessionExerciseRows, error: sessionExerciseReadError } = await supabase
@@ -220,7 +219,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
     .eq("user_id", user.id);
 
   if (sessionExerciseReadError) {
-    redirect(`/today?error=${encodeURIComponent(sessionExerciseReadError.message)}`);
+    redirect(`/today?error=${encodeURIComponent(safeError)}`);
   }
 
   const sessionExerciseIds = (sessionExerciseRows ?? []).map((row) => row.id);
@@ -232,7 +231,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
       .eq("user_id", user.id);
 
     if (setsDeleteError) {
-      redirect(`/today?error=${encodeURIComponent(setsDeleteError.message)}`);
+      redirect(`/today?error=${encodeURIComponent(safeError)}`);
     }
 
     const { error: sessionExerciseDeleteError } = await supabase
@@ -242,7 +241,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
       .eq("user_id", user.id);
 
     if (sessionExerciseDeleteError) {
-      redirect(`/today?error=${encodeURIComponent(sessionExerciseDeleteError.message)}`);
+      redirect(`/today?error=${encodeURIComponent(safeError)}`);
     }
   }
 
@@ -254,7 +253,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
     .eq("status", "in_progress");
 
   if (sessionDeleteError) {
-    redirect(`/today?error=${encodeURIComponent(sessionDeleteError.message)}`);
+    redirect(`/today?error=${encodeURIComponent(safeError)}`);
   }
 
   redirect("/today");
@@ -349,26 +348,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     }
   }
 
-  const exerciseNameMap = await getExerciseNameMap();
-  const exerciseIds = Array.from(new Set(allDayExercises.map((exercise) => resolveCanonicalExerciseId(exercise.exercise_id)).filter((exerciseId) => exerciseId.trim().length > 0)));
-  const { data: exerciseDetailsRows } = exerciseIds.length === 0
-    ? { data: [] }
-    : await supabase
-        .from("exercises")
-        .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short")
-        .in("id", exerciseIds);
-  const exerciseDetailsById = new Map((exerciseDetailsRows ?? []).map((exercise) => [exercise.id, exercise]));
-  const canonicalExerciseIds = new Set((exerciseDetailsRows ?? []).map((exercise) => exercise.id));
-  const normalizedDaySummaries = routineDays.map((day) => {
-    const dayExercises = allDayExercises.filter((exercise) => exercise.routine_day_id === day.id);
-    const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(dayExercises, canonicalExerciseIds);
-
-    return {
-      day,
-      state: getRunnableDayState({ isRest: day.is_rest, runnableExerciseCount: runnableExercises.length }),
-      runnableExercises,
-      invalidExercises,
-    };
+  const { summaries: normalizedDaySummaries } = await buildCanonicalDaySummaries({
+    supabase,
+    routineDays,
+    allDayExercises,
   });
   const normalizedDayByIndex = new Map(normalizedDaySummaries.map((entry) => [entry.day.day_index, entry]));
   // Manual QA checklist:
@@ -377,9 +360,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   const effectiveRoutineDay = effectiveDayIndex === null
     ? todayRoutineDay
     : routineDays.find((day) => day.day_index === effectiveDayIndex) ?? todayRoutineDay;
-  const effectiveDayExercises = effectiveRoutineDay
-    ? allDayExercises.filter((exercise) => exercise.routine_day_id === effectiveRoutineDay.id)
-    : [];
   const effectiveDaySummary = effectiveRoutineDay ? normalizedDayByIndex.get(effectiveRoutineDay.day_index) ?? null : null;
   const routineName = activeRoutine?.name ?? null;
   const routineDayName = effectiveRoutineDay ? effectiveRoutineDay.name ?? `Day ${effectiveDayIndex ?? effectiveRoutineDay.day_index}` : null;
@@ -399,20 +379,19 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           }
         : null,
     exercises: (effectiveDaySummary?.runnableExercises ?? []).map((exercise) => {
-      const details = exerciseDetailsById.get(exercise.exercise_id);
       return {
         id: exercise.id,
-        exerciseId: details?.id ?? exercise.exercise_id,
-        name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, name: details?.name, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
-        targets: formatExerciseGoal(exercise),
+        exerciseId: exercise.details?.id ?? exercise.exercise_id,
+        name: exercise.displayName,
+        targets: exercise.goalLine,
         notes: exercise.notes,
-        primary_muscle: details?.primary_muscle ?? null,
-        equipment: details?.equipment ?? null,
-        movement_pattern: details?.movement_pattern ?? null,
-        image_howto_path: details?.image_howto_path ?? null,
-        image_icon_path: details?.image_icon_path ?? null,
-        slug: details?.slug ?? null,
-        how_to_short: details?.how_to_short ?? null,
+        primary_muscle: exercise.details?.primary_muscle ?? null,
+        equipment: exercise.details?.equipment ?? null,
+        movement_pattern: exercise.details?.movement_pattern ?? null,
+        image_howto_path: exercise.details?.image_howto_path ?? null,
+        image_icon_path: exercise.details?.image_icon_path ?? null,
+        slug: exercise.details?.slug ?? null,
+        how_to_short: exercise.details?.how_to_short ?? null,
       };
     }),
     completedTodayCount,
@@ -467,22 +446,19 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     isRest: day.is_rest,
                     state,
                     invalidExerciseCount: invalidExercises.length,
-                    exercises: runnableExercises.map((exercise) => {
-                      const details = exerciseDetailsById.get(exercise.exercise_id);
-                      return {
-                        id: exercise.id,
-                        exerciseId: details?.id ?? exercise.exercise_id,
-                        name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, name: details?.name, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
-                        targets: formatExerciseGoal(exercise),
-                        primary_muscle: details?.primary_muscle ?? null,
-                        equipment: details?.equipment ?? null,
-                        movement_pattern: details?.movement_pattern ?? null,
-                        image_howto_path: details?.image_howto_path ?? null,
-                        image_icon_path: details?.image_icon_path ?? null,
-                        slug: details?.slug ?? null,
-                        how_to_short: details?.how_to_short ?? null,
-                      };
-                    }),
+                    exercises: runnableExercises.map((exercise) => ({
+                      id: exercise.id,
+                      exerciseId: exercise.details?.id ?? exercise.exercise_id,
+                      name: exercise.displayName,
+                      targets: exercise.goalLine,
+                      primary_muscle: exercise.details?.primary_muscle ?? null,
+                      equipment: exercise.details?.equipment ?? null,
+                      movement_pattern: exercise.details?.movement_pattern ?? null,
+                      image_howto_path: exercise.details?.image_howto_path ?? null,
+                      image_icon_path: exercise.details?.image_icon_path ?? null,
+                      slug: exercise.details?.slug ?? null,
+                      how_to_short: exercise.details?.how_to_short ?? null,
+                    })),
                   }))}
                   currentDayIndex={todayPayload.routine.dayIndex}
                   completedTodayCount={todayPayload.completedTodayCount}

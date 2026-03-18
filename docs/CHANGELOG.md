@@ -1,10 +1,9 @@
 ## 2026-03-18
 
-- Removed the Edit Routine page’s embedded Manage Days section entirely so the parent editor now owns only routine metadata, while day editing remains in dedicated day routes.
-- Rebuilt Routine Details into a stronger editor with clearer section grouping, expanded-by-default hierarchy, richer helper copy, and a mobile-friendly sticky save action that keeps the primary CTA obvious.
-- Moved Delete Routine into an intentional danger zone below the editor so destructive actions stay available without competing with routine save flow.
-
-## 2026-03-18
+- Consolidated Today and routine day detail onto one shared canonical day-loader boundary that resolves routine-day exercises, canonical exercise metadata, runnable filtering, and display normalization from the same source model.
+- Updated Today state handling so runnable, rest-day, and zero-exercise states are derived from that canonical loader instead of Today-only shaping, and discard-workout failures now show a safe generic message instead of raw database text.
+- Reinforced the rule that all screens representing the same day state must share one loader/normalization boundary, preventing Today from being the only route that breaks on edge-case day data.
+- Fixed the production build break on routine day detail by aligning `RoutineDayExerciseList` with nullable `goalLine` domain data and rendering the subtitle only when a goal line exists.
 
 - Refocused Edit Routine into a true routine-level editor by making Routine Details the primary expanded content, replacing oversized day cards with compact day management rows, and moving save/delete into a cleaner sticky bottom action area.
 - Preserved routine update/delete behavior while keeping copy/replace available as lightweight row actions so day-level composition still lives in Edit Day instead of being previewed inline on the parent screen.

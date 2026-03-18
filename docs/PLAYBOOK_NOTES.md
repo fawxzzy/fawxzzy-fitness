@@ -15,12 +15,20 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
-## 2026-03-18 — Parent editors should edit parent metadata only
+## 2026-03-18 — Same day state must share one canonical loader
 - Type: Guardrail
-- Summary: Parent editors must stay focused on parent metadata only; child-day editing, previews, and management controls should live in dedicated child editors rather than being embedded back into the parent screen.
-- Suggested Playbook File: docs/GUARDRAILS/editor-boundaries.md
-- Rationale: Prevents parent editors from accumulating nested child-management UI that bloats mobile layouts, weakens hierarchy, and makes the main save flow harder to understand.
-- Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Summary: If Today, View Day, Edit Day, or any routine-day surface represent the same routine day, they should all consume one canonical loader/normalization boundary instead of adding route-local shaping for exercises, runnable filtering, or rest/empty handling.
+- Suggested Playbook File: docs/GUARDRAILS/data-normalization-boundaries.md
+- Rationale: Prevents a single custom route from becoming the only screen that breaks on sentinel exercises, missing canonical exercise rows, or empty/non-rest edge cases while adjacent day screens still work.
+- Evidence: src/lib/routine-day-loader.ts, src/app/today/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
+- Status: Proposed
+
+## 2026-03-18 — UI prop contracts should match nullable domain truth
+- Type: Guardrail
+- Summary: When a domain field is legitimately nullable, shared UI list/item props should accept that nullability and let render logic decide whether to hide or fallback the display instead of coercing fake defaults upstream.
+- Suggested Playbook File: docs/GUARDRAILS/data-normalization-boundaries.md
+- Rationale: Prevents production build failures and silent data distortion caused by narrowing UI prop types more than the underlying normalized domain model supports.
+- Evidence: src/lib/routine-day-loader.ts, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
 - Status: Proposed
 
 ## 2026-03-18 — Reuse one list interaction pattern for the same entity across screens

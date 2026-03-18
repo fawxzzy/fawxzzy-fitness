@@ -11,9 +11,7 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
-import { formatExerciseGoal } from "@/lib/exercise-goal-format";
-import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
-import { getExerciseNameMap } from "@/lib/exercises";
+import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -86,15 +84,12 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   const routineRow = routine as RoutineRow;
   const dayRow = day as RoutineDayRow;
   const dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
-  const exerciseNameMap = await getExerciseNameMap();
-  const exerciseIds = Array.from(new Set(dayExercises.map((exercise) => exercise.exercise_id)));
-  const { data: exerciseDetailsRows } = exerciseIds.length === 0
-    ? { data: [] }
-    : await supabase
-        .from("exercises")
-        .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short")
-        .in("id", exerciseIds);
-  const exerciseDetailsById = new Map((exerciseDetailsRows ?? []).map((exercise) => [exercise.id, exercise]));
+  const { summaries } = await buildCanonicalDaySummaries({
+    supabase,
+    routineDays: [dayRow],
+    allDayExercises: dayExercises,
+  });
+  const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
   const returnToPath = getCurrentPathWithSearch(params, searchParams);
   const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
@@ -112,22 +107,20 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                 actionClassName="-mt-1"
               />
 
-              {dayRow.is_rest || dayExercises.length === 0 ? (
+              {canonicalDay?.state !== "runnable" ? (
                 <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
-                  Rest day. No exercises planned for this day.
+                  {canonicalDay?.state === "rest"
+                    ? "Rest day. No exercises planned for this day."
+                    : "No runnable exercises planned for this day."}
                 </p>
               ) : (
                 <RoutineDayExerciseList
-                  exercises={dayExercises.map((exercise) => {
-                    const details = exerciseDetailsById.get(exercise.exercise_id);
-                    const exerciseName = normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, name: details?.name, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null });
-                    return {
-                      id: exercise.id,
-                      name: exerciseName,
-                      goalLine: formatExerciseGoal(exercise),
-                      exerciseId: details?.id ?? exercise.exercise_id,
-                    };
-                  })}
+                  exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
+                    id: exercise.id,
+                    name: exercise.displayName,
+                    goalLine: exercise.goalLine,
+                    exerciseId: exercise.details?.id ?? exercise.exercise_id,
+                  }))}
                 />
               )}
             </AppPanel>
