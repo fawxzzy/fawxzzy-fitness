@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Parent editors should edit parent metadata only
+- Type: Guardrail
+- Summary: Parent editors must stay focused on parent metadata only; child-day editing, previews, and management controls should live in dedicated child editors rather than being embedded back into the parent screen.
+- Suggested Playbook File: docs/GUARDRAILS/editor-boundaries.md
+- Rationale: Prevents parent editors from accumulating nested child-management UI that bloats mobile layouts, weakens hierarchy, and makes the main save flow harder to understand.
+- Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Reuse one list interaction pattern for the same entity across screens
 - Type: Pattern
 - Summary: When the same entity appears in browse, detail, and edit flows, the app should keep one primary row-tap access pattern and move screen-specific actions into secondary trailing controls instead of inventing route-local buttons.
