@@ -16,11 +16,13 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
+import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
 import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
+import { getRunnableDayState, getSessionStartErrorMessage, normalizeRunnableDayExercises } from "@/lib/runnable-day";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -48,7 +50,7 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
     .single();
 
   if (routineError || !activeRoutine) {
-    return { ok: false, error: routineError?.message ?? "Active routine not found" };
+    return { ok: false, error: "Your active routine could not be loaded." };
   }
 
   const defaultDay = getRoutineDayComputation({
@@ -63,14 +65,14 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
 
   const { data: routineDay, error: routineDayError } = await supabase
     .from("routine_days")
-    .select("id, name")
+    .select("id, name, is_rest")
     .eq("routine_id", activeRoutine.id)
     .eq("day_index", routineDayIndex)
     .eq("user_id", user.id)
     .single();
 
   if (routineDayError || !routineDay) {
-    return { ok: false, error: routineDayError?.message ?? "Routine day not found" };
+    return { ok: false, error: "That routine day could not be loaded." };
   }
 
   const routineDayName = routineDay.name || `Day ${routineDayIndex}`;
@@ -83,7 +85,31 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
     .order("position", { ascending: true });
 
   if (templateError) {
-    return { ok: false, error: templateError.message };
+    return { ok: false, error: "Could not load exercises for this day." };
+  }
+
+  const templateExerciseIds = Array.from(new Set((templateExercises ?? []).map((exercise) => resolveCanonicalExerciseId(exercise.exercise_id)).filter((value): value is string => typeof value === "string" && value.trim().length > 0)));
+  const { data: canonicalExerciseRows, error: canonicalExerciseError } = templateExerciseIds.length
+    ? await supabase
+        .from("exercises")
+        .select("id, measurement_type, default_unit")
+        .in("id", templateExerciseIds)
+    : { data: [], error: null };
+
+  if (canonicalExerciseError) {
+    return { ok: false, error: "Could not validate exercises for this day." };
+  }
+
+  const canonicalExerciseIds = new Set((canonicalExerciseRows ?? []).map((exercise) => exercise.id));
+  const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(templateExercises ?? [], canonicalExerciseIds);
+  const startError = getSessionStartErrorMessage({
+    isRest: Boolean(routineDay.is_rest),
+    runnableExerciseCount: runnableExercises.length,
+    invalidExerciseCount: invalidExercises.length,
+  });
+
+  if (startError) {
+    return { ok: false, error: startError };
   }
 
   const { data: session, error: sessionError } = await supabase
@@ -100,25 +126,17 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
     .single();
 
   if (sessionError || !session) {
-    return { ok: false, error: sessionError?.message ?? "Could not create session" };
+    return { ok: false, error: "Could not create workout session." };
   }
 
-  if ((templateExercises ?? []).length > 0) {
-    const templateExerciseIds = Array.from(new Set((templateExercises ?? []).map((exercise) => exercise.exercise_id)));
-    const { data: exerciseRows } = templateExerciseIds.length
-      ? await supabase
-          .from("exercises")
-          .select("id, measurement_type, default_unit")
-          .in("id", templateExerciseIds)
-      : { data: [] };
-
-    const exerciseFallbackById = new Map((exerciseRows ?? []).map((exercise) => [exercise.id, {
+  if (runnableExercises.length > 0) {
+    const exerciseFallbackById = new Map((canonicalExerciseRows ?? []).map((exercise) => [exercise.id, {
       measurement_type: exercise.measurement_type,
       default_unit: exercise.default_unit,
     }]));
 
     const { error: exerciseError } = await supabase.from("session_exercises").insert(
-      (templateExercises ?? []).map((exercise) => {
+      runnableExercises.map((exercise) => {
         const fallback = exerciseFallbackById.get(exercise.exercise_id);
         const mappedGoalColumns = mapRoutineDayGoalToSessionColumns({
           target_sets: exercise.target_sets,
@@ -155,7 +173,12 @@ async function startSessionAction(payload?: { dayIndex?: number }): Promise<Acti
     );
 
     if (exerciseError) {
-      return { ok: false, error: exerciseError.message };
+      await supabase
+        .from("sessions")
+        .delete()
+        .eq("id", session.id)
+        .eq("user_id", user.id);
+      return { ok: false, error: "Could not start workout for this day." };
     }
   }
 
@@ -244,7 +267,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
   let activeRoutine: RoutineRow | null = null;
   let todayRoutineDay: RoutineDayRow | null = null;
-  let dayExercises: RoutineDayExerciseRow[] = [];
   let allDayExercises: RoutineDayExerciseRow[] = [];
   let todayDayIndex: number | null = null;
   let completedTodayCount = 0;
@@ -293,9 +315,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           allDayExercises = (allExercises ?? []) as RoutineDayExerciseRow[];
         }
 
-        if (todayRoutineDay) {
-          dayExercises = allDayExercises.filter((exercise) => exercise.routine_day_id === todayRoutineDay?.id);
-        }
 
         const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
 
@@ -331,7 +350,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   }
 
   const exerciseNameMap = await getExerciseNameMap();
-  const exerciseIds = Array.from(new Set(allDayExercises.map((exercise) => exercise.exercise_id)));
+  const exerciseIds = Array.from(new Set(allDayExercises.map((exercise) => resolveCanonicalExerciseId(exercise.exercise_id)).filter((exerciseId) => exerciseId.trim().length > 0)));
   const { data: exerciseDetailsRows } = exerciseIds.length === 0
     ? { data: [] }
     : await supabase
@@ -339,6 +358,19 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short")
         .in("id", exerciseIds);
   const exerciseDetailsById = new Map((exerciseDetailsRows ?? []).map((exercise) => [exercise.id, exercise]));
+  const canonicalExerciseIds = new Set((exerciseDetailsRows ?? []).map((exercise) => exercise.id));
+  const normalizedDaySummaries = routineDays.map((day) => {
+    const dayExercises = allDayExercises.filter((exercise) => exercise.routine_day_id === day.id);
+    const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(dayExercises, canonicalExerciseIds);
+
+    return {
+      day,
+      state: getRunnableDayState({ isRest: day.is_rest, runnableExerciseCount: runnableExercises.length }),
+      runnableExercises,
+      invalidExercises,
+    };
+  });
+  const normalizedDayByIndex = new Map(normalizedDaySummaries.map((entry) => [entry.day.day_index, entry]));
   // Manual QA checklist:
   // - Change day on Today, start workout, leave, return: displayed day matches Resume target.
   const effectiveDayIndex = inProgressSession?.routine_day_index ?? todayDayIndex;
@@ -347,7 +379,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     : routineDays.find((day) => day.day_index === effectiveDayIndex) ?? todayRoutineDay;
   const effectiveDayExercises = effectiveRoutineDay
     ? allDayExercises.filter((exercise) => exercise.routine_day_id === effectiveRoutineDay.id)
-    : dayExercises;
+    : [];
+  const effectiveDaySummary = effectiveRoutineDay ? normalizedDayByIndex.get(effectiveRoutineDay.day_index) ?? null : null;
   const routineName = activeRoutine?.name ?? null;
   const routineDayName = effectiveRoutineDay ? effectiveRoutineDay.name ?? `Day ${effectiveDayIndex ?? effectiveRoutineDay.day_index}` : null;
 
@@ -360,11 +393,12 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             dayIndex: effectiveDayIndex,
             dayName: routineDayName,
             isRest: effectiveRoutineDay.is_rest,
+            state: effectiveDaySummary?.state ?? getRunnableDayState({ isRest: effectiveRoutineDay.is_rest, runnableExerciseCount: 0 }),
             routineId: activeRoutine.id,
             routineDayId: effectiveRoutineDay.id,
           }
         : null,
-    exercises: effectiveDayExercises.map((exercise) => {
+    exercises: (effectiveDaySummary?.runnableExercises ?? []).map((exercise) => {
       const details = exerciseDetailsById.get(exercise.exercise_id);
       return {
         id: exercise.id,
@@ -396,7 +430,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           hints: {
             inProgressSessionId: todayPayload.inProgressSessionId,
             completedTodayCount,
-            recentExerciseIds: effectiveDayExercises.map((exercise) => exercise.exercise_id),
+            recentExerciseIds: (effectiveDaySummary?.runnableExercises ?? []).map((exercise) => exercise.exercise_id),
           },
         };
 
@@ -418,36 +452,37 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}
-                      emptyMessage="No routine exercises planned today."
+                      emptyMessage={todayPayload.routine.state === "rest" ? "Rest day. No workout to start today." : "No runnable exercises planned for this day."}
                     />
                   </AppPanel>
                 </div>
               ) : (
                 <TodayDayPicker
                   routineName={todayPayload.routine.name}
-                  days={routineDays.map((day) => ({
+                  routineId={todayPayload.routine.id}
+                  days={normalizedDaySummaries.map(({ day, state, runnableExercises, invalidExercises }) => ({
                     id: day.id,
                     dayIndex: day.day_index,
                     name: day.name || `Day ${day.day_index}`,
                     isRest: day.is_rest,
-                    exercises: allDayExercises
-                      .filter((exercise) => exercise.routine_day_id === day.id)
-                      .map((exercise) => {
-                        const details = exerciseDetailsById.get(exercise.exercise_id);
-                        return {
-                          id: exercise.id,
-                          exerciseId: details?.id ?? exercise.exercise_id,
-                          name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, name: details?.name, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
-                          targets: formatExerciseGoal(exercise),
-                          primary_muscle: details?.primary_muscle ?? null,
-                          equipment: details?.equipment ?? null,
-                          movement_pattern: details?.movement_pattern ?? null,
-                          image_howto_path: details?.image_howto_path ?? null,
-                          image_icon_path: details?.image_icon_path ?? null,
-                          slug: details?.slug ?? null,
-                          how_to_short: details?.how_to_short ?? null,
-                        };
-                      }),
+                    state,
+                    invalidExerciseCount: invalidExercises.length,
+                    exercises: runnableExercises.map((exercise) => {
+                      const details = exerciseDetailsById.get(exercise.exercise_id);
+                      return {
+                        id: exercise.id,
+                        exerciseId: details?.id ?? exercise.exercise_id,
+                        name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, name: details?.name, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
+                        targets: formatExerciseGoal(exercise),
+                        primary_muscle: details?.primary_muscle ?? null,
+                        equipment: details?.equipment ?? null,
+                        movement_pattern: details?.movement_pattern ?? null,
+                        image_howto_path: details?.image_howto_path ?? null,
+                        image_icon_path: details?.image_icon_path ?? null,
+                        slug: details?.slug ?? null,
+                        how_to_short: details?.how_to_short ?? null,
+                      };
+                    }),
                   }))}
                   currentDayIndex={todayPayload.routine.dayIndex}
                   completedTodayCount={todayPayload.completedTodayCount}

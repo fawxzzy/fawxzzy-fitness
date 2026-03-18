@@ -10,6 +10,17 @@
 
 # Changelog
 
+## 2026-03-18 — Enforce runnable-day integrity before Today session writes
+
+### WHAT
+- Added a shared runnable-day normalization boundary that canonicalizes routine-day exercise ids, rejects sentinel/non-canonical placeholders before session materialization, and returns deterministic app-level start-session failures instead of leaking raw `session_exercises` constraint text.
+- Updated Today day selection and preview states so only runnable training days show `Start Workout`, while rest days and empty/invalid days surface explicit non-runnable messaging plus `Edit Day` and `View Day` actions.
+- Aligned Today preview data with the write path by rendering only canonical runnable exercises in the pre-start surface and preserving matching empty/rest-day behavior across the selected-day card and sticky actions.
+
+### WHY
+- Prevents the mismatch where Today looked runnable even though the session write path still contained sentinel or placeholder entities that could fail at `session_exercises` insert time.
+- Keeps screen-state validity and write-path validity synchronized so users never get a raw database constraint failure from an invalid non-runnable day.
+
 ## 2026-03-18 — Rebalance History Sessions cards for mobile scanability
 
 ### WHAT
