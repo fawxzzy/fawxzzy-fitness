@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Same day state must share one canonical loader
+- Type: Guardrail
+- Summary: If Today, View Day, Edit Day, or any routine-day surface represent the same routine day, they should all consume one canonical loader/normalization boundary instead of adding route-local shaping for exercises, runnable filtering, or rest/empty handling.
+- Suggested Playbook File: docs/GUARDRAILS/data-normalization-boundaries.md
+- Rationale: Prevents a single custom route from becoming the only screen that breaks on sentinel exercises, missing canonical exercise rows, or empty/non-rest edge cases while adjacent day screens still work.
+- Evidence: src/lib/routine-day-loader.ts, src/app/today/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Reuse one list interaction pattern for the same entity across screens
 - Type: Pattern
 - Summary: When the same entity appears in browse, detail, and edit flows, the app should keep one primary row-tap access pattern and move screen-specific actions into secondary trailing controls instead of inventing route-local buttons.
