@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { supabaseServerAnon } from "@/lib/supabase/server-anon";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -122,7 +123,9 @@ export async function listExercises() {
     }
   }
 
-  return Array.from(dedupedExercises.values()).sort((left, right) => left.name.localeCompare(right.name));
+  return Array.from(dedupedExercises.values())
+    .map((exercise) => ({ ...exercise, name: normalizeExerciseDisplayName({ exerciseId: exercise.id, name: exercise.name }) }))
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
@@ -191,5 +194,5 @@ const listGlobalExercisesCached = unstable_cache(
 
 export async function getExerciseNameMap() {
   const exercises = await listExercises();
-  return new Map(exercises.map((exercise) => [exercise.id, exercise.name]));
+  return new Map(exercises.map((exercise) => [exercise.id, normalizeExerciseDisplayName({ exerciseId: exercise.id, name: exercise.name })]));
 }

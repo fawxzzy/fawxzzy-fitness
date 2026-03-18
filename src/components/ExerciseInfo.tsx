@@ -95,7 +95,7 @@ export function ExerciseInfo({
             code: errorPayload?.code,
             payload: errorPayload,
           });
-          toast.error(`${resolvedMessage} (status ${response.status}, id ${normalizedExerciseId})`);
+          toast.error(resolvedMessage);
           setExercise(null);
           setStats(null);
           setStatsLoading(false);
@@ -124,7 +124,7 @@ export function ExerciseInfo({
       } catch (error) {
         if (!active || controller.signal.aborted) return;
         console.error("[ExerciseInfo] request failed", { exerciseId: normalizedExerciseId, status: "request-failed", error });
-        toast.error(`Could not load exercise info. (status request-failed, id ${normalizedExerciseId})`);
+        toast.error("Could not load exercise info.");
         setExercise(null);
         setStats(null);
         setStatsLoading(false);

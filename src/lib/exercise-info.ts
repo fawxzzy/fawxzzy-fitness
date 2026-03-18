@@ -2,6 +2,7 @@ import "server-only";
 
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
+import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseStatsForExercise, type ExerciseStatsLookupError } from "@/lib/exercise-stats";
 import { evaluatePrSummaries, formatPrBreakdown, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -333,7 +334,7 @@ export async function getExerciseInfoBase(exerciseId: string, userId: string): P
   return {
     id: data.id,
     exercise_id: data.id,
-    name: data.name,
+    name: normalizeExerciseDisplayName({ exerciseId: data.id, name: data.name }),
     primary_muscle: data.primary_muscle,
     equipment: data.equipment,
     movement_pattern: data.movement_pattern,

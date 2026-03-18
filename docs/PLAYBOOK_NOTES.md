@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Never let migration or sentinel exercise entities leak past the normalization boundary
+- Type: Guardrail
+- Summary: User-facing UI should consume normalized exercise presentation data only; unresolved exercise rows must be collapsed once near the data boundary into either a canonical exercise name or an explicit unknown-exercise fallback.
+- Suggested Playbook File: docs/GUARDRAILS/data-normalization-boundaries.md
+- Rationale: Prevents raw UUIDs, legacy sentinel labels, and migration-only placeholders from leaking into routine/session/detail screens and making the app feel corrupted even when the underlying workout record is mostly valid.
+- Evidence: src/lib/exercise-display.ts, src/lib/exercises.ts, src/app/today/page.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/lib/exercise-info.ts
+- Status: Proposed
+
 ## 2026-03-18 — Shared mobile back controls should be history-first with safe route fallbacks
 - Type: Pattern
 - Summary: Shared page-shell and back-button primitives should own mobile back navigation semantics by preferring prior in-app history, then falling back to a screen-defined internal route when no usable in-app history exists.

@@ -16,6 +16,7 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
+import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
@@ -368,7 +369,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       return {
         id: exercise.id,
         exerciseId: details?.id ?? exercise.exercise_id,
-        name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+        name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, name: details?.name, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
         targets: formatExerciseGoal(exercise),
         notes: exercise.notes,
         primary_muscle: details?.primary_muscle ?? null,
@@ -436,7 +437,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                         return {
                           id: exercise.id,
                           exerciseId: details?.id ?? exercise.exercise_id,
-                          name: details?.name ?? exerciseNameMap.get(exercise.exercise_id) ?? exercise.exercise_id,
+                          name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, name: details?.name, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
                           targets: formatExerciseGoal(exercise),
                           primary_muscle: details?.primary_muscle ?? null,
                           equipment: details?.equipment ?? null,
