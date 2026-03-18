@@ -196,9 +196,11 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   return (
     <AppShell topNavMode="none">
       <ScrollContainer>
-        <section className="space-y-4">
+        <section className="space-y-4 pb-2">
           <AppHeader
             title={`Edit Day — ${dayTitle}`}
+            subtitleLeft={routine.name}
+            subtitleRight={(day as RoutineDayRow).is_rest ? "Rest day" : `${dayExercises.length} planned exercise${dayExercises.length === 1 ? "" : "s"}`}
             action={<TopRightBackButton href={backHref} />}
             actionClassName="-mt-1"
           />
@@ -206,10 +208,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
           {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-          <form action={saveRoutineDayAction} className="space-y-3 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.5)] p-4">
+          <form action={saveRoutineDayAction} className="space-y-3 rounded-xl border border-border/55 bg-[rgb(var(--surface-2-soft)/0.72)] p-4 shadow-[0_6px_16px_rgba(0,0,0,0.12)]">
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Day settings</p>
-              <p className="text-xs text-muted">Use this screen for day-specific changes like naming, rest-day status, and workout composition.</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Day settings</p>
+              <p className="text-xs text-muted">Name the day, set rest status, and keep the workout list below aligned with the rest of the routine.</p>
             </div>
             <input type="hidden" name="routineId" value={params.id} />
             <input type="hidden" name="routineDayId" value={params.dayId} />
@@ -221,16 +223,17 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </form>
 
           {(day as RoutineDayRow).is_rest ? (
-            <p className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-xs text-muted">Rest day enabled. Routine exercises stay saved but are ignored until you turn rest day off.</p>
+            <p className="rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.56)] px-3 py-2.5 text-xs text-muted">Rest day enabled. Planned exercises stay saved, but this day will be skipped until you turn rest day off.</p>
           ) : (
             <>
-              <section className="space-y-3 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.45)] p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <h2 className="text-sm font-semibold text-text">Planned workouts</h2>
-                    <p className="text-[11px] text-muted">Tap a row for exercise info. Use the handle to reorder. Edit/Delete stay in trailing controls.</p>
+              <section className="space-y-3 rounded-xl border border-border/50 bg-[rgb(var(--surface-2-soft)/0.62)] p-3.5 shadow-[0_6px_14px_rgba(0,0,0,0.10)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
+                    <h2 className="text-sm font-semibold text-text">Exercises for {dayTitle}</h2>
+                    <p className="text-[11px] text-muted">Tap a row for exercise info. Drag the handle to reorder. Keep edit and delete in the trailing controls.</p>
                   </div>
-                  <span className="rounded-full border border-border/60 bg-[rgb(var(--bg)/0.45)] px-2 py-0.5 text-xs font-medium text-text">{dayExercises.length}</span>
+                  <span className="rounded-full border border-border/50 bg-[rgb(var(--bg)/0.38)] px-2.5 py-1 text-[11px] font-semibold text-text">{dayExercises.length}</span>
                 </div>
                 <EditableRoutineDayExerciseList
                   routineId={params.id}
@@ -245,20 +248,20 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
               <CollapsibleCard
                 title="Add Exercises"
-                summary={`${dayExercises.length} planned`}
+                summary="Choose an exercise, optionally set targets, then add it to this day."
                 defaultOpen={searchParams?.addExerciseOpen === "1"}
-                className="border border-border/70 bg-[rgb(var(--bg)/0.45)]"
+                className="border border-border/50 bg-[rgb(var(--surface-2-soft)/0.6)] shadow-[0_6px_14px_rgba(0,0,0,0.10)]"
                 bodyClassName="space-y-3 bg-transparent"
               >
-                <div className="rounded-lg border border-border/50 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-xs text-muted">
+                <div className="rounded-lg border border-border/40 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-xs text-muted">
                   Pick an exercise, set optional targets, then add it to this day.
                 </div>
                 <CollapsibleCard
                   title="Add custom exercise"
                   summary={`${customExercises.length} saved`}
                   defaultOpen={false}
-                  className="border border-border/60"
-                  bodyClassName="bg-[rgb(var(--bg)/0.35)]"
+                  className="border border-border/50 bg-[rgb(var(--bg)/0.16)]"
+                  bodyClassName="bg-[rgb(var(--bg)/0.3)]"
                 >
                   <form action={createCustomExerciseAction} className="space-y-2">
                     <input type="hidden" name="returnTo" value={returnTo} />

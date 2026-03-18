@@ -1,3 +1,14 @@
+## 0.3.75 — 2026-03-18
+
+### WHAT
+- Polished Edit Day so the header reads as a clearer dedicated day editor, with routine/day context surfaced directly under `Edit Day — <day name>`.
+- Tightened the planned exercise list with lighter section framing, clearer reorder affordances, row numbering, and more compact action alignment while preserving tap-for-info, edit, delete, and drag-to-reorder behavior.
+- Softened Edit Day section chrome so day settings and Add Exercises better match the newer mobile choose/configure patterns without changing routine write semantics.
+
+### WHY
+- Keeps Edit Day visually aligned with the newer workout overview, Quick Add, and set-entry interaction language instead of feeling like an older heavier editor.
+- Improves mobile scanability and action clarity while preserving the existing routine-day editing workflow.
+
 ## 0.3.74 — 2026-03-18
 
 ### WHAT
@@ -3510,6 +3521,7 @@ WHY:
 - Prevents strength exercises with stale or incorrect cardio measurement metadata from rendering misleading cardio summaries.
 - Keeps Best/Last stats consistent across surfaces by deriving modality from actual logged effort, not metadata alone.
 - Improves data-quality visibility in development without breaking production UX.
+
 
 ## 0.3.74 — 2026-03-18
 
