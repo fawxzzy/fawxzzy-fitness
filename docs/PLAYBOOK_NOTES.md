@@ -1,5 +1,5 @@
-- Fixed partial-day consistency so Day View now renders runnable exercises with a warning, Today no longer shows stale global error banners during normal browsing, and workout starts use canonical day summaries to skip only invalid rows.
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
+
 
 ## Playbook integration status
 - Playbook runtime resolution in this repo is package-first, with explicit official fallback acquisition documented in `docs/PROJECT_GOVERNANCE.md` and `README.md`.
@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-03-18 — Workout-entry flows should share one mobile session language
+- Type: Pattern
+- Summary: Set entry and Quick Add should read as one mobile-first session system by sharing hierarchy, spacing, softer grouping, and one dominant final commit action across choose → configure → commit flows.
+- Suggested Playbook File: docs/PATTERNS/mobile-workout-entry-hierarchy.md
+- Rationale: Prevents the overview from feeling elegant while detailed write flows still feel heavy, nested, and inconsistent, which erodes trust in workout logging.
+- Evidence: src/app/session/[id]/QuickAddExerciseSheet.tsx, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/ui/BottomSheet.tsx, src/components/ui/measurements/ModifyMeasurements.tsx
+- Status: Proposed
+
 
 ## 2026-03-18 — Canonical day loaders must resolve legacy planned exercise ids before invalidating a day
 - Type: Guardrail

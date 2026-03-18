@@ -751,16 +751,18 @@ export function SetLoggerCard({
         tapFeedbackClass={tapFeedbackClass}
       />
 
-      <div className="rounded-xl border border-border/60 bg-surface/55 p-3">
+      <div className="rounded-2xl bg-surface/45 p-4">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Finish details</p>
-              <p className="text-sm font-medium text-text">RPE and warm-up</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure</p>
+              <p className="text-sm font-medium text-text">Finish this set</p>
             </div>
           </div>
+          <div className="space-y-1">
+            <p className="text-sm text-muted">Add effort details only if you want them logged with this set.</p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
-
             <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="relative">
                 <div className="mb-1 flex items-center gap-1">
@@ -788,10 +790,10 @@ export function SetLoggerCard({
                   value={rpe}
                   onChange={(event) => setRpe(event.target.value)}
                   placeholder="RPE"
-                  className="min-h-11 w-full rounded-xl border border-border/70 bg-surface-2-soft px-3 py-2 text-sm"
+                  className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
                 />
               </div>
-              <label className="flex min-h-11 items-center gap-3 rounded-xl border border-border/60 bg-surface/50 px-3 text-sm text-text">
+              <label className="flex min-h-11 items-center gap-3 rounded-xl bg-surface/70 px-3 text-sm text-text">
                 <input
                   type="checkbox"
                   checked={isWarmup}
@@ -811,7 +813,15 @@ export function SetLoggerCard({
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      <ul className="divide-y divide-border/70 overflow-hidden rounded-md border border-border/70 bg-surface/70 text-sm">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Logged</p>
+            <p className="text-sm font-medium text-text">Saved sets</p>
+          </div>
+          <p className="text-xs text-muted">{sets.length} total</p>
+        </div>
+        <ul className="divide-y divide-border/50 overflow-hidden rounded-2xl bg-surface/45 text-sm">
         {animatedSets.map((set, index) => (
           <li
             key={set.id}
@@ -840,8 +850,9 @@ export function SetLoggerCard({
             </div>
           </li>
         ))}
-        {sets.length === 0 ? <li className="px-3 py-2 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
-      </ul>
+        {sets.length === 0 ? <li className="px-3 py-3 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
+        </ul>
+      </div>
 
     </div>
   );
