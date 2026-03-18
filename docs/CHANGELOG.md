@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-03-18 — Consolidate exercise history aggregation
+
+### WHAT
+- Added a shared `src/lib/exercise-history-aggregation.ts` module so exercise stats recompute and exercise browser history shaping read from one authoritative raw aggregation path keyed by canonical `exercises.id` UUIDs.
+- Replaced the exercise stats recompute N+1 loop with one batched completed-set history query plus grouped `exercise_stats` upsert/delete writes.
+- Updated the session page data loader to request `exercise_stats` only for the canonical exercise IDs present in the active session instead of the entire exercise catalog.
+- Added targeted aggregation tests covering batched strength stats derivation and shared cardio session rollups.
+
+### WHY
+- Prevents performance degradation from per-exercise set history recomputes while keeping stats semantics deterministic.
+- Reduces correctness drift by separating raw history aggregation from surface-specific presentation formatting in one shared boundary.
+
 ## 2026-03-18 — Playbook integration reset cleanup
 - Removed transitional Playbook resolution leftovers from `scripts/playbook-runtime.mjs`, including `PLAYBOOK_RUNTIME_BIN` compatibility and the machine-specific dev checkout fallback path, so repo command resolution is deterministic across environments.
 - Updated `README.md`, `docs/PROJECT_GOVERNANCE.md`, and `.github/workflows/ci.yml` to describe the active package-first Playbook path without the retired transitional surfaces.

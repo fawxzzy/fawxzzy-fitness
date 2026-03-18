@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Derived history data should share one canonical aggregation boundary
+- Type: Pattern
+- Summary: When multiple product surfaces consume fitness performance history, raw set/session aggregation should live in one shared module keyed by canonical entity IDs, while each surface keeps only presentation formatting locally.
+- Suggested Playbook File: docs/PATTERNS/domain-read-models.md
+- Rationale: Prevents the common drift where stats recompute, browser summaries, and detail pages each re-interpret the same workout history with slightly different semantics and query costs.
+- Evidence: src/lib/exercise-stats.ts, src/lib/exercises-browser.ts, src/app/session/[id]/queries.ts, src/lib/exercise-history-aggregation.ts
+- Status: Proposed
+
 ## 2026-03-18 — Create companion Playbook notes as soon as governance is introduced
 - Type: Guardrail
 - Summary: Once `docs/PROJECT_GOVERNANCE.md` establishes Playbook governance in a repo, `docs/PLAYBOOK_NOTES.md` should be created in the same integration change instead of being deferred.
