@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## PROPOSED
 
+## 2026-03-18 — Runnable-day UI must match session-write invariants
+- Type: Guardrail
+- Summary: A day may offer workout-start actions only when the same normalized canonical exercise set is valid for session materialization; rest days, empty days, and invalid placeholder/sentinel days must render as non-runnable states.
+- Suggested Playbook File: docs/GUARDRAILS/data-normalization-boundaries.md
+- Rationale: Prevents the trust-breaking failure mode where the Today screen appears startable but the write boundary still rejects sentinel or placeholder exercises during `session_exercises` inserts.
+- Evidence: src/lib/runnable-day.ts, src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Parent editors should stop at parent metadata boundaries
 - Type: Pattern
 - Summary: When a flow has both parent-level and child-level editors, the parent screen should own only parent metadata and high-level summaries, while child workflow controls stay inside the dedicated child editor.

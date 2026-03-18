@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
@@ -10,6 +11,7 @@ import { AppRow } from "@/components/ui/app/AppRow";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { SecondaryButton } from "@/components/ui/AppButton";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import type { ActionResult } from "@/lib/action-result";
 
 type TodayExercise = {
@@ -26,22 +28,44 @@ type TodayExercise = {
   how_to_short: string | null;
 };
 
+type TodayDayState = "rest" | "empty" | "runnable";
+
 type TodayDay = {
   id: string;
   dayIndex: number;
   name: string;
   isRest: boolean;
+  state: TodayDayState;
+  invalidExerciseCount: number;
   exercises: TodayExercise[];
 };
 
+function getDaySummary(day: TodayDay) {
+  if (day.state === "rest") {
+    return "Rest day. Recovery and mobility only.";
+  }
+
+  if (day.invalidExerciseCount > 0) {
+    return "This day has invalid exercises. Edit the day before starting a workout.";
+  }
+
+  if (day.state === "empty") {
+    return "No exercises are planned for this day yet.";
+  }
+
+  return null;
+}
+
 export function TodayDayPicker({
   routineName,
+  routineId,
   days,
   currentDayIndex,
   completedTodayCount,
   startSessionAction,
 }: {
   routineName: string;
+  routineId: string;
   days: TodayDay[];
   currentDayIndex: number;
   completedTodayCount: number;
@@ -60,14 +84,42 @@ export function TodayDayPicker({
     setIsPickerOpen((previous) => !previous);
   }, []);
 
+  const viewDayHref = selectedDay ? `/routines/${routineId}/days/${selectedDay.id}` : null;
+  const editDayHref = selectedDay ? `/routines/${routineId}/edit/day/${selectedDay.id}` : null;
+  const isRunnableDay = selectedDay?.state === "runnable";
+  const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
+
   const actionsNode = useMemo(() => (
     <>
-      <TodayStartButton
-        startSessionAction={startSessionAction}
-        selectedDayIndex={selectedDayIndex}
-        fullWidth
-        className="w-full"
-      />
+      {isRunnableDay ? (
+        <TodayStartButton
+          startSessionAction={startSessionAction}
+          selectedDayIndex={selectedDayIndex}
+          fullWidth
+          className="w-full"
+        />
+      ) : null}
+      {editDayHref ? (
+        <Link
+          href={editDayHref}
+          className={getAppButtonClassName({
+            variant: isRunnableDay ? "secondary" : "primary",
+            size: "md",
+            fullWidth: true,
+            className: isRunnableDay ? undefined : "border-white/15 bg-white/10 text-white hover:bg-white/14",
+          })}
+        >
+          Edit Day
+        </Link>
+      ) : null}
+      {viewDayHref ? (
+        <Link
+          href={viewDayHref}
+          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
+        >
+          View Day
+        </Link>
+      ) : null}
       <SecondaryButton
         id="today-day-picker"
         type="button"
@@ -78,7 +130,7 @@ export function TodayDayPicker({
         <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
       </SecondaryButton>
     </>
-  ), [isPickerOpen, selectedDayIndex, startSessionAction, togglePicker]);
+  ), [editDayHref, isPickerOpen, isRunnableDay, selectedDayIndex, startSessionAction, togglePicker, viewDayHref]);
 
   usePublishBottomActions(actionsNode);
 
@@ -88,9 +140,13 @@ export function TodayDayPicker({
         <AppPanel className="space-y-3 p-4">
           <AppHeader
             title={`${routineName} | ${selectedDay.name}`}
-            subtitleRight={`${selectedDay.exercises.length} exercises`}
+            subtitleRight={selectedDay.state === "rest" ? "Rest day" : `${selectedDay.exercises.length} exercises`}
             action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
           />
+
+          {daySummary ? (
+            <p className="rounded-md border border-border/70 bg-[rgb(var(--bg)/0.35)] px-3 py-2 text-sm text-muted">{daySummary}</p>
+          ) : null}
 
           <ul className="space-y-2">
             {selectedDay.exercises.map((exercise) => (
@@ -108,7 +164,7 @@ export function TodayDayPicker({
                 </ExerciseCard>
               </li>
             ))}
-            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3 text-muted">No routine exercises planned for this day.</li> : null}
+            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3 text-muted">{selectedDay.state === "rest" ? "No workout is scheduled for this rest day." : "No runnable exercises planned for this day."}</li> : null}
           </ul>
         </AppPanel>
       ) : null}
@@ -124,6 +180,7 @@ export function TodayDayPicker({
                   key={day.id}
                   tone={isSelected ? "active" : "default"}
                   leftTop={<span>{day.name}{day.isRest ? " (Rest)" : ""}</span>}
+                  leftBottom={day.state === "runnable" ? `${day.exercises.length} exercises` : getDaySummary(day) ?? undefined}
                   onClick={() => {
                     setSelectedDayIndex(day.dayIndex);
                     setIsPickerOpen(false);
