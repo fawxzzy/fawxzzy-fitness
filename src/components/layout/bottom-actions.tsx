@@ -16,45 +16,56 @@ type PublishedBottomActions = {
   node: ReactNode | null;
 };
 
-type BottomActionsContextValue = {
-  api: BottomActionsApi;
-  published: PublishedBottomActions | null;
-};
-
-const BottomActionsContext = createContext<BottomActionsContextValue | null>(null);
+const BottomActionsApiContext = createContext<BottomActionsApi | null>(null);
+const BottomActionsPublishedContext = createContext<PublishedBottomActions | null>(null);
 
 export function BottomActionsProvider({ children }: { children: ReactNode }) {
+  const publishedRef = useRef<PublishedBottomActions | null>(null);
   const [published, setPublished] = useState<PublishedBottomActions | null>(null);
 
   const api = useMemo<BottomActionsApi>(() => ({
     publish: (registration, node) => {
-      setPublished((current) => {
-        if (current?.registration === registration && Object.is(current.node, node)) {
-          return current;
-        }
+      const current = publishedRef.current;
+      if (current?.registration === registration && Object.is(current.node, node)) {
+        return;
+      }
 
-        return { registration, node };
+      const next = { registration, node };
+      publishedRef.current = next;
+      setPublished((state) => {
+        if (state?.registration === registration && Object.is(state.node, node)) {
+          return state;
+        }
+        return next;
       });
     },
     unpublish: (registration) => {
-      setPublished((current) => (current?.registration === registration ? null : current));
+      if (publishedRef.current?.registration !== registration) {
+        return;
+      }
+
+      publishedRef.current = null;
+      setPublished((state) => (state?.registration === registration ? null : state));
     },
   }), []);
 
-  return <BottomActionsContext.Provider value={{ api, published }}>{children}</BottomActionsContext.Provider>;
+  return (
+    <BottomActionsApiContext.Provider value={api}>
+      <BottomActionsPublishedContext.Provider value={published}>{children}</BottomActionsPublishedContext.Provider>
+    </BottomActionsApiContext.Provider>
+  );
 }
 
 export function useBottomActions(): BottomActionsApi {
-  const context = useContext(BottomActionsContext);
+  const context = useContext(BottomActionsApiContext);
   if (!context) {
     throw new Error("useBottomActions must be used within BottomActionsProvider");
   }
-  return context.api;
+  return context;
 }
 
 export function useHasBottomActions(): boolean {
-  const context = useContext(BottomActionsContext);
-  return Boolean(context?.published?.node);
+  return Boolean(useContext(BottomActionsPublishedContext)?.node);
 }
 
 export function usePublishBottomActions(node: ReactNode | null) {
@@ -79,7 +90,7 @@ export function usePublishBottomActions(node: ReactNode | null) {
 }
 
 export function BottomActionsSlot() {
-  const context = useContext(BottomActionsContext);
+  const published = useContext(BottomActionsPublishedContext);
   const slotRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -108,15 +119,15 @@ export function BottomActionsSlot() {
     if (!hasScrollableAncestor) {
       console.warn("[bottom-actions] BottomActionsSlot should be rendered inside a scroll owner (overflow-y-auto/scroll ancestor not found).");
     }
-  }, [context?.published?.node]);
+  }, [published?.node]);
 
-  if (!context || !context.published?.node) {
+  if (!published?.node) {
     return null;
   }
 
   return (
     <div ref={slotRef}>
-      <BottomActionBar variant="sticky">{context.published.node}</BottomActionBar>
+      <BottomActionBar variant="sticky">{published.node}</BottomActionBar>
     </div>
   );
 }
