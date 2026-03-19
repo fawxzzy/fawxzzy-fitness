@@ -206,7 +206,9 @@ export function SessionExerciseFocus({
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
-            const setCountLabel = `${setCount} ${exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}`;
+            const setCountLabel = setCount > 0
+              ? `Logged ${setCount} ${exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}`
+              : `No ${exercise.isCardio ? "intervals" : "sets"} yet`;
 
             return (
               <li

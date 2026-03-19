@@ -206,11 +206,11 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, 
             className={cn(
               "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
               isSelected
-                ? "border-accent/35 bg-accent/20 text-text"
-                : "border-border/50 bg-surface/50 text-muted",
+                ? "border-accent/40 bg-accent/24 text-[rgb(var(--text)/0.98)] shadow-[0_6px_18px_-14px_rgba(96,200,130,0.95)]"
+                : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
             )}
           >
-            {isSelected ? "Selected" : "Choose"}
+            {isSelected ? "Chosen" : "Select"}
           </span>
         )}
       />

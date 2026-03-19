@@ -91,7 +91,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       subtitle={primaryLine || (row.kind === "strength" ? "Strength history" : "Cardio history")}
       variant="summary"
       state={hasSignal ? "completed" : "default"}
-      badgeText={row.prLabel ? `PR ${row.prLabel}` : row.bestSummary ? "Best" : lastDate ? `Last ${lastDate}` : undefined}
+      badgeText={row.prLabel ? `PR ${row.prLabel}` : row.bestSummary ? "Completed" : lastDate ? `Last ${lastDate}` : undefined}
       leadingVisual={(
         <ExerciseAssetImage
           src={iconSrc}
