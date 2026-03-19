@@ -17,6 +17,7 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
+import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -25,7 +26,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
-import { formatCount, formatDateShort, formatDurationShort, formatSetDisplay } from "@/lib/formatting";
+import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -105,26 +106,6 @@ const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg", measurementType: 
   },
   isMetricsExpanded: false,
 });
-
-const formatSetSummary = (set: EditableSet, measurementType: AuditExercise["measurement_type"], defaultUnit: AuditExercise["default_unit"]) => {
-  const weight = Number(set.values.weight);
-  const reps = Number(set.values.reps);
-
-  const weightedDisplay = formatSetDisplay({ weight, reps, unit: set.values.weightUnit });
-  if (weightedDisplay) return weightedDisplay;
-
-  if ((measurementType === "time" || measurementType === "time_distance") && set.source.duration_seconds !== null) {
-    return formatDurationClock(set.source.duration_seconds);
-  }
-
-  if ((measurementType === "distance" || measurementType === "time_distance") && set.source.distance !== null) {
-    return `${set.source.distance} ${set.source.distance_unit ?? resolveDistanceUnit(defaultUnit) ?? "mi"}`;
-  }
-
-  if (set.source.calories !== null) return `${set.source.calories} cal`;
-
-  return "—";
-};
 
 const toSetPayload = (set: EditableSet) => {
   const parsedDuration = parseDurationInput(set.values.duration);
@@ -481,7 +462,18 @@ export function LogAuditClient({
                         >
                           <p className="text-xs font-medium text-slate-400">Set {index + 1}</p>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-[rgb(var(--text)/0.9)]">{formatSetSummary(set, exercise.measurement_type, exercise.default_unit)}</span>
+                            <MeasurementSummary
+                              values={{
+                                reps: Number(set.values.reps),
+                                weight: Number(set.values.weight),
+                                weightUnit: set.values.weightUnit,
+                                durationSeconds: set.source.duration_seconds,
+                                distance: set.source.distance,
+                                distanceUnit: set.source.distance_unit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
+                                calories: set.source.calories,
+                              }}
+                              emptyLabel="No measurements"
+                            />
                             <span className="text-xs text-slate-400">{expandedSetId === set.id ? "▾" : "▸"}</span>
                           </div>
                         </button>
@@ -503,7 +495,18 @@ export function LogAuditClient({
                         ) : null}
                       </div>
                     ) : (
-                      <p className="text-sm text-[rgb(var(--text)/0.9)]">{formatSetSummary(set, exercise.measurement_type, exercise.default_unit)}</p>
+                      <MeasurementSummary
+                        values={{
+                          reps: Number(set.values.reps),
+                          weight: Number(set.values.weight),
+                          weightUnit: set.values.weightUnit,
+                          durationSeconds: set.source.duration_seconds,
+                          distance: set.source.distance,
+                          distanceUnit: set.source.distance_unit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
+                          calories: set.source.calories,
+                        }}
+                        emptyLabel="No measurements"
+                      />
                     )}
                   </li>
                 ))}

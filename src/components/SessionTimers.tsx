@@ -15,6 +15,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
+import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
@@ -37,23 +38,6 @@ type AddSetPayload = {
 };
 
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
-
-function formatSetMetrics(set: SetRow, fallbackWeightUnit: string) {
-  const parts: string[] = [];
-  if (set.reps > 0 || set.weight > 0) {
-    parts.push(`${set.weight} ${set.weight_unit ?? fallbackWeightUnit} × ${set.reps} reps`);
-  }
-  if (set.duration_seconds !== null && set.duration_seconds > 0) {
-    parts.push(formatDurationClock(set.duration_seconds));
-  }
-  if (set.distance !== null && set.distance > 0) {
-    parts.push(`${set.distance} ${set.distance_unit ?? "mi"}`);
-  }
-  if (set.calories !== null && set.calories > 0) {
-    parts.push(`${set.calories} cal`);
-  }
-  return parts.length > 0 ? parts.join(" • ") : "No metrics";
-}
 
 function parseDurationInput(rawValue: string): number | null {
   const value = rawValue.trim();
@@ -834,12 +818,27 @@ export function SetLoggerCard({
               set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
             ].join(" ")}
           >
-            <div className="flex items-center justify-between gap-2">
-              <span>
-                {isCardio ? "Interval" : "Set"} {index + 1} · {formatSetMetrics(set, unitLabel)}
-                {set.queueStatus ? ` · ${set.queueStatus}` : ""}
-                {set.pending && !set.queueStatus ? " · saving..." : ""}
-              </span>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <span>
+                  {isCardio ? "Interval" : "Set"} {index + 1}
+                  {set.queueStatus ? ` · ${set.queueStatus}` : ""}
+                  {set.pending && !set.queueStatus ? " · saving..." : ""}
+                </span>
+                <MeasurementSummary
+                  values={{
+                    reps: set.reps,
+                    weight: set.weight,
+                    weightUnit: set.weight_unit ?? unitLabel,
+                    durationSeconds: set.duration_seconds,
+                    distance: set.distance,
+                    distanceUnit: set.distance_unit,
+                    calories: set.calories,
+                  }}
+                  emptyLabel="No measurements"
+                  className="mt-1"
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => {

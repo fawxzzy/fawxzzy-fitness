@@ -55,6 +55,14 @@ function formatDurationText(durationSeconds: number) {
   return formatDurationClock(durationSeconds);
 }
 
+function formatRangeValue(minValue: number | undefined, maxValue: number | undefined, suffix: string) {
+  if (minValue === undefined && maxValue === undefined) return null;
+  if (minValue !== undefined && maxValue !== undefined) {
+    return minValue === maxValue ? `${minValue} ${suffix}` : `${minValue}–${maxValue} ${suffix}`;
+  }
+  return `${minValue ?? maxValue} ${suffix}`;
+}
+
 function toSingularUnit(unit: "lbs" | "kg" | "mi" | "km" | "m" | "cal") {
   if (unit === "lbs") {
     return "lb";
@@ -187,26 +195,18 @@ export function formatGoalStatLine(target: DisplayTarget, fallbackWeightUnit: st
     return null;
   }
 
-  const firstSegmentParts: string[] = [];
-  const setsPart = formatRangeWithLabel(target.setsMin, target.setsMax, "sets");
-  if (setsPart) firstSegmentParts.push(setsPart);
-  const repsPart = formatRangeWithLabel(target.repsMin, target.repsMax, "reps");
-  if (repsPart) firstSegmentParts.push(repsPart);
-  const weightPart = formatRangeWithLabel(target.weightMin, target.weightMax, resolvedWeightUnit ? toSingularUnit(resolvedWeightUnit) : "");
-  if (weightPart) firstSegmentParts.push(`@ ${weightPart.trim()}`);
+  const primaryParts = [
+    formatRangeValue(target.setsMin, target.setsMax, "sets"),
+    formatRangeValue(target.repsMin, target.repsMax, "reps"),
+    formatRangeValue(target.weightMin, target.weightMax, resolvedWeightUnit ? toSingularUnit(resolvedWeightUnit) : "weight"),
+  ].filter((part): part is string => Boolean(part));
 
-  const primary = firstSegmentParts.join(" · ").trim();
-  const secondary: string[] = [];
-
-  if (target.durationSeconds !== undefined) {
-    secondary.push(formatDurationText(target.durationSeconds));
-  }
-  if (target.distance !== undefined) {
-    secondary.push(`${target.distance} ${toSingularUnit(resolvedDistanceUnit)}`);
-  }
-  if (target.calories !== undefined) {
-    secondary.push(`${target.calories} ${toSingularUnit("cal")}`);
-  }
+  const primary = primaryParts.join(" • ").trim();
+  const secondary = [
+    target.durationSeconds !== undefined ? formatDurationText(target.durationSeconds) : null,
+    target.distance !== undefined ? `${target.distance} ${toSingularUnit(resolvedDistanceUnit)}` : null,
+    target.calories !== undefined ? `${target.calories} ${toSingularUnit("cal")}` : null,
+  ].filter((part): part is string => Boolean(part));
 
   return {
     primary,
@@ -230,47 +230,17 @@ export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string
   );
 
   if (!hasMeasurementTarget) {
-    return "Goal: Open";
+    return "Goal: Open goal";
   }
 
-  const parts: string[] = [];
-
-  const setsPart = formatRangeWithLabel(target.setsMin, target.setsMax, "sets");
-  if (setsPart) {
-    parts.push(setsPart);
-  }
-
-  const repsWeightParts: string[] = [];
-  const repsPart = formatRangeWithLabel(target.repsMin, target.repsMax, "reps");
-  if (repsPart) repsWeightParts.push(repsPart);
-  const weightPart = formatRangeWithLabel(target.weightMin, target.weightMax, resolvedWeightUnit ?? "");
-  if (weightPart) repsWeightParts.push(`@ ${weightPart.trim()}`);
-
-  const timePart = target.durationSeconds !== undefined ? `Time ${formatDurationText(target.durationSeconds)}` : null;
-  const distancePart = target.distance !== undefined ? `Distance ${target.distance} ${resolvedDistanceUnit}` : null;
-  const caloriesPart = target.calories !== undefined ? `Calories ${target.calories}` : null;
-
-  if (target.measurementType === "time_distance") {
-    parts.push(...repsWeightParts);
-    if (timePart) parts.push(timePart);
-    if (distancePart) parts.push(distancePart);
-  } else if (target.measurementType === "time") {
-    parts.push(...repsWeightParts);
-    if (timePart) parts.push(timePart);
-    if (distancePart) parts.push(distancePart);
-  } else if (target.measurementType === "distance") {
-    parts.push(...repsWeightParts);
-    if (timePart) parts.push(timePart);
-    if (distancePart) parts.push(distancePart);
-  } else {
-    parts.push(...repsWeightParts);
-    if (timePart) parts.push(timePart);
-    if (distancePart) parts.push(distancePart);
-  }
-
-  if (caloriesPart) {
-    parts.push(caloriesPart);
-  }
+  const parts = [
+    formatRangeValue(target.setsMin, target.setsMax, "sets"),
+    formatRangeValue(target.repsMin, target.repsMax, "reps"),
+    formatRangeValue(target.weightMin, target.weightMax, resolvedWeightUnit ?? "weight"),
+    target.durationSeconds !== undefined ? `Time ${formatDurationText(target.durationSeconds)}` : null,
+    target.distance !== undefined ? `Distance ${target.distance} ${resolvedDistanceUnit}` : null,
+    target.calories !== undefined ? `Calories ${target.calories} cal` : null,
+  ].filter((part): part is string => Boolean(part));
 
   return `Goal: ${parts.join(" • ")}`;
 }
