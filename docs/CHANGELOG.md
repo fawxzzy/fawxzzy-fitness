@@ -1,3 +1,13 @@
+## 0.3.83 — 2026-03-19
+
+### WHAT
+- Refactored the shared `bottom-actions` registration primitive to use stable publisher ownership tokens plus guarded publish/unpublish updates instead of a render-coupled `set(node)` / cleanup `set(null)` loop.
+- Preserved the normalized sticky footer slot behavior while preventing bottom-action cleanup from clearing and re-registering the same host during routine rerenders across session, today, and editor screens.
+
+### WHY
+- Fixes the `Maximum update depth exceeded` regression caused by unstable layout-effect registration churn in the shared sticky footer system.
+- Reinforces the shared-layout rule that portal/sticky action surfaces must register through stable identities rather than render-time effect cleanup cycles.
+
 ## 0.3.82 — 2026-03-19
 
 ### WHAT
