@@ -51,7 +51,7 @@ export function BottomSheet({ open, title, onClose, children, className, descrip
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative z-10 w-full max-w-[640px] rounded-t-[1.9rem] border border-border/35 bg-[rgb(var(--surface-rgb)/0.98)] shadow-2xl ${className ?? ""}`}
+        className={`relative z-10 w-full max-w-[640px] rounded-t-[1.9rem] border border-border/45 bg-[rgb(var(--surface-rgb)/0.985)] shadow-[0_-14px_40px_rgba(0,0,0,0.34)] ${className ?? ""}`}
       >
         <div className="mx-auto mb-3 mt-2 h-1.5 w-12 rounded-full bg-white/20" aria-hidden="true" />
         <div className="px-4 pb-2">

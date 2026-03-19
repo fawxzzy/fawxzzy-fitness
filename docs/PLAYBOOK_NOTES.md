@@ -190,3 +190,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/components/ExerciseCard.tsx
 - Status: Proposed
 
+
+## 2026-03-19 — Workout detail flows should share one shell and action-bar system
+- Type: Pattern
+- Summary: Current session, set entry, edit day, and related workout pickers should reuse one detail-shell pattern with top-right back placement, one surface/card language, and canonical bottom action variants (single, split, utility cluster).
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents visual drift across adjacent workout-management flows and avoids repeated one-off fixes for spacing, safe-area handling, and sticky actions.
+- Evidence: src/components/layout/CanonicalBottomActions.tsx, src/components/SessionHeaderControls.tsx, src/components/SessionPageClient.tsx, src/components/SessionTimers.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/session/[id]/QuickAddExerciseSheet.tsx
+- Status: Proposed
+

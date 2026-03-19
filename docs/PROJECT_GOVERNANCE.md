@@ -37,7 +37,7 @@ Allowed governance documentation files:
 
 ## Playbook Operator Path (Single Active Surface)
 
-The repository uses one active Playbook operator surface: the top-level npm commands backed by the package-installed Playbook CLI, with `scripts/playbook-runtime.mjs` limited to thin package/fallback resolution.
+The repository uses one active Playbook operator surface: the top-level npm commands backed by `scripts/playbook-runtime.mjs`, with the runtime resolved through the canonical official fallback path or an explicitly enabled package install.
 
 Canonical local command path:
 - `npm run ai-context`
@@ -69,7 +69,7 @@ Runtime contracts:
 - Scan tuning is controlled via `.playbookignore`.
 - Optional runtime config is in `playbook.config.json` when project-local defaults need to be explicit.
 
-## Playbook Resolution Policy (Package-First Consumer Model)
+## Playbook Resolution Policy (Canonical Official Distribution Model)
 
 Runtime resolution order is deterministic and must remain:
 1. `PLAYBOOK_BIN` environment override.
@@ -79,18 +79,18 @@ Runtime resolution order is deterministic and must remain:
 
 
 Consumer-integration success criteria (must be reproducible in a clean environment):
-- `npm install` succeeds without hard-requiring `@fawxzzy/playbook-cli` in the base dependency graph.
-- Playbook acquisition is explicit: run `npm run playbook-runtime:install-package` when package access is available, using the verified published package coordinate `@fawxzzy/playbook-cli@0.1.8` unless intentionally overridden.
-- If package acquisition is blocked, operators may install the official fallback distribution by setting `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` and running `npm run playbook-runtime:install-official-fallback`; the verified fallback asset is `https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz`.
-- CI must pin `PLAYBOOK_PACKAGE_SPEC` and `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to immutable verified upstream coordinates in workflow config so namespace/release drift cannot block core runtime acquisition.
-- CI acquisition sequence is explicit and deterministic: attempt `playbook-runtime:install-package` first, then run `playbook-runtime:install-official-fallback` when package acquisition fails or is intentionally skipped (`PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1`).
-- With `PLAYBOOK_BIN` unset, commands resolve through repo-local package acquisition first, then official fallback.
+- `npm ci` succeeds without hard-requiring a Playbook npm package in the base dependency graph.
+- The canonical acquisition command is `node scripts/playbook-runtime.mjs --install-official-fallback`, using the pinned official fallback asset `https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz` unless intentionally overridden.
+- Official acquisition diagnostics must surface the source URL, final resolved URL, HTTP status/status text, local tarball path, tarball size, and underlying error/cause details on failure.
+- Package acquisition is optional and must only run when explicitly enabled by env/config (`PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1` and/or `PLAYBOOK_PACKAGE_SPEC=...`).
+- CI must pin `PLAYBOOK_OFFICIAL_FALLBACK_SPEC` to an immutable verified upstream coordinate and must not depend on a known-missing or non-authoritative npm package path for clean-environment bootstrap.
+- With `PLAYBOOK_BIN` unset, commands resolve through repo-local installs first if present, then through the official fallback install.
 - Runtime outputs continue to land only under `.playbook/`.
 - CI/local validation must assert required runtime artifacts exist: `.playbook/findings.json`, `.playbook/plan.json`, `.playbook/repo-graph.json`, and `.playbook/last-run.json`.
 
 Policy constraints:
 - Global `PATH` lookup is **not** canonical and must not be relied on for repo scripts.
-- The local checkout fallback is temporary compatibility scaffolding, not the documented standard install model; consumer repos must use explicit acquisition rather than hard dependency coupling.
+- Do not keep a default acquisition branch that depends on an unpublished or unsupported package coordinate.
 - Keep bridge scope thin: resolution + forwarding only.
 
 ## Operational Sequence

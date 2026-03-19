@@ -196,7 +196,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   return (
     <AppShell topNavMode="none">
       <ScrollContainer>
-        <section className="space-y-4 pb-2">
+        <section className="space-y-4 overflow-x-clip px-1 pb-4">
           <AppHeader
             title={`Edit Day — ${dayTitle}`}
             subtitleLeft={routine.name}
@@ -208,7 +208,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
           {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-          <form action={saveRoutineDayAction} className="space-y-3 rounded-xl border border-border/55 bg-[rgb(var(--surface-2-soft)/0.72)] p-4 shadow-[0_6px_16px_rgba(0,0,0,0.12)]">
+          <form action={saveRoutineDayAction} className="space-y-3 rounded-[1.5rem] border border-border/50 bg-[rgb(var(--surface-2-soft)/0.74)] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.16)]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Day settings</p>
               <p className="text-xs text-muted">Name the day, set rest status, and keep the workout list below aligned with the rest of the routine.</p>
@@ -223,10 +223,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </form>
 
           {(day as RoutineDayRow).is_rest ? (
-            <p className="rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.56)] px-3 py-2.5 text-xs text-muted">Rest day enabled. Planned exercises stay saved, but this day will be skipped until you turn rest day off.</p>
+            <p className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3 text-xs text-muted">Rest day enabled. Planned exercises stay saved, but this day will be skipped until you turn rest day off.</p>
           ) : (
             <>
-              <section className="space-y-3 rounded-xl border border-border/50 bg-[rgb(var(--surface-2-soft)/0.62)] p-3.5 shadow-[0_6px_14px_rgba(0,0,0,0.10)]">
+              <section className="space-y-3 rounded-[1.5rem] border border-border/50 bg-[rgb(var(--surface-2-soft)/0.74)] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.16)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
@@ -250,7 +250,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                 title="Add Exercises"
                 summary="Choose an exercise, optionally set targets, then add it to this day."
                 defaultOpen={searchParams?.addExerciseOpen === "1"}
-                className="border border-border/50 bg-[rgb(var(--surface-2-soft)/0.6)] shadow-[0_6px_14px_rgba(0,0,0,0.10)]"
+                className="border border-border/50 bg-[rgb(var(--surface-2-soft)/0.74)] shadow-[0_8px_20px_rgba(0,0,0,0.16)]"
                 bodyClassName="space-y-3 bg-transparent"
               >
                 <div className="rounded-lg border border-border/40 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-xs text-muted">

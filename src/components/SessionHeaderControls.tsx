@@ -21,21 +21,23 @@ export function SessionHeaderControls({
   quickAddAction: ReactNode;
 }) {
   return (
-    <div className="sticky top-0 z-50 -mx-4 border-b border-white/8 bg-[rgb(var(--surface)/0.94)] backdrop-blur-md">
-      <div className="px-4 pb-2 pt-[max(0.625rem,env(safe-area-inset-top))]">
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+    <div className="sticky top-0 z-40 border-b border-white/8 bg-[rgb(var(--surface-rgb)/0.92)] backdrop-blur-md">
+      <div className="space-y-3 px-1 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1 pr-2">
+            <p className="truncate text-base font-semibold leading-tight text-text">{sessionTitle}</p>
+            <p className="text-sm font-medium tabular-nums text-muted">{formatDurationClock(durationSeconds)}</p>
+          </div>
           <div className="shrink-0">
             <SessionBackButton />
           </div>
-          <div className="min-w-0 text-center">
-            <p className="truncate text-sm font-semibold leading-tight text-text">{sessionTitle}</p>
-            <p className="mt-0.5 text-xs font-medium tabular-nums text-muted">{formatDurationClock(durationSeconds)}</p>
-          </div>
-          <div className="flex justify-end">{quickAddAction}</div>
         </div>
 
-        <div className="mt-2 flex min-h-[1.25rem] items-center justify-center">
-          <OfflineSyncBadge />
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-h-[1.25rem] flex-1">
+            <OfflineSyncBadge />
+          </div>
+          <div className="shrink-0">{quickAddAction}</div>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
+import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import type { ActionResult } from "@/lib/action-result";
@@ -107,7 +108,7 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
 
   const actionsNode = useMemo(() => (
-    <>
+    <BottomActionUtilityCluster>
       {isRunnableDay ? (
         <TodayStartButton
           startSessionAction={startSessionAction}
@@ -146,7 +147,7 @@ export function TodayDayPicker({
       >
         <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
       </SecondaryButton>
-    </>
+    </BottomActionUtilityCluster>
   ), [editDayHref, isPickerOpen, isRunnableDay, selectedDayIndex, startSessionAction, togglePicker, viewDayHref]);
 
   usePublishBottomActions(actionsNode);

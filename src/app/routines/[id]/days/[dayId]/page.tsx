@@ -7,6 +7,7 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
@@ -135,12 +136,14 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             </AppPanel>
           </section>
           <PublishBottomActions>
-            <Link
-              href={editDayHref}
-              className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "w-full" })}
-            >
-              Edit Day
-            </Link>
+            <BottomActionSingle>
+              <Link
+                href={editDayHref}
+                className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "w-full" })}
+              >
+                Edit Day
+              </Link>
+            </BottomActionSingle>
           </PublishBottomActions>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
