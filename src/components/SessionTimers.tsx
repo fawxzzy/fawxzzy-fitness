@@ -11,9 +11,9 @@ import {
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
-import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionTriple } from "@/components/layout/CanonicalBottomActions";
+import { SessionStickyFooter } from "@/components/session/SessionStickyFooter";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
@@ -665,8 +665,6 @@ export function SetLoggerCard({
     [deleteAction, handleLogSet, isSaveDisabled, skipAction],
   );
 
-  usePublishBottomActions(saveSetActions);
-
 
   async function handleDeleteSet(set: DisplaySet) {
     if (set.pending || set.queueStatus) {
@@ -870,6 +868,9 @@ export function SetLoggerCard({
         </ul>
       </WorkoutEntrySection>
 
+      <SessionStickyFooter>
+        {saveSetActions}
+      </SessionStickyFooter>
     </div>
   );
 }

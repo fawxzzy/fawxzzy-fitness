@@ -7,6 +7,7 @@ import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { SessionStickyFooter, SESSION_STICKY_FOOTER_RESERVE_CLASS } from "@/components/session/SessionStickyFooter";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -89,7 +90,7 @@ export function SessionPageClient({
   exercises: SessionExerciseFocusItem[];
   saveSessionAction: ServerAction;
   discardSessionAction: VoidServerAction;
-  quickAddAction: React.ReactNode;
+  quickAddAction: import("react").ReactNode;
   requestedReturnTo?: string;
   addSetAction: (payload: AddSetPayload) => Promise<ActionResult<{ set: SetRow }>>;
   syncQueuedSetLogsAction: SyncQueuedSetLogsAction;
@@ -99,7 +100,7 @@ export function SessionPageClient({
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const baseDurationSeconds = initialDurationSeconds ?? 0;
-  const [durationSeconds, setDurationSeconds] = useState(() => getElapsedDuration(baseDurationSeconds, performedAt));
+  const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const toast = useToast();
   const fallbackReturnHref = useMemo(
     () => getReturnNavigationHref({ fallbackHref: "/today", currentPath: `/session/${sessionId}`, requestedReturnTo }),
@@ -125,7 +126,7 @@ export function SessionPageClient({
   );
 
   return (
-    <section className="space-y-4 overflow-x-clip px-1 pb-2">
+    <section className={`space-y-4 overflow-x-clip px-1 pb-2 ${SESSION_STICKY_FOOTER_RESERVE_CLASS}`}>
       {!isExerciseOpen ? (
         <SessionHeaderControls
           sessionTitle={sessionTitle}
@@ -156,52 +157,54 @@ export function SessionPageClient({
       {emptyState}
 
       {!isExerciseOpen ? (
-        <BottomActionSplit
-          primary={(
-            <form
-              action={async (formData) => {
-              const result = await saveSessionAction(formData);
-              toastActionResult(toast, result, {
-                success: "Workout saved.",
-                error: "Could not save workout.",
-              });
+        <SessionStickyFooter>
+          <BottomActionSplit
+            primary={(
+              <form
+                action={async (formData) => {
+                  const result = await saveSessionAction(formData);
+                  toastActionResult(toast, result, {
+                    success: "Workout saved.",
+                    error: "Could not save workout.",
+                  });
 
-              if (result.ok) {
-                navigateReturn();
-              }
-              }}
-              className="w-full"
-            >
-            <input type="hidden" name="sessionId" value={sessionId} />
-            <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-            <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
-              Save Session
-            </AppButton>
-            </form>
-          )}
-          secondary={(
-            <ConfirmedServerFormButton
-              action={async (formData) => {
-              const result = await discardSessionAction(formData);
-              toastActionResult(toast, result, {
-                success: "Workout discarded.",
-                error: "Could not discard workout.",
-              });
+                  if (result.ok) {
+                    navigateReturn();
+                  }
+                }}
+                className="w-full"
+              >
+                <input type="hidden" name="sessionId" value={sessionId} />
+                <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
+                <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
+                  Save Session
+                </AppButton>
+              </form>
+            )}
+            secondary={(
+              <ConfirmedServerFormButton
+                action={async (formData) => {
+                  const result = await discardSessionAction(formData);
+                  toastActionResult(toast, result, {
+                    success: "Workout discarded.",
+                    error: "Could not discard workout.",
+                  });
 
-              if (result.ok) {
-                navigateReturn();
-              }
-              }}
-              hiddenFields={{ sessionId }}
-              triggerLabel="Discard"
-            triggerClassName="w-full"
-            size="md"
-            modalTitle="Discard workout?"
-            modalDescription="This will delete your in-progress workout, including exercises and sets."
-              confirmLabel="Discard"
-            />
-          )}
-        />
+                  if (result.ok) {
+                    navigateReturn();
+                  }
+                }}
+                hiddenFields={{ sessionId }}
+                triggerLabel="Discard"
+                triggerClassName="w-full"
+                size="md"
+                modalTitle="Discard workout?"
+                modalDescription="This will delete your in-progress workout, including exercises and sets."
+                confirmLabel="Discard"
+              />
+            )}
+          />
+        </SessionStickyFooter>
       ) : null}
     </section>
   );
