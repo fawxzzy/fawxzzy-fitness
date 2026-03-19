@@ -5,12 +5,19 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditDayPath, getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
+import { resolveReturnHref } from "@/lib/navigation-return";
 import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineEditPath(routineId));
   revalidatePath(getRoutineEditDayPath(routineId, dayId));
   revalidatePath(getTodayPath());
+}
+
+
+function resolveRoutineDayReturnTo(formData: FormData, fallbackHref: string) {
+  const rawReturnTo = String(formData.get("returnTo") ?? "").trim();
+  return resolveReturnHref(rawReturnTo, fallbackHref);
 }
 
 function parseRoutineExercisePayload(formData: FormData, returnTo: string) {
@@ -31,6 +38,8 @@ export async function saveRoutineDayAction(formData: FormData) {
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const isRest = formData.get("isRest") === "on";
+  const fallbackReturnTo = `/routines/${routineId}/edit`;
+  const returnTo = resolveRoutineDayReturnTo(formData, fallbackReturnTo);
 
   if (!routineId || !routineDayId) {
     redirect(`/routines/${routineId}/edit/day/${routineDayId}?error=${encodeURIComponent("Missing day info")}`);
@@ -62,7 +71,7 @@ export async function saveRoutineDayAction(formData: FormData) {
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
-  redirect(`/routines/${routineId}/edit?success=${encodeURIComponent("Day saved")}`);
+  redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}success=${encodeURIComponent("Day saved")}`);
 }
 
 export async function addRoutineDayExerciseAction(formData: FormData) {

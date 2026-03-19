@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
@@ -9,6 +8,7 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
@@ -99,7 +99,7 @@ export function SessionPageClient({
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(() => getElapsedDuration(baseDurationSeconds, performedAt));
   const toast = useToast();
-  const router = useRouter();
+  const { navigateReturn } = useReturnNavigation("/history");
 
   useEffect(() => {
     setDurationSeconds(getElapsedDuration(baseDurationSeconds, performedAt));
@@ -160,7 +160,7 @@ export function SessionPageClient({
               });
 
               if (result.ok) {
-                router.push(result.data?.sessionId ? `/history/${result.data.sessionId}` : "/history");
+                navigateReturn();
               }
               }}
               className="w-full"
@@ -182,7 +182,7 @@ export function SessionPageClient({
               });
 
               if (result.ok) {
-                router.push("/today");
+                window.location.assign("/today");
               }
               }}
               hiddenFields={{ sessionId }}
