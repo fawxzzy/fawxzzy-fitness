@@ -1,24 +1,47 @@
 "use client";
 
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 
+type BottomActionRegistration = symbol;
+
 type BottomActionsApi = {
-  set: (node: React.ReactNode | null) => void;
+  publish: (registration: BottomActionRegistration, node: ReactNode | null) => void;
+  unpublish: (registration: BottomActionRegistration) => void;
+};
+
+type PublishedBottomActions = {
+  registration: BottomActionRegistration;
+  node: ReactNode | null;
 };
 
 type BottomActionsContextValue = {
   api: BottomActionsApi;
-  node: React.ReactNode | null;
+  published: PublishedBottomActions | null;
 };
 
 const BottomActionsContext = createContext<BottomActionsContextValue | null>(null);
 
-export function BottomActionsProvider({ children }: { children: React.ReactNode }) {
-  const [node, setNode] = useState<React.ReactNode | null>(null);
-  const api = useMemo<BottomActionsApi>(() => ({ set: setNode }), []);
+export function BottomActionsProvider({ children }: { children: ReactNode }) {
+  const [published, setPublished] = useState<PublishedBottomActions | null>(null);
 
-  return <BottomActionsContext.Provider value={{ api, node }}>{children}</BottomActionsContext.Provider>;
+  const api = useMemo<BottomActionsApi>(() => ({
+    publish: (registration, node) => {
+      setPublished((current) => {
+        if (current?.registration === registration && Object.is(current.node, node)) {
+          return current;
+        }
+
+        return { registration, node };
+      });
+    },
+    unpublish: (registration) => {
+      setPublished((current) => (current?.registration === registration ? null : current));
+    },
+  }), []);
+
+  return <BottomActionsContext.Provider value={{ api, published }}>{children}</BottomActionsContext.Provider>;
 }
 
 export function useBottomActions(): BottomActionsApi {
@@ -31,16 +54,28 @@ export function useBottomActions(): BottomActionsApi {
 
 export function useHasBottomActions(): boolean {
   const context = useContext(BottomActionsContext);
-  return Boolean(context?.node);
+  return Boolean(context?.published?.node);
 }
 
-export function usePublishBottomActions(node: React.ReactNode | null) {
-  const { set } = useBottomActions();
+export function usePublishBottomActions(node: ReactNode | null) {
+  const { publish, unpublish } = useBottomActions();
+  const registrationRef = useRef<BottomActionRegistration>();
+
+  if (!registrationRef.current) {
+    registrationRef.current = Symbol("bottom-actions-registration");
+  }
+
+  const registration = registrationRef.current;
 
   useLayoutEffect(() => {
-    set(node);
-    return () => set(null);
-  }, [node, set]);
+    publish(registration, node);
+  }, [node, publish, registration]);
+
+  useLayoutEffect(() => {
+    return () => {
+      unpublish(registration);
+    };
+  }, [registration, unpublish]);
 }
 
 export function BottomActionsSlot() {
@@ -73,15 +108,15 @@ export function BottomActionsSlot() {
     if (!hasScrollableAncestor) {
       console.warn("[bottom-actions] BottomActionsSlot should be rendered inside a scroll owner (overflow-y-auto/scroll ancestor not found).");
     }
-  }, [context?.node]);
+  }, [context?.published?.node]);
 
-  if (!context || !context.node) {
+  if (!context || !context.published?.node) {
     return null;
   }
 
   return (
     <div ref={slotRef}>
-      <BottomActionBar variant="sticky">{context.node}</BottomActionBar>
+      <BottomActionBar variant="sticky">{context.published.node}</BottomActionBar>
     </div>
   );
 }
