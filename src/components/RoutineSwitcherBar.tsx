@@ -17,6 +17,7 @@ type RoutineSwitcherBarProps = {
   activeRoutineSummary?: string;
   routines: RoutineItem[];
   setActiveRoutineAction: (formData: FormData) => Promise<void>;
+  activeRoutineEditHref?: string | null;
 };
 
 export function RoutineSwitcherBar({
@@ -25,6 +26,7 @@ export function RoutineSwitcherBar({
   activeRoutineSummary,
   routines,
   setActiveRoutineAction,
+  activeRoutineEditHref,
 }: RoutineSwitcherBarProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -80,6 +82,15 @@ export function RoutineSwitcherBar({
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Active routine</p>
             <p className="mt-1 text-sm font-semibold text-text">{activeRoutineName}</p>
             {activeRoutineSummary ? <p className="mt-1 text-xs text-muted">{activeRoutineSummary}</p> : null}
+            {activeRoutineEditHref ? (
+              <Link
+                href={activeRoutineEditHref}
+                onClick={() => setOpen(false)}
+                className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-border/50 bg-surface/65 px-3 py-2 text-sm font-medium text-text hover:border-border/65 hover:bg-surface/75"
+              >
+                Edit routine
+              </Link>
+            ) : null}
           </div>
 
           <div className="max-h-[52vh] space-y-1 overflow-y-auto pr-1">

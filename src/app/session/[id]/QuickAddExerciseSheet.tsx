@@ -200,7 +200,7 @@ export function QuickAddExerciseSheet({
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected summary</p>
-              <h3 className="text-base font-semibold text-text">Select a movement, then configure it below</h3>
+              <h3 className="text-base font-semibold text-text">Current selection</h3>
             </div>
             <p className="shrink-0 text-xs text-muted">{filteredExercises.length} shown</p>
           </div>
@@ -208,9 +208,17 @@ export function QuickAddExerciseSheet({
           <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.74)] px-4 py-4">
             <div className="space-y-3">
               <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected exercise</p>
-                <p className="text-sm font-semibold text-text">{selectedExercise?.name ?? "Choose an exercise to continue"}</p>
-                <p className="text-xs text-muted">Secondary actions stay here so the list rows stay clean and selection-first.</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-semibold text-text">{selectedExercise?.name ?? "Choose an exercise to continue"}</p>
+                    {selectedExercise ? (
+                      <p className="text-xs text-muted">{exerciseSubtitleById.get(selectedExercise.id) ?? "No tags available"}</p>
+                    ) : (
+                      <p className="text-xs text-muted">Pick from the chooser below, then set how many starter sets to add.</p>
+                    )}
+                  </div>
+                  {selectedExercise ? <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">{selectedSetCount} set{selectedSetCount === 1 ? "" : "s"}</span> : null}
+                </div>
               </div>
 
               {selectedExercise ? (
@@ -253,10 +261,10 @@ export function QuickAddExerciseSheet({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Pick an exercise</p>
                 <h3 className="text-base font-semibold text-text">Chooser list</h3>
               </div>
-              <p className="shrink-0 text-xs text-muted">2–3 fewer rows visible by design</p>
+              <p className="shrink-0 text-xs text-muted">Scrollable list</p>
             </div>
 
-            <ul className="max-h-56 space-y-2 overflow-y-auto overscroll-contain pr-1">
+            <ul className="max-h-[min(40dvh,20rem)] space-y-2 overflow-y-auto overscroll-contain pr-1">
               {filteredExercises.map((exercise) => (
                 <QuickAddExerciseRow
                   key={exercise.id}
@@ -277,7 +285,6 @@ export function QuickAddExerciseSheet({
           <div className="space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
             <h3 className="text-base font-semibold text-text">Set the starting volume</h3>
-            <p className="text-xs text-muted">Use the same selected-summary then configure pattern as Add Exercise, with sets as the only quick-add goal.</p>
           </div>
 
           <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.74)] px-4 py-4">
@@ -285,7 +292,6 @@ export function QuickAddExerciseSheet({
               <div className="min-w-0 space-y-1">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Goal</p>
                 <p className="text-sm font-semibold text-text">{selectedExercise ? `${selectedSetCount} set${selectedSetCount === 1 ? "" : "s"} to start` : "Choose an exercise first"}</p>
-                <p className="text-xs text-muted">Quick Add keeps configuration intentionally light, then commits directly to the session.</p>
               </div>
               <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">Sets</span>
             </div>
@@ -340,9 +346,11 @@ export function QuickAddExerciseSheet({
           </div>
         </section>
 
-        <AppButton type="button" variant="primary" fullWidth loading={isPending} onClick={handleSubmit}>
-          Add to Session
-        </AppButton>
+        <div className="sticky bottom-0 -mx-4 border-t border-border/45 bg-[rgb(var(--surface-rgb)/0.985)] px-4 pb-[max(0.25rem,var(--app-safe-bottom))] pt-3">
+          <AppButton type="button" variant="primary" fullWidth loading={isPending} onClick={handleSubmit}>
+            Add to Session
+          </AppButton>
+        </div>
       </BottomSheet>
       <ExerciseInfo
         exerciseId={selectedExerciseId || null}

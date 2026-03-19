@@ -8,8 +8,6 @@ import { AppRow } from "@/components/ui/app/AppRow";
 import { appTokens } from "@/components/ui/app/tokens";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { Glass } from "@/components/ui/Glass";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -159,6 +157,7 @@ export default async function RoutinesPage() {
                       summary: `${routine.cycle_length_days}-day cycle`,
                     }))}
                     setActiveRoutineAction={setActiveRoutineAction}
+                    activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
                   />
 
                   {activeRoutine ? (
@@ -195,19 +194,6 @@ export default async function RoutinesPage() {
                 </>
               )}
             </Glass>
-            {activeRoutine ? (
-              <PublishBottomActions>
-                <BottomActionSingle>
-                  <Link
-                    href={`/routines/${activeRoutine.id}/edit`}
-                    aria-label={`Edit ${activeRoutine.name} routine`}
-                    className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-                  >
-                    Edit routine
-                  </Link>
-                </BottomActionSingle>
-              </PublishBottomActions>
-            ) : null}
           </ScrollScreenWithBottomActions>
       </div>
     </AppShell>
