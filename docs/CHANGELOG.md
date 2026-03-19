@@ -1,3 +1,14 @@
+## 0.3.87 — 2026-03-19
+
+### WHAT
+- Rebuilt the shared `bottom-actions` host around a single ref-backed slot registry that tracks footer owners locally and only notifies the sticky slot when the active owner or rendered footer node actually changes.
+- Kept publisher identities stable across rerenders while removing provider-level JSX state churn, so overview/set-entry footer swaps no longer feed back into publisher rerenders during current-session transitions.
+- Preserved the existing `usePublishBottomActions` / `PublishBottomActions` consumer API while restoring stable sticky footer behavior for Save Session / Discard, set entry, Today, and Edit Day screens.
+
+### WHY
+- Fixes the remaining `Maximum update depth exceeded` crash caused by render-coupled sticky-footer publication whenever the active footer switched owners.
+- Reinforces the layout rule that shared sticky footers should use one local host slot with ref-based ownership bookkeeping instead of provider state for published JSX.
+
 ## 0.3.86 — 2026-03-19
 
 ### WHAT
