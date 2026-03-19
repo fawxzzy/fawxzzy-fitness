@@ -28,6 +28,7 @@ export function ModifyMeasurements({
   onMetricToggle,
   onChange,
   tapFeedbackClass = "",
+  showHeader = true,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -36,6 +37,7 @@ export function ModifyMeasurements({
   onMetricToggle: (metric: keyof MeasurementMetrics) => void;
   onChange: (patch: Partial<MeasurementValues>) => void;
   tapFeedbackClass?: string;
+  showHeader?: boolean;
 }) {
-  return <MeasurementConfigurator values={values} activeMetrics={activeMetrics} isExpanded={isExpanded} onExpandedChange={onExpandedChange} onMetricToggle={onMetricToggle} onChange={onChange} className={tapFeedbackClass} heading="Measurements" description="Enter this set using the same measurement language used everywhere else in the app." collapsedLabel="Optional measurements" collapsedDescription="Show only the fields you need for this set." />;
+  return <MeasurementConfigurator values={values} activeMetrics={activeMetrics} isExpanded={isExpanded} onExpandedChange={onExpandedChange} onMetricToggle={onMetricToggle} onChange={onChange} className={tapFeedbackClass} heading="Measurements" description="Enter this set using the same measurement language used everywhere else in the app." collapsedLabel="Optional measurements" collapsedDescription="Show only the fields you need for this set." showHeader={showHeader} />;
 }

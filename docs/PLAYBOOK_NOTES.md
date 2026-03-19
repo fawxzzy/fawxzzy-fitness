@@ -1,3 +1,11 @@
+## 2026-03-19 — Exercise detail workspaces should have one identity block
+- Type: Pattern
+- Summary: A detail logging workspace should present one clear identity block, then flow through target, entry, effort/review, and commit sections without repeating route title chrome inside the body.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents focused exercise-entry screens from feeling both heavier and more confusing when the same workspace title appears multiple times while secondary actions compete with the main logging path.
+- Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/ui/workout-entry/EntrySection.tsx, src/components/ui/measurements/MeasurementConfigurator.tsx
+- Status: Proposed
+
 This file is a project-local inbox for repo-specific Playbook notes that may later be promoted upstream.
 
 

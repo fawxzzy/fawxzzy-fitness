@@ -711,9 +711,9 @@ export function SetLoggerCard({
           - Save button remains stable while toggling measurements */}
 
       <WorkoutEntrySection
-        eyebrow="Configure"
-        title="Measurements"
-        description="Choose the metrics this exercise needs, then enter the values for the set you are about to save."
+        eyebrow="Entry"
+        title="Measurement entry"
+        description="Use the shared measurement system to capture the values for the set you are about to save."
         className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
       >
         <ModifyMeasurements
@@ -743,13 +743,14 @@ export function SetLoggerCard({
             if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
           }}
           tapFeedbackClass={tapFeedbackClass}
+          showHeader={false}
         />
       </WorkoutEntrySection>
 
       <WorkoutEntrySection
-        eyebrow="Finish"
+        eyebrow="Effort"
         title="Finish this set"
-        description="Add optional effort details before you commit the set to the log."
+        description="Add optional effort details before you commit this set to the log."
         className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
       >
         <div className="grid grid-cols-2 gap-3">
@@ -803,7 +804,7 @@ export function SetLoggerCard({
       <WorkoutEntrySection
         eyebrow="Review"
         title="Logged sets"
-        description="Review saved and queued work here before committing the next set."
+        description="Review saved and queued work here before you move on to the next set."
         aside={<p className="text-xs text-muted">{sets.length} total</p>}
         className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
         contentClassName="space-y-0"

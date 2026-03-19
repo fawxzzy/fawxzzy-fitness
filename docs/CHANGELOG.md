@@ -1,3 +1,14 @@
+## 0.3.79 — 2026-03-19
+
+### WHAT
+- Removed the duplicate Current Session exercise-workspace title treatment so the selected exercise now has one identity block with top-right back placement, summary metrics, and quieter secondary skip/delete actions.
+- Reordered set entry around the shared workspace rhythm of target → measurement entry → effort details → logged sets while reusing the normalized measurement configurator without repeating local measurement chrome.
+- Preserved sticky Save Set behavior and all existing skip, delete, and set logging contracts while tightening the exercise-detail hierarchy into one cohesive mobile workspace.
+
+### WHY
+- Keeps the exercise detail screen focused and easier to scan by eliminating repeated title chrome and balancing dense vs. sparse areas.
+- Reinforces the app-wide normalized action and measurement systems so adjacent workout-entry screens feel like one product.
+
 ## 0.3.78 — 2026-03-19
 
 ### WHAT
