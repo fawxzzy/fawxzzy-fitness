@@ -43,7 +43,7 @@ export function ModifyMeasurements({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-2xl bg-surface/45">
+      <div className="overflow-hidden rounded-2xl border border-white/8 bg-white/5">
         <button
           type="button"
           aria-expanded={isExpanded}
@@ -51,7 +51,7 @@ export function ModifyMeasurements({
           onClick={() => onExpandedChange(!isExpanded)}
           className={`flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-surface/70 active:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 [-webkit-tap-highlight-color:transparent] ${tapFeedbackClass}`}
         >
-          <span><span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.58)]">Configure</span><span className="block text-sm font-medium text-text">Measurements</span></span>
+          <span><span className="block text-sm font-medium text-text">Visible measurements</span><span className="block text-xs text-muted">Show only the fields you need for this set.</span></span>
           {isExpanded ? <ChevronUpIcon className="h-4 w-4 shrink-0 text-[rgb(var(--text)/0.72)]" /> : <ChevronDownIcon className="h-4 w-4 shrink-0 text-[rgb(var(--text)/0.72)]" />}
         </button>
         {isExpanded ? (
@@ -70,12 +70,8 @@ export function ModifyMeasurements({
         ) : null}
       </div>
 
-      <div className="rounded-2xl bg-surface/45 p-4">
+      <div className="rounded-2xl border border-white/8 bg-white/5 p-3">
         <div className="space-y-2">
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Enter values</p>
-            <p className="text-sm text-muted">Use only the measurements you need for this set.</p>
-          </div>
           <div className="grid grid-cols-2 gap-2">
             <div className={`col-span-2 overflow-hidden transition-all duration-200 ease-out ${activeMetrics.reps ? "max-h-24 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
               <InlineHintInput type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="reps" />
