@@ -79,7 +79,7 @@ function RoutineTargetInputs({
   });
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3 rounded-[1rem] border border-border/40 bg-[rgb(var(--bg)/0.16)] p-3">
       {Object.entries(activeMetrics).map(([metric, enabled]) => enabled ? <input key={metric} type="hidden" name="measurementSelections" value={metric} /> : null)}
       <MeasurementConfigurator
         values={{
@@ -226,7 +226,7 @@ export function EditableRoutineDayExerciseList({
                       type="button"
                       variant={isExpanded ? "secondary" : "ghost"}
                       size="sm"
-                      className="min-w-[3.5rem]"
+                      className="min-w-[4rem]"
                       aria-label={isExpanded ? `Close editor for ${exercise.name}` : `Edit ${exercise.name}`}
                       onClick={() => setExpandedId(isExpanded ? null : exercise.id)}
                     >
@@ -255,7 +255,11 @@ export function EditableRoutineDayExerciseList({
                     <input type="hidden" name="routineId" value={routineId} />
                     <input type="hidden" name="routineDayId" value={routineDayId} />
                     <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                    <div className="space-y-2">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Edit targets</p>
+                        <p className="text-xs text-muted">Keep this exercise aligned with the same sets + measurement language used in add exercise and session logging.</p>
+                      </div>
                       <input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={controlClassName} />
                       <RoutineTargetInputs
                         weightUnit={weightUnit}
