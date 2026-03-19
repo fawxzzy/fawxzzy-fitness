@@ -1,3 +1,17 @@
+## 0.3.84 — 2026-03-19
+
+### WHAT
+- Reordered Quick Add and shared Add Exercise chooser flows so the selected exercise summary now sits above the chooser it contextualizes, with configuration still following selection and commit remaining last.
+- Reduced visible chooser viewport height in both flows and memoized row rendering so scanning feels lighter while preserving the newer selected-card glow treatment.
+- Changed chooser row interaction so tapping an already-selected exercise now opens Exercise Info, while the selected-summary Exercise Info action remains intact.
+- Moved exercise-list scroll persistence off render-coupled state updates so scrolling no longer triggers repeated list rerenders during normal movement.
+
+### WHY
+- Reinforces the documented mobile pattern of select row → selected summary → configure → commit instead of making the flow feel upside down.
+- Keeps Quick Add from sitting awkwardly off-screen by shrinking the chooser footprint and moving summary context higher in the sheet.
+- Improves perceived scroll smoothness by reducing unnecessary work during list movement and by avoiding recalculating visible-row selection state for unrelated scroll snapshots.
+- Preserves exercise-info discovery in both the summary and selected-row reselect path without reintroducing noisy per-row secondary controls.
+
 ## 0.3.83 — 2026-03-19
 
 ### WHAT

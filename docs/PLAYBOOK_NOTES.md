@@ -1,3 +1,10 @@
+## 2026-03-19 — Selection summaries must sit above the chooser they contextualize
+- Type: Pattern
+- Summary: In exercise-addition flows, row selection should be followed immediately by a selected-summary block above the chooser, with configuration after that summary and commit last.
+- Rationale: Prevents upside-down mobile flows where oversized chooser lists push the current selection and its secondary actions below the fold, making the interaction feel heavier and less trustworthy.
+- Evidence: src/app/session/[id]/QuickAddExerciseSheet.tsx, src/components/ExercisePicker.tsx
+- Status: Applied
+
 ## 2026-03-19 — Goal should be the only user-facing workout-plan label
 - Type: Pattern
 - Summary: Workout planning and logging UI should reserve Goal as the user-facing term, while shared measurement helpers render the exact same goal summary structure and open-state copy everywhere.
