@@ -16,11 +16,13 @@ export function SessionHeaderControls({
   durationSeconds,
   quickAddAction,
   backHref,
+  isTimerHydrated = true,
 }: {
   sessionTitle: string;
   durationSeconds: number;
   quickAddAction: ReactNode;
   backHref?: string;
+  isTimerHydrated?: boolean;
 }) {
   return (
     <div className="sticky top-0 z-40 border-b border-white/8 bg-[rgb(var(--surface-rgb)/0.92)] backdrop-blur-md">
@@ -28,7 +30,7 @@ export function SessionHeaderControls({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1 pr-2">
             <p className="truncate text-base font-semibold leading-tight text-text">{sessionTitle}</p>
-            <p className="text-sm font-medium tabular-nums text-muted">{formatDurationClock(durationSeconds)}</p>
+            <p className="text-sm font-medium tabular-nums text-muted" suppressHydrationWarning aria-live={isTimerHydrated ? "off" : undefined}>{formatDurationClock(durationSeconds)}</p>
           </div>
           <div className="shrink-0">
             <SessionBackButton href={backHref} />

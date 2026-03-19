@@ -1,3 +1,10 @@
+## 2026-03-19 — Session shells should own sticky footers locally when shared publication is unstable
+
+- Summary: When a shared sticky-footer abstraction blocks a core session flow, restore screen-local footer ownership first and re-abstract later after the host model is proven stable.
+- Suggested Playbook File: docs/GUARDRAILS/shared-sticky-footer-ownership.md
+- Rationale: Session overview and focused set-entry are high-frequency flows where technically rendered but unstable footer publication still leaves save/discard actions functionally unreliable.
+- Evidence: src/components/SessionPageClient.tsx, src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/SessionHeaderControls.tsx, src/components/session/SessionStickyFooter.tsx
+
 ## 2026-03-19 — Selection summaries must sit above the chooser they contextualize
 - Type: Pattern
 - Summary: In exercise-addition flows, row selection should be followed immediately by a selected-summary block above the chooser, with configuration after that summary and commit last.

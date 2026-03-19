@@ -1,3 +1,8 @@
+- Restored session-flow sticky footers to stable local ownership in the session shell and focused set-entry path, explicitly avoiding the shared bottom-actions publish/provider path for this repair.
+- Strengthened the session footer wrapper so Save Session / Discard and Save Set stay pinned with consistent safe-area padding while content scrolls underneath.
+- Made the session header timer hydration-safe by rendering the stable initial clock until the client timer mounts, preventing server/client timer text mismatches.
+- Preserved save, discard, open-exercise, save-set, and returnTo behavior while keeping the current-session flow on the normalized canonical footer visuals.
+
 ## 0.3.81 — 2026-03-19
 
 ### WHAT

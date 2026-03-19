@@ -710,7 +710,7 @@ export function SetLoggerCard({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex min-h-full flex-col space-y-3">
       {/* Manual QA checklist:
           - Add/exercise metric hints are visible inside input boxes
           - No Set Timer UI remains; duration logging still works via mm:ss

@@ -101,6 +101,7 @@ export function SessionPageClient({
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
+  const [hasMountedTimer, setHasMountedTimer] = useState(false);
   const toast = useToast();
   const fallbackReturnHref = useMemo(
     () => getReturnNavigationHref({ fallbackHref: "/today", currentPath: `/session/${sessionId}`, requestedReturnTo }),
@@ -109,6 +110,7 @@ export function SessionPageClient({
   const { navigateReturn } = useReturnNavigation(fallbackReturnHref ?? "/today");
 
   useEffect(() => {
+    setHasMountedTimer(true);
     setDurationSeconds(getElapsedDuration(baseDurationSeconds, performedAt));
     const timer = window.setInterval(() => {
       setDurationSeconds(getElapsedDuration(baseDurationSeconds, performedAt));
@@ -126,11 +128,12 @@ export function SessionPageClient({
   );
 
   return (
-    <section className={`space-y-4 overflow-x-clip px-1 pb-2 ${SESSION_STICKY_FOOTER_RESERVE_CLASS}`}>
+    <section className={`flex min-h-full flex-col space-y-4 overflow-x-clip px-1 pb-2 ${SESSION_STICKY_FOOTER_RESERVE_CLASS}`}>
       {!isExerciseOpen ? (
         <SessionHeaderControls
           sessionTitle={sessionTitle}
-          durationSeconds={durationSeconds}
+          durationSeconds={hasMountedTimer ? durationSeconds : baseDurationSeconds}
+          isTimerHydrated={hasMountedTimer}
           quickAddAction={quickAddAction}
           backHref={fallbackReturnHref ?? "/today"}
         />
