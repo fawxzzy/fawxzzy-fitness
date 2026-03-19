@@ -79,7 +79,7 @@ function RoutineTargetInputs({
   });
 
   return (
-    <div className="space-y-3 rounded-[1rem] border border-border/40 bg-[rgb(var(--bg)/0.16)] p-3">
+    <div className="space-y-3 rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
       {Object.entries(activeMetrics).map(([metric, enabled]) => enabled ? <input key={metric} type="hidden" name="measurementSelections" value={metric} /> : null)}
       <MeasurementConfigurator
         values={{
@@ -105,7 +105,7 @@ function RoutineTargetInputs({
           weightUnit: "targetWeightUnit",
           distanceUnit: "targetDistanceUnit",
         }}
-        description="Keep day editor targets aligned with the same shared measurement language used in add exercise and session logging."
+        description="Choose only the optional measurements this goal needs."
       />
       {activeMetrics.reps ? <input type="number" min={1} name="targetRepsMax" value={values.repsMax} onChange={(event) => setValues((current) => ({ ...current, repsMax: event.target.value }))} placeholder="Max reps" className={controlClassName} /> : null}
       <MeasurementSummary
@@ -113,6 +113,7 @@ function RoutineTargetInputs({
           reps: values.reps ? Number(values.reps) : null,
           weight: values.weight ? Number(values.weight) : null,
           weightUnit: values.weightUnit,
+          durationSeconds: values.duration ? (values.duration.includes(":") ? Number(values.duration.split(":")[0]) * 60 + Number(values.duration.split(":")[1]) : Number(values.duration)) : null,
           distance: values.distance ? Number(values.distance) : null,
           distanceUnit: values.distanceUnit,
           calories: values.calories ? Number(values.calories) : null,
@@ -257,10 +258,10 @@ export function EditableRoutineDayExerciseList({
                     <input type="hidden" name="exerciseRowId" value={exercise.id} />
                     <div className="space-y-3">
                       <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Edit targets</p>
-                        <p className="text-xs text-muted">Keep this exercise aligned with the same sets + measurement language used in add exercise and session logging.</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Edit goal</p>
+                        <p className="text-xs text-muted">Keep this exercise aligned with the same shared goal and measurement language used across the app.</p>
                       </div>
-                      <input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={controlClassName} />
+                      <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets <span className="normal-case tracking-normal">(Required)</span></p><input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} /></div>
                       <RoutineTargetInputs
                         weightUnit={weightUnit}
                         distanceUnit={exercise.defaultDistanceUnit}

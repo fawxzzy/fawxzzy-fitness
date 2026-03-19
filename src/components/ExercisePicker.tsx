@@ -154,6 +154,15 @@ function formatStatDate(value: string | null) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function parseDurationInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  const match = trimmed.match(/^(\d+):(\d{1,2})$/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
 function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; iconSrc: string }) {
   return (
     <ExerciseAssetImage
@@ -514,13 +523,13 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       {routineTargetConfig && selectedExercise ? (
         <div className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
           <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Configure targets</p>
-            <p className="text-xs text-muted">Set required sets first, then keep targets in the same reps/weight/time/distance/calories language used throughout the app.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Configure goal</p>
+            <p className="text-xs text-muted">Use the same shared goal and measurement language you see in planners, sessions, and history.</p>
           </div>
           {selectedMeasurements.map((metric) => (
             <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />
           ))}
-          <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
+          <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets <span className="normal-case tracking-normal">(Required)</span></p><Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="mt-2" /></div>
 
           <div className="space-y-3 rounded-[1.1rem] border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">
             <div className="flex flex-wrap justify-end gap-2">
@@ -628,9 +637,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 weightUnit: "targetWeightUnit",
                 distanceUnit: "targetDistanceUnit",
               }}
-              description="Use shared measurement fields so targets read the same way in planners, sessions, and history."
+              description="Choose only the optional measurements this goal needs."
               collapsedLabel="Optional measurements"
-              collapsedDescription="Keep only the measurements this plan needs."
+              collapsedDescription="Turn on only the measurements you want to configure."
             />
             {selectedMeasurements.includes("reps") ? (
               <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
@@ -640,7 +649,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 reps: targetRepsMin ? Number(targetRepsMin) : null,
                 weight: targetWeight ? Number(targetWeight) : null,
                 weightUnit: targetWeightUnit,
-                durationSeconds: null,
+                durationSeconds: parseDurationInput(targetDuration),
                 distance: targetDistance ? Number(targetDistance) : null,
                 distanceUnit: selectedDefaultUnit,
                 calories: targetCalories ? Number(targetCalories) : null,
