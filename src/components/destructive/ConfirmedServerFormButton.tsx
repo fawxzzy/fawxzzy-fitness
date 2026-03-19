@@ -6,6 +6,7 @@ import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal
 
 export function ConfirmedServerFormButton({
   action,
+  onSuccess,
   hiddenFields,
   triggerLabel,
   triggerAriaLabel,
@@ -20,6 +21,7 @@ export function ConfirmedServerFormButton({
   disabled = false,
 }: {
   action: (formData: FormData) => unknown | Promise<unknown>;
+  onSuccess?: () => void | Promise<void>;
   hiddenFields: Record<string, string>;
   triggerLabel: string;
   triggerAriaLabel?: string;
@@ -43,7 +45,16 @@ export function ConfirmedServerFormButton({
       action={async (formData) => {
         setIsLoading(true);
         try {
-          await action(formData);
+          const result = await action(formData);
+          if (
+            typeof result === "object"
+            && result !== null
+            && "ok" in result
+            && Boolean((result as { ok?: boolean }).ok)
+          ) {
+            setOpen(false);
+            await onSuccess?.();
+          }
         } finally {
           setIsLoading(false);
         }

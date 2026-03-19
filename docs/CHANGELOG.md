@@ -1,11 +1,17 @@
 ## 0.3.81 — 2026-03-19
 
 ### WHAT
+- Converged Quick Add toward the Add Exercise chooser language by reusing the same clean selection-first card treatment, selected summary affordances, and configure/commit rhythm inside the sheet.
+- Kept Exercise Info access in the selected-exercise state for both chooser flows so rows stay uncluttered while selected actions still expose movement details.
+- Fixed Edit Day add/update/delete/reorder feedback to refresh live on success, removing the stale-screen behavior that previously required leaving and re-entering the editor to see successful writes.
 - Standardized user-facing workout language around Goal so compact summaries, current-session cards, add-exercise flows, and day editors stop mixing goal vs. target wording.
 - Consolidated goal summary formatting behind the shared measurement display helpers so sets/reps/time/distance/calories summaries now follow one canonical `Goal: … — …` pattern with consistent chips and open-goal fallbacks.
 - Lightened the shared measurement configurator framing, normalized toggle styling and unit-selector placement, and moved required-sets treatment into the Sets input block across add-exercise and edit-day flows.
 
 ### WHY
+- Keeps chooser rows optimized for selection first, which makes Quick Add and Add Exercise feel like the same system instead of adjacent one-off pickers.
+- Preserves exercise detail access without reintroducing cramped row chrome, reinforcing the row select → selected summary → configure → commit pattern.
+- Makes Edit Day feel trustworthy after writes by showing add/delete/update/reorder results immediately, rather than making the editor look stale until a full screen re-entry.
 - Makes workout planning and logging feel like one coherent product instead of a collection of screen-local measurement variants.
 - Reduces drift risk by pushing goal display and measurement configuration rules into shared primitives used across the app.
 - Unified save-return behavior around the same safe in-app history contract used by Back, including current-session save/discard navigation plus history log saves that previously diverged from the implied return path.

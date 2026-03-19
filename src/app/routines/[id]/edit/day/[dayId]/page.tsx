@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExercisePicker } from "@/components/ExercisePicker";
 import { AppButton } from "@/components/ui/AppButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -16,6 +15,7 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, saveRoutineDayAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
+import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
@@ -264,18 +264,15 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                   ) : null}
                 </CollapsibleCard>
 
-                <form action={addRoutineDayExerciseAction} className="space-y-2">
-                  <input type="hidden" name="routineId" value={params.id} />
-                  <input type="hidden" name="routineDayId" value={params.dayId} />
-                  <ExercisePicker
-                    exercises={exerciseOptions}
-                    name="exerciseId"
-                    initialSelectedId={searchParams?.exerciseId}
-                    routineTargetConfig={{ weightUnit: (routine as RoutineRow).weight_unit }}
-                    exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
-                  />
-                  <AppButton type="submit" variant="primary" fullWidth>Add to day</AppButton>
-                </form>
+                <RoutineDayAddExerciseForm
+                  routineId={params.id}
+                  routineDayId={params.dayId}
+                  exercises={exerciseOptions}
+                  initialSelectedId={searchParams?.exerciseId}
+                  weightUnit={(routine as RoutineRow).weight_unit}
+                  addExerciseAction={addRoutineDayExerciseAction}
+                  exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
+                />
               </CollapsibleCard>
             </>
           )}
