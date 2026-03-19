@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 
@@ -9,49 +9,59 @@ type BottomActionRegistration = symbol;
 type BottomActionsApi = {
   publish: (registration: BottomActionRegistration, node: ReactNode | null) => void;
   unpublish: (registration: BottomActionRegistration) => void;
+  subscribe: (listener: () => void) => () => void;
+  getSnapshot: () => PublishedBottomActions | null;
 };
 
-type PublishedBottomActions = {
+export type PublishedBottomActions = {
   registration: BottomActionRegistration;
   node: ReactNode | null;
 };
 
 const BottomActionsApiContext = createContext<BottomActionsApi | null>(null);
-const BottomActionsPublishedContext = createContext<PublishedBottomActions | null>(null);
 
 export function BottomActionsProvider({ children }: { children: ReactNode }) {
   const publishedRef = useRef<PublishedBottomActions | null>(null);
-  const [published, setPublished] = useState<PublishedBottomActions | null>(null);
+  const listenersRef = useRef(new Set<() => void>());
 
-  const api = useMemo<BottomActionsApi>(() => ({
-    publish: (registration, node) => {
-      const current = publishedRef.current;
-      if (current?.registration === registration && Object.is(current.node, node)) {
-        return;
+  const api = useMemo<BottomActionsApi>(() => {
+    const notify = () => {
+      for (const listener of listenersRef.current) {
+        listener();
       }
+    };
 
-      const next = { registration, node };
-      publishedRef.current = next;
-      setPublished((state) => {
-        if (state?.registration === registration && Object.is(state.node, node)) {
-          return state;
+    return {
+      publish: (registration, node) => {
+        const current = publishedRef.current;
+        if (current?.registration === registration && Object.is(current.node, node)) {
+          return;
         }
-        return next;
-      });
-    },
-    unpublish: (registration) => {
-      if (publishedRef.current?.registration !== registration) {
-        return;
-      }
 
-      publishedRef.current = null;
-      setPublished((state) => (state?.registration === registration ? null : state));
-    },
-  }), []);
+        publishedRef.current = { registration, node };
+        notify();
+      },
+      unpublish: (registration) => {
+        if (publishedRef.current?.registration !== registration) {
+          return;
+        }
+
+        publishedRef.current = null;
+        notify();
+      },
+      subscribe: (listener) => {
+        listenersRef.current.add(listener);
+        return () => {
+          listenersRef.current.delete(listener);
+        };
+      },
+      getSnapshot: () => publishedRef.current,
+    };
+  }, []);
 
   return (
     <BottomActionsApiContext.Provider value={api}>
-      <BottomActionsPublishedContext.Provider value={published}>{children}</BottomActionsPublishedContext.Provider>
+      {children}
     </BottomActionsApiContext.Provider>
   );
 }
@@ -64,13 +74,19 @@ export function useBottomActions(): BottomActionsApi {
   return context;
 }
 
+export function usePublishedBottomActions(): PublishedBottomActions | null {
+  const { subscribe, getSnapshot } = useBottomActions();
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
 export function useHasBottomActions(): boolean {
-  return Boolean(useContext(BottomActionsPublishedContext)?.node);
+  return Boolean(usePublishedBottomActions()?.node);
 }
 
 export function usePublishBottomActions(node: ReactNode | null) {
   const { publish, unpublish } = useBottomActions();
   const registrationRef = useRef<BottomActionRegistration>();
+  const lastPublishedNodeRef = useRef<ReactNode | null | typeof UNPUBLISHED>(UNPUBLISHED);
 
   if (!registrationRef.current) {
     registrationRef.current = Symbol("bottom-actions-registration");
@@ -79,18 +95,24 @@ export function usePublishBottomActions(node: ReactNode | null) {
   const registration = registrationRef.current;
 
   useLayoutEffect(() => {
+    if (lastPublishedNodeRef.current !== UNPUBLISHED && Object.is(lastPublishedNodeRef.current, node)) {
+      return;
+    }
+
+    lastPublishedNodeRef.current = node;
     publish(registration, node);
   }, [node, publish, registration]);
 
-  useLayoutEffect(() => {
-    return () => {
-      unpublish(registration);
-    };
+  useLayoutEffect(() => () => {
+    lastPublishedNodeRef.current = UNPUBLISHED;
+    unpublish(registration);
   }, [registration, unpublish]);
 }
 
+const UNPUBLISHED = Symbol("bottom-actions-unpublished");
+
 export function BottomActionsSlot() {
-  const published = useContext(BottomActionsPublishedContext);
+  const published = usePublishedBottomActions();
   const slotRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

@@ -2,11 +2,11 @@
 
 ### WHAT
 - Split the shared `bottom-actions` primitive into separate API and published-state contexts so footer publishers no longer rerender just because the sticky host renders the current footer node.
-- Moved bottom-action host bookkeeping behind a ref-backed publish/unpublish guard that only commits React state when the active registration or rendered node truly changes.
+- Replaced provider-local `setPublished` bookkeeping with a ref-backed external-store registry so publish/unpublish only notify slot subscribers when the active owner or rendered node truly changes.
 - Preserved the single screen-owned sticky slot contract while stopping self-retriggering publish cycles across current session, set entry, and other shared footer screens.
 
 ### WHY
-- Fixes the `Maximum update depth exceeded` crash triggered when footer publishers subscribed to the same state they were mutating via `setPublished`.
+- Fixes the `Maximum update depth exceeded` crash triggered when footer publishers indirectly rerendered themselves through provider-level `setPublished` updates.
 - Reinforces the layout primitive rule that sticky footer registration must use stable identities plus ref-based bookkeeping, with React state reserved for real rendered output transitions.
 
 ## 0.3.85 — 2026-03-19
