@@ -3676,3 +3676,6 @@ WHY:
 ### WHY
 - Prevents measurement UI drift from making workout flows feel like separate products stitched together.
 - Makes optional measurements materially lighter while preserving the same saved values, target semantics, and available metric combinations.
+- Simplified the Current Session exercise workspace into a focused logging flow by removing redundant helper copy/status chrome, tightening the identity → goal → entry → effort → review order, and moving Skip/Delete/Save Set into the shared normalized bottom action group.【F:src/components/SessionExerciseFocus.tsx†L1-L289】【F:src/components/SessionTimers.tsx†L1-L595】
+- Added shared `BottomActionTriple` and `WorkoutEntryIdentity` primitives so focused workout-entry screens can reuse the normalized three-action footer and lighter exercise identity header without reintroducing local chrome drift.【F:src/components/layout/CanonicalBottomActions.tsx†L1-L61】【F:src/components/ui/workout-entry/EntrySection.tsx†L1-L74】
+- Cleaned up Current Session effort and saved-set presentation with more balanced RPE/warm-up spacing, flatter logged-set rows, chip-based effort metadata, and a clearer delete affordance while preserving the existing logging contracts.【F:src/components/SessionTimers.tsx†L1-L595】

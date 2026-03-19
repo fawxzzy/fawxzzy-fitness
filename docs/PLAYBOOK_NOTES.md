@@ -290,3 +290,5 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents measurement blocks from drifting between add-exercise, set entry, history, and day editors, which makes the product feel inconsistent even when data semantics are correct.
 - Evidence: src/components/ui/measurements/MeasurementConfigurator.tsx, src/components/ui/measurements/MeasurementSummary.tsx, src/components/ui/measurements/ModifyMeasurements.tsx, src/components/ExercisePicker.tsx, src/components/SessionTimers.tsx, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/lib/session-targets.ts
 - Status: Proposed
+- Focused logging screens should only keep task-critical copy and follow the rhythm `identity -> goal -> entry -> effort -> review -> commit`; avoid status boxes and explanatory filler that repeat what the UI already implies.
+- When a logging surface needs multiple commit-adjacent actions, publish them through the shared bottom action system instead of local inline controls so destructive and secondary actions stay normalized with the primary save action.

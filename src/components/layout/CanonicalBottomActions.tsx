@@ -30,6 +30,33 @@ export function BottomActionSplit({ primary, secondary, className }: { primary: 
   );
 }
 
+export function BottomActionTriple({
+  primary,
+  secondary,
+  tertiary,
+  className,
+}: {
+  primary: ReactNode;
+  secondary: ReactNode;
+  tertiary: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        frameClassName,
+        "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]",
+        itemBaseClassName,
+        className,
+      )}
+    >
+      {secondary}
+      {tertiary}
+      {primary}
+    </div>
+  );
+}
+
 export function BottomActionUtilityCluster({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div

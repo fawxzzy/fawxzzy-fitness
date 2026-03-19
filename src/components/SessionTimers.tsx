@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
@@ -12,7 +13,7 @@ import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionTriple } from "@/components/layout/CanonicalBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
@@ -80,7 +81,9 @@ export function SetLoggerCard({
   routineDayExerciseId,
   planTargetsHash,
   deleteSetAction,
-  resetSignal
+  resetSignal,
+  skipAction,
+  deleteAction,
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -110,6 +113,8 @@ export function SetLoggerCard({
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
+  skipAction?: ReactNode;
+  deleteAction?: ReactNode;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -647,13 +652,17 @@ export function SetLoggerCard({
 
   const saveSetActions = useMemo(
     () => (
-      <BottomActionSingle>
-        <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
-          Save Set
-        </AppButton>
-      </BottomActionSingle>
+      <BottomActionTriple
+        secondary={skipAction ?? <div aria-hidden="true" />}
+        tertiary={deleteAction ?? <div aria-hidden="true" />}
+        primary={(
+          <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
+            Save Set
+          </AppButton>
+        )}
+      />
     ),
-    [handleLogSet, isSaveDisabled],
+    [deleteAction, handleLogSet, isSaveDisabled, skipAction],
   );
 
   usePublishBottomActions(saveSetActions);
@@ -712,8 +721,7 @@ export function SetLoggerCard({
 
       <WorkoutEntrySection
         eyebrow="Entry"
-        title="Measurement entry"
-        description="Use the shared measurement system to capture the values for the set you are about to save."
+        title="Log this set"
         className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
       >
         <ModifyMeasurements
@@ -749,13 +757,11 @@ export function SetLoggerCard({
 
       <WorkoutEntrySection
         eyebrow="Effort"
-        title="Finish this set"
-        description="Add optional effort details before you commit this set to the log."
+        title="Effort details"
         className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
       >
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-            <div className="relative rounded-2xl border border-white/8 bg-white/5 p-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="relative rounded-2xl border border-white/8 bg-white/5 p-3.5">
               <div className="mb-1 flex items-center gap-1">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">RPE</span>
                 <button
@@ -784,19 +790,18 @@ export function SetLoggerCard({
                 className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
               />
             </div>
-            <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-3 py-3 text-sm text-text">
+            <label className="flex min-h-[88px] items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-3.5 py-3.5 text-sm text-text">
               <input
                 type="checkbox"
                 checked={isWarmup}
                 onChange={(event) => setIsWarmup(event.target.checked)}
                 className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
               />
-              <span>
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Warm-up</span>
-                <span className="block text-sm text-text">Mark this set as prep work</span>
-              </span>
-            </label>
-          </div>
+                <span>
+                  <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Warm-up</span>
+                  <span className="block text-sm text-text">Mark this set as prep work</span>
+                </span>
+              </label>
         </div>
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
       </WorkoutEntrySection>
@@ -809,23 +814,25 @@ export function SetLoggerCard({
         className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
         contentClassName="space-y-0"
       >
-        <ul className="divide-y divide-border/50 overflow-hidden rounded-2xl border border-white/8 bg-surface/45 text-sm">
+        <ul className="space-y-2 text-sm">
         {animatedSets.map((set, index) => (
           <li
             key={set.id}
             className={[
-              "bg-surface/70 px-3 py-2",
+              "rounded-2xl border border-white/8 bg-surface/65 px-3 py-3",
               "origin-top transition-all duration-150 motion-reduce:transition-none",
-              set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-20 scale-100 opacity-100",
+              set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-32 scale-100 opacity-100",
             ].join(" ")}
           >
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span>
-                  {isCardio ? "Interval" : "Set"} {index + 1}
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-text">
+                    {isCardio ? "Interval" : "Set"} {index + 1}
+                  </span>
                   {set.queueStatus ? ` · ${set.queueStatus}` : ""}
                   {set.pending && !set.queueStatus ? " · saving..." : ""}
-                </span>
+                </div>
                 <MeasurementSummary
                   values={{
                     reps: set.reps,
@@ -837,23 +844,29 @@ export function SetLoggerCard({
                     calories: set.calories,
                   }}
                   emptyLabel="No measurements"
-                  className="mt-1"
+                  className="text-muted"
                 />
+                {(set.is_warmup || set.rpe !== null) ? (
+                  <div className="flex flex-wrap gap-2">
+                    {set.is_warmup ? <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-text">Warm-up</span> : null}
+                    {set.rpe !== null ? <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-text">RPE {set.rpe}</span> : null}
+                  </div>
+                ) : null}
               </div>
               <button
                 type="button"
                 onClick={() => {
                   void handleDeleteSet(set);
                 }}
-                aria-label="Remove set"
-                className={`rounded-md px-1.5 py-1 text-xs text-muted hover:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+                aria-label={`Delete ${isCardio ? "interval" : "set"} ${index + 1}`}
+                className={`rounded-full border border-white/10 px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
               >
-                ✕
+                Delete
               </button>
             </div>
           </li>
         ))}
-        {sets.length === 0 ? <li className="px-3 py-4 text-slate-400">No {isCardio ? "intervals" : "sets"} logged yet. Save one to start the review list.</li> : null}
+        {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-4 text-slate-400">No {isCardio ? "intervals" : "sets"} logged yet. Save one to start the review list.</li> : null}
         </ul>
       </WorkoutEntrySection>
 
