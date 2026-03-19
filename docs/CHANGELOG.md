@@ -1,3 +1,15 @@
+## 0.3.81 — 2026-03-19
+
+### WHAT
+- Rolled the session route off the shared bottom-actions publish/provider path and restored screen-owned sticky footers for the current session overview and focused set-entry flow.
+- Kept the session footer visuals on the normalized action layout while preserving Save Session, Discard, Save Set, Skip, and Delete behavior plus existing return-navigation handling.
+- Made the live session timer hydration-safe by deferring elapsed-time calculation until the client effect runs, so the server render no longer races the browser clock.
+
+### WHY
+- Unblocks the critical session path by removing the unstable abstraction that was still crashing exercise open and poisoning dev/HMR state.
+- Restores predictable mobile footer behavior on the two session screens that users rely on most while leaving broader footer re-abstraction for a safer follow-up.
+- Prevents avoidable hydration warnings from a now-derived timer string that could differ between server and client before hydration completed.
+
 ## 0.3.87 — 2026-03-19
 
 ### WHAT
