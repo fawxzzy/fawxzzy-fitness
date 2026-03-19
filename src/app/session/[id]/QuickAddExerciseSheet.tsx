@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { memo, useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
@@ -20,6 +20,13 @@ type ExerciseOption = {
   equipment: string | null;
 };
 
+type QuickAddExerciseRowProps = {
+  exercise: ExerciseOption;
+  isSelected: boolean;
+  subtitle: string;
+  onPress: (exerciseId: string, isSelected: boolean) => void;
+};
+
 function formatTagLabel(value: string) {
   return value
     .split(/[_\s-]+/)
@@ -33,6 +40,39 @@ function normalizeExerciseTags(exercise: ExerciseOption) {
     .map((value) => value?.trim().toLowerCase() ?? "")
     .filter((value) => value.length > 0);
 }
+
+
+const QuickAddExerciseRow = memo(function QuickAddExerciseRow({ exercise, isSelected, subtitle, onPress }: QuickAddExerciseRowProps) {
+  return (
+    <li>
+      <ExerciseCard
+        title={exercise.name}
+        subtitle={subtitle || undefined}
+        onPress={() => onPress(exercise.id, isSelected)}
+        className={cn(
+          "min-h-[5.1rem] px-4 py-3.5",
+          isSelected
+            ? "border-accent/35 bg-accent/10 shadow-[0_10px_28px_-18px_rgba(96,200,130,0.95)] ring-1 ring-accent/20"
+            : "border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
+        )}
+        trailingClassName={isSelected ? "text-text" : "text-muted"}
+        rightIcon={(
+          <span
+            aria-hidden="true"
+            className={cn(
+              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
+              isSelected
+                ? "border-accent/35 bg-accent/20 text-text"
+                : "border-border/50 bg-surface/50 text-muted",
+            )}
+          >
+            {isSelected ? "Selected" : "Choose"}
+          </span>
+        )}
+      />
+    </li>
+  );
+});
 
 export function QuickAddExerciseSheet({
   sessionId,
@@ -73,6 +113,7 @@ export function QuickAddExerciseSheet({
 
   const selectedSetCount = setCountByExerciseId[selectedExerciseId] ?? 3;
   const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null;
+  const exerciseSubtitleById = useMemo(() => new Map(exercises.map((exercise) => [exercise.id, [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean).join(" • ")])), [exercises]);
 
   const filteredExercises = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -88,6 +129,14 @@ export function QuickAddExerciseSheet({
       .slice(0, 40);
   }, [exercises, query, selectedTags]);
   const selectedExerciseIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedExerciseId);
+  const handleExercisePress = useCallback((exerciseId: string, isSelected: boolean) => {
+    if (isSelected) {
+      setIsExerciseInfoOpen(true);
+      return;
+    }
+
+    setSelectedExerciseId(exerciseId);
+  }, []);
 
   const handleSubmit = () => {
     if (!selectedExerciseId) {
@@ -150,50 +199,11 @@ export function QuickAddExerciseSheet({
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Pick an exercise</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected summary</p>
               <h3 className="text-base font-semibold text-text">Select a movement, then configure it below</h3>
             </div>
             <p className="shrink-0 text-xs text-muted">{filteredExercises.length} shown</p>
           </div>
-
-          <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
-            {filteredExercises.map((exercise) => {
-              const isSelected = selectedExerciseId === exercise.id;
-              const tags = [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean);
-              return (
-                <li key={exercise.id}>
-                  <ExerciseCard
-                    title={exercise.name}
-                    subtitle={tags.join(" • ") || undefined}
-                    onPress={() => setSelectedExerciseId(exercise.id)}
-                    className={cn(
-                      "min-h-[5.1rem] px-4 py-3.5",
-                      isSelected
-                        ? "border-accent/35 bg-accent/10 shadow-[0_10px_28px_-18px_rgba(96,200,130,0.95)] ring-1 ring-accent/20"
-                        : "border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
-                    )}
-                    trailingClassName={isSelected ? "text-text" : "text-muted"}
-                    rightIcon={(
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
-                          isSelected
-                            ? "border-accent/35 bg-accent/20 text-text"
-                            : "border-border/50 bg-surface/50 text-muted",
-                        )}
-                      >
-                        {isSelected ? "Selected" : "Choose"}
-                      </span>
-                    )}
-                  />
-                </li>
-              );
-            })}
-            {filteredExercises.length === 0 ? (
-              <li className="rounded-2xl bg-surface/40 px-4 py-4 text-sm text-muted">No exercises match that search.</li>
-            ) : null}
-          </ul>
 
           <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.74)] px-4 py-4">
             <div className="space-y-3">
@@ -235,6 +245,31 @@ export function QuickAddExerciseSheet({
                 </div>
               ) : null}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Pick an exercise</p>
+                <h3 className="text-base font-semibold text-text">Chooser list</h3>
+              </div>
+              <p className="shrink-0 text-xs text-muted">2–3 fewer rows visible by design</p>
+            </div>
+
+            <ul className="max-h-56 space-y-2 overflow-y-auto overscroll-contain pr-1">
+              {filteredExercises.map((exercise) => (
+                <QuickAddExerciseRow
+                  key={exercise.id}
+                  exercise={exercise}
+                  isSelected={selectedExerciseId === exercise.id}
+                  subtitle={exerciseSubtitleById.get(exercise.id) ?? ""}
+                  onPress={handleExercisePress}
+                />
+              ))}
+              {filteredExercises.length === 0 ? (
+                <li className="rounded-2xl bg-surface/40 px-4 py-4 text-sm text-muted">No exercises match that search.</li>
+              ) : null}
+            </ul>
           </div>
         </section>
 

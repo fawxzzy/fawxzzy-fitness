@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
@@ -53,6 +53,15 @@ type ExercisePickerProps = {
 };
 
 type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
+
+
+type ExerciseRowProps = {
+  exercise: ExerciseOption;
+  isSelected: boolean;
+  metadata: string;
+  iconSrc: string;
+  onPress: (exerciseId: string, isSelected: boolean) => void;
+};
 
 const tagGroupLabels: Record<TagFilterGroup, string> = {
   muscle: "Muscle",
@@ -173,6 +182,44 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
   );
 }
 
+
+const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, iconSrc, onPress }: ExerciseRowProps) {
+  return (
+    <li>
+      <ExerciseCard
+        title={exercise.name}
+        subtitle={metadata || undefined}
+        onPress={() => onPress(exercise.id, isSelected)}
+        leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
+        className={cn(
+          listShellClasses.card,
+          "min-h-[5.25rem] items-center px-4 py-3.5",
+          isSelected
+            ? "border-accent/35 bg-accent/10 shadow-[0_10px_28px_-18px_rgba(96,200,130,0.95)] ring-1 ring-accent/20"
+            : "bg-[rgb(var(--surface-2-soft)/0.6)] hover:bg-[rgb(var(--surface-2-soft)/0.78)]",
+        )}
+        trailingClassName={cn(
+          "self-center",
+          isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
+        )}
+        rightIcon={(
+          <span
+            aria-hidden="true"
+            className={cn(
+              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
+              isSelected
+                ? "border-accent/35 bg-accent/20 text-text"
+                : "border-border/50 bg-surface/50 text-muted",
+            )}
+          >
+            {isSelected ? "Selected" : "Choose"}
+          </span>
+        )}
+      />
+    </li>
+  );
+});
+
 export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig, exerciseStats = [] }: ExercisePickerProps) {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
@@ -181,6 +228,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [isExerciseInfoOpen, setIsExerciseInfoOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLUListElement | null>(null);
   const scrollPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollInputRef = useRef<HTMLInputElement | null>(null);
 
   const initialScrollTop = useMemo(() => {
     const raw = Number(searchParams.get("exerciseListScroll"));
@@ -201,7 +249,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const statsByExerciseId = useMemo(() => new Map(exerciseStats.map((row) => [row.exerciseId, row])), [exerciseStats]);
 
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
-  const [scrollTopSnapshot, setScrollTopSnapshot] = useState(initialScrollTop);
+  const scrollSnapshotRef = useRef(initialScrollTop);
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
   const [selectedMeasurements, setSelectedMeasurements] = useState<Array<"reps" | "weight" | "time" | "distance" | "calories">>([]);
   const [targetRepsMin, setTargetRepsMin] = useState("");
@@ -229,15 +277,18 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     };
   }, []);
 
-  const persistScrollTop = (nextScrollTop: number) => {
+  const persistScrollTop = useCallback((nextScrollTop: number) => {
     if (scrollPersistTimeoutRef.current) {
       clearTimeout(scrollPersistTimeoutRef.current);
     }
 
     scrollPersistTimeoutRef.current = setTimeout(() => {
-      setScrollTopSnapshot((current) => (current === nextScrollTop ? current : nextScrollTop));
-    }, 80);
-  };
+      scrollSnapshotRef.current = nextScrollTop;
+      if (scrollInputRef.current) {
+        scrollInputRef.current.value = String(nextScrollTop);
+      }
+    }, 96);
+  }, []);
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -308,6 +359,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
+  const exerciseMetadataById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean).join(" • ")])), [uniqueExercises]);
+  const exerciseIconSrcById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, getExerciseIconSrc(exercise)])), [uniqueExercises]);
   const selectedFilteredIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
   const statsQueryExerciseId = selectedCanonicalExerciseId;
@@ -362,10 +415,13 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
   const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
 
-  const getExerciseMetadata = useCallback((exercise: ExerciseOption) => {
-    return [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment]
-      .filter(Boolean)
-      .join(" • ");
+  const handleExercisePress = useCallback((exerciseId: string, isSelected: boolean) => {
+    if (isSelected) {
+      setIsExerciseInfoOpen(true);
+      return;
+    }
+
+    setSelectedId(exerciseId);
   }, []);
 
   return (
@@ -402,69 +458,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         />
       </div>
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
-      <input type="hidden" name="exerciseListScroll" value={scrollTopSnapshot} />
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Pick an exercise</p>
-            <p className="text-xs text-muted">{filteredExercises.length} shown</p>
-          </div>
-        </div>
-        <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
-          <ul
-            ref={scrollContainerRef}
-            onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-            className={cn("max-h-80 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]", listShellClasses.viewport, listShellClasses.list)}
-          >
-            {filteredExercises.map((exercise) => {
-              const isSelected = exercise.id === selectedId;
-              const iconSrc = getExerciseIconSrc(exercise);
-
-              return (
-                <li key={exercise.id}>
-                  <ExerciseCard
-                    title={exercise.name}
-                    subtitle={getExerciseMetadata(exercise) || undefined}
-                    onPress={() => setSelectedId(exercise.id)}
-                    leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
-                    className={cn(
-                      listShellClasses.card,
-                      "min-h-[5.25rem] items-center px-4 py-3.5",
-                      isSelected
-                        ? "border-accent/35 bg-accent/10 shadow-[0_10px_28px_-18px_rgba(96,200,130,0.95)] ring-1 ring-accent/20"
-                        : "bg-[rgb(var(--surface-2-soft)/0.6)] hover:bg-[rgb(var(--surface-2-soft)/0.78)]",
-                    )}
-                    trailingClassName={cn(
-                      "self-center",
-                      isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
-                    )}
-                    rightIcon={(
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
-                          isSelected
-                            ? "border-accent/35 bg-accent/20 text-text"
-                            : "border-border/50 bg-surface/50 text-muted",
-                        )}
-                      >
-                        {isSelected ? "Selected" : "Choose"}
-                      </span>
-                    )}
-                  />
-                </li>
-              );
-            })}
-            {filteredExercises.length === 0 ? (
-              <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">
-                No exercises match that search.
-              </li>
-            ) : null}
-          </ul>
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
-        </div>
-      </div>
+      <input ref={scrollInputRef} type="hidden" name="exerciseListScroll" defaultValue={String(initialScrollTop)} />
 
       <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-[rgb(var(--text))]">
         {selectedExercise ? (
@@ -518,6 +512,40 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         ) : (
           <span className="text-muted">Select an exercise from the list above.</span>
         )}
+      </div>
+
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Pick an exercise</p>
+            <p className="text-xs text-muted">{filteredExercises.length} shown</p>
+          </div>
+        </div>
+        <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
+          <ul
+            ref={scrollContainerRef}
+            onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
+            className={cn("max-h-[26rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]", listShellClasses.viewport, listShellClasses.list)}
+          >
+            {filteredExercises.map((exercise) => (
+              <ExerciseRow
+                key={exercise.id}
+                exercise={exercise}
+                isSelected={exercise.id === selectedId}
+                metadata={exerciseMetadataById.get(exercise.id) ?? ""}
+                iconSrc={exerciseIconSrcById.get(exercise.id) ?? getExerciseIconSrc(exercise)}
+                onPress={handleExercisePress}
+              />
+            ))}
+            {filteredExercises.length === 0 ? (
+              <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">
+                No exercises match that search.
+              </li>
+            ) : null}
+          </ul>
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
+        </div>
       </div>
 
       {routineTargetConfig && selectedExercise ? (
