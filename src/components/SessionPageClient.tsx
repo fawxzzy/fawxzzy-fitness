@@ -6,8 +6,8 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { AppButton } from "@/components/ui/AppButton";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -119,7 +119,7 @@ export function SessionPageClient({
   );
 
   return (
-    <section className="space-y-4 pb-2">
+    <section className="space-y-4 overflow-x-clip px-1 pb-2">
       {!isExerciseOpen ? (
         <SessionHeaderControls
           sessionTitle={sessionTitle}
@@ -149,9 +149,10 @@ export function SessionPageClient({
       {emptyState}
 
       {!isExerciseOpen ? (
-        <BottomActionBar innerClassName="grid grid-cols-1 gap-2 rounded-[1.75rem] border border-white/10 bg-[rgb(var(--surface-rgb)/0.96)] px-3 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.28)] sm:grid-cols-[minmax(0,1fr)_auto] [&>*]:min-h-[48px] [&>*]:w-full [&>*]:flex-none">
-          <form
-            action={async (formData) => {
+        <BottomActionSplit
+          primary={(
+            <form
+              action={async (formData) => {
               const result = await saveSessionAction(formData);
               toastActionResult(toast, result, {
                 success: "Workout saved.",
@@ -161,17 +162,19 @@ export function SessionPageClient({
               if (result.ok) {
                 router.push(result.data?.sessionId ? `/history/${result.data.sessionId}` : "/history");
               }
-            }}
-            className="w-full"
-          >
+              }}
+              className="w-full"
+            >
             <input type="hidden" name="sessionId" value={sessionId} />
             <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
             <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
               Save Session
             </AppButton>
-          </form>
-          <ConfirmedServerFormButton
-            action={async (formData) => {
+            </form>
+          )}
+          secondary={(
+            <ConfirmedServerFormButton
+              action={async (formData) => {
               const result = await discardSessionAction(formData);
               toastActionResult(toast, result, {
                 success: "Workout discarded.",
@@ -181,16 +184,17 @@ export function SessionPageClient({
               if (result.ok) {
                 router.push("/today");
               }
-            }}
-            hiddenFields={{ sessionId }}
-            triggerLabel="Discard"
+              }}
+              hiddenFields={{ sessionId }}
+              triggerLabel="Discard"
             triggerClassName="w-full"
             size="md"
             modalTitle="Discard workout?"
             modalDescription="This will delete your in-progress workout, including exercises and sets."
-            confirmLabel="Discard"
-          />
-        </BottomActionBar>
+              confirmLabel="Discard"
+            />
+          )}
+        />
       ) : null}
     </section>
   );

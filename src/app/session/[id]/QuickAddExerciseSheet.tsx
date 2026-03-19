@@ -135,7 +135,7 @@ export function QuickAddExerciseSheet({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search exercises"
-              className="min-h-12 w-full rounded-2xl border border-border/55 bg-surface/50 px-4 py-3 text-sm text-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+              className="min-h-12 w-full rounded-[1.25rem] border border-border/50 bg-[rgb(var(--surface-2-soft)/0.74)] px-4 py-3 text-sm text-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
             />
             {filterGroups.length > 0 ? <ExerciseTagFilterControl selectedTags={selectedTags} onChange={setSelectedTags} groups={filterGroups} /> : null}
           </div>
@@ -160,10 +160,10 @@ export function QuickAddExerciseSheet({
                     type="button"
                     onClick={() => setSelectedExerciseId(exercise.id)}
                     className={[
-                      "w-full rounded-2xl px-4 py-3 text-left transition-colors",
+                      "w-full rounded-[1.25rem] border px-4 py-3 text-left transition-colors",
                       isSelected
-                        ? "bg-accent/10 ring-1 ring-accent/30"
-                        : "bg-surface/45 hover:bg-surface/65",
+                        ? "border-accent/35 bg-accent/10 ring-1 ring-accent/25"
+                        : "border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
                     ].join(" ")}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -189,7 +189,7 @@ export function QuickAddExerciseSheet({
             ) : null}
           </ul>
 
-          <div className="rounded-2xl bg-surface/45 px-4 py-4">
+          <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.74)] px-4 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected</p>
@@ -228,7 +228,7 @@ export function QuickAddExerciseSheet({
                     [selectedExerciseId]: Number.isFinite(parsed) && parsed > 0 ? parsed : 1,
                   }));
                 }}
-                className="min-h-11 w-24 rounded-xl border border-border/55 bg-surface/60 px-3 py-2.5 text-center text-sm text-text disabled:opacity-60"
+                className="min-h-11 w-24 rounded-[1rem] border border-border/50 bg-[rgb(var(--surface-2-soft)/0.82)] px-3 py-2.5 text-center text-sm text-text disabled:opacity-60"
               />
               <AppButton
                 type="button"

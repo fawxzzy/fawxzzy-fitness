@@ -228,7 +228,7 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="rounded-2xl bg-surface/45 p-3 shadow-none">
+        <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.7)] p-3.5 shadow-none">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Set entry</p>
@@ -252,7 +252,7 @@ export function SessionExerciseFocus({
         <>
           <article
             ref={focusedRef}
-            className="space-y-4 rounded-2xl bg-surface/45 p-4"
+            className="space-y-4 rounded-[1.5rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.74)] p-4"
             aria-hidden={false}
           >
             <div className="flex items-start justify-between gap-3">
@@ -295,7 +295,7 @@ export function SessionExerciseFocus({
               </div>
             </div>
 
-            <div className="rounded-2xl bg-surface/60 px-4 py-3">
+            <div className="rounded-[1.25rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.84)] px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Target</p>
               <p className="mt-1 text-sm font-medium text-text">{selectedExercise.goalLabel}</p>
             </div>

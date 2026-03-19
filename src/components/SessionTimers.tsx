@@ -12,6 +12,7 @@ import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { AppButton } from "@/components/ui/AppButton";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
@@ -661,9 +662,11 @@ export function SetLoggerCard({
 
   const saveSetActions = useMemo(
     () => (
-      <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
-        Save Set
-      </AppButton>
+      <BottomActionSingle>
+        <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
+          Save Set
+        </AppButton>
+      </BottomActionSingle>
     ),
     [handleLogSet, isSaveDisabled],
   );
