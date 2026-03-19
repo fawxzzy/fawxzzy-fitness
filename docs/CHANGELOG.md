@@ -1,3 +1,15 @@
+## 0.3.92 — 2026-03-19
+
+### WHAT
+- Removed the main Routines screen dropdown/sheet-based routine switcher and replaced it with a screen-owned sticky bottom action bar that now holds `Change Routine`, `Edit Routine`, and `New Routine`.
+- Reworked routine switching into an in-place reveal/collapse flow that mirrors the existing workout-switch interaction pattern, including the deterministic `Change Routine` ↔ `Hide Routines` toggle state on the shared bottom action surface.
+- Unified routine day cards on the main Routines page with the shared `ExerciseCard` surface language so day rows now use the same shell, spacing, border/radius, title/subtitle hierarchy, and badge alignment contract while preserving routine-day-specific metadata.
+
+### WHY
+- Dropdown-owned primary actions hid routine management behind a separate interaction model and drifted away from the app’s established workout-switch behavior.
+- Putting routine switching, editing, and creation into one stable bottom action surface makes the page easier to scan, removes duplicate entry points, and keeps primary actions predictable on mobile.
+- Reusing the shared surface system for routine day rows reduces visual drift across domains without forcing routine days to pretend they are exercise records.
+
 ## 0.3.91 — 2026-03-19
 
 ### WHAT
