@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getSafeReturnHref } from "@/components/ui/useBackNavigation";
+import { getSafeReturnContract } from "@/lib/navigation-return";
+import { readStack } from "@/components/ui/useBackNavigation";
 
 export function useReturnNavigation(fallbackHref?: string) {
   const router = useRouter();
@@ -14,21 +15,29 @@ export function useReturnNavigation(fallbackHref?: string) {
     return search ? `${pathname}?${search}` : pathname;
   }, [pathname, searchParams]);
 
-  const returnHref = useMemo(() => getSafeReturnHref(currentPath, fallbackHref), [currentPath, fallbackHref]);
+  const returnContract = useMemo(
+    () => getSafeReturnContract(currentPath, readStack(), fallbackHref),
+    [currentPath, fallbackHref],
+  );
 
   const navigateReturn = useCallback(() => {
-    if (returnHref) {
-      router.push(returnHref);
-      return returnHref;
+    if (returnContract.useHistoryBack) {
+      router.back();
+      return returnContract.historyHref;
+    }
+
+    if (returnContract.fallbackReturnHref) {
+      router.push(returnContract.fallbackReturnHref);
+      return returnContract.fallbackReturnHref;
     }
 
     return null;
-  }, [returnHref, router]);
+  }, [returnContract, router]);
 
   return {
     currentPath,
-    returnHref,
-    canReturn: Boolean(returnHref),
+    returnHref: returnContract.returnHref,
+    canReturn: Boolean(returnContract.returnHref),
     navigateReturn,
   };
 }

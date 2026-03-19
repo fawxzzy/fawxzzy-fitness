@@ -182,7 +182,7 @@ export function SessionPageClient({
               });
 
               if (result.ok) {
-                window.location.assign("/today");
+                navigateReturn();
               }
               }}
               hiddenFields={{ sessionId }}

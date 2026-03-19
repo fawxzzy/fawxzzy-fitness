@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { isSafeAppPath } from "@/lib/navigation-return";
+import { getSafeReturnContract, isSafeAppPath } from "@/lib/navigation-return";
 
 const STORAGE_KEY = "fawxzzy:in-app-history";
 const STACK_LIMIT = 50;
@@ -37,21 +37,16 @@ function getNavigationType() {
   return navigationEntry?.type ?? null;
 }
 
-
 export function getPreviousInAppPath(currentPath: string): string | null {
-  const stack = readStack();
-  const previousEntry = stack[stack.length - 2];
-  const isCurrentStackTail = stack[stack.length - 1] === currentPath;
-
-  if (isCurrentStackTail && isSafeAppPath(previousEntry)) {
-    return previousEntry;
-  }
-
-  return null;
+  return getSafeReturnContract(currentPath, readStack()).historyHref;
 }
 
 export function getSafeReturnHref(currentPath: string, fallbackHref?: string): string | null {
-  return getPreviousInAppPath(currentPath) ?? (isSafeAppPath(fallbackHref) ? fallbackHref : null);
+  return getSafeReturnContract(currentPath, readStack(), fallbackHref).returnHref;
+}
+
+export function shouldUseHistoryBack(currentPath: string, fallbackHref?: string): boolean {
+  return getSafeReturnContract(currentPath, readStack(), fallbackHref).useHistoryBack;
 }
 
 export function useBackNavigation({
@@ -100,22 +95,18 @@ export function useBackNavigation({
       return false;
     }
 
-    const stack = readStack();
-    return stack.length >= 2 && stack[stack.length - 1] === currentPath && isSafeAppPath(stack[stack.length - 2]);
-  }, [currentPath, historyBehavior]);
+    return shouldUseHistoryBack(currentPath, fallbackHref);
+  }, [currentPath, fallbackHref, historyBehavior]);
 
   const navigateBack = useCallback(() => {
-    if (historyBehavior === "history-first") {
-      const previousEntry = getPreviousInAppPath(currentPath);
-
-      if (isSafeAppPath(previousEntry)) {
-        router.back();
-        return true;
-      }
+    if (historyBehavior === "history-first" && shouldUseHistoryBack(currentPath, fallbackHref)) {
+      router.back();
+      return true;
     }
 
-    if (isSafeAppPath(fallbackHref)) {
-      router.push(fallbackHref);
+    const fallbackReturnHref = getSafeReturnContract(currentPath, readStack(), fallbackHref).fallbackReturnHref;
+    if (fallbackReturnHref) {
+      router.push(fallbackReturnHref);
       return false;
     }
 

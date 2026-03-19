@@ -1,3 +1,14 @@
+## 0.3.81 — 2026-03-19
+
+### WHAT
+- Unified save-return behavior around the same safe in-app history contract used by Back, including current-session save/discard navigation plus history log saves that previously diverged from the implied return path.
+- Tightened the shared canonical bottom-action variants so split primary/secondary footers now use one consistent two-column mobile frame, spacing, and safe-area treatment across editor/detail screens.
+- Preserved existing workout/editor business logic while removing context-losing save redirects and reinforcing the shared footer system in docs.
+
+### WHY
+- Keeps users in context by making Save honor the same return destination that Back would use when they arrived from another in-app screen.
+- Reduces footer drift and overflow risk by routing remaining sticky CTA groups through one shared visual/action system instead of per-screen layout improvisation.
+
 ## 0.3.80 — 2026-03-19
 
 ### WHAT
