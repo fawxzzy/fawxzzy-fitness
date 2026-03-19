@@ -38,6 +38,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-03-19 — Shared sticky-footer registries must isolate publishers from slot updates
+- Type: Guardrail
+- Summary: Shared sticky footer primitives should keep ownership and published-node bookkeeping in refs or an external store, and only notify slot subscribers when the actually rendered footer changes.
+- Suggested Playbook File: docs/GUARDRAILS/shared-sticky-footer-ownership.md
+- Rationale: Prevents layout-effect publish/cleanup churn from rerendering the same publishers, which can cascade into infinite update loops during screen transitions across every consumer of the shared footer path.
+- Evidence: src/components/layout/bottom-actions.tsx, src/components/layout/PublishBottomActions.tsx, src/components/layout/ScrollScreenWithBottomActions.tsx, src/components/SessionPageClient.tsx, src/app/today/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-19 — Steady-state flows should log summaries, not entities
 - Type: Guardrail
 - Summary: Expected normalization, sentinel filtering, and fallback behavior in steady-state app flows should stay silent by default or emit only one summary-level debug line per loader run behind an explicit debug flag.
