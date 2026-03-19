@@ -1,6 +1,13 @@
 ## 0.3.77 — 2026-03-19
 
 ### WHAT
+- Reworked Current Session set entry into a more cohesive exercise-detail workspace with a stronger summary header, integrated target panel, and a clearer target → configure → enter → review flow.
+- Added shared workout-entry section primitives and reused them across the set-entry form so measurements, finish-this-set details, and logged sets share one lighter hierarchy without introducing extra heavy boxes.
+- Kept skip, delete, save-set, and logged-set review behaviors intact while making secondary actions visually quieter and preserving the existing sticky Save Set action contract.
+
+### WHY
+- Makes the set-entry screen feel like a complete detail workspace instead of a sparse form page.
+- Improves section anchoring and scanability during active logging without changing write semantics.
 - Restyled the Add Exercise chooser to use the same shared exercise-card row language as the rest of the app, with roomier metadata, a clearer selected state, and no per-row info button.
 - Simplified the add-exercise sheet rhythm into one continuous choose → configure → add flow with lighter section framing and a dedicated selected-exercise summary between the list and target configuration.
 - Extended the shared `ExerciseCard` primitive with optional leading visual support so chooser/list surfaces can stay visually consistent without inventing route-local row markup.

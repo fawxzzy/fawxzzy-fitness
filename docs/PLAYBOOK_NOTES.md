@@ -206,3 +206,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents visual drift across adjacent workout-management flows and avoids repeated one-off fixes for spacing, safe-area handling, and sticky actions.
 - Evidence: src/components/layout/CanonicalBottomActions.tsx, src/components/SessionHeaderControls.tsx, src/components/SessionPageClient.tsx, src/components/SessionTimers.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/session/[id]/QuickAddExerciseSheet.tsx
 - Status: Proposed
+
+## 2026-03-19 — Detail forms should use one workspace rhythm
+- Type: Pattern
+- Summary: Mobile detail-entry forms should follow one cohesive workspace rhythm—summary, target, configure, enter, review, commit—using light section anchoring instead of disconnected labels or stacked heavy cards.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents technically clean detail screens from still feeling unfinished because the summary, target, form, and review areas do not read as one guided flow.
+- Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/ui/measurements/ModifyMeasurements.tsx, src/components/ui/workout-entry/EntrySection.tsx
+- Status: Proposed

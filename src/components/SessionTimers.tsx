@@ -15,6 +15,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
+import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import type { ActionResult } from "@/lib/action-result";
@@ -725,106 +726,105 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <ModifyMeasurements
-        values={{
-          reps,
-          weight,
-          duration: durationInput,
-          distance,
-          calories,
-          weightUnit: selectedWeightUnit,
-          distanceUnit,
-        }}
-        activeMetrics={activeMetrics}
-        isExpanded={isMetricsExpanded}
-        onExpandedChange={setIsMetricsExpanded}
-        onMetricToggle={(metric) => {
-          setHasUserModifiedMetrics(true);
-          setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
-        }}
-        onChange={(patch) => {
-          if (patch.reps !== undefined) setReps(patch.reps);
-          if (patch.weight !== undefined) setWeight(patch.weight);
-          if (patch.duration !== undefined) setDurationInput(patch.duration);
-          if (patch.distance !== undefined) setDistance(patch.distance);
-          if (patch.calories !== undefined) setCalories(patch.calories);
-          if (patch.weightUnit !== undefined) setSelectedWeightUnit(patch.weightUnit);
-          if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
-        }}
-        tapFeedbackClass={tapFeedbackClass}
-      />
+      <WorkoutEntrySection
+        eyebrow="Configure"
+        title="Measurements"
+        description="Choose the metrics this exercise needs, then enter the values for the set you are about to save."
+        className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
+      >
+        <ModifyMeasurements
+          values={{
+            reps,
+            weight,
+            duration: durationInput,
+            distance,
+            calories,
+            weightUnit: selectedWeightUnit,
+            distanceUnit,
+          }}
+          activeMetrics={activeMetrics}
+          isExpanded={isMetricsExpanded}
+          onExpandedChange={setIsMetricsExpanded}
+          onMetricToggle={(metric) => {
+            setHasUserModifiedMetrics(true);
+            setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
+          }}
+          onChange={(patch) => {
+            if (patch.reps !== undefined) setReps(patch.reps);
+            if (patch.weight !== undefined) setWeight(patch.weight);
+            if (patch.duration !== undefined) setDurationInput(patch.duration);
+            if (patch.distance !== undefined) setDistance(patch.distance);
+            if (patch.calories !== undefined) setCalories(patch.calories);
+            if (patch.weightUnit !== undefined) setSelectedWeightUnit(patch.weightUnit);
+            if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
+          }}
+          tapFeedbackClass={tapFeedbackClass}
+        />
+      </WorkoutEntrySection>
 
-      <div className="rounded-2xl bg-surface/45 p-4">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure</p>
-              <p className="text-sm font-medium text-text">Finish this set</p>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted">Add effort details only if you want them logged with this set.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-              <div className="relative">
-                <div className="mb-1 flex items-center gap-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">RPE</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowRpeTooltip((value) => !value)}
-                    className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] text-muted"
-                  >
-                    ⓘ
-                  </button>
-                </div>
-                {showRpeTooltip ? (
-                  <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
-                    <p className="font-medium text-text">RPE (1–10)</p>
-                    <p>10 = max effort</p>
-                    <p>8 = ~2 reps left</p>
-                    <p>6 = moderate effort</p>
-                  </div>
-                ) : null}
-                <input
-                  type="number"
-                  min={0}
-                  step="0.5"
-                  value={rpe}
-                  onChange={(event) => setRpe(event.target.value)}
-                  placeholder="RPE"
-                  className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
-                />
+      <WorkoutEntrySection
+        eyebrow="Finish"
+        title="Finish this set"
+        description="Add optional effort details before you commit the set to the log."
+        className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+            <div className="relative rounded-2xl border border-white/8 bg-white/5 p-3">
+              <div className="mb-1 flex items-center gap-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">RPE</span>
+                <button
+                  type="button"
+                  onClick={() => setShowRpeTooltip((value) => !value)}
+                  className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] text-muted"
+                >
+                  ⓘ
+                </button>
               </div>
-              <label className="flex min-h-11 items-center gap-3 rounded-xl bg-surface/70 px-3 text-sm text-text">
-                <input
-                  type="checkbox"
-                  checked={isWarmup}
-                  onChange={(event) => setIsWarmup(event.target.checked)}
-                  className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
-                />
-                <span>
-                  <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Warm-up</span>
-                  <span className="block text-sm text-text">Mark this set as prep work</span>
-                </span>
-              </label>
+              {showRpeTooltip ? (
+                <div className="pointer-events-none absolute left-3 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
+                  <p className="font-medium text-text">RPE (1–10)</p>
+                  <p>10 = max effort</p>
+                  <p>8 = ~2 reps left</p>
+                  <p>6 = moderate effort</p>
+                </div>
+              ) : null}
+              <input
+                type="number"
+                min={0}
+                step="0.5"
+                value={rpe}
+                onChange={(event) => setRpe(event.target.value)}
+                placeholder="RPE"
+                className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
+              />
             </div>
+            <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-3 py-3 text-sm text-text">
+              <input
+                type="checkbox"
+                checked={isWarmup}
+                onChange={(event) => setIsWarmup(event.target.checked)}
+                className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+              />
+              <span>
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Warm-up</span>
+                <span className="block text-sm text-text">Mark this set as prep work</span>
+              </span>
+            </label>
           </div>
         </div>
+        {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      </WorkoutEntrySection>
 
-      </div>
-
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Logged</p>
-            <p className="text-sm font-medium text-text">Saved sets</p>
-          </div>
-          <p className="text-xs text-muted">{sets.length} total</p>
-        </div>
-        <ul className="divide-y divide-border/50 overflow-hidden rounded-2xl bg-surface/45 text-sm">
+      <WorkoutEntrySection
+        eyebrow="Review"
+        title="Logged sets"
+        description="Review saved and queued work here before committing the next set."
+        aside={<p className="text-xs text-muted">{sets.length} total</p>}
+        className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
+        contentClassName="space-y-0"
+      >
+        <ul className="divide-y divide-border/50 overflow-hidden rounded-2xl border border-white/8 bg-surface/45 text-sm">
         {animatedSets.map((set, index) => (
           <li
             key={set.id}
@@ -853,9 +853,9 @@ export function SetLoggerCard({
             </div>
           </li>
         ))}
-        {sets.length === 0 ? <li className="px-3 py-3 text-slate-500">No {isCardio ? "intervals" : "sets"} logged.</li> : null}
+        {sets.length === 0 ? <li className="px-3 py-4 text-slate-400">No {isCardio ? "intervals" : "sets"} logged yet. Save one to start the review list.</li> : null}
         </ul>
-      </div>
+      </WorkoutEntrySection>
 
     </div>
   );
