@@ -1,7 +1,7 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { unstable_noStore as noStore } from "next/cache";
 import { aggregateExerciseStatsFromSets, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
-import { logDebugSummary, isSteadyStateDebugLoggingEnabled } from "@/lib/observability";
+import { logDebugSummary } from "@/lib/observability";
 
 export type ExerciseStatsRow = {
   exercise_id: string;
@@ -149,11 +149,9 @@ export async function getExerciseStatsForExercises(userId: string, exerciseIds: 
     .eq("user_id", userId)
     .in("exercise_id", exerciseIds);
 
-  logDebugSummary("exercise-stats:getExerciseStatsForExercises", "fetched stats rows", {
+  logDebugSummary("exercise-stats", "fetched stats rows", {
     requestedExerciseCount: exerciseIds.length,
     rowCount: (data ?? []).length,
-    sampleExerciseId: (data ?? [])[0]?.exercise_id ?? null,
-    userId,
   });
 
   return new Map(((data ?? []) as ExerciseStatsRow[]).map((row) => [row.exercise_id, row]));
@@ -191,12 +189,9 @@ export async function getExerciseStatsForExercise(userId: string, exerciseId: st
   }
 
   if (!canonicalExercise?.id) {
-    if (isSteadyStateDebugLoggingEnabled()) {
-      console.error("[exercise-stats:getExerciseStatsForExercise] non-canonical exercise id", {
-        userId,
-        exerciseId,
-      });
-    }
+    console.warn("[exercise-stats] non-canonical exercise id", {
+      exerciseId,
+    });
 
     return {
       row: null,
@@ -204,18 +199,8 @@ export async function getExerciseStatsForExercise(userId: string, exerciseId: st
         code: "NON_CANONICAL_EXERCISE_ID",
         message: "non-canonical exerciseId passed",
         exerciseId,
-        details: isSteadyStateDebugLoggingEnabled()
-          ? {
-            userId,
-            canonicalHintExerciseId: null,
-          }
-          : undefined,
       },
     };
-  }
-
-  if (isSteadyStateDebugLoggingEnabled()) {
-    console.log("[exercise-stats:getExerciseStatsForExercise] querying", { userId, exerciseId });
   }
 
   const { data } = await supabase
@@ -224,14 +209,6 @@ export async function getExerciseStatsForExercise(userId: string, exerciseId: st
     .eq("user_id", userId)
     .eq("exercise_id", exerciseId)
     .maybeSingle();
-
-  if (isSteadyStateDebugLoggingEnabled()) {
-    console.log("[exercise-stats:getExerciseStatsForExercise] fetched", {
-      exerciseId,
-      found: Boolean(data),
-      statsExerciseId: (data as ExerciseStatsRow | null)?.exercise_id ?? null,
-    });
-  }
 
   return {
     row: (data as ExerciseStatsRow | null) ?? null,

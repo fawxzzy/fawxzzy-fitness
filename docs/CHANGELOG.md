@@ -1,3 +1,14 @@
+## 0.3.85 — 2026-03-19
+
+### WHAT
+- Removed steady-state info logging from exercise catalog fallback/filter paths and exercise-stats lookup tracing so routine navigation stops printing expected loader chatter on every pass.
+- Kept runnable-day and exercise-list observability at the summary level behind the explicit debug flag, while preserving real warning/error output for genuinely invalid exercise ids or failed catalog loads.
+- Left runnable-day normalization and exercise filtering behavior unchanged; this release is observability cleanup only.
+
+### WHY
+- Keeps terminal output readable during normal navigation so real regressions are easier to spot.
+- Reinforces the rule that expected fallback and sentinel-suppression behavior should emit, at most, optional loader summaries instead of row-by-row noise.
+
 ## 0.3.84 — 2026-03-19
 
 ### WHAT

@@ -28,7 +28,7 @@ function isLegacyPlaceholderExercise(exercise: ExerciseRow) {
 }
 
 function logExerciseLoaderEvent(event: string, details?: Record<string, unknown>) {
-  console.info("[exercises]", event, details ?? {});
+  logDebugSummary("exercises", event, details);
 }
 
 function fallbackGlobalExercises(): ExerciseRow[] {
@@ -183,10 +183,6 @@ const listGlobalExercisesCached = unstable_cache(
     }
 
     const rows = (data ?? []) as ExerciseRow[];
-    logExerciseLoaderEvent("global-db-query-success", {
-      rows: rows.length,
-      fallbackUsed: false,
-    });
 
     return rows;
   },
