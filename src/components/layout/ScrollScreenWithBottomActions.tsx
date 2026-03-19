@@ -11,19 +11,13 @@ type ScrollScreenWithBottomActionsProps = {
   className?: string;
 };
 
-function ScrollScreenWithBottomActionsContent({ children, className }: ScrollScreenWithBottomActionsProps) {
-  return (
-    <ScrollContainer className={cn(className, FIXED_CTA_RESERVE_CLASS)}>
-      {children}
-      <BottomActionsSlot />
-    </ScrollContainer>
-  );
-}
-
 export function ScrollScreenWithBottomActions({ children, className }: ScrollScreenWithBottomActionsProps) {
   return (
     <BottomActionsProvider>
-      <ScrollScreenWithBottomActionsContent className={className}>{children}</ScrollScreenWithBottomActionsContent>
+      <ScrollContainer className={cn(className, FIXED_CTA_RESERVE_CLASS)}>
+        {children}
+        <BottomActionsSlot />
+      </ScrollContainer>
     </BottomActionsProvider>
   );
 }

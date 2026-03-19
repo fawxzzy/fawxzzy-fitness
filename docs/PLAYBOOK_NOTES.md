@@ -38,6 +38,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-03-19 — Sticky footer hosts should own a single local slot
+- Type: Guardrail
+- Summary: Shared sticky footer systems should let the scroll-screen host own one local footer slot, track publisher ownership in refs, and rerender only when the active owner or rendered footer content truly changes.
+- Suggested Playbook File: docs/GUARDRAILS/shared-sticky-footer-ownership.md
+- Rationale: Prevents render-coupled publish state from feeding back into publishers during overview ↔ detail footer swaps, which can reintroduce maximum update depth loops and unstable sticky action bars.
+- Evidence: src/components/layout/bottom-actions.tsx, src/components/layout/ScrollScreenWithBottomActions.tsx, src/components/layout/PublishBottomActions.tsx, src/components/SessionTimers.tsx, src/components/SessionPageClient.tsx
+- Status: Proposed
+
 ## 2026-03-19 — Shared sticky-footer registries must isolate publishers from slot updates
 - Type: Guardrail
 - Summary: Shared sticky footer primitives should keep ownership and published-node bookkeeping in refs or an external store, and only notify slot subscribers when the actually rendered footer changes.

@@ -6,48 +6,103 @@ import { BottomActionBar } from "@/components/ui/BottomActionBar";
 
 type BottomActionRegistration = symbol;
 
-type BottomActionsApi = {
+type BottomActionsOwner = {
+  node: ReactNode | null;
+  publishedAt: number;
+};
+
+type PublishedBottomActions = {
+  registration: BottomActionRegistration;
+  node: ReactNode | null;
+};
+
+type BottomActionsStore = {
+  ownersRef: { current: Map<BottomActionRegistration, BottomActionsOwner> };
+  publishedRef: { current: PublishedBottomActions | null };
   publish: (registration: BottomActionRegistration, node: ReactNode | null) => void;
   unpublish: (registration: BottomActionRegistration) => void;
   subscribe: (listener: () => void) => () => void;
   getSnapshot: () => PublishedBottomActions | null;
 };
 
-export type PublishedBottomActions = {
-  registration: BottomActionRegistration;
-  node: ReactNode | null;
-};
+const BottomActionsApiContext = createContext<BottomActionsStore | null>(null);
 
-const BottomActionsApiContext = createContext<BottomActionsApi | null>(null);
+function getActivePublishedBottomActions(owners: Map<BottomActionRegistration, BottomActionsOwner>): PublishedBottomActions | null {
+  let activeRegistration: BottomActionRegistration | null = null;
+  let activeOwner: BottomActionsOwner | null = null;
+
+  for (const [registration, owner] of owners) {
+    if (!owner.node) {
+      continue;
+    }
+
+    if (!activeOwner || owner.publishedAt >= activeOwner.publishedAt) {
+      activeRegistration = registration;
+      activeOwner = owner;
+    }
+  }
+
+  if (!activeRegistration || !activeOwner?.node) {
+    return null;
+  }
+
+  return {
+    registration: activeRegistration,
+    node: activeOwner.node,
+  };
+}
 
 export function BottomActionsProvider({ children }: { children: ReactNode }) {
-  const publishedRef = useRef<PublishedBottomActions | null>(null);
+  const ownersRef = useRef(new Map<BottomActionRegistration, BottomActionsOwner>());
   const listenersRef = useRef(new Set<() => void>());
+  const publishedRef = useRef<PublishedBottomActions | null>(null);
+  const publishedCounterRef = useRef(0);
 
-  const api = useMemo<BottomActionsApi>(() => {
+  const store = useMemo<BottomActionsStore>(() => {
     const notify = () => {
       for (const listener of listenersRef.current) {
         listener();
       }
     };
 
+    const syncPublishedSlot = () => {
+      const nextPublished = getActivePublishedBottomActions(ownersRef.current);
+      const previousPublished = publishedRef.current;
+
+      if (
+        previousPublished?.registration === nextPublished?.registration
+        && Object.is(previousPublished?.node, nextPublished?.node)
+      ) {
+        return;
+      }
+
+      publishedRef.current = nextPublished;
+      notify();
+    };
+
     return {
+      ownersRef,
+      publishedRef,
       publish: (registration, node) => {
-        const current = publishedRef.current;
-        if (current?.registration === registration && Object.is(current.node, node)) {
+        const currentOwner = ownersRef.current.get(registration);
+        if (currentOwner && Object.is(currentOwner.node, node)) {
           return;
         }
 
-        publishedRef.current = { registration, node };
-        notify();
+        publishedCounterRef.current += 1;
+        ownersRef.current.set(registration, {
+          node,
+          publishedAt: publishedCounterRef.current,
+        });
+        syncPublishedSlot();
       },
       unpublish: (registration) => {
-        if (publishedRef.current?.registration !== registration) {
+        if (!ownersRef.current.has(registration)) {
           return;
         }
 
-        publishedRef.current = null;
-        notify();
+        ownersRef.current.delete(registration);
+        syncPublishedSlot();
       },
       subscribe: (listener) => {
         listenersRef.current.add(listener);
@@ -60,13 +115,13 @@ export function BottomActionsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <BottomActionsApiContext.Provider value={api}>
+    <BottomActionsApiContext.Provider value={store}>
       {children}
     </BottomActionsApiContext.Provider>
   );
 }
 
-export function useBottomActions(): BottomActionsApi {
+export function useBottomActions(): BottomActionsStore {
   const context = useContext(BottomActionsApiContext);
   if (!context) {
     throw new Error("useBottomActions must be used within BottomActionsProvider");
