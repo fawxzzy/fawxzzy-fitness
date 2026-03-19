@@ -27,6 +27,7 @@ export function MeasurementConfigurator({
   collapsedLabel = "Optional measurements",
   collapsedDescription = "Show only the fields this workout actually needs.",
   hideInputsWhenCollapsed = false,
+  showHeader = true,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -41,13 +42,16 @@ export function MeasurementConfigurator({
   collapsedLabel?: string;
   collapsedDescription?: string;
   hideInputsWhenCollapsed?: boolean;
+  showHeader?: boolean;
 }) {
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="space-y-0.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{heading}</p>
-        <p className="text-xs text-muted">{description}</p>
-      </div>
+      {showHeader ? (
+        <div className="space-y-0.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{heading}</p>
+          <p className="text-xs text-muted">{description}</p>
+        </div>
+      ) : null}
 
       <div className="overflow-hidden rounded-2xl border border-border/45 bg-[rgb(var(--bg)/0.22)]">
         <button

@@ -109,7 +109,7 @@ export function SessionExerciseFocus({
   const [loggedSetCounts, setLoggedSetCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount])),
   );
-  const focusedRef = useRef<HTMLElement | null>(null);
+  const focusedRef = useRef<HTMLDivElement | null>(null);
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
     [exercises, selectedExerciseId],
@@ -229,130 +229,117 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="rounded-[1.4rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-4 shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-2">
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Exercise workspace</p>
-                <p className="text-xl font-semibold leading-tight text-text">{selectedExercise?.name ?? "Exercise"}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Pill className="border border-white/10 bg-white/5 px-2.5 py-1 normal-case tracking-normal text-[11px] text-text">
-                  {(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} {selectedExercise?.isCardio ? "intervals logged" : "sets logged"}
-                </Pill>
-                {selectedExercise?.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-text">Added today</Pill> : null}
-                {selectedExercise?.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-amber-200">Skipped</Pill> : null}
-              </div>
-            </div>
-            <BackButton
-              onClick={(event) => {
-                event.preventDefault();
-                onSelectedExerciseIdChange(null);
-              }}
-              ariaLabel="Collapse exercise"
-              iconOnly
-              className={tapFeedbackClass}
-            />
-          </div>
-        </div>
-      )}
-
-      {selectedExercise ? (
-        <>
-          <article
+        <div className="space-y-4">
+          <div
             ref={focusedRef}
+            className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-4 shadow-[0_12px_32px_rgba(0,0,0,0.18)]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Exercise workspace</p>
+                  <p className="text-xl font-semibold leading-tight text-text">{selectedExercise?.name ?? "Exercise"}</p>
+                  <p className="text-sm text-muted">Move from target to entry to review inside one focused logging workspace.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <WorkoutEntryMetric label="Status" value={selectedExercise?.isSkipped ? "Skipped" : "Ready to log"} tone={selectedExercise?.isSkipped ? "warning" : "default"} />
+                  <WorkoutEntryMetric label="Logged" value={`${(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} ${selectedExercise?.isCardio ? "intervals" : "sets"}`} />
+                  <WorkoutEntryMetric label="Type" value={selectedExercise?.isCardio ? "Cardio" : "Strength"} />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedExercise?.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-text">Added today</Pill> : null}
+                  {selectedExercise?.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-amber-200">Skipped</Pill> : null}
+                </div>
+              </div>
+              <BackButton
+                onClick={(event) => {
+                  event.preventDefault();
+                  onSelectedExerciseIdChange(null);
+                }}
+                ariaLabel="Collapse exercise"
+                iconOnly
+                className={tapFeedbackClass}
+              />
+            </div>
+          </div>
+
+          <article
             className="space-y-4 rounded-[1.6rem] border border-white/10 bg-[rgb(var(--surface-2-soft)/0.78)] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.18)]"
             aria-hidden={false}
           >
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 space-y-2">
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercise workspace</p>
-                    <p className="text-xl font-semibold leading-tight text-text">{selectedExercise.name}</p>
-                    <p className="text-sm text-muted">Move from target to entry to review without leaving this screen.</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    <WorkoutEntryMetric label="Status" value={selectedExercise.isSkipped ? "Skipped" : "Ready to log"} tone={selectedExercise.isSkipped ? "warning" : "default"} />
-                    <WorkoutEntryMetric label="Logged" value={`${(loggedSetCounts[selectedExercise.id] ?? selectedExercise.loggedSetCount)} ${selectedExercise.isCardio ? "intervals" : "sets"}`} />
-                    <WorkoutEntryMetric label="Type" value={selectedExercise.isCardio ? "Cardio" : "Strength"} />
-                  </div>
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <form
-                    action={async (formData) => {
-                      const result = await toggleSkipAction(formData);
-                      toastActionResult(toast, result, {
-                        success: selectedExercise.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
-                        error: "Could not update skip state.",
-                      });
+            <div className="flex flex-wrap justify-end gap-2">
+              <form
+                action={async (formData) => {
+                  const result = await toggleSkipAction(formData);
+                  toastActionResult(toast, result, {
+                    success: selectedExercise!.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
+                    error: "Could not update skip state.",
+                  });
 
-                      if (result.ok) {
-                        router.refresh();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="sessionId" value={sessionId} />
-                    <input type="hidden" name="sessionExerciseId" value={selectedExercise.id} />
-                    <input type="hidden" name="nextSkipped" value={String(!selectedExercise.isSkipped)} />
-                    <AppButton type="submit" variant="secondary" size="sm" className={tapFeedbackClass}>
-                      {selectedExercise.isSkipped ? "Unskip" : "Skip"}
-                    </AppButton>
-                  </form>
-                  <AppButton
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    disabled={removingExerciseIds.includes(selectedExercise.id)}
-                    className={tapFeedbackClass}
-                    onClick={() => handleRemoveExercise(selectedExercise.id)}
-                  >
-                    {removingExerciseIds.includes(selectedExercise.id) ? "Removing..." : "Delete"}
-                  </AppButton>
-                </div>
-              </div>
-
-              <WorkoutEntrySection
-                eyebrow="Target"
-                title="This set should aim at the planned work"
-                description={selectedExercise.goalLabel}
-                className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))]"
-                contentClassName="space-y-0"
+                  if (result.ok) {
+                    router.refresh();
+                  }
+                }}
               >
-                <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
-                  <p className="text-xs text-muted">Use the measurements below to capture this target, then finish the set with optional effort details before saving.</p>
-                </div>
-              </WorkoutEntrySection>
-
-              {selectedExercise.isSkipped ? (
-                <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
-                  Marked skipped for this session. You can unskip it anytime and continue logging from this workspace.
-                </div>
-              ) : null}
+                <input type="hidden" name="sessionId" value={sessionId} />
+                <input type="hidden" name="sessionExerciseId" value={selectedExercise!.id} />
+                <input type="hidden" name="nextSkipped" value={String(!selectedExercise!.isSkipped)} />
+                <AppButton type="submit" variant="secondary" size="sm" className={tapFeedbackClass}>
+                  {selectedExercise!.isSkipped ? "Unskip" : "Skip"}
+                </AppButton>
+              </form>
+              <AppButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={removingExerciseIds.includes(selectedExercise!.id)}
+                className={tapFeedbackClass}
+                onClick={() => handleRemoveExercise(selectedExercise!.id)}
+              >
+                {removingExerciseIds.includes(selectedExercise!.id) ? "Removing..." : "Delete"}
+              </AppButton>
             </div>
+
+            <WorkoutEntrySection
+              eyebrow="Target"
+              title="This set should aim at the planned work"
+              description={selectedExercise!.goalLabel}
+              className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))]"
+              contentClassName="space-y-0"
+            >
+              <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+                <p className="text-xs text-muted">Use the measurements below to capture this target, then finish the set with optional effort details before saving.</p>
+              </div>
+            </WorkoutEntrySection>
+
+            {selectedExercise!.isSkipped ? (
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
+                Marked skipped for this session. You can unskip it anytime and continue logging from this workspace.
+              </div>
+            ) : null}
           </article>
 
           <SetLoggerCard
             sessionId={sessionId}
-            sessionExerciseId={selectedExercise.id}
+            sessionExerciseId={selectedExercise!.id}
             addSetAction={addSetAction}
             syncQueuedSetLogsAction={syncQueuedSetLogsAction}
             unitLabel={unitLabel}
-            initialSets={selectedExercise.initialSets}
-            prefill={selectedExercise.prefill}
-            defaultDistanceUnit={selectedExercise.defaultUnit}
-            isCardio={selectedExercise.isCardio}
-            initialEnabledMetrics={selectedExercise.initialEnabledMetrics}
-            routineDayExerciseId={selectedExercise.routineDayExerciseId}
-            planTargetsHash={selectedExercise.planTargetsHash}
+            initialSets={selectedExercise!.initialSets}
+            prefill={selectedExercise!.prefill}
+            defaultDistanceUnit={selectedExercise!.defaultUnit}
+            isCardio={selectedExercise!.isCardio}
+            initialEnabledMetrics={selectedExercise!.initialEnabledMetrics}
+            routineDayExerciseId={selectedExercise!.routineDayExerciseId}
+            planTargetsHash={selectedExercise!.planTargetsHash}
             deleteSetAction={deleteSetAction}
             resetSignal={setLoggerResetSignal}
             onSetCountChange={(count) => {
-              setLoggedSetCounts((current) => ({ ...current, [selectedExercise.id]: count }));
+              setLoggedSetCounts((current) => ({ ...current, [selectedExercise!.id]: count }));
             }}
           />
-        </>
-      ) : null}
+        </div>
+      )}
     </div>
   );
 }
