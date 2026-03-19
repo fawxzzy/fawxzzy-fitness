@@ -8,7 +8,7 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
+import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
@@ -73,6 +73,7 @@ export function SessionPageClient({
   saveSessionAction,
   discardSessionAction,
   quickAddAction,
+  requestedReturnTo,
   addSetAction,
   syncQueuedSetLogsAction,
   toggleSkipAction,
@@ -89,6 +90,7 @@ export function SessionPageClient({
   saveSessionAction: ServerAction;
   discardSessionAction: VoidServerAction;
   quickAddAction: React.ReactNode;
+  requestedReturnTo?: string;
   addSetAction: (payload: AddSetPayload) => Promise<ActionResult<{ set: SetRow }>>;
   syncQueuedSetLogsAction: SyncQueuedSetLogsAction;
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
@@ -99,7 +101,11 @@ export function SessionPageClient({
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(() => getElapsedDuration(baseDurationSeconds, performedAt));
   const toast = useToast();
-  const { navigateReturn } = useReturnNavigation("/history");
+  const fallbackReturnHref = useMemo(
+    () => getReturnNavigationHref({ fallbackHref: "/today", currentPath: `/session/${sessionId}`, requestedReturnTo }),
+    [requestedReturnTo, sessionId],
+  );
+  const { navigateReturn } = useReturnNavigation(fallbackReturnHref ?? "/today");
 
   useEffect(() => {
     setDurationSeconds(getElapsedDuration(baseDurationSeconds, performedAt));
@@ -125,6 +131,7 @@ export function SessionPageClient({
           sessionTitle={sessionTitle}
           durationSeconds={durationSeconds}
           quickAddAction={quickAddAction}
+          backHref={fallbackReturnHref ?? "/today"}
         />
       ) : null}
 

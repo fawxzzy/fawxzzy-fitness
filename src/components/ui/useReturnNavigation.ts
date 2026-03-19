@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getSafeReturnContract } from "@/lib/navigation-return";
+import { getSafeReturnContract, resolvePreferredReturnHref } from "@/lib/navigation-return";
 import { readStack } from "@/components/ui/useBackNavigation";
 
 export function useReturnNavigation(fallbackHref?: string) {
@@ -40,4 +40,17 @@ export function useReturnNavigation(fallbackHref?: string) {
     canReturn: Boolean(returnContract.returnHref),
     navigateReturn,
   };
+}
+
+export function getReturnNavigationHref(options: {
+  fallbackHref?: string;
+  currentPath: string;
+  requestedReturnTo?: string | null;
+}) {
+  return resolvePreferredReturnHref({
+    requestedReturnTo: options.requestedReturnTo,
+    currentPath: options.currentPath,
+    stack: readStack(),
+    fallbackHref: options.fallbackHref,
+  });
 }

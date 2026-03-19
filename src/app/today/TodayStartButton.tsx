@@ -10,11 +10,13 @@ import { PrimaryButton } from "@/components/ui/AppButton";
 export function TodayStartButton({
   startSessionAction,
   selectedDayIndex,
+  returnTo,
   fullWidth = true,
   className,
 }: {
   startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
   selectedDayIndex?: number;
+  returnTo?: string;
   fullWidth?: boolean;
   className?: string;
 }) {
@@ -35,8 +37,10 @@ export function TodayStartButton({
             toast.error(result.ok ? "Could not start session" : result.error);
             return;
           }
-
-          router.push(`/session/${result.data.sessionId}`);
+          const sessionHref = returnTo
+            ? `/session/${result.data.sessionId}?returnTo=${encodeURIComponent(returnTo)}`
+            : `/session/${result.data.sessionId}`;
+          router.push(sessionHref);
         });
       }}
     >

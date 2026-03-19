@@ -132,7 +132,7 @@ export function TodayClientShell({
 
       {display.inProgressSessionId ? (
         <Link
-          href={`/session/${display.inProgressSessionId}`}
+          href={`/session/${display.inProgressSessionId}?returnTo=${encodeURIComponent("/today")}`}
           className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
         >
           Resume Workout

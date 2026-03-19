@@ -182,7 +182,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             </div>
             <input type="hidden" name="routineId" value={params.id} />
             <input type="hidden" name="routineDayId" value={params.dayId} />
-            <NavigationReturnInput fallbackHref={`/routines/${params.id}/edit`} />
+            <NavigationReturnInput fallbackHref={`/routines/${params.id}/edit`} value={backHref} />
             <label className="block text-sm">Day name
               <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
             </label>
