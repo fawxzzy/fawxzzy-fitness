@@ -225,11 +225,11 @@ export function EditableRoutineDayExerciseList({
             >
               <ExerciseCard
                 title={exercise.name}
-                subtitle={exercise.targetSummary}
+                subtitle={isExpanded || exercise.targetSummary !== "Open goal" ? exercise.targetSummary : undefined}
                 variant="interactive"
-                state={isExpanded ? "active" : "default"}
+                state={isExpanded ? "active" : exercise.targetSummary === "Open goal" ? "empty" : "default"}
                 onPress={() => setSelectedExerciseId(exercise.exerciseId)}
-                badgeText={`#${index + 1}`}
+                badgeText={isExpanded ? "Editing" : exercise.targetSummary === "Open goal" ? "Needs goal" : `#${index + 1}`}
                 leadingVisual={(
                   <ExerciseAssetImage
                     src={getExerciseIconSrc(exercise)}
@@ -281,9 +281,7 @@ export function EditableRoutineDayExerciseList({
                     />
                   </>
                 }
-              >
-                <p className="text-[11px] text-muted">Exercise info stays on the card; edit, reorder, and delete remain trailing actions.</p>
-              </ExerciseCard>
+              />
 
               {isExpanded ? (
                 <div className="rounded-b-[1.15rem] border border-border/45 border-t-0 bg-[rgb(var(--surface-2-soft)/0.42)] px-3 pb-3 pt-2.5">

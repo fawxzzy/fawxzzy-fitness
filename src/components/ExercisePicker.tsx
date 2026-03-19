@@ -70,8 +70,6 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
   other: "Other",
 };
 
-const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
-
 function toTagArray(value: string[] | string | null | undefined) {
   if (!value) return [];
   if (Array.isArray(value)) {
@@ -130,13 +128,6 @@ function formatTagLabel(tag: string) {
     .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 }
-
-
-function MetaTag({ value }: { value: string | null }) {
-  if (!value) return null;
-  return <span className={tagClassName}>{value}</span>;
-}
-
 function getDefaultMeasurementType(exercise: ExerciseOption) {
   const tags = normalizeExerciseTags(exercise);
   if (tags.has("cardio")) {
@@ -190,7 +181,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, 
     <li>
       <ExerciseCard
         title={exercise.name}
-        subtitle={metadata || undefined}
+        subtitle={isSelected ? metadata || undefined : undefined}
         variant="compact"
         state={isSelected ? "selected" : "default"}
         onPress={() => onPress(exercise.id, isSelected)}
@@ -210,7 +201,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, 
                 : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
             )}
           >
-            {isSelected ? "Chosen" : "Select"}
+            {isSelected ? "Selected" : "Pick"}
           </span>
         )}
       />
@@ -425,9 +416,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <div className="space-y-0.5">
-          <p className="text-sm font-medium text-muted">Search or filter, then choose the movement you want to add.</p>
-        </div>
         <div className="relative">
           <Input
             value={search}
@@ -463,19 +451,17 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       )}>
         {selectedExercise ? (
           <div className="space-y-3">
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Selected</p>
-              <p
-                className="overflow-hidden font-medium leading-5 text-text"
-                style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
-              >
-                {selectedExercise.name}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              <MetaTag value={selectedExercise.equipment} />
-              <MetaTag value={selectedExercise.primary_muscle} />
-              <MetaTag value={selectedExercise.movement_pattern} />
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <p
+                  className="overflow-hidden font-medium leading-5 text-text"
+                  style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+                >
+                  {selectedExercise.name}
+                </p>
+                <p className="text-xs text-muted">{exerciseMetadataById.get(selectedExercise.id) || "No tags available"}</p>
+              </div>
+              <span className="rounded-full border border-accent/35 bg-accent/18 px-2.5 py-1 text-[11px] font-semibold leading-none text-text">Selected</span>
             </div>
             <div className="flex flex-wrap gap-2">
               <AppButton type="button" variant="secondary" size="sm" onClick={() => setIsExerciseInfoOpen(true)}>
@@ -510,7 +496,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             </div>
           </div>
         ) : (
-          <span className="text-muted">Select an exercise from the list above.</span>
+          <span className="text-muted">Pick an exercise to continue.</span>
         )}
       </div>
 
@@ -552,7 +538,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <div className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
           <div className="space-y-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Configure goal</p>
-            <p className="text-xs text-muted">Use the same shared goal and measurement language you see in planners, sessions, and history.</p>
+            <p className="text-xs text-muted">Set only the measurements this goal actually needs.</p>
           </div>
           {selectedMeasurements.map((metric) => (
             <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />

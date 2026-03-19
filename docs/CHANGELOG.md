@@ -1,3 +1,15 @@
+## 0.3.93 — 2026-03-19
+
+### WHAT
+- Optimized scan speed across session rows, routine day rows, Edit Day planned-exercise rows, Add Exercise picker rows, and Quick Add rows by tightening the shared `ExerciseCard` state styling so active, completed, selected, and missing-goal states are more visually distinct before the user reads body copy.
+- Removed low-signal helper copy and redundant row subtitles in picker and Quick Add flows, moved selection emphasis into stronger state treatment plus direct `Selected`/`Pick` controls, and simplified empty-selection scaffolding so those choosers read faster on dense mobile lists.
+- Replaced softer missing-goal phrasing (`Goal: Not set`, `No goal yet`) with more immediate goal-missing signals (`Goal missing`, `Needs goal`) and made session rows show the next action directly when no work has been logged yet.
+
+### WHY
+- After the layout and state unification pass, scan speed was still slower than it should be because users still had to read too much supporting text to tell whether a row was done, empty, active, or ready for action.
+- State should be recognized before it is read, especially on compact session and routine surfaces where users are making rapid progress decisions on small mobile viewports.
+- Removing redundant subtitles, duplicate labels, and scaffolding copy reduces cognitive load without changing the underlying exercise, goal, or logging workflows.
+
 ## 0.3.92 — 2026-03-19
 
 ### WHAT

@@ -33,7 +33,7 @@ export function TodayExerciseRows({
           <li key={exercise.id}>
             <ExerciseCard
               title={exercise.name}
-              subtitle={exercise.targets ?? "Goal: Not set"}
+              subtitle={exercise.targets ?? "Goal missing"}
               variant="interactive"
               state={exercise.targets ? "default" : "empty"}
               leadingVisual={(
@@ -45,7 +45,7 @@ export function TodayExerciseRows({
                   sizes="44px"
                 />
               )}
-              badgeText={exercise.targets ? undefined : "No goal yet"}
+              badgeText={exercise.targets ? undefined : "Needs goal"}
               onPress={() => {
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });
