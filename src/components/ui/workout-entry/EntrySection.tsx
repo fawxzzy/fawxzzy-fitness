@@ -14,7 +14,7 @@ export function WorkoutEntrySection({
   title: string;
   description?: string;
   aside?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
   contentClassName?: string;
 }) {
@@ -30,7 +30,7 @@ export function WorkoutEntrySection({
         </div>
         {aside ? <div className="shrink-0">{aside}</div> : null}
       </div>
-      <div className={cn("space-y-3", contentClassName)}>{children}</div>
+      {children ? <div className={cn("space-y-3", contentClassName)}>{children}</div> : null}
     </section>
   );
 }
