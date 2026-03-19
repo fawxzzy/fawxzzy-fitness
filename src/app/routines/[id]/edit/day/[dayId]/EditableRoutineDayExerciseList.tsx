@@ -7,6 +7,8 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
 import { controlClassName } from "@/components/ui/formClasses";
 import { listShellClasses } from "@/components/ui/listShellClasses";
+import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
+import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { cn } from "@/lib/cn";
 
 type EditableRoutineDayExerciseItem = {
@@ -57,51 +59,67 @@ function RoutineTargetInputs({
   distanceUnit: "mi" | "km" | "m";
   defaults: EditableRoutineDayExerciseItem["defaults"];
 }) {
-  const hasReps = defaults.targetRepsMin != null || defaults.targetRepsMax != null || defaults.targetReps != null;
-  const hasWeight = defaults.targetWeight != null;
-  const hasTime = defaults.targetDurationSeconds != null;
-  const hasDistance = defaults.targetDistance != null;
-  const hasCalories = defaults.targetCalories != null;
+  const [expanded, setExpanded] = useState(true);
+  const [values, setValues] = useState({
+    reps: String(defaults.targetRepsMin ?? defaults.targetReps ?? ""),
+    repsMax: String(defaults.targetRepsMax ?? ""),
+    weight: String(defaults.targetWeight ?? ""),
+    duration: formatDuration(defaults.targetDurationSeconds),
+    distance: String(defaults.targetDistance ?? ""),
+    calories: String(defaults.targetCalories ?? ""),
+    weightUnit: defaults.targetWeightUnit ?? weightUnit,
+    distanceUnit: defaults.targetDistanceUnit ?? distanceUnit,
+  });
+  const [activeMetrics, setActiveMetrics] = useState({
+    reps: defaults.targetRepsMin != null || defaults.targetRepsMax != null || defaults.targetReps != null,
+    weight: defaults.targetWeight != null,
+    time: defaults.targetDurationSeconds != null,
+    distance: defaults.targetDistance != null,
+    calories: defaults.targetCalories != null,
+  });
 
   return (
     <div className="space-y-2">
-      <details className="rounded-[1rem] border border-border/45 bg-[rgb(var(--bg)/0.28)] px-3 py-2.5">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-          <span>Measurements</span>
-          <span aria-hidden="true" className="details-chevron text-xs text-muted">⌄</span>
-        </summary>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <label className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="reps" defaultChecked={hasReps} />Reps</label>
-          <label className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="weight" defaultChecked={hasWeight} />Weight</label>
-          <label className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="time" defaultChecked={hasTime} />Time</label>
-          <label className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="distance" defaultChecked={hasDistance} />Distance</label>
-          <label className="col-span-2 flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="calories" defaultChecked={hasCalories} />Calories</label>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="col-span-2 grid grid-cols-2 gap-2">
-            <input type="number" min={1} name="targetRepsMin" defaultValue={defaults.targetRepsMin ?? defaults.targetReps ?? ""} placeholder="Min reps" className={controlClassName} />
-            <input type="number" min={1} name="targetRepsMax" defaultValue={defaults.targetRepsMax ?? ""} placeholder="Max reps" className={controlClassName} />
-          </div>
-          <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-            <input type="number" min={0} step="0.5" name="targetWeight" defaultValue={defaults.targetWeight ?? ""} placeholder={`Weight (${weightUnit})`} className={controlClassName} />
-            <select name="targetWeightUnit" defaultValue={defaults.targetWeightUnit ?? weightUnit} className={controlClassName}>
-              <option value="lbs">lbs</option>
-              <option value="kg">kg</option>
-            </select>
-          </div>
-          <input name="targetDuration" defaultValue={formatDuration(defaults.targetDurationSeconds)} placeholder="Time (sec or mm:ss)" className={`${controlClassName} col-span-2`} />
-          <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-            <input type="number" min={0} step="0.01" name="targetDistance" defaultValue={defaults.targetDistance ?? ""} placeholder="Distance" className={controlClassName} />
-            <select name="targetDistanceUnit" defaultValue={defaults.targetDistanceUnit ?? distanceUnit} className={controlClassName}>
-              <option value="mi">mi</option>
-              <option value="km">km</option>
-              <option value="m">m</option>
-            </select>
-          </div>
-          <input type="number" min={0} step="1" name="targetCalories" defaultValue={defaults.targetCalories ?? ""} placeholder="Calories" className={`${controlClassName} col-span-2`} />
-        </div>
-      </details>
-      <input type="hidden" name="defaultUnit" value={hasDistance ? (defaults.targetDistanceUnit ?? distanceUnit) : "mi"} />
+      {Object.entries(activeMetrics).map(([metric, enabled]) => enabled ? <input key={metric} type="hidden" name="measurementSelections" value={metric} /> : null)}
+      <MeasurementConfigurator
+        values={{
+          reps: values.reps,
+          weight: values.weight,
+          duration: values.duration,
+          distance: values.distance,
+          calories: values.calories,
+          weightUnit: values.weightUnit,
+          distanceUnit: values.distanceUnit,
+        }}
+        activeMetrics={activeMetrics}
+        isExpanded={expanded}
+        onExpandedChange={setExpanded}
+        onMetricToggle={(metric) => setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }))}
+        onChange={(patch) => setValues((current) => ({ ...current, ...patch }))}
+        names={{
+          reps: "targetRepsMin",
+          weight: "targetWeight",
+          duration: "targetDuration",
+          distance: "targetDistance",
+          calories: "targetCalories",
+          weightUnit: "targetWeightUnit",
+          distanceUnit: "targetDistanceUnit",
+        }}
+        description="Keep day editor targets aligned with the same shared measurement language used in add exercise and session logging."
+      />
+      {activeMetrics.reps ? <input type="number" min={1} name="targetRepsMax" value={values.repsMax} onChange={(event) => setValues((current) => ({ ...current, repsMax: event.target.value }))} placeholder="Max reps" className={controlClassName} /> : null}
+      <MeasurementSummary
+        values={{
+          reps: values.reps ? Number(values.reps) : null,
+          weight: values.weight ? Number(values.weight) : null,
+          weightUnit: values.weightUnit,
+          distance: values.distance ? Number(values.distance) : null,
+          distanceUnit: values.distanceUnit,
+          calories: values.calories ? Number(values.calories) : null,
+        }}
+        emptyLabel="Open goal"
+      />
+      <input type="hidden" name="defaultUnit" value={activeMetrics.distance ? values.distanceUnit : "mi"} />
     </div>
   );
 }

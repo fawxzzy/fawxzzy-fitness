@@ -7,7 +7,8 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
-import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
+import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
+import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
@@ -474,7 +475,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <div className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
           <div className="space-y-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Configure targets</p>
-            <p className="text-xs text-muted">Set required sets first, then add any measurements that help define this workout.</p>
+            <p className="text-xs text-muted">Set required sets first, then keep targets in the same reps/weight/time/distance/calories language used throughout the app.</p>
           </div>
           {selectedMeasurements.map((metric) => (
             <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />
@@ -482,15 +483,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
 
           <div className="space-y-2 rounded-lg border border-border/60 bg-[rgb(var(--bg)/0.28)] p-2">
-            <button
-              type="button"
-              aria-expanded={isMeasurementsOpen}
-              onClick={() => setIsMeasurementsOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm font-medium text-text transition-colors hover:bg-surface-2-soft/80 active:bg-surface-2-active/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [-webkit-tap-highlight-color:transparent]"
-            >
-              <span>Optional measurements</span>
-              {isMeasurementsOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
-            </button>
             <div className="flex justify-end">
               <Button
                 type="button"
@@ -556,61 +548,65 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
               </div>
             ) : null}
 
-            {isMeasurementsOpen ? (
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {(["reps", "weight", "time", "distance", "calories"] as const).map((metric) => (
-                  <label key={metric} className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.35)] px-2 py-1">
-                    <input
-                      type="checkbox"
-                      name="measurementSelections"
-                      value={metric}
-                      checked={selectedMeasurements.includes(metric)}
-                      onChange={(event) => {
-                        setSelectedMeasurements((current) => {
-                          if (event.target.checked) return [...current, metric];
-                          return current.filter((value) => value !== metric);
-                        });
-                      }}
-                    />
-                    {metric === "reps" ? "Reps" : metric === "weight" ? "Weight" : metric === "time" ? "Time (duration)" : metric === "distance" ? "Distance" : "Calories"}
-                  </label>
-                ))}
-              </div>
+            <MeasurementConfigurator
+              values={{
+                reps: targetRepsMin,
+                weight: targetWeight,
+                duration: targetDuration,
+                distance: targetDistance,
+                calories: targetCalories,
+                weightUnit: targetWeightUnit,
+                distanceUnit: selectedDefaultUnit,
+              }}
+              activeMetrics={{
+                reps: selectedMeasurements.includes("reps"),
+                weight: selectedMeasurements.includes("weight"),
+                time: selectedMeasurements.includes("time"),
+                distance: selectedMeasurements.includes("distance"),
+                calories: selectedMeasurements.includes("calories"),
+              }}
+              isExpanded={isMeasurementsOpen}
+              onExpandedChange={setIsMeasurementsOpen}
+              onMetricToggle={(metric) => {
+                setSelectedMeasurements((current) => current.includes(metric) ? current.filter((value) => value !== metric) : [...current, metric]);
+              }}
+              onChange={(patch) => {
+                if (patch.reps !== undefined) setTargetRepsMin(patch.reps);
+                if (patch.weight !== undefined) setTargetWeight(patch.weight);
+                if (patch.duration !== undefined) setTargetDuration(patch.duration);
+                if (patch.distance !== undefined) setTargetDistance(patch.distance);
+                if (patch.calories !== undefined) setTargetCalories(patch.calories);
+                if (patch.weightUnit !== undefined) setTargetWeightUnit(patch.weightUnit);
+                if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
+              }}
+              names={{
+                reps: "targetRepsMin",
+                weight: "targetWeight",
+                duration: "targetDuration",
+                distance: "targetDistance",
+                calories: "targetCalories",
+                weightUnit: "targetWeightUnit",
+                distanceUnit: "targetDistanceUnit",
+              }}
+              description="Use shared measurement fields so targets read the same way in planners, sessions, and history."
+              collapsedLabel="Optional measurements"
+              collapsedDescription="Keep only the measurements this plan needs."
+            />
+            {selectedMeasurements.includes("reps") ? (
+              <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
             ) : null}
-
-            <div className="grid grid-cols-2 gap-2">
-              {selectedMeasurements.includes("reps") ? (
-                <div className="col-span-2 grid grid-cols-2 gap-2">
-                  <InlineHintInput type="number" min={1} name="targetRepsMin" hint="min" value={targetRepsMin} onChange={(event) => setTargetRepsMin(event.target.value)} />
-                  <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
-                </div>
-              ) : null}
-              {selectedMeasurements.includes("weight") ? (
-                <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                  <InlineHintInput type="number" min={0} step="0.5" name="targetWeight" hint={routineTargetConfig.weightUnit} value={targetWeight} onChange={(event) => setTargetWeight(event.target.value)} />
-                  <select name="targetWeightUnit" value={targetWeightUnit} onChange={(event) => setTargetWeightUnit(event.target.value === "kg" ? "kg" : "lbs")} className="h-11 rounded-md border border-border bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm">
-                    <option value="lbs">lbs</option>
-                    <option value="kg">kg</option>
-                  </select>
-                </div>
-              ) : null}
-              {selectedMeasurements.includes("time") ? (
-                <InlineHintInput name="targetDuration" hint="mm:ss" value={targetDuration} onChange={(event) => setTargetDuration(event.target.value)} containerClassName="col-span-2" />
-              ) : null}
-              {selectedMeasurements.includes("distance") ? (
-                <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                  <InlineHintInput type="number" min={0} step="0.01" name="targetDistance" hint={selectedDefaultUnit} value={targetDistance} onChange={(event) => setTargetDistance(event.target.value)} />
-                  <select name="targetDistanceUnit" value={selectedDefaultUnit} onChange={(event) => setSelectedDefaultUnit(event.target.value as "mi" | "km" | "m")} className="h-11 rounded-md border border-border bg-[rgb(var(--bg)/0.4)] px-3 py-2 text-sm">
-                    <option value="mi">mi</option>
-                    <option value="km">km</option>
-                    <option value="m">m</option>
-                  </select>
-                </div>
-              ) : null}
-              {selectedMeasurements.includes("calories") ? (
-                <InlineHintInput type="number" min={0} step="1" name="targetCalories" hint="cal" value={targetCalories} onChange={(event) => setTargetCalories(event.target.value)} containerClassName="col-span-2" />
-              ) : null}
-            </div>
+            <MeasurementSummary
+              values={{
+                reps: targetRepsMin ? Number(targetRepsMin) : null,
+                weight: targetWeight ? Number(targetWeight) : null,
+                weightUnit: targetWeightUnit,
+                durationSeconds: null,
+                distance: targetDistance ? Number(targetDistance) : null,
+                distanceUnit: selectedDefaultUnit,
+                calories: targetCalories ? Number(targetCalories) : null,
+              }}
+              emptyLabel="Open goal"
+            />
           <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
         </div>
       </div>

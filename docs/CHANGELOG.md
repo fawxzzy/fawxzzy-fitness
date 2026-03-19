@@ -3619,3 +3619,13 @@ WHY:
 - Prevents Save actions from breaking user context by sending people somewhere different from where Back would have taken them.
 - Reduces footer drift by keeping bottom actions on one shared visual and spacing system instead of ad hoc per-screen markup.
 - Keeps workout-management flows safer on mobile by reusing one sticky-action contract with consistent safe-area and width behavior.
+## 0.3.78 — 2026-03-19
+
+### WHAT
+- Added shared measurement configurator and summary primitives so reps, weight, time, distance, and calories now use one visual language for optional fields and one chip-based summary treatment.
+- Reworked set entry, add-exercise target configuration, routine day editing, history log set review, and session target formatting to reuse that shared measurement system instead of per-screen layouts.
+- Normalized empty measurement states and goal text so workout surfaces consistently show open goals and no-measurement cases with the same wording and ordering.
+
+### WHY
+- Prevents measurement UI drift from making workout flows feel like separate products stitched together.
+- Makes optional measurements materially lighter while preserving the same saved values, target semantics, and available metric combinations.

@@ -240,3 +240,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents footer drift, repeated per-screen CTA layout code, and accidental regressions in safe-area padding or button sizing.
 - Evidence: src/components/layout/CanonicalBottomActions.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/routines/page.tsx, src/components/SessionPageClient.tsx
 - Status: Proposed
+
+## 2026-03-19 — Measurements are a shared domain language, not a local screen detail
+- Type: Pattern
+- Summary: Any workout surface that configures or displays reps, weight, time, distance, or calories should reuse shared configurator and summary primitives with one canonical ordering, formatting style, and empty-state rule.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents measurement blocks from drifting between add-exercise, set entry, history, and day editors, which makes the product feel inconsistent even when data semantics are correct.
+- Evidence: src/components/ui/measurements/MeasurementConfigurator.tsx, src/components/ui/measurements/MeasurementSummary.tsx, src/components/ui/measurements/ModifyMeasurements.tsx, src/components/ExercisePicker.tsx, src/components/SessionTimers.tsx, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/lib/session-targets.ts
+- Status: Proposed
