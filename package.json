@@ -38,7 +38,8 @@
     "sanity": "npm run lint && npm run build",
     "sanity:quick": "npm run lint",
     "verify": "node scripts/playbook-runtime.mjs verify",
-    "verify:strict": "npm run lint && npm run build"
+    "verify:strict": "npm run lint && npm run build",
+    "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

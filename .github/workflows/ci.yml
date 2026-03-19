@@ -42,9 +42,6 @@ jobs:
     name: Playbook clean-environment validation
     runs-on: ubuntu-latest
     env:
-      # Verified upstream coordinates from ZachariahRedfield/playbook.
-      # Package acquisition remains canonical; official fallback is pinned to the matching immutable release asset.
-      PLAYBOOK_PACKAGE_SPEC: '@fawxzzy/playbook-cli@0.1.8'
       PLAYBOOK_OFFICIAL_FALLBACK_SPEC: https://github.com/ZachariahRedfield/playbook/releases/download/v0.1.8/playbook-cli-0.1.8.tgz
     steps:
       - name: Checkout
@@ -57,45 +54,22 @@ jobs:
           cache: npm
 
       - name: Install dependencies from a clean environment
-        run: npm install
+        run: npm ci
 
-      - name: Acquire Playbook runtime explicitly
-        run: |
-          set -euo pipefail
-
-          if [ -z "${PLAYBOOK_OFFICIAL_FALLBACK_SPEC:-}" ]; then
-            echo "PLAYBOOK_OFFICIAL_FALLBACK_SPEC must be defined for deterministic CI runtime acquisition."
-            exit 1
-          fi
-
-          package_acquired=0
-
-          if [ "${PLAYBOOK_SKIP_PACKAGE_ACQUIRE:-0}" = "1" ]; then
-            echo "PLAYBOOK_SKIP_PACKAGE_ACQUIRE=1; skipping package acquisition path by request."
-          elif npm run playbook-runtime:install-package; then
-            echo "Playbook acquired via package install path."
-            package_acquired=1
-          else
-            echo "Package acquisition failed; executing official fallback acquisition path."
-          fi
-
-          if [ "$package_acquired" -eq 0 ]; then
-            echo "Installing Playbook from official fallback distribution: ${PLAYBOOK_OFFICIAL_FALLBACK_SPEC}"
-            npm run playbook-runtime:install-official-fallback
-          fi
+      - name: Acquire Playbook runtime from the canonical official distribution
+        run: node scripts/playbook-runtime.mjs --install-official-fallback
 
       - name: Validate canonical Playbook command ladder
         run: |
-          # Canonical proof path: explicit acquisition + deterministic runtime resolution.
           unset PLAYBOOK_BIN
 
-          npm run ai-context
-          npm run ai-contract
-          npm run context
-          npm run index
-          npm run verify
-          npm run plan
-          npm run pilot
+          node scripts/playbook-runtime.mjs ai-context
+          node scripts/playbook-runtime.mjs ai-contract
+          node scripts/playbook-runtime.mjs context
+          node scripts/playbook-runtime.mjs index
+          node scripts/playbook-runtime.mjs verify
+          node scripts/playbook-runtime.mjs plan
+          node scripts/playbook-runtime.mjs pilot
 
       - name: Assert required runtime artifacts are written under .playbook/
         run: |

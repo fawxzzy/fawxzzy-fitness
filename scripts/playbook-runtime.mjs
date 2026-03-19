@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 
 /**
@@ -29,10 +29,10 @@ const COMPAT_ALIASES = new Set([
   'pilot'
 ]);
 const OFFICIAL_FALLBACK_ROOT = path.join('.playbook', 'runtime');
-const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC;
 const DEFAULT_PLAYBOOK_VERSION = '0.1.8';
 const DEFAULT_PACKAGE_SPEC = `@fawxzzy/playbook-cli@${DEFAULT_PLAYBOOK_VERSION}`;
 const DEFAULT_OFFICIAL_FALLBACK_SPEC = `https://github.com/ZachariahRedfield/playbook/releases/download/v${DEFAULT_PLAYBOOK_VERSION}/playbook-cli-${DEFAULT_PLAYBOOK_VERSION}.tgz`;
+const OFFICIAL_FALLBACK_SPEC = process.env.PLAYBOOK_OFFICIAL_FALLBACK_SPEC ?? DEFAULT_OFFICIAL_FALLBACK_SPEC;
 const PACKAGE_INSTALL_SPEC = process.env.PLAYBOOK_PACKAGE_SPEC ?? DEFAULT_PACKAGE_SPEC;
 const command = process.argv[2];
 
@@ -47,6 +47,16 @@ function isLikelyLocalPath(spec) {
     || /^[A-Za-z]:[\\/]/.test(spec)
     || spec.endsWith('.tgz')
     || spec.endsWith('.tar.gz');
+}
+
+function readBooleanEnv(value) {
+  const normalized = normalizeSpec(value).toLowerCase();
+  if (!normalized) return false;
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+}
+
+export function isPackageAcquisitionEnabled(env = process.env) {
+  return readBooleanEnv(env.PLAYBOOK_ENABLE_PACKAGE_ACQUIRE) || normalizeSpec(env.PLAYBOOK_PACKAGE_SPEC).length > 0;
 }
 
 export function classifyFallbackSpec(rawSpec) {
@@ -75,10 +85,6 @@ export function classifyFallbackSpec(rawSpec) {
   return { valid: false, kind: 'registry-like', normalized: spec };
 }
 
-function sanitizeFilenamePart(value) {
-  return value.replace(/[^A-Za-z0-9._-]/g, '-');
-}
-
 function toAbsolutePath(inputPath) {
   return path.isAbsolute(inputPath) ? inputPath : path.resolve(process.cwd(), inputPath);
 }
@@ -87,47 +93,84 @@ function formatNpmInstallCommand(args) {
   return ['npm', ...args].join(' ');
 }
 
-function buildRemoteDownloadPath({ url, runtimeRoot }) {
-  const parsed = new URL(url);
-  const basename = path.posix.basename(parsed.pathname) || 'playbook-cli.tgz';
-  const filename = basename.includes('.') ? basename : `${basename}.tgz`;
-  const hash = createHash('sha256').update(url).digest('hex').slice(0, 16);
-  const cacheDir = path.join(toAbsolutePath(runtimeRoot), 'cache');
-  const downloadName = `official-fallback-${hash}-${sanitizeFilenamePart(filename)}`;
-  return path.join(cacheDir, downloadName);
+function summarizeError(error, depth = 0) {
+  if (!error || depth > 3) {
+    return [];
+  }
+
+  const details = [];
+  const name = typeof error.name === 'string' && error.name ? error.name : 'Error';
+  const message = typeof error.message === 'string' && error.message ? error.message : String(error);
+  details.push(`${name}: ${message}`);
+
+  if (error.cause && error.cause !== error) {
+    for (const nested of summarizeError(error.cause, depth + 1)) {
+      details.push(`cause -> ${nested}`);
+    }
+  }
+
+  return details;
+}
+
+function ensureNonEmptyFile(filePath) {
+  if (!existsSync(filePath)) {
+    throw new Error(`Downloaded fallback artifact missing on disk: ${filePath}`);
+  }
+
+  const stats = statSync(filePath);
+  if (stats.size <= 0) {
+    throw new Error(`Downloaded fallback artifact was empty: ${filePath}`);
+  }
+
+  return stats.size;
 }
 
 export async function normalizeFallbackInstallTarget({
   rawSpec,
   runtimeRoot = OFFICIAL_FALLBACK_ROOT,
-  fetchImpl = globalThis.fetch
+  fetchImpl = globalThis.fetch,
+  logger = console
 }) {
   const fallbackSpec = classifyFallbackSpec(rawSpec);
   if (!fallbackSpec.valid) {
-    return { fallbackSpec, installSpec: null, downloadedFrom: null };
+    return { fallbackSpec, installSpec: null, downloadedFrom: null, finalUrl: null, fileSize: null };
   }
 
   if (fallbackSpec.kind !== 'https-url') {
-    return { fallbackSpec, installSpec: fallbackSpec.normalized, downloadedFrom: null };
+    return {
+      fallbackSpec,
+      installSpec: fallbackSpec.normalized,
+      downloadedFrom: null,
+      finalUrl: null,
+      fileSize: fallbackSpec.kind === 'local-path' ? ensureNonEmptyFile(toAbsolutePath(fallbackSpec.normalized)) : null
+    };
   }
 
   if (typeof fetchImpl !== 'function') {
     throw new Error('Global fetch is unavailable; unable to download https fallback spec.');
   }
 
-  const downloadPath = buildRemoteDownloadPath({
-    url: fallbackSpec.normalized,
-    runtimeRoot
-  });
+  const absoluteRuntimeRoot = toAbsolutePath(runtimeRoot);
+  mkdirSync(absoluteRuntimeRoot, { recursive: true });
+  const tempDir = mkdtempSync(path.join(absoluteRuntimeRoot, 'download-'));
+  const downloadPath = path.join(tempDir, 'playbook-cli.tgz');
 
-  mkdirSync(path.dirname(downloadPath), { recursive: true });
+  logger.error(`[playbook-runtime] Downloading official fallback URL: ${fallbackSpec.normalized}`);
+  logger.error(`[playbook-runtime] Temporary download path: ${downloadPath}`);
 
   let response;
   try {
     response = await fetchImpl(fallbackSpec.normalized);
   } catch (error) {
-    throw new Error(`Failed to download fallback artifact: ${error.message}`);
+    for (const detail of summarizeError(error)) {
+      logger.error(`[playbook-runtime] Download failure detail: ${detail}`);
+    }
+    throw new Error(`Failed to download fallback artifact from ${fallbackSpec.normalized}`);
   }
+
+  const finalUrl = typeof response.url === 'string' && response.url ? response.url : fallbackSpec.normalized;
+  logger.error(`[playbook-runtime] Download response: HTTP ${response.status} ${response.statusText}`.trim());
+  logger.error(`[playbook-runtime] Final resolved URL: ${finalUrl}`);
 
   if (!response.ok) {
     throw new Error(`Failed to download fallback artifact: HTTP ${response.status} ${response.statusText}`.trim());
@@ -135,11 +178,15 @@ export async function normalizeFallbackInstallTarget({
 
   const buffer = Buffer.from(await response.arrayBuffer());
   writeFileSync(downloadPath, buffer);
+  const fileSize = ensureNonEmptyFile(downloadPath);
+  logger.error(`[playbook-runtime] Downloaded fallback artifact size: ${fileSize} bytes`);
 
   return {
     fallbackSpec,
-    installSpec: pathToFileURL(downloadPath).href,
-    downloadedFrom: fallbackSpec.normalized
+    installSpec: downloadPath,
+    downloadedFrom: fallbackSpec.normalized,
+    finalUrl,
+    fileSize
   };
 }
 
@@ -154,17 +201,22 @@ function installViaNpm({ targetSpec, prefix }) {
   return {
     args,
     result: spawnSync('npm', args, {
-    stdio: 'inherit',
-    env: process.env
+      stdio: 'inherit',
+      env: process.env
     })
   };
 }
 
 function handleInstallPackage() {
+  if (!isPackageAcquisitionEnabled()) {
+    console.error('[playbook-runtime] Package acquisition is disabled by default because the official GitHub release tarball is the canonical distribution path.');
+    console.error('[playbook-runtime] To enable package acquisition explicitly, set PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1 and/or PLAYBOOK_PACKAGE_SPEC=<published-package-spec>.');
+    console.error(`[playbook-runtime] Example: PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1 PLAYBOOK_PACKAGE_SPEC="${DEFAULT_PACKAGE_SPEC}" node scripts/playbook-runtime.mjs --install-package`);
+    process.exit(1);
+  }
+
   const targetSpec = normalizeSpec(PACKAGE_INSTALL_SPEC);
   console.log(`[playbook-runtime] Package acquisition target: ${targetSpec}`);
-  console.log('[playbook-runtime] Command shape: npm install --no-save <package-spec>');
-
   const installPlan = installViaNpm({ targetSpec });
   console.log(`[playbook-runtime] Command shape: ${formatNpmInstallCommand(installPlan.args)}`);
   process.exit(installPlan.result.status ?? 1);
@@ -175,7 +227,8 @@ async function handleInstallOfficialFallback() {
   try {
     resolvedFallback = await normalizeFallbackInstallTarget({
       rawSpec: OFFICIAL_FALLBACK_SPEC,
-      runtimeRoot: OFFICIAL_FALLBACK_ROOT
+      runtimeRoot: OFFICIAL_FALLBACK_ROOT,
+      logger: console
     });
   } catch (error) {
     console.error(`[playbook-runtime] ${error.message}`);
@@ -186,22 +239,24 @@ async function handleInstallOfficialFallback() {
 
   if (!fallbackSpec.valid) {
     if (fallbackSpec.kind === 'missing') {
-      console.error('[playbook-runtime] PLAYBOOK_OFFICIAL_FALLBACK_SPEC is required for official fallback install.');
-      console.error(`[playbook-runtime] Example: PLAYBOOK_OFFICIAL_FALLBACK_SPEC="${DEFAULT_OFFICIAL_FALLBACK_SPEC}" npm run playbook-runtime:install-official-fallback`);
+      console.error('[playbook-runtime] PLAYBOOK_OFFICIAL_FALLBACK_SPEC resolved to an empty value.');
+      console.error(`[playbook-runtime] Default official fallback URL: ${DEFAULT_OFFICIAL_FALLBACK_SPEC}`);
     } else {
-      console.error(`[playbook-runtime] Invalid PLAYBOOK_OFFICIAL_FALLBACK_SPEC for direct fallback acquisition: ${fallbackSpec.normalized}`);
-      console.error('[playbook-runtime] Fallback acquisition requires a direct install target (file:, local tarball path, https tarball URL, or git+ URL).');
-      console.error('[playbook-runtime] Registry-style package specs belong in package acquisition (`npm run playbook-runtime:install-package`).');
+      console.error(`[playbook-runtime] Invalid PLAYBOOK_OFFICIAL_FALLBACK_SPEC for official acquisition: ${fallbackSpec.normalized}`);
+      console.error('[playbook-runtime] Official acquisition requires a direct install target (file:, local tarball path, https tarball URL, or git+ URL).');
+      console.error('[playbook-runtime] Registry-style package specs are not part of the canonical fallback distribution contract.');
     }
 
     process.exit(1);
   }
 
-  console.log(`[playbook-runtime] Fallback acquisition target (original): ${fallbackSpec.normalized}`);
-  console.log(`[playbook-runtime] Fallback spec type: ${fallbackSpec.kind}`);
+  console.log(`[playbook-runtime] Official acquisition target (original): ${fallbackSpec.normalized}`);
+  console.log(`[playbook-runtime] Official acquisition spec type: ${fallbackSpec.kind}`);
   if (resolvedFallback.downloadedFrom) {
-    console.log(`[playbook-runtime] Fallback download source: ${resolvedFallback.downloadedFrom}`);
-    console.log(`[playbook-runtime] Fallback normalized install target: ${resolvedFallback.installSpec}`);
+    console.log(`[playbook-runtime] Official acquisition download source: ${resolvedFallback.downloadedFrom}`);
+    console.log(`[playbook-runtime] Official acquisition final URL: ${resolvedFallback.finalUrl}`);
+    console.log(`[playbook-runtime] Official acquisition local tarball: ${resolvedFallback.installSpec}`);
+    console.log(`[playbook-runtime] Official acquisition tarball size: ${resolvedFallback.fileSize} bytes`);
   }
 
   const installPlan = installViaNpm({
@@ -268,65 +323,65 @@ async function main() {
   }
 
   function resolveInstalledPackageBin() {
-  const repoRoot = process.cwd();
+    const repoRoot = process.cwd();
 
-  const localBin = findExecutable(path.join(repoRoot, 'node_modules', '.bin', 'playbook'));
-  if (localBin) {
-    return { bin: localBin, source: `repo-local node_modules binary (${localBin})` };
-  }
-
-  const requireFromRepo = createRequire(path.join(repoRoot, 'package.json'));
-  const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-  const declaredPackages = [
-    ...Object.keys(packageJson.dependencies ?? {}),
-    ...Object.keys(packageJson.devDependencies ?? {}),
-    ...Object.keys(packageJson.optionalDependencies ?? {})
-  ].filter((pkgName) => pkgName.includes('playbook'));
-
-  for (const pkgName of declaredPackages) {
-    try {
-      const resolvedPackageJson = requireFromRepo.resolve(`${pkgName}/package.json`);
-      const packageRoot = path.dirname(resolvedPackageJson);
-      const packageBin = resolveBinFromPackageRoot(packageRoot);
-      if (packageBin) {
-        return { bin: packageBin, source: `installed package entrypoint (${pkgName})` };
-      }
-    } catch {
-      // Deliberately ignore unresolved packages and continue checking candidates.
+    const localBin = findExecutable(path.join(repoRoot, 'node_modules', '.bin', 'playbook'));
+    if (localBin) {
+      return { bin: localBin, source: `repo-local node_modules binary (${localBin})` };
     }
-  }
 
-  return null;
+    const requireFromRepo = createRequire(path.join(repoRoot, 'package.json'));
+    const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
+    const declaredPackages = [
+      ...Object.keys(packageJson.dependencies ?? {}),
+      ...Object.keys(packageJson.devDependencies ?? {}),
+      ...Object.keys(packageJson.optionalDependencies ?? {})
+    ].filter((pkgName) => pkgName.includes('playbook'));
+
+    for (const pkgName of declaredPackages) {
+      try {
+        const resolvedPackageJson = requireFromRepo.resolve(`${pkgName}/package.json`);
+        const packageRoot = path.dirname(resolvedPackageJson);
+        const packageBin = resolveBinFromPackageRoot(packageRoot);
+        if (packageBin) {
+          return { bin: packageBin, source: `installed package entrypoint (${pkgName})` };
+        }
+      } catch {
+        // Deliberately ignore unresolved packages and continue checking candidates.
+      }
+    }
+
+    return null;
   }
 
   function resolveRuntimeBin() {
-  const checks = [];
+    const checks = [];
 
-  const envOverride = process.env.PLAYBOOK_BIN;
-  if (envOverride) {
-    checks.push(`PLAYBOOK_BIN=${envOverride}`);
-    return { bin: envOverride, source: 'PLAYBOOK_BIN environment override', checks };
-  }
+    const envOverride = process.env.PLAYBOOK_BIN;
+    if (envOverride) {
+      checks.push(`PLAYBOOK_BIN=${envOverride}`);
+      return { bin: envOverride, source: 'PLAYBOOK_BIN environment override', checks };
+    }
 
-  checks.push('PLAYBOOK_BIN not set');
+    checks.push('PLAYBOOK_BIN not set');
 
-  const packageBin = resolveInstalledPackageBin();
-  checks.push('repo-local package/bin resolution');
-  if (packageBin) {
-    return { ...packageBin, checks };
-  }
+    const packageBin = resolveInstalledPackageBin();
+    checks.push('repo-local package/bin resolution');
+    if (packageBin) {
+      return { ...packageBin, checks };
+    }
 
-  const officialFallbackBin = findExecutable(path.join(process.cwd(), OFFICIAL_FALLBACK_ROOT, 'node_modules', '.bin', 'playbook'));
-  checks.push(`official fallback install (${OFFICIAL_FALLBACK_ROOT})`);
-  if (officialFallbackBin) {
-    return {
-      bin: officialFallbackBin,
-      source: `official fallback install (${OFFICIAL_FALLBACK_ROOT})`,
-      checks
-    };
-  }
+    const officialFallbackBin = findExecutable(path.join(process.cwd(), OFFICIAL_FALLBACK_ROOT, 'node_modules', '.bin', 'playbook'));
+    checks.push(`official fallback install (${OFFICIAL_FALLBACK_ROOT})`);
+    if (officialFallbackBin) {
+      return {
+        bin: officialFallbackBin,
+        source: `official fallback install (${OFFICIAL_FALLBACK_ROOT})`,
+        checks
+      };
+    }
 
-  return { bin: null, source: null, checks };
+    return { bin: null, source: null, checks };
   }
 
   const passthroughArgs = process.argv.slice(3);
@@ -337,8 +392,8 @@ async function main() {
     console.error(`[playbook-runtime] Checked: ${resolution.checks.join(' -> ')}`);
     console.error('[playbook-runtime] Fix one of the following:');
     console.error('  1) Set PLAYBOOK_BIN to an explicit Playbook executable path.');
-    console.error('  2) Install Playbook as a local package so node_modules/.bin/playbook exists.');
-    console.error(`  3) Install the official fallback distribution into ${OFFICIAL_FALLBACK_ROOT} (set PLAYBOOK_OFFICIAL_FALLBACK_SPEC and run npm run playbook-runtime:install-official-fallback).`);
+    console.error(`  2) Install the official fallback distribution into ${OFFICIAL_FALLBACK_ROOT} (canonical path: node scripts/playbook-runtime.mjs --install-official-fallback).`);
+    console.error('  3) If you explicitly need the package path, enable it with PLAYBOOK_ENABLE_PACKAGE_ACQUIRE=1 and run node scripts/playbook-runtime.mjs --install-package.');
     process.exit(1);
   }
 

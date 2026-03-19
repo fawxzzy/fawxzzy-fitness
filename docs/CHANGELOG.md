@@ -9,6 +9,17 @@
 - Keeps Edit Day visually aligned with the newer workout overview, Quick Add, and set-entry interaction language instead of feeling like an older heavier editor.
 - Improves mobile scanability and action clarity while preserving the existing routine-day editing workflow.
 
+## 0.3.76 — 2026-03-19
+
+### WHAT
+- Switched Playbook runtime acquisition to treat the pinned GitHub release tarball as the canonical official distribution path, with package acquisition now opt-in only when explicitly enabled by env/config.
+- Hardened official fallback download/install handling to log source URL, final resolved URL, HTTP status, temp tarball path, artifact size, and nested error causes before installing via `npm install --no-save <temp-tgz>`.
+- Updated runtime tests, README, governance guidance, and CI so clean-environment bootstrap uses `npm ci` plus the official fallback path instead of depending on a known-missing npm package.
+
+### WHY
+- Makes clean-environment installs deterministic again by aligning runtime acquisition with the real release infrastructure.
+- Improves operator diagnostics so release/download failures expose the actual root cause instead of a generic fetch error.
+
 ## 0.3.75 — 2026-03-19
 
 ### WHAT
@@ -3533,6 +3544,17 @@ WHY:
 - Keeps Best/Last stats consistent across surfaces by deriving modality from actual logged effort, not metadata alone.
 - Improves data-quality visibility in development without breaking production UX.
 
+
+## 0.3.76 — 2026-03-19
+
+### WHAT
+- Switched Playbook runtime acquisition to treat the pinned GitHub release tarball as the canonical official distribution path, with package acquisition now opt-in only when explicitly enabled by env/config.
+- Hardened official fallback download/install handling to log source URL, final resolved URL, HTTP status, temp tarball path, artifact size, and nested error causes before installing via `npm install --no-save <temp-tgz>`.
+- Updated runtime tests, README, governance guidance, and CI so clean-environment bootstrap uses `npm ci` plus the official fallback path instead of depending on a known-missing npm package.
+
+### WHY
+- Makes clean-environment installs deterministic again by aligning runtime acquisition with the real release infrastructure.
+- Improves operator diagnostics so release/download failures expose the actual root cause instead of a generic fetch error.
 
 ## 0.3.75 — 2026-03-19
 
