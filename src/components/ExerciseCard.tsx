@@ -8,6 +8,7 @@ export function ExerciseCard({
   title,
   subtitle,
   children,
+  leadingVisual,
   onPress,
   rightIcon = defaultChevron,
   badgeText,
@@ -18,6 +19,7 @@ export function ExerciseCard({
   title: string;
   subtitle?: string;
   children?: ReactNode;
+  leadingVisual?: ReactNode;
   onPress?: () => void;
   rightIcon?: ReactNode;
   badgeText?: string;
@@ -27,6 +29,7 @@ export function ExerciseCard({
 }) {
   const content = (
     <>
+      {leadingVisual ? <div className="shrink-0 self-start">{leadingVisual}</div> : null}
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-3">
           <p className="min-w-0 flex-1 text-[1rem] font-semibold leading-snug text-[rgb(var(--text)/0.98)] [overflow-wrap:anywhere]">

@@ -8,6 +8,13 @@
 ### WHY
 - Makes the set-entry screen feel like a complete detail workspace instead of a sparse form page.
 - Improves section anchoring and scanability during active logging without changing write semantics.
+- Restyled the Add Exercise chooser to use the same shared exercise-card row language as the rest of the app, with roomier metadata, a clearer selected state, and no per-row info button.
+- Simplified the add-exercise sheet rhythm into one continuous choose → configure → add flow with lighter section framing and a dedicated selected-exercise summary between the list and target configuration.
+- Extended the shared `ExerciseCard` primitive with optional leading visual support so chooser/list surfaces can stay visually consistent without inventing route-local row markup.
+
+### WHY
+- Keeps workout-entry selection screens aligned with the app’s canonical entity-row pattern instead of feeling like a one-off dense picker.
+- Reduces row clutter and interaction noise so selection stays obvious while preserving the existing target configuration and add-exercise behavior.
 
 ## 0.3.75 — 2026-03-18
 
@@ -3588,4 +3595,3 @@ WHY:
 ### WHY
 - Makes the workout overview faster to scan on mobile by preserving one clear hierarchy: header, list, bottom commit action.
 - Reduces visual noise that previously made the overview feel heavier than the underlying interaction required.
-

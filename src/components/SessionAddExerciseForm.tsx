@@ -57,14 +57,14 @@ export function SessionAddExerciseForm({
           router.refresh();
         }
       }}
-      className="space-y-3"
+      className="space-y-4"
     >
       <input type="hidden" name="sessionId" value={sessionId} />
-      <div className="space-y-3 rounded-lg border border-border/70 bg-surface/60 p-3">
+      <div className="space-y-4">
         {customExerciseSection}
         <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} exerciseStats={exerciseStats} />
       </div>
-      <div className="border-t border-border/70 pt-2">
+      <div className="pt-1">
         <AppButton type="submit" variant="primary" fullWidth>
           Add Exercise
         </AppButton>
