@@ -7,6 +7,7 @@ import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
 import { supabaseServerAnon } from "@/lib/supabase/server-anon";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
+import { logDebugSummary } from "@/lib/observability";
 
 const FALLBACK_CREATED_AT = "1970-01-01T00:00:00.000Z";
 let hasLoggedMissingExerciseId = false;
@@ -88,6 +89,7 @@ export async function listExercises() {
   const customExercises = await listUserExercises(user.id);
 
   const mergedExercises = [...customExercises, ...globalExercises];
+  let suppressedLegacyPlaceholderCount = 0;
   const validExercises = mergedExercises.flatMap((exercise) => {
     const id = typeof exercise.id === "string" ? exercise.id.trim() : "";
 
@@ -102,19 +104,18 @@ export async function listExercises() {
     const normalizedExercise = { ...exercise, id };
 
     if (isLegacyPlaceholderExercise(normalizedExercise)) {
-      if (process.env.NODE_ENV === "development") {
-        console.info("[exercises] suppressed sentinel/legacy placeholder exercise row", {
-          id,
-          name: normalizedExercise.name,
-          user_id: normalizedExercise.user_id,
-          is_global: normalizedExercise.is_global,
-        });
-      }
+      suppressedLegacyPlaceholderCount += 1;
       return [];
     }
 
     return [normalizedExercise];
   });
+  logDebugSummary("exercises", "filtered exercise list", {
+    mergedCount: mergedExercises.length,
+    validCount: validExercises.length,
+    suppressedLegacyPlaceholderCount,
+  });
+
   const dedupedExercises = new Map<string, ExerciseRow>();
 
   for (const exercise of validExercises) {

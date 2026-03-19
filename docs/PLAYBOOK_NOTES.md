@@ -31,6 +31,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-03-19 — Steady-state flows should log summaries, not entities
+- Type: Guardrail
+- Summary: Expected normalization, sentinel filtering, and fallback behavior in steady-state app flows should stay silent by default or emit only one summary-level debug line per loader run behind an explicit debug flag.
+- Suggested Playbook File: docs/GUARDRAILS/observability-noise.md
+- Rationale: Prevents temporary diagnostics from turning into persistent background noise that hides real warnings, errors, and regressions during normal navigation.
+- Evidence: src/lib/runnable-day.ts, src/lib/exercises.ts, src/lib/exercise-stats.ts, src/lib/observability.ts
+- Status: Proposed
+
 ## 2026-03-19 — Selection rows should stay clean; secondary info belongs in selected state
 - Type: Pattern
 - Summary: In chooser-style exercise flows, tapping the row should remain the primary action while details like Exercise Info live in the selected summary area after the user commits attention to one option.

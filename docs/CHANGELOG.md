@@ -1,3 +1,14 @@
+## 0.3.82 — 2026-03-19
+
+### WHAT
+- Removed steady-state per-exercise logging from runnable-day normalization, sentinel suppression, and exercise-stats list fetches so normal navigation no longer floods the terminal.
+- Added a shared explicit observability gate for these paths and converted the remaining diagnostics to debug-only summary logs that report loader-level counts instead of one line per entity.
+- Preserved real warnings/errors for bad states while keeping expected fallback and sentinel filtering silent unless the explicit debug flag is enabled.
+
+### WHY
+- Keeps terminal output focused on actionable warnings/errors instead of routine normalization noise that obscures real regressions.
+- Establishes a reusable observability rule for canonical/fallback loader flows: expected steady-state behavior should surface as optional summaries, not background row-by-row spam.
+
 ## 0.3.81 — 2026-03-19
 
 ### WHAT

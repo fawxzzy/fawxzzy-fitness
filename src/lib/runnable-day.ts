@@ -1,5 +1,6 @@
 import { isExerciseDisplayArtifact } from "@/lib/exercise-display";
 import { resolveCanonicalExerciseId } from "@/lib/exercise-id-aliases";
+import { logDebugSummary } from "@/lib/observability";
 
 const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
 
@@ -67,6 +68,8 @@ export function normalizeRunnableDayExercises<T extends RunnableDayExercise>(
 } {
   const runnableExercises: Array<T & { exercise_id: string }> = [];
   const invalidExercises: Array<{ id: string; exerciseId: string; reason: RunnableDayInvalidReason }> = [];
+  let canonicalMatches = 0;
+  let fallbackValidExercises = 0;
 
   for (const exercise of exercises) {
     const rawExerciseId = typeof exercise.exercise_id === "string" ? exercise.exercise_id.trim() : "";
@@ -76,29 +79,19 @@ export function normalizeRunnableDayExercises<T extends RunnableDayExercise>(
     const hasValidName = normalizedExerciseName.length > 0;
     const hasGoalData = hasRunnableExerciseGoalData(exercise);
 
-    if (process.env.NODE_ENV !== "production") {
-      console.info("[runnable-day] normalize exercise", {
-        source: options.logSource ?? "unknown",
-        exerciseId: exercise.id,
-        rawExerciseId,
-        resolvedExerciseId,
-        canonicalMatch,
-        hasValidName,
-        hasGoalData,
-      });
-    }
-
     if (!rawExerciseId || rawExerciseId === SENTINEL_EXERCISE_ID) {
       invalidExercises.push({ id: exercise.id, exerciseId: rawExerciseId, reason: "sentinel" });
       continue;
     }
 
     if (canonicalMatch) {
+      canonicalMatches += 1;
       runnableExercises.push({ ...exercise, exercise_id: resolvedExerciseId });
       continue;
     }
 
     if (hasValidName && hasGoalData) {
+      fallbackValidExercises += 1;
       runnableExercises.push({ ...exercise, exercise_id: resolvedExerciseId || rawExerciseId });
       continue;
     }
@@ -110,6 +103,19 @@ export function normalizeRunnableDayExercises<T extends RunnableDayExercise>(
 
     invalidExercises.push({ id: exercise.id, exerciseId: rawExerciseId, reason: hasValidName ? "invalid_data" : "missing_canonical" });
   }
+
+  logDebugSummary("runnable-day", "normalized exercises", {
+    source: options.logSource ?? "unknown",
+    totalExercises: exercises.length,
+    runnableCount: runnableExercises.length,
+    invalidCount: invalidExercises.length,
+    canonicalMatches,
+    fallbackValidExercises,
+    invalidReasons: invalidExercises.reduce<Record<string, number>>((counts, exercise) => {
+      counts[exercise.reason] = (counts[exercise.reason] ?? 0) + 1;
+      return counts;
+    }, {}),
+  });
 
   return { runnableExercises, invalidExercises };
 }
