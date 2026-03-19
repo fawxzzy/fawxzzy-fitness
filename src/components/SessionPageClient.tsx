@@ -7,7 +7,8 @@ import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { SessionStickyFooter, SESSION_STICKY_FOOTER_RESERVE_CLASS } from "@/components/session/SessionStickyFooter";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -127,88 +128,95 @@ export function SessionPageClient({
     [hasExercises],
   );
 
-  return (
-    <section className={`flex min-h-full flex-col space-y-4 overflow-x-clip px-1 pb-2 ${SESSION_STICKY_FOOTER_RESERVE_CLASS}`}>
-      {!isExerciseOpen ? (
-        <SessionHeaderControls
-          sessionTitle={sessionTitle}
-          durationSeconds={hasMountedTimer ? durationSeconds : baseDurationSeconds}
-          isTimerHydrated={hasMountedTimer}
-          quickAddAction={quickAddAction}
-          backHref={fallbackReturnHref ?? "/today"}
-        />
-      ) : null}
+  const sessionActions = useMemo(
+    () => (
+      <BottomActionSplit
+        primary={(
+          <form
+            action={async (formData) => {
+              const result = await saveSessionAction(formData);
+              toastActionResult(toast, result, {
+                success: "Workout saved.",
+                error: "Could not save workout.",
+              });
 
-      {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
-      <ActionFeedbackToasts />
+              if (result.ok) {
+                navigateReturn();
+              }
+            }}
+            className="w-full"
+          >
+            <input type="hidden" name="sessionId" value={sessionId} />
+            <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
+            <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
+              Save Session
+            </AppButton>
+          </form>
+        )}
+        secondary={(
+          <ConfirmedServerFormButton
+            action={async (formData) => {
+              const result = await discardSessionAction(formData);
+              toastActionResult(toast, result, {
+                success: "Workout discarded.",
+                error: "Could not discard workout.",
+              });
 
-      {hasExercises ? (
-        <SessionExerciseFocus
-          sessionId={sessionId}
-          unitLabel={unitLabel}
-          exercises={exercises}
-          selectedExerciseId={selectedExerciseId}
-          onSelectedExerciseIdChange={setSelectedExerciseId}
-          addSetAction={addSetAction}
-          syncQueuedSetLogsAction={syncQueuedSetLogsAction}
-          toggleSkipAction={toggleSkipAction}
-          removeExerciseAction={removeExerciseAction}
-          deleteSetAction={deleteSetAction}
-        />
-      ) : null}
-
-      {emptyState}
-
-      {!isExerciseOpen ? (
-        <SessionStickyFooter>
-          <BottomActionSplit
-            primary={(
-              <form
-                action={async (formData) => {
-                  const result = await saveSessionAction(formData);
-                  toastActionResult(toast, result, {
-                    success: "Workout saved.",
-                    error: "Could not save workout.",
-                  });
-
-                  if (result.ok) {
-                    navigateReturn();
-                  }
-                }}
-                className="w-full"
-              >
-                <input type="hidden" name="sessionId" value={sessionId} />
-                <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-                <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
-                  Save Session
-                </AppButton>
-              </form>
-            )}
-            secondary={(
-              <ConfirmedServerFormButton
-                action={async (formData) => {
-                  const result = await discardSessionAction(formData);
-                  toastActionResult(toast, result, {
-                    success: "Workout discarded.",
-                    error: "Could not discard workout.",
-                  });
-
-                  if (result.ok) {
-                    navigateReturn();
-                  }
-                }}
-                hiddenFields={{ sessionId }}
-                triggerLabel="Discard"
-                triggerClassName="w-full"
-                size="md"
-                modalTitle="Discard workout?"
-                modalDescription="This will delete your in-progress workout, including exercises and sets."
-                confirmLabel="Discard"
-              />
-            )}
+              if (result.ok) {
+                navigateReturn();
+              }
+            }}
+            hiddenFields={{ sessionId }}
+            triggerLabel="Discard"
+            triggerClassName="w-full"
+            size="md"
+            modalTitle="Discard workout?"
+            modalDescription="This will delete your in-progress workout, including exercises and sets."
+            confirmLabel="Discard"
           />
-        </SessionStickyFooter>
+        )}
+      />
+    ),
+    [discardSessionAction, durationSeconds, navigateReturn, saveSessionAction, sessionId, toast],
+  );
+
+  return (
+    <ScrollScreenWithBottomActions className="space-y-4 overflow-x-clip px-1 pb-2">
+      {!isExerciseOpen ? (
+        <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
-    </section>
+
+      <section className="flex min-h-full flex-col space-y-4">
+        {!isExerciseOpen ? (
+          <SessionHeaderControls
+            sessionTitle={sessionTitle}
+            durationSeconds={hasMountedTimer ? durationSeconds : baseDurationSeconds}
+            isTimerHydrated={hasMountedTimer}
+            quickAddAction={quickAddAction}
+            backHref={fallbackReturnHref ?? "/today"}
+          />
+        ) : null}
+
+        {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
+        <ActionFeedbackToasts />
+
+        {hasExercises ? (
+          <SessionExerciseFocus
+            sessionId={sessionId}
+            unitLabel={unitLabel}
+            exercises={exercises}
+            selectedExerciseId={selectedExerciseId}
+            onSelectedExerciseIdChange={setSelectedExerciseId}
+            addSetAction={addSetAction}
+            syncQueuedSetLogsAction={syncQueuedSetLogsAction}
+            toggleSkipAction={toggleSkipAction}
+            removeExerciseAction={removeExerciseAction}
+            deleteSetAction={deleteSetAction}
+          />
+        ) : null}
+
+        {emptyState}
+      </section>
+    </ScrollScreenWithBottomActions>
   );
 }

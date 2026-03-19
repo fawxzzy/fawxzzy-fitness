@@ -39,7 +39,8 @@
     "sanity:quick": "npm run lint",
     "verify": "node scripts/playbook-runtime.mjs verify",
     "verify:strict": "npm run lint && npm run build",
-    "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs"
+    "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs",
+    "test:session-set-count": "node --test src/components/session/setCountSync.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

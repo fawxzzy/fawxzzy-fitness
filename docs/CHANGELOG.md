@@ -3,6 +3,22 @@
 - Made the session header timer hydration-safe by rendering the stable initial clock until the client timer mounts, preventing server/client timer text mismatches.
 - Preserved save, discard, open-exercise, save-set, and returnTo behavior while keeping the current-session flow on the normalized canonical footer visuals.
 
+- Fixed the current-session set-count feedback loop by switching `SetLoggerCard` set-count publication to a primitive-only, change-detected path and by making `SessionExerciseFocus` reuse a stable callback plus no-op-preserving count merges instead of re-setting parent state on every render.
+- Normalized current-session and focused-exercise bottom actions onto the shared screen-owned sticky bottom-actions slot so Save Session / Discard and Save Set / Skip / Delete now share the same safe-area, spacing, button sizing, and sticky behavior contract.
+- Added `mobile-web-app-capable` alongside the existing Apple PWA metadata and covered the set-count publication rules with a focused regression test for unchanged-count no-op behavior.
+
+## 0.3.88 — 2026-03-19
+
+### WHAT
+- Refactored session set-count synchronization to a one-way flow where the child only publishes when the numeric count actually changes, while the parent keeps its count map stable unless the logical count changed.
+- Moved current-session overview actions and focused exercise actions onto the same shared sticky bottom-action host, removing per-screen footer ownership drift while preserving the existing Save/Discard/Skip/Delete product behavior.
+- Added the missing general `mobile-web-app-capable` PWA meta tag and introduced a focused regression test for the count-sync helpers.
+
+### WHY
+- The crash came from a circular child-effect → parent-setter → rerender path: `SetLoggerCard` re-fired `onSetCountChange` whenever the parent created a fresh callback, and the parent always created a fresh count object even when the count value itself had not changed.
+- Publishing only on primitive count changes and preserving existing parent state when nothing logical changed makes the session flow deterministic and stops the update-depth loop without effect suppression hacks.
+- Reusing one sticky bottom-action host for both current-session states removes duplicated footer layout logic and keeps spacing, safe-area padding, and button hierarchy aligned across the two adjacent mobile screens.
+
 ## 0.3.81 — 2026-03-19
 
 ### WHAT
