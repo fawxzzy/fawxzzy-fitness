@@ -3607,3 +3607,15 @@ WHY:
 ### WHY
 - Makes the workout overview faster to scan on mobile by preserving one clear hierarchy: header, list, bottom commit action.
 - Reduces visual noise that previously made the overview feel heavier than the underlying interaction required.
+
+## 0.3.77 — 2026-03-19
+
+### WHAT
+- Unified save-return behavior around the same in-app history contract used by Back, including current-session Save Session plus routine save flows that previously jumped to fixed routes.
+- Added a reusable navigation-return helper/input so server actions can safely fall back to deterministic routes when no valid in-app history entry exists.
+- Normalized remaining sticky bottom CTAs around the shared canonical action variants, including Edit Day save/cancel, History log edit/delete/save/cancel, and the Routines home Edit Routine footer.
+
+### WHY
+- Prevents Save actions from breaking user context by sending people somewhere different from where Back would have taken them.
+- Reduces footer drift by keeping bottom actions on one shared visual and spacing system instead of ad hoc per-screen markup.
+- Keeps workout-management flows safer on mobile by reusing one sticky-action contract with consistent safe-area and width behavior.

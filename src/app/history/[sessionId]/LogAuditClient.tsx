@@ -14,6 +14,7 @@ import {
 } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { AppBadge } from "@/components/ui/app/AppBadge";
@@ -264,35 +265,39 @@ export function LogAuditClient({
   const actionsNode = useMemo(() => {
     if (isEditing) {
       return (
-        <div className="grid w-full grid-cols-2 gap-2">
-          <SecondaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>
-          <PrimaryButton type="button" size="md" className="w-full min-h-[44px]" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>
-        </div>
+        <BottomActionSplit
+          secondary={<SecondaryButton type="button" size="md" className="w-full" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>}
+          primary={<PrimaryButton type="button" size="md" className="w-full" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>}
+        />
       );
     }
 
     return (
-      <>
-        <SecondaryButton
-          type="button"
-          size="md"
-          className="w-full min-h-[44px] justify-center text-center"
-          onClick={handleStartEditing}
-        >
-          Edit
-        </SecondaryButton>
-        <ConfirmedServerFormButton
-          action={deleteCompletedSessionAction}
-          hiddenFields={{ sessionId: logId }}
-          triggerLabel="Delete"
-          triggerAriaLabel="Delete log"
-          triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "w-full min-h-[44px] justify-center text-center" })}
-          modalTitle="Delete log?"
-          modalDescription="This will permanently delete this workout session and all logged sets."
-          confirmLabel="Delete"
-          contextLines={[`${sessionSummary.routineTitle}`, `${formatDateShort(sessionSummary.startedAt)}${sessionSummary.durationSec ? ` • ${formatDurationShort(sessionSummary.durationSec)}` : ""}`]}
-        />
-      </>
+      <BottomActionSplit
+        secondary={(
+          <ConfirmedServerFormButton
+            action={deleteCompletedSessionAction}
+            hiddenFields={{ sessionId: logId }}
+            triggerLabel="Delete"
+            triggerAriaLabel="Delete log"
+            triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "w-full justify-center text-center" })}
+            modalTitle="Delete log?"
+            modalDescription="This will permanently delete this workout session and all logged sets."
+            confirmLabel="Delete"
+            contextLines={[`${sessionSummary.routineTitle}`, `${formatDateShort(sessionSummary.startedAt)}${sessionSummary.durationSec ? ` • ${formatDurationShort(sessionSummary.durationSec)}` : ""}`]}
+          />
+        )}
+        primary={(
+          <SecondaryButton
+            type="button"
+            size="md"
+            className="w-full justify-center text-center"
+            onClick={handleStartEditing}
+          >
+            Edit
+          </SecondaryButton>
+        )}
+      />
     );
   }, [handleCancel, handleSave, handleStartEditing, isEditing, isPending, logId, sessionSummary.durationSec, sessionSummary.routineTitle, sessionSummary.startedAt]);
 

@@ -1,13 +1,18 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { AppButton } from "@/components/ui/AppButton";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppHeader } from "@/components/ui/app/AppHeader";
-import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { controlClassName } from "@/components/ui/formClasses";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, saveRoutineDayAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
@@ -195,7 +200,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   return (
     <AppShell topNavMode="none">
-      <ScrollContainer>
+      <ScrollScreenWithBottomActions>
         <section className="space-y-3.5 overflow-x-clip px-1 pb-4">
           <AppHeader
             title={`Edit Day — ${dayTitle}`}
@@ -208,18 +213,18 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
           {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-          <form action={saveRoutineDayAction} className="space-y-3 rounded-[1.4rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.62)] p-4 shadow-[0_6px_18px_rgba(0,0,0,0.14)]">
+          <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3 rounded-[1.4rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.62)] p-4 shadow-[0_6px_18px_rgba(0,0,0,0.14)]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Day settings</p>
               <p className="text-xs text-muted">Name the day, set rest status, and keep the workout list below aligned with the rest of the routine.</p>
             </div>
             <input type="hidden" name="routineId" value={params.id} />
             <input type="hidden" name="routineDayId" value={params.dayId} />
+            <NavigationReturnInput fallbackHref={`/routines/${params.id}/edit`} />
             <label className="block text-sm">Day name
               <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
             </label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />Rest day</label>
-            <AppButton type="submit" variant="primary" fullWidth>Save Day</AppButton>
           </form>
 
           {(day as RoutineDayRow).is_rest ? (
@@ -312,8 +317,18 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               </CollapsibleCard>
             </>
           )}
+          <PublishBottomActions>
+            <BottomActionSplit
+              primary={<AppButton form="routine-day-settings-form" type="submit" variant="primary" fullWidth>Save Day</AppButton>}
+              secondary={(
+                <Link href={backHref} className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}>
+                  Cancel
+                </Link>
+              )}
+            />
+          </PublishBottomActions>
         </section>
-      </ScrollContainer>
+      </ScrollScreenWithBottomActions>
     </AppShell>
   );
 }

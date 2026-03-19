@@ -2,15 +2,12 @@
 
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { isSafeAppPath } from "@/lib/navigation-return";
 
 const STORAGE_KEY = "fawxzzy:in-app-history";
 const STACK_LIMIT = 50;
 
-function isSafeAppPath(value: string | null | undefined): value is string {
-  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
-}
-
-function readStack() {
+export function readStack() {
   if (typeof window === "undefined") {
     return [] as string[];
   }
@@ -38,6 +35,23 @@ function getNavigationType() {
 
   const navigationEntry = window.performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
   return navigationEntry?.type ?? null;
+}
+
+
+export function getPreviousInAppPath(currentPath: string): string | null {
+  const stack = readStack();
+  const previousEntry = stack[stack.length - 2];
+  const isCurrentStackTail = stack[stack.length - 1] === currentPath;
+
+  if (isCurrentStackTail && isSafeAppPath(previousEntry)) {
+    return previousEntry;
+  }
+
+  return null;
+}
+
+export function getSafeReturnHref(currentPath: string, fallbackHref?: string): string | null {
+  return getPreviousInAppPath(currentPath) ?? (isSafeAppPath(fallbackHref) ? fallbackHref : null);
 }
 
 export function useBackNavigation({
@@ -92,11 +106,9 @@ export function useBackNavigation({
 
   const navigateBack = useCallback(() => {
     if (historyBehavior === "history-first") {
-      const stack = readStack();
-      const previousEntry = stack[stack.length - 2];
-      const isCurrentStackTail = stack[stack.length - 1] === currentPath;
+      const previousEntry = getPreviousInAppPath(currentPath);
 
-      if (isCurrentStackTail && isSafeAppPath(previousEntry)) {
+      if (isSafeAppPath(previousEntry)) {
         router.back();
         return true;
       }

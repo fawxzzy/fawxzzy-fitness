@@ -223,3 +223,20 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents technically clean detail screens from still feeling unfinished because the summary, target, form, and review areas do not read as one guided flow.
 - Evidence: src/components/SessionExerciseFocus.tsx, src/components/SessionTimers.tsx, src/components/ui/measurements/ModifyMeasurements.tsx, src/components/ui/workout-entry/EntrySection.tsx
 - Status: Proposed
+
+
+## 2026-03-19 — Save and Back must share one return contract
+- Type: Pattern
+- Summary: When a screen offers both Back and Save, Save should resolve the same safe in-app return target as Back and only fall back to a fixed route when no valid in-app history entry exists.
+- Suggested Playbook File: docs/PATTERNS/navigation-return-contract.md
+- Rationale: Prevents users from losing context after editing or completing work just because Save uses a hard-coded redirect while Back respects how they arrived.
+- Evidence: src/components/ui/useBackNavigation.ts, src/components/ui/useReturnNavigation.ts, src/components/ui/NavigationReturnInput.tsx, src/app/routines/[id]/edit/day/actions.ts, src/components/SessionPageClient.tsx, src/app/routines/[id]/edit/page.tsx
+- Status: Proposed
+
+## 2026-03-19 — Bottom action bars should come from canonical variants only
+- Type: Pattern
+- Summary: Sticky/mobile bottom actions should be composed from a small canonical set (single, split, utility cluster) so save/cancel/edit/delete groups share the same inset, radius, spacing, and emphasis rules across detail screens.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents footer drift, repeated per-screen CTA layout code, and accidental regressions in safe-area padding or button sizing.
+- Evidence: src/components/layout/CanonicalBottomActions.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/routines/page.tsx, src/components/SessionPageClient.tsx
+- Status: Proposed

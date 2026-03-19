@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
+import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { EditRoutineStickyActions } from "@/app/routines/[id]/edit/EditRoutineStickyActions";
@@ -13,6 +14,7 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { requireUser } from "@/lib/auth";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
 import { getRoutineEditPath, revalidateRoutinesViews } from "@/lib/revalidation";
+import { resolveReturnHref } from "@/lib/navigation-return";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, normalizeRoutineTimezone, toCanonicalRoutineTimezone } from "@/lib/timezones";
 import type { RoutineRow } from "@/types/db";
@@ -41,6 +43,8 @@ async function updateRoutineAction(formData: FormData) {
   const startDate = String(formData.get("startDate") ?? "").trim();
   const cycleLengthDays = Number(formData.get("cycleLengthDays"));
   const weightUnit = String(formData.get("weightUnit") ?? "lbs").trim();
+  const rawReturnTo = String(formData.get("returnTo") ?? "").trim();
+  const returnTo = resolveReturnHref(rawReturnTo, "/routines");
 
   if (!routineId || !name || !timezone || !startDate) {
     throw new Error("Missing required fields");
@@ -125,7 +129,7 @@ async function updateRoutineAction(formData: FormData) {
 
   revalidateRoutinesViews();
   revalidatePath(getRoutineEditPath(routineId));
-  redirect("/routines");
+  redirect(returnTo);
 }
 
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
@@ -165,6 +169,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
             <form id="routine-update-form" action={updateRoutineAction} className="space-y-5">
               <input type="hidden" name="routineId" value={routine.id} />
+              <NavigationReturnInput fallbackHref="/routines" />
               <div className="space-y-3 rounded-2xl border border-white/10 bg-[rgb(var(--bg)/0.26)] p-4">
                 <div className="space-y-1">
                   <h3 className="text-sm font-semibold text-text">Identity</h3>
