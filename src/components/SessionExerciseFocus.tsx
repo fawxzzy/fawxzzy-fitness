@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { AppButton } from "@/components/ui/AppButton";
@@ -14,6 +14,7 @@ import { WorkoutEntryIdentity, WorkoutEntryMetric, WorkoutEntrySection } from "@
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
+import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 
 type AddSetPayload = {
   sessionId: string;
@@ -152,17 +153,18 @@ export function SessionExerciseFocus({
   };
 
   useEffect(() => {
-    setLoggedSetCounts((current) => {
-      const next = Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount]));
-      for (const exercise of exercises) {
-        const existing = current[exercise.id];
-        if (typeof existing === "number" && existing > (next[exercise.id] ?? 0)) {
-          next[exercise.id] = existing;
-        }
-      }
-      return next;
-    });
+    setLoggedSetCounts((current) => mergeLoggedSetCountState(current, exercises));
   }, [exercises]);
+
+  const handleSetCountChange = useCallback((exerciseId: string, count: number) => {
+    setLoggedSetCounts((current) => {
+      if (current[exerciseId] === count) {
+        return current;
+      }
+
+      return { ...current, [exerciseId]: count };
+    });
+  }, []);
 
   useEffect(() => {
     if (!selectedExerciseId) {
@@ -323,7 +325,7 @@ export function SessionExerciseFocus({
               </AppButton>
             )}
             onSetCountChange={(count) => {
-              setLoggedSetCounts((current) => ({ ...current, [selectedExercise!.id]: count }));
+              handleSetCountChange(selectedExercise!.id, count);
             }}
           />
         </div>

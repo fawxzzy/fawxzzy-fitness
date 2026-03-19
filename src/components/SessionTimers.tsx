@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { SetRow } from "@/types/db";
 import {
@@ -13,7 +13,7 @@ import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionTriple } from "@/components/layout/CanonicalBottomActions";
-import { SessionStickyFooter } from "@/components/session/SessionStickyFooter";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
@@ -21,6 +21,7 @@ import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection"
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import type { ActionResult } from "@/lib/action-result";
+import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 
 type AddSetPayload = {
   sessionId: string;
@@ -141,6 +142,7 @@ export function SetLoggerCard({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [showRpeTooltip, setShowRpeTooltip] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
+  const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
 
   const toast = useToast();
   const queueUndo = useUndoAction(6000);
@@ -174,10 +176,21 @@ export function SetLoggerCard({
     setRpe("");
     setIsWarmup(false);
     setError(null);
-  }, [defaultDistanceUnit, prefill, sessionExerciseId, unitLabel]);
+    lastPublishedSetCountRef.current = initialSets.length;
+  }, [defaultDistanceUnit, initialSets.length, prefill, sessionExerciseId, unitLabel]);
 
   useEffect(() => {
-    onSetCountChange?.(sets.length);
+    if (!onSetCountChange) {
+      return;
+    }
+
+    const nextPublishedCount = getNextPublishedSetCount(lastPublishedSetCountRef.current, sets.length);
+    if (nextPublishedCount === null) {
+      return;
+    }
+
+    lastPublishedSetCountRef.current = nextPublishedCount;
+    onSetCountChange(nextPublishedCount);
   }, [onSetCountChange, sets.length]);
 
   useEffect(() => {
@@ -868,9 +881,7 @@ export function SetLoggerCard({
         </ul>
       </WorkoutEntrySection>
 
-      <SessionStickyFooter>
-        {saveSetActions}
-      </SessionStickyFooter>
+      <PublishBottomActions>{saveSetActions}</PublishBottomActions>
     </div>
   );
 }

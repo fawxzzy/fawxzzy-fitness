@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     shortcut: [{ url: "/app/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
   other: {
+    "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "apple-mobile-web-app-title": "FawxzzyFitness",
