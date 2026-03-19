@@ -116,7 +116,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
           </div>
 
           <div className="w-[34%] max-w-[132px] min-w-[104px] shrink-0 self-stretch overflow-hidden border-l border-border/20 bg-black/10">
-            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full object-cover object-center" />
+            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full" imageClassName="object-cover object-center" sizes="(max-width: 768px) 34vw, 132px" />
           </div>
         </div>
       </button>

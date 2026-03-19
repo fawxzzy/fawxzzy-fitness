@@ -3812,3 +3812,16 @@ WHY:
 - Simplified the Current Session exercise workspace into a focused logging flow by removing redundant helper copy/status chrome, tightening the identity → goal → entry → effort → review order, and moving Skip/Delete/Save Set into the shared normalized bottom action group.【F:src/components/SessionExerciseFocus.tsx†L1-L289】【F:src/components/SessionTimers.tsx†L1-L595】
 - Added shared `BottomActionTriple` and `WorkoutEntryIdentity` primitives so focused workout-entry screens can reuse the normalized three-action footer and lighter exercise identity header without reintroducing local chrome drift.【F:src/components/layout/CanonicalBottomActions.tsx†L1-L61】【F:src/components/ui/workout-entry/EntrySection.tsx†L1-L74】
 - Cleaned up Current Session effort and saved-set presentation with more balanced RPE/warm-up spacing, flatter logged-set rows, chip-based effort metadata, and a clearer delete affordance while preserving the existing logging contracts.【F:src/components/SessionTimers.tsx†L1-L595】
+
+
+## 0.3.79 — 2026-03-19
+
+### WHAT
+- Replaced the shared `ExerciseAssetImage` raw `<img>` usage with a narrow `next/image` fill-based wrapper that standardizes sizing, loading, and fallback behavior for exercise icons/how-to visuals.
+- Updated current exercise image call sites to declare explicit container sizing plus per-surface `sizes`/fit rules so thumbnails, history cards, and how-to art render with stable cropping and no contract drift.
+- Kept the existing session-scoped missing-asset fallback cache while moving fallback swaps behind the shared image boundary.
+
+### WHY
+- Removes the standing `@next/next/no-img-element` warning by adopting the framework image contract instead of leaving an undocumented exception.
+- Makes exercise image rendering deterministic across surfaces by centralizing the fill, lazy-loading, and fallback rules in one component.
+- Reduces the risk of subtle layout shift or inconsistent border-radius/cropping behavior from ad hoc image usage.
