@@ -1,3 +1,14 @@
+## 0.3.91 — 2026-03-19
+
+### WHAT
+- Tightened the shared `ExerciseCard` state language after the surface unification pass so selected, active, completed, and empty states now use more distinct border, fill, title/subtitle, badge, and image-emphasis treatment without changing the shared layout contract.
+- Clarified thin wrapper mappings across session, routine, picker, Quick Add, and history surfaces by making no-progress rows read more explicitly as empty and by making chooser/session labels more direct (`Select`/`Chosen`, `Logged …`, `No goal yet`, `No sets yet`).
+- Preserved the unified card shell and spacing while reducing ambiguous patterns where selected and active felt too similar, completed looked too close to the default shell, or empty rows did not communicate missing progress strongly enough.
+
+### WHY
+- Shared surface systems need shared state language as well as shared spacing, otherwise repeated exercise cards still feel inconsistent while scanning.
+- The post-unification follow-up was needed to make chosen-now, in-progress, done/logged, and no-progress states visually legible at a glance across every migrated context, especially on dense mobile lists.
+
 ## 0.3.90 — 2026-03-19
 
 ### WHAT

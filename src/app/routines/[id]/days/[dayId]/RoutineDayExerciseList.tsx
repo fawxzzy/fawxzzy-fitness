@@ -39,6 +39,7 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
                   sizes="44px"
                 />
               )}
+              badgeText={exercise.goalLine ? undefined : "No goal yet"}
               onPress={() => {
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] RoutineDayExerciseList", { exerciseId: exercise.exerciseId, exercise });
