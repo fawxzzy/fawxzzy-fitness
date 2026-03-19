@@ -273,6 +273,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed
 
 
+## 2026-03-19 — Save/discard flows must preserve explicit origin context
+- Type: Pattern
+- Summary: When a flow can be opened with an explicit safe `returnTo` target, save/discard actions should preserve that target end-to-end and only fall back to history-stack or fixed-route behavior when no valid explicit origin exists.
+- Suggested Playbook File: docs/PATTERNS/navigation-return-contract.md
+- Rationale: Prevents direct-load, refresh, and cross-screen editor flows from regressing back to generic hub routes even when the originating screen was already known.
+- Evidence: src/lib/navigation-return.ts, src/components/ui/NavigationReturnInput.tsx, src/app/session/[id]/page.tsx, src/components/SessionPageClient.tsx, src/app/today/TodayStartButton.tsx, src/app/today/TodayDayPicker.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
 ## 2026-03-19 — Save and Back must share one return contract
 - Type: Pattern
 - Summary: When a screen offers both Back and Save, Save should resolve the same safe in-app return target as Back and only fall back to a fixed route when no valid in-app history entry exists.

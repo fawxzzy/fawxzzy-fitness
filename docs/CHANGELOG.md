@@ -1,6 +1,15 @@
 ## 0.3.83 — 2026-03-19
 
 ### WHAT
+- Fixed Current Session save/discard return handling so those footer actions now reuse the same safe in-app back-return contract as the session header Back button, with Today as the deterministic fallback instead of History.
+- Propagated explicit `returnTo` context from Today resume/start and Today → Edit Day entry points so save/discard flows can preserve originating screen context even after refresh or direct route handling.
+- Updated Edit Day to submit the resolved originating return target back to the server action, keeping Save Day aligned with Back when opened from Day View or other valid in-app routes.
+- Added focused return-contract coverage around explicit return targets, prior in-app history, and unsafe/self-referential fallbacks.
+
+### WHY
+- Prevents destructive or save actions from teleporting users to unrelated screens after they finish or discard high-frequency workout flows.
+- Makes Today, Day View, and Edit Day feel like one navigation system by preserving the screen the user actually came from instead of defaulting to an editor hub.
+- Reinforces the documented rule that save/discard actions must honor the same return semantics as Back, not a parallel hard-coded route map.
 - Refactored the shared `bottom-actions` registration primitive to use stable publisher ownership tokens plus guarded publish/unpublish updates instead of a render-coupled `set(node)` / cleanup `set(null)` loop.
 - Preserved the normalized sticky footer slot behavior while preventing bottom-action cleanup from clearing and re-registering the same host during routine rerenders across session, today, and editor screens.
 

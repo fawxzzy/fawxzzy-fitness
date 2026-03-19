@@ -6,6 +6,20 @@ export function resolveReturnHref(rawReturnTo: string | null | undefined, fallba
   return isSafeAppPath(rawReturnTo) ? rawReturnTo : fallbackHref;
 }
 
+export function resolvePreferredReturnHref(options: {
+  requestedReturnTo?: string | null;
+  currentPath: string;
+  stack: string[];
+  fallbackHref?: string;
+}) {
+  const requestedReturnTo = isSafeAppPath(options.requestedReturnTo) ? options.requestedReturnTo : null;
+  if (requestedReturnTo && requestedReturnTo !== options.currentPath) {
+    return requestedReturnTo;
+  }
+
+  return getSafeReturnContract(options.currentPath, options.stack, options.fallbackHref).returnHref;
+}
+
 export function getSafeReturnContract(currentPath: string, stack: string[], fallbackHref?: string) {
   const isCurrentStackTail = stack[stack.length - 1] === currentPath;
   const previousEntry = isCurrentStackTail ? stack[stack.length - 2] : null;

@@ -17,6 +17,7 @@ import {
   toggleSkipAction,
 } from "./actions";
 import { getSessionPageData } from "./queries";
+import { isSafeAppPath } from "@/lib/navigation-return";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,7 @@ type PageProps = {
   searchParams?: {
     error?: string;
     exerciseId?: string;
+    returnTo?: string;
   };
 };
 
@@ -115,6 +117,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
   const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
+
+  const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
 
   return (
     <AppShell topNavMode="none">
@@ -170,6 +174,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           })}
           saveSessionAction={saveSessionAction}
           discardSessionAction={discardSessionAction}
+          requestedReturnTo={requestedReturnTo}
           quickAddAction={(
             <QuickAddExerciseSheet
               sessionId={params.id}

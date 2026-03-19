@@ -102,7 +102,7 @@ export function TodayDayPicker({
   }, []);
 
   const viewDayHref = selectedDay ? `/routines/${routineId}/days/${selectedDay.id}` : null;
-  const editDayHref = selectedDay ? `/routines/${routineId}/edit/day/${selectedDay.id}` : null;
+  const editDayHref = selectedDay ? `/routines/${routineId}/edit/day/${selectedDay.id}?returnTo=${encodeURIComponent("/today")}` : null;
   const isRunnableDay = selectedDay?.state === "runnable" || selectedDay?.state === "partial";
   const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
@@ -113,6 +113,7 @@ export function TodayDayPicker({
         <TodayStartButton
           startSessionAction={startSessionAction}
           selectedDayIndex={selectedDayIndex}
+          returnTo="/today"
           fullWidth
           className="w-full"
         />
