@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
@@ -14,6 +15,7 @@ import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSumm
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
+import { getExerciseIconSrc } from "@/lib/exerciseImages";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
@@ -22,6 +24,10 @@ type EditableRoutineDayExerciseItem = {
   targetSummary: string;
   isCardio: boolean;
   defaultDistanceUnit: "mi" | "km" | "m";
+  image_path?: string | null;
+  image_icon_path?: string | null;
+  image_howto_path?: string | null;
+  slug?: string | null;
   defaults: {
     targetSets?: number | null;
     targetReps?: number | null;
@@ -220,13 +226,23 @@ export function EditableRoutineDayExerciseList({
               <ExerciseCard
                 title={exercise.name}
                 subtitle={exercise.targetSummary}
+                variant="interactive"
+                state={isExpanded ? "active" : "default"}
                 onPress={() => setSelectedExerciseId(exercise.exerciseId)}
                 badgeText={`#${index + 1}`}
+                leadingVisual={(
+                  <ExerciseAssetImage
+                    src={getExerciseIconSrc(exercise)}
+                    alt={`${exercise.name} icon`}
+                    className="h-11 w-11 rounded-xl border border-border/35"
+                    imageClassName="object-cover object-center"
+                    sizes="44px"
+                  />
+                )}
                 trailingClassName="self-start pt-0.5"
                 className={cn(
-                  "px-3 py-3",
                   listShellClasses.card,
-                  "border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] shadow-[0_4px_14px_-10px_rgba(0,0,0,0.55)]",
+                  "shadow-[0_4px_14px_-10px_rgba(0,0,0,0.55)]",
                   isExpanded ? "rounded-b-none border-b-0" : undefined,
                 )}
                 rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
@@ -266,7 +282,7 @@ export function EditableRoutineDayExerciseList({
                   </>
                 }
               >
-                <p className="text-[11px] text-muted">Open exercise info from the card. Use the handle to move it.</p>
+                <p className="text-[11px] text-muted">Exercise info stays on the card; edit, reorder, and delete remain trailing actions.</p>
               </ExerciseCard>
 
               {isExpanded ? (

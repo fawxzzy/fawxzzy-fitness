@@ -1,3 +1,14 @@
+## 0.3.90 — 2026-03-19
+
+### WHAT
+- Unified exercise-related surfaces around one shared `ExerciseCard` contract with constrained `compact`, `interactive`, `expanded`, and `summary` variants plus normalized selected/active/completed/empty state styling.
+- Migrated session overview rows, routine day rows, editable routine rows, picker rows, quick-add rows, and history exercise cards onto the same title/subtitle/badge/layout system, including the shared left-side exercise image treatment and consistent right-side status/action placement.
+- Removed per-surface spacing and hierarchy drift where some exercise rows lacked images, badges sat in different positions, empty goals used different wording, and history/session/routine cards used bespoke shells for similar content.
+
+### WHY
+- Repeated exercise surfaces should read as one product system instead of a collection of locally evolved cards.
+- A shared surface contract reduces UI drift, lowers cognitive load, and makes future refinements safer because state language and alignment now change in one place.
+
 ## 0.3.89 — 2026-03-19
 
 ### WHAT

@@ -49,13 +49,10 @@ const QuickAddExerciseRow = memo(function QuickAddExerciseRow({ exercise, isSele
       <ExerciseCard
         title={exercise.name}
         subtitle={subtitle || undefined}
+        variant="compact"
+        state={isSelected ? "selected" : "default"}
         onPress={() => onPress(exercise.id, isSelected)}
-        className={cn(
-          "min-h-[5.1rem] px-4 py-3.5",
-          isSelected
-            ? "border-accent/35 bg-accent/10 shadow-[0_10px_28px_-18px_rgba(96,200,130,0.95)] ring-1 ring-accent/20"
-            : "border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
-        )}
+        className="items-center"
         trailingClassName={isSelected ? "text-text" : "text-muted"}
         rightIcon={(
           <span
