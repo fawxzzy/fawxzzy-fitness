@@ -27,7 +27,7 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
           <li key={exercise.id}>
             <ExerciseCard
               title={exercise.name}
-              subtitle={exercise.goalLine ?? "Goal: Not set"}
+              subtitle={exercise.goalLine ?? "Goal missing"}
               variant="interactive"
               state={exercise.goalLine ? "default" : "empty"}
               leadingVisual={(
@@ -39,7 +39,7 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
                   sizes="44px"
                 />
               )}
-              badgeText={exercise.goalLine ? undefined : "No goal yet"}
+              badgeText={exercise.goalLine ? undefined : "Needs goal"}
               onPress={() => {
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] RoutineDayExerciseList", { exerciseId: exercise.exerciseId, exercise });

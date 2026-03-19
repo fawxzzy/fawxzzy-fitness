@@ -42,15 +42,19 @@ function normalizeExerciseTags(exercise: ExerciseOption) {
     .filter((value) => value.length > 0);
 }
 
+function getExerciseScanState(isSelected: boolean, subtitle: string) {
+  if (isSelected) return "selected" as const;
+  return subtitle ? "default" as const : "empty" as const;
+}
 
 const QuickAddExerciseRow = memo(function QuickAddExerciseRow({ exercise, isSelected, subtitle, onPress }: QuickAddExerciseRowProps) {
   return (
     <li>
       <ExerciseCard
         title={exercise.name}
-        subtitle={subtitle || undefined}
+        subtitle={isSelected ? subtitle || undefined : undefined}
         variant="compact"
-        state={isSelected ? "selected" : "default"}
+        state={getExerciseScanState(isSelected, subtitle)}
         onPress={() => onPress(exercise.id, isSelected)}
         className="items-center"
         trailingClassName={isSelected ? "text-text" : "text-muted"}
@@ -64,7 +68,7 @@ const QuickAddExerciseRow = memo(function QuickAddExerciseRow({ exercise, isSele
                 : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
             )}
           >
-            {isSelected ? "Chosen" : "Select"}
+            {isSelected ? "Selected" : "Pick"}
           </span>
         )}
       />
@@ -173,15 +177,10 @@ export function QuickAddExerciseSheet({
         open={open}
         onClose={() => setOpen(false)}
         title="Quick Add"
-        description="Search, choose, and add a session-only exercise without leaving the workout."
+        description="Choose one exercise and add starter sets."
         contentClassName="space-y-5"
       >
         <section className="space-y-3">
-          <div className="space-y-1">
-            <h3 className="text-base font-semibold text-text">Find an exercise</h3>
-            <p className="text-sm text-muted">Search or filter first, then choose from the list below.</p>
-          </div>
-
           <div className="space-y-2">
             <input
               type="search"
@@ -212,10 +211,10 @@ export function QuickAddExerciseSheet({
                     {selectedExercise ? (
                       <p className="text-xs text-muted">{exerciseSubtitleById.get(selectedExercise.id) ?? "No tags available"}</p>
                     ) : (
-                      <p className="text-xs text-muted">Choose from the list below, then set how many starter sets to add.</p>
+                      <p className="text-xs text-muted">Pick from the list below.</p>
                     )}
                   </div>
-                  {selectedExercise ? <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">{selectedSetCount} set{selectedSetCount === 1 ? "" : "s"}</span> : null}
+                  {selectedExercise ? <span className="rounded-full border border-accent/35 bg-accent/18 px-2.5 py-1 text-[11px] font-semibold text-text">{selectedSetCount} set{selectedSetCount === 1 ? "" : "s"}</span> : null}
                 </div>
               </div>
 
@@ -256,7 +255,7 @@ export function QuickAddExerciseSheet({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-base font-semibold text-text">Choose an exercise</h3>
-              <p className="shrink-0 text-xs text-muted">Scrollable list</p>
+              <p className="shrink-0 text-xs text-muted">Tap to pick</p>
             </div>
 
             <ul className="max-h-[min(38dvh,18rem)] space-y-2 overflow-y-auto overscroll-contain pr-1">
@@ -279,7 +278,7 @@ export function QuickAddExerciseSheet({
         <section className="space-y-3">
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-text">Set the starting volume</h3>
-            <p className="text-sm text-muted">Add the number of starter sets you want to create with this exercise.</p>
+            <p className="text-sm text-muted">Choose how many starter sets to add.</p>
           </div>
 
           <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.74)] px-4 py-4">
@@ -287,7 +286,7 @@ export function QuickAddExerciseSheet({
               <div className="min-w-0 space-y-1">
                 <p className="text-sm font-semibold text-text">{selectedExercise ? `${selectedSetCount} set${selectedSetCount === 1 ? "" : "s"} to start` : "Choose an exercise first"}</p>
               </div>
-              <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">Sets</span>
+              <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">Volume</span>
             </div>
 
             <div className="mt-4 flex items-center gap-2">

@@ -206,9 +206,6 @@ export function SessionExerciseFocus({
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
-            const setCountLabel = setCount > 0
-              ? `Logged ${setCount} ${exercise.isCardio ? `interval${setCount === 1 ? "" : "s"}` : `set${setCount === 1 ? "" : "s"}`}`
-              : `No ${exercise.isCardio ? "intervals" : "sets"} yet`;
 
             return (
               <li
@@ -220,7 +217,7 @@ export function SessionExerciseFocus({
               >
                 <ExerciseCard
                   title={exercise.name}
-                  subtitle={exercise.goalLabel}
+                  subtitle={setCount > 0 ? exercise.goalLabel : undefined}
                   variant="expanded"
                   state={setCount > 0 ? "completed" : "empty"}
                   onPress={() => onSelectedExerciseIdChange(exercise.id)}
@@ -236,7 +233,7 @@ export function SessionExerciseFocus({
                   className="shadow-none"
                   trailingClassName="self-start pt-1 text-muted"
                   rightIcon={null}
-                  badgeText={setCountLabel}
+                  badgeText={setCount > 0 ? `${setCount} logged` : "Next: log set"}
                 >
                   {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -244,6 +241,7 @@ export function SessionExerciseFocus({
                       {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill> : null}
                     </div>
                   ) : null}
+                  {setCount === 0 ? <p className="text-xs text-amber-100/90">Goal ready. Log the first {exercise.isCardio ? "interval" : "set"} next.</p> : null}
                 </ExerciseCard>
               </li>
             );
