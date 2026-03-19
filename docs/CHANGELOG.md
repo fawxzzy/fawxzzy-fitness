@@ -1,3 +1,15 @@
+## 0.3.80 — 2026-03-19
+
+### WHAT
+- Reworked Add Exercise rows onto the app’s canonical list-card treatment so selection is the dominant row action, metadata has more breathing room, and the selected state reads clearly without cramped per-row controls.
+- Added a cleaner selected-exercise summary action path by opening Exercise Info from the selected-state summary area instead of restoring the old per-row info button.
+- Tightened the Add Exercise measurement/action area and refreshed Edit Routine plus Edit Day editor sections so their measurement configurators, section framing, and action surfaces stay aligned with the newer normalized workout-entry language.
+
+### WHY
+- Keeps choosers optimized for selection first, which avoids the cramped list density that made Add Exercise feel inconsistent with the rest of the app.
+- Preserves exercise-info access in a way that is easier to discover after selection and reduces secondary-action noise while scanning the list.
+- Brings remaining editor-style routine surfaces closer to Today, Day View, and Current Session so the normalized action + measurement system feels shared across the app.
+
 ## 0.3.79 — 2026-03-19
 
 ### WHAT

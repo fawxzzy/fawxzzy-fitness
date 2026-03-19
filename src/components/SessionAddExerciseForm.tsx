@@ -64,7 +64,7 @@ export function SessionAddExerciseForm({
         {customExerciseSection}
         <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} exerciseStats={exerciseStats} />
       </div>
-      <div className="pt-1">
+      <div className="rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
         <AppButton type="submit" variant="primary" fullWidth>
           Add Exercise
         </AppButton>

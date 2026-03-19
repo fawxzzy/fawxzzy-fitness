@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { Button } from "@/components/ui/Button";
+import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { AppButton } from "@/components/ui/AppButton";
 import { Input } from "@/components/ui/Input";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
+import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl";
@@ -167,6 +169,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(true);
+  const [isExerciseInfoOpen, setIsExerciseInfoOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLUListElement | null>(null);
   const scrollPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -296,6 +299,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
+  const selectedFilteredIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
   const statsQueryExerciseId = selectedCanonicalExerciseId;
   const selectedStats = statsQueryExerciseId ? statsByExerciseId.get(statsQueryExerciseId) : undefined;
@@ -398,11 +402,11 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             <p className="text-xs text-muted">{filteredExercises.length} shown</p>
           </div>
         </div>
-        <div className="relative">
+        <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
           <ul
             ref={scrollContainerRef}
             onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-            className="max-h-72 space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
+            className={cn("max-h-80 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]", listShellClasses.viewport, listShellClasses.list)}
           >
             {filteredExercises.map((exercise) => {
               const isSelected = exercise.id === selectedId;
@@ -416,24 +420,27 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                     onPress={() => setSelectedId(exercise.id)}
                     leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
                     className={cn(
-                      "px-3 py-3",
-                      isSelected ? "border-accent/35 bg-accent/10 ring-1 ring-accent/20" : undefined,
+                      listShellClasses.card,
+                      "min-h-[5.25rem] items-center px-4 py-3.5",
+                      isSelected
+                        ? "border-accent/35 bg-accent/10 shadow-[0_10px_28px_-18px_rgba(96,200,130,0.95)] ring-1 ring-accent/20"
+                        : "bg-[rgb(var(--surface-2-soft)/0.6)] hover:bg-[rgb(var(--surface-2-soft)/0.78)]",
                     )}
                     trailingClassName={cn(
-                      "self-start pt-1",
+                      "self-center",
                       isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
                     )}
                     rightIcon={(
                       <span
                         aria-hidden="true"
                         className={cn(
-                          "inline-flex min-h-6 min-w-6 items-center justify-center rounded-full border px-1 text-[11px] font-semibold leading-none",
+                          "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
                           isSelected
                             ? "border-accent/35 bg-accent/20 text-text"
                             : "border-border/50 bg-surface/50 text-muted",
                         )}
                       >
-                        {isSelected ? "✓" : "›"}
+                        {isSelected ? "Selected" : "Choose"}
                       </span>
                     )}
                   />
@@ -452,18 +459,51 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
       <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-[rgb(var(--text))]">
         {selectedExercise ? (
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Selected exercise</p>
-            <p
-              className="overflow-hidden font-medium leading-5 text-text"
-              style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
-            >
-              {selectedExercise.name}
-            </p>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Selected exercise</p>
+              <p
+                className="overflow-hidden font-medium leading-5 text-text"
+                style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+              >
+                {selectedExercise.name}
+              </p>
+            </div>
             <div className="flex flex-wrap gap-1">
               <MetaTag value={selectedExercise.equipment} />
               <MetaTag value={selectedExercise.primary_muscle} />
               <MetaTag value={selectedExercise.movement_pattern} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <AppButton type="button" variant="secondary" size="sm" onClick={() => setIsExerciseInfoOpen(true)}>
+                Exercise info
+              </AppButton>
+              <AppButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const selectedIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
+                  if (selectedIndex <= 0) return;
+                  setSelectedId(filteredExercises[selectedIndex - 1]?.id ?? selectedId);
+                }}
+                disabled={selectedFilteredIndex <= 0}
+              >
+                Previous
+              </AppButton>
+              <AppButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const selectedIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
+                  if (selectedIndex === -1 || selectedIndex >= filteredExercises.length - 1) return;
+                  setSelectedId(filteredExercises[selectedIndex + 1]?.id ?? selectedId);
+                }}
+                disabled={selectedFilteredIndex === -1 || selectedFilteredIndex >= filteredExercises.length - 1}
+              >
+                Next
+              </AppButton>
             </div>
           </div>
         ) : (
@@ -482,12 +522,12 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
           ))}
           <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
 
-          <div className="space-y-2 rounded-lg border border-border/60 bg-[rgb(var(--bg)/0.28)] p-2">
-            <div className="flex justify-end">
-              <Button
+          <div className="space-y-3 rounded-[1.1rem] border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">
+            <div className="flex flex-wrap justify-end gap-2">
+              <AppButton
                 type="button"
                 variant="ghost"
-                className="h-7 px-1 text-xs"
+                size="sm"
                 onClick={() => {
                   const nextMeasurementType = selectedExercise ? getDefaultMeasurementType(selectedExercise) : "reps";
                   setSelectedMeasurements(nextMeasurementType === "time" ? ["time"] : ["reps", "weight"]);
@@ -496,7 +536,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 }}
               >
                 Reset measurements
-              </Button>
+              </AppButton>
             </div>
 
             {selectedStats && (hasLast || hasPR) ? (
@@ -520,10 +560,10 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 ) : null}
                 {hasLast ? (
                   <div className="flex justify-start">
-                    <Button
+                    <AppButton
                       type="button"
                       variant="ghost"
-                      className="h-7 px-1 text-xs"
+                      size="sm"
                       onClick={() => {
                         setTargetWeight(String(selectedStats.lastWeight));
                         setTargetRepsMin(String(selectedStats.lastReps));
@@ -542,7 +582,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                       }}
                     >
                       Use last
-                    </Button>
+                    </AppButton>
                   </div>
                 ) : null}
               </div>
@@ -611,6 +651,14 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         </div>
       </div>
       ) : null}
+
+      <ExerciseInfo
+        exerciseId={selectedCanonicalExerciseId}
+        open={isExerciseInfoOpen && Boolean(selectedCanonicalExerciseId)}
+        onOpenChange={(open) => setIsExerciseInfoOpen(open)}
+        onClose={() => setIsExerciseInfoOpen(false)}
+        sourceContext="ExercisePicker"
+      />
     </div>
   );
 }

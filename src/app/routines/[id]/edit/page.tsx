@@ -170,7 +170,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             <form id="routine-update-form" action={updateRoutineAction} className="space-y-5">
               <input type="hidden" name="routineId" value={routine.id} />
               <NavigationReturnInput fallbackHref="/routines" />
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-[rgb(var(--bg)/0.26)] p-4">
+              <div className="space-y-3 rounded-2xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-4">
                 <div className="space-y-1">
                   <h3 className="text-sm font-semibold text-text">Identity</h3>
                   <p className="text-xs leading-5 text-muted">Use a clear routine name so this plan is easy to find from Today, Routines, and history.</p>
@@ -180,7 +180,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                 </label>
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-[rgb(var(--bg)/0.26)] p-4">
+              <div className="space-y-3 rounded-2xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-4">
                 <div className="space-y-1">
                   <h3 className="text-sm font-semibold text-text">Schedule</h3>
                   <p className="text-xs leading-5 text-muted">These settings decide how the routine repeats and which calendar date counts as Day 1.</p>
@@ -203,7 +203,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-[rgb(var(--bg)/0.26)] p-4">
+              <div className="space-y-3 rounded-2xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-4">
                 <div className="space-y-1">
                   <h3 className="text-sm font-semibold text-text">Defaults</h3>
                   <p className="text-xs leading-5 text-muted">These defaults apply when routine-level targets or future day setups need a weight unit.</p>

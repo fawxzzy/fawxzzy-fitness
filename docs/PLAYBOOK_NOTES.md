@@ -23,6 +23,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-03-19 — Exercise info in choosers should come from selected state, not every row
+- Type: Pattern
+- Summary: When a chooser’s primary job is selecting one item, per-row chrome should stay minimal and secondary detail actions like Exercise Info should move into the selected-state summary or another post-selection affordance.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents dense chooser rows from feeling cramped while still preserving access to secondary details once the user has committed attention to one option.
+- Evidence: src/components/ExercisePicker.tsx, src/components/ExerciseCard.tsx, src/components/ExerciseInfo.tsx
+- Status: Proposed
+
 ## 2026-03-19 — Chooser rows should reuse canonical entity-card language
 - Type: Pattern
 - Summary: Exercise choosers should use the same shared entity-row/card language as browse and overview lists, with row tap as the dominant interaction and only task-essential trailing state.
