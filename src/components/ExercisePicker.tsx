@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { PillButton } from "@/components/ui/Pill";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl";
@@ -60,7 +59,6 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 };
 
 const tagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted";
-const rowTagClassName = "rounded-full bg-surface-2-soft px-2 py-0.5 text-xs text-muted";
 
 function toTagArray(value: string[] | string | null | undefined) {
   if (!value) return [];
@@ -165,7 +163,6 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
 
 export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig, exerciseStats = [] }: ExercisePickerProps) {
   const searchParams = useSearchParams();
-  const [hasMounted, setHasMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(true);
@@ -202,7 +199,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [targetDistance, setTargetDistance] = useState("");
   const [targetCalories, setTargetCalories] = useState("");
   const [didApplyLast, setDidApplyLast] = useState(false);
-  const [infoExerciseId, setInfoExerciseId] = useState<string | null>(null);
   const previousExerciseIdRef = useRef<string>(selectedId);
 
   useEffect(() => {
@@ -218,10 +214,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         clearTimeout(scrollPersistTimeoutRef.current);
       }
     };
-  }, []);
-
-  useEffect(() => {
-    setHasMounted(true);
   }, []);
 
   const persistScrollTop = (nextScrollTop: number) => {
@@ -356,11 +348,17 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
   const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
 
+  const getExerciseMetadata = useCallback((exercise: ExerciseOption) => {
+    return [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment]
+      .filter(Boolean)
+      .join(" • ");
+  }, []);
+
   return (
-    <div className="space-y-3">
-      <div className="space-y-2 rounded-xl border border-border/70 bg-[rgb(var(--bg)/0.28)] p-3">
+    <div className="space-y-4">
+      <div className="space-y-2">
         <div className="space-y-0.5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">1. Find an exercise</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Choose</p>
           <p className="text-xs text-muted">Search or filter, then choose the movement you want to add.</p>
         </div>
         <div className="relative">
@@ -368,7 +366,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search exercises"
-            className="pr-9"
+          className="pr-9"
           />
           {search ? (
             <button
@@ -392,10 +390,69 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
       <input type="hidden" name="exerciseListScroll" value={scrollTopSnapshot} />
 
-      <div className="rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.45)] px-3 py-3 text-sm text-[rgb(var(--text))]">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Pick an exercise</p>
+            <p className="text-xs text-muted">{filteredExercises.length} shown</p>
+          </div>
+        </div>
+        <div className="relative">
+          <ul
+            ref={scrollContainerRef}
+            onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
+            className="max-h-72 space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
+          >
+            {filteredExercises.map((exercise) => {
+              const isSelected = exercise.id === selectedId;
+              const iconSrc = getExerciseIconSrc(exercise);
+
+              return (
+                <li key={exercise.id}>
+                  <ExerciseCard
+                    title={exercise.name}
+                    subtitle={getExerciseMetadata(exercise) || undefined}
+                    onPress={() => setSelectedId(exercise.id)}
+                    leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
+                    className={cn(
+                      "px-3 py-3",
+                      isSelected ? "border-accent/35 bg-accent/10 ring-1 ring-accent/20" : undefined,
+                    )}
+                    trailingClassName={cn(
+                      "self-start pt-1",
+                      isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
+                    )}
+                    rightIcon={(
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "inline-flex min-h-6 min-w-6 items-center justify-center rounded-full border px-1 text-[11px] font-semibold leading-none",
+                          isSelected
+                            ? "border-accent/35 bg-accent/20 text-text"
+                            : "border-border/50 bg-surface/50 text-muted",
+                        )}
+                      >
+                        {isSelected ? "✓" : "›"}
+                      </span>
+                    )}
+                  />
+                </li>
+              );
+            })}
+            {filteredExercises.length === 0 ? (
+              <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">
+                No exercises match that search.
+              </li>
+            ) : null}
+          </ul>
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
+        </div>
+      </div>
+
+      <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-[rgb(var(--text))]">
         {selectedExercise ? (
           <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">2. Selected exercise</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Selected exercise</p>
             <p
               className="overflow-hidden font-medium leading-5 text-text"
               style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
@@ -409,77 +466,14 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             </div>
           </div>
         ) : (
-          <span className="text-muted">Select an exercise from the list below</span>
+          <span className="text-muted">Select an exercise from the list above.</span>
         )}
       </div>
 
-      <div className="relative">
-        <ul
-          ref={scrollContainerRef}
-          onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-          className="max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.25)] [scrollbar-gutter:stable]"
-        >
-          {filteredExercises.map((exercise) => {
-            const isSelected = exercise.id === selectedId;
-            const iconSrc = getExerciseIconSrc(exercise);
-
-            return (
-              <li key={exercise.id} className="border-b border-border/40 last:border-b-0">
-                <div className={cn("flex min-h-12 items-center gap-2 px-3 py-2", isSelected ? "bg-surface-2-soft" : "bg-transparent hover:bg-surface-2-soft/60")}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(exercise.id)}
-                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                  >
-                    <ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />
-                    <span className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-text">{exercise.name}</p>
-                      <span className={cn("mt-1 flex flex-wrap gap-1", isSelected ? "" : "opacity-70")}>
-                        {exercise.equipment ? <span className={rowTagClassName}>{exercise.equipment}</span> : null}
-                        {exercise.primary_muscle ? <span className={cn("hidden sm:inline-flex", rowTagClassName)}>{exercise.primary_muscle}</span> : null}
-                        {exercise.movement_pattern ? <span className={rowTagClassName}>{exercise.movement_pattern}</span> : null}
-                      </span>
-                    </span>
-                  </button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      const canonicalExerciseId = resolveCanonicalExerciseId(exercise);
-                      setInfoExerciseId(canonicalExerciseId);
-                    }}
-                    aria-label="Exercise info"
-                    className="h-9 w-9 rounded-full px-0 text-base"
-                  >
-                    ⓘ
-                  </Button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
-      </div>
-
-      <ExerciseInfo
-        exerciseId={infoExerciseId}
-        open={Boolean(infoExerciseId) && hasMounted}
-        onOpenChange={(open) => {
-          if (!open) {
-            setInfoExerciseId(null);
-          }
-        }}
-        onClose={() => {
-          setInfoExerciseId(null);
-        }}
-        sourceContext="ExercisePicker"
-      />
-
       {routineTargetConfig && selectedExercise ? (
-        <div className="space-y-3 rounded-xl border border-border/60 bg-[rgb(var(--bg)/0.22)] p-3">
+        <div className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
           <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">3. Configure targets</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Configure targets</p>
             <p className="text-xs text-muted">Set required sets first, then add any measurements that help define this workout.</p>
           </div>
           {selectedMeasurements.map((metric) => (

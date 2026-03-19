@@ -15,6 +15,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-03-19 — Chooser rows should reuse canonical entity-card language
+- Type: Pattern
+- Summary: Exercise choosers should use the same shared entity-row/card language as browse and overview lists, with row tap as the dominant interaction and only task-essential trailing state.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents choose flows from becoming cramped and visually divergent when extra per-row controls crowd the primary select action.
+- Evidence: src/components/ExercisePicker.tsx, src/components/ExerciseCard.tsx, src/components/SessionAddExerciseForm.tsx
+- Status: Proposed
+
 ## 2026-03-18 — Workout-entry flows should share one mobile session language
 - Type: Pattern
 - Summary: Set entry and Quick Add should read as one mobile-first session system by sharing hierarchy, spacing, softer grouping, and one dominant final commit action across choose → configure → commit flows.
@@ -198,4 +206,3 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents visual drift across adjacent workout-management flows and avoids repeated one-off fixes for spacing, safe-area handling, and sticky actions.
 - Evidence: src/components/layout/CanonicalBottomActions.tsx, src/components/SessionHeaderControls.tsx, src/components/SessionPageClient.tsx, src/components/SessionTimers.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/session/[id]/QuickAddExerciseSheet.tsx
 - Status: Proposed
-
