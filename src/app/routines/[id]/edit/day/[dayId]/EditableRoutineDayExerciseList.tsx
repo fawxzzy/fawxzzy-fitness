@@ -1,14 +1,18 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
+import { useToast } from "@/components/ui/ToastProvider";
 import { controlClassName } from "@/components/ui/formClasses";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
+import { toastActionResult } from "@/lib/action-feedback";
+import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 
 type EditableRoutineDayExerciseItem = {
@@ -37,9 +41,9 @@ type Props = {
   routineDayId: string;
   weightUnit: "lbs" | "kg";
   exercises: EditableRoutineDayExerciseItem[];
-  updateAction: (formData: FormData) => void | Promise<void>;
-  deleteAction: (formData: FormData) => void | Promise<void>;
-  reorderAction: (formData: FormData) => void | Promise<void>;
+  updateAction: (formData: FormData) => Promise<ActionResult>;
+  deleteAction: (formData: FormData) => Promise<ActionResult>;
+  reorderAction: (formData: FormData) => Promise<ActionResult>;
 };
 
 function formatDuration(seconds: number | null | undefined) {
@@ -134,6 +138,8 @@ export function EditableRoutineDayExerciseList({
   deleteAction,
   reorderAction,
 }: Props) {
+  const toast = useToast();
+  const router = useRouter();
   const initialOrder = useMemo(() => exercises.map((exercise) => exercise.id), [exercises]);
   const [orderedIds, setOrderedIds] = useState(initialOrder);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -161,12 +167,23 @@ export function EditableRoutineDayExerciseList({
 
   return (
     <>
-      <form ref={reorderFormRef} action={reorderAction} className="hidden">
+      <form
+        action={async (formData) => {
+          const result = await reorderAction(formData);
+          if (!result.ok) {
+            toast.error(result.error || "Could not reorder exercises.");
+          }
+          if (result.ok) {
+            router.refresh();
+          }
+        }}
+        className="hidden"
+        ref={reorderFormRef}
+      >
         <input type="hidden" name="routineId" value={routineId} />
         <input type="hidden" name="routineDayId" value={routineDayId} />
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
-
       <ul className="space-y-2">
         {orderedExercises.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
@@ -235,6 +252,7 @@ export function EditableRoutineDayExerciseList({
                     </AppButton>
                     <ConfirmedServerFormButton
                       action={deleteAction}
+                      onSuccess={() => router.refresh()}
                       hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
                       triggerLabel="Delete"
                       triggerAriaLabel={`Delete ${exercise.name}`}
@@ -252,7 +270,19 @@ export function EditableRoutineDayExerciseList({
 
               {isExpanded ? (
                 <div className="rounded-b-[1.15rem] border border-border/45 border-t-0 bg-[rgb(var(--surface-2-soft)/0.42)] px-3 pb-3 pt-2.5">
-                  <form action={updateAction} className="space-y-3">
+                  <form
+                    action={async (formData) => {
+                      const result = await updateAction(formData);
+                      toastActionResult(toast, result, {
+                        success: "Exercise updated.",
+                        error: "Could not update exercise.",
+                      });
+                      if (result.ok) {
+                        router.refresh();
+                      }
+                    }}
+                    className="space-y-3"
+                  >
                     <input type="hidden" name="routineId" value={routineId} />
                     <input type="hidden" name="routineDayId" value={routineDayId} />
                     <input type="hidden" name="exerciseRowId" value={exercise.id} />

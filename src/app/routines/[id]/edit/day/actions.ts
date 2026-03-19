@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import type { ActionResult } from "@/lib/action-result";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditDayPath, getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
 import { resolveReturnHref } from "@/lib/navigation-return";
@@ -20,14 +21,14 @@ function resolveRoutineDayReturnTo(formData: FormData, fallbackHref: string) {
   return resolveReturnHref(rawReturnTo, fallbackHref);
 }
 
-function parseRoutineExercisePayload(formData: FormData, returnTo: string) {
+function parseRoutineExercisePayload(formData: FormData) {
   const parsed = parseExerciseGoalPayload(formData, { requireSets: true });
 
   if (!parsed.ok) {
-    redirect(`${returnTo}?error=${encodeURIComponent(parsed.error)}`);
+    return parsed;
   }
 
-  return mapExerciseGoalPayloadToRoutineDayColumns(parsed.payload);
+  return { ok: true as const, payload: mapExerciseGoalPayloadToRoutineDayColumns(parsed.payload) };
 }
 
 export async function saveRoutineDayAction(formData: FormData) {
@@ -74,20 +75,22 @@ export async function saveRoutineDayAction(formData: FormData) {
   redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}success=${encodeURIComponent("Day saved")}`);
 }
 
-export async function addRoutineDayExerciseAction(formData: FormData) {
+export async function addRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const exerciseId = String(formData.get("exerciseId") ?? "").trim();
-  const returnTo = `/routines/${routineId}/edit/day/${routineDayId}`;
 
   if (!routineId || !routineDayId || !exerciseId) {
-    redirect(`${returnTo}?error=${encodeURIComponent("Missing exercise info")}`);
+    return { ok: false, error: "Missing exercise info" };
   }
 
-  const payload = parseRoutineExercisePayload(formData, returnTo);
+  const parsedPayload = parseRoutineExercisePayload(formData);
+  if (!parsedPayload.ok) {
+    return { ok: false, error: parsedPayload.error };
+  }
 
   const { count } = await supabase
     .from("routine_day_exercises")
@@ -106,48 +109,51 @@ export async function addRoutineDayExerciseAction(formData: FormData) {
     routine_day_id: routineDayId,
     exercise_id: exerciseId,
     position: count ?? 0,
-    ...payload,
+    ...parsedPayload.payload,
   });
 
   if (error) {
-    redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
+  return { ok: true };
 }
 
-export async function updateRoutineDayExerciseAction(formData: FormData) {
+export async function updateRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const exerciseRowId = String(formData.get("exerciseRowId") ?? "");
-  const returnTo = `/routines/${routineId}/edit/day/${routineDayId}`;
 
   if (!routineId || !routineDayId || !exerciseRowId) {
-    redirect(`${returnTo}?error=${encodeURIComponent("Missing exercise info")}`);
+    return { ok: false, error: "Missing exercise info" };
   }
 
-  const payload = parseRoutineExercisePayload(formData, returnTo);
+  const parsedPayload = parseRoutineExercisePayload(formData);
+  if (!parsedPayload.ok) {
+    return { ok: false, error: parsedPayload.error };
+  }
 
   const { error } = await supabase
     .from("routine_day_exercises")
-    .update(payload)
+    .update(parsedPayload.payload)
     .eq("id", exerciseRowId)
     .eq("routine_day_id", routineDayId)
     .eq("user_id", user.id);
 
   if (error) {
-    redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
-  redirect(`${returnTo}?success=${encodeURIComponent("Exercise updated")}`);
+  return { ok: true };
 }
 
 
-export async function reorderRoutineDayExercisesAction(formData: FormData) {
+export async function reorderRoutineDayExercisesAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -157,10 +163,9 @@ export async function reorderRoutineDayExercisesAction(formData: FormData) {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  const returnTo = `/routines/${routineId}/edit/day/${routineDayId}`;
 
   if (!routineId || !routineDayId || orderedExerciseRowIds.length === 0) {
-    redirect(`${returnTo}?error=${encodeURIComponent("Missing reorder info")}`);
+    return { ok: false, error: "Missing reorder info" };
   }
 
   const { data: existingRows, error: existingRowsError } = await supabase
@@ -171,12 +176,12 @@ export async function reorderRoutineDayExercisesAction(formData: FormData) {
     .order("position", { ascending: true });
 
   if (existingRowsError) {
-    redirect(`${returnTo}?error=${encodeURIComponent(existingRowsError.message)}`);
+    return { ok: false, error: existingRowsError.message };
   }
 
   const existingIds = (existingRows ?? []).map((row) => row.id);
   if (existingIds.length !== orderedExerciseRowIds.length || existingIds.some((id) => !orderedExerciseRowIds.includes(id))) {
-    redirect(`${returnTo}?error=${encodeURIComponent("Invalid reorder payload")}`);
+    return { ok: false, error: "Invalid reorder payload" };
   }
 
   for (const [position, exerciseRowId] of orderedExerciseRowIds.entries()) {
@@ -188,24 +193,24 @@ export async function reorderRoutineDayExercisesAction(formData: FormData) {
       .eq("user_id", user.id);
 
     if (error) {
-      redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+      return { ok: false, error: error.message };
     }
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
+  return { ok: true };
 }
 
-export async function deleteRoutineDayExerciseAction(formData: FormData) {
+export async function deleteRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
   const routineId = String(formData.get("routineId") ?? "");
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const exerciseRowId = String(formData.get("exerciseRowId") ?? "");
-  const returnTo = `/routines/${routineId}/edit/day/${routineDayId}`;
 
   if (!routineId || !routineDayId || !exerciseRowId) {
-    redirect(`${returnTo}?error=${encodeURIComponent("Missing delete info")}`);
+    return { ok: false, error: "Missing delete info" };
   }
 
   const { error } = await supabase
@@ -215,8 +220,9 @@ export async function deleteRoutineDayExerciseAction(formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    redirect(`${returnTo}?error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
+  return { ok: true };
 }

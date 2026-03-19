@@ -31,6 +31,22 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-03-19 — Selection rows should stay clean; secondary info belongs in selected state
+- Type: Pattern
+- Summary: In chooser-style exercise flows, tapping the row should remain the primary action while details like Exercise Info live in the selected summary area after the user commits attention to one option.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents Quick Add, Add Exercise, and day-editor choosers from regressing into cramped multi-action rows that obscure the main selection task.
+- Evidence: src/components/ExercisePicker.tsx, src/app/session/[id]/QuickAddExerciseSheet.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx
+- Status: Proposed
+
+## 2026-03-19 — Live editor writes should refresh in place after success
+- Type: Guardrail
+- Summary: Add/update/delete/reorder actions inside editor workspaces should revalidate server data and trigger an in-place client refresh so the current screen reflects successful writes immediately.
+- Suggested Playbook File: docs/GUARDRAILS/editor-write-feedback.md
+- Rationale: Prevents stale editor screens that make successful writes feel unreliable because users must leave and re-enter to confirm that changes landed.
+- Evidence: src/app/routines/[id]/edit/day/actions.ts, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm.tsx
+- Status: Proposed
+
 ## 2026-03-19 — Exercise info in choosers should come from selected state, not every row
 - Type: Pattern
 - Summary: When a chooser’s primary job is selecting one item, per-row chrome should stay minimal and secondary detail actions like Exercise Info should move into the selected-state summary or another post-selection affordance.
