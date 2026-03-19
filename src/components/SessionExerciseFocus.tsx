@@ -239,7 +239,7 @@ export function SessionExerciseFocus({
                 <div className="space-y-1">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Exercise workspace</p>
                   <p className="text-xl font-semibold leading-tight text-text">{selectedExercise?.name ?? "Exercise"}</p>
-                  <p className="text-sm text-muted">Move from target to entry to review inside one focused logging workspace.</p>
+                  <p className="text-sm text-muted">Move from goal to entry to review inside one focused logging workspace.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <WorkoutEntryMetric label="Status" value={selectedExercise?.isSkipped ? "Skipped" : "Ready to log"} tone={selectedExercise?.isSkipped ? "warning" : "default"} />
@@ -301,14 +301,14 @@ export function SessionExerciseFocus({
             </div>
 
             <WorkoutEntrySection
-              eyebrow="Target"
-              title="This set should aim at the planned work"
+              eyebrow="Goal"
+              title="Use the planned goal for this set"
               description={selectedExercise!.goalLabel}
               className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))]"
               contentClassName="space-y-0"
             >
               <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
-                <p className="text-xs text-muted">Use the measurements below to capture this target, then finish the set with optional effort details before saving.</p>
+                <p className="text-xs text-muted">Use the measurements below to match this goal, then finish the set with optional effort details before saving.</p>
               </div>
             </WorkoutEntrySection>
 

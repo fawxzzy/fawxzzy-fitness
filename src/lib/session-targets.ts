@@ -2,6 +2,7 @@ import "server-only";
 
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatDurationClock } from "@/lib/duration";
+import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { requireUser } from "@/lib/auth";
 
 export type DisplayTarget = {
@@ -217,32 +218,19 @@ export function formatGoalStatLine(target: DisplayTarget, fallbackWeightUnit: st
 export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string | null): string {
   const resolvedWeightUnit = target.weightUnit ?? (fallbackWeightUnit === "lbs" || fallbackWeightUnit === "kg" ? fallbackWeightUnit : null);
   const resolvedDistanceUnit = target.distanceUnit ?? "mi";
-  const hasMeasurementTarget = (
-    target.setsMin !== undefined
-    || target.setsMax !== undefined
-    || target.repsMin !== undefined
-    || target.repsMax !== undefined
-    || target.weightMin !== undefined
-    || target.weightMax !== undefined
-    || target.durationSeconds !== undefined
-    || target.distance !== undefined
-    || target.calories !== undefined
-  );
 
-  if (!hasMeasurementTarget) {
-    return "Goal: Open goal";
-  }
-
-  const parts = [
-    formatRangeValue(target.setsMin, target.setsMax, "sets"),
-    formatRangeValue(target.repsMin, target.repsMax, "reps"),
-    formatRangeValue(target.weightMin, target.weightMax, resolvedWeightUnit ?? "weight"),
-    target.durationSeconds !== undefined ? `Time ${formatDurationText(target.durationSeconds)}` : null,
-    target.distance !== undefined ? `Distance ${target.distance} ${resolvedDistanceUnit}` : null,
-    target.calories !== undefined ? `Calories ${target.calories} cal` : null,
-  ].filter((part): part is string => Boolean(part));
-
-  return `Goal: ${parts.join(" • ")}`;
+  return formatGoalSummaryText({
+    sets: resolveRangeValue(target.setsMin, target.setsMax, target.setsMin ?? target.setsMax),
+    reps: resolveRangeValue(target.repsMin, target.repsMax, target.repsMin ?? target.repsMax),
+    repsMax: target.repsMax ?? target.repsMin,
+    weight: resolveRangeValue(target.weightMin, target.weightMax, target.weightMin ?? target.weightMax),
+    weightUnit: resolvedWeightUnit,
+    durationSeconds: target.durationSeconds,
+    distance: target.distance,
+    distanceUnit: resolvedDistanceUnit,
+    calories: target.calories,
+    emptyLabel: "Open goal",
+  });
 }
 
 export async function getSessionTargets(sessionId: string) {

@@ -21,7 +21,7 @@ import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
-import { formatRepTarget } from "@/lib/routines";
+import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -56,43 +56,6 @@ function formatDayTitle(dayIndex: number, dayName: string | null) {
   if (!trimmedName) return fallback;
   if (trimmedName.toLowerCase() === fallback.toLowerCase()) return fallback;
   return trimmedName;
-}
-
-function formatTargetDuration(seconds: number | null) {
-  if (seconds === null) return null;
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const secondsPart = seconds % 60;
-  return `${minutes}:${String(secondsPart).padStart(2, "0")}`;
-}
-
-function formatExerciseTargetSummary(params: {
-  sets: number | null;
-  measurementType: "reps" | "time" | "distance" | "time_distance";
-  repsMin: number | null;
-  repsMax: number | null;
-  repsFallback: number | null;
-  weight: number | null;
-  durationSeconds: number | null;
-  distance: number | null;
-  distanceUnit: "mi" | "km" | "m" | null;
-  calories: number | null;
-  weightUnit: "lbs" | "kg" | null;
-}) {
-  const parts: string[] = [];
-  if (params.sets !== null) parts.push(`${params.sets} sets`);
-  const repsText = formatRepTarget(params.repsMin, params.repsMax, params.repsFallback).replace("Reps: ", "");
-  if (repsText !== "-") parts.push(`${repsText} reps`);
-  if (params.weight !== null) parts.push(`@ ${params.weight} ${params.weightUnit ?? "lbs"}`);
-  const durationText = formatTargetDuration(params.durationSeconds);
-  if ((params.measurementType === "time" || params.measurementType === "time_distance") && durationText) {
-    parts.push(`Time ${durationText}`);
-  }
-  if (params.measurementType === "distance" || params.measurementType === "time_distance") {
-    if (params.distance !== null) parts.push(`Distance ${params.distance} ${params.distanceUnit ?? "mi"}`);
-    if (params.calories !== null) parts.push(`Calories ${params.calories}`);
-  }
-  return parts.join(" · ");
 }
 
 function hasCardioTag(exercise: unknown) {
@@ -168,19 +131,18 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       id: exercise.id,
       exerciseId: matchingExercise?.id ?? exercise.exercise_id,
       name,
-      targetSummary: formatExerciseTargetSummary({
+      targetSummary: formatGoalSummaryText({
         sets: exercise.target_sets,
-        measurementType,
-        repsMin: exercise.target_reps_min,
-        repsMax: exercise.target_reps_max,
-        repsFallback: exercise.target_reps,
+        reps: exercise.target_reps_min ?? exercise.target_reps,
+        repsMax: exercise.target_reps_max ?? exercise.target_reps,
         weight: exercise.target_weight,
-        durationSeconds: exercise.target_duration_seconds,
-        distance: exercise.target_distance,
-        distanceUnit: exercise.target_distance_unit,
-        calories: exercise.target_calories,
         weightUnit: exercise.target_weight_unit ?? (routine as RoutineRow).weight_unit,
-      }) || "No target",
+        durationSeconds: measurementType === "time" || measurementType === "time_distance" ? exercise.target_duration_seconds : null,
+        distance: measurementType === "distance" || measurementType === "time_distance" ? exercise.target_distance : null,
+        distanceUnit: exercise.target_distance_unit,
+        calories: measurementType === "distance" || measurementType === "time_distance" ? exercise.target_calories : null,
+        emptyLabel: "Open goal",
+      }),
       isCardio,
       defaultDistanceUnit,
       defaults: {
@@ -253,13 +215,13 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
               <CollapsibleCard
                 title="Add exercises"
-                summary="Choose a movement, set optional targets, then add it to this day."
+                summary="Choose a movement, set an optional goal, then add it to this day."
                 defaultOpen={searchParams?.addExerciseOpen === "1"}
                 className="border border-border/40 bg-[rgb(var(--surface-2-soft)/0.58)] shadow-[0_6px_18px_rgba(0,0,0,0.14)]"
                 bodyClassName="space-y-3 bg-transparent"
               >
                 <div className="rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] px-3 py-2 text-xs text-muted">
-                  Search or filter, choose the movement, add any targets you want, then save it to this day.
+                  Search or filter, choose the movement, add any goal details you want, then save it to this day.
                 </div>
                 <CollapsibleCard
                   title="Add custom exercise"

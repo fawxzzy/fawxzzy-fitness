@@ -1,3 +1,11 @@
+## 2026-03-19 — Goal should be the only user-facing workout-plan label
+- Type: Pattern
+- Summary: Workout planning and logging UI should reserve Goal as the user-facing term, while shared measurement helpers render the exact same goal summary structure and open-state copy everywhere.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents target-vs-goal drift that makes adjacent workout screens feel like different products despite sharing the same data model.
+- Evidence: src/lib/measurement-display.ts, src/lib/exercise-goal-format.ts, src/lib/session-targets.ts, src/components/ExercisePicker.tsx, src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/components/SessionExerciseFocus.tsx
+- Status: Proposed
+
 ## 2026-03-19 — Exercise detail workspaces should have one identity block
 - Type: Pattern
 - Summary: A detail logging workspace should present one clear identity block, then flow through target, entry, effort/review, and commit sections without repeating route title chrome inside the body.

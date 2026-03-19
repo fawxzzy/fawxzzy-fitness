@@ -1,3 +1,14 @@
+## 0.3.81 — 2026-03-19
+
+### WHAT
+- Standardized user-facing workout language around Goal so compact summaries, current-session cards, add-exercise flows, and day editors stop mixing goal vs. target wording.
+- Consolidated goal summary formatting behind the shared measurement display helpers so sets/reps/time/distance/calories summaries now follow one canonical `Goal: … — …` pattern with consistent chips and open-goal fallbacks.
+- Lightened the shared measurement configurator framing, normalized toggle styling and unit-selector placement, and moved required-sets treatment into the Sets input block across add-exercise and edit-day flows.
+
+### WHY
+- Makes workout planning and logging feel like one coherent product instead of a collection of screen-local measurement variants.
+- Reduces drift risk by pushing goal display and measurement configuration rules into shared primitives used across the app.
+
 ## 0.3.80 — 2026-03-19
 
 ### WHAT
