@@ -1,3 +1,15 @@
+## 0.3.89 — 2026-03-19
+
+### WHAT
+- Rebuilt the shared split bottom-action primitive around equal-width slot wrappers so left/right paired actions now grow and shrink under one deterministic container contract instead of inheriting width behavior from whichever button variant or wrapper happened to be passed in.
+- Updated the shared bottom sheet shell and the Quick Add flow so the sheet scrolls safely within the viewport, keeps the final action reachable on smaller mobile heights, trims redundant helper copy, and shows a tighter current-selection summary with direct secondary actions.
+- Removed the main Routines page footer edit entry point and moved routine editing into the Switch Routine sheet’s active-routine card so routine management has one clearer home instead of duplicate entry points.
+
+### WHY
+- The split footer drift came from defining width at the child/button level rather than the shared slot level, which let wrapper differences and intrinsic button sizing make the right-side action render slightly narrower across every reused pair.
+- Fixing the width contract at the shared primitive layer prevents per-screen hacks and keeps current session, history, Today, and routine editor action groups aligned under the same mobile action-bar rules.
+- Quick Add needed follow-up cleanup because its sheet layout still relied on brittle visible-height assumptions, repeated explanatory copy, and a noisy selected-summary block that made small screens feel cramped.
+
 - Restored session-flow sticky footers to stable local ownership in the session shell and focused set-entry path, explicitly avoiding the shared bottom-actions publish/provider path for this repair.
 - Strengthened the session footer wrapper so Save Session / Discard and Save Set stay pinned with consistent safe-area padding while content scrolls underneath.
 - Made the session header timer hydration-safe by rendering the stable initial clock until the client timer mounts, preventing server/client timer text mismatches.

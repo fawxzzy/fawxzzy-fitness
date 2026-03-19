@@ -8,6 +8,14 @@ const frameClassName = cn(
 
 const itemBaseClassName = "[&>*]:min-h-12 [&>*]:w-full";
 
+function BottomActionSlot({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn("flex min-w-0 flex-1 basis-0 items-stretch justify-center [&>*]:w-full", className)}>
+      {children}
+    </div>
+  );
+}
+
 export function BottomActionSingle({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn(frameClassName, "grid grid-cols-1 gap-2", itemBaseClassName, className)}>{children}</div>;
 }
@@ -17,15 +25,12 @@ export function BottomActionSplit({ primary, secondary, className }: { primary: 
     <div
       className={cn(
         frameClassName,
-        "grid grid-cols-2 gap-2",
-        itemBaseClassName,
-        "[&>*:first-child]:order-2 [&>*:last-child]:order-1",
-        "sm:[&>*:first-child]:order-1 sm:[&>*:last-child]:order-2",
+        "flex items-stretch gap-2",
         className,
       )}
     >
-      {primary}
-      {secondary}
+      <BottomActionSlot className="order-2 sm:order-1">{primary}</BottomActionSlot>
+      <BottomActionSlot className="order-1 sm:order-2">{secondary}</BottomActionSlot>
     </div>
   );
 }
@@ -45,14 +50,14 @@ export function BottomActionTriple({
     <div
       className={cn(
         frameClassName,
-        "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]",
+        "grid grid-cols-1 gap-2 sm:grid-cols-3",
         itemBaseClassName,
         className,
       )}
     >
-      {secondary}
-      {tertiary}
-      {primary}
+      <BottomActionSlot>{secondary}</BottomActionSlot>
+      <BottomActionSlot>{tertiary}</BottomActionSlot>
+      <BottomActionSlot>{primary}</BottomActionSlot>
     </div>
   );
 }
