@@ -265,7 +265,9 @@ export function ExerciseInfoSheet({
                     key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
                     src={resolvedHowToSrc}
                     alt="How-to visual"
-                    className="h-full w-full object-contain object-center"
+                    className="h-full w-full"
+                    imageClassName="object-contain object-center"
+                    sizes="(max-width: 768px) 100vw, 480px"
                   />
                 </div>
               </div>

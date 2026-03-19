@@ -177,7 +177,9 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
     <ExerciseAssetImage
       src={iconSrc}
       alt={`${exercise.name} icon`}
-      className="h-10 w-10 rounded-md border border-border/40 object-cover"
+      className="h-10 w-10 rounded-md border border-border/40"
+      imageClassName="object-cover object-center"
+      sizes="40px"
     />
   );
 }
