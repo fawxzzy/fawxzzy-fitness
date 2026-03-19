@@ -254,6 +254,8 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Summary: Sticky/mobile bottom actions should be composed from a small canonical set (single, split, utility cluster) so save/cancel/edit/delete groups share the same inset, radius, spacing, and emphasis rules across detail screens.
 - Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
 - Rationale: Prevents footer drift, repeated per-screen CTA layout code, and accidental regressions in safe-area padding or button sizing.
+- Save actions must honor the same return contract as Back: prefer safe in-app history return when present, and fall back only to deterministic screen routes when no safe return target exists.
+- Canonical bottom action bars should keep split primary/secondary actions in one shared two-column mobile layout instead of per-screen stacking or width overrides.
 - Evidence: src/components/layout/CanonicalBottomActions.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/routines/page.tsx, src/components/SessionPageClient.tsx
 - Status: Proposed
 
