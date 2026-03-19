@@ -1,3 +1,15 @@
+## 0.3.78 — 2026-03-19
+
+### WHAT
+- Tightened Edit Day spacing and hierarchy so the header, day settings, planned workout list, and add-exercise composer read like one lighter shared workout-detail system.
+- Restyled planned workout rows onto the canonical shared list-card language with quieter surfaces, compact trailing reorder/edit/delete controls, preserved tap-for-info behavior, and a matching empty state.
+- Updated Edit Day add-exercise copy to match the chooser flow language of choose → optional targets → add to day, while preserving all existing add/remove/update/reorder behavior.
+- Added a reusable note that planned-workout editor rows should extend the canonical list row instead of drifting into heavier tooling-style variants once the shared primitives settle.
+
+### WHY
+- Keeps Edit Day visually aligned with Today, Day View, Current Session, and the Add Exercise chooser instead of feeling like a heavier adjacent editor.
+- Preserves learned row/action behavior while finishing the last visual normalization pass on a high-frequency workout-management screen.
+
 ## 0.3.77 — 2026-03-19
 
 ### WHAT

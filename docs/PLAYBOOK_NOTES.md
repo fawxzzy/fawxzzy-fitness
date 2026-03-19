@@ -199,6 +199,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed
 
 
+## 2026-03-19 — Planned-workout editor rows should extend the canonical list row
+- Type: Pattern
+- Summary: Once planned workout rows have a canonical list-card language across Today, Day View, session overviews, and choosers, editor variants should keep the same row shell and only layer compact trailing edit/reorder/destructive controls onto it.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents edit screens from regressing into heavier tooling-style cards after the shared list system is already established, while preserving row-tap learning and action predictability.
+- Evidence: src/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList.tsx, src/app/routines/[id]/days/[dayId]/RoutineDayExerciseList.tsx, src/app/today/TodayExerciseRows.tsx, src/components/ExercisePicker.tsx, src/components/ExerciseCard.tsx
+- Status: Proposed
+
+
 ## 2026-03-19 — Workout detail flows should share one shell and action-bar system
 - Type: Pattern
 - Summary: Current session, set entry, edit day, and related workout pickers should reuse one detail-shell pattern with top-right back placement, one surface/card language, and canonical bottom action variants (single, split, utility cluster).
