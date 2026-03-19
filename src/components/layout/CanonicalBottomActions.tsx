@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-const frameClassName = cn(
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-4 pb-[calc(var(--app-safe-bottom)+0.4rem)]";
+export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   "rounded-[1.5rem] border border-white/12 bg-[rgb(var(--surface-rgb)/0.965)]",
   "px-3 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-md",
 );
@@ -17,14 +18,14 @@ function BottomActionSlot({ children, className }: { children: ReactNode; classN
 }
 
 export function BottomActionSingle({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn(frameClassName, "grid grid-cols-1 gap-2", itemBaseClassName, className)}>{children}</div>;
+  return <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, "grid grid-cols-1 gap-2", itemBaseClassName, className)}>{children}</div>;
 }
 
 export function BottomActionSplit({ primary, secondary, className }: { primary: ReactNode; secondary: ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        frameClassName,
+        BOTTOM_ACTION_SURFACE_INNER_CLASSNAME,
         "flex items-stretch gap-2",
         className,
       )}
@@ -49,7 +50,7 @@ export function BottomActionTriple({
   return (
     <div
       className={cn(
-        frameClassName,
+        BOTTOM_ACTION_SURFACE_INNER_CLASSNAME,
         "grid grid-cols-1 gap-2 sm:grid-cols-3",
         itemBaseClassName,
         className,
@@ -66,7 +67,7 @@ export function BottomActionUtilityCluster({ children, className }: { children: 
   return (
     <div
       className={cn(
-        frameClassName,
+        BOTTOM_ACTION_SURFACE_INNER_CLASSNAME,
         "flex flex-wrap items-stretch gap-2 [&>*]:min-h-11 [&>*]:min-w-[8rem] [&>*]:flex-1",
         className,
       )}

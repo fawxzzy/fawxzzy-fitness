@@ -1,6 +1,17 @@
 ## 0.3.89 — 2026-03-19
 
 ### WHAT
+- Fixed the routine day editor hydration issue by changing `ExerciseCard` to render a dedicated primary button alongside sibling action controls, then moved Edit Day reorder/edit/delete controls onto that valid interaction model instead of nesting buttons inside a button.
+- Normalized the shared sticky bottom-action surface contract through the canonical footer shell so session, routine, and related action groups now share the same inset, radius, border, background, shadow, and safe-area treatment; aligned the Quick Add sheet commit area with that same surface framing.
+- Tightened Exercise Picker and Quick Add hierarchy so the flow reads more directly as search/filter → choose → selection summary → add, with a compact empty-state summary and slightly shorter chooser viewport for smaller mobile heights.
+
+### WHY
+- The hydration instability came from invalid nested interactive markup: a clickable card rendered as a `button` while also containing inner button actions. React can warn during hydration and the resulting mismatch can cascade into misleading downstream suspense/webpack failures.
+- The fix needed a semantic interaction-model change, not a warning suppression, because the DOM itself was invalid. Separating the primary tap target from secondary controls preserves accessibility, keyboard focus, and reliable hydration.
+- Footer consistency had to expand beyond equal button widths because the visual/action contract also depends on the surrounding shell inset, border, opacity, radius, gap, and safe-area padding.
+- Quick Add cleanup focused on removing repeated labels and keeping richer selection detail only when an exercise is actually selected so smaller mobile sheets stay easier to scan.
+
+### WHAT
 - Rebuilt the shared split bottom-action primitive around equal-width slot wrappers so left/right paired actions now grow and shrink under one deterministic container contract instead of inheriting width behavior from whichever button variant or wrapper happened to be passed in.
 - Updated the shared bottom sheet shell and the Quick Add flow so the sheet scrolls safely within the viewport, keeps the final action reachable on smaller mobile heights, trims redundant helper copy, and shows a tighter current-selection summary with direct secondary actions.
 - Removed the main Routines page footer edit entry point and moved routine editing into the Switch Routine sheet’s active-routine card so routine management has one clearer home instead of duplicate entry points.

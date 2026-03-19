@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 import { cn } from "@/lib/cn";
 
 export const BOTTOM_ACTION_BAR_HEIGHT_PX = 120;
@@ -89,10 +90,10 @@ export function BottomActionBar({
         className,
       )}
     >
-      <div className={cn("mx-auto w-full max-w-md px-4 pointer-events-auto")}>
+      <div className={cn("mx-auto w-full max-w-md pointer-events-auto", BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME)}>
         <div
           className={cn(
-            "flex items-center justify-center gap-4 rounded-2xl bg-[rgb(var(--glass-tint-rgb)/0.20)] px-4 pt-2 pb-[calc(var(--app-safe-bottom)+3px)] shadow-[0_6px_16px_rgb(0_0_0/0.35)] backdrop-blur-md",
+            "flex items-center justify-center gap-4",
             "[&>*]:min-h-[44px] [&>*]:flex-1",
             innerClassName,
           )}

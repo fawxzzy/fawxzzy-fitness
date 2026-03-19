@@ -428,8 +428,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="space-y-0.5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Choose</p>
-          <p className="text-xs text-muted">Search or filter, then choose the movement you want to add.</p>
+          <p className="text-sm font-medium text-muted">Search or filter, then choose the movement you want to add.</p>
         </div>
         <div className="relative">
           <Input
@@ -460,11 +459,14 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
       <input ref={scrollInputRef} type="hidden" name="exerciseListScroll" defaultValue={String(initialScrollTop)} />
 
-      <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-[rgb(var(--text))]">
+      <div className={cn(
+        "rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 text-sm text-[rgb(var(--text))]",
+        selectedExercise ? "py-3" : "py-2.5"
+      )}>
         {selectedExercise ? (
           <div className="space-y-3">
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Selected exercise</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Selected</p>
               <p
                 className="overflow-hidden font-medium leading-5 text-text"
                 style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}

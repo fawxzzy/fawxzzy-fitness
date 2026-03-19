@@ -229,8 +229,9 @@ export function EditableRoutineDayExerciseList({
                   "border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] shadow-[0_4px_14px_-10px_rgba(0,0,0,0.55)]",
                   isExpanded ? "rounded-b-none border-b-0" : undefined,
                 )}
-                rightIcon={
-                  <div className="flex items-center gap-1.5 self-start" onClick={(event) => event.stopPropagation()}>
+                rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
+                actions={
+                  <>
                     <button
                       type="button"
                       draggable
@@ -244,7 +245,7 @@ export function EditableRoutineDayExerciseList({
                       type="button"
                       variant={isExpanded ? "secondary" : "ghost"}
                       size="sm"
-                      className="min-w-[4rem]"
+                      className="min-w-[4rem] self-start"
                       aria-label={isExpanded ? `Close editor for ${exercise.name}` : `Edit ${exercise.name}`}
                       onClick={() => setExpandedId(isExpanded ? null : exercise.id)}
                     >
@@ -256,16 +257,16 @@ export function EditableRoutineDayExerciseList({
                       hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
                       triggerLabel="Delete"
                       triggerAriaLabel={`Delete ${exercise.name}`}
-                      triggerClassName="min-w-[3.8rem]"
+                      triggerClassName="min-w-[3.8rem] self-start"
                       modalTitle="Delete routine day exercise?"
                       modalDescription="This will remove this exercise from the routine day."
                       confirmLabel="Delete"
                       details={`Exercise: ${exercise.name}`}
                     />
-                  </div>
+                  </>
                 }
               >
-                <p className="text-[11px] text-muted">Tap for exercise info. Use the handle to move it.</p>
+                <p className="text-[11px] text-muted">Open exercise info from the card. Use the handle to move it.</p>
               </ExerciseCard>
 
               {isExpanded ? (
