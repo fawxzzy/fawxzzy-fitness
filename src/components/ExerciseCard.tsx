@@ -11,6 +11,7 @@ export function ExerciseCard({
   leadingVisual,
   onPress,
   rightIcon = defaultChevron,
+  actions,
   badgeText,
   disabled = false,
   className,
@@ -22,12 +23,13 @@ export function ExerciseCard({
   leadingVisual?: ReactNode;
   onPress?: () => void;
   rightIcon?: ReactNode;
+  actions?: ReactNode;
   badgeText?: string;
   disabled?: boolean;
   className?: string;
   trailingClassName?: string;
 }) {
-  const content = (
+  const bodyContent = (
     <>
       {leadingVisual ? <div className="shrink-0 self-start">{leadingVisual}</div> : null}
       <div className="min-w-0 flex-1 space-y-1">
@@ -44,31 +46,51 @@ export function ExerciseCard({
         {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal break-words", appTokens.metaText)}>{subtitle}</p> : null}
         {children}
       </div>
-      <div className={cn("shrink-0 self-center text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", trailingClassName)}>{rightIcon}</div>
+      {rightIcon ? <div className={cn("shrink-0 self-center text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", trailingClassName)}>{rightIcon}</div> : null}
     </>
   );
 
   const baseClassName = cn(
     "flex w-full items-start justify-between gap-3 text-left",
     appTokens.rowBase,
-    onPress ? appTokens.rowInteractive : undefined,
     appTokens.rowDefault,
     disabled ? "cursor-not-allowed opacity-60" : undefined,
     className,
   );
 
+  const bodyClassName = cn(
+    "min-w-0 flex-1",
+    onPress ? appTokens.rowInteractive : undefined,
+  );
+
+  if (onPress && actions) {
+    return (
+      <article className={cn(baseClassName, "items-stretch gap-2") }>
+        <button
+          type="button"
+          className={cn(bodyClassName, "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25")}
+          onClick={onPress}
+          disabled={disabled}
+        >
+          {bodyContent}
+        </button>
+        <div className="flex shrink-0 items-start gap-1.5">{actions}</div>
+      </article>
+    );
+  }
+
   if (onPress) {
     return (
       <button
         type="button"
-        className={cn(baseClassName, "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25")}
+        className={cn(baseClassName, bodyClassName, "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25")}
         onClick={onPress}
         disabled={disabled}
       >
-        {content}
+        {bodyContent}
       </button>
     );
   }
 
-  return <div className={baseClassName}>{content}</div>;
+  return <div className={baseClassName}>{bodyContent}</div>;
 }
