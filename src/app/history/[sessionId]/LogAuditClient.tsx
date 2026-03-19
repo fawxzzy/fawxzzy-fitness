@@ -19,6 +19,7 @@ import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { AppBadge } from "@/components/ui/app/AppBadge";
+import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -158,6 +159,7 @@ export function LogAuditClient({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const { navigateReturn } = useReturnNavigation(backHref);
   const [isPending, startTransition] = useTransition();
   const [isEditing, setIsEditing] = useState(initialIsEditing);
   const [dayName, setDayName] = useState(initialDayName);
@@ -233,9 +235,9 @@ export function LogAuditClient({
 
       setIsEditing(false);
       toastActionResult(toast, { ok: true }, { success: "Log details saved.", error: "Unable to save log details." });
-      router.refresh();
+      navigateReturn();
     });
-  }, [dayName, editableSets, exerciseNotes, exercises, logId, router, sessionNotes, toast]);
+  }, [dayName, editableSets, exerciseNotes, exercises, logId, navigateReturn, sessionNotes, toast]);
 
   const handleStartEditing = useCallback(() => {
     const firstSet = exercises.flatMap((exercise) => editableSets[exercise.id] ?? [])[0];
