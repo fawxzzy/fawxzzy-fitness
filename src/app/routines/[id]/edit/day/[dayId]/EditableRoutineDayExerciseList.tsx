@@ -6,6 +6,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
 import { controlClassName } from "@/components/ui/formClasses";
+import { listShellClasses } from "@/components/ui/listShellClasses";
 import { cn } from "@/lib/cn";
 
 type EditableRoutineDayExerciseItem = {
@@ -64,19 +65,19 @@ function RoutineTargetInputs({
 
   return (
     <div className="space-y-2">
-      <details className="rounded-md border border-border/70 bg-[rgb(var(--bg)/0.35)] px-3 py-2">
+      <details className="rounded-[1rem] border border-border/45 bg-[rgb(var(--bg)/0.28)] px-3 py-2.5">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-          <span>Add Measurement</span>
+          <span>Measurements</span>
           <span aria-hidden="true" className="details-chevron text-xs text-muted">⌄</span>
         </summary>
-        <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="reps" defaultChecked={hasReps} />Reps</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="weight" defaultChecked={hasWeight} />Weight</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="time" defaultChecked={hasTime} />Time (duration)</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="distance" defaultChecked={hasDistance} />Distance</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="measurementSelections" value="calories" defaultChecked={hasCalories} />Calories</label>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <label className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="reps" defaultChecked={hasReps} />Reps</label>
+          <label className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="weight" defaultChecked={hasWeight} />Weight</label>
+          <label className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="time" defaultChecked={hasTime} />Time</label>
+          <label className="flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="distance" defaultChecked={hasDistance} />Distance</label>
+          <label className="col-span-2 flex items-center gap-2 rounded-md bg-[rgb(var(--bg)/0.3)] px-2 py-1.5"><input type="checkbox" name="measurementSelections" value="calories" defaultChecked={hasCalories} />Calories</label>
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           <div className="col-span-2 grid grid-cols-2 gap-2">
             <input type="number" min={1} name="targetRepsMin" defaultValue={defaults.targetRepsMin ?? defaults.targetReps ?? ""} placeholder="Min reps" className={controlClassName} />
             <input type="number" min={1} name="targetRepsMax" defaultValue={defaults.targetRepsMax ?? ""} placeholder="Max reps" className={controlClassName} />
@@ -131,6 +132,14 @@ export function EditableRoutineDayExerciseList({
     requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
   };
 
+  if (orderedExercises.length === 0) {
+    return (
+      <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-4 text-sm text-muted">
+        No exercises planned yet. Add one below to build this day.
+      </div>
+    );
+  }
+
   return (
     <>
       <form ref={reorderFormRef} action={reorderAction} className="hidden">
@@ -139,7 +148,7 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
 
-      <ul className="space-y-2.5">
+      <ul className="space-y-2">
         {orderedExercises.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
           const isDragging = activeDragId === exercise.id;
@@ -167,12 +176,23 @@ export function EditableRoutineDayExerciseList({
                 setActiveDragId(null);
                 commitOrder(orderedIds);
               }}
-              className={cn("overflow-hidden rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.45)] shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-colors", isDragging ? "opacity-70" : "hover:border-border/60") }
+              className={cn(
+                "overflow-hidden rounded-[1.15rem] transition-all",
+                isDragging ? "opacity-70" : undefined,
+              )}
             >
               <ExerciseCard
                 title={exercise.name}
                 subtitle={exercise.targetSummary}
                 onPress={() => setSelectedExerciseId(exercise.exerciseId)}
+                badgeText={`#${index + 1}`}
+                trailingClassName="self-start pt-0.5"
+                className={cn(
+                  "px-3 py-3",
+                  listShellClasses.card,
+                  "border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] shadow-[0_4px_14px_-10px_rgba(0,0,0,0.55)]",
+                  isExpanded ? "rounded-b-none border-b-0" : undefined,
+                )}
                 rightIcon={
                   <div className="flex items-center gap-1.5 self-start" onClick={(event) => event.stopPropagation()}>
                     <button
@@ -180,26 +200,26 @@ export function EditableRoutineDayExerciseList({
                       draggable
                       aria-label={`Reorder ${exercise.name}`}
                       title="Drag to reorder"
-                      className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-border/50 bg-[rgb(var(--bg)/0.38)] px-2 text-[13px] font-semibold tracking-[0.18em] text-muted transition-colors hover:bg-[rgb(var(--bg)/0.55)]"
+                      className={cn(listShellClasses.iconAction, "h-8 w-8 border border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted hover:bg-[rgb(var(--bg)/0.48)]")}
                     >
                       ⋮⋮
                     </button>
                     <AppButton
                       type="button"
-                      variant="ghost"
+                      variant={isExpanded ? "secondary" : "ghost"}
                       size="sm"
-                      className="h-8 px-2 text-xs"
+                      className="min-w-[3.5rem]"
                       aria-label={isExpanded ? `Close editor for ${exercise.name}` : `Edit ${exercise.name}`}
                       onClick={() => setExpandedId(isExpanded ? null : exercise.id)}
                     >
-                      {isExpanded ? "Close" : "Edit"}
+                      {isExpanded ? "Done" : "Edit"}
                     </AppButton>
                     <ConfirmedServerFormButton
                       action={deleteAction}
                       hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
                       triggerLabel="Delete"
                       triggerAriaLabel={`Delete ${exercise.name}`}
-                      triggerClassName="h-8 px-2 text-xs"
+                      triggerClassName="min-w-[3.8rem]"
                       modalTitle="Delete routine day exercise?"
                       modalDescription="This will remove this exercise from the routine day."
                       confirmLabel="Delete"
@@ -207,16 +227,13 @@ export function EditableRoutineDayExerciseList({
                     />
                   </div>
                 }
-                badgeText={`#${index + 1}`}
-                trailingClassName="pt-0.5"
-                className="rounded-none border-0 bg-transparent px-3 py-3 shadow-none"
               >
-                <p className="text-[11px] text-muted">Tap for exercise info. Drag the handle to move.</p>
+                <p className="text-[11px] text-muted">Tap for exercise info. Use the handle to move it.</p>
               </ExerciseCard>
 
               {isExpanded ? (
-                <div className="border-t border-border/35 bg-[rgb(var(--bg)/0.16)] px-3 pb-3 pt-3">
-                  <form action={updateAction} className="space-y-2">
+                <div className="rounded-b-[1.15rem] border border-border/45 border-t-0 bg-[rgb(var(--surface-2-soft)/0.42)] px-3 pb-3 pt-2.5">
+                  <form action={updateAction} className="space-y-3">
                     <input type="hidden" name="routineId" value={routineId} />
                     <input type="hidden" name="routineDayId" value={routineDayId} />
                     <input type="hidden" name="exerciseRowId" value={exercise.id} />
@@ -228,7 +245,9 @@ export function EditableRoutineDayExerciseList({
                         defaults={exercise.defaults}
                       />
                     </div>
-                    <AppButton type="submit" variant="secondary" size="sm" className="h-8 px-3 text-xs">Save</AppButton>
+                    <div className="flex justify-end">
+                      <AppButton type="submit" variant="secondary" size="sm">Save changes</AppButton>
+                    </div>
                   </form>
                 </div>
               ) : null}

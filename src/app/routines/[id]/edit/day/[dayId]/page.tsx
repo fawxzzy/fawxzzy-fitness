@@ -196,7 +196,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   return (
     <AppShell topNavMode="none">
       <ScrollContainer>
-        <section className="space-y-4 overflow-x-clip px-1 pb-4">
+        <section className="space-y-3.5 overflow-x-clip px-1 pb-4">
           <AppHeader
             title={`Edit Day — ${dayTitle}`}
             subtitleLeft={routine.name}
@@ -208,7 +208,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
           {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-          <form action={saveRoutineDayAction} className="space-y-3 rounded-[1.5rem] border border-border/50 bg-[rgb(var(--surface-2-soft)/0.74)] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.16)]">
+          <form action={saveRoutineDayAction} className="space-y-3 rounded-[1.4rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.62)] p-4 shadow-[0_6px_18px_rgba(0,0,0,0.14)]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Day settings</p>
               <p className="text-xs text-muted">Name the day, set rest status, and keep the workout list below aligned with the rest of the routine.</p>
@@ -226,14 +226,14 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             <p className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3 text-xs text-muted">Rest day enabled. Planned exercises stay saved, but this day will be skipped until you turn rest day off.</p>
           ) : (
             <>
-              <section className="space-y-3 rounded-[1.5rem] border border-border/50 bg-[rgb(var(--surface-2-soft)/0.74)] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.16)]">
-                <div className="flex items-start justify-between gap-3">
+              <section className="space-y-2.5">
+                <div className="flex items-start justify-between gap-3 px-1">
                   <div className="space-y-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
-                    <h2 className="text-sm font-semibold text-text">Exercises for {dayTitle}</h2>
-                    <p className="text-[11px] text-muted">Tap a row for exercise info. Drag the handle to reorder. Keep edit and delete in the trailing controls.</p>
+                    <h2 className="text-base font-semibold text-text">Exercises for {dayTitle}</h2>
+                    <p className="text-[11px] text-muted">Tap a row for exercise info. Use the handle to reorder. Keep edit and delete in trailing actions.</p>
                   </div>
-                  <span className="rounded-full border border-border/50 bg-[rgb(var(--bg)/0.38)] px-2.5 py-1 text-[11px] font-semibold text-text">{dayExercises.length}</span>
+                  <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{dayExercises.length}</span>
                 </div>
                 <EditableRoutineDayExerciseList
                   routineId={params.id}
@@ -247,14 +247,14 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               </section>
 
               <CollapsibleCard
-                title="Add Exercises"
-                summary="Choose an exercise, optionally set targets, then add it to this day."
+                title="Add exercises"
+                summary="Choose a movement, set optional targets, then add it to this day."
                 defaultOpen={searchParams?.addExerciseOpen === "1"}
-                className="border border-border/50 bg-[rgb(var(--surface-2-soft)/0.74)] shadow-[0_8px_20px_rgba(0,0,0,0.16)]"
+                className="border border-border/40 bg-[rgb(var(--surface-2-soft)/0.58)] shadow-[0_6px_18px_rgba(0,0,0,0.14)]"
                 bodyClassName="space-y-3 bg-transparent"
               >
-                <div className="rounded-lg border border-border/40 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-xs text-muted">
-                  Pick an exercise, set optional targets, then add it to this day.
+                <div className="rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] px-3 py-2 text-xs text-muted">
+                  Search or filter, choose the movement, add any targets you want, then save it to this day.
                 </div>
                 <CollapsibleCard
                   title="Add custom exercise"
@@ -307,7 +307,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                     routineTargetConfig={{ weightUnit: (routine as RoutineRow).weight_unit }}
                     exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
                   />
-                  <AppButton type="submit" variant="primary" fullWidth>Add Exercise</AppButton>
+                  <AppButton type="submit" variant="primary" fullWidth>Add to day</AppButton>
                 </form>
               </CollapsibleCard>
             </>
