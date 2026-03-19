@@ -2,6 +2,7 @@
 
 import { memo, useMemo, useState } from "react";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -85,42 +86,36 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     : row.bestSummary ? `Best ${row.bestSummary}` : null;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border/25 bg-surface/45 transition-colors hover:border-border/35 active:scale-[0.99]">
-      {hasSignal ? <div className="absolute inset-y-0 left-0 w-0.5 bg-[rgb(var(--brand)/0.68)]" aria-hidden="true" /> : null}
-      <button
-        type="button"
-        onClick={() => {
-          if (process.env.NODE_ENV === "development") {
-            console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
-          }
-          onOpen(row.exerciseId);
-        }}
-        aria-label={`Open exercise info for ${displayName}`}
-        className="block h-full w-full appearance-none rounded-[inherit] border-0 bg-transparent p-0 text-left text-inherit [-webkit-appearance:none] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-      >
-        <div className="flex min-h-[96px] items-stretch gap-0">
-          <div className="min-w-0 flex-1 p-3.5 text-left">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 text-[15px] font-semibold leading-5 text-[rgb(var(--text)/0.98)]">{displayName}</p>
-                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.5)]">
-                  {row.kind === "strength" ? "Strength history" : "Cardio history"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-2 space-y-1 text-xs leading-4">
-              {primaryLine ? <p className="line-clamp-2 text-[rgb(var(--text)/0.8)]">{primaryLine}</p> : null}
-              {secondaryLine ? <p className="line-clamp-2 text-[rgb(var(--text)/0.58)]">{secondaryLine}</p> : null}
-            </div>
-          </div>
-
-          <div className="w-[34%] max-w-[132px] min-w-[104px] shrink-0 self-stretch overflow-hidden border-l border-border/20 bg-black/10">
-            <ExerciseAssetImage src={iconSrc} alt={displayName} className="h-full w-full" imageClassName="object-cover object-center" sizes="(max-width: 768px) 34vw, 132px" />
-          </div>
-        </div>
-      </button>
-    </div>
+    <ExerciseCard
+      title={displayName}
+      subtitle={primaryLine || (row.kind === "strength" ? "Strength history" : "Cardio history")}
+      variant="summary"
+      state={hasSignal ? "completed" : "default"}
+      badgeText={row.prLabel ? `PR ${row.prLabel}` : row.bestSummary ? "Best" : lastDate ? `Last ${lastDate}` : undefined}
+      leadingVisual={(
+        <ExerciseAssetImage
+          src={iconSrc}
+          alt={displayName}
+          className="h-[4.5rem] w-[4.5rem] rounded-xl border border-border/25 bg-black/10"
+          imageClassName="object-cover object-center"
+          sizes="72px"
+        />
+      )}
+      onPress={() => {
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
+        }
+        onOpen(row.exerciseId);
+      }}
+      trailingClassName="self-start pt-1 text-muted"
+      rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
+      className="overflow-hidden"
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.5)]">
+        {row.kind === "strength" ? "Strength history" : "Cardio history"}
+      </p>
+      {secondaryLine ? <p className="line-clamp-2 text-xs leading-4 text-[rgb(var(--text)/0.62)]">{secondaryLine}</p> : null}
+    </ExerciseCard>
   );
 });
 

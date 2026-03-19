@@ -191,15 +191,11 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, 
       <ExerciseCard
         title={exercise.name}
         subtitle={metadata || undefined}
+        variant="compact"
+        state={isSelected ? "selected" : "default"}
         onPress={() => onPress(exercise.id, isSelected)}
         leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
-        className={cn(
-          listShellClasses.card,
-          "min-h-[5.25rem] items-center px-4 py-3.5",
-          isSelected
-            ? "border-accent/35 bg-accent/10 shadow-[0_10px_28px_-18px_rgba(96,200,130,0.95)] ring-1 ring-accent/20"
-            : "bg-[rgb(var(--surface-2-soft)/0.6)] hover:bg-[rgb(var(--surface-2-soft)/0.78)]",
-        )}
+        className={cn(listShellClasses.card, "items-center")}
         trailingClassName={cn(
           "self-center",
           isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",

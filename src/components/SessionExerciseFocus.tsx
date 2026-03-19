@@ -9,12 +9,14 @@ import { Pill } from "@/components/ui/Pill";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
+import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { WorkoutEntryIdentity, WorkoutEntryMetric, WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
+import { getExerciseIconSrc } from "@/lib/exerciseImages";
 
 type AddSetPayload = {
   sessionId: string;
@@ -80,6 +82,10 @@ export type SessionExerciseFocusItem = {
   prefill?: SessionExercisePrefill;
   initialSets: SetRow[];
   loggedSetCount: number;
+  image_path?: string | null;
+  image_icon_path?: string | null;
+  image_howto_path?: string | null;
+  slug?: string | null;
 };
 
 export function SessionExerciseFocus({
@@ -213,8 +219,19 @@ export function SessionExerciseFocus({
                 <ExerciseCard
                   title={exercise.name}
                   subtitle={exercise.goalLabel}
+                  variant="expanded"
+                  state={setCount > 0 ? "completed" : "empty"}
                   onPress={() => onSelectedExerciseIdChange(exercise.id)}
-                  className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.72)] px-3 py-3 shadow-none"
+                  leadingVisual={(
+                    <ExerciseAssetImage
+                      src={getExerciseIconSrc(exercise)}
+                      alt={`${exercise.name} icon`}
+                      className="h-11 w-11 rounded-xl border border-white/10"
+                      imageClassName="object-cover object-center"
+                      sizes="44px"
+                    />
+                  )}
+                  className="shadow-none"
                   trailingClassName="self-start pt-1 text-muted"
                   rightIcon={null}
                   badgeText={setCountLabel}
