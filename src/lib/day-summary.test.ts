@@ -20,6 +20,18 @@ test("toExerciseCountSummaryInput preserves full cardio classification metadata"
   assert.equal(summaryInput.isCardio, true);
 });
 
+
+
+test("toExerciseCountSummaryInput treats primary_muscle cardio as cardio when richer metadata is absent", () => {
+  const summaryInput = toExerciseCountSummaryInput({
+    measurement_type: "reps",
+    primary_muscle: "cardio",
+  });
+
+  assert.equal(summaryInput.primary_muscle, "cardio");
+  assert.equal(summaryInput.isCardio, true);
+});
+
 test("canonical day summaries use cardio metadata from canonical details when measurement type alone would look like strength", () => {
   const exercise = {
     id: "day-ex-1",
@@ -53,10 +65,10 @@ test("canonical day summaries use cardio metadata from canonical details when me
       how_to_short: null,
       measurement_type: "reps",
       default_unit: null,
-      kind: "cardio",
-      type: "interval",
-      tags: ["conditioning"],
-      categories: ["cardio"],
+      kind: null,
+      type: null,
+      tags: null,
+      categories: null,
     },
   } satisfies CanonicalDayExercise;
 

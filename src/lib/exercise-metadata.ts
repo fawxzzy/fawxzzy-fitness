@@ -2,6 +2,7 @@ export type ExerciseMetadataInput = {
   measurement_type?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
+  primary_muscle?: string | null;
   isCardio?: boolean | null;
   kind?: string | null;
   type?: string | null;
@@ -28,6 +29,7 @@ export function isCardioExercise(exercise: ExerciseMetadataInput | null | undefi
     || hasCardioToken(exercise.type)
     || hasCardioToken(exercise.equipment)
     || hasCardioToken(exercise.movement_pattern)
+    || hasCardioToken(exercise.primary_muscle)
     || listHasCardioToken(exercise.tags)
     || listHasCardioToken(exercise.categories)
   ) {
