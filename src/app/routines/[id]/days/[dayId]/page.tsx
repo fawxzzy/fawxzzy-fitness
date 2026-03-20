@@ -15,7 +15,7 @@ import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getRestDayExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromCanonicalDay } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -94,7 +94,9 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   });
   const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
-  const daySummary = getRestDayExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? [], dayRow.is_rest).label;
+  const daySummary = canonicalDay
+    ? getRestDayExerciseCountSummaryFromCanonicalDay(canonicalDay).label
+    : getRestDayExerciseCountSummaryFromCanonicalDay({ day: dayRow, runnableExercises: [] }).label;
   const returnToPath = getCurrentPathWithSearch(params, searchParams);
   const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
 

@@ -1,6 +1,19 @@
 ## 2026-03-20
 
 ### WHAT
+- Removed the last route-local Today/View Day summary-builder bypasses so the Today selected-day header, Today day-list rows, and View Day header now all consume the shared `src/lib/day-summary.ts` helper path instead of assembling local partial formatter inputs.
+- Extended the shared day-summary canonical-exercise path so it preserves `isCardio` classification when richer metadata is already available, keeping mixed days on canonical labels like `8 total • 7 strength • 1 cardio` and single-type days on `6 strength` / `3 cardio` instead of regressing to generic `N exercises`.
+- Rule: Once a shared normalization helper exists, screens must not keep local summary-builder copies.
+- Pattern: Shared data normalization only works when all consuming routes actually adopt the helper.
+- Failure Mode: A refactor looks finished in docs, but the visible bug survives because the affected screens still bypass the shared summary path.
+
+### WHY
+- The previous pass improved the helper layer, but Today and View Day still retained route-local summary consumption paths, so those screens could still degrade to generic exercise counts even while Routines/Edit Day rendered richer canonical breakdowns.
+- The final fix was to remove those remaining route-local bypasses entirely and force both surfaces onto the same shared day-summary consumption layer, which resolves the regression without adding UI-level wording patches.
+
+## 2026-03-20
+
+### WHAT
 - Fixed the remaining Today and View Day exercise-breakdown regression by routing their summaries through the same normalized metadata contract already used by the stronger Routines/Edit Day paths, so mixed days now keep canonical labels like `8 total • 7 strength • 1 cardio` and single-type days stay concise like `6 strength`.
 - Added shared input-level day-summary helpers that normalize cardio classification before formatting, then reused that contract across Today, View Day, Edit Day, and Current Session summary surfaces instead of rebuilding partial metadata per route.
 - Added regression coverage to confirm normalized `isCardio` metadata wins over weaker fallback hints when summary labels are generated.
