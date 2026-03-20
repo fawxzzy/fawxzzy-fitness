@@ -12,6 +12,7 @@ import { controlClassName } from "@/components/ui/formClasses";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
+import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
@@ -212,7 +213,7 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="routineDayId" value={routineDayId} />
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
-      <ul className="space-y-2">
+      <ul className="space-y-2.5">
         {orderedExercises.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
           const isDragging = activeDragId === exercise.id;
@@ -334,10 +335,14 @@ export function EditableRoutineDayExerciseList({
                       <input type="hidden" name="exerciseRowId" value={exercise.id} />
                       <div className="space-y-3 rounded-[1rem] bg-[rgb(var(--bg)/0.12)] p-3">
                         <div className="space-y-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Editing this planned workout</p>
-                          <p className="text-xs text-muted">Adjust the draft goal here, then finish this row. Use the page-level Save Day action when you are done editing the day.</p>
+                          <EyebrowText>Planned workout</EyebrowText>
+                          <TitleText as="p" className="text-sm">Editing this exercise</TitleText>
+                          <SubtitleText className="text-xs">Adjust the draft goal here, then finish this row. Use the page-level Save Day action when you are done editing the day.</SubtitleText>
                         </div>
-                        <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets <span className="normal-case tracking-normal">(Required)</span></p><input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} /></div>
+                        <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2">
+                          <EyebrowText>Sets</EyebrowText>
+                          <input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} />
+                        </div>
                         <RoutineTargetInputs
                           weightUnit={weightUnit}
                           distanceUnit={exercise.defaultDistanceUnit}

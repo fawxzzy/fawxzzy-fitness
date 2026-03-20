@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { AccentSubtitleText, EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
 type EditDayHeaderSwitcherDay = {
@@ -46,18 +46,17 @@ export function EditDayHeaderSwitcher({
 
   return (
     <section className="space-y-0">
-      <div className="rounded-[1.45rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.72)] p-4 shadow-[0_10px_28px_rgba(0,0,0,0.16)]">
+      <div className="rounded-[1.5rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.72)] p-4 shadow-[0_12px_30px_rgba(0,0,0,0.16)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-3">
             <div className="space-y-1">
               <EyebrowText>Edit Day</EyebrowText>
               <TitleText as="h1" className="text-xl font-bold">{activeDayTitle}</TitleText>
+              <SubtitleText>{routineName}</SubtitleText>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <SubtitleText as="span">{routineName}</SubtitleText>
-              <span aria-hidden="true" className="text-[rgb(var(--text)/0.4)]">•</span>
-              <SubtitleText as="span">{activeDaySummary}</SubtitleText>
+              <AccentSubtitleText as="span">{activeDaySummary}</AccentSubtitleText>
               {activeDay?.isRest ? (
                 <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.24)] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--text)/0.84)]">
                   Rest day

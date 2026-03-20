@@ -144,7 +144,7 @@ export function SessionPageClient({
       >
         <input type="hidden" name="sessionId" value={sessionId} />
         <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-        <BottomActionSingle className="border-emerald-400/18 bg-[rgb(var(--surface-rgb)/0.985)] shadow-[0_14px_32px_rgba(0,0,0,0.28)]">
+        <BottomActionSingle className="rounded-[1.5rem] border-white/12 bg-[rgb(var(--surface-rgb)/0.97)] px-3 py-3 shadow-[0_16px_34px_rgba(0,0,0,0.28)] backdrop-blur-md">
           <AppButton
             type="submit"
             variant="primary"
