@@ -1,3 +1,22 @@
+## 0.3.98 — 2026-03-20
+
+### WHAT
+- Polished the Current Session top area into a single in-session header shell that keeps the back affordance, routine/day title, elapsed timer, offline badge, and Quick Add together without the previous floating spacing.
+- Removed the redundant discard control from the Current Session footer so the in-session surface now keeps one clear completion path while the Today resume-workout surface remains the only owner of discard.
+- Preserved the shared image-inclusive `StandardExerciseRow` treatment and the current-session goal-summary guardrail so valid canonical `Goal: …` summaries still win over generic no-progress helper copy.
+- Moved the exercise goal summary directly under the log-set exercise name, removed the separate Goal card, and simplified the detail hierarchy so Logged, Type, and Warm-up now sit together in the top stat row.
+- Simplified the log-set screen copy by removing the extra review/explanation labels, tightening the effort area, renaming the RPE field to `Effort Rating`, and changing the entry hint to `0-10`.
+- Pattern: High-frequency detail screens should place the most important workout context directly under the title instead of repeating it in separate cards.
+- Rule: In-session screens should expose one clear completion path and should not duplicate discard ownership already held by the resume-entry surface.
+- Failure Mode: Repeating the same concept across multiple cards or labels makes dense workout screens feel slower and more cluttered than they are.
+
+### WHY
+- The current-session header needed to match the cleaner page-family shell patterns already established elsewhere in the app so the workout overview feels intentional instead of pieced together from separate rows.
+- Keeping discard only on the Today resume-workout surface restores a single owner for destructive session cancellation and removes competing decisions from the active in-session footer.
+- Putting the goal summary directly beneath the exercise title makes the most important context visible immediately, which is faster to scan than burying the same concept inside another titled card.
+- The log-set screen is used repeatedly during workouts, so removing repeated Goal/Review/Effort wording and shrinking the effort area reduces vertical noise without changing the underlying logging behavior.
+- The goal-summary guardrail remains important because valid session goals communicate workout intent and must not disappear behind empty-state fallback language.
+
 ## 0.3.97 — 2026-03-20
 
 ### WHAT
