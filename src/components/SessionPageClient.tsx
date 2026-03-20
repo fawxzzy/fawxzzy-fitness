@@ -5,6 +5,7 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { AppButton } from "@/components/ui/AppButton";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -143,16 +144,24 @@ export function SessionPageClient({
       >
         <input type="hidden" name="sessionId" value={sessionId} />
         <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-        <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
-          Complete session
-        </AppButton>
+        <BottomActionSingle className="border-emerald-400/18 bg-[rgb(var(--surface-rgb)/0.985)] shadow-[0_14px_32px_rgba(0,0,0,0.28)]">
+          <AppButton
+            type="submit"
+            variant="primary"
+            size="md"
+            fullWidth
+            className="min-h-12 font-semibold shadow-[0_10px_24px_rgba(16,185,129,0.18)] transition hover:bg-[rgb(var(--accent-strong-rgb,16_185_129))] hover:brightness-105 active:brightness-95"
+          >
+            Complete session
+          </AppButton>
+        </BottomActionSingle>
       </form>
     ),
     [durationSeconds, navigateReturn, saveSessionAction, sessionId, toast],
   );
 
   return (
-    <ScrollScreenWithBottomActions className="space-y-4 overflow-x-clip px-1 pb-2">
+    <ScrollScreenWithBottomActions className="space-y-3 overflow-x-clip px-1 pb-2">
       {!isExerciseOpen ? (
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}

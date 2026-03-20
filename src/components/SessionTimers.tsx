@@ -767,8 +767,6 @@ export function SetLoggerCard({
           - Save button remains stable while toggling measurements */}
 
       <WorkoutEntrySection
-        eyebrow="Entry"
-        title="Set details"
         className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
       >
         <ModifyMeasurements
@@ -817,15 +815,29 @@ export function SetLoggerCard({
         />
       </WorkoutEntrySection>
 
+      <div className="rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] p-4">
+        <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5 text-sm text-text">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Warm-up</span>
+          <span className="flex items-center gap-2">
+            <span className="text-sm font-medium text-text">{resolvedIsWarmup ? "On" : "Off"}</span>
+            <input
+              type="checkbox"
+              checked={resolvedIsWarmup}
+              onChange={(event) => setWarmupValue(event.target.checked)}
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+            />
+          </span>
+        </label>
+      </div>
+
       <WorkoutEntrySection
-        eyebrow="Effort"
-        title="Effort"
+        title="Effort Rating"
+        description="0-10"
         className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
       >
         <div className="space-y-2">
             <div className="relative rounded-2xl border border-white/8 bg-white/5 p-3">
               <div className="mb-1 flex items-center gap-1">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Effort Rating</span>
                 <button
                   type="button"
                   onClick={() => setShowRpeTooltip((value) => !value)}
@@ -836,9 +848,9 @@ export function SetLoggerCard({
               </div>
               {showRpeTooltip ? (
                 <div className="pointer-events-none absolute left-3 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
-                  <p className="font-medium text-text">Effort rating (0–10)</p>
+                  <p className="font-medium text-text">0-10 effort scale</p>
                   <p>10 = max effort</p>
-                  <p>8 = ~2 reps left</p>
+                  <p>8 = about 2 reps left</p>
                   <p>6 = moderate effort</p>
                 </div>
               ) : null}
@@ -873,12 +885,10 @@ export function SetLoggerCard({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-text">
-                    {isCardio ? "Interval" : "Set"} {index + 1}
-                  </span>
-                  {set.queueStatus ? ` · ${set.queueStatus}` : ""}
-                  {set.pending && !set.queueStatus ? " · saving..." : ""}
+                <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
+                  <span className="font-medium text-text">{isCardio ? "Interval" : "Set"} {index + 1}</span>
+                  {set.queueStatus ? <span>{set.queueStatus}</span> : null}
+                  {set.pending && !set.queueStatus ? <span>saving...</span> : null}
                 </div>
                 <MeasurementSummary
                   values={{
@@ -913,7 +923,7 @@ export function SetLoggerCard({
             </div>
           </li>
         ))}
-        {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-4 text-slate-400">No {isCardio ? "intervals" : "sets"} logged yet. Save one to start the review list.</li> : null}
+        {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-4 text-slate-400">No {isCardio ? "intervals" : "sets"} logged yet.</li> : null}
         </ul>
       </WorkoutEntrySection>
 

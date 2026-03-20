@@ -1,3 +1,11 @@
+## 2026-03-20
+
+- Polished the current session header so the timer, quick add action, and sync status sit in a tighter shell with less dead space.
+- Updated the current session footer to use the canonical bottom action frame and left this screen owning only Complete session, because discard belongs to its dedicated destructive flow instead of the live workout surface.
+- Simplified the log-set detail screen to show Goal once, move Warm-up into a compact inline control above Effort Rating, and remove redundant Set details / Effort copy.
+- Tightened the logged-set review area so LOGGED SETS is the only review heading and duplicate explanatory labels no longer weigh down the workflow.
+- Proactively removed repeated concept labels across dense workout surfaces, following the rule that each concept should appear once.
+
 ## 0.3.100 — 2026-03-20
 
 ### WHAT

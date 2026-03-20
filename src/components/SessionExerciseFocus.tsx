@@ -250,25 +250,12 @@ export function SessionExerciseFocus({
       ) : (
         <div className="flex min-h-full flex-col space-y-4">
           <WorkoutEntryIdentity
-            eyebrow="Exercise"
             title={selectedExercise?.name ?? "Exercise"}
             description={selectedExercise?.goalLabel ? `Goal: ${selectedExercise.goalLabel}` : undefined}
             meta={(
               <>
                 <WorkoutEntryMetric label="Logged" value={`${(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} ${selectedExercise?.isCardio ? "intervals" : "sets"}`} />
                 <WorkoutEntryMetric label="Type" value={selectedExercise?.isCardio ? "Cardio" : "Strength"} />
-                <label className="min-w-0 rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5 text-sm text-text">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Warm-up</span>
-                  <span className="mt-1 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={warmupDraft}
-                      onChange={(event) => setWarmupDraft(event.target.checked)}
-                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
-                    />
-                    <span className="text-sm font-medium text-text">{warmupDraft ? "On" : "Off"}</span>
-                  </span>
-                </label>
                 {selectedExercise?.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-text">Added today</Pill> : null}
                 {selectedExercise?.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-amber-200">Skipped</Pill> : null}
               </>
