@@ -26,6 +26,6 @@ export function formatExerciseGoal(goal: GoalFields) {
     distance: goal.target_distance,
     distanceUnit: goal.target_distance_unit ?? "mi",
     calories: goal.target_calories,
-    emptyLabel: "Not set",
+    emptyLabel: "Goal missing",
   });
 }

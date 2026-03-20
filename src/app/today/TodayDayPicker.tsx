@@ -51,7 +51,7 @@ function getDaySummary(day: TodayDay) {
   }
 
   if (day.state === "empty") {
-    return "No exercises are planned for this day yet.";
+    return "No exercises yet.";
   }
 
   if (day.state === "partial") {
@@ -146,7 +146,7 @@ export function TodayDayPicker({
         onClick={togglePicker}
         aria-expanded={isPickerOpen}
       >
-        <span>{isPickerOpen ? "Hide options" : "Change Workout"}</span>
+        <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
       </SecondaryButton>
     </BottomActionUtilityCluster>
   ), [editDayHref, isPickerOpen, isRunnableDay, selectedDayIndex, startSessionAction, togglePicker, viewDayHref]);
@@ -190,18 +190,18 @@ export function TodayDayPicker({
                     setSelectedExerciseId(exercise.exerciseId);
                   }}
                 >
-                  <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.targets ?? "Goal: Not set"}</p>
+                  <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.targets ?? "Goal missing"}</p>
                 </ExerciseCard>
               </li>
             ))}
-            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3 text-muted">{selectedDay.state === "rest" ? "No workout is scheduled for this rest day." : "No runnable exercises planned for this day."}</li> : null}
+            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3 text-muted">{selectedDay.state === "rest" ? "Rest day." : "No exercises yet."}</li> : null}
           </ul>
         </AppPanel>
       ) : null}
 
       {isPickerOpen ? (
         <AppPanel className="space-y-3 rounded-lg border-white/15 bg-[rgb(var(--surface-2-soft)/0.7)] p-3 shadow-none">
-          <p className="text-sm font-semibold text-muted">Choose workout day</p>
+          <p className="text-sm font-semibold text-muted">Select day</p>
           <div aria-label="Routine days" className="space-y-2">
             {days.map((day) => {
               const isSelected = selectedDayIndex === day.dayIndex;

@@ -45,7 +45,7 @@ export function TodayExerciseRows({
                   sizes="44px"
                 />
               )}
-              badgeText={exercise.targets ? undefined : "Needs goal"}
+              badgeText={undefined}
               onPress={() => {
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });

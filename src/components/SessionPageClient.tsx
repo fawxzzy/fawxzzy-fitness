@@ -124,7 +124,7 @@ export function SessionPageClient({
   const hasExercises = exercises.length > 0;
 
   const emptyState = useMemo(
-    () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises in this session yet.</p>),
+    () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises yet.</p>),
     [hasExercises],
   );
 
@@ -149,7 +149,7 @@ export function SessionPageClient({
             <input type="hidden" name="sessionId" value={sessionId} />
             <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
             <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
-              Save Session
+              Complete session
             </AppButton>
           </form>
         )}

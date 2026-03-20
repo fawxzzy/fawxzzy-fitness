@@ -141,7 +141,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         distance: measurementType === "distance" || measurementType === "time_distance" ? exercise.target_distance : null,
         distanceUnit: exercise.target_distance_unit,
         calories: measurementType === "distance" || measurementType === "time_distance" ? exercise.target_calories : null,
-        emptyLabel: "Open goal",
+        emptyLabel: "Goal missing",
       }),
       isCardio,
       defaultDistanceUnit,

@@ -229,7 +229,7 @@ export function formatGoalText(target: DisplayTarget, fallbackWeightUnit: string
     distance: target.distance,
     distanceUnit: resolvedDistanceUnit,
     calories: target.calories,
-    emptyLabel: "Open goal",
+    emptyLabel: "Goal missing",
   });
 }
 

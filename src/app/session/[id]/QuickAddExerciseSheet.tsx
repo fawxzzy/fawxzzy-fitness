@@ -68,7 +68,7 @@ const QuickAddExerciseRow = memo(function QuickAddExerciseRow({ exercise, isSele
                 : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
             )}
           >
-            {isSelected ? "Selected" : "Pick"}
+            {isSelected ? "Selected" : "Select"}
           </span>
         )}
       />
@@ -177,7 +177,7 @@ export function QuickAddExerciseSheet({
         open={open}
         onClose={() => setOpen(false)}
         title="Quick Add"
-        description="Choose one exercise and add starter sets."
+        description="Select an exercise and add starter sets."
         contentClassName="space-y-5"
       >
         <section className="space-y-3">
@@ -195,7 +195,7 @@ export function QuickAddExerciseSheet({
 
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-semibold text-text">Selection</h3>
+            <h3 className="text-base font-semibold text-text">Selected exercise</h3>
             <p className="shrink-0 text-xs text-muted">{filteredExercises.length} shown</p>
           </div>
 
@@ -207,11 +207,11 @@ export function QuickAddExerciseSheet({
               <div className="space-y-1">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-semibold text-text">{selectedExercise?.name ?? "No exercise selected yet"}</p>
+                    <p className="text-sm font-semibold text-text">{selectedExercise?.name ?? "No exercise selected"}</p>
                     {selectedExercise ? (
-                      <p className="text-xs text-muted">{exerciseSubtitleById.get(selectedExercise.id) ?? "No tags available"}</p>
+                      <p className="text-xs text-muted">{exerciseSubtitleById.get(selectedExercise.id) ?? "No details"}</p>
                     ) : (
-                      <p className="text-xs text-muted">Pick from the list below.</p>
+                      <p className="text-xs text-muted">Select one below.</p>
                     )}
                   </div>
                   {selectedExercise ? <span className="rounded-full border border-accent/35 bg-accent/18 px-2.5 py-1 text-[11px] font-semibold text-text">{selectedSetCount} set{selectedSetCount === 1 ? "" : "s"}</span> : null}
@@ -254,8 +254,8 @@ export function QuickAddExerciseSheet({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-semibold text-text">Choose an exercise</h3>
-              <p className="shrink-0 text-xs text-muted">Tap to pick</p>
+              <h3 className="text-base font-semibold text-text">Exercise list</h3>
+              <p className="shrink-0 text-xs text-muted">Tap to select</p>
             </div>
 
             <ul className="max-h-[min(38dvh,18rem)] space-y-2 overflow-y-auto overscroll-contain pr-1">

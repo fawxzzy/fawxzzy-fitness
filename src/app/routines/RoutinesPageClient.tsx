@@ -77,7 +77,7 @@ export function RoutinesPageClient({
         aria-expanded={isRoutineListOpen}
         aria-controls="routines-switch-list"
       >
-        <span>{isRoutineListOpen ? "Hide Routines" : "Change Routine"}</span>
+        <span>{isRoutineListOpen ? "Hide routines" : "Select routine"}</span>
       </SecondaryButton>
       {activeRoutineEditHref ? (
         <Link
@@ -129,7 +129,7 @@ export function RoutinesPageClient({
 
       <AppPanel className="space-y-3 p-4">
         <AppHeader
-          title="Routine Days"
+          title="Days"
           subtitleRight={days.length === 1 ? "1 day" : `${days.length} days`}
         />
         {days.length > 0 ? (
@@ -159,7 +159,7 @@ export function RoutinesPageClient({
             })}
           </ul>
         ) : (
-          <p className="px-1 text-sm text-muted">No days configured yet.</p>
+          <p className="px-1 text-sm text-muted">No days yet.</p>
         )}
       </AppPanel>
     </div>
