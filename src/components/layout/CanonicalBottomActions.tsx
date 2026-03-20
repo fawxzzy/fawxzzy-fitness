@@ -63,7 +63,7 @@ export function BottomActionTriple({
   );
 }
 
-export function BottomActionUtilityCluster({ children, className }: { children: ReactNode; className?: string }) {
+function BottomActionUtilityRow({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={cn(
@@ -73,6 +73,19 @@ export function BottomActionUtilityCluster({ children, className }: { children: 
       )}
     >
       {children}
+    </div>
+  );
+}
+
+export function BottomActionUtilityCluster({ children, className }: { children: ReactNode; className?: string }) {
+  return <BottomActionUtilityRow className={className}>{children}</BottomActionUtilityRow>;
+}
+
+export function BottomActionStack({ utility, primary, className }: { utility?: ReactNode; primary: ReactNode; className?: string }) {
+  return (
+    <div className={cn("grid grid-cols-1 gap-2", className)}>
+      {utility ? <BottomActionUtilityRow>{utility}</BottomActionUtilityRow> : null}
+      <BottomActionSingle>{primary}</BottomActionSingle>
     </div>
   );
 }

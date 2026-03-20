@@ -1,6 +1,23 @@
 ## 2026-03-20
 
 ### WHAT
+- Moved `Quick Add` out of the Current Session header and into the owned bottom-action stack above `Complete session`, so utility and commit actions now share the same footer surface contract instead of competing across header and footer regions.
+- Removed redundant `Ready to log your first set.` helper copy from Current Session exercise cards, added a consistent trailing entry chevron, and kept the existing image-inclusive row plus logged/completed state treatment so the cards read more clearly as tappable workflow entries.
+- Reworked the Log Set footer hierarchy so `Skip` and `Delete` stay grouped on the first row while `Save Set` now occupies its own full-width primary row with the shared bottom-action treatment.
+- Added a small shared bottom-action stack primitive for the utility-row + primary-row pattern and lightly normalized exercise-row media framing to reduce future drift without broad refactoring.
+- Rule: Utility actions should live with other screen actions when a screen already owns a bottom-action surface.
+- Pattern: Tappable workflow rows should use a consistent trailing-entry affordance.
+- Pattern: Dense entry flows should give the main commit action its own dominant row.
+- Failure Mode: Splitting utility and primary actions across header/footer surfaces reduces scan speed and click confidence.
+
+### WHY
+- Moving `Quick Add` into the footer hierarchy makes the Current Session screen easier to scan because all owned actions now live in one predictable action surface, with the utility action first and the completion action clearly dominant beneath it.
+- The Current Session exercise cards are used as navigation entries into set logging, so removing redundant helper copy and adding a clear right-edge affordance improves tap confidence without changing the underlying flow or logged-state cues.
+- `Save Set` is the main intended next action on the log-set screen, so isolating it onto a full-width second row makes the commit path easier to recognize and hit while still keeping `Skip` and `Delete` available together as secondary controls.
+
+## 2026-03-20
+
+### WHAT
 - Removed the last route-local Today/View Day summary-builder bypasses so the Today selected-day header, Today day-list rows, and View Day header now all consume the shared `src/lib/day-summary.ts` helper path instead of assembling local partial formatter inputs.
 - Extended the shared day-summary canonical-exercise path so it preserves `isCardio` classification when richer metadata is already available, keeping mixed days on canonical labels like `8 total • 7 strength • 1 cardio` and single-type days on `6 strength` / `3 cardio` instead of regressing to generic `N exercises`.
 - Rule: Once a shared normalization helper exists, screens must not keep local summary-builder copies.

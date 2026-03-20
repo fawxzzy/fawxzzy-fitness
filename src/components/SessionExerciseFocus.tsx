@@ -11,6 +11,7 @@ import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutEntryIdentity, WorkoutEntryMetric } from "@/components/ui/workout-entry/EntrySection";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
@@ -227,8 +228,8 @@ export function SessionExerciseFocus({
                   state={setCount > 0 ? "completed" : undefined}
                   onPress={() => onSelectedExerciseIdChange(exercise.id)}
                   className="shadow-none"
-                  trailingClassName="self-start pt-1 text-muted"
-                  rightIcon={null}
+                  trailingClassName="self-center text-muted"
+                  rightIcon={<ChevronRightIcon className="h-5 w-5" />}
                   badgeText={setCount > 0 ? `${setCount} logged` : undefined}
                 >
                   {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
@@ -237,11 +238,7 @@ export function SessionExerciseFocus({
                       {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill> : null}
                     </div>
                   ) : null}
-                  {setCount === 0 ? (
-                    <p className={hasGoalSummary ? "text-xs text-[rgb(var(--text)/0.64)]" : "text-xs text-amber-100/90"}>
-                      {hasGoalSummary ? "Ready to log your first set." : "No sets yet."}
-                    </p>
-                  ) : null}
+                  {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No sets yet.</p> : null}
                 </StandardExerciseRow>
               </li>
             );

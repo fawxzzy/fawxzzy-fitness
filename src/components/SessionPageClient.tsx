@@ -5,7 +5,7 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -144,20 +144,24 @@ export function SessionPageClient({
       >
         <input type="hidden" name="sessionId" value={sessionId} />
         <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-        <BottomActionSingle className="rounded-[1.5rem] border-white/12 bg-[rgb(var(--surface-rgb)/0.97)] px-3 py-3 shadow-[0_16px_34px_rgba(0,0,0,0.28)] backdrop-blur-md">
-          <AppButton
-            type="submit"
-            variant="primary"
-            size="md"
-            fullWidth
-            className="min-h-12 font-semibold shadow-[0_10px_24px_rgba(16,185,129,0.18)] transition hover:bg-[rgb(var(--accent-strong-rgb,16_185_129))] hover:brightness-105 active:brightness-95"
-          >
-            Complete session
-          </AppButton>
-        </BottomActionSingle>
+        <BottomActionStack
+          utility={quickAddAction}
+          primary={(
+            <AppButton
+              type="submit"
+              variant="primary"
+              size="md"
+              fullWidth
+              className="min-h-12 font-semibold shadow-[0_10px_24px_rgba(16,185,129,0.18)] transition hover:bg-[rgb(var(--accent-strong-rgb,16_185_129))] hover:brightness-105 active:brightness-95"
+            >
+              Complete session
+            </AppButton>
+          )}
+          className="w-full"
+        />
       </form>
     ),
-    [durationSeconds, navigateReturn, saveSessionAction, sessionId, toast],
+    [durationSeconds, navigateReturn, quickAddAction, saveSessionAction, sessionId, toast],
   );
 
   return (
@@ -173,7 +177,6 @@ export function SessionPageClient({
             sessionSummary={sessionSummary}
             durationSeconds={hasMountedTimer ? durationSeconds : baseDurationSeconds}
             isTimerHydrated={hasMountedTimer}
-            quickAddAction={quickAddAction}
             backHref={fallbackReturnHref ?? "/today"}
           />
         ) : null}
