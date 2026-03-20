@@ -30,6 +30,10 @@ type TodayPayload = {
     movement_pattern?: string | null;
     measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
     isCardio?: boolean | null;
+    kind?: string | null;
+    type?: string | null;
+    tags?: string[] | string | null;
+    categories?: string[] | string | null;
     image_howto_path?: string | null;
     how_to_short?: string | null;
     image_icon_path?: string | null;

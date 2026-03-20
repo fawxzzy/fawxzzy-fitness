@@ -20,6 +20,10 @@ type ExerciseDetailsRow = {
   how_to_short: string | null;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
   default_unit?: string | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
 };
 
 export type CanonicalDayExercise = RoutineDayExerciseRow & {
@@ -37,6 +41,10 @@ export type CanonicalDayExercise = RoutineDayExerciseRow & {
     how_to_short: string | null;
     measurement_type: ExerciseDetailsRow["measurement_type"];
     default_unit: ExerciseDetailsRow["default_unit"];
+    kind: ExerciseDetailsRow["kind"];
+    type: ExerciseDetailsRow["type"];
+    tags: ExerciseDetailsRow["tags"];
+    categories: ExerciseDetailsRow["categories"];
   } | null;
 };
 
@@ -131,19 +139,19 @@ export async function loadCanonicalExerciseCatalog(args: {
       ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
       : args.supabase
           .from("exercises")
-          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit")
+          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories")
           .in("id", candidateExerciseIds),
     rawExerciseIds.length === 0
       ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
       : args.supabase
           .from("exercises")
-          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit")
+          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories")
           .in("exercise_id", rawExerciseIds),
     legacyExerciseNames.length === 0
       ? Promise.resolve({ data: [] as ExerciseDetailsRow[] })
       : args.supabase
           .from("exercises")
-          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit")
+          .select("id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_howto_path, image_icon_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories")
           .in("name", legacyExerciseNames),
   ]);
 
@@ -222,6 +230,10 @@ export async function buildCanonicalDaySummaries(args: {
                 how_to_short: details.how_to_short,
                 measurement_type: details.measurement_type ?? null,
                 default_unit: details.default_unit ?? null,
+                kind: details.kind ?? null,
+                type: details.type ?? null,
+                tags: details.tags ?? null,
+                categories: details.categories ?? null,
               }
             : null,
         };
