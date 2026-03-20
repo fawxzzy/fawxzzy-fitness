@@ -1,3 +1,16 @@
+## 0.3.95 — 2026-03-20
+
+### WHAT
+- Reworked the Edit Day Add Exercises flow onto the shared `ExercisePicker` and shared measurement/goal primitives so the route now reads as choose exercise → confirm selected exercise → configure goal → add, instead of feeling like a locally assembled editor stack.
+- Tightened selected-state presentation by keeping one stronger selected exercise summary, simplifying row subtitles, shrinking the chooser viewport slightly, and demoting the custom exercise manager into a secondary expandable tool instead of a competing first-class stack.
+- Simplified goal configuration with the shared measurement configurator language, lighter sets/optional-measurement framing, and the same summary patterns already used in adjacent flows.
+
+### WHY
+- The Add Exercise area needed to reuse the same stable selection and goal-configuration primitives already established by Quick Add and adjacent selection flows so nearby routes feel learned instead of bespoke.
+- Pattern: Reuse stable selection and goal-configuration primitives across adjacent flows instead of building route-specific mini-systems.
+- Failure Mode: Add/edit flows that duplicate selected state, configuration state, and commit state become visually noisy and harder to trust.
+- Removing duplicated or low-signal layers makes the selected exercise easier to understand, keeps optional measurements progressive, and reduces the sense that the page has multiple competing editor stacks.
+
 ## 0.3.94 — 2026-03-20
 
 ### WHAT

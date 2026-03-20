@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -33,6 +34,7 @@ export function RoutineDayAddExerciseForm({
   weightUnit,
   addExerciseAction,
   exerciseStats,
+  customExerciseSection,
 }: {
   routineId: string;
   routineDayId: string;
@@ -41,6 +43,7 @@ export function RoutineDayAddExerciseForm({
   weightUnit: "lbs" | "kg";
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
   exerciseStats: ExerciseStatsOption[];
+  customExerciseSection?: ReactNode;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -58,20 +61,25 @@ export function RoutineDayAddExerciseForm({
           router.refresh();
         }
       }}
-      className="space-y-2"
+      className="space-y-4"
     >
       <input type="hidden" name="routineId" value={routineId} />
       <input type="hidden" name="routineDayId" value={routineDayId} />
+      {customExerciseSection}
       <ExercisePicker
         exercises={exercises}
         name="exerciseId"
         initialSelectedId={initialSelectedId}
         routineTargetConfig={{ weightUnit }}
         exerciseStats={exerciseStats}
+        footerSlot={(
+          <div className="rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
+            <AppButton type="submit" variant="primary" fullWidth>
+              Add to day
+            </AppButton>
+          </div>
+        )}
       />
-      <AppButton type="submit" variant="primary" fullWidth>
-        Add to day
-      </AppButton>
     </form>
   );
 }
