@@ -4053,3 +4053,13 @@ WHY:
 - Removes the standing `@next/next/no-img-element` warning by adopting the framework image contract instead of leaving an undocumented exception.
 - Makes exercise image rendering deterministic across surfaces by centralizing the fill, lazy-loading, and fallback rules in one component.
 - Reduces the risk of subtle layout shift or inconsistent border-radius/cropping behavior from ad hoc image usage.
+## Unreleased
+
+### Changed
+- Normalized day/exercise breakdown summaries onto one shared metadata contract so Today now renders the same strength/cardio breakdown quality as Routines, View Day, and Edit Day instead of falling back to generic exercise counts.
+- Introduced semantic text roles for `Title`, `Subtitle`, `AccentSubtitle`, and `Eyebrow` so high-frequency surfaces can share typography intent without route-local class drift.
+- Split neutral supporting text from intentionally emphasized green supporting text so routine/session counts stay readable without turning every subtitle into an accent state.
+
+### Why
+- Today day-list breakdowns were still lagging behind Routines because their summary path was rebuilding labels from route-local exercise payloads instead of reusing the normalized canonical exercise metadata contract.
+- Shared typography drift had accumulated through repeated per-screen `text-white`, muted subtitle, uppercase label, and green helper class bundles, which made hierarchy less consistent across the app.

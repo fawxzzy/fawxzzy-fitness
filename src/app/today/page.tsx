@@ -26,6 +26,7 @@ import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "@/lib/today-page-state";
 import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
 import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
@@ -432,11 +433,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                       title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
                       subtitleRight={todayPayload.routine.state === "rest"
                         ? "Rest day"
-                        : formatExerciseCountSummary(todayPayload.exercises.map((exercise) => ({
-                          measurement_type: exercise.measurement_type ?? null,
-                          equipment: exercise.equipment ?? null,
-                          movement_pattern: exercise.movement_pattern ?? null,
-                        }))).label}
+                        : getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).label}
                       action={todayPayload.completedTodayCount > 0 ? <AppBadge>Completed</AppBadge> : undefined}
                     />
 

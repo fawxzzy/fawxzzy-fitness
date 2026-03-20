@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { appTokens } from "@/components/ui/app/tokens";
+import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 
 export function AppHeader({
   title,
@@ -19,11 +19,11 @@ export function AppHeader({
   return (
     <div className={["flex items-start justify-between gap-3", className].filter(Boolean).join(" ")}>
       <div className="min-w-0 space-y-1">
-        <h2 className="text-xl font-bold leading-tight text-[rgb(var(--text)/0.98)]">{title}</h2>
+        <TitleText as="h2" className="text-xl font-bold">{title}</TitleText>
         {(subtitleLeft || subtitleRight) ? (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-            {subtitleLeft ? <p className={appTokens.mutedText}>{subtitleLeft}</p> : null}
-            {subtitleRight ? <p className={appTokens.metaText}>{subtitleRight}</p> : null}
+            {subtitleLeft ? <SubtitleText>{subtitleLeft}</SubtitleText> : null}
+            {subtitleRight ? <SubtitleText className="text-[rgb(var(--text)/0.54)]">{subtitleRight}</SubtitleText> : null}
           </div>
         ) : null}
       </div>

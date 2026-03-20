@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
 type EditDayHeaderSwitcherDay = {
@@ -49,14 +50,14 @@ export function EditDayHeaderSwitcher({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-3">
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Edit Day</p>
-              <h1 className="text-xl font-bold leading-tight text-[rgb(var(--text)/0.98)]">{activeDayTitle}</h1>
+              <EyebrowText>Edit Day</EyebrowText>
+              <TitleText as="h1" className="text-xl font-bold">{activeDayTitle}</TitleText>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-sm text-[rgb(var(--text)/0.72)]">
-              <span>{routineName}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <SubtitleText as="span">{routineName}</SubtitleText>
               <span aria-hidden="true" className="text-[rgb(var(--text)/0.4)]">•</span>
-              <span>{activeDaySummary}</span>
+              <SubtitleText as="span">{activeDaySummary}</SubtitleText>
               {activeDay?.isRest ? (
                 <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.24)] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--text)/0.84)]">
                   Rest day
@@ -80,7 +81,7 @@ export function EditDayHeaderSwitcher({
                 <span>{open ? "Hide Days" : "Select Day"}</span>
                 <span aria-hidden="true" className={cn("text-xs transition-transform", open ? "rotate-180" : "rotate-0")}>⌄</span>
               </button>
-              <p className="text-xs text-muted">Day switching stays owned by this header. Save and cancel stay in the footer.</p>
+              <SubtitleText className="text-xs">Day switching stays owned by this header. Save and cancel stay in the footer.</SubtitleText>
             </div>
           </div>
 
@@ -96,8 +97,8 @@ export function EditDayHeaderSwitcher({
           className="-mt-px rounded-b-[1.45rem] border border-border/45 border-t-0 bg-[rgb(var(--surface-2-soft)/0.84)] p-3 shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
         >
           <div className="space-y-1 px-1 pb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Select Day</p>
-            <p className="text-xs text-muted">Use the same count language here as Today, View Day, and the routine overview.</p>
+            <EyebrowText>Select Day</EyebrowText>
+            <SubtitleText className="text-xs">Use the same count language here as Today, View Day, and the routine overview.</SubtitleText>
           </div>
           <div className="space-y-2">
             {days.map((day) => {
@@ -110,8 +111,8 @@ export function EditDayHeaderSwitcher({
                   className="flex min-h-14 items-center justify-between gap-3 rounded-[1.1rem] border border-accent/45 bg-[linear-gradient(180deg,rgba(96,200,130,0.18),rgba(96,200,130,0.08))] px-3 py-3 text-left shadow-[0_12px_28px_-24px_rgba(96,200,130,0.95)]"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-[rgb(var(--text)/0.98)]">{day.name}</span>
-                    <span className="block pt-0.5 text-xs text-[rgb(var(--text)/0.66)]">{day.exerciseSummary}</span>
+                    <TitleText as="span" className="block truncate text-sm">{day.name}</TitleText>
+                    <SubtitleText as="span" className="block pt-0.5 text-xs">{day.exerciseSummary}</SubtitleText>
                   </span>
                   <span className="shrink-0 rounded-full border border-accent/45 bg-accent/18 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.92)]">
                     Current
@@ -124,8 +125,8 @@ export function EditDayHeaderSwitcher({
                   className="flex min-h-14 items-center justify-between gap-3 rounded-[1.1rem] border border-transparent bg-[rgb(var(--bg)/0.2)] px-3 py-3 text-left transition hover:border-border/45 hover:bg-[rgb(var(--bg)/0.3)]"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-[rgb(var(--text)/0.92)]">{day.name}</span>
-                    <span className="block pt-0.5 text-xs text-muted">{day.exerciseSummary}</span>
+                    <TitleText as="span" className="block truncate text-sm text-[rgb(var(--text)/0.92)]">{day.name}</TitleText>
+                    <SubtitleText as="span" className="block pt-0.5 text-xs">{day.exerciseSummary}</SubtitleText>
                   </span>
                   <span className="text-sm text-muted" aria-hidden="true">›</span>
                 </Link>
