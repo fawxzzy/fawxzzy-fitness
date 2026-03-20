@@ -118,16 +118,6 @@ export function TodayDayPicker({
       ) : (
         <div aria-hidden="true" className="min-h-[44px] w-full invisible" />
       )}
-      <SecondaryButton
-        id="today-day-picker"
-        type="button"
-        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-        onClick={togglePicker}
-        aria-expanded={isPickerOpen}
-        aria-controls="today-day-selector-list"
-      >
-        <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
-      </SecondaryButton>
       {viewDayHref ? (
         <Link
           href={viewDayHref}
@@ -149,6 +139,16 @@ export function TodayDayPicker({
           Edit Day
         </Link>
       ) : null}
+      <SecondaryButton
+        id="today-day-picker"
+        type="button"
+        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+        onClick={togglePicker}
+        aria-expanded={isPickerOpen}
+        aria-controls="today-day-selector-list"
+      >
+        <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
+      </SecondaryButton>
     </BottomActionUtilityCluster>
   ), [editDayHref, isPickerOpen, isRunnableDay, selectedDayIndex, startSessionAction, togglePicker, viewDayHref]);
 
@@ -161,20 +161,8 @@ export function TodayDayPicker({
           title={`${routineName} | ${selectedDay.name}`}
           subtitleRight={selectedDay.state === "rest" ? "Rest day" : `${selectedDay.exercises.length} exercises`}
           action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
-          selectorLabel={selectedDay.name}
-          selectorHint={selectedDay.state === "rest" ? "Rest day" : `${selectedDay.exercises.length} exercises planned`}
-          selectorToggle={(
-            <SecondaryButton
-              id="today-day-picker"
-              type="button"
-              className="min-h-[44px] min-w-[8.75rem] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-              onClick={togglePicker}
-              aria-expanded={isPickerOpen}
-              aria-controls="today-day-selector-list"
-            >
-              <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
-            </SecondaryButton>
-          )}
+          summaryLabel={selectedDay.dayIndex === currentDayIndex ? "Today" : "Selected day"}
+          summaryHint={selectedDay.state === "rest" ? "Rest day" : `${selectedDay.exercises.length} exercises planned`}
           revealOpen={isPickerOpen}
           revealId="today-day-selector-list"
           revealLabel="Routine days"

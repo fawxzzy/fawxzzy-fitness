@@ -1,19 +1,21 @@
 ## 0.3.96 — 2026-03-20
 
 ### WHAT
-- Normalized Today onto the same anchored selector pattern as Routines so the current day summary, `Select Day` / `Hide Days` toggle, and revealed day list now live in one top summary surface instead of feeling like separate stacked sections.
-- Reordered the Today footer actions so `Edit Day` now sits beside `View Day`, while the day-selection toggle moved into the lower-right footer slot contract without creating a second competing action surface.
-- Removed the remaining blue-feeling current-day emphasis from Routines by shifting Today/current list emphasis onto the app's neutral/green selected-state language and by sharing one anchored selector shell across both top-level screens.
+- Removed duplicate selector ownership from Today and Routines so the top summary surface no longer renders an internal `Select day` / `Select routine` button while the bottom action bar remains the only owner of those primary toggles.
+- Kept the anchored reveal pattern intact by simplifying the shared selector shell into one summary block that still drops the revealed list from the top surface instead of creating a nested “box in a box” selector row.
+- Reordered the Today footer contract so `View Day` and `Edit Day` stay adjacent while the day selector occupies the dedicated footer selector slot.
+- Removed remaining blue current/today emphasis from the Today and Routines day surfaces by keeping current-day treatment on the app’s green/neutral selected-state language.
+- Constrained the wording cleanup on current-session rows so valid `Goal: …` summaries remain visible before any sets are logged, with helper copy only filling truly empty states instead of mutating row meaning.
 - Rule: Primary screen actions must live in a single owned action surface (bottom bar), not split across dropdowns and scattered buttons.
 - Pattern: Reuse interaction models across domains (workout switching → routine switching → day switching) to reduce cognitive load.
 - Pattern: A shared surface system should extend across adjacent domains, not just identical components.
 - Failure Mode: UI systems that unify layout but not state language still feel inconsistent and hard to scan.
-- Pattern: Adjacent top-level screens with the same selection-and-detail workflow should share one normalized page pattern rather than parallel bespoke layouts.
+- Guardrail: Copy cleanup must not mutate domain-state meaning or suppress valid goal summaries on high-frequency workout surfaces like current session.
 
 ### WHY
-- Today and Routines both use a selection-and-detail workflow, so keeping the selector reveal anchored to the same top summary surface makes the screens feel learned together instead of locally invented.
-- The blue current-day styling had drifted away from the app's established neutral/green language; removing it keeps state emphasis readable without introducing a foreign accent color on adjacent list surfaces.
-- Sharing a composable selector shell reduces layout drift between these pages while avoiding a brittle mega-component or duplicated expand/collapse logic.
+- Removing duplicate selector buttons restores one clear action owner per screen while preserving the anchored top reveal users already learned on adjacent switching flows.
+- The blue current-day styling had drifted away from the app’s established neutral/green language, so switching back to the selected-state treatment keeps current emphasis readable without introducing a competing accent color.
+- The wording pass needed explicit guardrails because current-session rows should keep their canonical goal summaries even before progress exists; helper copy can tighten wording, but it must not erase valid workout intent.
 
 ## 0.3.95 — 2026-03-20
 

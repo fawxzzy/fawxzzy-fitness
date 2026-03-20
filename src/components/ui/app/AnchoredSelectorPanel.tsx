@@ -7,9 +7,8 @@ type AnchoredSelectorPanelProps = {
   title: ReactNode;
   subtitleRight?: ReactNode;
   action?: ReactNode;
-  selectorLabel: ReactNode;
-  selectorHint?: ReactNode;
-  selectorToggle: ReactNode;
+  summaryLabel?: ReactNode;
+  summaryHint?: ReactNode;
   revealOpen: boolean;
   revealId: string;
   revealLabel: string;
@@ -23,9 +22,8 @@ export function AnchoredSelectorPanel({
   title,
   subtitleRight,
   action,
-  selectorLabel,
-  selectorHint,
-  selectorToggle,
+  summaryLabel,
+  summaryHint,
   revealOpen,
   revealId,
   revealLabel,
@@ -37,19 +35,18 @@ export function AnchoredSelectorPanel({
   return (
     <AppPanel className={cn("space-y-4 p-4", className)}>
       <div className="space-y-3">
-        <AppHeader title={title} subtitleRight={subtitleRight} action={action} />
-
-        <div className="space-y-3 rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text)/0.52)]">
-                Selection
-              </p>
-              <div className="text-sm font-semibold leading-snug text-[rgb(var(--text)/0.98)]">{selectorLabel}</div>
-              {selectorHint ? <p className="text-xs leading-snug text-[rgb(var(--text)/0.6)]">{selectorHint}</p> : null}
+        <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3">
+          <AppHeader title={title} subtitleRight={subtitleRight} action={action} />
+          {summaryLabel || summaryHint ? (
+            <div className="min-w-0 space-y-1 border-t border-white/8 pt-3">
+              {summaryLabel ? (
+                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text)/0.52)]">
+                  {summaryLabel}
+                </p>
+              ) : null}
+              {summaryHint ? <p className="text-sm leading-snug text-[rgb(var(--text)/0.72)]">{summaryHint}</p> : null}
             </div>
-            <div className="shrink-0">{selectorToggle}</div>
-          </div>
+          ) : null}
 
           {revealOpen && revealContent ? (
             <div

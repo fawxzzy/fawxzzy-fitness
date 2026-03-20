@@ -18,6 +18,11 @@ import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 
+function hasMeaningfulGoalSummary(goalLabel: string) {
+  const normalized = goalLabel.trim().toLowerCase();
+  return normalized.length > 0 && normalized !== "goal missing";
+}
+
 type AddSetPayload = {
   sessionId: string;
   sessionExerciseId: string;
@@ -206,6 +211,7 @@ export function SessionExerciseFocus({
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
+            const hasGoalSummary = hasMeaningfulGoalSummary(exercise.goalLabel);
 
             return (
               <li
@@ -217,9 +223,9 @@ export function SessionExerciseFocus({
               >
                 <ExerciseCard
                   title={exercise.name}
-                  subtitle={setCount > 0 ? exercise.goalLabel : undefined}
+                  subtitle={hasGoalSummary ? exercise.goalLabel : undefined}
                   variant="expanded"
-                  state={setCount > 0 ? "completed" : "empty"}
+                  state={setCount > 0 ? "completed" : hasGoalSummary ? "default" : "empty"}
                   onPress={() => onSelectedExerciseIdChange(exercise.id)}
                   leadingVisual={(
                     <ExerciseAssetImage
@@ -241,7 +247,11 @@ export function SessionExerciseFocus({
                       {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill> : null}
                     </div>
                   ) : null}
-                  {setCount === 0 ? <p className="text-xs text-amber-100/90">No sets yet.</p> : null}
+                  {setCount === 0 ? (
+                    <p className={hasGoalSummary ? "text-xs text-[rgb(var(--text)/0.64)]" : "text-xs text-amber-100/90"}>
+                      {hasGoalSummary ? "Ready to log your first set." : "No sets yet."}
+                    </p>
+                  ) : null}
                 </ExerciseCard>
               </li>
             );
