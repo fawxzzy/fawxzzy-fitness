@@ -1,3 +1,25 @@
+## 0.3.97 — 2026-03-20
+
+### WHAT
+- Removed the remaining redundant anchored-summary blocks from the Today and Routines top selector surfaces so those cards now stay as one clean identity block while still owning the anchored reveal list when the footer toggle opens it.
+- Reordered the Today footer actions to the final contract: `Start Workout` + `Select day` / `Hide days` on the first row, then `View Day` + `Edit Day` together on the second row.
+- Chose the shared image-inclusive exercise row as the canonical standard by routing Today, View Day, offline/resume Today, and Current Session overview rows through one shared `StandardExerciseRow` wrapper around `ExerciseCard` + `ExerciseAssetImage` + `getExerciseIconSrc`.
+- Moved `New Routine` out of the permanent Routines footer and into the top of the open routine-selector reveal so routine selection, creation, and switching now live in one revealed selector surface.
+- Preserved the current-session goal-summary guardrail by centralizing meaningful-goal detection and continuing to show valid `Goal: …` summaries on session overview rows instead of letting helper copy overwrite them.
+- Rule: Primary screen actions must live in a single owned action surface (bottom bar), not split across dropdowns and scattered buttons.
+- Pattern: Reuse interaction models across domains (workout switching → routine switching → day switching) to reduce cognitive load.
+- Pattern: A shared surface system should extend across adjacent domains, not just identical components.
+- Failure Mode: UI systems that unify layout but not state language still feel inconsistent and hard to scan.
+- Guardrail: Copy cleanup must not mutate domain-state meaning or suppress valid goal summaries on high-frequency workout surfaces like current session.
+- Rule: Repeated exercise rows on adjacent workout screens should share one canonical card + image treatment unless a different structure is intentionally justified.
+
+### WHY
+- The extra divider plus secondary summary copy under Today and Routines titles repeated information already present in the selector identity block, which made the anchored selector feel denser without adding new decision value.
+- The Today footer needed one stable ownership pattern so users can predict where switching lives versus where day actions live, especially on small mobile layouts.
+- Applying one shared image-inclusive row treatment across adjacent workout surfaces reduces route drift, improves scan consistency, and makes future wording/state refinements safer because the row shell now changes in one place.
+- Moving `New Routine` into the revealed routine selector keeps routine management inside one interaction cluster instead of splitting ownership between the reveal and a permanently visible footer button.
+- The wording cleanup pass still needs a hard guardrail because valid goal summaries on current-session rows communicate real workout intent and must never be replaced by generic empty-state copy.
+
 ## 0.3.96 — 2026-03-20
 
 ### WHAT

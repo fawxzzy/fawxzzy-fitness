@@ -131,13 +131,15 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           unitLabel={unitLabel}
           exercises={sessionExercises.map((exercise) => {
             const displayTarget = sessionTargets.get(exercise.id);
+            const canonicalExercise = exerciseById.get(exercise.exercise_id);
             return {
               id: exercise.id,
               name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
               isSkipped: exercise.is_skipped,
               defaultUnit: exercise.default_unit ?? null,
-              isCardio: hasCardioTag(exerciseById.get(exercise.exercise_id)),
+              isCardio: hasCardioTag(canonicalExercise),
               routineDayExerciseId: exercise.routine_day_exercise_id ?? null,
+              image_howto_path: canonicalExercise?.image_howto_path ?? null,
               planTargetsHash: (() => {
                 const fromPlan = exercise.enabled_metrics;
                 if (!fromPlan) {
