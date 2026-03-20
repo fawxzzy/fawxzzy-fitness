@@ -213,10 +213,16 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             <input type="hidden" name="routineId" value={params.id} />
             <input type="hidden" name="routineDayId" value={params.dayId} />
             <NavigationReturnInput fallbackHref={`/routines/${params.id}/edit`} value={backHref} />
-            <label className="block text-sm">Day name
-              <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
-            </label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />Rest day</label>
+            <div className="space-y-2">
+              <label className="block text-sm">
+                <TitleText as="span" className="text-sm">Day name</TitleText>
+                <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />
+                <SubtitleText as="span" className="text-sm">Rest day</SubtitleText>
+              </label>
+            </div>
           </form>
 
           {day.is_rest ? (
