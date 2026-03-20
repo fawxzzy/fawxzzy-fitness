@@ -9,7 +9,6 @@ import { toastActionResult } from "@/lib/action-feedback";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import type { ActionResult } from "@/lib/action-result";
 
-
 type ExerciseOption = {
   id: string;
   name: string;
@@ -62,12 +61,20 @@ export function SessionAddExerciseForm({
       <input type="hidden" name="sessionId" value={sessionId} />
       <div className="space-y-4">
         {customExerciseSection}
-        <ExercisePicker exercises={exercises} name="exerciseId" initialSelectedId={initialSelectedId} routineTargetConfig={{ weightUnit }} exerciseStats={exerciseStats} />
-      </div>
-      <div className="rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
-        <AppButton type="submit" variant="primary" fullWidth>
-          Add Exercise
-        </AppButton>
+        <ExercisePicker
+          exercises={exercises}
+          name="exerciseId"
+          initialSelectedId={initialSelectedId}
+          routineTargetConfig={{ weightUnit }}
+          exerciseStats={exerciseStats}
+          footerSlot={(
+            <div className="rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
+              <AppButton type="submit" variant="primary" fullWidth>
+                Add Exercise
+              </AppButton>
+            </div>
+          )}
+        />
       </div>
     </form>
   );

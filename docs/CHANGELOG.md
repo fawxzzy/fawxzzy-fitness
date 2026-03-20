@@ -11,6 +11,15 @@
 - The Edit Day planned workout list should reuse the shared exercise-surface system so row width, media/title rhythm, trailing controls, and expanded editing structure feel like one product pattern instead of a local exception.
 - Inline editing becomes easier to understand when the row shell and editor read as one connected surface rather than a small top card followed by a separate oversized form block.
 - Local row editors should participate in the existing draft flow, not compete with the page footer by introducing a second save authority with overlapping responsibility.
+- Reworked the Edit Day Add Exercises flow onto the shared `ExercisePicker` and shared measurement/goal primitives so the route now reads as choose exercise → confirm selected exercise → configure goal → add, instead of feeling like a locally assembled editor stack.
+- Tightened selected-state presentation by keeping one stronger selected exercise summary, simplifying row subtitles, shrinking the chooser viewport slightly, and demoting the custom exercise manager into a secondary expandable tool instead of a competing first-class stack.
+- Simplified goal configuration with the shared measurement configurator language, lighter sets/optional-measurement framing, and the same summary patterns already used in adjacent flows.
+
+### WHY
+- The Add Exercise area needed to reuse the same stable selection and goal-configuration primitives already established by Quick Add and adjacent selection flows so nearby routes feel learned instead of bespoke.
+- Pattern: Reuse stable selection and goal-configuration primitives across adjacent flows instead of building route-specific mini-systems.
+- Failure Mode: Add/edit flows that duplicate selected state, configuration state, and commit state become visually noisy and harder to trust.
+- Removing duplicated or low-signal layers makes the selected exercise easier to understand, keeps optional measurements progressive, and reduces the sense that the page has multiple competing editor stacks.
 
 ## 0.3.94 — 2026-03-20
 

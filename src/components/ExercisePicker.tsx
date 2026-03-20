@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
@@ -41,7 +41,6 @@ type ExerciseOption = {
   muscle?: string[] | string | null;
 };
 
-
 type ExercisePickerProps = {
   exercises: ExerciseOption[];
   name: string;
@@ -50,10 +49,10 @@ type ExercisePickerProps = {
   routineTargetConfig?: {
     weightUnit: "lbs" | "kg";
   };
+  footerSlot?: ReactNode;
 };
 
 type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
-
 
 type ExerciseRowProps = {
   exercise: ExerciseOption;
@@ -73,15 +72,10 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 function toTagArray(value: string[] | string | null | undefined) {
   if (!value) return [];
   if (Array.isArray(value)) {
-    return value
-      .map((item) => item.trim())
-      .filter(Boolean);
+    return value.map((item) => item.trim()).filter(Boolean);
   }
 
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
 function normalizeExerciseTags(exercise: ExerciseOption) {
@@ -128,6 +122,7 @@ function formatTagLabel(tag: string) {
     .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 }
+
 function getDefaultMeasurementType(exercise: ExerciseOption) {
   const tags = normalizeExerciseTags(exercise);
   if (tags.has("cardio")) {
@@ -136,7 +131,6 @@ function getDefaultMeasurementType(exercise: ExerciseOption) {
 
   return "reps" as const;
 }
-
 
 function formatMeasurementStat(weight: number | null, reps: number | null, unit: string | null) {
   if (weight === null || reps === null) {
@@ -175,22 +169,18 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
   );
 }
 
-
 const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, iconSrc, onPress }: ExerciseRowProps) {
   return (
     <li>
       <ExerciseCard
         title={exercise.name}
-        subtitle={isSelected ? metadata || undefined : undefined}
+        subtitle={metadata || undefined}
         variant="compact"
         state={isSelected ? "selected" : "default"}
         onPress={() => onPress(exercise.id, isSelected)}
         leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
         className={cn(listShellClasses.card, "items-center")}
-        trailingClassName={cn(
-          "self-center",
-          isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
-        )}
+        trailingClassName={cn("self-center", isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted")}
         rightIcon={(
           <span
             aria-hidden="true"
@@ -209,7 +199,14 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, 
   );
 });
 
-export function ExercisePicker({ exercises, name, initialSelectedId, routineTargetConfig, exerciseStats = [] }: ExercisePickerProps) {
+export function ExercisePicker({
+  exercises,
+  name,
+  initialSelectedId,
+  routineTargetConfig,
+  exerciseStats = [],
+  footerSlot,
+}: ExercisePickerProps) {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -236,7 +233,6 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   }, [exercises]);
 
   const statsByExerciseId = useMemo(() => new Map(exerciseStats.map((row) => [row.exerciseId, row])), [exerciseStats]);
-
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
   const scrollSnapshotRef = useRef(initialScrollTop);
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
@@ -249,21 +245,17 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const [targetDistance, setTargetDistance] = useState("");
   const [targetCalories, setTargetCalories] = useState("");
   const [didApplyLast, setDidApplyLast] = useState(false);
-  const previousExerciseIdRef = useRef<string>(selectedId);
+  const previousExerciseIdRef = useRef(selectedId);
 
   useEffect(() => {
-    if (!scrollContainerRef.current) return;
-    if (!initialScrollTop) return;
-
+    if (!scrollContainerRef.current || !initialScrollTop) return;
     scrollContainerRef.current.scrollTop = initialScrollTop;
   }, [initialScrollTop]);
 
-  useEffect(() => {
-    return () => {
-      if (scrollPersistTimeoutRef.current) {
-        clearTimeout(scrollPersistTimeoutRef.current);
-      }
-    };
+  useEffect(() => () => {
+    if (scrollPersistTimeoutRef.current) {
+      clearTimeout(scrollPersistTimeoutRef.current);
+    }
   }, []);
 
   const persistScrollTop = useCallback((nextScrollTop: number) => {
@@ -281,11 +273,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
-
     for (const exercise of uniqueExercises) {
       tagsById.set(exercise.id, new Set(normalizeExerciseTags(exercise).keys()));
     }
-
     return tagsById;
   }, [uniqueExercises]);
 
@@ -296,10 +286,8 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       appendTagsWithGroup(tagsByValue, exercise.muscles, "muscle");
       appendTagsWithGroup(tagsByValue, exercise.muscle, "muscle");
       appendTagsWithGroup(tagsByValue, exercise.primary_muscle, "muscle");
-
       appendTagsWithGroup(tagsByValue, exercise.movement_pattern, "movement");
       appendTagsWithGroup(tagsByValue, exercise.equipment, "equipment");
-
       appendTagsWithGroup(tagsByValue, exercise.tags, "other");
       appendTagsWithGroup(tagsByValue, exercise.tag, "other");
       appendTagsWithGroup(tagsByValue, exercise.categories, "other");
@@ -314,10 +302,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     }
 
     const groupedTags: Record<TagFilterGroup, Array<{ value: string; label: string }>> = {
-      muscle: [],
-      movement: [],
-      equipment: [],
-      other: [],
+      muscle: [], movement: [], equipment: [], other: [],
     };
 
     for (const [value, { label, group }] of tagsByValue.entries()) {
@@ -325,11 +310,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     }
 
     return (Object.keys(tagGroupLabels) as TagFilterGroup[])
-      .map((group) => ({
-        key: group,
-        label: tagGroupLabels[group],
-        tags: groupedTags[group].sort((a, b) => a.label.localeCompare(b.label)),
-      }))
+      .map((group) => ({ key: group, label: tagGroupLabels[group], tags: groupedTags[group].sort((a, b) => a.label.localeCompare(b.label)) }))
       .filter((group) => group.tags.length > 0);
   }, [uniqueExercises]);
 
@@ -338,11 +319,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
     return uniqueExercises.filter((exercise) => {
       const matchesQuery = !query || exercise.name.toLowerCase().includes(query);
       if (!matchesQuery) return false;
-
       if (!selectedTags.length) return true;
       const tags = exerciseTagsById.get(exercise.id);
       if (!tags || tags.size === 0) return false;
-
       return selectedTags.every((tag) => tags.has(tag));
     });
   }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
@@ -352,10 +331,10 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
   const exerciseIconSrcById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, getExerciseIconSrc(exercise)])), [uniqueExercises]);
   const selectedFilteredIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
-  const statsQueryExerciseId = selectedCanonicalExerciseId;
-  const selectedStats = statsQueryExerciseId ? statsByExerciseId.get(statsQueryExerciseId) : undefined;
+  const selectedStats = selectedCanonicalExerciseId ? statsByExerciseId.get(selectedCanonicalExerciseId) : undefined;
   const hasLast = selectedStats ? (selectedStats.lastWeight != null && selectedStats.lastReps != null) : false;
   const hasPR = selectedStats ? ((selectedStats.prWeight != null && selectedStats.prReps != null) || selectedStats.prEst1rm != null) : false;
+
   const resetMeasurementFields = useCallback(() => {
     setTargetRepsMin("");
     setTargetRepsMax("");
@@ -376,31 +355,12 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       ? selectedExercise.default_unit
       : "mi";
 
-    if (nextMeasurementType === "time") {
-      setSelectedMeasurements(["time"]);
-    } else {
-      setSelectedMeasurements(["reps", "weight"]);
-    }
+    setSelectedMeasurements(nextMeasurementType === "time" ? ["time"] : ["reps", "weight"]);
     setSelectedDefaultUnit(nextDefaultUnit);
     resetMeasurementFields();
     setDidApplyLast(false);
     previousExerciseIdRef.current = selectedExercise.id;
   }, [resetMeasurementFields, routineTargetConfig, selectedExercise]);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV !== "development") {
-      return;
-    }
-
-    console.log("[ExercisePicker:MeasurementsStats]", {
-      selectedExercise,
-      queryId: statsQueryExerciseId,
-      stats: selectedStats ?? null,
-      hasStats: Boolean(selectedStats),
-      hasLast,
-      hasPR,
-    });
-  }, [hasLast, hasPR, selectedExercise, selectedStats, statsQueryExerciseId]);
 
   const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
 
@@ -409,20 +369,18 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       setIsExerciseInfoOpen(true);
       return;
     }
-
     setSelectedId(exerciseId);
   }, []);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
+        <div className="space-y-1 px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Choose exercise</p>
+          <p className="text-xs text-muted">Search or filter, then choose one movement to add.</p>
+        </div>
         <div className="relative">
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search exercises"
-          className="pr-9"
-          />
+          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises" className="pr-9" />
           {search ? (
             <button
               type="button"
@@ -434,85 +392,63 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             </button>
           ) : null}
         </div>
-
-        <ExerciseTagFilterControl
-          selectedTags={selectedTags}
-          onChange={setSelectedTags}
-          groups={availableTagGroups}
-          className="space-y-2"
-        />
+        <ExerciseTagFilterControl selectedTags={selectedTags} onChange={setSelectedTags} groups={availableTagGroups} className="space-y-2" />
       </div>
+
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
       <input ref={scrollInputRef} type="hidden" name="exerciseListScroll" defaultValue={String(initialScrollTop)} />
 
-      <div className={cn(
-        "rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 text-sm text-[rgb(var(--text))]",
-        selectedExercise ? "py-3" : "py-2.5"
-      )}>
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected exercise</p>
+            <p className="text-xs text-muted">Confirm the movement before adding goal details.</p>
+          </div>
+          <p className="text-xs text-muted">{filteredExercises.length} shown</p>
+        </div>
         {selectedExercise ? (
-          <div className="space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 space-y-1">
-                <p
-                  className="overflow-hidden font-medium leading-5 text-text"
-                  style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
-                >
-                  {selectedExercise.name}
-                </p>
-                <p className="text-xs text-muted">{exerciseMetadataById.get(selectedExercise.id) || "No details"}</p>
-              </div>
-              <span className="rounded-full border border-accent/35 bg-accent/18 px-2.5 py-1 text-[11px] font-semibold leading-none text-text">Selected</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
+          <ExerciseCard
+            title={selectedExercise.name}
+            subtitle={exerciseMetadataById.get(selectedExercise.id) || "No details"}
+            variant="summary"
+            state="selected"
+            leadingVisual={<ExerciseThumbnail exercise={selectedExercise} iconSrc={exerciseIconSrcById.get(selectedExercise.id) ?? getExerciseIconSrc(selectedExercise)} />}
+            badgeText="Selected"
+            rightIcon={null}
+            className="shadow-[0_10px_24px_-18px_rgba(96,200,130,0.95)]"
+          >
+            <div className="flex flex-wrap gap-2 pt-1">
               <AppButton type="button" variant="secondary" size="sm" onClick={() => setIsExerciseInfoOpen(true)}>
                 Exercise info
               </AppButton>
-              <AppButton
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const selectedIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
-                  if (selectedIndex <= 0) return;
-                  setSelectedId(filteredExercises[selectedIndex - 1]?.id ?? selectedId);
-                }}
-                disabled={selectedFilteredIndex <= 0}
-              >
+              <AppButton type="button" variant="ghost" size="sm" onClick={() => setSelectedId(filteredExercises[selectedFilteredIndex - 1]?.id ?? selectedId)} disabled={selectedFilteredIndex <= 0}>
                 Previous
               </AppButton>
-              <AppButton
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const selectedIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
-                  if (selectedIndex === -1 || selectedIndex >= filteredExercises.length - 1) return;
-                  setSelectedId(filteredExercises[selectedIndex + 1]?.id ?? selectedId);
-                }}
-                disabled={selectedFilteredIndex === -1 || selectedFilteredIndex >= filteredExercises.length - 1}
-              >
+              <AppButton type="button" variant="ghost" size="sm" onClick={() => setSelectedId(filteredExercises[selectedFilteredIndex + 1]?.id ?? selectedId)} disabled={selectedFilteredIndex === -1 || selectedFilteredIndex >= filteredExercises.length - 1}>
                 Next
               </AppButton>
             </div>
-          </div>
+          </ExerciseCard>
         ) : (
-          <span className="text-muted">Select an exercise.</span>
+          <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">
+            Select an exercise to continue.
+          </div>
         )}
-      </div>
+      </section>
 
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-2 px-1">
           <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Exercise list</p>
-            <p className="text-xs text-muted">{filteredExercises.length} shown</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercise list</p>
+            <p className="text-xs text-muted">Tap a row to select it. Tap the selected row for exercise info.</p>
           </div>
         </div>
         <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
           <ul
             ref={scrollContainerRef}
             onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-            className={cn("max-h-[26rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]", listShellClasses.viewport, listShellClasses.list)}
+            className={cn("max-h-[24rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]", listShellClasses.viewport, listShellClasses.list)}
           >
             {filteredExercises.map((exercise) => (
               <ExerciseRow
@@ -524,156 +460,88 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 onPress={handleExercisePress}
               />
             ))}
-            {filteredExercises.length === 0 ? (
-              <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">
-                No exercises match your filters.
-              </li>
-            ) : null}
+            {filteredExercises.length === 0 ? <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">No exercises match your filters.</li> : null}
           </ul>
           <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
         </div>
-      </div>
+      </section>
 
       {routineTargetConfig && selectedExercise ? (
-        <div className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Configure goal</p>
-            <p className="text-xs text-muted">Turn on only the measurements this goal needs.</p>
+        <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
+            <p className="text-xs text-muted">Add only the measurements that matter for this exercise. Leave everything else off.</p>
           </div>
-          {selectedMeasurements.map((metric) => (
-            <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />
-          ))}
-          <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets <span className="normal-case tracking-normal">(Required)</span></p><Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="mt-2" /></div>
+          {selectedMeasurements.map((metric) => <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
 
-          <div className="space-y-3 rounded-[1.1rem] border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">
-            <div className="flex flex-wrap justify-end gap-2">
-              <AppButton
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const nextMeasurementType = selectedExercise ? getDefaultMeasurementType(selectedExercise) : "reps";
-                  setSelectedMeasurements(nextMeasurementType === "time" ? ["time"] : ["reps", "weight"]);
-                  setSelectedDefaultUnit("mi");
-                  resetMeasurementFields();
-                }}
-              >
-                Reset measurements
-              </AppButton>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-start">
+            <div className="rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets</p>
+              <p className="mt-1 text-xs text-muted">This is the only required goal field.</p>
+              <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="mt-3" />
             </div>
 
-            {selectedStats && (hasLast || hasPR) ? (
-              <div className={cn("space-y-1 rounded-md border border-border/50 bg-[rgb(var(--bg)/0.2)] px-2 py-1.5 text-xs text-muted", didApplyLast ? "border-accent/40" : "")}>
-                {process.env.NODE_ENV === "development" ? (
-                  <p className="font-mono text-[10px] text-muted/90">
-                    DEBUG stats selectedCanonicalId={selectedCanonicalExerciseId ?? "none"} queryExerciseId={statsQueryExerciseId ?? "none"} statsFound={selectedStats ? "yes" : "no"} stats.exercise_id={selectedStats.statsExerciseId ?? "none"}
-                  </p>
-                ) : null}
-                {hasLast ? (
-                  <p>
-                    Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}
-                    {selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}
-                  </p>
-                ) : null}
-                {hasPR ? (
-                  <p>
-                    PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}
-                    {selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " · " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}
-                  </p>
-                ) : null}
-                {hasLast ? (
-                  <div className="flex justify-start">
-                    <AppButton
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setTargetWeight(String(selectedStats.lastWeight));
-                        setTargetRepsMin(String(selectedStats.lastReps));
-                        setTargetRepsMax(String(selectedStats.lastReps));
-                        if (selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs") {
-                          setTargetWeightUnit(selectedStats.lastUnit);
-                        }
-                        setSelectedMeasurements((current) => {
-                          const next = new Set(current);
-                          next.add("weight");
-                          next.add("reps");
-                          return Array.from(next);
-                        });
-                        setDidApplyLast(true);
-                        setTimeout(() => setDidApplyLast(false), 1200);
-                      }}
-                    >
-                      Use last
-                    </AppButton>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+            <div className="space-y-3">
+              {selectedStats && (hasLast || hasPR) ? (
+                <div className={cn("rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] px-3 py-2 text-xs text-muted", didApplyLast ? "border-accent/40" : undefined)}>
+                  {hasLast ? <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
+                  {hasPR ? <p>PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}{selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " · " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}</p> : null}
+                  {hasLast ? (
+                    <div className="mt-2 flex justify-start">
+                      <AppButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setTargetWeight(String(selectedStats.lastWeight));
+                          setTargetRepsMin(String(selectedStats.lastReps));
+                          setTargetRepsMax(String(selectedStats.lastReps));
+                          if (selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs") setTargetWeightUnit(selectedStats.lastUnit);
+                          setSelectedMeasurements((current) => Array.from(new Set([...current, "weight", "reps"])));
+                          setDidApplyLast(true);
+                          setTimeout(() => setDidApplyLast(false), 1200);
+                        }}
+                      >
+                        Use last
+                      </AppButton>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
-            <MeasurementConfigurator
-              values={{
-                reps: targetRepsMin,
-                weight: targetWeight,
-                duration: targetDuration,
-                distance: targetDistance,
-                calories: targetCalories,
-                weightUnit: targetWeightUnit,
-                distanceUnit: selectedDefaultUnit,
-              }}
-              activeMetrics={{
-                reps: selectedMeasurements.includes("reps"),
-                weight: selectedMeasurements.includes("weight"),
-                time: selectedMeasurements.includes("time"),
-                distance: selectedMeasurements.includes("distance"),
-                calories: selectedMeasurements.includes("calories"),
-              }}
-              isExpanded={isMeasurementsOpen}
-              onExpandedChange={setIsMeasurementsOpen}
-              onMetricToggle={(metric) => {
-                setSelectedMeasurements((current) => current.includes(metric) ? current.filter((value) => value !== metric) : [...current, metric]);
-              }}
-              onChange={(patch) => {
-                if (patch.reps !== undefined) setTargetRepsMin(patch.reps);
-                if (patch.weight !== undefined) setTargetWeight(patch.weight);
-                if (patch.duration !== undefined) setTargetDuration(patch.duration);
-                if (patch.distance !== undefined) setTargetDistance(patch.distance);
-                if (patch.calories !== undefined) setTargetCalories(patch.calories);
-                if (patch.weightUnit !== undefined) setTargetWeightUnit(patch.weightUnit);
-                if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
-              }}
-              names={{
-                reps: "targetRepsMin",
-                weight: "targetWeight",
-                duration: "targetDuration",
-                distance: "targetDistance",
-                calories: "targetCalories",
-                weightUnit: "targetWeightUnit",
-                distanceUnit: "targetDistanceUnit",
-              }}
-              description="Turn on only the optional measurements this goal needs."
-              collapsedLabel="Optional measurements"
-              collapsedDescription="Turn on only the measurements you want to set."
-            />
-            {selectedMeasurements.includes("reps") ? (
-              <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
-            ) : null}
-            <MeasurementSummary
-              values={{
-                reps: targetRepsMin ? Number(targetRepsMin) : null,
-                weight: targetWeight ? Number(targetWeight) : null,
-                weightUnit: targetWeightUnit,
-                durationSeconds: parseDurationInput(targetDuration),
-                distance: targetDistance ? Number(targetDistance) : null,
-                distanceUnit: selectedDefaultUnit,
-                calories: targetCalories ? Number(targetCalories) : null,
-              }}
-              emptyLabel="Goal missing"
-            />
-          <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
-        </div>
-      </div>
+              <MeasurementConfigurator
+                values={{ reps: targetRepsMin, weight: targetWeight, duration: targetDuration, distance: targetDistance, calories: targetCalories, weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
+                activeMetrics={{ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }}
+                isExpanded={isMeasurementsOpen}
+                onExpandedChange={setIsMeasurementsOpen}
+                onMetricToggle={(metric) => setSelectedMeasurements((current) => current.includes(metric) ? current.filter((value) => value !== metric) : [...current, metric])}
+                onChange={(patch) => {
+                  if (patch.reps !== undefined) setTargetRepsMin(patch.reps);
+                  if (patch.weight !== undefined) setTargetWeight(patch.weight);
+                  if (patch.duration !== undefined) setTargetDuration(patch.duration);
+                  if (patch.distance !== undefined) setTargetDistance(patch.distance);
+                  if (patch.calories !== undefined) setTargetCalories(patch.calories);
+                  if (patch.weightUnit !== undefined) setTargetWeightUnit(patch.weightUnit);
+                  if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
+                }}
+                names={{ reps: "targetRepsMin", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
+                showHeader={false}
+                collapsedLabel="Optional measurements"
+                collapsedDescription="Reuse the app’s standard goal measurements only when they add value here."
+              />
+
+              {selectedMeasurements.includes("reps") ? <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} /> : null}
+              <MeasurementSummary
+                values={{ reps: targetRepsMin ? Number(targetRepsMin) : null, weight: targetWeight ? Number(targetWeight) : null, weightUnit: targetWeightUnit, durationSeconds: parseDurationInput(targetDuration), distance: targetDistance ? Number(targetDistance) : null, distanceUnit: selectedDefaultUnit, calories: targetCalories ? Number(targetCalories) : null }}
+                emptyLabel="Goal missing"
+              />
+              <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
+            </div>
+          </div>
+        </section>
       ) : null}
+
+      {footerSlot}
 
       <ExerciseInfo
         exerciseId={selectedCanonicalExerciseId}

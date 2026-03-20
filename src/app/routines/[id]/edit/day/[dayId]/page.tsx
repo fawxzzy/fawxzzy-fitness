@@ -231,56 +231,55 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
               <CollapsibleCard
                 title="Add exercises"
-                summary="Choose a movement, set an optional goal, then add it to this day."
+                summary="Choose a movement, confirm it, add an optional goal, then save it to this day."
                 defaultOpen={searchParams?.addExerciseOpen === "1"}
                 className="border border-border/40 bg-[rgb(var(--surface-2-soft)/0.58)] shadow-[0_6px_18px_rgba(0,0,0,0.14)]"
                 bodyClassName="space-y-3 bg-transparent"
               >
-                <div className="rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] px-3 py-2 text-xs text-muted">
-                  Search or filter, choose the movement, add any goal details you want, then save it to this day.
-                </div>
-                <CollapsibleCard
-                  title="Add custom exercise"
-                  summary={`${customExercises.length} saved`}
-                  defaultOpen={false}
-                  className="border border-border/50 bg-[rgb(var(--bg)/0.16)]"
-                  bodyClassName="bg-[rgb(var(--bg)/0.3)]"
-                >
-                  <form action={createCustomExerciseAction} className="space-y-2">
-                    <input type="hidden" name="returnTo" value={returnTo} />
-                    <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={controlClassName} />
-                    <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
-                  </form>
-                  {customExercises.length > 0 ? (
-                    <ul className="mt-3 space-y-2 border-t border-border/50 pt-3">
-                      {customExercises.map((exercise) => (
-                        <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-2">
-                          <p className="text-xs font-semibold">{exercise.name}</p>
-                          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <form action={renameCustomExerciseAction} className="flex gap-2">
-                              <input type="hidden" name="returnTo" value={returnTo} />
-                              <input type="hidden" name="exerciseId" value={exercise.id} />
-                              <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={controlClassName} />
-                              <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
-                            </form>
-                            <ConfirmedServerFormButton
-                              action={deleteCustomExerciseAction}
-                              hiddenFields={{ returnTo, exerciseId: exercise.id }}
-                              triggerLabel="Delete"
-                              triggerClassName="w-full"
-                              modalTitle="Delete custom exercise?"
-                              modalDescription="This permanently deletes this custom exercise from your library."
-                              confirmLabel="Delete"
-                              details={`Exercise: ${exercise.name}`}
-                            />
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </CollapsibleCard>
-
                 <RoutineDayAddExerciseForm
+                  customExerciseSection={(
+                    <CollapsibleCard
+                      title="Custom exercise tool"
+                      summary={customExercises.length > 0 ? `${customExercises.length} saved` : "Optional"}
+                      defaultOpen={false}
+                      className="border border-border/50 bg-[rgb(var(--bg)/0.16)]"
+                      bodyClassName="space-y-3 bg-[rgb(var(--bg)/0.3)]"
+                    >
+                      <p className="text-xs text-muted">Use this only when the picker does not already have what you need.</p>
+                      <form action={createCustomExerciseAction} className="space-y-2">
+                        <input type="hidden" name="returnTo" value={returnTo} />
+                        <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={controlClassName} />
+                        <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
+                      </form>
+                      {customExercises.length > 0 ? (
+                        <ul className="space-y-2 border-t border-border/50 pt-3">
+                          {customExercises.map((exercise) => (
+                            <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-2">
+                              <p className="text-xs font-semibold">{exercise.name}</p>
+                              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                <form action={renameCustomExerciseAction} className="flex gap-2">
+                                  <input type="hidden" name="returnTo" value={returnTo} />
+                                  <input type="hidden" name="exerciseId" value={exercise.id} />
+                                  <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={controlClassName} />
+                                  <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
+                                </form>
+                                <ConfirmedServerFormButton
+                                  action={deleteCustomExerciseAction}
+                                  hiddenFields={{ returnTo, exerciseId: exercise.id }}
+                                  triggerLabel="Delete"
+                                  triggerClassName="w-full"
+                                  modalTitle="Delete custom exercise?"
+                                  modalDescription="This permanently deletes this custom exercise from your library."
+                                  confirmLabel="Delete"
+                                  details={`Exercise: ${exercise.name}`}
+                                />
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </CollapsibleCard>
+                  )}
                   routineId={params.id}
                   routineDayId={params.dayId}
                   exercises={exerciseOptions}
