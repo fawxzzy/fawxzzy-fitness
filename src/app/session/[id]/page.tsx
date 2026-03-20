@@ -4,6 +4,7 @@ import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { isCardioExercise } from "@/lib/exercise-metadata";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
@@ -68,27 +69,6 @@ function formatSessionGoalLabel(target: DisplayTarget | undefined, fallbackWeigh
   });
 }
 
-
-function hasCardioTag(exercise: unknown) {
-  if (!exercise || typeof exercise !== "object") return false;
-  const rawValues = [
-    (exercise as { tags?: string[] | string | null }).tags,
-    (exercise as { tag?: string[] | string | null }).tag,
-    (exercise as { categories?: string[] | string | null }).categories,
-    (exercise as { category?: string[] | string | null }).category,
-  ];
-
-  return rawValues.some((value) => {
-    if (Array.isArray(value)) {
-      return value.some((tag) => tag.toLowerCase() === "cardio");
-    }
-    if (typeof value === "string") {
-      return value.split(",").some((tag) => tag.trim().toLowerCase() === "cardio");
-    }
-    return false;
-  });
-}
-
 type PageProps = {
   params: {
     id: string;
@@ -112,7 +92,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   } = await getSessionPageData(params.id);
 
   const unitLabel = routine?.weight_unit ?? "kg";
-
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
   const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
@@ -122,7 +101,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
       equipment: canonicalExercise?.equipment ?? null,
       movement_pattern: canonicalExercise?.movement_pattern ?? null,
-      isCardio: hasCardioTag(canonicalExercise),
     };
   })).label;
 
@@ -142,12 +120,19 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           exercises={sessionExercises.map((exercise) => {
             const displayTarget = sessionTargets.get(exercise.id);
             const canonicalExercise = exerciseById.get(exercise.exercise_id);
+            const exerciseMetadata = {
+              measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
+              equipment: canonicalExercise?.equipment ?? null,
+              movement_pattern: canonicalExercise?.movement_pattern ?? null,
+            };
+            const isCardio = isCardioExercise(exerciseMetadata);
+
             return {
               id: exercise.id,
               name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
               isSkipped: exercise.is_skipped,
               defaultUnit: exercise.default_unit ?? null,
-              isCardio: hasCardioTag(canonicalExercise),
+              isCardio,
               routineDayExerciseId: exercise.routine_day_exercise_id ?? null,
               image_howto_path: canonicalExercise?.image_howto_path ?? null,
               planTargetsHash: (() => {
@@ -171,7 +156,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   };
                 }
 
-                if (hasCardioTag(exerciseById.get(exercise.exercise_id))) {
+                if (isCardio) {
                   return { reps: false, weight: false, time: true, distance: false, calories: false };
                 }
 

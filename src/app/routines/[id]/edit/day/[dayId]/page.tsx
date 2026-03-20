@@ -19,6 +19,7 @@ import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
 import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { isCardioExercise } from "@/lib/exercise-metadata";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
@@ -56,22 +57,6 @@ function formatDayTitle(dayIndex: number, dayName: string | null) {
   if (!trimmedName) return fallback;
   if (trimmedName.toLowerCase() === fallback.toLowerCase()) return fallback;
   return trimmedName;
-}
-
-function hasCardioTag(exercise: unknown) {
-  if (!exercise || typeof exercise !== "object") return false;
-  const rawValues = [
-    (exercise as { tags?: string[] | string | null }).tags,
-    (exercise as { tag?: string[] | string | null }).tag,
-    (exercise as { categories?: string[] | string | null }).categories,
-    (exercise as { category?: string[] | string | null }).category,
-  ];
-
-  return rawValues.some((value) => {
-    if (Array.isArray(value)) return value.some((tag) => tag.toLowerCase() === "cardio");
-    if (typeof value === "string") return value.split(",").some((tag) => tag.trim().toLowerCase() === "cardio");
-    return false;
-  });
 }
 
 export default async function RoutineDayEditorPage({ params, searchParams }: PageProps) {
@@ -126,7 +111,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             measurement_type: exercise.measurement_type ?? matchingExercise?.measurement_type ?? null,
             equipment: matchingExercise?.equipment ?? null,
             movement_pattern: matchingExercise?.movement_pattern ?? null,
-            isCardio: hasCardioTag(matchingExercise),
           };
         }),
       routineDay.is_rest,
@@ -147,7 +131,11 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const editableExercises = dayExercises.map((exercise) => {
     const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
     const matchingExercise = exerciseOptions.find((option) => option.id === exercise.exercise_id);
-    const isCardio = hasCardioTag(matchingExercise);
+    const isCardio = isCardioExercise({
+      measurement_type: exercise.measurement_type ?? matchingExercise?.measurement_type ?? null,
+      equipment: matchingExercise?.equipment ?? null,
+      movement_pattern: matchingExercise?.movement_pattern ?? null,
+    });
     const defaultDistanceUnit: "mi" | "km" | "m" = exercise.default_unit === "km" || exercise.default_unit === "m"
       ? exercise.default_unit
       : (exerciseUnitMap.get(exercise.exercise_id) === "km" || exerciseUnitMap.get(exercise.exercise_id) === "m"
@@ -172,6 +160,13 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         distance: measurementType === "distance" || measurementType === "time_distance" ? exercise.target_distance : null,
         distanceUnit: exercise.target_distance_unit,
         calories: measurementType === "distance" || measurementType === "time_distance" ? exercise.target_calories : null,
+        enabledMeasurements: {
+          reps: exercise.target_reps_min != null || exercise.target_reps != null || exercise.target_reps_max != null,
+          weight: exercise.target_weight != null,
+          time: measurementType === "time" || measurementType === "time_distance",
+          distance: measurementType === "distance" || measurementType === "time_distance",
+          calories: (measurementType === "distance" || measurementType === "time_distance") && exercise.target_calories != null,
+        },
         emptyLabel: "Goal missing",
       }),
       isCardio,

@@ -766,6 +766,21 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
+      <div className="rounded-[1.35rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-3.5">
+        <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5 text-sm text-text">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Warm-up</span>
+          <span className="flex items-center gap-2">
+            <span className="text-sm font-medium text-text">{resolvedIsWarmup ? "On" : "Off"}</span>
+            <input
+              type="checkbox"
+              checked={resolvedIsWarmup}
+              onChange={(event) => setWarmupValue(event.target.checked)}
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+            />
+          </span>
+        </label>
+      </div>
+
       <WorkoutEntrySection
         className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
       >
@@ -814,26 +829,9 @@ export function SetLoggerCard({
           showHeader={false}
         />
       </WorkoutEntrySection>
-
-      <div className="rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] p-4">
-        <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5 text-sm text-text">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Warm-up</span>
-          <span className="flex items-center gap-2">
-            <span className="text-sm font-medium text-text">{resolvedIsWarmup ? "On" : "Off"}</span>
-            <input
-              type="checkbox"
-              checked={resolvedIsWarmup}
-              onChange={(event) => setWarmupValue(event.target.checked)}
-              className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
-            />
-          </span>
-        </label>
-      </div>
-
       <WorkoutEntrySection
         title="Effort Rating"
-        description="0-10"
-        className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
+                className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
       >
         <div className="space-y-2">
             <div className="relative rounded-2xl border border-white/8 bg-white/5 p-3">

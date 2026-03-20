@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
@@ -11,7 +10,6 @@ import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import type { ActionResult } from "@/lib/action-result";
 import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
 
@@ -112,8 +110,6 @@ export function TodayDayPicker({
     setIsPickerOpen((previous) => !previous);
   }, []);
 
-  const viewDayHref = selectedDay ? `/routines/${routineId}/days/${selectedDay.id}` : null;
-  const editDayHref = selectedDay ? `/routines/${routineId}/edit/day/${selectedDay.id}?returnTo=${encodeURIComponent("/today")}` : null;
   const isRunnableDay = selectedDay?.state === "runnable" || selectedDay?.state === "partial";
   const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
@@ -141,29 +137,8 @@ export function TodayDayPicker({
       >
         <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
       </SecondaryButton>
-      {viewDayHref ? (
-        <Link
-          href={viewDayHref}
-          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
-        >
-          View Day
-        </Link>
-      ) : null}
-      {editDayHref ? (
-        <Link
-          href={editDayHref}
-          className={getAppButtonClassName({
-            variant: isRunnableDay ? "secondary" : "primary",
-            size: "md",
-            fullWidth: true,
-            className: isRunnableDay ? undefined : "border-white/15 bg-white/10 text-white hover:bg-white/14",
-          })}
-        >
-          Edit Day
-        </Link>
-      ) : null}
     </BottomActionUtilityCluster>
-  ), [editDayHref, isPickerOpen, isRunnableDay, selectedDayIndex, startSessionAction, togglePicker, viewDayHref]);
+  ), [isPickerOpen, isRunnableDay, selectedDayIndex, startSessionAction, togglePicker]);
 
   usePublishBottomActions(actionsNode);
 

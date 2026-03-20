@@ -1,5 +1,5 @@
 import type { RoutineDayExerciseRow } from "@/types/db";
-import { formatGoalSummaryText } from "@/lib/measurement-display";
+import { formatGoalSummaryText } from "./measurement-display";
 
 type GoalFields = Pick<
   RoutineDayExerciseRow,
@@ -13,7 +13,15 @@ type GoalFields = Pick<
   | "target_distance"
   | "target_distance_unit"
   | "target_calories"
->;
+> & {
+  enabledMeasurements?: {
+    reps?: boolean;
+    weight?: boolean;
+    time?: boolean;
+    distance?: boolean;
+    calories?: boolean;
+  } | null;
+};
 
 export function formatExerciseGoal(goal: GoalFields) {
   return formatGoalSummaryText({
@@ -26,6 +34,7 @@ export function formatExerciseGoal(goal: GoalFields) {
     distance: goal.target_distance,
     distanceUnit: goal.target_distance_unit ?? "mi",
     calories: goal.target_calories,
+    enabledMeasurements: goal.enabledMeasurements ?? null,
     emptyLabel: "Goal missing",
   });
 }

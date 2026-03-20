@@ -1,0 +1,27 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { formatExerciseCountSummary, formatRestDayExerciseCountSummary } from "./exercise-count-summary.ts";
+
+test("formatExerciseCountSummary renders mixed strength and cardio totals canonically", () => {
+  const summary = formatExerciseCountSummary([
+    { measurement_type: "reps" },
+    { measurement_type: "reps" },
+    { measurement_type: "time" },
+  ]);
+
+  assert.equal(summary.label, "3 total • 2 strength • 1 cardio");
+});
+
+test("formatExerciseCountSummary renders single-type days without total prefix", () => {
+  assert.equal(formatExerciseCountSummary([{ measurement_type: "reps" }, { measurement_type: "reps" }]).label, "2 strength");
+  assert.equal(formatExerciseCountSummary([{ measurement_type: "time" }, { measurement_type: "distance" }]).label, "2 cardio");
+});
+
+test("formatExerciseCountSummary degrades gracefully for unknown-only metadata", () => {
+  assert.equal(formatExerciseCountSummary([{ equipment: "sled" }, { movement_pattern: "carry" }]).label, "2 exercises");
+});
+
+test("formatRestDayExerciseCountSummary keeps explicit rest-day copy", () => {
+  assert.equal(formatRestDayExerciseCountSummary([{ measurement_type: "reps" }], true).label, "Rest day");
+});

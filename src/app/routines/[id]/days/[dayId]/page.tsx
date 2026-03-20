@@ -131,15 +131,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                       : "No runnable exercises planned for this day."}
                 </p>
               ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3 rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.52)] px-3.5 py-3">
-                    <div className="space-y-0.5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
-                      <p className="text-sm text-[rgb(var(--text)/0.84)]">Shared count summary and exercise list stay aligned with Today, Edit Day, and Routines.</p>
-                    </div>
-                    <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{daySummary}</span>
-                  </div>
-                  <RoutineDayExerciseList
+                <RoutineDayExerciseList
                   exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
                     id: exercise.id,
                     name: exercise.displayName,
@@ -147,7 +139,6 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                     exerciseId: exercise.details?.id ?? exercise.exercise_id,
                   }))}
                 />
-                </div>
               )}
             </AppPanel>
           </section>
