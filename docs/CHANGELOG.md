@@ -1,3 +1,16 @@
+## 0.3.94 — 2026-03-20
+
+### WHAT
+- Reworked the Edit Day shell around a top-anchored `Select Day` / `Hide Days` expander so the current day context now lives in the header surface and the day list opens directly from that header instead of relying on passive title copy alone.
+- Kept the Edit Day screen on one owned page-level commit surface by preserving `Save Day` and `Cancel` in the canonical bottom bar, while demoting per-row exercise edits away from page-owning language so local editors read as draft adjustments instead of competing screen saves.
+- Removed blue-feeling current-day emphasis from the day-switching treatment and replaced it with the app's neutral/green active language for the selected day row and status badge.
+
+### WHY
+- The day editor needed to reuse the same anchored switching interaction model already established elsewhere in the app so changing routine context and changing day context feel like one learned behavior instead of two unrelated patterns.
+- Primary screen actions must live in a single owned action surface (bottom bar), not split across dropdowns and scattered buttons. Screen-level persistence belongs to one owned footer; local editors should modify draft state, not create competing save surfaces.
+- Reusing interaction models across domains (workout switching → routine switching → day switching) reduces cognitive load, and a shared surface system should extend across adjacent domains, not just identical components.
+- UI systems that unify layout but not state language still feel inconsistent and hard to scan, so the blue current/active treatment was removed in favor of the app's green/neutral state language.
+
 ## 0.3.93 — 2026-03-19
 
 ### WHAT
