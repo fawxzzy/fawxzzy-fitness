@@ -85,6 +85,8 @@ export function SetLoggerCard({
   resetSignal,
   skipAction,
   deleteAction,
+  warmupValue,
+  onWarmupValueChange,
 }: {
   sessionId: string;
   sessionExerciseId: string;
@@ -116,6 +118,8 @@ export function SetLoggerCard({
   resetSignal?: number;
   skipAction?: ReactNode;
   deleteAction?: ReactNode;
+  warmupValue?: boolean;
+  onWarmupValueChange?: (value: boolean) => void;
 }) {
   // Manual QA checklist (Step 2 session logging contract)
   // - Routine cardio with time target: logger defaults to duration input and saves duration_seconds.
@@ -133,6 +137,15 @@ export function SetLoggerCard({
   const [calories, setCalories] = useState("");
   const [rpe, setRpe] = useState("");
   const [isWarmup, setIsWarmup] = useState(false);
+  const resolvedIsWarmup = warmupValue ?? isWarmup;
+
+  const setWarmupValue = useCallback((value: boolean) => {
+    if (onWarmupValueChange) {
+      onWarmupValueChange(value);
+      return;
+    }
+    setIsWarmup(value);
+  }, [onWarmupValueChange]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sets, setSets] = useState<DisplaySet[]>(initialSets);
@@ -174,10 +187,10 @@ export function SetLoggerCard({
     setDistanceUnit(defaultDistanceUnit ?? "mi");
     setCalories("");
     setRpe("");
-    setIsWarmup(false);
+    setWarmupValue(false);
     setError(null);
     lastPublishedSetCountRef.current = initialSets.length;
-  }, [defaultDistanceUnit, initialSets.length, prefill, sessionExerciseId, unitLabel]);
+  }, [defaultDistanceUnit, initialSets.length, prefill, sessionExerciseId, setWarmupValue, unitLabel]);
 
   useEffect(() => {
     if (!onSetCountChange) {
@@ -218,7 +231,7 @@ export function SetLoggerCard({
         if (parsed.form.distanceUnit === "mi" || parsed.form.distanceUnit === "km" || parsed.form.distanceUnit === "m") setDistanceUnit(parsed.form.distanceUnit);
         if (typeof parsed.form.calories === "string") setCalories(parsed.form.calories);
         if (typeof parsed.form.rpe === "string") setRpe(parsed.form.rpe);
-        if (typeof parsed.form.isWarmup === "boolean") setIsWarmup(parsed.form.isWarmup);
+        if (typeof parsed.form.isWarmup === "boolean") setWarmupValue(parsed.form.isWarmup);
         if (parsed.form.selectedWeightUnit === "kg" || parsed.form.selectedWeightUnit === "lbs") {
           setSelectedWeightUnit(parsed.form.selectedWeightUnit);
         }
@@ -226,7 +239,7 @@ export function SetLoggerCard({
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [sessionExerciseId, sessionId]);
+  }, [sessionExerciseId, sessionId, setWarmupValue]);
 
   useEffect(() => {
     const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
@@ -240,14 +253,14 @@ export function SetLoggerCard({
         distanceUnit,
         calories,
         rpe,
-        isWarmup,
+        isWarmup: resolvedIsWarmup,
         selectedWeightUnit,
       },
       updatedAt: Date.now(),
     });
 
     window.localStorage.setItem(storageKey, payload);
-  }, [calories, distance, distanceUnit, durationInput, isWarmup, reps, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -478,7 +491,7 @@ export function SetLoggerCard({
       distance: parsedDistance,
       distance_unit: parsedDistance !== null ? distanceUnit : null,
       calories: parsedCalories,
-      is_warmup: isWarmup,
+      is_warmup: resolvedIsWarmup,
       notes: null,
       rpe: parsedRpe,
       weight_unit: selectedWeightUnit,
@@ -500,7 +513,7 @@ export function SetLoggerCard({
           distance: parsedDistance,
           distanceUnit: parsedDistance !== null ? distanceUnit : null,
           calories: parsedCalories,
-          isWarmup,
+          isWarmup: resolvedIsWarmup,
           rpe: parsedRpe,
           notes: null,
           weightUnit: selectedWeightUnit,
@@ -541,7 +554,7 @@ export function SetLoggerCard({
         distance: parsedDistance,
         distanceUnit: parsedDistance !== null ? distanceUnit : null,
         calories: parsedCalories,
-        isWarmup,
+        isWarmup: resolvedIsWarmup,
         rpe: parsedRpe,
         notes: null,
         weightUnit: selectedWeightUnit,
@@ -558,7 +571,7 @@ export function SetLoggerCard({
             distance: parsedDistance,
             distanceUnit: parsedDistance !== null ? distanceUnit : null,
             calories: parsedCalories,
-            isWarmup,
+            isWarmup: resolvedIsWarmup,
             rpe: parsedRpe,
             notes: null,
             weightUnit: selectedWeightUnit,
@@ -602,7 +615,7 @@ export function SetLoggerCard({
           distance: parsedDistance,
           distanceUnit: parsedDistance !== null ? distanceUnit : null,
           calories: parsedCalories,
-          isWarmup,
+          isWarmup: resolvedIsWarmup,
           rpe: parsedRpe,
           notes: null,
           weightUnit: selectedWeightUnit,
@@ -638,7 +651,7 @@ export function SetLoggerCard({
     setWeight(String(parsedWeight));
     setReps(String(parsedReps));
     setRpe(parsedRpe === null ? "" : String(parsedRpe));
-    setIsWarmup(isWarmup);
+    setWarmupValue(resolvedIsWarmup);
     setIsSubmitting(false);
   }, [
     activeMetrics.reps,
@@ -647,7 +660,7 @@ export function SetLoggerCard({
     distance,
     distanceUnit,
     durationInput,
-    isWarmup,
+    resolvedIsWarmup,
     reps,
     requiresDistance,
     requiresDuration,
@@ -657,6 +670,7 @@ export function SetLoggerCard({
     sessionExerciseId,
     sessionId,
     setSets,
+    setWarmupValue,
     sets.length,
     toast,
     weight,
@@ -732,7 +746,7 @@ export function SetLoggerCard({
 
       <WorkoutEntrySection
         eyebrow="Entry"
-        title="Log this set"
+        title="Set details"
         className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
       >
         <ModifyMeasurements
@@ -768,13 +782,13 @@ export function SetLoggerCard({
 
       <WorkoutEntrySection
         eyebrow="Effort"
-        title="Effort details"
+        title="Effort"
         className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
       >
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="relative rounded-2xl border border-white/8 bg-white/5 p-3.5">
+        <div className="space-y-2">
+            <div className="relative rounded-2xl border border-white/8 bg-white/5 p-3">
               <div className="mb-1 flex items-center gap-1">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">RPE</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Effort Rating</span>
                 <button
                   type="button"
                   onClick={() => setShowRpeTooltip((value) => !value)}
@@ -785,7 +799,7 @@ export function SetLoggerCard({
               </div>
               {showRpeTooltip ? (
                 <div className="pointer-events-none absolute left-3 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
-                  <p className="font-medium text-text">RPE (1–10)</p>
+                  <p className="font-medium text-text">Effort rating (0–10)</p>
                   <p>10 = max effort</p>
                   <p>8 = ~2 reps left</p>
                   <p>6 = moderate effort</p>
@@ -797,31 +811,16 @@ export function SetLoggerCard({
                 step="0.5"
                 value={rpe}
                 onChange={(event) => setRpe(event.target.value)}
-                placeholder="RPE"
+                placeholder="0-10"
                 className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
               />
             </div>
-            <label className="flex min-h-[88px] items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-3.5 py-3.5 text-sm text-text">
-              <input
-                type="checkbox"
-                checked={isWarmup}
-                onChange={(event) => setIsWarmup(event.target.checked)}
-                className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
-              />
-                <span>
-                  <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Warm-up</span>
-                  <span className="block text-sm text-text">Mark this set as prep work</span>
-                </span>
-              </label>
         </div>
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
       </WorkoutEntrySection>
 
       <WorkoutEntrySection
-        eyebrow="Review"
-        title="Logged sets"
-        description="Review saved and queued work here before you move on to the next set."
-        aside={<p className="text-xs text-muted">{sets.length} total</p>}
+        eyebrow="LOGGED SETS"
         className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
         contentClassName="space-y-0"
       >

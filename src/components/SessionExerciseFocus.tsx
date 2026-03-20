@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { WorkoutEntryIdentity, WorkoutEntryMetric, WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
+import { WorkoutEntryIdentity, WorkoutEntryMetric } from "@/components/ui/workout-entry/EntrySection";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
@@ -115,6 +115,7 @@ export function SessionExerciseFocus({
   const [loggedSetCounts, setLoggedSetCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount])),
   );
+  const [warmupDraft, setWarmupDraft] = useState(false);
   const focusedRef = useRef<HTMLDivElement | null>(null);
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
@@ -127,6 +128,10 @@ export function SessionExerciseFocus({
   useEffect(() => {
     if (!selectedExerciseId || !focusedRef.current) return;
     focusedRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedExerciseId]);
+
+  useEffect(() => {
+    setWarmupDraft(false);
   }, [selectedExerciseId]);
 
   const handleRemoveExercise = (exerciseId: string) => {
@@ -247,10 +252,23 @@ export function SessionExerciseFocus({
           <WorkoutEntryIdentity
             eyebrow="Exercise"
             title={selectedExercise?.name ?? "Exercise"}
+            description={selectedExercise?.goalLabel ? `Goal: ${selectedExercise.goalLabel}` : undefined}
             meta={(
               <>
                 <WorkoutEntryMetric label="Logged" value={`${(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} ${selectedExercise?.isCardio ? "intervals" : "sets"}`} />
                 <WorkoutEntryMetric label="Type" value={selectedExercise?.isCardio ? "Cardio" : "Strength"} />
+                <label className="min-w-0 rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5 text-sm text-text">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Warm-up</span>
+                  <span className="mt-1 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={warmupDraft}
+                      onChange={(event) => setWarmupDraft(event.target.checked)}
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                    />
+                    <span className="text-sm font-medium text-text">{warmupDraft ? "On" : "Off"}</span>
+                  </span>
+                </label>
                 {selectedExercise?.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-text">Added today</Pill> : null}
                 {selectedExercise?.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-amber-200">Skipped</Pill> : null}
               </>
@@ -271,13 +289,6 @@ export function SessionExerciseFocus({
 
           <div ref={focusedRef} />
 
-          <WorkoutEntrySection
-            eyebrow="Goal"
-            title="Goal"
-            description={selectedExercise!.goalLabel}
-            className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))]"
-            contentClassName="space-y-0"
-          />
 
           {selectedExercise!.isSkipped ? (
             <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
@@ -323,6 +334,8 @@ export function SessionExerciseFocus({
                 </AppButton>
               </form>
             )}
+            warmupValue={warmupDraft}
+            onWarmupValueChange={setWarmupDraft}
             deleteAction={(
               <AppButton
                 type="button"

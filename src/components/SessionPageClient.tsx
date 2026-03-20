@@ -4,9 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -52,7 +50,6 @@ type SyncQueuedSetLogsAction = (payload: {
 }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
 type ServerAction = (formData: FormData) => Promise<ActionResult<{ sessionId: string }>>;
-type VoidServerAction = (formData: FormData) => Promise<ActionResult>;
 
 function getElapsedDuration(baseDurationSeconds: number, performedAt: string) {
   const parsed = Date.parse(performedAt);
@@ -73,7 +70,6 @@ export function SessionPageClient({
   unitLabel,
   exercises,
   saveSessionAction,
-  discardSessionAction,
   quickAddAction,
   requestedReturnTo,
   addSetAction,
@@ -90,7 +86,6 @@ export function SessionPageClient({
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
   saveSessionAction: ServerAction;
-  discardSessionAction: VoidServerAction;
   quickAddAction: import("react").ReactNode;
   requestedReturnTo?: string;
   addSetAction: (payload: AddSetPayload) => Promise<ActionResult<{ set: SetRow }>>;
@@ -130,54 +125,28 @@ export function SessionPageClient({
 
   const sessionActions = useMemo(
     () => (
-      <BottomActionSplit
-        primary={(
-          <form
-            action={async (formData) => {
-              const result = await saveSessionAction(formData);
-              toastActionResult(toast, result, {
-                success: "Workout saved.",
-                error: "Could not save workout.",
-              });
+      <form
+        action={async (formData) => {
+          const result = await saveSessionAction(formData);
+          toastActionResult(toast, result, {
+            success: "Workout saved.",
+            error: "Could not save workout.",
+          });
 
-              if (result.ok) {
-                navigateReturn();
-              }
-            }}
-            className="w-full"
-          >
-            <input type="hidden" name="sessionId" value={sessionId} />
-            <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-            <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
-              Complete session
-            </AppButton>
-          </form>
-        )}
-        secondary={(
-          <ConfirmedServerFormButton
-            action={async (formData) => {
-              const result = await discardSessionAction(formData);
-              toastActionResult(toast, result, {
-                success: "Workout discarded.",
-                error: "Could not discard workout.",
-              });
-
-              if (result.ok) {
-                navigateReturn();
-              }
-            }}
-            hiddenFields={{ sessionId }}
-            triggerLabel="Discard"
-            triggerClassName="w-full"
-            size="md"
-            modalTitle="Discard workout?"
-            modalDescription="This will delete your in-progress workout, including exercises and sets."
-            confirmLabel="Discard"
-          />
-        )}
-      />
+          if (result.ok) {
+            navigateReturn();
+          }
+        }}
+        className="w-full"
+      >
+        <input type="hidden" name="sessionId" value={sessionId} />
+        <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
+        <AppButton type="submit" variant="primary" size="md" fullWidth className="min-h-12 font-semibold">
+          Complete session
+        </AppButton>
+      </form>
     ),
-    [discardSessionAction, durationSeconds, navigateReturn, saveSessionAction, sessionId, toast],
+    [durationSeconds, navigateReturn, saveSessionAction, sessionId, toast],
   );
 
   return (

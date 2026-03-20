@@ -10,7 +10,6 @@ import {
   removeExerciseAction,
   quickAddExerciseAction,
   deleteSetAction,
-  discardSessionAction,
   saveSessionAction,
   syncQueuedSetLogsAction,
   toggleSkipAction,
@@ -174,7 +173,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             };
           })}
           saveSessionAction={saveSessionAction}
-          discardSessionAction={discardSessionAction}
           requestedReturnTo={requestedReturnTo}
           quickAddAction={(
             <QuickAddExerciseSheet
