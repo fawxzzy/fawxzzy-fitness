@@ -219,106 +219,116 @@ export function EditableRoutineDayExerciseList({
                 commitOrder(orderedIds);
               }}
               className={cn(
-                "overflow-hidden rounded-[1.15rem] transition-all",
+                "overflow-hidden rounded-[1.25rem] transition-all",
                 isDragging ? "opacity-70" : undefined,
               )}
             >
-              <ExerciseCard
-                title={exercise.name}
-                subtitle={isExpanded || exercise.targetSummary !== "Goal missing" ? exercise.targetSummary : undefined}
-                variant="interactive"
-                state={isExpanded ? "active" : exercise.targetSummary === "Goal missing" ? "empty" : "default"}
-                onPress={() => setSelectedExerciseId(exercise.exerciseId)}
-                badgeText={isExpanded ? "Editing" : exercise.targetSummary === "Goal missing" ? undefined : `#${index + 1}`}
-                leadingVisual={(
-                  <ExerciseAssetImage
-                    src={getExerciseIconSrc(exercise)}
-                    alt={`${exercise.name} icon`}
-                    className="h-11 w-11 rounded-xl border border-border/35"
-                    imageClassName="object-cover object-center"
-                    sizes="44px"
-                  />
-                )}
-                trailingClassName="self-start pt-0.5"
+              <div
                 className={cn(
-                  listShellClasses.card,
-                  "shadow-[0_4px_14px_-10px_rgba(0,0,0,0.55)]",
-                  isExpanded ? "rounded-b-none border-b-0" : undefined,
+                  "overflow-hidden rounded-[1.25rem] border transition-colors",
+                  isExpanded
+                    ? "border-accent/40 bg-[linear-gradient(180deg,rgba(96,200,130,0.08),rgba(var(--surface-2-soft)/0.78))] shadow-[0_18px_38px_-28px_rgba(96,200,130,0.55)]"
+                    : "border-border/45 bg-transparent",
                 )}
-                rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
-                actions={
-                  <>
-                    <button
-                      type="button"
-                      draggable
-                      aria-label={`Reorder ${exercise.name}`}
-                      title="Drag to reorder"
-                      className={cn(listShellClasses.iconAction, "h-8 w-8 border border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted hover:bg-[rgb(var(--bg)/0.48)]")}
-                    >
-                      ⋮⋮
-                    </button>
-                    <AppButton
-                      type="button"
-                      variant={isExpanded ? "secondary" : "ghost"}
-                      size="sm"
-                      className="min-w-[4rem] self-start"
-                      aria-label={isExpanded ? `Close editor for ${exercise.name}` : `Edit ${exercise.name}`}
-                      onClick={() => setExpandedId(isExpanded ? null : exercise.id)}
-                    >
-                      {isExpanded ? "Done" : "Edit"}
-                    </AppButton>
-                    <ConfirmedServerFormButton
-                      action={deleteAction}
-                      onSuccess={() => router.refresh()}
-                      hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
-                      triggerLabel="Delete"
-                      triggerAriaLabel={`Delete ${exercise.name}`}
-                      triggerClassName="min-w-[3.8rem] self-start"
-                      modalTitle="Delete routine day exercise?"
-                      modalDescription="This will remove this exercise from the routine day."
-                      confirmLabel="Delete"
-                      details={`Exercise: ${exercise.name}`}
+              >
+                <ExerciseCard
+                  title={exercise.name}
+                  subtitle={exercise.targetSummary}
+                  variant="interactive"
+                  state={isExpanded ? "selected" : exercise.targetSummary === "Goal missing" ? "empty" : "default"}
+                  onPress={() => setSelectedExerciseId(exercise.exerciseId)}
+                  badgeText={isExpanded ? "Editing" : exercise.targetSummary === "Goal missing" ? undefined : `#${index + 1}`}
+                  leadingVisual={(
+                    <ExerciseAssetImage
+                      src={getExerciseIconSrc(exercise)}
+                      alt={`${exercise.name} icon`}
+                      className="h-11 w-11 rounded-xl border border-border/35"
+                      imageClassName="object-cover object-center"
+                      sizes="44px"
                     />
-                  </>
-                }
-              />
-
-              {isExpanded ? (
-                <div className="rounded-b-[1.15rem] border border-border/45 border-t-0 bg-[rgb(var(--surface-2-soft)/0.42)] px-3 pb-3 pt-2.5">
-                  <form
-                    action={async (formData) => {
-                      const result = await updateAction(formData);
-                      toastActionResult(toast, result, {
-                        success: "Exercise updated.",
-                        error: "Could not update exercise.",
-                      });
-                      if (result.ok) {
-                        router.refresh();
-                      }
-                    }}
-                    className="space-y-3"
-                  >
-                    <input type="hidden" name="routineId" value={routineId} />
-                    <input type="hidden" name="routineDayId" value={routineDayId} />
-                    <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Edit goal</p>
-                        <p className="text-xs text-muted">Keep this exercise aligned with the same shared goal and measurement language used across the app.</p>
-                      </div>
-                      <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets <span className="normal-case tracking-normal">(Required)</span></p><input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} /></div>
-                      <RoutineTargetInputs
-                        weightUnit={weightUnit}
-                        distanceUnit={exercise.defaultDistanceUnit}
-                        defaults={exercise.defaults}
+                  )}
+                  trailingClassName="self-start pt-0.5"
+                  className={cn(
+                    listShellClasses.card,
+                    "w-full rounded-[1.25rem] border-0 bg-transparent shadow-none",
+                    isExpanded ? "rounded-b-none pb-2.5" : undefined,
+                  )}
+                  rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
+                  actions={
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 pt-0.5">
+                      <button
+                        type="button"
+                        draggable
+                        aria-label={`Reorder ${exercise.name}`}
+                        title="Drag to reorder"
+                        className={cn(listShellClasses.iconAction, "h-8 w-8 rounded-full border border-border/45 bg-[rgb(var(--bg)/0.3)] text-muted hover:bg-[rgb(var(--bg)/0.46)]")}
+                      >
+                        ⋮⋮
+                      </button>
+                      <AppButton
+                        type="button"
+                        variant={isExpanded ? "secondary" : "ghost"}
+                        size="sm"
+                        className="min-w-[4.4rem] self-start"
+                        aria-label={isExpanded ? `Finish editing ${exercise.name}` : `Edit ${exercise.name}`}
+                        onClick={() => setExpandedId(isExpanded ? null : exercise.id)}
+                      >
+                        {isExpanded ? "Done" : "Edit"}
+                      </AppButton>
+                      <ConfirmedServerFormButton
+                        action={deleteAction}
+                        onSuccess={() => router.refresh()}
+                        hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
+                        triggerLabel="Delete"
+                        triggerAriaLabel={`Delete ${exercise.name}`}
+                        triggerClassName="min-w-[3.8rem] self-start"
+                        modalTitle="Delete routine day exercise?"
+                        modalDescription="This will remove this exercise from the routine day."
+                        confirmLabel="Delete"
+                        details={`Exercise: ${exercise.name}`}
                       />
                     </div>
-                    <div className="flex justify-end">
-                      <AppButton type="submit" variant="ghost" size="sm">Apply goal</AppButton>
-                    </div>
-                  </form>
-                </div>
-              ) : null}
+                  }
+                />
+
+                {isExpanded ? (
+                  <div className="border-t border-border/30 px-3.5 pb-3.5 pt-1.5 sm:px-4">
+                    <form
+                      action={async (formData) => {
+                        const result = await updateAction(formData);
+                        toastActionResult(toast, result, {
+                          success: "Exercise draft updated.",
+                          error: "Could not update exercise.",
+                        });
+                        if (result.ok) {
+                          setExpandedId(null);
+                          router.refresh();
+                        }
+                      }}
+                      className="space-y-3"
+                    >
+                      <input type="hidden" name="routineId" value={routineId} />
+                      <input type="hidden" name="routineDayId" value={routineDayId} />
+                      <input type="hidden" name="exerciseRowId" value={exercise.id} />
+                      <div className="space-y-3 rounded-[1rem] bg-[rgb(var(--bg)/0.12)] p-3">
+                        <div className="space-y-1">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Editing this planned workout</p>
+                          <p className="text-xs text-muted">Adjust the draft goal here, then finish this row. Use the page-level Save Day action when you are done editing the day.</p>
+                        </div>
+                        <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets <span className="normal-case tracking-normal">(Required)</span></p><input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} /></div>
+                        <RoutineTargetInputs
+                          weightUnit={weightUnit}
+                          distanceUnit={exercise.defaultDistanceUnit}
+                          defaults={exercise.defaults}
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <AppButton type="submit" variant="secondary" size="sm">Done editing</AppButton>
+                      </div>
+                    </form>
+                  </div>
+                ) : null}
+              </div>
             </li>
           );
         })}
