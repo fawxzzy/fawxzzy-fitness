@@ -24,7 +24,7 @@ import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getTodayGlobalErrorMessage } from "@/lib/today-page-state";
+import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "@/lib/today-page-state";
 import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
 import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
@@ -325,8 +325,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           .eq("user_id", user.id)
           .eq("routine_id", activeRoutine.id)
           .eq("status", "in_progress")
-          .gte("performed_at", startIso)
-          .lt("performed_at", endIso)
           .order("performed_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -345,31 +343,37 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   });
   const normalizedDayByIndex = new Map(normalizedDaySummaries.map((entry) => [entry.day.day_index, entry]));
   // Manual QA checklist:
-  // - Change day on Today, start workout, leave, return: displayed day matches Resume target.
-  const effectiveDayIndex = inProgressSession?.routine_day_index ?? todayDayIndex;
-  const effectiveRoutineDay = effectiveDayIndex === null
-    ? todayRoutineDay
-    : routineDays.find((day) => day.day_index === effectiveDayIndex) ?? todayRoutineDay;
+  // - Start from the default day, back out, and confirm Resume still targets that same day.
+  // - Select a different day, start workout, back out, and confirm Resume restores that selected day instead of recalculating calendar today.
+  // - Hard refresh Today with an active session and confirm the started day still resumes.
+  const displayDay = resolveTodayDisplayDay({
+    calendarDayIndex: todayDayIndex,
+    todayRoutineDay,
+    routineDays,
+    inProgressSession,
+  });
+  const effectiveDayIndex = displayDay.dayIndex;
+  const effectiveRoutineDay = displayDay.routineDay;
   const effectiveDaySummary = effectiveRoutineDay ? normalizedDayByIndex.get(effectiveRoutineDay.day_index) ?? null : null;
   const routineName = activeRoutine?.name ?? null;
-  const routineDayName = effectiveRoutineDay ? effectiveRoutineDay.name ?? `Day ${effectiveDayIndex ?? effectiveRoutineDay.day_index}` : null;
+  const routineDayName = displayDay.dayName;
 
   const todayPayload = {
     routine:
-      activeRoutine && effectiveRoutineDay && effectiveDayIndex !== null && routineDayName
+      activeRoutine && effectiveDayIndex !== null && routineDayName
         ? {
             id: activeRoutine.id,
             name: routineName ?? "Routine",
             dayIndex: effectiveDayIndex,
             dayName: routineDayName,
-            isRest: effectiveRoutineDay.is_rest,
+            isRest: effectiveRoutineDay?.is_rest ?? false,
             state: effectiveDaySummary?.state ?? getRunnableDayState({
-              isRest: effectiveRoutineDay.is_rest,
+              isRest: effectiveRoutineDay?.is_rest ?? false,
               runnableExerciseCount: 0,
               invalidExerciseCount: 0,
             }),
             routineId: activeRoutine.id,
-            routineDayId: effectiveRoutineDay.id,
+            routineDayId: effectiveRoutineDay?.id ?? null,
           }
         : null,
     exercises: (effectiveDaySummary?.runnableExercises ?? []).map((exercise) => {

@@ -13,6 +13,19 @@
 - Users expect a disabled metric to be fully out of play, not invisibly preserved inside summaries, queued payloads, or draft state.
 - Clearing stale local values on toggle-off prevents confusing “old value came back” behavior when someone later re-enables a metric.
 - Centralizing sanitization makes the rules consistent across routine planning, quick/add-exercise goal setup, active workout logging, and history editing instead of relying on each surface to remember the same exclusions.
+- Fixed Today resume continuity so an active session now restores the exact routine day it was started from, even when the workout began from a manually selected day instead of the calendar-computed default.
+- Moved Today day restoration onto active-session state by resolving the resumable day from persisted session fields first (`routine_day_index` plus the snapshotted day label) and only falling back to the calendar default when no active session exists.
+- Stopped Today from filtering in-progress sessions to the current time-window, which lets a hard refresh or later return still find the latest active workout for the active routine and rehydrate the started day context.
+- Added focused regression coverage for default-day starts, manually selected-day starts, and resume behavior when the routine day list changes after the session has already begun.
+- Rule: The day a workout starts from must become part of active session state.
+- Pattern: Resume surfaces should restore the persisted started day before consulting any calendar-derived default.
+- Failure Mode: Recomputing Today from calendar defaults causes manually selected workout context to snap back to real-world today and hides the true resumable session state.
+
+### WHY
+- The selected day is user intent, and once a workout starts that intent becomes part of the active session identity rather than temporary Today UI state.
+- Resume behavior must restore the day the user actually started so backing out of Current Session feels continuous instead of rewriting the workout onto whatever the calendar says is today.
+- Reading the started day from active-session state also makes hard refreshes safer because the resumable workout no longer depends on reconstructing intent from transient picker state.
+- Keeping regression coverage around both default and manually selected starts protects the core Today → Session → Back → Resume loop from future refactors.
 
 ## 0.3.99 — 2026-03-20
 
