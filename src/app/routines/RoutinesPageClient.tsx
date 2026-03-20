@@ -22,7 +22,7 @@ export type RoutineDayCardItem = {
   dayIndex: number;
   title: string;
   isRest: boolean;
-  exerciseCount: number;
+  exerciseSummary: string;
   notes: string | null;
   href: string;
   isToday: boolean;
@@ -136,9 +136,7 @@ export function RoutinesPageClient({
           <ul className="space-y-2">
             {days.map((day) => {
               const subtitleParts = [
-                day.isRest
-                  ? "Rest day"
-                  : `${day.exerciseCount} exercise${day.exerciseCount === 1 ? "" : "s"}`,
+                day.exerciseSummary,
                 day.notes?.trim() || null,
               ].filter(Boolean);
 

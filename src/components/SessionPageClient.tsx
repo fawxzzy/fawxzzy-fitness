@@ -66,6 +66,7 @@ export function SessionPageClient({
   initialDurationSeconds,
   performedAt,
   sessionTitle,
+  sessionSummary,
   searchError,
   unitLabel,
   exercises,
@@ -82,6 +83,7 @@ export function SessionPageClient({
   initialDurationSeconds: number | null;
   performedAt: string;
   sessionTitle: string;
+  sessionSummary?: string;
   searchError?: string;
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
@@ -159,6 +161,7 @@ export function SessionPageClient({
         {!isExerciseOpen ? (
           <SessionHeaderControls
             sessionTitle={sessionTitle}
+            sessionSummary={sessionSummary}
             durationSeconds={hasMountedTimer ? durationSeconds : baseDurationSeconds}
             isTimerHydrated={hasMountedTimer}
             quickAddAction={quickAddAction}

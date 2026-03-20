@@ -1,3 +1,20 @@
+## 0.3.99 — 2026-03-20
+
+### WHAT
+- Normalized exercise-count metadata across Today, Routines, View Day, Edit Day, Today resume/in-progress surfaces, and the current session header so adjacent workout flows now reuse one canonical count-summary pattern instead of mixed strings like `8 exercises`, `Exercises: 8`, or route-local variants.
+- Chose the shared compact count format `8 total • 7 strength • 1 cardio`, with fallbacks for single-type days (`8 strength`, `3 cardio`), empty days (`0 exercises`), and explicit rest-day handling that still reads as `Rest day`.
+- Centralized count classification and formatting in a shared helper that derives total, strength, cardio, and graceful unknown-type handling from shared exercise metadata instead of hardcoded per-route wording.
+- Extended the Today offline cache payload just enough to preserve the same normalized count language when the fallback shell renders cached exercise metadata offline.
+- Rule: Repeated domain summaries like workout exercise counts must come from one shared formatter, not route-specific wording.
+- Pattern: Equivalent workout metadata should scan the same way across selector rows, day cards, resume surfaces, and in-session headers.
+- Failure Mode: Route-local count strings make adjacent screens feel inconsistent even when layout and card shells have already been unified.
+
+### WHY
+- Users compare day and session summaries constantly while switching routines, choosing days, resuming workouts, and editing plans, so the count language needs to stay stable across those high-frequency surfaces.
+- Including the strength/cardio breakdown makes mixed workout days more informative without sacrificing mobile readability, especially once the summary is kept compact and standardized.
+- Centralizing the formatter reduces wording drift, makes future summary changes safer, and prevents regressions where one route quietly falls back to a different count style.
+- Keeping rest days explicit and unknown types graceful preserves state meaning while improving summary quality, which avoids reopening the recent current-session wording regressions during this normalization pass.
+
 ## 0.3.98 — 2026-03-20
 
 ### WHAT

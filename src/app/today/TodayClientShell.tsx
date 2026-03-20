@@ -8,6 +8,7 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
 
 type TodayPayload = {
   routine: {
@@ -26,6 +27,7 @@ type TodayPayload = {
     primary_muscle?: string | null;
     equipment?: string | null;
     movement_pattern?: string | null;
+    measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
     image_howto_path?: string | null;
     how_to_short?: string | null;
     image_icon_path?: string | null;
@@ -94,9 +96,22 @@ export function TodayClientShell({
     <div className="space-y-3 px-1 py-2">
       <OfflineSyncBadge />
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-text">
-          {display.routine.name}: {display.routine.isRest ? `REST DAY — ${display.routine.dayName}` : display.routine.dayName}
-        </h2>
+        <div className="min-w-0 space-y-1">
+          <h2 className="text-lg font-semibold text-text">
+            {display.routine.name}: {display.routine.isRest ? `REST DAY — ${display.routine.dayName}` : display.routine.dayName}
+          </h2>
+          <p className="text-sm text-muted">
+            {display.routine.isRest
+              ? "Rest day"
+              : formatExerciseCountSummary(
+                display.exercises.map((exercise) => ({
+                  measurement_type: exercise.measurement_type ?? null,
+                  equipment: exercise.equipment ?? null,
+                  movement_pattern: exercise.movement_pattern ?? null,
+                })),
+              ).label}
+          </p>
+        </div>
         {display.completedTodayCount > 0 ? (
           <p className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</p>
         ) : null}

@@ -18,6 +18,7 @@ import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
+import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
@@ -113,9 +114,24 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
   const returnTo = `/routines/${params.id}/edit/day/${params.dayId}`;
   const backHref = resolveReturnTo(searchParams?.returnTo) ?? `/routines/${params.id}/edit`;
-  const dayExerciseCounts = new Map<string, number>();
-  for (const exercise of allRoutineDayExercises) {
-    dayExerciseCounts.set(exercise.routine_day_id, (dayExerciseCounts.get(exercise.routine_day_id) ?? 0) + 1);
+  const exerciseOptionById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
+  const dayExerciseSummaries = new Map<string, string>();
+  for (const routineDay of routineDays ?? []) {
+    const summaryLabel = formatExerciseCountSummary(
+      allRoutineDayExercises
+        .filter((exercise) => exercise.routine_day_id === routineDay.id)
+        .map((exercise) => {
+          const matchingExercise = exerciseOptionById.get(exercise.exercise_id);
+          return {
+            measurement_type: exercise.measurement_type ?? matchingExercise?.measurement_type ?? null,
+            equipment: matchingExercise?.equipment ?? null,
+            movement_pattern: matchingExercise?.movement_pattern ?? null,
+            isCardio: hasCardioTag(matchingExercise),
+          };
+        }),
+    ).label;
+
+    dayExerciseSummaries.set(routineDay.id, routineDay.is_rest ? "Rest day" : summaryLabel);
   }
 
   const switcherDays = (routineDays ?? []).map((routineDay) => ({
@@ -123,7 +139,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     dayIndex: routineDay.day_index,
     name: formatDayTitle(routineDay.day_index, routineDay.name),
     isRest: routineDay.is_rest,
-    exerciseCount: dayExerciseCounts.get(routineDay.id) ?? 0,
+    exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? (routineDay.is_rest ? "Rest day" : "0 exercises"),
   }));
 
 
@@ -173,6 +189,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       },
     };
   });
+  const activeExerciseSummary = formatExerciseCountSummary(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio }))).label;
 
   return (
     <AppShell topNavMode="none">
@@ -184,7 +201,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             days={switcherDays}
             activeDayId={params.dayId}
             activeDayTitle={dayTitle}
-            activeDaySummary={day.is_rest ? "Rest day" : `${dayExercises.length} planned exercise${dayExercises.length === 1 ? "" : "s"}`}
+            activeDaySummary={day.is_rest ? "Rest day" : activeExerciseSummary}
             backHref={backHref}
           />
 
@@ -216,7 +233,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                     <h2 className="text-base font-semibold text-text">Exercises for {dayTitle}</h2>
                     <p className="text-[11px] text-muted">Tap a row for exercise info. Use the handle to reorder. Keep edit and delete in trailing actions.</p>
                   </div>
-                  <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{dayExercises.length}</span>
+                  <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{activeExerciseSummary}</span>
                 </div>
                 <EditableRoutineDayExerciseList
                   routineId={params.id}

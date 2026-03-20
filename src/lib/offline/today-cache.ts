@@ -17,6 +17,9 @@ export type CachedTodayExercise = {
   name: string;
   targets: string | null;
   notes: string | null;
+  equipment?: string | null;
+  movement_pattern?: string | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
 };
 
 export type CachedTodayHints = {
