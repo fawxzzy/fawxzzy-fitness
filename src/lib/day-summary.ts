@@ -3,7 +3,7 @@ import { formatExerciseCountSummary, formatRestDayExerciseCountSummary, type Exe
 import { isCardioExercise } from "@/lib/exercise-metadata";
 
 type ExerciseCountSummaryInputSource =
-  | Pick<ExerciseCountSummaryInput, "measurement_type" | "equipment" | "movement_pattern" | "isCardio" | "kind" | "type" | "tags" | "categories">
+  | Pick<ExerciseCountSummaryInput, "measurement_type" | "equipment" | "movement_pattern" | "primary_muscle" | "isCardio" | "kind" | "type" | "tags" | "categories">
   | null
   | undefined;
 
@@ -14,6 +14,7 @@ export function toExerciseCountSummaryInput(
     measurement_type: exercise?.measurement_type ?? null,
     equipment: exercise?.equipment ?? null,
     movement_pattern: exercise?.movement_pattern ?? null,
+    primary_muscle: exercise?.primary_muscle ?? null,
     isCardio: exercise?.isCardio ?? null,
     kind: exercise?.kind ?? null,
     type: exercise?.type ?? null,
@@ -45,6 +46,7 @@ function toCanonicalExerciseCountSummaryInput(exercise: CanonicalDayExercise): E
     measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
     equipment: exercise.details?.equipment ?? null,
     movement_pattern: exercise.details?.movement_pattern ?? null,
+    primary_muscle: exercise.details?.primary_muscle ?? null,
     kind: exercise.details?.kind ?? null,
     type: exercise.details?.type ?? null,
     tags: exercise.details?.tags ?? null,
