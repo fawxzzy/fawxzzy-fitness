@@ -39,3 +39,17 @@ test("sanitizeEnabledMeasurementValues drops stale values when toggling back on 
   assert.equal(toggledBackOn.weight, "");
   assert.equal(toggledBackOn.duration, "6:00");
 });
+
+
+test("formatGoalSummaryText excludes disabled measurements from summaries", async () => {
+  const { formatGoalSummaryText } = await import("./measurement-display.ts");
+  const summary = formatGoalSummaryText({
+    sets: 3,
+    reps: 10,
+    weight: 135,
+    durationSeconds: 600,
+    enabledMeasurements: { reps: true, weight: false, time: false, distance: false, calories: false },
+  });
+
+  assert.equal(summary, "Goal: 3 sets • 10 reps");
+});

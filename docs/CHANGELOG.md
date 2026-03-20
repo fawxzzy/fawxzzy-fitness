@@ -1,5 +1,28 @@
 ## 2026-03-20
 
+### WHAT
+- Corrected the shared exercise-count formatter so every workout surface now gets a complete canonical label from one source, including mixed days like `8 total • 7 strength • 1 cardio`, single-type days like `5 strength`, empty days like `0 exercises`, and explicit `Rest day` handling without malformed partial strings.
+- Centralized exercise type classification around shared metadata resolution so Today, Routines, View Day, Edit Day, selector rows, Current Session, and resume/in-progress surfaces all use the same cardio-vs-strength truth instead of route-local guesses.
+- Fixed current-session exercise type mapping so cardio exercises now stay cardio in the current-session detail header, logged-set detail context, and adjacent day/session summaries.
+- Extended shared measurement sanitization into goal-summary formatting so disabled optional measurements now scrub stored meaning as well as raw values, preventing hidden values from leaking into saved payloads, summaries, draft restores, or logged/review displays.
+- Simplified Today and View Day by removing Today footer `View Day` / `Edit Day` actions and dropping the extra `Planned workout` wrapper box from View Day so those screens focus on the live flow plus the exercise list itself.
+- Tightened the Current Session header shell, kept discard out of the in-session surface, aligned the `Complete session` footer with the canonical bottom-action frame, and cleaned up the log-set detail hierarchy so Goal appears once, Warm-up sits between the title area and measurements, and `Effort Rating` no longer repeats a separate `0-10` subtitle.
+- Added regression coverage for count-summary formatting, cardio classification inputs, and disabled-measurement summary scrubbing.
+- Rule: Shared metadata formatters must own the full output string; consumers must not append or patch wording afterward.
+- Rule: Disabled optional fields must not contribute meaning or values anywhere in saved state.
+- Pattern: Dense workout screens should show each concept once.
+- Pattern: Title → goal summary → compact controls is the preferred hierarchy for set-entry screens.
+- Failure Mode: Partial normalization creates malformed summaries and inconsistent truth across adjacent workout surfaces.
+
+### WHY
+- The malformed `# total • exercises` output came from consumers depending on partial formatter fragments, so the formatter now owns the full label contract and unknown metadata degrades gracefully instead of emitting broken tokens.
+- Exercise type bugs were rooted in inconsistent upstream classification inputs, especially when session/detail routes only looked for tags; resolving cardio centrally from shared metadata fixes the actual mapping bug instead of hiding it with UI copy.
+- Disabled measurement toggles were already scrubbed in some local logging flows, but stale values could still survive through upstream goal-summary or persistence helpers; pushing the sanitization rule into shared helpers closes that broader data-truth leak.
+- Today and View Day read faster when their action ownership and content hierarchy stay focused on the in-flow controls and actual exercise list rather than repeated scaffolding boxes or duplicate route actions.
+- Current Session and log-set screens are high-frequency workout surfaces, so removing duplicate Goal/Effort/Warm-up scaffolding and tightening the header/footer improves scan speed without changing workout meaning.
+
+## 2026-03-20
+
 - Polished the current session header so the timer, quick add action, and sync status sit in a tighter shell with less dead space.
 - Updated the current session footer to use the canonical bottom action frame and left this screen owning only Complete session, because discard belongs to its dedicated destructive flow instead of the live workout surface.
 - Simplified the log-set detail screen to show Goal once, move Warm-up into a compact inline control above Effort Rating, and remove redundant Set details / Effort copy.

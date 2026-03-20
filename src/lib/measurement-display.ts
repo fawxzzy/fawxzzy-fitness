@@ -1,4 +1,5 @@
-import { formatDurationClock } from "@/lib/duration";
+import { formatDurationClock } from "./duration";
+import { sanitizeEnabledMeasurementValues, type EnabledMeasurements } from "./measurement-sanitization";
 
 export type MeasurementMetric = "reps" | "weight" | "time" | "distance" | "calories";
 
@@ -8,7 +9,7 @@ type SummaryItem = {
   tone?: "default" | "muted";
 };
 
-type GoalSummaryValues = {
+export type GoalSummaryValues = {
   sets?: number | null;
   reps?: number | null;
   repsMax?: number | null;
@@ -18,6 +19,7 @@ type GoalSummaryValues = {
   distance?: number | null;
   distanceUnit?: string | null;
   calories?: number | null;
+  enabledMeasurements?: Partial<EnabledMeasurements> | null;
   emptyLabel?: string;
 };
 
@@ -116,7 +118,34 @@ export function formatMeasurementSummaryText(values: Parameters<typeof formatMea
 }
 
 export function formatGoalSummaryText(values: GoalSummaryValues) {
-  const { measurementText, weightPart } = formatGoalSummaryCore(values);
+  const enabledMeasurements = values.enabledMeasurements;
+  const sanitizedValues = enabledMeasurements
+    ? sanitizeEnabledMeasurementValues(
+      {
+        reps: enabledMeasurements.reps ?? Boolean(values.reps ?? values.repsMax),
+        weight: enabledMeasurements.weight ?? Boolean(values.weight),
+        time: enabledMeasurements.time ?? Boolean(values.durationSeconds),
+        distance: enabledMeasurements.distance ?? Boolean(values.distance),
+        calories: enabledMeasurements.calories ?? Boolean(values.calories),
+      },
+      {
+        reps: values.reps,
+        weight: values.weight,
+        durationSeconds: values.durationSeconds,
+        distance: values.distance,
+        calories: values.calories,
+      },
+    )
+    : values;
+
+  const { measurementText, weightPart } = formatGoalSummaryCore({
+    ...values,
+    reps: sanitizedValues.reps ?? null,
+    weight: sanitizedValues.weight ?? null,
+    durationSeconds: sanitizedValues.durationSeconds ?? null,
+    distance: sanitizedValues.distance ?? null,
+    calories: sanitizedValues.calories ?? null,
+  });
   const content = [measurementText || null, weightPart].filter((part): part is string => Boolean(part)).join(" — ");
   return content ? `Goal: ${content}` : (values.emptyLabel ?? "Goal missing");
 }

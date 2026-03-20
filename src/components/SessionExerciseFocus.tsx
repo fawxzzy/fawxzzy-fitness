@@ -251,7 +251,7 @@ export function SessionExerciseFocus({
         <div className="flex min-h-full flex-col space-y-4">
           <WorkoutEntryIdentity
             title={selectedExercise?.name ?? "Exercise"}
-            description={selectedExercise?.goalLabel ? `Goal: ${selectedExercise.goalLabel}` : undefined}
+            description={selectedExercise?.goalLabel || undefined}
             meta={(
               <>
                 <WorkoutEntryMetric label="Logged" value={`${(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} ${selectedExercise?.isCardio ? "intervals" : "sets"}`} />
