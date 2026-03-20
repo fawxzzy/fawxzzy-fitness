@@ -4085,10 +4085,12 @@ WHY:
 ### Changed
 - Normalized day/exercise breakdown summaries onto one shared metadata contract so Today now renders the same strength/cardio breakdown quality as Routines, View Day, and Edit Day instead of falling back to generic exercise counts.
 - Extended canonical exercise details plus Today/day-summary payloads to carry full cardio-classification metadata (`kind`, `type`, `tags`, `categories`) all the way into the shared summary formatter, including offline Today snapshots.
+- Aligned the View Day route with the same canonical summary path used on Today and Routines by loading the fallback exercise measurement fields that canonical summaries expect and by removing the route-local rest-day summary bypass.
 - Introduced semantic text roles for `Title`, `Subtitle`, `AccentSubtitle`, and `Eyebrow` so high-frequency surfaces can share typography intent without route-local class drift.
 - Split neutral supporting text from intentionally emphasized green supporting text so routine/session counts stay readable without turning every subtitle into an accent state.
 
 ### Why
 - Today day-list breakdowns were still lagging behind Routines because their summary path was rebuilding labels from route-local exercise payloads instead of reusing the normalized canonical exercise metadata contract.
+- View Day was the last remaining route still capable of falling back to generic `N exercises` labels because it was not loading the same fallback exercise metadata and was still routing header summary generation through a route-specific wrapper instead of the shared canonical path.
 - Cardio-classified exercises that relied on metadata beyond `measurement_type`/`equipment`/`movement_pattern` were still degrading to generic `N exercises` copy whenever those richer fields were dropped before the shared formatter.
 - Shared typography drift had accumulated through repeated per-screen `text-white`, muted subtitle, uppercase label, and green helper class bundles, which made hierarchy less consistent across the app.

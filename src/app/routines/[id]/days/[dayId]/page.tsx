@@ -15,7 +15,7 @@ import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getRestDayExerciseCountSummaryFromCanonicalDay } from "@/lib/day-summary";
+import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +79,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
 
   const { data: exercises } = await supabase
     .from("routine_day_exercises")
-    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, notes")
+    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
     .eq("routine_day_id", day.id)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
@@ -94,9 +94,9 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   });
   const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
-  const daySummary = canonicalDay
-    ? getRestDayExerciseCountSummaryFromCanonicalDay(canonicalDay).label
-    : getRestDayExerciseCountSummaryFromCanonicalDay({ day: dayRow, runnableExercises: [] }).label;
+  const daySummary = dayRow.is_rest
+    ? "Rest day"
+    : getExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? []).label;
   const returnToPath = getCurrentPathWithSearch(params, searchParams);
   const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
 
