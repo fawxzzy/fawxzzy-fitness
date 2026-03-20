@@ -84,14 +84,14 @@ export function RoutinesPageClient({
           href={activeRoutineEditHref}
           className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
         >
-          Edit
+          Edit Routine
         </Link>
       ) : null}
       <Link
         href={newRoutineHref}
         className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true })}
       >
-        New
+        New Routine
       </Link>
     </BottomActionUtilityCluster>
   ), [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen, newRoutineHref]);

@@ -115,7 +115,7 @@ function RoutineTargetInputs({
           weightUnit: "targetWeightUnit",
           distanceUnit: "targetDistanceUnit",
         }}
-        description="Add only the measurements this goal needs."
+        description="Choose only the optional measurements this goal needs."
       />
       {activeMetrics.reps ? <input type="number" min={1} name="targetRepsMax" value={values.repsMax} onChange={(event) => setValues((current) => ({ ...current, repsMax: event.target.value }))} placeholder="Max reps" className={controlClassName} /> : null}
       <MeasurementSummary
@@ -128,7 +128,7 @@ function RoutineTargetInputs({
           distanceUnit: values.distanceUnit,
           calories: values.calories ? Number(values.calories) : null,
         }}
-        emptyLabel="Missing goal"
+        emptyLabel="Goal missing"
       />
       <input type="hidden" name="defaultUnit" value={activeMetrics.distance ? values.distanceUnit : "mi"} />
     </div>
@@ -235,9 +235,9 @@ export function EditableRoutineDayExerciseList({
                   title={exercise.name}
                   subtitle={exercise.targetSummary}
                   variant="interactive"
-                  state={isExpanded ? "selected" : exercise.targetSummary === "Missing goal" ? "empty" : "default"}
+                  state={isExpanded ? "selected" : exercise.targetSummary === "Goal missing" ? "empty" : "default"}
                   onPress={() => setSelectedExerciseId(exercise.exerciseId)}
-                  badgeText={isExpanded ? "Edit" : exercise.targetSummary === "Missing goal" ? undefined : `#${index + 1}`}
+                  badgeText={isExpanded ? "Editing" : exercise.targetSummary === "Goal missing" ? undefined : `#${index + 1}`}
                   leadingVisual={(
                     <ExerciseAssetImage
                       src={getExerciseIconSrc(exercise)}
@@ -312,8 +312,8 @@ export function EditableRoutineDayExerciseList({
                       <input type="hidden" name="exerciseRowId" value={exercise.id} />
                       <div className="space-y-3 rounded-[1rem] bg-[rgb(var(--bg)/0.12)] p-3">
                         <div className="space-y-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Edit goal</p>
-                          <p className="text-xs text-muted">Update this goal here. Save the day from the bottom bar.</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Editing this planned workout</p>
+                          <p className="text-xs text-muted">Adjust the draft goal here, then finish this row. Use the page-level Save Day action when you are done editing the day.</p>
                         </div>
                         <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets <span className="normal-case tracking-normal">(Required)</span></p><input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} /></div>
                         <RoutineTargetInputs
@@ -323,7 +323,7 @@ export function EditableRoutineDayExerciseList({
                         />
                       </div>
                       <div className="flex justify-end">
-                        <AppButton type="submit" variant="secondary" size="sm">Done</AppButton>
+                        <AppButton type="submit" variant="secondary" size="sm">Done editing</AppButton>
                       </div>
                     </form>
                   </div>
