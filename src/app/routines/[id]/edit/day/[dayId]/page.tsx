@@ -194,7 +194,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3 rounded-[1.4rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.62)] p-4 shadow-[0_6px_18px_rgba(0,0,0,0.14)]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Day settings</p>
-              <p className="text-xs text-muted">Adjust the day name and rest status here, then use the owned bottom bar to commit the page-level draft.</p>
+              <p className="text-xs text-muted">Set the day name and rest status here. Save from the bottom bar.</p>
             </div>
             <input type="hidden" name="routineId" value={params.id} />
             <input type="hidden" name="routineDayId" value={params.dayId} />
@@ -206,15 +206,15 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </form>
 
           {day.is_rest ? (
-            <p className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3 text-xs text-muted">Rest day enabled. Planned exercises stay saved, but this day will be skipped until you turn rest day off.</p>
+            <p className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3 text-xs text-muted">Rest day on. Saved exercises stay here until you turn it off.</p>
           ) : (
             <>
               <section className="space-y-2.5">
                 <div className="flex items-start justify-between gap-3 px-1">
                   <div className="space-y-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
-                    <h2 className="text-base font-semibold text-text">Exercises for {dayTitle}</h2>
-                    <p className="text-[11px] text-muted">Tap a row for exercise info. Use the handle to reorder. Keep edit and delete in trailing actions.</p>
+                    <h2 className="text-base font-semibold text-text">Exercises</h2>
+                    <p className="text-[11px] text-muted">Tap for info. Drag to reorder. Use trailing actions to edit or delete.</p>
                   </div>
                   <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{dayExercises.length}</span>
                 </div>
@@ -231,7 +231,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
               <CollapsibleCard
                 title="Add exercises"
-                summary="Choose a movement, confirm it, add an optional goal, then save it to this day."
+                summary="Choose an exercise, add a goal if needed, then add it to the day."
                 defaultOpen={searchParams?.addExerciseOpen === "1"}
                 className="border border-border/40 bg-[rgb(var(--surface-2-soft)/0.58)] shadow-[0_6px_18px_rgba(0,0,0,0.14)]"
                 bodyClassName="space-y-3 bg-transparent"
@@ -245,11 +245,11 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                       className="border border-border/50 bg-[rgb(var(--bg)/0.16)]"
                       bodyClassName="space-y-3 bg-[rgb(var(--bg)/0.3)]"
                     >
-                      <p className="text-xs text-muted">Use this only when the picker does not already have what you need.</p>
+                      <p className="text-xs text-muted">Use this only if the picker is missing it.</p>
                       <form action={createCustomExerciseAction} className="space-y-2">
                         <input type="hidden" name="returnTo" value={returnTo} />
                         <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={controlClassName} />
-                        <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
+                        <AppButton type="submit" variant="secondary" fullWidth>Save custom exercise</AppButton>
                       </form>
                       {customExercises.length > 0 ? (
                         <ul className="space-y-2 border-t border-border/50 pt-3">

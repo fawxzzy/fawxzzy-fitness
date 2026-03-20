@@ -377,7 +377,7 @@ export function ExercisePicker({
       <div className="space-y-2">
         <div className="space-y-1 px-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Choose exercise</p>
-          <p className="text-xs text-muted">Search or filter, then choose one movement to add.</p>
+          <p className="text-xs text-muted">Search or filter, then select one.</p>
         </div>
         <div className="relative">
           <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises" className="pr-9" />
@@ -401,15 +401,15 @@ export function ExercisePicker({
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected exercise</p>
-            <p className="text-xs text-muted">Confirm the movement before adding goal details.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected</p>
+            <p className="text-xs text-muted">Confirm it, then add a goal if needed.</p>
           </div>
           <p className="text-xs text-muted">{filteredExercises.length} shown</p>
         </div>
         {selectedExercise ? (
           <ExerciseCard
             title={selectedExercise.name}
-            subtitle={exerciseMetadataById.get(selectedExercise.id) || "No details"}
+            subtitle={exerciseMetadataById.get(selectedExercise.id) || undefined}
             variant="summary"
             state="selected"
             leadingVisual={<ExerciseThumbnail exercise={selectedExercise} iconSrc={exerciseIconSrcById.get(selectedExercise.id) ?? getExerciseIconSrc(selectedExercise)} />}
@@ -430,9 +430,7 @@ export function ExercisePicker({
             </div>
           </ExerciseCard>
         ) : (
-          <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">
-            Select an exercise to continue.
-          </div>
+          <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">Select an exercise.</div>
         )}
       </section>
 
@@ -440,8 +438,8 @@ export function ExercisePicker({
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercise list</p>
-            <p className="text-xs text-muted">Tap a row to select it. Tap the selected row for exercise info.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercises</p>
+            <p className="text-xs text-muted">Tap to select. Tap the selected row for info.</p>
           </div>
         </div>
         <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
@@ -469,15 +467,15 @@ export function ExercisePicker({
       {routineTargetConfig && selectedExercise ? (
         <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
           <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
-            <p className="text-xs text-muted">Add only the measurements that matter for this exercise. Leave everything else off.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Goal</p>
+            <p className="text-xs text-muted">Add only what matters for this exercise.</p>
           </div>
           {selectedMeasurements.map((metric) => <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-start">
             <div className="rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets</p>
-              <p className="mt-1 text-xs text-muted">This is the only required goal field.</p>
+              <p className="mt-1 text-xs text-muted">Required.</p>
               <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="mt-3" />
             </div>
 
@@ -526,14 +524,14 @@ export function ExercisePicker({
                 }}
                 names={{ reps: "targetRepsMin", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
                 showHeader={false}
-                collapsedLabel="Optional measurements"
-                collapsedDescription="Reuse the app’s standard goal measurements only when they add value here."
+                collapsedLabel="Measurements"
+                collapsedDescription="Add only the fields you need."
               />
 
               {selectedMeasurements.includes("reps") ? <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} /> : null}
               <MeasurementSummary
                 values={{ reps: targetRepsMin ? Number(targetRepsMin) : null, weight: targetWeight ? Number(targetWeight) : null, weightUnit: targetWeightUnit, durationSeconds: parseDurationInput(targetDuration), distance: targetDistance ? Number(targetDistance) : null, distanceUnit: selectedDefaultUnit, calories: targetCalories ? Number(targetCalories) : null }}
-                emptyLabel="Goal missing"
+                emptyLabel="Missing goal"
               />
               <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
             </div>
