@@ -12,8 +12,7 @@ import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomA
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import type { ActionResult } from "@/lib/action-result";
-import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
-import { toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 
 type TodayExercise = {
   id: string;
@@ -24,6 +23,7 @@ type TodayExercise = {
   equipment: string | null;
   movement_pattern: string | null;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  isCardio?: boolean | null;
   image_howto_path: string | null;
   image_icon_path: string | null;
   slug: string | null;
@@ -75,7 +75,7 @@ function getDaySummaryTone(day: TodayDay): "blocking" | "warning" | null {
 }
 
 function getExerciseSummary(exercises: TodayExercise[]) {
-  return formatExerciseCountSummary(exercises.map((exercise) => toExerciseCountSummaryInput(exercise))).label;
+  return getExerciseCountSummaryFromInputs(exercises).label;
 }
 
 export function TodayDayPicker({

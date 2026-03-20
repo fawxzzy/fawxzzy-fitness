@@ -25,8 +25,7 @@ import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMea
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "@/lib/today-page-state";
-import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
-import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
+import { getExerciseCountSummaryFromCanonicalExercises, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
@@ -388,6 +387,11 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         primary_muscle: exercise.details?.primary_muscle ?? null,
         equipment: exercise.details?.equipment ?? null,
         movement_pattern: exercise.details?.movement_pattern ?? null,
+        isCardio: toExerciseCountSummaryInput({
+          measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
+          equipment: exercise.details?.equipment ?? null,
+          movement_pattern: exercise.details?.movement_pattern ?? null,
+        }).isCardio,
         image_howto_path: exercise.details?.image_howto_path ?? null,
         image_icon_path: exercise.details?.image_icon_path ?? null,
         slug: exercise.details?.slug ?? null,
@@ -463,6 +467,11 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                       equipment: exercise.details?.equipment ?? null,
                       movement_pattern: exercise.details?.movement_pattern ?? null,
                       measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
+                      isCardio: toExerciseCountSummaryInput({
+                        measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
+                        equipment: exercise.details?.equipment ?? null,
+                        movement_pattern: exercise.details?.movement_pattern ?? null,
+                      }).isCardio,
                       image_howto_path: exercise.details?.image_howto_path ?? null,
                       image_icon_path: exercise.details?.image_icon_path ?? null,
                       slug: exercise.details?.slug ?? null,

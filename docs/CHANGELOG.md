@@ -1,6 +1,20 @@
 ## 2026-03-20
 
 ### WHAT
+- Fixed the remaining Today and View Day exercise-breakdown regression by routing their summaries through the same normalized metadata contract already used by the stronger Routines/Edit Day paths, so mixed days now keep canonical labels like `8 total • 7 strength • 1 cardio` and single-type days stay concise like `6 strength`.
+- Added shared input-level day-summary helpers that normalize cardio classification before formatting, then reused that contract across Today, View Day, Edit Day, and Current Session summary surfaces instead of rebuilding partial metadata per route.
+- Added regression coverage to confirm normalized `isCardio` metadata wins over weaker fallback hints when summary labels are generated.
+- Rule: Repeated summary labels must be computed from one normalized metadata contract, not route-local partial shapes.
+- Pattern: Shared summary formatters only stay consistent when every route supplies the same semantic metadata quality.
+- Failure Mode: A shared formatter still degrades to generic `N exercises` output when some routes quietly pass weaker metadata than adjacent screens.
+
+### WHY
+- Today and View Day were still lagging behind Routines because those surfaces could arrive at the formatter with degraded exercise metadata, which made the shared label logic fall back to generic exercise counts even though richer classification was already available elsewhere.
+- Fixing the metadata-contract layer keeps the UI wording canonical everywhere without adding brittle Today/View Day-specific string patches, and it preserves explicit `Rest day` handling while letting unknown-only copy appear only when metadata is truly unavailable.
+
+## 2026-03-20
+
+### WHAT
 - Corrected the shared exercise-count formatter so every workout surface now gets a complete canonical label from one source, including mixed days like `8 total • 7 strength • 1 cardio`, single-type days like `5 strength`, empty days like `0 exercises`, and explicit `Rest day` handling without malformed partial strings.
 - Centralized exercise type classification around shared metadata resolution so Today, Routines, View Day, Edit Day, selector rows, Current Session, and resume/in-progress surfaces all use the same cardio-vs-strength truth instead of route-local guesses.
 - Fixed current-session exercise type mapping so cardio exercises now stay cardio in the current-session detail header, logged-set detail context, and adjacent day/session summaries.

@@ -19,13 +19,12 @@ import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
-import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { supabaseServer } from "@/lib/supabase/server";
-import { toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -104,16 +103,16 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseOptionById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
   const dayExerciseSummaries = new Map<string, string>();
   for (const routineDay of routineDays ?? []) {
-    const summaryLabel = formatRestDayExerciseCountSummary(
+    const summaryLabel = getRestDayExerciseCountSummaryFromInputs(
       allRoutineDayExercises
         .filter((exercise) => exercise.routine_day_id === routineDay.id)
         .map((exercise) => {
           const matchingExercise = exerciseOptionById.get(exercise.exercise_id);
-          return toExerciseCountSummaryInput({
+          return {
             measurement_type: exercise.measurement_type ?? matchingExercise?.measurement_type ?? null,
             equipment: matchingExercise?.equipment ?? null,
             movement_pattern: matchingExercise?.movement_pattern ?? null,
-          });
+          };
         }),
       routineDay.is_rest,
     ).label;
@@ -126,7 +125,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     dayIndex: routineDay.day_index,
     name: formatDayTitle(routineDay.day_index, routineDay.name),
     isRest: routineDay.is_rest,
-    exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? formatRestDayExerciseCountSummary([], routineDay.is_rest).label,
+    exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? getRestDayExerciseCountSummaryFromInputs([], routineDay.is_rest).label,
   }));
 
 
@@ -187,7 +186,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       },
     };
   });
-  const activeExerciseSummary = formatRestDayExerciseCountSummary(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest).label;
+  const activeExerciseSummary = getRestDayExerciseCountSummaryFromInputs(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest).label;
 
   return (
     <AppShell topNavMode="none">

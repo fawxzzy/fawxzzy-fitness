@@ -9,8 +9,7 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
-import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
-import { toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 
 type TodayPayload = {
   routine: {
@@ -30,6 +29,7 @@ type TodayPayload = {
     equipment?: string | null;
     movement_pattern?: string | null;
     measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+    isCardio?: boolean | null;
     image_howto_path?: string | null;
     how_to_short?: string | null;
     image_icon_path?: string | null;
@@ -105,7 +105,7 @@ export function TodayClientShell({
           <SubtitleText>
             {display.routine.isRest
               ? "Rest day"
-              : formatExerciseCountSummary(display.exercises.map((exercise) => toExerciseCountSummaryInput(exercise))).label}
+              : getExerciseCountSummaryFromInputs(display.exercises).label}
           </SubtitleText>
         </div>
         {display.completedTodayCount > 0 ? (
