@@ -1,3 +1,20 @@
+## 0.3.96 — 2026-03-20
+
+### WHAT
+- Normalized Today onto the same anchored selector pattern as Routines so the current day summary, `Select Day` / `Hide Days` toggle, and revealed day list now live in one top summary surface instead of feeling like separate stacked sections.
+- Reordered the Today footer actions so `Edit Day` now sits beside `View Day`, while the day-selection toggle moved into the lower-right footer slot contract without creating a second competing action surface.
+- Removed the remaining blue-feeling current-day emphasis from Routines by shifting Today/current list emphasis onto the app's neutral/green selected-state language and by sharing one anchored selector shell across both top-level screens.
+- Rule: Primary screen actions must live in a single owned action surface (bottom bar), not split across dropdowns and scattered buttons.
+- Pattern: Reuse interaction models across domains (workout switching → routine switching → day switching) to reduce cognitive load.
+- Pattern: A shared surface system should extend across adjacent domains, not just identical components.
+- Failure Mode: UI systems that unify layout but not state language still feel inconsistent and hard to scan.
+- Pattern: Adjacent top-level screens with the same selection-and-detail workflow should share one normalized page pattern rather than parallel bespoke layouts.
+
+### WHY
+- Today and Routines both use a selection-and-detail workflow, so keeping the selector reveal anchored to the same top summary surface makes the screens feel learned together instead of locally invented.
+- The blue current-day styling had drifted away from the app's established neutral/green language; removing it keeps state emphasis readable without introducing a foreign accent color on adjacent list surfaces.
+- Sharing a composable selector shell reduces layout drift between these pages while avoiding a brittle mega-component or duplicated expand/collapse logic.
+
 ## 0.3.95 — 2026-03-20
 
 ### WHAT

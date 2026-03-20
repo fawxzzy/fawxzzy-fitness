@@ -6,6 +6,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel";
 import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { SecondaryButton } from "@/components/ui/AppButton";
@@ -100,32 +101,41 @@ export function RoutinesPageClient({
 
   return (
     <div className="space-y-4">
-      <AppPanel className="space-y-3 p-4">
-        <AppHeader
-          title={activeRoutineName}
-          subtitleRight={activeRoutineSummary}
-          action={activeRoutineId ? <AppBadge>Active</AppBadge> : undefined}
-        />
-        {isRoutineListOpen ? (
-          <div id="routines-switch-list" aria-label="Routines" className="space-y-2">
-            {routines.map((routine) => {
-              const isCurrent = routine.id === activeRoutineId;
-              return (
-                <ExerciseCard
-                  key={routine.id}
-                  title={routine.name}
-                  subtitle={routine.summary}
-                  onPress={() => handleSwitchRoutine(routine.id)}
-                  state={isCurrent ? "selected" : "default"}
-                  badgeText={isCurrent ? "Active" : undefined}
-                  rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating…</span> : undefined}
-                  className={isCurrent ? "ring-1 ring-accent/24" : undefined}
-                />
-              );
-            })}
-          </div>
-        ) : null}
-      </AppPanel>
+      <AnchoredSelectorPanel
+        title={activeRoutineName}
+        subtitleRight={activeRoutineSummary}
+        action={activeRoutineId ? <AppBadge>Active</AppBadge> : undefined}
+        selectorLabel={activeRoutineName}
+        selectorHint={activeRoutineSummary}
+        selectorToggle={(
+          <SecondaryButton
+            type="button"
+            className="min-h-[44px] min-w-[9rem] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+            onClick={handleToggleRoutineList}
+            aria-expanded={isRoutineListOpen}
+            aria-controls="routines-switch-list"
+          >
+            <span>{isRoutineListOpen ? "Hide routines" : "Select routine"}</span>
+          </SecondaryButton>
+        )}
+        revealOpen={isRoutineListOpen}
+        revealId="routines-switch-list"
+        revealLabel="Routines"
+        revealContent={routines.map((routine) => {
+          const isCurrent = routine.id === activeRoutineId;
+          return (
+            <ExerciseCard
+              key={routine.id}
+              title={routine.name}
+              subtitle={routine.summary}
+              onPress={() => handleSwitchRoutine(routine.id)}
+              state={isCurrent ? "selected" : "default"}
+              badgeText={isCurrent ? "Active" : undefined}
+              rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating…</span> : undefined}
+            />
+          );
+        })}
+      />
 
       <AppPanel className="space-y-3 p-4">
         <AppHeader
@@ -150,7 +160,7 @@ export function RoutinesPageClient({
                       subtitle={subtitleParts.join(" • ")}
                       badgeText={day.isToday ? "Today" : day.isRest ? "Rest" : undefined}
                       rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
-                      state={day.isToday ? "active" : day.isRest ? "empty" : "default"}
+                      state={day.isToday ? "selected" : day.isRest ? "empty" : "default"}
                       className="items-center"
                     />
                   </Link>

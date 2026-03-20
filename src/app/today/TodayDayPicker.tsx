@@ -5,9 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppHeader } from "@/components/ui/app/AppHeader";
-import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AppRow } from "@/components/ui/app/AppRow";
+import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
@@ -108,7 +106,7 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
 
   const actionsNode = useMemo(() => (
-    <BottomActionUtilityCluster>
+    <BottomActionUtilityCluster className="[&>*]:basis-[calc(50%-0.25rem)]">
       {isRunnableDay ? (
         <TodayStartButton
           startSessionAction={startSessionAction}
@@ -117,6 +115,26 @@ export function TodayDayPicker({
           fullWidth
           className="w-full"
         />
+      ) : (
+        <div aria-hidden="true" className="min-h-[44px] w-full invisible" />
+      )}
+      <SecondaryButton
+        id="today-day-picker"
+        type="button"
+        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+        onClick={togglePicker}
+        aria-expanded={isPickerOpen}
+        aria-controls="today-day-selector-list"
+      >
+        <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
+      </SecondaryButton>
+      {viewDayHref ? (
+        <Link
+          href={viewDayHref}
+          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
+        >
+          View Day
+        </Link>
       ) : null}
       {editDayHref ? (
         <Link
@@ -131,23 +149,6 @@ export function TodayDayPicker({
           Edit Day
         </Link>
       ) : null}
-      {viewDayHref ? (
-        <Link
-          href={viewDayHref}
-          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
-        >
-          View Day
-        </Link>
-      ) : null}
-      <SecondaryButton
-        id="today-day-picker"
-        type="button"
-        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-        onClick={togglePicker}
-        aria-expanded={isPickerOpen}
-      >
-        <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
-      </SecondaryButton>
     </BottomActionUtilityCluster>
   ), [editDayHref, isPickerOpen, isRunnableDay, selectedDayIndex, startSessionAction, togglePicker, viewDayHref]);
 
@@ -156,13 +157,45 @@ export function TodayDayPicker({
   return (
     <div className="flex min-h-0 flex-col gap-4">
       {selectedDay ? (
-        <AppPanel className="space-y-3 p-4">
-          <AppHeader
-            title={`${routineName} | ${selectedDay.name}`}
-            subtitleRight={selectedDay.state === "rest" ? "Rest day" : `${selectedDay.exercises.length} exercises`}
-            action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
-          />
-
+        <AnchoredSelectorPanel
+          title={`${routineName} | ${selectedDay.name}`}
+          subtitleRight={selectedDay.state === "rest" ? "Rest day" : `${selectedDay.exercises.length} exercises`}
+          action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
+          selectorLabel={selectedDay.name}
+          selectorHint={selectedDay.state === "rest" ? "Rest day" : `${selectedDay.exercises.length} exercises planned`}
+          selectorToggle={(
+            <SecondaryButton
+              id="today-day-picker"
+              type="button"
+              className="min-h-[44px] min-w-[8.75rem] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+              onClick={togglePicker}
+              aria-expanded={isPickerOpen}
+              aria-controls="today-day-selector-list"
+            >
+              <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
+            </SecondaryButton>
+          )}
+          revealOpen={isPickerOpen}
+          revealId="today-day-selector-list"
+          revealLabel="Routine days"
+          revealContent={days.map((day) => {
+            const isSelected = selectedDayIndex === day.dayIndex;
+            return (
+              <ExerciseCard
+                key={day.id}
+                title={`${day.name}${day.isRest ? " (Rest)" : ""}`}
+                subtitle={day.state === "runnable" || day.state === "partial" ? `${day.exercises.length} exercises` : getDaySummary(day) ?? undefined}
+                onPress={() => {
+                  setSelectedDayIndex(day.dayIndex);
+                  setIsPickerOpen(false);
+                }}
+                state={isSelected ? "selected" : day.isRest ? "empty" : "default"}
+                badgeText={day.dayIndex === currentDayIndex ? "Today" : undefined}
+                rightIcon={null}
+              />
+            );
+          })}
+        >
           {daySummary ? (
             <p
               className={[
@@ -196,31 +229,7 @@ export function TodayDayPicker({
             ))}
             {selectedDay.exercises.length === 0 ? <li className="px-3 py-3 text-muted">{selectedDay.state === "rest" ? "Rest day." : "No exercises yet."}</li> : null}
           </ul>
-        </AppPanel>
-      ) : null}
-
-      {isPickerOpen ? (
-        <AppPanel className="space-y-3 rounded-lg border-white/15 bg-[rgb(var(--surface-2-soft)/0.7)] p-3 shadow-none">
-          <p className="text-sm font-semibold text-muted">Select day</p>
-          <div aria-label="Routine days" className="space-y-2">
-            {days.map((day) => {
-              const isSelected = selectedDayIndex === day.dayIndex;
-              return (
-                <AppRow
-                  key={day.id}
-                  tone={isSelected ? "active" : "default"}
-                  leftTop={<span>{day.name}{day.isRest ? " (Rest)" : ""}</span>}
-                  leftBottom={day.state === "runnable" || day.state === "partial" ? `${day.exercises.length} exercises` : getDaySummary(day) ?? undefined}
-                  onClick={() => {
-                    setSelectedDayIndex(day.dayIndex);
-                    setIsPickerOpen(false);
-                  }}
-                  className={isSelected ? "border-accent/70 bg-accent/26" : "border-border/85 bg-surface-2-soft/95"}
-                />
-              );
-            })}
-          </div>
-        </AppPanel>
+        </AnchoredSelectorPanel>
       ) : null}
 
       <ExerciseInfo
