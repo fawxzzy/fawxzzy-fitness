@@ -28,6 +28,7 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
+import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -109,18 +110,25 @@ const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg", measurementType: 
 });
 
 const toSetPayload = (set: EditableSet) => {
-  const parsedDuration = parseDurationInput(set.values.duration);
-  const nextDuration = set.values.duration.trim() ? parsedDuration : null;
+  const sanitizedValues = sanitizeEnabledMeasurementValues(set.activeMetrics, {
+    weight: set.values.weight,
+    reps: set.values.reps,
+    duration: set.values.duration,
+    distance: set.values.distance,
+    calories: set.values.calories,
+  });
+  const parsedDuration = parseDurationInput(sanitizedValues.duration);
+  const nextDuration = sanitizedValues.duration.trim() ? parsedDuration : null;
 
   return {
-    weight: Number(set.values.weight),
-    reps: Number(set.values.reps),
+    weight: Number(sanitizedValues.weight),
+    reps: Number(sanitizedValues.reps),
     durationSeconds: nextDuration,
-    distance: set.values.distance.trim() ? Number(set.values.distance) : null,
-    distanceUnit: set.values.distance.trim() ? set.values.distanceUnit : null,
-    calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+    distance: sanitizedValues.distance.trim() ? Number(sanitizedValues.distance) : null,
+    distanceUnit: sanitizedValues.distance.trim() ? set.values.distanceUnit : null,
+    calories: sanitizedValues.calories.trim() ? Number(sanitizedValues.calories) : null,
     weightUnit: set.values.weightUnit,
-    hasDurationError: set.values.duration.trim().length > 0 && parsedDuration === null,
+    hasDurationError: sanitizedValues.duration.trim().length > 0 && parsedDuration === null,
   };
 };
 
@@ -466,13 +474,15 @@ export function LogAuditClient({
                           <div className="flex items-center gap-2">
                             <MeasurementSummary
                               values={{
-                                reps: Number(set.values.reps),
-                                weight: Number(set.values.weight),
+                                ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
+                                  reps: set.values.reps.trim() ? Number(set.values.reps) : null,
+                                  weight: set.values.weight.trim() ? Number(set.values.weight) : null,
+                                  durationSeconds: parseDurationInput(set.values.duration),
+                                  distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+                                  calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+                                }),
                                 weightUnit: set.values.weightUnit,
-                                durationSeconds: set.source.duration_seconds,
-                                distance: set.source.distance,
-                                distanceUnit: set.source.distance_unit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
-                                calories: set.source.calories,
+                                distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
                               }}
                               emptyLabel="No measurements"
                             />
@@ -487,7 +497,28 @@ export function LogAuditClient({
                               activeMetrics={set.activeMetrics}
                               isExpanded={set.isMetricsExpanded}
                               onExpandedChange={(nextExpanded) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, isMetricsExpanded: nextExpanded }))}
-                              onMetricToggle={(metric) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, activeMetrics: { ...current.activeMetrics, [metric]: !current.activeMetrics[metric] } }))}
+                              onMetricToggle={(metric) => updateEditableSet(exercise.id, set.id, (current) => {
+                                const nextMetrics = { ...current.activeMetrics, [metric]: !current.activeMetrics[metric] };
+                                const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
+                                  reps: current.values.reps,
+                                  weight: current.values.weight,
+                                  duration: current.values.duration,
+                                  distance: current.values.distance,
+                                  calories: current.values.calories,
+                                });
+                                return {
+                                  ...current,
+                                  activeMetrics: nextMetrics,
+                                  values: {
+                                    ...current.values,
+                                    reps: sanitizedValues.reps,
+                                    weight: sanitizedValues.weight,
+                                    duration: sanitizedValues.duration,
+                                    distance: sanitizedValues.distance,
+                                    calories: sanitizedValues.calories,
+                                  },
+                                };
+                              })}
                               onChange={(patch) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
                             />
                             <div className="grid grid-cols-1 gap-2">
@@ -499,13 +530,15 @@ export function LogAuditClient({
                     ) : (
                       <MeasurementSummary
                         values={{
-                          reps: Number(set.values.reps),
-                          weight: Number(set.values.weight),
+                          ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
+                            reps: set.values.reps.trim() ? Number(set.values.reps) : null,
+                            weight: set.values.weight.trim() ? Number(set.values.weight) : null,
+                            durationSeconds: parseDurationInput(set.values.duration),
+                            distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+                            calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+                          }),
                           weightUnit: set.values.weightUnit,
-                          durationSeconds: set.source.duration_seconds,
-                          distance: set.source.distance,
-                          distanceUnit: set.source.distance_unit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
-                          calories: set.source.calories,
+                          distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
                         }}
                         emptyLabel="No measurements"
                       />

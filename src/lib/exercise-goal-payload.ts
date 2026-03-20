@@ -1,5 +1,7 @@
 import "server-only";
 
+import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+
 export type MeasurementSelection = "reps" | "weight" | "time" | "distance" | "calories";
 
 type ParseOptions = {
@@ -176,13 +178,27 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   const selections = parseMeasurementSelections(formData);
   const measurementType = deriveMeasurementType(selections);
 
+  const sanitizedTargets = sanitizeEnabledMeasurementValues({
+    reps: selections.has("reps"),
+    weight: selections.has("weight"),
+    time: selections.has("time"),
+    distance: selections.has("distance"),
+    calories: selections.has("calories"),
+  }, {
+    reps: targetRepsMinRaw,
+    weight: targetWeightRaw,
+    duration: targetDurationRaw,
+    distance: targetDistanceRaw,
+    calories: targetCaloriesRaw,
+  });
+
   const targetSets = targetSetsRaw ? Number(targetSetsRaw) : null;
-  const targetRepsMin = targetRepsMinRaw ? Number(targetRepsMinRaw) : null;
-  const targetRepsMax = targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
-  const targetWeight = targetWeightRaw ? Number(targetWeightRaw) : null;
-  const targetDurationSeconds = parseTargetDurationSeconds(targetDurationRaw);
-  const targetDistance = parseOptionalNumeric(targetDistanceRaw);
-  const targetCalories = parseOptionalNumeric(targetCaloriesRaw);
+  const targetRepsMin = sanitizedTargets.reps ? Number(sanitizedTargets.reps) : null;
+  const targetRepsMax = selections.has("reps") && targetRepsMaxRaw ? Number(targetRepsMaxRaw) : null;
+  const targetWeight = sanitizedTargets.weight ? Number(sanitizedTargets.weight) : null;
+  const targetDurationSeconds = parseTargetDurationSeconds(sanitizedTargets.duration);
+  const targetDistance = parseOptionalNumeric(sanitizedTargets.distance);
+  const targetCalories = parseOptionalNumeric(sanitizedTargets.calories);
 
   if (options.requireSets && (targetSets === null || !Number.isInteger(targetSets) || targetSets < 1)) {
     return { ok: false, error: "Target sets must be a whole number greater than 0" };

@@ -16,6 +16,7 @@ import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
@@ -104,7 +105,26 @@ function RoutineTargetInputs({
         activeMetrics={activeMetrics}
         isExpanded={expanded}
         onExpandedChange={setExpanded}
-        onMetricToggle={(metric) => setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }))}
+        onMetricToggle={(metric) => setActiveMetrics((current) => {
+          const nextMetrics = { ...current, [metric]: !current[metric] };
+          const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
+            reps: values.reps,
+            weight: values.weight,
+            duration: values.duration,
+            distance: values.distance,
+            calories: values.calories,
+          });
+          setValues((existing) => ({
+            ...existing,
+            reps: sanitizedValues.reps,
+            repsMax: nextMetrics.reps ? existing.repsMax : "",
+            weight: sanitizedValues.weight,
+            duration: sanitizedValues.duration,
+            distance: sanitizedValues.distance,
+            calories: sanitizedValues.calories,
+          }));
+          return nextMetrics;
+        })}
         onChange={(patch) => setValues((current) => ({ ...current, ...patch }))}
         names={{
           reps: "targetRepsMin",
@@ -120,13 +140,15 @@ function RoutineTargetInputs({
       {activeMetrics.reps ? <input type="number" min={1} name="targetRepsMax" value={values.repsMax} onChange={(event) => setValues((current) => ({ ...current, repsMax: event.target.value }))} placeholder="Max reps" className={controlClassName} /> : null}
       <MeasurementSummary
         values={{
-          reps: values.reps ? Number(values.reps) : null,
-          weight: values.weight ? Number(values.weight) : null,
+          ...sanitizeEnabledMeasurementValues(activeMetrics, {
+            reps: values.reps ? Number(values.reps) : null,
+            weight: values.weight ? Number(values.weight) : null,
+            durationSeconds: values.duration ? (values.duration.includes(":") ? Number(values.duration.split(":")[0]) * 60 + Number(values.duration.split(":")[1]) : Number(values.duration)) : null,
+            distance: values.distance ? Number(values.distance) : null,
+            calories: values.calories ? Number(values.calories) : null,
+          }),
           weightUnit: values.weightUnit,
-          durationSeconds: values.duration ? (values.duration.includes(":") ? Number(values.duration.split(":")[0]) * 60 + Number(values.duration.split(":")[1]) : Number(values.duration)) : null,
-          distance: values.distance ? Number(values.distance) : null,
           distanceUnit: values.distanceUnit,
-          calories: values.calories ? Number(values.calories) : null,
         }}
         emptyLabel="Goal missing"
       />
