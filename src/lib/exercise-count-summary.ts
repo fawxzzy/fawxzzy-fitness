@@ -1,6 +1,6 @@
 export type ExerciseCountKind = "strength" | "cardio" | "unknown";
 
-type ExerciseCountSummaryInput = {
+export type ExerciseCountSummaryInput = {
   measurement_type?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
@@ -11,7 +11,7 @@ type ExerciseCountSummaryInput = {
   categories?: string[] | string | null;
 };
 
-type ExerciseCountSummary = {
+export type ExerciseCountSummary = {
   total: number;
   strength: number;
   cardio: number;
@@ -82,4 +82,12 @@ export function formatExerciseCountSummary(exercises: readonly ExerciseCountSumm
   if (strength === 0 && cardio === 0) parts.push("exercises");
 
   return { total, strength, cardio, unknown, label: parts.join(" • ") };
+}
+
+export function formatRestDayExerciseCountSummary(exercises: readonly ExerciseCountSummaryInput[], isRest: boolean): ExerciseCountSummary {
+  if (isRest) {
+    return { total: exercises.length, strength: 0, cardio: 0, unknown: 0, label: "Rest day" };
+  }
+
+  return formatExerciseCountSummary(exercises);
 }

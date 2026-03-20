@@ -12,7 +12,7 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
-import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -94,6 +94,11 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   });
   const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
+  const daySummary = formatRestDayExerciseCountSummary((canonicalDay?.runnableExercises ?? []).map((exercise) => ({
+    measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
+    equipment: exercise.details?.equipment ?? null,
+    movement_pattern: exercise.details?.movement_pattern ?? null,
+  })), dayRow.is_rest).label;
   const returnToPath = getCurrentPathWithSearch(params, searchParams);
   const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
 
@@ -106,13 +111,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             <AppPanel className="space-y-3">
               <AppHeader
                 title={dayLabel}
-                subtitleRight={dayRow.is_rest
-                  ? "Rest day"
-                  : formatExerciseCountSummary((canonicalDay?.runnableExercises ?? []).map((exercise) => ({
-                    measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
-                    equipment: exercise.details?.equipment ?? null,
-                    movement_pattern: exercise.details?.movement_pattern ?? null,
-                  }))).label}
+                subtitleRight={daySummary}
                 action={<TopRightBackButton href="/routines" />}
                 actionClassName="-mt-1"
               />
@@ -132,7 +131,15 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                       : "No runnable exercises planned for this day."}
                 </p>
               ) : (
-                <RoutineDayExerciseList
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3 rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.52)] px-3.5 py-3">
+                    <div className="space-y-0.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
+                      <p className="text-sm text-[rgb(var(--text)/0.84)]">Shared count summary and exercise list stay aligned with Today, Edit Day, and Routines.</p>
+                    </div>
+                    <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{daySummary}</span>
+                  </div>
+                  <RoutineDayExerciseList
                   exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
                     id: exercise.id,
                     name: exercise.displayName,
@@ -140,6 +147,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                     exerciseId: exercise.details?.id ?? exercise.exercise_id,
                   }))}
                 />
+                </div>
               )}
             </AppPanel>
           </section>
