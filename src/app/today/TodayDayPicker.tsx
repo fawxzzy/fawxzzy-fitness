@@ -74,9 +74,6 @@ function getDaySummaryTone(day: TodayDay): "blocking" | "warning" | null {
   return null;
 }
 
-function getExerciseSummary(exercises: TodayExercise[]) {
-  return getExerciseCountSummaryFromInputs(exercises).label;
-}
 
 export function TodayDayPicker({
   routineName,
@@ -143,7 +140,7 @@ export function TodayDayPicker({
       {selectedDay ? (
         <AnchoredSelectorPanel
           title={`${routineName} | ${selectedDay.name}`}
-          subtitleRight={selectedDay.state === "rest" ? "Rest day" : getExerciseSummary(selectedDay.exercises)}
+          subtitleRight={selectedDay.state === "rest" ? "Rest day" : getExerciseCountSummaryFromInputs(selectedDay.exercises).label}
           action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
           revealOpen={isPickerOpen}
           revealId="today-day-selector-list"
@@ -154,7 +151,7 @@ export function TodayDayPicker({
               <ExerciseCard
                 key={day.id}
                 title={`${day.name}${day.isRest ? " (Rest)" : ""}`}
-                subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseSummary(day.exercises) : getDaySummary(day) ?? undefined}
+                subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : getDaySummary(day) ?? undefined}
                 onPress={() => {
                   setSelectedDayIndex(day.dayIndex);
                   setIsPickerOpen(false);

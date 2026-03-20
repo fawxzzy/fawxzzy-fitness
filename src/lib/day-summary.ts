@@ -1,4 +1,4 @@
-import type { CanonicalDayExercise } from "@/lib/routine-day-loader";
+import type { CanonicalDayExercise, CanonicalDaySummary } from "@/lib/routine-day-loader";
 import { formatExerciseCountSummary, formatRestDayExerciseCountSummary, type ExerciseCountSummary, type ExerciseCountSummaryInput } from "@/lib/exercise-count-summary";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 
@@ -45,6 +45,7 @@ function toCanonicalExerciseCountSummaryInput(exercise: CanonicalDayExercise): E
     measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
     equipment: exercise.details?.equipment ?? null,
     movement_pattern: exercise.details?.movement_pattern ?? null,
+    isCardio: exercise.details ? isCardioExercise(exercise.details) : null,
   };
 }
 
@@ -59,4 +60,10 @@ export function getRestDayExerciseCountSummaryFromCanonicalExercises(
   isRest: boolean,
 ): ExerciseCountSummary {
   return getRestDayExerciseCountSummaryFromInputs(exercises.map((exercise) => toCanonicalExerciseCountSummaryInput(exercise)), isRest);
+}
+
+export function getRestDayExerciseCountSummaryFromCanonicalDay(
+  day: Pick<CanonicalDaySummary, "runnableExercises"> & { day: Pick<CanonicalDaySummary["day"], "is_rest"> },
+): ExerciseCountSummary {
+  return getRestDayExerciseCountSummaryFromCanonicalExercises(day.runnableExercises, day.day.is_rest);
 }
