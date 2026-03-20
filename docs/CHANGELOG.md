@@ -1,6 +1,16 @@
 ## 0.3.95 — 2026-03-20
 
 ### WHAT
+- Redesigned Edit Day planned workout rows so each item now uses a full-width shared exercise-surface shell with attached reorder / edit / delete actions, plus an expanded inline editor that stays visually connected to the row it is editing.
+- Removed the blue edit-state treatment from planned workout rows and moved the expanded row onto the app’s established neutral/green state language instead of route-local active styling.
+- Reframed row-level editing so finishing a row updates the day draft state and closes the inline editor, while the page-level `Save Day` action remains the only screen-owned save authority.
+- Pattern: Inline editors should visually remain part of the item they are editing.
+- Failure Mode: Narrow cards with detached actions and competing save controls make editing feel fragmented and unclear.
+
+### WHY
+- The Edit Day planned workout list should reuse the shared exercise-surface system so row width, media/title rhythm, trailing controls, and expanded editing structure feel like one product pattern instead of a local exception.
+- Inline editing becomes easier to understand when the row shell and editor read as one connected surface rather than a small top card followed by a separate oversized form block.
+- Local row editors should participate in the existing draft flow, not compete with the page footer by introducing a second save authority with overlapping responsibility.
 - Reworked the Edit Day Add Exercises flow onto the shared `ExercisePicker` and shared measurement/goal primitives so the route now reads as choose exercise → confirm selected exercise → configure goal → add, instead of feeling like a locally assembled editor stack.
 - Tightened selected-state presentation by keeping one stronger selected exercise summary, simplifying row subtitles, shrinking the chooser viewport slightly, and demoting the custom exercise manager into a secondary expandable tool instead of a competing first-class stack.
 - Simplified goal configuration with the shared measurement configurator language, lighter sets/optional-measurement framing, and the same summary patterns already used in adjacent flows.
