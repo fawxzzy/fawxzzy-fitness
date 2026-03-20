@@ -9,19 +9,13 @@ import { Pill } from "@/components/ui/Pill";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { ExerciseCard } from "@/components/ExerciseCard";
+import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutEntryIdentity, WorkoutEntryMetric, WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
-
-function hasMeaningfulGoalSummary(goalLabel: string) {
-  const normalized = goalLabel.trim().toLowerCase();
-  return normalized.length > 0 && normalized !== "goal missing";
-}
+import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
 
 type AddSetPayload = {
   sessionId: string;
@@ -211,7 +205,7 @@ export function SessionExerciseFocus({
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
-            const hasGoalSummary = hasMeaningfulGoalSummary(exercise.goalLabel);
+            const hasGoalSummary = hasMeaningfulExerciseGoalSummary(exercise.goalLabel);
 
             return (
               <li
@@ -221,21 +215,12 @@ export function SessionExerciseFocus({
                   isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-40 scale-100 opacity-100",
                 ].join(" ")}
               >
-                <ExerciseCard
-                  title={exercise.name}
-                  subtitle={hasGoalSummary ? exercise.goalLabel : undefined}
+                <StandardExerciseRow
+                  exercise={exercise}
+                  summary={exercise.goalLabel}
                   variant="expanded"
-                  state={setCount > 0 ? "completed" : hasGoalSummary ? "default" : "empty"}
+                  state={setCount > 0 ? "completed" : undefined}
                   onPress={() => onSelectedExerciseIdChange(exercise.id)}
-                  leadingVisual={(
-                    <ExerciseAssetImage
-                      src={getExerciseIconSrc(exercise)}
-                      alt={`${exercise.name} icon`}
-                      className="h-11 w-11 rounded-xl border border-white/10"
-                      imageClassName="object-cover object-center"
-                      sizes="44px"
-                    />
-                  )}
                   className="shadow-none"
                   trailingClassName="self-start pt-1 text-muted"
                   rightIcon={null}
@@ -252,7 +237,7 @@ export function SessionExerciseFocus({
                       {hasGoalSummary ? "Ready to log your first set." : "No sets yet."}
                     </p>
                   ) : null}
-                </ExerciseCard>
+                </StandardExerciseRow>
               </li>
             );
           })}

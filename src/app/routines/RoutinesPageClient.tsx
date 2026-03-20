@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel";
 import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
@@ -88,14 +87,8 @@ export function RoutinesPageClient({
           Edit Routine
         </Link>
       ) : null}
-      <Link
-        href={newRoutineHref}
-        className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true })}
-      >
-        New Routine
-      </Link>
     </BottomActionUtilityCluster>
-  ), [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen, newRoutineHref]);
+  ), [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen]);
 
   usePublishBottomActions(actionsNode);
 
@@ -105,32 +98,40 @@ export function RoutinesPageClient({
         title={activeRoutineName}
         subtitleRight={activeRoutineSummary}
         action={activeRoutineId ? <AppBadge>Active</AppBadge> : undefined}
-        summaryLabel={activeRoutineId ? "Active routine" : "Routine"}
-        summaryHint={activeRoutineSummary}
         revealOpen={isRoutineListOpen}
         revealId="routines-switch-list"
         revealLabel="Routines"
-        revealContent={routines.map((routine) => {
-          const isCurrent = routine.id === activeRoutineId;
-          return (
-            <ExerciseCard
-              key={routine.id}
-              title={routine.name}
-              subtitle={routine.summary}
-              onPress={() => handleSwitchRoutine(routine.id)}
-              state={isCurrent ? "selected" : "default"}
-              badgeText={isCurrent ? "Active" : undefined}
-              rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating…</span> : undefined}
-            />
-          );
-        })}
+        revealContent={(
+          <>
+            <Link
+              href={newRoutineHref}
+              className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true })}
+            >
+              New Routine
+            </Link>
+            {routines.map((routine) => {
+              const isCurrent = routine.id === activeRoutineId;
+              return (
+                <ExerciseCard
+                  key={routine.id}
+                  title={routine.name}
+                  subtitle={routine.summary}
+                  onPress={() => handleSwitchRoutine(routine.id)}
+                  state={isCurrent ? "selected" : "default"}
+                  badgeText={isCurrent ? "Active" : undefined}
+                  rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating…</span> : undefined}
+                />
+              );
+            })}
+          </>
+        )}
       />
 
       <AppPanel className="space-y-3 p-4">
-        <AppHeader
-          title="Days"
-          subtitleRight={days.length === 1 ? "1 day" : `${days.length} days`}
-        />
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-[rgb(var(--text)/0.98)]">Days</h2>
+          <p className="text-sm text-[rgb(var(--text)/0.68)]">{days.length === 1 ? "1 day" : `${days.length} days`}</p>
+        </div>
         {days.length > 0 ? (
           <ul className="space-y-2">
             {days.map((day) => {

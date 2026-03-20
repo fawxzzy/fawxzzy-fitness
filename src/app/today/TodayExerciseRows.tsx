@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { ExerciseCard } from "@/components/ExerciseCard";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 
 type TodayExerciseRow = {
   id: string;
@@ -31,21 +29,9 @@ export function TodayExerciseRows({
       <ul className="space-y-2">
         {exercises.map((exercise) => (
           <li key={exercise.id}>
-            <ExerciseCard
-              title={exercise.name}
-              subtitle={exercise.targets ?? "Goal missing"}
-              variant="interactive"
-              state={exercise.targets ? "default" : "empty"}
-              leadingVisual={(
-                <ExerciseAssetImage
-                  src={getExerciseIconSrc(exercise)}
-                  alt={`${exercise.name} icon`}
-                  className="h-11 w-11 rounded-xl border border-border/35"
-                  imageClassName="object-cover object-center"
-                  sizes="44px"
-                />
-              )}
-              badgeText={undefined}
+            <StandardExerciseRow
+              exercise={exercise}
+              summary={exercise.targets}
               onPress={() => {
                 if (process.env.NODE_ENV === "development") {
                   console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });
