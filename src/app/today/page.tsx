@@ -296,7 +296,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         if (routineDays.length > 0) {
           const { data: allExercises } = await supabase
             .from("routine_day_exercises")
-            .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, notes")
+            .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
             .in("routine_day_id", routineDays.map((day) => day.id))
             .eq("user_id", user.id)
             .order("position", { ascending: true });

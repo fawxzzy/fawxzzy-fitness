@@ -75,3 +75,48 @@ test("canonical day summaries use cardio metadata from canonical details when me
   const summary = getExerciseCountSummaryFromCanonicalExercises([exercise]);
   assert.equal(summary.label, "1 cardio");
 });
+
+test("today/view-day summary inputs keep strength classification when canonical details are missing", () => {
+  const routineRows = [
+    toExerciseCountSummaryInput({
+      measurement_type: "reps",
+      equipment: null,
+      movement_pattern: null,
+      primary_muscle: null,
+      kind: null,
+      type: null,
+      tags: null,
+      categories: null,
+    }),
+    toExerciseCountSummaryInput({
+      measurement_type: "reps",
+      primary_muscle: "cardio",
+      equipment: "bike",
+      movement_pattern: null,
+      kind: null,
+      type: null,
+      tags: null,
+      categories: null,
+    }),
+  ];
+
+  assert.deepEqual(
+    routineRows.map((exercise) => exercise.isCardio),
+    [false, true],
+  );
+});
+
+test("today offline payload shape preserves primary muscle cardio classification", () => {
+  const summaryInput = toExerciseCountSummaryInput({
+    measurement_type: "reps",
+    primary_muscle: "cardio",
+    equipment: null,
+    movement_pattern: null,
+    kind: null,
+    type: null,
+    tags: null,
+    categories: null,
+  });
+
+  assert.equal(summaryInput.isCardio, true);
+});

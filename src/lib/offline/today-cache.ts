@@ -1,4 +1,4 @@
-export const TODAY_CACHE_SCHEMA_VERSION = 2;
+export const TODAY_CACHE_SCHEMA_VERSION = 3;
 const TODAY_CACHE_DB_NAME = "fawxzzy-fitness-offline";
 const TODAY_CACHE_STORE_NAME = "today-cache";
 const TODAY_CACHE_KEY = "today";
@@ -17,6 +17,7 @@ export type CachedTodayExercise = {
   name: string;
   targets: string | null;
   notes: string | null;
+  primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
