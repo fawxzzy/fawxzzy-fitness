@@ -105,19 +105,8 @@ export function RoutinesPageClient({
         title={activeRoutineName}
         subtitleRight={activeRoutineSummary}
         action={activeRoutineId ? <AppBadge>Active</AppBadge> : undefined}
-        selectorLabel={activeRoutineName}
-        selectorHint={activeRoutineSummary}
-        selectorToggle={(
-          <SecondaryButton
-            type="button"
-            className="min-h-[44px] min-w-[9rem] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-            onClick={handleToggleRoutineList}
-            aria-expanded={isRoutineListOpen}
-            aria-controls="routines-switch-list"
-          >
-            <span>{isRoutineListOpen ? "Hide routines" : "Select routine"}</span>
-          </SecondaryButton>
-        )}
+        summaryLabel={activeRoutineId ? "Active routine" : "Routine"}
+        summaryHint={activeRoutineSummary}
         revealOpen={isRoutineListOpen}
         revealId="routines-switch-list"
         revealLabel="Routines"
