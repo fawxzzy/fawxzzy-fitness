@@ -18,7 +18,7 @@ import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
-import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
@@ -117,7 +117,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseOptionById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
   const dayExerciseSummaries = new Map<string, string>();
   for (const routineDay of routineDays ?? []) {
-    const summaryLabel = formatExerciseCountSummary(
+    const summaryLabel = formatRestDayExerciseCountSummary(
       allRoutineDayExercises
         .filter((exercise) => exercise.routine_day_id === routineDay.id)
         .map((exercise) => {
@@ -129,9 +129,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             isCardio: hasCardioTag(matchingExercise),
           };
         }),
+      routineDay.is_rest,
     ).label;
 
-    dayExerciseSummaries.set(routineDay.id, routineDay.is_rest ? "Rest day" : summaryLabel);
+    dayExerciseSummaries.set(routineDay.id, summaryLabel);
   }
 
   const switcherDays = (routineDays ?? []).map((routineDay) => ({
@@ -139,7 +140,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     dayIndex: routineDay.day_index,
     name: formatDayTitle(routineDay.day_index, routineDay.name),
     isRest: routineDay.is_rest,
-    exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? (routineDay.is_rest ? "Rest day" : "0 exercises"),
+    exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? formatRestDayExerciseCountSummary([], routineDay.is_rest).label,
   }));
 
 
@@ -189,7 +190,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       },
     };
   });
-  const activeExerciseSummary = formatExerciseCountSummary(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio }))).label;
+  const activeExerciseSummary = formatRestDayExerciseCountSummary(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest).label;
 
   return (
     <AppShell topNavMode="none">
@@ -201,7 +202,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             days={switcherDays}
             activeDayId={params.dayId}
             activeDayTitle={dayTitle}
-            activeDaySummary={day.is_rest ? "Rest day" : activeExerciseSummary}
+            activeDaySummary={activeExerciseSummary}
             backHref={backHref}
           />
 
@@ -211,7 +212,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3 rounded-[1.4rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.62)] p-4 shadow-[0_6px_18px_rgba(0,0,0,0.14)]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Day settings</p>
-              <p className="text-xs text-muted">Adjust the day name and rest status here, then use the owned bottom bar to commit the page-level draft.</p>
+              <p className="text-xs text-muted">Update the day name or rest state here. Save and cancel stay in the page footer.</p>
             </div>
             <input type="hidden" name="routineId" value={params.id} />
             <input type="hidden" name="routineDayId" value={params.dayId} />
@@ -223,17 +224,19 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </form>
 
           {day.is_rest ? (
-            <p className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3 text-xs text-muted">Rest day enabled. Planned exercises stay saved, but this day will be skipped until you turn rest day off.</p>
+            <p className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3 text-sm text-muted">Rest day enabled. Planned exercises stay saved, but this day stays non-runnable until you turn rest day off.</p>
           ) : (
             <>
               <section className="space-y-2.5">
-                <div className="flex items-start justify-between gap-3 px-1">
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
-                    <h2 className="text-base font-semibold text-text">Exercises for {dayTitle}</h2>
-                    <p className="text-[11px] text-muted">Tap a row for exercise info. Use the handle to reorder. Keep edit and delete in trailing actions.</p>
+                <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.52)] px-3.5 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
+                      <h2 className="text-base font-semibold text-text">{dayTitle}</h2>
+                      <p className="text-sm text-muted">Same row language as Today and View Day, with edit controls kept in the trailing actions.</p>
+                    </div>
+                    <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{activeExerciseSummary}</span>
                   </div>
-                  <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{activeExerciseSummary}</span>
                 </div>
                 <EditableRoutineDayExerciseList
                   routineId={params.id}

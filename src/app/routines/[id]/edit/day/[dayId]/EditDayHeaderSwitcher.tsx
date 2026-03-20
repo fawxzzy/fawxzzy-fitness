@@ -47,30 +47,41 @@ export function EditDayHeaderSwitcher({
     <section className="space-y-0">
       <div className="rounded-[1.45rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.72)] p-4 shadow-[0_10px_28px_rgba(0,0,0,0.16)]">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-2">
+          <div className="min-w-0 space-y-3">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Edit Day</p>
               <h1 className="text-xl font-bold leading-tight text-[rgb(var(--text)/0.98)]">{activeDayTitle}</h1>
             </div>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-              <p className="text-[rgb(var(--text)/0.72)]">{routineName}</p>
-              <p className="text-[rgb(var(--text)/0.58)]">{activeDaySummary}</p>
+
+            <div className="flex flex-wrap items-center gap-2 text-sm text-[rgb(var(--text)/0.72)]">
+              <span>{routineName}</span>
+              <span aria-hidden="true" className="text-[rgb(var(--text)/0.4)]">•</span>
+              <span>{activeDaySummary}</span>
+              {activeDay?.isRest ? (
+                <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.24)] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--text)/0.84)]">
+                  Rest day
+                </span>
+              ) : null}
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen((current) => !current)}
-              className={cn(
-                "inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition",
-                open
-                  ? "border-accent/45 bg-accent/12 text-[rgb(var(--text)/0.98)]"
-                  : "border-border/45 bg-[rgb(var(--bg)/0.24)] text-[rgb(var(--text)/0.82)] hover:border-accent/35 hover:bg-accent/8 hover:text-[rgb(var(--text)/0.98)]",
-              )}
-              aria-expanded={open}
-              aria-controls="edit-day-switcher-panel"
-            >
-              <span>{open ? "Hide Days" : "Select Day"}</span>
-              <span aria-hidden="true" className={cn("text-xs transition-transform", open ? "rotate-180" : "rotate-0")}>⌄</span>
-            </button>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setOpen((current) => !current)}
+                className={cn(
+                  "inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition",
+                  open
+                    ? "border-accent/45 bg-accent/12 text-[rgb(var(--text)/0.98)]"
+                    : "border-border/45 bg-[rgb(var(--bg)/0.24)] text-[rgb(var(--text)/0.82)] hover:border-accent/35 hover:bg-accent/8 hover:text-[rgb(var(--text)/0.98)]",
+                )}
+                aria-expanded={open}
+                aria-controls="edit-day-switcher-panel"
+              >
+                <span>{open ? "Hide Days" : "Select Day"}</span>
+                <span aria-hidden="true" className={cn("text-xs transition-transform", open ? "rotate-180" : "rotate-0")}>⌄</span>
+              </button>
+              <p className="text-xs text-muted">Day switching stays owned by this header. Save and cancel stay in the footer.</p>
+            </div>
           </div>
 
           <Link href={backHref} className={getAppButtonClassName({ variant: "secondary", size: "sm" })}>
@@ -86,13 +97,12 @@ export function EditDayHeaderSwitcher({
         >
           <div className="space-y-1 px-1 pb-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Select Day</p>
-            <p className="text-xs text-muted">Reuse the same day-switching pattern from routine selection so edits stay anchored to this header.</p>
+            <p className="text-xs text-muted">Use the same count language here as Today, View Day, and the routine overview.</p>
           </div>
           <div className="space-y-2">
             {days.map((day) => {
               const isCurrent = day.id === activeDayId;
               const dayHref = buildDayHref(routineId, day.id, backHref);
-              const summary = day.isRest ? "Rest day" : day.exerciseSummary;
 
               return isCurrent ? (
                 <div
@@ -101,7 +111,7 @@ export function EditDayHeaderSwitcher({
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold text-[rgb(var(--text)/0.98)]">{day.name}</span>
-                    <span className="block pt-0.5 text-xs text-[rgb(var(--text)/0.66)]">{summary}</span>
+                    <span className="block pt-0.5 text-xs text-[rgb(var(--text)/0.66)]">{day.exerciseSummary}</span>
                   </span>
                   <span className="shrink-0 rounded-full border border-accent/45 bg-accent/18 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.92)]">
                     Current
@@ -115,7 +125,7 @@ export function EditDayHeaderSwitcher({
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold text-[rgb(var(--text)/0.92)]">{day.name}</span>
-                    <span className="block pt-0.5 text-xs text-muted">{summary}</span>
+                    <span className="block pt-0.5 text-xs text-muted">{day.exerciseSummary}</span>
                   </span>
                   <span className="text-sm text-muted" aria-hidden="true">›</span>
                 </Link>

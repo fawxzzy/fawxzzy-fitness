@@ -7,7 +7,7 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
 import { requireUser } from "@/lib/auth";
-import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { formatExerciseCountSummary, formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRoutineDayComputation } from "@/lib/routines";
@@ -190,7 +190,7 @@ export default async function RoutinesPage() {
                     dayIndex: dayNumber,
                     title: day.name?.trim() || (day.is_rest ? "Rest" : "Training"),
                     isRest: Boolean(day.is_rest),
-                    exerciseSummary: activeRoutineExerciseSummaries.get(day.id) ?? (day.is_rest ? "Rest day" : "0 exercises"),
+                    exerciseSummary: activeRoutineExerciseSummaries.get(day.id) ?? formatRestDayExerciseCountSummary([], Boolean(day.is_rest)).label,
                     notes: day.notes ?? null,
                     href: `/routines/${activeRoutine.id}/days/${day.id}`,
                     isToday: index === todayRowIndex,

@@ -494,6 +494,15 @@
 
 # Changelog
 
+- Finished the shared day/session count-summary rollout by removing the last View Day route-local exercise-count string and routing the page header plus planned-workout summary pill through the same canonical formatter used on Today, Routines, Edit Day, and Current Session.
+- Added a shared rest-aware count-summary helper so day/detail surfaces can keep explicit `Rest day` handling without falling back to older local wording when a route needs the same formatter contract.
+- Cleaned up Edit Day header composition and supporting copy so the page reads closer to Today, View Day, Routines, and the current session shell while preserving the footer-owned Save Day / Cancel authority.
+- Simplified Edit Day density by tightening settings/helper text, normalizing switcher/day-list metadata language, and matching the planned-workout summary chip to the shared count format.
+- Removed the remaining adjacent old-count fallbacks from Edit Day switcher/routine-day metadata paths so nearby day/detail screens no longer mix canonical count summaries with legacy `N exercises` language.
+- Rule: Repeated day and session metadata must come from one shared formatter, including edit/detail variants and explicit rest-day states.
+- Pattern: Once Today, Routines, View Day, and Current Session converge on one metadata language, Edit Day should inherit that language and only add editor-specific controls.
+- Failure Mode: Leaving just one route-local count string or denser legacy helper copy makes adjacent day screens feel unfinished even when each page works on its own.
+
 ## 2026-03-18 — Normalize session set-entry and Quick Add mobile hierarchy
 
 ### WHAT
