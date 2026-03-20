@@ -10,6 +10,7 @@ import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomA
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 
 export type RoutineSwitcherItem = {
   id: string;
@@ -129,8 +130,8 @@ export function RoutinesPageClient({
 
       <AppPanel className="space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-[rgb(var(--text)/0.98)]">Days</h2>
-          <p className="text-sm text-[rgb(var(--text)/0.68)]">{days.length === 1 ? "1 day" : `${days.length} days`}</p>
+          <TitleText as="h2" className="text-base">Days</TitleText>
+          <SubtitleText>{days.length === 1 ? "1 day" : `${days.length} days`}</SubtitleText>
         </div>
         {days.length > 0 ? (
           <ul className="space-y-2">
@@ -157,7 +158,7 @@ export function RoutinesPageClient({
             })}
           </ul>
         ) : (
-          <p className="px-1 text-sm text-muted">No days yet.</p>
+          <SubtitleText className="px-1">No days yet.</SubtitleText>
         )}
       </AppPanel>
     </div>

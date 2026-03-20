@@ -10,8 +10,10 @@ import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
+import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import type { ActionResult } from "@/lib/action-result";
 import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { toExerciseCountSummaryInput } from "@/lib/day-summary";
 
 type TodayExercise = {
   id: string;
@@ -73,13 +75,7 @@ function getDaySummaryTone(day: TodayDay): "blocking" | "warning" | null {
 }
 
 function getExerciseSummary(exercises: TodayExercise[]) {
-  return formatExerciseCountSummary(
-    exercises.map((exercise) => ({
-      measurement_type: exercise.measurement_type ?? null,
-      equipment: exercise.equipment ?? null,
-      movement_pattern: exercise.movement_pattern ?? null,
-    })),
-  ).label;
+  return formatExerciseCountSummary(exercises.map((exercise) => toExerciseCountSummaryInput(exercise))).label;
 }
 
 export function TodayDayPicker({
@@ -171,9 +167,9 @@ export function TodayDayPicker({
           })}
         >
           {daySummary ? (
-            <p
+            <div
               className={[
-                "rounded-md px-3 py-2 text-sm",
+                "rounded-md px-3 py-2",
                 daySummaryTone === "blocking"
                   ? "border border-red-400/30 bg-red-500/10 text-red-100"
                   : daySummaryTone === "warning"
@@ -181,8 +177,10 @@ export function TodayDayPicker({
                     : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
               ].join(" ")}
             >
-              {daySummary}
-            </p>
+              {daySummaryTone
+                ? <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-red-100" : "text-amber-100"}>{daySummary}</AccentSubtitleText>
+                : <SubtitleText>{daySummary}</SubtitleText>}
+            </div>
           ) : null}
 
           <ul className="space-y-2">
@@ -200,7 +198,7 @@ export function TodayDayPicker({
                 />
               </li>
             ))}
-            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3 text-muted">{selectedDay.state === "rest" ? "Rest day." : "No exercises yet."}</li> : null}
+            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3"><SubtitleText>{selectedDay.state === "rest" ? "Rest day." : "No exercises yet."}</SubtitleText></li> : null}
           </ul>
         </AnchoredSelectorPanel>
       ) : null}

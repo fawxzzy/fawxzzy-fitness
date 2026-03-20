@@ -12,10 +12,10 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
-import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getRestDayExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -94,11 +94,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   });
   const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
-  const daySummary = formatRestDayExerciseCountSummary((canonicalDay?.runnableExercises ?? []).map((exercise) => ({
-    measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
-    equipment: exercise.details?.equipment ?? null,
-    movement_pattern: exercise.details?.movement_pattern ?? null,
-  })), dayRow.is_rest).label;
+  const daySummary = getRestDayExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? [], dayRow.is_rest).label;
   const returnToPath = getCurrentPathWithSearch(params, searchParams);
   const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
 

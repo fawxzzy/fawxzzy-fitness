@@ -7,12 +7,13 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
 import { requireUser } from "@/lib/auth";
-import { formatExerciseCountSummary, formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
+import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRoutineDayComputation } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateRoutinesViews } from "@/lib/revalidation";
+import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -94,13 +95,7 @@ export default async function RoutinesPage() {
       activeRoutineExerciseSummaries = new Map(
         summaries.map((summary) => [
           summary.day.id,
-          summary.day.is_rest
-            ? "Rest day"
-            : formatExerciseCountSummary(summary.runnableExercises.map((exercise) => ({
-              measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
-              equipment: exercise.details?.equipment ?? null,
-              movement_pattern: exercise.details?.movement_pattern ?? null,
-            }))).label,
+          getExerciseCountSummaryFromCanonicalExercises(summary.runnableExercises).label,
         ]),
       );
     }

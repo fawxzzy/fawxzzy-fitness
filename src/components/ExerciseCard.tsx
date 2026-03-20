@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
+import { textRoles } from "@/components/ui/text-roles";
 
 type ExerciseCardVariant = "compact" | "interactive" | "expanded" | "summary";
 type ExerciseCardState = "default" | "selected" | "active" | "completed" | "empty";
@@ -8,7 +9,7 @@ type ExerciseCardState = "default" | "selected" | "active" | "completed" | "empt
 const defaultChevron = <span aria-hidden="true" className="text-muted">›</span>;
 
 const titleStateClassNames: Record<ExerciseCardState, string> = {
-  default: "text-[rgb(var(--text)/0.98)]",
+  default: textRoles.title,
   selected: "text-[rgb(var(--text)/1)]",
   active: "text-sky-50",
   completed: "text-emerald-50",
@@ -16,7 +17,7 @@ const titleStateClassNames: Record<ExerciseCardState, string> = {
 };
 
 const subtitleStateClassNames: Record<ExerciseCardState, string> = {
-  default: appTokens.metaText,
+  default: textRoles.subtitle,
   selected: "text-[rgb(var(--text)/0.7)]",
   active: "text-sky-100/80",
   completed: "text-emerald-100/76",

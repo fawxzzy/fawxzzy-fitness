@@ -15,6 +15,7 @@ import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, saveRout
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
 import { EditDayHeaderSwitcher } from "@/app/routines/[id]/edit/day/[dayId]/EditDayHeaderSwitcher";
 import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
+import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
@@ -24,6 +25,7 @@ import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { supabaseServer } from "@/lib/supabase/server";
+import { toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -107,11 +109,11 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         .filter((exercise) => exercise.routine_day_id === routineDay.id)
         .map((exercise) => {
           const matchingExercise = exerciseOptionById.get(exercise.exercise_id);
-          return {
+          return toExerciseCountSummaryInput({
             measurement_type: exercise.measurement_type ?? matchingExercise?.measurement_type ?? null,
             equipment: matchingExercise?.equipment ?? null,
             movement_pattern: matchingExercise?.movement_pattern ?? null,
-          };
+          });
         }),
       routineDay.is_rest,
     ).label;
@@ -201,13 +203,13 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             backHref={backHref}
           />
 
-          {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-          {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
+          {searchParams?.error ? <SubtitleText className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-red-700">{searchParams.error}</SubtitleText> : null}
+          {searchParams?.success ? <SubtitleText className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-accent">{searchParams.success}</SubtitleText> : null}
 
           <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3 rounded-[1.4rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.62)] p-4 shadow-[0_6px_18px_rgba(0,0,0,0.14)]">
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Day settings</p>
-              <p className="text-xs text-muted">Update the day name or rest state here. Save and cancel stay in the page footer.</p>
+              <EyebrowText>Day settings</EyebrowText>
+              <SubtitleText className="text-xs">Update the day name or rest state here. Save and cancel stay in the page footer.</SubtitleText>
             </div>
             <input type="hidden" name="routineId" value={params.id} />
             <input type="hidden" name="routineDayId" value={params.dayId} />
@@ -219,16 +221,16 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           </form>
 
           {day.is_rest ? (
-            <p className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3 text-sm text-muted">Rest day enabled. Planned exercises stay saved, but this day stays non-runnable until you turn rest day off.</p>
+            <SubtitleText className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3">Rest day enabled. Planned exercises stay saved, but this day stays non-runnable until you turn rest day off.</SubtitleText>
           ) : (
             <>
               <section className="space-y-2.5">
                 <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.52)] px-3.5 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Planned workout</p>
-                      <h2 className="text-base font-semibold text-text">{dayTitle}</h2>
-                      <p className="text-sm text-muted">Same row language as Today and View Day, with edit controls kept in the trailing actions.</p>
+                      <EyebrowText>Planned workout</EyebrowText>
+                      <TitleText as="h2" className="text-base">{dayTitle}</TitleText>
+                      <SubtitleText>Same row language as Today and View Day, with edit controls kept in the trailing actions.</SubtitleText>
                     </div>
                     <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{activeExerciseSummary}</span>
                   </div>
