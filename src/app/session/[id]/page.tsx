@@ -3,6 +3,7 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
+import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
@@ -115,6 +116,15 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
   const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
+  const sessionSummary = formatExerciseCountSummary(sessionExercises.map((exercise) => {
+    const canonicalExercise = exerciseById.get(exercise.exercise_id);
+    return {
+      measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
+      equipment: canonicalExercise?.equipment ?? null,
+      movement_pattern: canonicalExercise?.movement_pattern ?? null,
+      isCardio: hasCardioTag(canonicalExercise),
+    };
+  })).label;
 
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
 
@@ -126,6 +136,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           initialDurationSeconds={sessionRow.duration_seconds}
           performedAt={sessionRow.performed_at}
           sessionTitle={sessionTitle}
+          sessionSummary={sessionSummary}
           searchError={searchParams?.error}
           unitLabel={unitLabel}
           exercises={sessionExercises.map((exercise) => {

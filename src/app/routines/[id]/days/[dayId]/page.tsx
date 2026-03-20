@@ -12,6 +12,7 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
+import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -105,6 +106,13 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             <AppPanel className="space-y-3">
               <AppHeader
                 title={dayLabel}
+                subtitleRight={dayRow.is_rest
+                  ? "Rest day"
+                  : formatExerciseCountSummary((canonicalDay?.runnableExercises ?? []).map((exercise) => ({
+                    measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
+                    equipment: exercise.details?.equipment ?? null,
+                    movement_pattern: exercise.details?.movement_pattern ?? null,
+                  }))).label}
                 action={<TopRightBackButton href="/routines" />}
                 actionClassName="-mt-1"
               />

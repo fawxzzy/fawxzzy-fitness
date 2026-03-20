@@ -10,7 +10,7 @@ type EditDayHeaderSwitcherDay = {
   dayIndex: number;
   name: string;
   isRest: boolean;
-  exerciseCount: number;
+  exerciseSummary: string;
 };
 
 type EditDayHeaderSwitcherProps = {
@@ -92,9 +92,7 @@ export function EditDayHeaderSwitcher({
             {days.map((day) => {
               const isCurrent = day.id === activeDayId;
               const dayHref = buildDayHref(routineId, day.id, backHref);
-              const summary = day.isRest
-                ? "Rest day"
-                : `${day.exerciseCount} planned exercise${day.exerciseCount === 1 ? "" : "s"}`;
+              const summary = day.isRest ? "Rest day" : day.exerciseSummary;
 
               return isCurrent ? (
                 <div

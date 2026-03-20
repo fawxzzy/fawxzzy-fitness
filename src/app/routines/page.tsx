@@ -7,11 +7,13 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
 import { requireUser } from "@/lib/auth";
+import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { ensureProfile } from "@/lib/profile";
+import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRoutineDayComputation } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateRoutinesViews } from "@/lib/revalidation";
-import type { RoutineDayRow, RoutineRow } from "@/types/db";
+import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +66,7 @@ export default async function RoutinesPage() {
   const activeRoutine = routines.find((routine) => routine.id === profile.active_routine_id) ?? routines[0] ?? null;
 
   let activeRoutineDays: RoutineDayRow[] = [];
-  let activeRoutineExerciseCounts = new Map<string, number>();
+  let activeRoutineExerciseSummaries = new Map<string, string>();
 
   if (activeRoutine) {
     const { data: routineDays } = await supabase
@@ -79,15 +81,28 @@ export default async function RoutinesPage() {
     if (activeRoutineDays.length > 0) {
       const { data: routineDayExercises } = await supabase
         .from("routine_day_exercises")
-        .select("routine_day_id")
+        .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
         .in("routine_day_id", activeRoutineDays.map((day) => day.id))
         .eq("user_id", user.id);
 
-      activeRoutineExerciseCounts = (routineDayExercises ?? []).reduce((counts, row) => {
-        const key = row.routine_day_id as string;
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-        return counts;
-      }, new Map<string, number>());
+      const { summaries } = await buildCanonicalDaySummaries({
+        supabase,
+        routineDays: activeRoutineDays,
+        allDayExercises: (routineDayExercises ?? []) as RoutineDayExerciseRow[],
+      });
+
+      activeRoutineExerciseSummaries = new Map(
+        summaries.map((summary) => [
+          summary.day.id,
+          summary.day.is_rest
+            ? "Rest day"
+            : formatExerciseCountSummary(summary.runnableExercises.map((exercise) => ({
+              measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
+              equipment: exercise.details?.equipment ?? null,
+              movement_pattern: exercise.details?.movement_pattern ?? null,
+            }))).label,
+        ]),
+      );
     }
   }
 
@@ -175,7 +190,7 @@ export default async function RoutinesPage() {
                     dayIndex: dayNumber,
                     title: day.name?.trim() || (day.is_rest ? "Rest" : "Training"),
                     isRest: Boolean(day.is_rest),
-                    exerciseCount: activeRoutineExerciseCounts.get(day.id) ?? 0,
+                    exerciseSummary: activeRoutineExerciseSummaries.get(day.id) ?? (day.is_rest ? "Rest day" : "0 exercises"),
                     notes: day.notes ?? null,
                     href: `/routines/${activeRoutine.id}/days/${day.id}`,
                     isToday: index === todayRowIndex,

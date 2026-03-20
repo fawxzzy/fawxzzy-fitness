@@ -13,12 +13,14 @@ function formatDurationClock(totalSeconds: number) {
 
 export function SessionHeaderControls({
   sessionTitle,
+  sessionSummary,
   durationSeconds,
   quickAddAction,
   backHref,
   isTimerHydrated = true,
 }: {
   sessionTitle: string;
+  sessionSummary?: string;
   durationSeconds: number;
   quickAddAction: ReactNode;
   backHref?: string;
@@ -31,6 +33,7 @@ export function SessionHeaderControls({
           <div className="min-w-0 flex-1 space-y-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">In session</p>
             <p className="text-lg font-semibold leading-tight text-text">{sessionTitle}</p>
+            {sessionSummary ? <p className="text-sm text-muted">{sessionSummary}</p> : null}
             <p className="text-sm font-medium tabular-nums text-muted" suppressHydrationWarning aria-live={isTimerHydrated ? "off" : undefined}>
               Elapsed {formatDurationClock(durationSeconds)}
             </p>

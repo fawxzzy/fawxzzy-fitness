@@ -13,6 +13,7 @@ import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomA
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import type { ActionResult } from "@/lib/action-result";
+import { formatExerciseCountSummary } from "@/lib/exercise-count-summary";
 
 type TodayExercise = {
   id: string;
@@ -22,6 +23,7 @@ type TodayExercise = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
   image_howto_path: string | null;
   image_icon_path: string | null;
   slug: string | null;
@@ -70,6 +72,16 @@ function getDaySummaryTone(day: TodayDay): "blocking" | "warning" | null {
   }
 
   return null;
+}
+
+function getExerciseSummary(exercises: TodayExercise[]) {
+  return formatExerciseCountSummary(
+    exercises.map((exercise) => ({
+      measurement_type: exercise.measurement_type ?? null,
+      equipment: exercise.equipment ?? null,
+      movement_pattern: exercise.movement_pattern ?? null,
+    })),
+  ).label;
 }
 
 export function TodayDayPicker({
@@ -160,7 +172,7 @@ export function TodayDayPicker({
       {selectedDay ? (
         <AnchoredSelectorPanel
           title={`${routineName} | ${selectedDay.name}`}
-          subtitleRight={selectedDay.state === "rest" ? "Rest day" : `${selectedDay.exercises.length} exercises`}
+          subtitleRight={selectedDay.state === "rest" ? "Rest day" : getExerciseSummary(selectedDay.exercises)}
           action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
           revealOpen={isPickerOpen}
           revealId="today-day-selector-list"
@@ -171,7 +183,7 @@ export function TodayDayPicker({
               <ExerciseCard
                 key={day.id}
                 title={`${day.name}${day.isRest ? " (Rest)" : ""}`}
-                subtitle={day.state === "runnable" || day.state === "partial" ? `${day.exercises.length} exercises` : getDaySummary(day) ?? undefined}
+                subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseSummary(day.exercises) : getDaySummary(day) ?? undefined}
                 onPress={() => {
                   setSelectedDayIndex(day.dayIndex);
                   setIsPickerOpen(false);
