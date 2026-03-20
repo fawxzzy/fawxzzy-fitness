@@ -20,6 +20,7 @@ import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSumm
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
+import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 
@@ -224,12 +225,20 @@ export function SetLoggerCard({
       }
 
       if (parsed.form) {
-        if (typeof parsed.form.weight === "string") setWeight(parsed.form.weight);
-        if (typeof parsed.form.reps === "string") setReps(parsed.form.reps);
-        if (typeof parsed.form.durationSeconds === "string") setDurationInput(parsed.form.durationSeconds);
-        if (typeof parsed.form.distance === "string") setDistance(parsed.form.distance);
+        const sanitizedForm = sanitizeEnabledMeasurementValues(activeMetrics, {
+          weight: parsed.form.weight,
+          reps: parsed.form.reps,
+          duration: parsed.form.durationSeconds,
+          distance: parsed.form.distance,
+          calories: parsed.form.calories,
+        });
+
+        if (typeof sanitizedForm.weight === "string") setWeight(sanitizedForm.weight);
+        if (typeof sanitizedForm.reps === "string") setReps(sanitizedForm.reps);
+        if (typeof sanitizedForm.duration === "string") setDurationInput(sanitizedForm.duration);
+        if (typeof sanitizedForm.distance === "string") setDistance(sanitizedForm.distance);
         if (parsed.form.distanceUnit === "mi" || parsed.form.distanceUnit === "km" || parsed.form.distanceUnit === "m") setDistanceUnit(parsed.form.distanceUnit);
-        if (typeof parsed.form.calories === "string") setCalories(parsed.form.calories);
+        if (typeof sanitizedForm.calories === "string") setCalories(sanitizedForm.calories);
         if (typeof parsed.form.rpe === "string") setRpe(parsed.form.rpe);
         if (typeof parsed.form.isWarmup === "boolean") setWarmupValue(parsed.form.isWarmup);
         if (parsed.form.selectedWeightUnit === "kg" || parsed.form.selectedWeightUnit === "lbs") {
@@ -239,19 +248,26 @@ export function SetLoggerCard({
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [sessionExerciseId, sessionId, setWarmupValue]);
+  }, [activeMetrics, sessionExerciseId, sessionId, setWarmupValue]);
 
   useEffect(() => {
     const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
+    const sanitizedForm = sanitizeEnabledMeasurementValues(activeMetrics, {
+      weight,
+      reps,
+      duration: durationInput,
+      distance,
+      calories,
+    });
     const payload = JSON.stringify({
       sets,
       form: {
-        weight,
-        reps,
-        durationSeconds: durationInput,
-        distance,
+        weight: sanitizedForm.weight,
+        reps: sanitizedForm.reps,
+        durationSeconds: sanitizedForm.duration,
+        distance: sanitizedForm.distance,
         distanceUnit,
-        calories,
+        calories: sanitizedForm.calories,
         rpe,
         isWarmup: resolvedIsWarmup,
         selectedWeightUnit,
@@ -260,7 +276,7 @@ export function SetLoggerCard({
     });
 
     window.localStorage.setItem(storageKey, payload);
-  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
+  }, [activeMetrics, calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -405,11 +421,18 @@ export function SetLoggerCard({
   }, [resetLoggerState, resetSignal]);
 
   const handleLogSet = useCallback(async () => {
-    const parsedWeight = weight.trim() ? Number(weight) : 0;
-    const parsedReps = reps.trim() ? Number(reps) : 0;
-    const parsedDuration = parseDurationInput(durationInput);
-    const parsedDistance = distance.trim() ? Number(distance) : null;
-    const parsedCalories = calories.trim() ? Number(calories) : null;
+    const sanitizedValues = sanitizeEnabledMeasurementValues(activeMetrics, {
+      weight,
+      reps,
+      duration: durationInput,
+      distance,
+      calories,
+    });
+    const parsedWeight = sanitizedValues.weight.trim() ? Number(sanitizedValues.weight) : 0;
+    const parsedReps = sanitizedValues.reps.trim() ? Number(sanitizedValues.reps) : 0;
+    const parsedDuration = parseDurationInput(sanitizedValues.duration);
+    const parsedDistance = sanitizedValues.distance.trim() ? Number(sanitizedValues.distance) : null;
+    const parsedCalories = sanitizedValues.calories.trim() ? Number(sanitizedValues.calories) : null;
     const parsedRpe = rpe.trim() ? Number(rpe) : null;
 
     if (requiresReps && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
@@ -645,17 +668,16 @@ export function SetLoggerCard({
       return;
     }
 
-    setDurationInput("");
-    setDistance("");
-    setCalories("");
-    setWeight(String(parsedWeight));
-    setReps(String(parsedReps));
+    setDurationInput(activeMetrics.time ? "" : sanitizedValues.duration);
+    setDistance(activeMetrics.distance ? "" : sanitizedValues.distance);
+    setCalories(activeMetrics.calories ? "" : sanitizedValues.calories);
+    setWeight(activeMetrics.weight ? String(parsedWeight) : sanitizedValues.weight);
+    setReps(activeMetrics.reps ? String(parsedReps) : sanitizedValues.reps);
     setRpe(parsedRpe === null ? "" : String(parsedRpe));
     setWarmupValue(resolvedIsWarmup);
     setIsSubmitting(false);
   }, [
-    activeMetrics.reps,
-    activeMetrics.weight,
+    activeMetrics,
     calories,
     distance,
     distanceUnit,
@@ -764,7 +786,22 @@ export function SetLoggerCard({
           onExpandedChange={setIsMetricsExpanded}
           onMetricToggle={(metric) => {
             setHasUserModifiedMetrics(true);
-            setActiveMetrics((current) => ({ ...current, [metric]: !current[metric] }));
+            setActiveMetrics((current) => {
+              const nextMetrics = { ...current, [metric]: !current[metric] };
+              const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
+                reps,
+                weight,
+                duration: durationInput,
+                distance,
+                calories,
+              });
+              setReps(sanitizedValues.reps);
+              setWeight(sanitizedValues.weight);
+              setDurationInput(sanitizedValues.duration);
+              setDistance(sanitizedValues.distance);
+              setCalories(sanitizedValues.calories);
+              return nextMetrics;
+            });
           }}
           onChange={(patch) => {
             if (patch.reps !== undefined) setReps(patch.reps);

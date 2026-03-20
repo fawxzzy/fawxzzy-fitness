@@ -1,3 +1,19 @@
+## 0.3.100 — 2026-03-20
+
+### WHAT
+- Fixed disabled measurement toggles across set logging, goal editing, and history/log review so turning a metric off now scrubs its stored value instead of merely hiding the input.
+- Added a shared measurement sanitization helper that takes the enabled-metrics map plus raw measurement values and returns only enabled values, then reused it for payload building, local draft persistence, toggle handling, and measurement summaries.
+- Updated routine-day goal editing, exercise goal configuration, current-session set entry, and completed-log set editing/review to clear stale hidden values immediately when a measurement is disabled.
+- Added regression coverage for the shared helper’s toggle-off/toggle-back-on behavior so disabled metrics no longer silently survive save flows or reappear later without new input.
+- Rule: Disabled optional measurements must be excluded from payloads, summaries, drafts, and review UIs.
+- Pattern: Visibility and serialization for optional workout measurements should come from one shared sanitization helper.
+- Failure Mode: Hidden-but-still-active values silently corrupt saved workout goals and set data, which breaks user trust.
+
+### WHY
+- Users expect a disabled metric to be fully out of play, not invisibly preserved inside summaries, queued payloads, or draft state.
+- Clearing stale local values on toggle-off prevents confusing “old value came back” behavior when someone later re-enables a metric.
+- Centralizing sanitization makes the rules consistent across routine planning, quick/add-exercise goal setup, active workout logging, and history editing instead of relying on each surface to remember the same exclusions.
+
 ## 0.3.99 — 2026-03-20
 
 ### WHAT

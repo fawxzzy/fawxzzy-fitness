@@ -15,6 +15,7 @@ import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl"
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 
 type ExerciseOption = {
   id: string;
@@ -514,7 +515,29 @@ export function ExercisePicker({
                 activeMetrics={{ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }}
                 isExpanded={isMeasurementsOpen}
                 onExpandedChange={setIsMeasurementsOpen}
-                onMetricToggle={(metric) => setSelectedMeasurements((current) => current.includes(metric) ? current.filter((value) => value !== metric) : [...current, metric])}
+                onMetricToggle={(metric) => setSelectedMeasurements((current) => {
+                  const nextMeasurements = current.includes(metric) ? current.filter((value) => value !== metric) : [...current, metric];
+                  const sanitizedValues = sanitizeEnabledMeasurementValues({
+                    reps: nextMeasurements.includes("reps"),
+                    weight: nextMeasurements.includes("weight"),
+                    time: nextMeasurements.includes("time"),
+                    distance: nextMeasurements.includes("distance"),
+                    calories: nextMeasurements.includes("calories"),
+                  }, {
+                    reps: targetRepsMin,
+                    weight: targetWeight,
+                    duration: targetDuration,
+                    distance: targetDistance,
+                    calories: targetCalories,
+                  });
+                  setTargetRepsMin(sanitizedValues.reps);
+                  setTargetRepsMax(nextMeasurements.includes("reps") ? targetRepsMax : "");
+                  setTargetWeight(sanitizedValues.weight);
+                  setTargetDuration(sanitizedValues.duration);
+                  setTargetDistance(sanitizedValues.distance);
+                  setTargetCalories(sanitizedValues.calories);
+                  return nextMeasurements;
+                })}
                 onChange={(patch) => {
                   if (patch.reps !== undefined) setTargetRepsMin(patch.reps);
                   if (patch.weight !== undefined) setTargetWeight(patch.weight);
@@ -532,7 +555,7 @@ export function ExercisePicker({
 
               {selectedMeasurements.includes("reps") ? <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} /> : null}
               <MeasurementSummary
-                values={{ reps: targetRepsMin ? Number(targetRepsMin) : null, weight: targetWeight ? Number(targetWeight) : null, weightUnit: targetWeightUnit, durationSeconds: parseDurationInput(targetDuration), distance: targetDistance ? Number(targetDistance) : null, distanceUnit: selectedDefaultUnit, calories: targetCalories ? Number(targetCalories) : null }}
+                values={{ ...sanitizeEnabledMeasurementValues({ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }, { reps: targetRepsMin ? Number(targetRepsMin) : null, weight: targetWeight ? Number(targetWeight) : null, durationSeconds: parseDurationInput(targetDuration), distance: targetDistance ? Number(targetDistance) : null, calories: targetCalories ? Number(targetCalories) : null }), weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
                 emptyLabel="Goal missing"
               />
               <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
