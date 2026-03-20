@@ -1,3 +1,26 @@
+## 2026-03-20 — Final wording pass after UI stabilization
+
+### What changed
+- Ran a final wording pass across routines main, Edit Day, session, Quick Add, the shared exercise picker, and shared goal/measurement copy so headings, action labels, and empty/selected states read faster without changing layout ownership or screen structure.
+- Standardized repeated state language around `selected`, `active`, `completed`, `empty`, and `Missing goal`, while tightening repeated action labels like `Edit`, `Done`, `Save`, and `Select` across adjacent flows.
+- Removed helper copy and subtitles that repeated visible state, badges, or headings, especially in selected-exercise summaries, goal configuration panels, and Edit Day row editors.
+
+### Why
+- This wording pass happened after UI stabilization so the shared layout, action surfaces, and state model were already stable before tightening copy.
+- Once structure stopped moving, the remaining friction was mostly reading speed: too much helper text, duplicated meaning, and slightly different labels for the same state.
+
+### Standardized terms
+- `Goal missing` / `No goal yet` / `Not set` → `Missing goal`.
+- Repeated chooser state copy was tightened toward `Select` / `Selected`.
+- Editing controls were tightened toward `Edit` / `Done`.
+- Empty progress language was normalized around `Empty`, `logged`, and `completed` without changing existing state contracts.
+
+### Playbook notes
+- Rule: Primary screen actions must live in a single owned action surface (bottom bar), not split across dropdowns and scattered buttons.
+- Pattern: Reuse interaction models across domains (workout switching → routine switching → day switching) to reduce cognitive load.
+- Pattern: A shared surface system should extend across adjacent domains, not just identical components.
+- Failure Mode: UI systems that unify layout but not state language still feel inconsistent and hard to scan.
+
 ## 0.3.95 — 2026-03-20
 
 ### WHAT
