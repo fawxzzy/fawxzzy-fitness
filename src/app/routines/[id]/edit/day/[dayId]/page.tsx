@@ -5,16 +5,15 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { controlClassName } from "@/components/ui/formClasses";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, saveRoutineDayAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
+import { EditDayHeaderSwitcher } from "@/app/routines/[id]/edit/day/[dayId]/EditDayHeaderSwitcher";
 import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
@@ -86,24 +85,26 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     .single();
   if (!routine) notFound();
 
-  const { data: day } = await supabase
+  const { data: routineDays } = await supabase
     .from("routine_days")
     .select("id, user_id, routine_id, day_index, name, is_rest, notes")
-    .eq("id", params.dayId)
     .eq("routine_id", params.id)
     .eq("user_id", user.id)
-    .single();
+    .order("day_index", { ascending: true });
+
+  const day = (routineDays ?? []).find((routineDay) => routineDay.id === params.dayId) as RoutineDayRow | undefined;
   if (!day) notFound();
 
   const { data: exercises } = await supabase
     .from("routine_day_exercises")
     .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, measurement_type, default_unit, notes")
-    .eq("routine_day_id", params.dayId)
+    .in("routine_day_id", (routineDays ?? []).map((routineDay) => routineDay.id))
     .eq("user_id", user.id)
     .order("position", { ascending: true });
 
-  const dayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
-  const dayTitle = formatDayTitle(day.day_index, (day as RoutineDayRow).name);
+  const allRoutineDayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
+  const dayExercises = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === params.dayId);
+  const dayTitle = formatDayTitle(day.day_index, day.name);
   const exerciseOptions = await listExercises();
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
@@ -112,6 +113,19 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
   const returnTo = `/routines/${params.id}/edit/day/${params.dayId}`;
   const backHref = resolveReturnTo(searchParams?.returnTo) ?? `/routines/${params.id}/edit`;
+  const dayExerciseCounts = new Map<string, number>();
+  for (const exercise of allRoutineDayExercises) {
+    dayExerciseCounts.set(exercise.routine_day_id, (dayExerciseCounts.get(exercise.routine_day_id) ?? 0) + 1);
+  }
+
+  const switcherDays = (routineDays ?? []).map((routineDay) => ({
+    id: routineDay.id,
+    dayIndex: routineDay.day_index,
+    name: formatDayTitle(routineDay.day_index, routineDay.name),
+    isRest: routineDay.is_rest,
+    exerciseCount: dayExerciseCounts.get(routineDay.id) ?? 0,
+  }));
+
 
   const editableExercises = dayExercises.map((exercise) => {
     const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
@@ -164,12 +178,14 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     <AppShell topNavMode="none">
       <ScrollScreenWithBottomActions>
         <section className="space-y-3.5 overflow-x-clip px-1 pb-4">
-          <AppHeader
-            title={`Edit Day — ${dayTitle}`}
-            subtitleLeft={routine.name}
-            subtitleRight={(day as RoutineDayRow).is_rest ? "Rest day" : `${dayExercises.length} planned exercise${dayExercises.length === 1 ? "" : "s"}`}
-            action={<TopRightBackButton href={backHref} />}
-            actionClassName="-mt-1"
+          <EditDayHeaderSwitcher
+            routineId={params.id}
+            routineName={routine.name}
+            days={switcherDays}
+            activeDayId={params.dayId}
+            activeDayTitle={dayTitle}
+            activeDaySummary={day.is_rest ? "Rest day" : `${dayExercises.length} planned exercise${dayExercises.length === 1 ? "" : "s"}`}
+            backHref={backHref}
           />
 
           {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
@@ -178,7 +194,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3 rounded-[1.4rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.62)] p-4 shadow-[0_6px_18px_rgba(0,0,0,0.14)]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Day settings</p>
-              <p className="text-xs text-muted">Name the day, set rest status, and keep the workout list below aligned with the rest of the routine.</p>
+              <p className="text-xs text-muted">Adjust the day name and rest status here, then use the owned bottom bar to commit the page-level draft.</p>
             </div>
             <input type="hidden" name="routineId" value={params.id} />
             <input type="hidden" name="routineDayId" value={params.dayId} />
@@ -189,7 +205,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />Rest day</label>
           </form>
 
-          {(day as RoutineDayRow).is_rest ? (
+          {day.is_rest ? (
             <p className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3 text-xs text-muted">Rest day enabled. Planned exercises stay saved, but this day will be skipped until you turn rest day off.</p>
           ) : (
             <>

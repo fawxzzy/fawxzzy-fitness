@@ -314,7 +314,7 @@ export function EditableRoutineDayExerciseList({
                       />
                     </div>
                     <div className="flex justify-end">
-                      <AppButton type="submit" variant="secondary" size="sm">Save changes</AppButton>
+                      <AppButton type="submit" variant="ghost" size="sm">Apply goal</AppButton>
                     </div>
                   </form>
                 </div>
