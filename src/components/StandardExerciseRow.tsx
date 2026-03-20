@@ -48,8 +48,8 @@ export function StandardExerciseRow({
         <ExerciseAssetImage
           src={getExerciseIconSrc(exercise)}
           alt={`${exercise.name} icon`}
-          className="h-11 w-11 rounded-xl border border-border/35"
-          imageClassName="object-cover object-center"
+          className="h-11 w-11 rounded-xl border border-border/35 bg-[rgb(var(--bg)/0.18)] p-0.5"
+          imageClassName="rounded-[0.7rem] object-cover object-center scale-[0.97]"
           sizes="44px"
         />
       )}

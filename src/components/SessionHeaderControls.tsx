@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionBackButton } from "@/components/SessionBackButton";
 import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
@@ -16,14 +15,12 @@ export function SessionHeaderControls({
   sessionTitle,
   sessionSummary,
   durationSeconds,
-  quickAddAction,
   backHref,
   isTimerHydrated = true,
 }: {
   sessionTitle: string;
   sessionSummary?: string;
   durationSeconds: number;
-  quickAddAction: ReactNode;
   backHref?: string;
   isTimerHydrated?: boolean;
 }) {
@@ -45,7 +42,6 @@ export function SessionHeaderControls({
           <div className="inline-flex min-h-10 min-w-[7.4rem] items-center rounded-2xl border border-white/8 bg-white/5 px-3 py-2 text-sm font-medium tabular-nums text-text" suppressHydrationWarning aria-live={isTimerHydrated ? "off" : undefined}>
             Elapsed {formatDurationClock(durationSeconds)}
           </div>
-          <div className="min-w-[11rem] flex-1">{quickAddAction}</div>
         </div>
 
         <div className="mt-2 min-h-[1.1rem] px-0.5 text-xs text-muted">

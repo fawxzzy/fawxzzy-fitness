@@ -12,7 +12,7 @@ import {
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionTriple } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
@@ -702,11 +702,22 @@ export function SetLoggerCard({
 
   const saveSetActions = useMemo(
     () => (
-      <BottomActionTriple
-        secondary={skipAction ?? <div aria-hidden="true" />}
-        tertiary={deleteAction ?? <div aria-hidden="true" />}
+      <BottomActionStack
+        utility={(
+          <>
+            {skipAction ?? <div aria-hidden="true" />}
+            {deleteAction ?? <div aria-hidden="true" />}
+          </>
+        )}
         primary={(
-          <AppButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary" fullWidth>
+          <AppButton
+            type="button"
+            onClick={handleLogSet}
+            disabled={isSaveDisabled}
+            variant="primary"
+            fullWidth
+            className="shadow-[0_10px_24px_rgba(16,185,129,0.2)]"
+          >
             Save Set
           </AppButton>
         )}
