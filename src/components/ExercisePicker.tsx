@@ -201,7 +201,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, 
                 : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
             )}
           >
-            {isSelected ? "Selected" : "Pick"}
+            {isSelected ? "Selected" : "Select"}
           </span>
         )}
       />
@@ -459,7 +459,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 >
                   {selectedExercise.name}
                 </p>
-                <p className="text-xs text-muted">{exerciseMetadataById.get(selectedExercise.id) || "No tags available"}</p>
+                <p className="text-xs text-muted">{exerciseMetadataById.get(selectedExercise.id) || "No details"}</p>
               </div>
               <span className="rounded-full border border-accent/35 bg-accent/18 px-2.5 py-1 text-[11px] font-semibold leading-none text-text">Selected</span>
             </div>
@@ -496,7 +496,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             </div>
           </div>
         ) : (
-          <span className="text-muted">Pick an exercise to continue.</span>
+          <span className="text-muted">Select an exercise.</span>
         )}
       </div>
 
@@ -504,7 +504,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Pick an exercise</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Exercise list</p>
             <p className="text-xs text-muted">{filteredExercises.length} shown</p>
           </div>
         </div>
@@ -526,7 +526,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
             ))}
             {filteredExercises.length === 0 ? (
               <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">
-                No exercises match that search.
+                No exercises match your filters.
               </li>
             ) : null}
           </ul>
@@ -538,7 +538,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
         <div className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
           <div className="space-y-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Configure goal</p>
-            <p className="text-xs text-muted">Set only the measurements this goal actually needs.</p>
+            <p className="text-xs text-muted">Turn on only the measurements this goal needs.</p>
           </div>
           {selectedMeasurements.map((metric) => (
             <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />
@@ -651,9 +651,9 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 weightUnit: "targetWeightUnit",
                 distanceUnit: "targetDistanceUnit",
               }}
-              description="Choose only the optional measurements this goal needs."
+              description="Turn on only the optional measurements this goal needs."
               collapsedLabel="Optional measurements"
-              collapsedDescription="Turn on only the measurements you want to configure."
+              collapsedDescription="Turn on only the measurements you want to set."
             />
             {selectedMeasurements.includes("reps") ? (
               <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} />
@@ -668,7 +668,7 @@ export function ExercisePicker({ exercises, name, initialSelectedId, routineTarg
                 distanceUnit: selectedDefaultUnit,
                 calories: targetCalories ? Number(targetCalories) : null,
               }}
-              emptyLabel="Open goal"
+              emptyLabel="Goal missing"
             />
           <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
         </div>

@@ -233,7 +233,7 @@ export function SessionExerciseFocus({
                   className="shadow-none"
                   trailingClassName="self-start pt-1 text-muted"
                   rightIcon={null}
-                  badgeText={setCount > 0 ? `${setCount} logged` : "Next: log set"}
+                  badgeText={setCount > 0 ? `${setCount} logged` : undefined}
                 >
                   {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -241,7 +241,7 @@ export function SessionExerciseFocus({
                       {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill> : null}
                     </div>
                   ) : null}
-                  {setCount === 0 ? <p className="text-xs text-amber-100/90">Goal ready. Log the first {exercise.isCardio ? "interval" : "set"} next.</p> : null}
+                  {setCount === 0 ? <p className="text-xs text-amber-100/90">No sets yet.</p> : null}
                 </ExerciseCard>
               </li>
             );
@@ -278,7 +278,7 @@ export function SessionExerciseFocus({
 
           <WorkoutEntrySection
             eyebrow="Goal"
-            title="Planned goal"
+            title="Goal"
             description={selectedExercise!.goalLabel}
             className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))]"
             contentClassName="space-y-0"

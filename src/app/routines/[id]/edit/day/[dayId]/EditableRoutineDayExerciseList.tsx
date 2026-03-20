@@ -128,7 +128,7 @@ function RoutineTargetInputs({
           distanceUnit: values.distanceUnit,
           calories: values.calories ? Number(values.calories) : null,
         }}
-        emptyLabel="Open goal"
+        emptyLabel="Goal missing"
       />
       <input type="hidden" name="defaultUnit" value={activeMetrics.distance ? values.distanceUnit : "mi"} />
     </div>
@@ -166,7 +166,7 @@ export function EditableRoutineDayExerciseList({
   if (orderedExercises.length === 0) {
     return (
       <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-4 text-sm text-muted">
-        No exercises planned yet. Add one below to build this day.
+        No exercises yet. Add one below.
       </div>
     );
   }
@@ -225,11 +225,11 @@ export function EditableRoutineDayExerciseList({
             >
               <ExerciseCard
                 title={exercise.name}
-                subtitle={isExpanded || exercise.targetSummary !== "Open goal" ? exercise.targetSummary : undefined}
+                subtitle={isExpanded || exercise.targetSummary !== "Goal missing" ? exercise.targetSummary : undefined}
                 variant="interactive"
-                state={isExpanded ? "active" : exercise.targetSummary === "Open goal" ? "empty" : "default"}
+                state={isExpanded ? "active" : exercise.targetSummary === "Goal missing" ? "empty" : "default"}
                 onPress={() => setSelectedExerciseId(exercise.exerciseId)}
-                badgeText={isExpanded ? "Editing" : exercise.targetSummary === "Open goal" ? "Needs goal" : `#${index + 1}`}
+                badgeText={isExpanded ? "Editing" : exercise.targetSummary === "Goal missing" ? undefined : `#${index + 1}`}
                 leadingVisual={(
                   <ExerciseAssetImage
                     src={getExerciseIconSrc(exercise)}

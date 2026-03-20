@@ -118,5 +118,5 @@ export function formatMeasurementSummaryText(values: Parameters<typeof formatMea
 export function formatGoalSummaryText(values: GoalSummaryValues) {
   const { measurementText, weightPart } = formatGoalSummaryCore(values);
   const content = [measurementText || null, weightPart].filter((part): part is string => Boolean(part)).join(" — ");
-  return `Goal: ${content || (values.emptyLabel ?? "Open goal")}`;
+  return content ? `Goal: ${content}` : (values.emptyLabel ?? "Goal missing");
 }

@@ -121,12 +121,12 @@ export function TodayClientShell({
                 setSelectedExerciseId(canonicalExerciseId);
               }}
             >
-              <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.targets ?? "Goal: Not set"}</p>
+              <p className="min-w-0 text-xs leading-snug whitespace-normal break-words text-[rgb(var(--text)/0.7)]">{exercise.targets ?? "Goal missing"}</p>
             </ExerciseCard>
           </li>
         ))}
         {display.exercises.length === 0 ? (
-          <li className="px-3 py-2 text-muted">No routine exercises planned today.</li>
+          <li className="px-3 py-2 text-muted">No exercises today.</li>
         ) : null}
       </ul>
 
@@ -135,11 +135,11 @@ export function TodayClientShell({
           href={`/session/${display.inProgressSessionId}?returnTo=${encodeURIComponent("/today")}`}
           className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
         >
-          Resume Workout
+          Resume session
         </Link>
       ) : (
         <p className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center text-sm text-muted">
-          Start Workout requires a live connection.
+          Start session requires a live connection.
         </p>
       )}
 
