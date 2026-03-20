@@ -18,6 +18,10 @@ test("formatExerciseCountSummary renders single-type days without total prefix",
   assert.equal(formatExerciseCountSummary([{ measurement_type: "time" }, { measurement_type: "distance" }]).label, "2 cardio");
 });
 
+test("formatExerciseCountSummary honors normalized isCardio metadata over fallback reps classification", () => {
+  assert.equal(formatExerciseCountSummary([{ measurement_type: "reps", isCardio: true }]).label, "1 cardio");
+});
+
 test("formatExerciseCountSummary degrades gracefully for unknown-only metadata", () => {
   assert.equal(formatExerciseCountSummary([{ equipment: "sled" }, { movement_pattern: "carry" }]).label, "2 exercises");
 });
