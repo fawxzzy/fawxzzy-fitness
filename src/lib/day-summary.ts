@@ -45,6 +45,10 @@ function toCanonicalExerciseCountSummaryInput(exercise: CanonicalDayExercise): E
     measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
     equipment: exercise.details?.equipment ?? null,
     movement_pattern: exercise.details?.movement_pattern ?? null,
+    kind: exercise.details?.kind ?? null,
+    type: exercise.details?.type ?? null,
+    tags: exercise.details?.tags ?? null,
+    categories: exercise.details?.categories ?? null,
     isCardio: exercise.details ? isCardioExercise(exercise.details) : null,
   };
 }
