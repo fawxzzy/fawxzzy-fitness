@@ -1,3 +1,10 @@
+## 2026-03-21 — Routines modes should share one page-family scaffold
+
+- Both Routines modes now reuse one routines-family scaffold: shared active summary card first, then shared section surfaces with the same heading/meta rhythm, then stacked row cards, with the sticky footer remaining route-owned.
+- The day overview stays the canonical baseline, and the routine picker/manage state now expresses its `New Routine` CTA plus routine metadata inside that same section-card/list contract instead of a separate anchored wrapper stack.
+- Shared normalization should separate page-family scaffold, shared card/row primitives, and mode-specific data/actions so adjacent states can diverge in meaning without drifting in layout language.
+- Failure mode avoided: one-off styling tweaks across sibling modes that still leave duplicated wrappers, nested-content framing drift, and mismatched vertical rhythm.
+
 ## 2026-03-21 — View Day should reuse scaffold, not Today CTA ownership
 
 - View Day now reuses the shared app shell, panel rhythm, and top-right Back control while intentionally dropping Today's `Start Workout` CTA model.
