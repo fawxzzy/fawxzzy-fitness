@@ -3,6 +3,7 @@ import { isRedirectError } from "next/dist/client/components/redirect";
 import { AppNav } from "@/components/AppNav";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { HistoryPageHeader } from "@/components/history/HistoryShared";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
@@ -27,9 +28,10 @@ export default async function HistoryExercisesPage() {
         <AppNav />
 
         <ScrollContainer className="px-1">
-          <AppPanel className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+            <HistoryPageHeader title="Exercise history" subtitle="Browse exercise-level performance without leaving the same history page family." />
             <ExerciseBrowserClient rows={rows} />
-          </AppPanel>
+          </div>
         </ScrollContainer>
       </MainTabScreen>
     );

@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 
 export function AppHeader({
+  eyebrow,
   title,
   subtitleLeft,
   subtitleRight,
@@ -9,6 +10,7 @@ export function AppHeader({
   className,
   actionClassName,
 }: {
+  eyebrow?: ReactNode;
   title: ReactNode;
   subtitleLeft?: ReactNode;
   subtitleRight?: ReactNode;
@@ -18,7 +20,8 @@ export function AppHeader({
 }) {
   return (
     <div className={["flex items-start justify-between gap-3", className].filter(Boolean).join(" ")}>
-      <div className="min-w-0 space-y-1">
+      <div className="min-w-0 space-y-1.5">
+        {eyebrow ? <EyebrowText>{eyebrow}</EyebrowText> : null}
         <TitleText as="h2" className="text-xl font-bold">{title}</TitleText>
         {(subtitleLeft || subtitleRight) ? (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { HistoryPageHeader } from "@/components/history/HistoryShared";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
@@ -223,7 +224,8 @@ export default async function HistoryPage({
       <AppNav />
 
       <ScrollContainer className="px-1">
-        <AppPanel className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+          <HistoryPageHeader title="Training history" subtitle="Review completed sessions and exercise trends in the same shared history shell." />
           <HistorySessionsClient sessions={sessionItems} initialViewMode={viewMode} />
 
           {nextCursor ? (
@@ -236,7 +238,7 @@ export default async function HistoryPage({
               </Link>
             </div>
           ) : null}
-        </AppPanel>
+        </div>
       </ScrollContainer>
     </MainTabScreen>
   );

@@ -67,7 +67,6 @@ function BottomActionUtilityRow({ children, className }: { children: ReactNode; 
   return (
     <div
       className={cn(
-        BOTTOM_ACTION_SURFACE_INNER_CLASSNAME,
         "flex flex-wrap items-stretch gap-2 [&>*]:min-h-11 [&>*]:min-w-[8rem] [&>*]:flex-1",
         className,
       )}
@@ -78,14 +77,14 @@ function BottomActionUtilityRow({ children, className }: { children: ReactNode; 
 }
 
 export function BottomActionUtilityCluster({ children, className }: { children: ReactNode; className?: string }) {
-  return <BottomActionUtilityRow className={className}>{children}</BottomActionUtilityRow>;
+  return <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, className)}><BottomActionUtilityRow>{children}</BottomActionUtilityRow></div>;
 }
 
 export function BottomActionStack({ utility, primary, className }: { utility?: ReactNode; primary: ReactNode; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-1 gap-2", className)}>
-      {utility ? <BottomActionUtilityRow>{utility}</BottomActionUtilityRow> : null}
-      <BottomActionSingle>{primary}</BottomActionSingle>
+    <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, "grid grid-cols-1 gap-2", itemBaseClassName, className)}>
+      {utility ? <BottomActionUtilityRow className="[&>*]:min-h-11 [&>*]:flex-none">{utility}</BottomActionUtilityRow> : null}
+      <div className="grid grid-cols-1 gap-2">{primary}</div>
     </div>
   );
 }

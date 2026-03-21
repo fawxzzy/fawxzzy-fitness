@@ -5,9 +5,9 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Input } from "@/components/ui/Input";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { HistoryControlGroup, HistoryControlPanel, HistoryTabs } from "@/components/history/HistoryShared";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
@@ -185,32 +185,28 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <AppPanel className="space-y-2 p-2.5">
-        <SegmentedControl
-          options={[
-            { label: "Sessions", value: "sessions", href: "/history" },
-            { label: "Exercises", value: "exercises", href: "/history/exercises" },
-          ]}
-          value="exercises"
-          size="sm"
-          ariaLabel="History tabs"
-        />
+      <HistoryControlPanel>
+        <HistoryTabs value="exercises" sessionsHref="/history" exercisesHref="/history/exercises" />
 
-        <Input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search exercises"
-          aria-label="Search exercises"
-        />
+        <HistoryControlGroup label="Search" summary={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"}`}>
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search exercises"
+            aria-label="Search exercises"
+          />
+        </HistoryControlGroup>
 
-        <ExerciseTagFilterControl
-          selectedTags={selectedTags}
-          onChange={setSelectedTags}
-          groups={availableTagGroups}
-          className="space-y-2"
-        />
-      </AppPanel>
+        <HistoryControlGroup label="Filters" summary={selectedTags.length > 0 ? `${selectedTags.length} active` : "All exercises"}>
+          <ExerciseTagFilterControl
+            selectedTags={selectedTags}
+            onChange={setSelectedTags}
+            groups={availableTagGroups}
+            className="space-y-2"
+          />
+        </HistoryControlGroup>
+      </HistoryControlPanel>
 
       <div className="relative min-h-0">
         <ul className="space-y-2.5 scroll-py-2 pb-8">
