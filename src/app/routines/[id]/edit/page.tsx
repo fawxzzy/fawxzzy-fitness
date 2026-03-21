@@ -6,9 +6,9 @@ import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { EditRoutineStickyActions } from "@/app/routines/[id]/edit/EditRoutineStickyActions";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SubtitleText } from "@/components/ui/text-roles";
+import { RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -133,18 +133,6 @@ async function updateRoutineAction(formData: FormData) {
   redirect(returnTo);
 }
 
-function FormSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
-  return (
-    <AppPanel className="space-y-4 p-4">
-      <div className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.58)]">{title}</p>
-        {description ? <SubtitleText>{description}</SubtitleText> : null}
-      </div>
-      {children}
-    </AppPanel>
-  );
-}
-
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -164,15 +152,14 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
         <section className="space-y-4 px-1 pb-4">
-          <AppPanel className="space-y-3 p-4">
-            <AppHeader
-              eyebrow="Routine settings"
-              title={(routine as RoutineRow).name}
-              subtitleLeft="Update identity, schedule, and defaults without leaving the shared routine page family."
-              action={<RoutineBackButton href="/routines" />}
-              actionClassName="-mt-1"
-            />
-          </AppPanel>
+          <RoutineEditorPageHeader
+            eyebrow="Edit Routine"
+            title={(routine as RoutineRow).name}
+            subtitle="Update routine identity, schedule, and defaults without leaking day-level editing into this parent screen."
+            subtitleRight={`${(routine as RoutineRow).cycle_length_days} ${(routine as RoutineRow).cycle_length_days === 1 ? "day" : "days"}`}
+            action={<RoutineBackButton href="/routines" />}
+            actionClassName="-mt-1"
+          />
 
           {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
           {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
@@ -181,13 +168,13 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             <input type="hidden" name="routineId" value={routine.id} />
             <NavigationReturnInput fallbackHref="/routines" />
 
-            <FormSection title="Identity" description="Keep the routine name recognizable wherever the plan appears.">
+            <RoutineEditorSection title="Identity" description="Keep the routine name recognizable wherever the plan appears.">
               <label className="block text-sm font-medium text-text">Routine name
                 <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
               </label>
-            </FormSection>
+            </RoutineEditorSection>
 
-            <FormSection title="Schedule" description="Day 1 and cycle length define how this routine repeats.">
+            <RoutineEditorSection title="Schedule" description="Day 1 and cycle length define how this routine repeats.">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-text">Cycle length (days)
                   <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
@@ -196,9 +183,9 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                   <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
                 </label>
               </div>
-            </FormSection>
+            </RoutineEditorSection>
 
-            <FormSection title="Timezone & defaults" description="Use the same rollover timezone and base weight unit the rest of the app expects.">
+            <RoutineEditorSection title="Timezone & defaults" description="Use the same rollover timezone and base weight unit the rest of the app expects.">
               <div className="grid gap-3">
                 <label className="block text-sm font-medium text-text">Timezone
                   <select name="timezone" required defaultValue={routineTimezoneDefault} className={controlClassName}>
@@ -212,7 +199,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                   </select>
                 </label>
               </div>
-            </FormSection>
+            </RoutineEditorSection>
           </form>
 
           <AppPanel className="space-y-3 border-red-500/25 p-4">

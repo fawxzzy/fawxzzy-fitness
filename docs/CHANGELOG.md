@@ -1,5 +1,11 @@
-## 2026-03-20
+## 2026-03-21
+- Normalized Edit Routine and Edit Day onto the same shared routine-editor shell by extracting a common header/section scaffold, moving Edit Day onto the same title/subtitle rhythm as Edit Routine, and keeping day switching owned by the header while save/cancel remain in one canonical footer surface.
+- Tightened the parent/child editor boundary by keeping Edit Routine focused on routine metadata only and framing Edit Day metadata, planned-workout rows, and exercise adding as separate sections inside the same page family instead of bespoke route-local containers.
+- Rule: Fix shared layout ownership and shell drift in shared editor primitives before adding route-local overrides.
+- Pattern: Adjacent parent/child editor flows should share one page-family shell while selector controls stay with the surface that owns that switch.
+- Failure Mode: Route-local header or metadata framing patches make sibling editors drift in wording, spacing, and bottom-action ownership even when the underlying behavior is still correct.
 
+## 2026-03-20
 ### WHAT
 - Regrouped the Current Session footer so `Quick Add` stays above `Complete session` inside one shared bottom-action surface, preserving the utility-over-primary hierarchy without splitting ownership into stacked independent bars.
 - Normalized both History tabs onto the same page-family system as Today/Routines/View Day/Current Session by adding a shared history header, lighter shared control panels, a reusable segmented-control shell, and more consistent metadata chip/card hierarchy across session and exercise history.

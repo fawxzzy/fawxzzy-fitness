@@ -1,3 +1,11 @@
+## 2026-03-21 — Adjacent parent/child editors should share one shell while keeping selector ownership local
+- Type: Pattern
+- Summary: Edit Routine and Edit Day should reuse the same header, section, and footer shell language, while selector controls stay only on the screen that owns that switch and parent editors stop at metadata boundaries.
+- Suggested Playbook File: docs/PATTERNS/editor-boundaries.md
+- Rationale: Prevents sibling edit flows from drifting into separate visual dialects or leaking child-workflow controls upward, which weakens mobile scanability and makes action ownership less predictable.
+- Evidence: src/components/routines/RoutineEditorShared.tsx, src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/EditDayHeaderSwitcher.tsx
+- Status: Proposed
+
 ## 2026-03-19 — Session shells should own sticky footers locally when shared publication is unstable
 
 - Summary: When a shared sticky-footer abstraction blocks a core session flow, restore screen-local footer ownership first and re-abstract later after the host model is proven stable.
