@@ -1,6 +1,8 @@
 - WHAT: View Day screen normalized to Today layout pattern.
 - WHY: Reduce UI fragmentation and reinforce the shared screen system.
 - Removed header-based View Day actions in favor of the shared bottom action pattern so the route follows the same primary/secondary action ownership as Today.
+- Fixed the View Day runtime boundary regression by moving `TodayStartButton` session startup behind a shared API-backed helper, so Today and View Day now pass only serializable routing/day identifiers instead of server function props into the client button.
+- Split the normalization contract explicitly between shared visual scaffolding and shared start-session plumbing, preserving the Today-like View Day layout and bottom action bar without reusing server-only callback wiring.
 
 ## 2026-03-21
 ### WHAT

@@ -11,7 +11,6 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
-import type { ActionResult } from "@/lib/action-result";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 
 type TodayExercise = {
@@ -81,18 +80,14 @@ function getDaySummaryTone(day: TodayDay): "blocking" | "warning" | null {
 
 export function TodayDayPicker({
   routineName,
-  routineId,
   days,
   currentDayIndex,
   completedTodayCount,
-  startSessionAction,
 }: {
   routineName: string;
-  routineId: string;
   days: TodayDay[];
   currentDayIndex: number;
   completedTodayCount: number;
-  startSessionAction: (payload?: { dayIndex?: number }) => Promise<ActionResult<{ sessionId: string }>>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -115,7 +110,6 @@ export function TodayDayPicker({
     <BottomActionUtilityCluster className="[&>*]:basis-[calc(50%-0.25rem)]">
       {isRunnableDay ? (
         <TodayStartButton
-          startSessionAction={startSessionAction}
           selectedDayIndex={selectedDayIndex}
           returnTo="/today"
           fullWidth
@@ -135,7 +129,7 @@ export function TodayDayPicker({
         <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
       </SecondaryButton>
     </BottomActionUtilityCluster>
-  ), [isPickerOpen, isRunnableDay, selectedDayIndex, startSessionAction, togglePicker]);
+  ), [isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
 
   usePublishBottomActions(actionsNode);
 
