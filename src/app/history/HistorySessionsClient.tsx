@@ -7,7 +7,7 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { HistoryControlGroup, HistoryControlPanel, HistoryMetaChip, HistoryMetaRow, HistoryTabs } from "@/components/history/HistoryShared";
+import { HistoryControlGroup, HistoryControlPanel, HistoryMetaChip, HistoryMetaRow, HistoryTabs, buildHistorySessionSummaryParts } from "@/components/history/HistoryShared";
 import { cn } from "@/lib/cn";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
@@ -31,12 +31,12 @@ function performanceParts(session: SessionSummary) {
 }
 
 function compactMetricsSummary(session: SessionSummary) {
-  return [
-    session.durationSec ? formatDurationShort(session.durationSec) : null,
-    formatCount(session.exerciseCount, "exercise"),
-    formatCount(session.setCount, "set"),
-    session.prCounts.total > 0 ? session.prLabel : null,
-  ].filter((value): value is string => Boolean(value));
+  return buildHistorySessionSummaryParts({
+    durationSec: session.durationSec,
+    exerciseCount: session.exerciseCount,
+    setCount: session.setCount,
+    prLabel: session.prCounts.total > 0 ? session.prLabel : null,
+  });
 }
 
 function isWeekdayTitle(value?: string) {
