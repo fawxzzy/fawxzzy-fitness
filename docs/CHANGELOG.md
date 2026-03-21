@@ -1,3 +1,8 @@
+- WHAT: Normalized the two Routines screen modes into one shared page family by extracting a shared routines scaffold, active summary card, section surface, and list-row card contract used by both the day overview and routine picker/manage states.
+- WHY: The two Routines modes represented the same feature family but had started drifting through separate wrapper stacks, which made spacing, section framing, and row rhythm feel parallel instead of unified.
+- Reworked `RoutinesPageClient` so the day overview remains the canonical baseline while the routine picker now opens into the same section-card + stacked-row structure, preserving `New Routine`, active-state metadata, switching semantics, and the existing sticky footer actions.
+- Added a small routines-specific shared primitive module so future changes to summary/header rhythm, section framing, and row contracts can land once instead of being duplicated across each mode.
+
 - WHAT: View Day now keeps the shared app-shell and normalized content scaffold without inheriting Today's workout-start action model.
 - WHY: Shared screen scaffolds should normalize layout rhythm independently from route-owned CTA behavior.
 - Removed the route-local extra top safe-area padding that had been copied from Today so View Day content now sits naturally under the shared app shell.
