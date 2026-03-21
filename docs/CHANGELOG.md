@@ -1,3 +1,29 @@
+## [v0.3.72] – Routines Action Ordering Alignment
+
+### WHAT
+
+* Swapped bottom action ordering on Routines screens:
+
+  * Select routine → left
+  * Edit Routine → right
+
+### WHY
+
+* Aligns action flow with Today screen mental model
+* Improves consistency of “context selection vs modification” across screens
+* Reduces cognitive friction when switching between Today and Routines
+
+Rule
+Action ordering should be consistent within a screen family and aligned with user mental flow, not blindly enforced globally.
+
+Pattern
+
+* left = context selection / navigation
+* right = action / modification
+
+Failure Mode
+A shared bottom action component enforces a default ordering, causing unintended regressions across screens when only one screen’s ordering should change.
+
 ## 2026-03-21
 
 - Fixed nested routine/day Back navigation so View Day and Edit Day now resolve deterministic parent-route targets instead of relying on browser history, removing the View Day ⇄ Edit Day loop triggered by Routine → View Day → Edit Day flows.

@@ -81,14 +81,6 @@ export function RoutinesPageClient({
 
   const actionsNode = useMemo(() => (
     <BottomActionUtilityCluster>
-      {activeRoutineEditHref ? (
-        <Link
-          href={activeRoutineEditHref}
-          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
-        >
-          Edit Routine
-        </Link>
-      ) : null}
       <SecondaryButton
         type="button"
         className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
@@ -98,6 +90,14 @@ export function RoutinesPageClient({
       >
         <span>{isRoutineListOpen ? "Hide routines" : "Select routine"}</span>
       </SecondaryButton>
+      {activeRoutineEditHref ? (
+        <Link
+          href={activeRoutineEditHref}
+          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
+        >
+          Edit Routine
+        </Link>
+      ) : null}
     </BottomActionUtilityCluster>
   ), [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen]);
 
