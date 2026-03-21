@@ -80,11 +80,11 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-[var(--header-offset)] z-40 flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-[var(--header-offset)] z-[60] flex justify-center px-4">
       <div className="pointer-events-auto w-full max-w-md">
         <Glass
           variant="raised"
-          className="h-[var(--header-h)] rounded-xl border border-white/15 px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] backdrop-blur-md"
+          className="relative isolate min-h-[var(--header-h)] rounded-xl border border-white/15 bg-[rgb(var(--glass-tint-rgb)/0.9)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] [--glass-current-border-alpha:0.3] [--glass-current-tint-alpha:0.88] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.72)]"
           interactive={false}
         >
           <div className="flex h-[var(--header-h)] flex-col justify-center gap-1">
