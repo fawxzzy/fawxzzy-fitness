@@ -354,6 +354,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   }))}
                   currentDayIndex={todayPayload.routine.dayIndex}
                   completedTodayCount={todayPayload.completedTodayCount}
+                  inProgressSessionId={todayPayload.inProgressSessionId}
                 />
               )}
             </div>

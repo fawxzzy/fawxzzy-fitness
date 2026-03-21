@@ -28,6 +28,7 @@ export function TodayStartButton({
   fullWidth = true,
   className,
   label = "Start Workout",
+  sessionId,
 }: {
   selectedDayIndex?: number;
   routineId?: string;
@@ -36,6 +37,7 @@ export function TodayStartButton({
   fullWidth?: boolean;
   className?: string;
   label?: string;
+  sessionId?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -49,6 +51,14 @@ export function TodayStartButton({
       className={`min-h-[44px] border-emerald-400/45 bg-emerald-500/20 text-emerald-50 transition-transform hover:bg-emerald-500/26 active:scale-[0.98] active:bg-emerald-500/32 ${className ?? ""}`}
       onClick={() => {
         startTransition(async () => {
+          if (sessionId) {
+            const sessionHref = returnTo
+              ? `/session/${sessionId}?returnTo=${encodeURIComponent(returnTo)}`
+              : `/session/${sessionId}`;
+            router.push(sessionHref);
+            return;
+          }
+
           const result = await requestSessionStart({ selectedDayIndex, routineId, dayId });
           if (!result.ok || !result.data?.sessionId) {
             toast.error(result.ok ? "Could not start session" : result.error);
@@ -61,7 +71,7 @@ export function TodayStartButton({
         });
       }}
     >
-      {isPending ? "Starting…" : label}
+      {isPending ? (sessionId ? "Opening…" : "Starting…") : label}
     </PrimaryButton>
   );
 }
