@@ -13,6 +13,9 @@ export function SegmentedControl({
   size = "default",
   ariaLabel = "Segmented options",
   onChange,
+  shellClassName,
+  activeClassName,
+  inactiveClassName,
 }: {
   options: SegmentedControlOption[];
   value: string;
@@ -20,6 +23,9 @@ export function SegmentedControl({
   size?: "default" | "sm";
   ariaLabel?: string;
   onChange?: (value: string) => void;
+  shellClassName?: string;
+  activeClassName?: string;
+  inactiveClassName?: string;
 }) {
   const itemClassName = size === "sm"
     ? "inline-flex min-h-8 min-w-0 flex-1 basis-0 items-center justify-center rounded-lg px-3 text-[11px] font-semibold transition"
@@ -29,13 +35,13 @@ export function SegmentedControl({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`flex w-full items-center gap-1 rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.56)] p-1 ${className ?? ""}`.trim()}
+      className={`flex w-full items-center gap-1 rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.56)] p-1 ${shellClassName ?? ""} ${className ?? ""}`.trim()}
     >
       {options.map((option) => {
         const isActive = option.value === value;
         const stateClassName = isActive
-          ? "bg-[rgb(var(--glass-tint-rgb)/0.94)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.9)]"
-          : "text-slate-300 hover:bg-white/5 hover:text-white";
+          ? (activeClassName ?? "bg-[rgb(var(--glass-tint-rgb)/0.94)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.9)]")
+          : (inactiveClassName ?? "text-slate-300 hover:bg-white/5 hover:text-white");
 
         if (onChange || !option.href) {
           return (

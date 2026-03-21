@@ -1,6 +1,22 @@
 ## 2026-03-20
 
 ### WHAT
+- Regrouped the Current Session footer so `Quick Add` stays above `Complete session` inside one shared bottom-action surface, preserving the utility-over-primary hierarchy without splitting ownership into stacked independent bars.
+- Normalized both History tabs onto the same page-family system as Today/Routines/View Day/Current Session by adding a shared history header, lighter shared control panels, a reusable segmented-control shell, and more consistent metadata chip/card hierarchy across session and exercise history.
+- Reworked Edit Routine away from the older raw form-page dialect by giving it the same page-family header rhythm, clearer Identity / Schedule / Timezone & defaults groupings, and a cleaner bottom-action owner with less repetitive explanatory copy.
+- Extracted only low-risk shared pieces touched during the pass: shared history control panel/tabs/meta treatments plus small AppHeader/SegmentedControl extensibility for the normalized page family.
+- Rule: Screens with owned bottom actions should keep those actions inside one shared footer surface even when utility and primary actions stack by priority.
+- Pattern: Adjacent management/history screens should join the normalized page family once the core workout flows have settled.
+- Failure Mode: Correct action hierarchy still feels fragmented when the footer loses its single-surface ownership model.
+
+### WHY
+- Current Session already had the right action priority, but the footer still read like two unrelated bars; regrouping them restores one clear owned action surface while keeping `Quick Add` secondary to session completion.
+- History is now adjacent to multiple already-normalized workout screens, so leaving it on an older list/filter dialect would make the app feel inconsistent even when the underlying navigation model is shared.
+- Edit Routine is a high-frequency management surface, and bringing it onto the same header/spacing/footer system reduces the old isolated-form feel without forcing a broad abstraction pass.
+
+## 2026-03-20
+
+### WHAT
 - Moved `Quick Add` out of the Current Session header and into the owned bottom-action stack above `Complete session`, so utility and commit actions now share the same footer surface contract instead of competing across header and footer regions.
 - Removed redundant `Ready to log your first set.` helper copy from Current Session exercise cards, added a consistent trailing entry chevron, and kept the existing image-inclusive row plus logged/completed state treatment so the cards read more clearly as tappable workflow entries.
 - Reworked the Log Set footer hierarchy so `Skip` and `Delete` stay grouped on the first row while `Save Set` now occupies its own full-width primary row with the shared bottom-action treatment.

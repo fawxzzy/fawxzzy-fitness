@@ -7,7 +7,8 @@ import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButto
 import { EditRoutineStickyActions } from "@/app/routines/[id]/edit/EditRoutineStickyActions";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppHeader } from "@/components/ui/app/AppHeader";
-import { Glass } from "@/components/ui/Glass";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { SubtitleText } from "@/components/ui/text-roles";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -132,6 +133,18 @@ async function updateRoutineAction(formData: FormData) {
   redirect(returnTo);
 }
 
+function FormSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <AppPanel className="space-y-4 p-4">
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.58)]">{title}</p>
+        {description ? <SubtitleText>{description}</SubtitleText> : null}
+      </div>
+      {children}
+    </AppPanel>
+  );
+}
+
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
@@ -151,63 +164,47 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
         <section className="space-y-4 px-1 pb-4">
-          <AppHeader title="Edit Routine" action={<RoutineBackButton href="/routines" />} actionClassName="-mt-1" />
+          <AppPanel className="space-y-3 p-4">
+            <AppHeader
+              eyebrow="Routine settings"
+              title={(routine as RoutineRow).name}
+              subtitleLeft="Update identity, schedule, and defaults without leaving the shared routine page family."
+              action={<RoutineBackButton href="/routines" />}
+              actionClassName="-mt-1"
+            />
+          </AppPanel>
 
           {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
           {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
 
-          <Glass variant="base" className="space-y-5 border border-white/12 p-5 shadow-[0_18px_48px_rgb(0_0_0/0.22)]" interactive={false}>
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[rgb(var(--text)/0.62)]">Routine details</p>
-              <div className="space-y-1">
-                <h2 className="text-2xl font-semibold text-[rgb(var(--text)/0.98)]">{(routine as RoutineRow).name}</h2>
-                <p className="max-w-[32rem] text-sm leading-6 text-[rgb(var(--text)/0.72)]">
-                  Edit the routine’s name, schedule, and default units here. Day names, rest/training setup, and workout composition stay in the dedicated day editors.
-                </p>
-              </div>
-            </div>
+          <form id="routine-update-form" action={updateRoutineAction} className="space-y-4">
+            <input type="hidden" name="routineId" value={routine.id} />
+            <NavigationReturnInput fallbackHref="/routines" />
 
-            <form id="routine-update-form" action={updateRoutineAction} className="space-y-5">
-              <input type="hidden" name="routineId" value={routine.id} />
-              <NavigationReturnInput fallbackHref="/routines" />
-              <div className="space-y-3 rounded-2xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-4">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-text">Identity</h3>
-                  <p className="text-xs leading-5 text-muted">Use a clear routine name so this plan is easy to find from Today, Routines, and history.</p>
-                </div>
-                <label className="block text-sm font-medium text-text">Routine name
-                  <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
+            <FormSection title="Identity" description="Keep the routine name recognizable wherever the plan appears.">
+              <label className="block text-sm font-medium text-text">Routine name
+                <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
+              </label>
+            </FormSection>
+
+            <FormSection title="Schedule" description="Day 1 and cycle length define how this routine repeats.">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-text">Cycle length (days)
+                  <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
+                </label>
+                <label className="block text-sm font-medium text-text">Start date
+                  <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
                 </label>
               </div>
+            </FormSection>
 
-              <div className="space-y-3 rounded-2xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-4">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-text">Schedule</h3>
-                  <p className="text-xs leading-5 text-muted">These settings decide how the routine repeats and which calendar date counts as Day 1.</p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block text-sm font-medium text-text">Cycle length (days)
-                    <p className="mt-1 text-xs text-muted">Includes all training and rest days in the repeat cycle.</p>
-                    <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
-                  </label>
-                  <label className="block text-sm font-medium text-text">Start date
-                    <p className="mt-1 text-xs text-muted">Use the date that should map to Day 1 for this routine.</p>
-                    <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
-                  </label>
-                  <label className="block text-sm font-medium text-text sm:col-span-2">Timezone
-                    <p className="mt-1 text-xs text-muted">Keeps routine day rollover aligned with the timezone you want this schedule to follow.</p>
-                    <select name="timezone" required defaultValue={routineTimezoneDefault} className={controlClassName}>
-                      {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{getRoutineTimezoneLabel(timeZoneOption)}</option>))}
-                    </select>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-3 rounded-2xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-4">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-text">Defaults</h3>
-                  <p className="text-xs leading-5 text-muted">These defaults apply when routine-level targets or future day setups need a weight unit.</p>
-                </div>
+            <FormSection title="Timezone & defaults" description="Use the same rollover timezone and base weight unit the rest of the app expects.">
+              <div className="grid gap-3">
+                <label className="block text-sm font-medium text-text">Timezone
+                  <select name="timezone" required defaultValue={routineTimezoneDefault} className={controlClassName}>
+                    {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{getRoutineTimezoneLabel(timeZoneOption)}</option>))}
+                  </select>
+                </label>
                 <label className="block text-sm font-medium text-text">Weight unit
                   <select name="weightUnit" defaultValue={(routine as RoutineRow).weight_unit ?? "lbs"} className={controlClassName}>
                     <option value="lbs">lbs</option>
@@ -215,24 +212,21 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
                   </select>
                 </label>
               </div>
-            </form>
-          </Glass>
+            </FormSection>
+          </form>
 
-          <Glass variant="base" className="space-y-3 border border-red-500/20 p-4" interactive={false}>
+          <AppPanel className="space-y-3 border-red-500/25 p-4">
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-300/90">Danger zone</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-red-300/90">Danger zone</p>
               <h3 className="text-base font-semibold text-text">Delete this routine</h3>
-              <p className="text-sm leading-6 text-[rgb(var(--text)/0.68)]">
-                Delete only when you want to permanently remove this routine and its attached days/exercises. This action cannot be undone.
-              </p>
+              <SubtitleText>Remove the routine only if you want to permanently delete its attached days and exercises.</SubtitleText>
             </div>
             <DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />
-          </Glass>
+          </AppPanel>
         </section>
 
         <EditRoutineStickyActions
           primary={<RoutineSaveButton formId="routine-update-form" originalCycleLength={(routine as RoutineRow).cycle_length_days} />}
-          helper="Routine details only. Edit day names, rest days, and workout composition from each day’s dedicated editor."
         />
       </ScrollScreenWithBottomActions>
     </AppShell>

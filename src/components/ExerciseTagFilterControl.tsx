@@ -52,13 +52,13 @@ export function ExerciseTagFilterControl({
     countDisplayMode === "always" || (countDisplayMode === "whenNonZero" && selectedTags.length > 0);
 
   return (
-    <div className={className ?? "space-y-2 rounded-md border border-border/70 bg-[rgb(var(--bg)/0.28)] p-2.5"}>
+    <div className={className ?? "space-y-2"}>
       <Button
         type="button"
         variant="ghost"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
-        className="w-full justify-between border border-border/60 bg-[rgb(var(--bg)/0.4)] [-webkit-tap-highlight-color:transparent]"
+        className="w-full justify-between border border-white/10 bg-black/10 [-webkit-tap-highlight-color:transparent]"
       >
         <span>{headerLabel}</span>
         <span className="ml-auto inline-flex items-center">
