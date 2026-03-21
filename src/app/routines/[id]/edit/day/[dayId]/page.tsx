@@ -7,6 +7,7 @@ import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
+import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { controlClassName } from "@/components/ui/formClasses";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -15,7 +16,7 @@ import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, saveRout
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
 import { EditDayHeaderSwitcher } from "@/app/routines/[id]/edit/day/[dayId]/EditDayHeaderSwitcher";
 import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
-import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
@@ -191,7 +192,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   return (
     <AppShell topNavMode="none">
       <ScrollScreenWithBottomActions>
-        <section className="space-y-3.5 overflow-x-clip px-1 pb-4">
+        <section className="space-y-4 overflow-x-clip px-1 pb-4">
           <EditDayHeaderSwitcher
             routineId={params.id}
             routineName={routine.name}
@@ -205,40 +206,35 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           {searchParams?.error ? <SubtitleText className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-red-700">{searchParams.error}</SubtitleText> : null}
           {searchParams?.success ? <SubtitleText className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-accent">{searchParams.success}</SubtitleText> : null}
 
-          <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3 rounded-[1.4rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.62)] p-4 shadow-[0_6px_18px_rgba(0,0,0,0.14)]">
-            <div className="space-y-1">
-              <EyebrowText>Day settings</EyebrowText>
-              <SubtitleText className="text-xs">Update the day name or rest state here. Save and cancel stay in the page footer.</SubtitleText>
-            </div>
-            <input type="hidden" name="routineId" value={params.id} />
-            <input type="hidden" name="routineDayId" value={params.dayId} />
-            <NavigationReturnInput fallbackHref={`/routines/${params.id}/edit`} value={backHref} />
-            <div className="space-y-2">
-              <label className="block text-sm">
-                <TitleText as="span" className="text-sm">Day name</TitleText>
-                <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />
-                <SubtitleText as="span" className="text-sm">Rest day</SubtitleText>
-              </label>
-            </div>
-          </form>
+          <RoutineEditorSection title="Day settings" description="Update the day name or rest state here. Exercise planning stays in the dedicated list and add-exercise sections below.">
+            <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3">
+              <input type="hidden" name="routineId" value={params.id} />
+              <input type="hidden" name="routineDayId" value={params.dayId} />
+              <NavigationReturnInput fallbackHref={`/routines/${params.id}/edit`} value={backHref} />
+              <div className="space-y-2">
+                <label className="block text-sm">
+                  <TitleText as="span" className="text-sm">Day name</TitleText>
+                  <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />
+                  <SubtitleText as="span" className="text-sm">Rest day</SubtitleText>
+                </label>
+              </div>
+            </form>
+          </RoutineEditorSection>
 
           {day.is_rest ? (
             <SubtitleText className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3">Rest day enabled. Planned exercises stay saved, but this day stays non-runnable until you turn rest day off.</SubtitleText>
           ) : (
             <>
-              <section className="space-y-2.5">
-                <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.52)] px-3.5 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <EyebrowText>Planned workout</EyebrowText>
-                      <TitleText as="h2" className="text-base">{dayTitle}</TitleText>
-                      <SubtitleText>Same row language as Today and View Day, with edit controls kept in the trailing actions.</SubtitleText>
-                    </div>
-                    <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{activeExerciseSummary}</span>
-                  </div>
+              <RoutineEditorSection
+                title="Planned workout"
+                description="Reuse the same row language as Today and View Day, with edit controls kept in trailing actions only."
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <TitleText as="h2" className="text-base">{dayTitle}</TitleText>
+                  <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{activeExerciseSummary}</span>
                 </div>
                 <EditableRoutineDayExerciseList
                   routineId={params.id}
@@ -249,7 +245,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                   deleteAction={deleteRoutineDayExerciseAction}
                   reorderAction={reorderRoutineDayExercisesAction}
                 />
-              </section>
+              </RoutineEditorSection>
 
               <CollapsibleCard
                 title="Add exercises"
