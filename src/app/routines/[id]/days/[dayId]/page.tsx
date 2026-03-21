@@ -10,18 +10,10 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
-import { ensureProfile } from "@/lib/profile";
-import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
-import { getSessionStartErrorMessage, isRunnableDayState } from "@/lib/runnable-day";
-import {
-  defaultUnitForSessionExerciseMeasurementType,
-  resolveSessionExerciseMeasurementType,
-  warnOnSessionExerciseUnitMismatch,
-} from "@/lib/session-exercise-measurement";
+import { isRunnableDayState } from "@/lib/runnable-day";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
-import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -33,130 +25,6 @@ type PageProps = {
   };
 };
 
-async function startSessionFromViewDayAction(payload: { routineId: string; dayId: string }): Promise<ActionResult<{ sessionId: string }>> {
-  "use server";
-
-  const user = await requireUser();
-  const supabase = supabaseServer();
-  await ensureProfile(user.id);
-
-  const { data: routine, error: routineError } = await supabase
-    .from("routines")
-    .select("id, user_id, name")
-    .eq("id", payload.routineId)
-    .eq("user_id", user.id)
-    .single();
-
-  if (routineError || !routine) {
-    return { ok: false, error: "That routine could not be loaded." };
-  }
-
-  const { data: day, error: dayError } = await supabase
-    .from("routine_days")
-    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
-    .eq("id", payload.dayId)
-    .eq("routine_id", payload.routineId)
-    .eq("user_id", user.id)
-    .single();
-
-  if (dayError || !day) {
-    return { ok: false, error: "That routine day could not be loaded." };
-  }
-
-  const { data: templateExercises, error: templateError } = await supabase
-    .from("routine_day_exercises")
-    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, notes, measurement_type, default_unit")
-    .eq("routine_day_id", day.id)
-    .eq("user_id", user.id)
-    .order("position", { ascending: true });
-
-  if (templateError) {
-    return { ok: false, error: "Could not load exercises for this day." };
-  }
-
-  const { summaries } = await buildCanonicalDaySummaries({
-    supabase,
-    routineDays: [day as RoutineDayRow],
-    allDayExercises: (templateExercises ?? []) as RoutineDayExerciseRow[],
-  });
-  const canonicalDay = summaries[0] ?? null;
-  const runnableExercises = canonicalDay?.runnableExercises ?? [];
-  const invalidExercises = canonicalDay?.invalidExercises ?? [];
-  const startError = getSessionStartErrorMessage({
-    isRest: Boolean(day.is_rest),
-    runnableExerciseCount: runnableExercises.length,
-    invalidExerciseCount: invalidExercises.length,
-  });
-
-  if (startError) {
-    return { ok: false, error: startError };
-  }
-
-  const routineDayName = day.name || `Day ${day.day_index}`;
-  const { data: session, error: sessionError } = await supabase
-    .from("sessions")
-    .insert({
-      user_id: user.id,
-      routine_id: routine.id,
-      routine_day_index: day.day_index,
-      name: routine.name,
-      routine_day_name: routineDayName,
-      status: "in_progress",
-    })
-    .select("id")
-    .single();
-
-  if (sessionError || !session) {
-    return { ok: false, error: "Could not create workout session." };
-  }
-
-  if (runnableExercises.length > 0) {
-    const { error: exerciseError } = await supabase.from("session_exercises").insert(
-      runnableExercises.map((exercise) => {
-        const mappedGoalColumns = mapRoutineDayGoalToSessionColumns({
-          target_sets: exercise.target_sets,
-          target_reps: exercise.target_reps,
-          target_reps_min: exercise.target_reps_min,
-          target_reps_max: exercise.target_reps_max,
-          target_weight: exercise.target_weight,
-          target_weight_unit: exercise.target_weight_unit,
-          target_duration_seconds: exercise.target_duration_seconds,
-          target_distance: exercise.target_distance,
-          target_distance_unit: exercise.target_distance_unit,
-          target_calories: exercise.target_calories,
-          measurement_type: exercise.measurement_type ?? null,
-          default_unit: exercise.default_unit ?? null,
-        });
-
-        const measurementType = resolveSessionExerciseMeasurementType(
-          mappedGoalColumns.measurement_type ?? exercise.details?.measurement_type,
-        );
-        const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
-        warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "startSessionFromViewDayAction" });
-
-        return {
-          session_id: session.id,
-          user_id: user.id,
-          exercise_id: exercise.exercise_id,
-          routine_day_exercise_id: exercise.id,
-          position: exercise.position,
-          notes: exercise.notes,
-          is_skipped: false,
-          ...mappedGoalColumns,
-          measurement_type: measurementType,
-          default_unit: defaultUnit,
-        };
-      }),
-    );
-
-    if (exerciseError) {
-      await supabase.from("sessions").delete().eq("id", session.id).eq("user_id", user.id);
-      return { ok: false, error: "Could not start workout for this day." };
-    }
-  }
-
-  return { ok: true, data: { sessionId: session.id } };
-}
 
 export default async function RoutineDayDetailPage({ params }: PageProps) {
   const user = await requireUser();
@@ -251,7 +119,8 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
           <BottomActionSplit
             primary={(
               <TodayStartButton
-                startSessionAction={() => startSessionFromViewDayAction({ routineId: routineRow.id, dayId: dayRow.id })}
+                routineId={routineRow.id}
+                dayId={dayRow.id}
                 returnTo={returnToPath}
                 className="w-full"
               />
