@@ -76,7 +76,7 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
   const returnToPath = `/routines/${routineRow.id}/days/${dayRow.id}`;
 
   return (
-    <MainTabScreen topNavMode="none" className="space-y-0">
+    <MainTabScreen className="space-y-0">
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
         <section className="mx-auto w-full max-w-md space-y-4 pb-4 pt-[var(--app-safe-top)]">
           <AppPanel className="space-y-3">
