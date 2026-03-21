@@ -8,6 +8,7 @@ import { SecondaryButton } from "@/components/ui/AppButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { SubtitleText } from "@/components/ui/text-roles";
+import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 
 type EditDayHeaderSwitcherDay = {
   id: string;
@@ -28,7 +29,7 @@ type EditDayHeaderSwitcherProps = {
 };
 
 function buildDayHref(routineId: string, dayId: string, backHref: string) {
-  return `/routines/${routineId}/edit/day/${dayId}?returnTo=${encodeURIComponent(backHref)}`;
+  return getRoutineDayEditHref(routineId, dayId, backHref);
 }
 
 export function EditDayHeaderSwitcher({
@@ -73,7 +74,7 @@ export function EditDayHeaderSwitcher({
           {activeDay?.isRest ? <AppBadge>Rest day</AppBadge> : null}
         </div>
         <SubtitleText className="text-xs">
-          Day switching stays owned by this header while day metadata stays below and save/cancel remain in the footer.
+          Day switching stays owned by this header while primary Back resolves explicit return targets first, then the editor family&apos;s canonical parent route.
         </SubtitleText>
 
         {open ? (

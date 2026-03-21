@@ -1,3 +1,9 @@
+## 2026-03-21
+
+- Fixed nested routine/day Back navigation so View Day and Edit Day now resolve deterministic parent-route targets instead of relying on browser history, removing the View Day ⇄ Edit Day loop triggered by Routine → View Day → Edit Day flows.
+- Added a shared routine/day navigation contract that prefers an explicit safe `returnTo` target when present and otherwise falls back to the canonical parent route for each screen family, preserving valid direct-entry and refresh behavior.
+- Documented the rule that primary Back actions in nested product flows must target canonical parent routes rather than `router.back()` so sibling screens cannot accidentally become each other’s unwind destination.
+
 - WHAT: Normalized Today and Routines onto one selector/detail interaction contract so opening a selector hides the underlying detail region instead of stacking both flows at once.
 - WHY: The sibling screens had evolved parallel selector + detail implementations that made the page feel taller, noisier, and less consistent than the shared feature family should be.
 - Routines now hides the day list whenever the routine picker is open, and Today now hides the selected-day summary/exercise list whenever the day selector is open.

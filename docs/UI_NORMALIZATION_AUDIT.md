@@ -18,6 +18,13 @@
 - The route keeps a tighter post-nav top spacing and a single `Edit Day` bottom action so it remains a read/edit day detail screen instead of a workout-start surface.
 - Shared screen normalization must treat app-shell spacing, page scaffold, and route-specific actions as separate concerns; copying Today's footer contract into View Day is a failure mode, not a normalization goal.
 
+## 2026-03-21 — Nested routine/day Back must target canonical parent routes
+
+- View Day and Edit Day primary Back actions now use deterministic route targets instead of browser-history unwind, so sibling screens cannot trap the user in a View Day ⇄ Edit Day loop.
+- Contract: nested product flows should resolve explicit safe `returnTo` first, then fall back to the canonical parent route for that screen family (`/routines` for View Day, `/routines/[id]/edit` for Edit Day).
+- Rule: product-critical Back buttons inside nested flows must not rely on `router.back()` as their primary behavior.
+- Failure mode avoided: sibling nested screens each pop browser history to the other sibling, causing an endless bounce after transitions like Routine → View Day → Edit Day.
+
 # UI Normalization Audit
 
 ## Completed Alignments

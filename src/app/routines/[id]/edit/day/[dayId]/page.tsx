@@ -24,6 +24,7 @@ import { isCardioExercise } from "@/lib/exercise-metadata";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
+import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
@@ -43,15 +44,6 @@ type PageProps = {
     returnTo?: string;
   };
 };
-
-function resolveReturnTo(value: string | undefined) {
-  if (!value) return null;
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
 
 function formatDayTitle(dayIndex: number, dayName: string | null) {
   const fallback = `Day ${dayIndex}`;
@@ -99,8 +91,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseMeasurementMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.measurement_type]));
   const exerciseUnitMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.default_unit]));
   const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
-  const returnTo = `/routines/${params.id}/edit/day/${params.dayId}`;
-  const backHref = resolveReturnTo(searchParams?.returnTo) ?? `/routines/${params.id}/edit`;
+  const returnTo = getRoutineDayEditHref(params.id, params.dayId);
+  const backHref = resolveRoutineDayEditBackHref(params.id, searchParams?.returnTo);
   const exerciseOptionById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
   const dayExerciseSummaries = new Map<string, string>();
   for (const routineDay of routineDays ?? []) {
