@@ -83,11 +83,13 @@ export function TodayDayPicker({
   days,
   currentDayIndex,
   completedTodayCount,
+  inProgressSessionId,
 }: {
   routineName: string;
   days: TodayDay[];
   currentDayIndex: number;
   completedTodayCount: number;
+  inProgressSessionId?: string | null;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -105,6 +107,7 @@ export function TodayDayPicker({
   const isRunnableDay = selectedDay?.state === "runnable" || selectedDay?.state === "partial";
   const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
+  const hasInProgressSession = Boolean(inProgressSessionId);
 
   const actionsNode = useMemo(() => (
     <BottomActionUtilityCluster className="[&>*]:basis-[calc(50%-0.25rem)]">
@@ -118,7 +121,15 @@ export function TodayDayPicker({
       >
         <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
       </SecondaryButton>
-      {isRunnableDay ? (
+      {hasInProgressSession ? (
+        <TodayStartButton
+          sessionId={inProgressSessionId ?? undefined}
+          returnTo="/today"
+          fullWidth
+          className="w-full"
+          label="Resume Workout"
+        />
+      ) : isRunnableDay ? (
         <TodayStartButton
           selectedDayIndex={selectedDayIndex}
           returnTo="/today"
@@ -129,7 +140,7 @@ export function TodayDayPicker({
         <div aria-hidden="true" className="min-h-[44px] w-full invisible" />
       )}
     </BottomActionUtilityCluster>
-  ), [isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
+  ), [hasInProgressSession, inProgressSessionId, isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
 
   usePublishBottomActions(actionsNode);
 

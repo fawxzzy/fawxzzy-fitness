@@ -24,8 +24,40 @@ type SessionStartContext = {
   context: string;
 };
 
+async function findExistingInProgressSession(args: {
+  supabase: ServerSupabase;
+  userId: string;
+  routineId: string;
+}) {
+  const { data, error } = await args.supabase
+    .from("sessions")
+    .select("id")
+    .eq("user_id", args.userId)
+    .eq("routine_id", args.routineId)
+    .eq("status", "in_progress")
+    .order("performed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  return data ?? null;
+}
+
 async function createSessionFromDay(context: SessionStartContext): Promise<ActionResult<{ sessionId: string }>> {
   const { supabase, userId, routineId, routineName, day, context: logContext } = context;
+
+  const existingSession = await findExistingInProgressSession({
+    supabase,
+    userId,
+    routineId,
+  });
+
+  if (existingSession?.id) {
+    return { ok: true, data: { sessionId: existingSession.id } };
+  }
 
   const { data: templateExercises, error: templateError } = await supabase
     .from("routine_day_exercises")
