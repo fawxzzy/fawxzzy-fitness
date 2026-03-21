@@ -5,8 +5,8 @@ import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel";
-import { ExerciseCard } from "@/components/ExerciseCard";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { SharedDayList, SharedDayListRow } from "@/components/routines/RoutinesScreenFamily";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
@@ -108,16 +108,6 @@ export function TodayDayPicker({
 
   const actionsNode = useMemo(() => (
     <BottomActionUtilityCluster className="[&>*]:basis-[calc(50%-0.25rem)]">
-      {isRunnableDay ? (
-        <TodayStartButton
-          selectedDayIndex={selectedDayIndex}
-          returnTo="/today"
-          fullWidth
-          className="w-full"
-        />
-      ) : (
-        <div aria-hidden="true" className="min-h-[44px] w-full invisible" />
-      )}
       <SecondaryButton
         id="today-day-picker"
         type="button"
@@ -128,6 +118,16 @@ export function TodayDayPicker({
       >
         <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
       </SecondaryButton>
+      {isRunnableDay ? (
+        <TodayStartButton
+          selectedDayIndex={selectedDayIndex}
+          returnTo="/today"
+          fullWidth
+          className="w-full"
+        />
+      ) : (
+        <div aria-hidden="true" className="min-h-[44px] w-full invisible" />
+      )}
     </BottomActionUtilityCluster>
   ), [isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
 
@@ -143,25 +143,29 @@ export function TodayDayPicker({
           revealOpen={isPickerOpen}
           revealId="today-day-selector-list"
           revealLabel="Routine days"
-          revealContent={days.map((day) => {
-            const isSelected = selectedDayIndex === day.dayIndex;
-            return (
-              <ExerciseCard
-                key={day.id}
-                title={`${day.name}${day.isRest ? " (Rest)" : ""}`}
-                subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : getDaySummary(day) ?? undefined}
-                onPress={() => {
-                  setSelectedDayIndex(day.dayIndex);
-                  setIsPickerOpen(false);
-                }}
-                state={isSelected ? "selected" : day.isRest ? "empty" : "default"}
-                badgeText={day.dayIndex === currentDayIndex ? "Today" : undefined}
-                rightIcon={null}
-              />
-            );
-          })}
+          revealContent={(
+            <SharedDayList>
+              {days.map((day) => {
+                const isSelected = selectedDayIndex === day.dayIndex;
+                return (
+                  <SharedDayListRow
+                    key={day.id}
+                    title={`Day ${day.dayIndex} | ${day.name}`}
+                    subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : getDaySummary(day) ?? undefined}
+                    onPress={() => {
+                      setSelectedDayIndex(day.dayIndex);
+                      setIsPickerOpen(false);
+                    }}
+                    state={isSelected ? "selected" : day.isRest ? "empty" : "default"}
+                    badgeText={day.dayIndex === currentDayIndex ? "Today" : day.isRest ? "Rest" : undefined}
+                    rightIcon={null}
+                  />
+                );
+              })}
+            </SharedDayList>
+          )}
         >
-          {daySummary ? (
+          {!isPickerOpen && daySummary ? (
             <div
               className={[
                 "rounded-md px-3 py-2",
@@ -178,7 +182,7 @@ export function TodayDayPicker({
             </div>
           ) : null}
 
-          <ul className="space-y-2">
+          {!isPickerOpen ? <ul className="space-y-2">
             {selectedDay.exercises.map((exercise) => (
               <li key={exercise.id}>
                 <StandardExerciseRow
@@ -194,7 +198,7 @@ export function TodayDayPicker({
               </li>
             ))}
             {selectedDay.exercises.length === 0 ? <li className="px-3 py-3"><SubtitleText>{selectedDay.state === "rest" ? "Rest day." : "No exercises yet."}</SubtitleText></li> : null}
-          </ul>
+          </ul> : null}
         </AnchoredSelectorPanel>
       ) : null}
 

@@ -1,3 +1,10 @@
+## 2026-03-21 — Today/Routines selector-detail normalization
+
+- Today and Routines now share the same selector/detail mode contract: default mode shows detail content, and selector-open mode replaces that detail region instead of stacking selector + detail together.
+- The shared day-list family now lives in `src/components/routines/RoutinesScreenFamily.tsx` and is used by both screens for the day section, list scaffold, and row card treatment; click semantics remain screen-owned through injected callbacks.
+- Bottom action rule clarified: primary actions belong on the right, secondary/supporting actions on the left, even when both actions reuse the same shared footer surface.
+- Failure mode avoided: sibling screens drift into separate day-row implementations and stacked selector/detail panes that increase page height and weaken feature-family recognition.
+
 ## 2026-03-21 — Routines modes should share one page-family scaffold
 
 - Both Routines modes now reuse one routines-family scaffold: shared active summary card first, then shared section surfaces with the same heading/meta rhythm, then stacked row cards, with the sticky footer remaining route-owned.

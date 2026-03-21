@@ -1,3 +1,9 @@
+- WHAT: Normalized Today and Routines onto one selector/detail interaction contract so opening a selector hides the underlying detail region instead of stacking both flows at once.
+- WHY: The sibling screens had evolved parallel selector + detail implementations that made the page feel taller, noisier, and less consistent than the shared feature family should be.
+- Routines now hides the day list whenever the routine picker is open, and Today now hides the selected-day summary/exercise list whenever the day selector is open.
+- Refactored Today's day selector to reuse the same shared day-list section/list-row family used by Routines while preserving Today's in-place selection behavior and Routines' route-based navigation behavior.
+- Standardized bottom action ordering so primary actions stay right-aligned, including `Edit Routine` on the left and `Select routine` on the right anywhere that pair appears.
+
 - WHAT: Normalized the two Routines screen modes into one shared page family by extracting a shared routines scaffold, active summary card, section surface, and list-row card contract used by both the day overview and routine picker/manage states.
 - WHY: The two Routines modes represented the same feature family but had started drifting through separate wrapper stacks, which made spacing, section framing, and row rhythm feel parallel instead of unified.
 - Reworked `RoutinesPageClient` so the day overview remains the canonical baseline while the routine picker now opens into the same section-card + stacked-row structure, preserving `New Routine`, active-state metadata, switching semantics, and the existing sticky footer actions.

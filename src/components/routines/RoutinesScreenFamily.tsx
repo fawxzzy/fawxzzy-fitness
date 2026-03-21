@@ -82,3 +82,34 @@ export function RoutinesListEmpty({ children }: { children: ReactNode }) {
 export function RoutinesListItemCard(props: ComponentProps<typeof ExerciseCard>) {
   return <ExerciseCard {...props} className={cn("items-center", props.className)} variant="interactive" />;
 }
+
+export type SharedDayListRowProps = {
+  onPress?: () => void;
+  title: string;
+  subtitle?: string;
+  badgeText?: string;
+  state?: ComponentProps<typeof ExerciseCard>["state"];
+  rightIcon?: ReactNode;
+  wrapper?: (child: ReactNode) => ReactNode;
+};
+
+export function SharedDayListSection({
+  title = "Days",
+  meta,
+  children,
+}: {
+  title?: ReactNode;
+  meta?: ReactNode;
+  children: ReactNode;
+}) {
+  return <RoutinesSectionCard title={title} meta={meta}>{children}</RoutinesSectionCard>;
+}
+
+export function SharedDayList({ children }: { children: ReactNode }) {
+  return <RoutinesCardList>{children}</RoutinesCardList>;
+}
+
+export function SharedDayListRow({ onPress, wrapper, ...cardProps }: SharedDayListRowProps) {
+  const card = <RoutinesListItemCard {...cardProps} onPress={onPress} />;
+  return <RoutinesListItem>{wrapper ? wrapper(card) : card}</RoutinesListItem>;
+}
