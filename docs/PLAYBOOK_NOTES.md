@@ -354,3 +354,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed
 - Focused logging screens should only keep task-critical copy and follow the rhythm `identity -> goal -> entry -> effort -> review -> commit`; avoid status boxes and explanatory filler that repeat what the UI already implies.
 - When a logging surface needs multiple commit-adjacent actions, publish them through the shared bottom action system instead of local inline controls so destructive and secondary actions stay normalized with the primary save action.
+
+
+## 2026-03-21 — Exercise detail surfaces should reuse canonical detail primitives
+- Type: Pattern
+- Summary: Exercise Info and similar detail views should compose the shared detail header, metadata row/chips, and section containers instead of owning route-local header, stats, and notes layout.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents drill-in surfaces from drifting away from the established detail-page family, which weakens scanability and reintroduces bespoke formatting contracts for the same metadata.
+- Evidence: src/components/DetailSurface.tsx, src/components/ExerciseInfoSheet.tsx, src/components/history/HistoryShared.tsx
+- Status: Proposed
