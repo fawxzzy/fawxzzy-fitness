@@ -1,3 +1,9 @@
+- WHAT: View Day now keeps the shared app-shell and normalized content scaffold without inheriting Today's workout-start action model.
+- WHY: Shared screen scaffolds should normalize layout rhythm independently from route-owned CTA behavior.
+- Removed the route-local extra top safe-area padding that had been copied from Today so View Day content now sits naturally under the shared app shell.
+- Removed `Start Workout` from the View Day sticky footer and reduced the footer to a single `Edit Day` action so the route stays a read/edit surface rather than a workout-start screen.
+- Clarified the normalization contract in docs: shared shell spacing and panel rhythm can be reused, but View Day retains its own Back + Edit ownership instead of inheriting Today's primary CTA.
+
 - WHAT: View Day now keeps the shared app-shell and Today-aligned content scaffold while restoring its own day-first title, top-right Back action, and route-owned bottom secondary action.
 - WHY: Shared normalization should reuse shell/layout polish without copying another screen's full title/action contract.
 - Replaced the View Day header title with the day name, kept routine identity as supporting subtitle metadata, and added the shared top-right Back control with history-first behavior plus deterministic fallback to `/routines`.

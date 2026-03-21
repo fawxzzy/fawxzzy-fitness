@@ -5,9 +5,8 @@ import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
@@ -81,7 +80,7 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
   return (
     <MainTabScreen className="space-y-0">
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
-        <section className="mx-auto w-full max-w-md space-y-4 pb-4 pt-[var(--app-safe-top)]">
+        <section className="mx-auto w-full max-w-md space-y-4 pb-4 pt-2">
           <AppPanel className="space-y-3">
             <AppHeader
               title={dayLabel}
@@ -121,24 +120,14 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
         </section>
 
         <PublishBottomActions>
-          <BottomActionSplit
-            primary={(
-              <TodayStartButton
-                routineId={routineRow.id}
-                dayId={dayRow.id}
-                returnTo={returnToPath}
-                className="w-full"
-              />
-            )}
-            secondary={(
-              <Link
-                href={editDayHref}
-                className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true, className: "w-full" })}
-              >
-                Edit Day
-              </Link>
-            )}
-          />
+          <BottomActionSingle>
+            <Link
+              href={editDayHref}
+              className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true, className: "w-full" })}
+            >
+              Edit Day
+            </Link>
+          </BottomActionSingle>
         </PublishBottomActions>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
