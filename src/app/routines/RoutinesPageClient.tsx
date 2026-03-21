@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
@@ -13,6 +14,9 @@ import {
   RoutinesListItemCard,
   RoutinesPageScaffold,
   RoutinesSectionCard,
+  SharedDayList,
+  SharedDayListRow,
+  SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -53,6 +57,7 @@ export function RoutinesPageClient({
   days: RoutineDayCardItem[];
   setActiveRoutineAction: (formData: FormData) => Promise<void>;
 }) {
+  const router = useRouter();
   const [isRoutineListOpen, setIsRoutineListOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -76,6 +81,14 @@ export function RoutinesPageClient({
 
   const actionsNode = useMemo(() => (
     <BottomActionUtilityCluster>
+      {activeRoutineEditHref ? (
+        <Link
+          href={activeRoutineEditHref}
+          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
+        >
+          Edit Routine
+        </Link>
+      ) : null}
       <SecondaryButton
         type="button"
         className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
@@ -85,14 +98,6 @@ export function RoutinesPageClient({
       >
         <span>{isRoutineListOpen ? "Hide routines" : "Select routine"}</span>
       </SecondaryButton>
-      {activeRoutineEditHref ? (
-        <Link
-          href={activeRoutineEditHref}
-          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
-        >
-          Edit Routine
-        </Link>
-      ) : null}
     </BottomActionUtilityCluster>
   ), [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen]);
 
@@ -142,34 +147,34 @@ export function RoutinesPageClient({
           </div>
         </RoutinesSectionCard>
       ) : null}
-      <RoutinesSectionCard title="Days" meta={days.length === 1 ? "1 day" : `${days.length} days`}>
-        {days.length > 0 ? (
-          <RoutinesCardList>
-            {days.map((day) => {
-              const subtitleParts = [
-                day.exerciseSummary,
-                day.notes?.trim() || null,
-              ].filter(Boolean);
+      {!isRoutineListOpen ? (
+        <SharedDayListSection meta={days.length === 1 ? "1 day" : `${days.length} days`}>
+          {days.length > 0 ? (
+            <SharedDayList>
+              {days.map((day) => {
+                const subtitleParts = [
+                  day.exerciseSummary,
+                  day.notes?.trim() || null,
+                ].filter(Boolean);
 
-              return (
-                <RoutinesListItem key={day.id}>
-                  <Link href={day.href} className="block">
-                    <RoutinesListItemCard
-                      title={`Day ${day.dayIndex} | ${day.title}`}
-                      subtitle={subtitleParts.join(" • ")}
-                      badgeText={day.isToday ? "Today" : day.isRest ? "Rest" : undefined}
-                      rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
-                      state={day.isToday ? "selected" : day.isRest ? "empty" : "default"}
-                    />
-                  </Link>
-                </RoutinesListItem>
-              );
-            })}
-          </RoutinesCardList>
-        ) : (
-          <RoutinesListEmpty>No days yet.</RoutinesListEmpty>
-        )}
-      </RoutinesSectionCard>
+                return (
+                  <SharedDayListRow
+                    key={day.id}
+                    title={`Day ${day.dayIndex} | ${day.title}`}
+                    subtitle={subtitleParts.join(" • ")}
+                    badgeText={day.isToday ? "Today" : day.isRest ? "Rest" : undefined}
+                    rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
+                    state={day.isToday ? "selected" : day.isRest ? "empty" : "default"}
+                    onPress={() => router.push(day.href)}
+                  />
+                );
+              })}
+            </SharedDayList>
+          ) : (
+            <RoutinesListEmpty>No days yet.</RoutinesListEmpty>
+          )}
+        </SharedDayListSection>
+      ) : null}
     </RoutinesPageScaffold>
   );
 }

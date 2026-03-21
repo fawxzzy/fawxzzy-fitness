@@ -30,8 +30,8 @@ export function BottomActionSplit({ primary, secondary, className }: { primary: 
         className,
       )}
     >
-      <BottomActionSlot className="order-2 sm:order-1">{primary}</BottomActionSlot>
-      <BottomActionSlot className="order-1 sm:order-2">{secondary}</BottomActionSlot>
+      <BottomActionSlot>{secondary}</BottomActionSlot>
+      <BottomActionSlot>{primary}</BottomActionSlot>
     </div>
   );
 }
