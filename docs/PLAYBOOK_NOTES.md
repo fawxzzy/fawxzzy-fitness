@@ -1,3 +1,4 @@
+
 ## 2026-03-21 — History detail screens should rebuild only at the shared shell boundary
 - Type: Pattern
 - Summary: History list surfaces can stay lightly aligned when they already use the normalized family shell, but deep log-detail screens should rebuild onto shared history header, section, metadata, and footer primitives when route-local cards start owning that structure themselves.
@@ -61,6 +62,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-03-21 — Settings screens should compose DetailHeader and DetailSection
+- Type: Pattern
+- Summary: Section-heavy settings surfaces should use the shared detail header, metadata row, and section primitives instead of route-local summary cards or custom grouping wrappers.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents preferences screens from drifting away from the app's canonical mobile detail rhythm, keeps account metadata in a consistent header position, and preserves footer/action ownership boundaries.
+- Evidence: src/app/settings/page.tsx, src/components/settings/GlassEffectsSettings.tsx, src/components/DetailSurface.tsx
+- Status: Proposed
+
 ## 2026-03-19 — Sticky footer hosts should own a single local slot
 - Type: Guardrail
 - Summary: Shared sticky footer systems should let the scroll-screen host own one local footer slot, track publisher ownership in refs, and rerender only when the active owner or rendered footer content truly changes.
