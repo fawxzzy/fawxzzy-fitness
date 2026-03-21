@@ -8,6 +8,7 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
@@ -74,6 +75,8 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
     ? "Rest day"
     : getExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? []).label;
   const returnToPath = `/routines/${routineRow.id}/days/${dayRow.id}`;
+  const backHref = `/routines`;
+  const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
 
   return (
     <MainTabScreen className="space-y-0">
@@ -81,8 +84,10 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
         <section className="mx-auto w-full max-w-md space-y-4 pb-4 pt-[var(--app-safe-top)]">
           <AppPanel className="space-y-3">
             <AppHeader
-              title={`${routineRow.name} | ${dayLabel}`}
+              title={dayLabel}
+              subtitleLeft={routineRow.name}
               subtitleRight={daySummary}
+              action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" />}
             />
 
             {canonicalDay?.state === "partial" ? (
@@ -127,10 +132,10 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
             )}
             secondary={(
               <Link
-                href="/routines"
+                href={editDayHref}
                 className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true, className: "w-full" })}
               >
-                Select Day
+                Edit Day
               </Link>
             )}
           />
