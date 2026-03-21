@@ -1,8 +1,9 @@
 import { AppNav } from "@/components/AppNav";
-import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
+import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
 import { GlassEffectsSettings } from "@/components/settings/GlassEffectsSettings";
-import { Glass } from "@/components/ui/Glass";
 import { SignOutButton } from "@/components/SignOutButton";
+import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
+import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 
@@ -15,17 +16,46 @@ export default async function SettingsPage() {
   return (
     <MainTabScreen>
       <AppNav />
-      <Glass variant="base" className="p-4" interactive={false}>
-        <p className="text-sm text-[rgb(var(--text)/0.7)]">Logged in as</p>
-        <p className="font-semibold text-[rgb(var(--text)/0.96)]">{user.email}</p>
-      </Glass>
-      <GlassEffectsSettings />
-      <Glass variant="base" className="space-y-3 border border-white/12 p-4" interactive={false}>
-        <div className="border-t border-white/10 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Danger zone</p>
+
+      <ScrollContainer className="px-1">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+          <DetailHeader
+            eyebrow="Settings"
+            title="Preferences"
+            subtitle="Manage app appearance, account context, and sign-out actions using the shared detail surface structure."
+            meta={(
+              <DetailMetaRow>
+                <DetailMetaChip label="Account" value={user.email ?? "Unknown email"} emphasized />
+              </DetailMetaRow>
+            )}
+          />
+
+          <DetailSection
+            title="Appearance"
+            description="Choose how strong translucent glass surfaces should appear across the app."
+          >
+            <GlassEffectsSettings />
+          </DetailSection>
+
+          <DetailSection
+            title="Account"
+            description="Keep your signed-in account context visible without introducing a route-local summary card."
+          >
+            <div className="space-y-1 rounded-[1rem] border border-white/8 bg-black/10 px-3 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Signed in as</p>
+              <p className="break-all text-sm font-medium text-[rgb(var(--text)/0.96)]">{user.email}</p>
+            </div>
+          </DetailSection>
+
+          <DetailSection
+            title="Danger zone"
+            description="Sign out of this device while leaving the rest of your settings structure unchanged."
+            className="border-red-400/20"
+          >
+            <SignOutButton />
+          </DetailSection>
         </div>
-        <SignOutButton />
-      </Glass>
+      </ScrollContainer>
     </MainTabScreen>
   );
 }

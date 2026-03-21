@@ -1,6 +1,5 @@
 "use client";
 
-import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { type GlassEffectsMode, useGlassEffects } from "@/lib/useGlassEffects";
 
@@ -14,9 +13,9 @@ export function GlassEffectsSettings() {
   const { mode, setMode } = useGlassEffects();
 
   return (
-    <Glass variant="base" className="space-y-3 p-4" interactive={false}>
+    <div className="space-y-3">
       <div>
-        <h2 className="text-sm font-semibold">Glass Effects</h2>
+        <p className="text-sm font-semibold text-[rgb(var(--text)/0.96)]">Glass effects</p>
         <p className="text-xs text-[rgb(var(--text)/0.72)]">Pick visual intensity for translucent surfaces.</p>
       </div>
       <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Glass effects mode">
@@ -38,7 +37,6 @@ export function GlassEffectsSettings() {
           );
         })}
       </div>
-    </Glass>
+    </div>
   );
 }
-
