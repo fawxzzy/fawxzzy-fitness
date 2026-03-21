@@ -1,21 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AppNav } from "@/components/AppNav";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
+import { ensureProfile } from "@/lib/profile";
+import { mapRoutineDayGoalToSessionColumns } from "@/lib/exercise-goal-payload";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
-import { isRunnableDayState } from "@/lib/runnable-day";
+import { getSessionStartErrorMessage, isRunnableDayState } from "@/lib/runnable-day";
+import {
+  defaultUnitForSessionExerciseMeasurementType,
+  resolveSessionExerciseMeasurementType,
+  warnOnSessionExerciseUnitMismatch,
+} from "@/lib/session-exercise-measurement";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
+import type { ActionResult } from "@/lib/action-result";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -25,32 +31,134 @@ type PageProps = {
     id: string;
     dayId: string;
   };
-  searchParams?: Record<string, string | string[] | undefined>;
 };
 
-function getCurrentPathWithSearch(params: PageProps["params"], searchParams?: PageProps["searchParams"]) {
-  const routePath = `/routines/${params.id}/days/${params.dayId}`;
-  if (!searchParams) {
-    return routePath;
+async function startSessionFromViewDayAction(payload: { routineId: string; dayId: string }): Promise<ActionResult<{ sessionId: string }>> {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = supabaseServer();
+  await ensureProfile(user.id);
+
+  const { data: routine, error: routineError } = await supabase
+    .from("routines")
+    .select("id, user_id, name")
+    .eq("id", payload.routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (routineError || !routine) {
+    return { ok: false, error: "That routine could not be loaded." };
   }
 
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        query.append(key, item);
-      }
-      continue;
+  const { data: day, error: dayError } = await supabase
+    .from("routine_days")
+    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
+    .eq("id", payload.dayId)
+    .eq("routine_id", payload.routineId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (dayError || !day) {
+    return { ok: false, error: "That routine day could not be loaded." };
+  }
+
+  const { data: templateExercises, error: templateError } = await supabase
+    .from("routine_day_exercises")
+    .select("id, user_id, routine_day_id, exercise_id, position, target_sets, target_reps, target_reps_min, target_reps_max, target_weight, target_weight_unit, target_duration_seconds, target_distance, target_distance_unit, target_calories, notes, measurement_type, default_unit")
+    .eq("routine_day_id", day.id)
+    .eq("user_id", user.id)
+    .order("position", { ascending: true });
+
+  if (templateError) {
+    return { ok: false, error: "Could not load exercises for this day." };
+  }
+
+  const { summaries } = await buildCanonicalDaySummaries({
+    supabase,
+    routineDays: [day as RoutineDayRow],
+    allDayExercises: (templateExercises ?? []) as RoutineDayExerciseRow[],
+  });
+  const canonicalDay = summaries[0] ?? null;
+  const runnableExercises = canonicalDay?.runnableExercises ?? [];
+  const invalidExercises = canonicalDay?.invalidExercises ?? [];
+  const startError = getSessionStartErrorMessage({
+    isRest: Boolean(day.is_rest),
+    runnableExerciseCount: runnableExercises.length,
+    invalidExerciseCount: invalidExercises.length,
+  });
+
+  if (startError) {
+    return { ok: false, error: startError };
+  }
+
+  const routineDayName = day.name || `Day ${day.day_index}`;
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .insert({
+      user_id: user.id,
+      routine_id: routine.id,
+      routine_day_index: day.day_index,
+      name: routine.name,
+      routine_day_name: routineDayName,
+      status: "in_progress",
+    })
+    .select("id")
+    .single();
+
+  if (sessionError || !session) {
+    return { ok: false, error: "Could not create workout session." };
+  }
+
+  if (runnableExercises.length > 0) {
+    const { error: exerciseError } = await supabase.from("session_exercises").insert(
+      runnableExercises.map((exercise) => {
+        const mappedGoalColumns = mapRoutineDayGoalToSessionColumns({
+          target_sets: exercise.target_sets,
+          target_reps: exercise.target_reps,
+          target_reps_min: exercise.target_reps_min,
+          target_reps_max: exercise.target_reps_max,
+          target_weight: exercise.target_weight,
+          target_weight_unit: exercise.target_weight_unit,
+          target_duration_seconds: exercise.target_duration_seconds,
+          target_distance: exercise.target_distance,
+          target_distance_unit: exercise.target_distance_unit,
+          target_calories: exercise.target_calories,
+          measurement_type: exercise.measurement_type ?? null,
+          default_unit: exercise.default_unit ?? null,
+        });
+
+        const measurementType = resolveSessionExerciseMeasurementType(
+          mappedGoalColumns.measurement_type ?? exercise.details?.measurement_type,
+        );
+        const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
+        warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "startSessionFromViewDayAction" });
+
+        return {
+          session_id: session.id,
+          user_id: user.id,
+          exercise_id: exercise.exercise_id,
+          routine_day_exercise_id: exercise.id,
+          position: exercise.position,
+          notes: exercise.notes,
+          is_skipped: false,
+          ...mappedGoalColumns,
+          measurement_type: measurementType,
+          default_unit: defaultUnit,
+        };
+      }),
+    );
+
+    if (exerciseError) {
+      await supabase.from("sessions").delete().eq("id", session.id).eq("user_id", user.id);
+      return { ok: false, error: "Could not start workout for this day." };
     }
-    query.set(key, value);
   }
 
-  const queryString = query.toString();
-  return queryString ? `${routePath}?${queryString}` : routePath;
+  return { ok: true, data: { sessionId: session.id } };
 }
 
-export default async function RoutineDayDetailPage({ params, searchParams }: PageProps) {
+export default async function RoutineDayDetailPage({ params }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -93,63 +201,71 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
     allDayExercises: dayExercises,
   });
   const canonicalDay = summaries[0] ?? null;
-  const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : "Training");
+  const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : `Day ${dayRow.day_index}`);
   const daySummary = dayRow.is_rest
     ? "Rest day"
     : getExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? []).label;
-  const returnToPath = getCurrentPathWithSearch(params, searchParams);
-  const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
+  const returnToPath = `/routines/${routineRow.id}/days/${dayRow.id}`;
 
   return (
-    <MainTabScreen>
-      <AppNav />
+    <MainTabScreen topNavMode="none" className="space-y-0">
+      <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
+        <section className="mx-auto w-full max-w-md space-y-4 pb-4 pt-[var(--app-safe-top)]">
+          <AppPanel className="space-y-3">
+            <AppHeader
+              title={`${routineRow.name} | ${dayLabel}`}
+              subtitleRight={daySummary}
+            />
 
-      <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
-          <section className="space-y-4">
-            <AppPanel className="space-y-3">
-              <AppHeader
-                title={dayLabel}
-                subtitleRight={daySummary}
-                action={<TopRightBackButton href="/routines" />}
-                actionClassName="-mt-1"
+            {canonicalDay?.state === "partial" ? (
+              <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                Some exercises could not be loaded and will be skipped when you start this workout.
+              </p>
+            ) : null}
+
+            {canonicalDay && !isRunnableDayState(canonicalDay.state) ? (
+              <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
+                {canonicalDay.state === "rest"
+                  ? "Rest day. No workout to start today."
+                  : canonicalDay.invalidExercises.length > 0
+                    ? "This day has invalid exercises. Edit the day before starting a workout."
+                    : "No runnable exercises planned for this day."}
+              </p>
+            ) : (
+              <RoutineDayExerciseList
+                exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
+                  id: exercise.id,
+                  name: exercise.displayName,
+                  goalLine: exercise.goalLine,
+                  exerciseId: exercise.details?.id ?? exercise.exercise_id,
+                  image_icon_path: exercise.details?.image_icon_path ?? null,
+                  image_howto_path: exercise.details?.image_howto_path ?? null,
+                  slug: exercise.details?.slug ?? null,
+                }))}
               />
+            )}
+          </AppPanel>
+        </section>
 
-              {canonicalDay?.state === "partial" ? (
-                <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-                  Some exercises could not be loaded and will be skipped when you start this workout.
-                </p>
-              ) : null}
-
-              {canonicalDay && !isRunnableDayState(canonicalDay.state) ? (
-                <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
-                  {canonicalDay.state === "rest"
-                    ? "Rest day. No exercises planned for this day."
-                    : canonicalDay.invalidExercises.length > 0
-                      ? "This day has invalid exercises. Edit the day before starting a workout."
-                      : "No runnable exercises planned for this day."}
-                </p>
-              ) : (
-                <RoutineDayExerciseList
-                  exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
-                    id: exercise.id,
-                    name: exercise.displayName,
-                    goalLine: exercise.goalLine,
-                    exerciseId: exercise.details?.id ?? exercise.exercise_id,
-                  }))}
-                />
-              )}
-            </AppPanel>
-          </section>
-          <PublishBottomActions>
-            <BottomActionSingle>
+        <PublishBottomActions>
+          <BottomActionSplit
+            primary={(
+              <TodayStartButton
+                startSessionAction={() => startSessionFromViewDayAction({ routineId: routineRow.id, dayId: dayRow.id })}
+                returnTo={returnToPath}
+                className="w-full"
+              />
+            )}
+            secondary={(
               <Link
-                href={editDayHref}
-                className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "w-full" })}
+                href="/routines"
+                className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true, className: "w-full" })}
               >
-                Edit Day
+                Select Day
               </Link>
-            </BottomActionSingle>
-          </PublishBottomActions>
+            )}
+          />
+        </PublishBottomActions>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );

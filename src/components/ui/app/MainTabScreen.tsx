@@ -5,11 +5,12 @@ import { AppShell } from "@/components/ui/app/AppShell";
 type MainTabScreenProps = {
   children: ReactNode;
   className?: string;
+  topNavMode?: "main" | "none";
 };
 
-export function MainTabScreen({ children, className }: MainTabScreenProps) {
+export function MainTabScreen({ children, className, topNavMode = "main" }: MainTabScreenProps) {
   return (
-    <AppShell className={cn("space-y-3", className)}>
+    <AppShell topNavMode={topNavMode} className={cn("space-y-3", className)}>
       {children}
     </AppShell>
   );
