@@ -20,8 +20,8 @@ import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } f
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { HistoryDetailHeader, HistoryMetaChip, HistoryMetaRow, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -388,19 +388,29 @@ export function LogAuditClient({
     });
   };
 
-  const summaryParts = [
-    sessionSummary.durationSec ? formatDurationShort(sessionSummary.durationSec) : null,
-    formatCount(sessionSummary.exerciseCount, "exercise"),
-    formatCount(sessionSummary.setCount, "set"),
-    sessionSummary.prLabel || null,
-  ].filter((part): part is string => Boolean(part));
+  const sessionMeta = buildHistorySessionMeta({
+    startedAt: sessionSummary.startedAt,
+    durationSec: sessionSummary.durationSec,
+    exerciseCount: sessionSummary.exerciseCount,
+    setCount: sessionSummary.setCount,
+    prLabel: sessionSummary.prLabel,
+    dayTitle: sessionSummary.dayTitle,
+  });
 
   return (
     <>
-      <AppPanel className={`relative space-y-3 p-4 ${isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : ""}`}>
-        <div className="absolute right-3 top-3">
-          <TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />
-        </div>
+      <HistoryDetailHeader
+        title={sessionSummary.routineTitle}
+        subtitle={sessionMeta.dateLine}
+        action={<TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />}
+        className={isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : undefined}
+        meta={(
+          <HistoryMetaRow>
+            <HistoryMetaChip label="Summary" value={sessionMeta.summaryLine} />
+            {sessionSummary.prLabel ? <HistoryMetaChip label="PRs" value={sessionSummary.prLabel} emphasized /> : null}
+          </HistoryMetaRow>
+        )}
+      >
         {isEditing ? (
           <div className="space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
@@ -411,7 +421,7 @@ export function LogAuditClient({
               Session Notes
               <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
             </label>
-            <div className="space-y-2 rounded-lg border border-white/15 bg-black/10 p-3">
+            <div className="space-y-2 rounded-[1.15rem] border border-white/12 bg-black/10 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Add Exercise</p>
               <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100">
                 {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
@@ -421,20 +431,13 @@ export function LogAuditClient({
               </div>
             </div>
           </div>
-        ) : (
-          <div className="flex flex-col items-start justify-start space-y-1 pr-14 text-left">
-            <p className="line-clamp-2 text-base font-semibold text-[rgb(var(--text)/0.98)]">{sessionSummary.routineTitle}</p>
-            <p className="line-clamp-2 text-sm text-[rgb(var(--text-muted)/0.9)]">{sessionSummary.dayTitle ? `${sessionSummary.dayTitle} — ${formatDateShort(sessionSummary.startedAt)}` : formatDateShort(sessionSummary.startedAt)}</p>
-            <p className="line-clamp-1 text-xs text-[rgb(var(--text-muted)/0.75)]">{summaryParts.join(" • ")}</p>
-          </div>
-        )}
-      </AppPanel>
+        ) : null}
+      </HistoryDetailHeader>
 
       {!isEditing && sessionNotes.trim().length > 0 ? (
-        <AppPanel className="space-y-2 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--text-muted)/0.78)]">Session Notes</p>
+        <HistorySection title="Session notes">
           <p className="text-sm text-[rgb(var(--text)/0.94)]">{sessionNotes}</p>
-        </AppPanel>
+        </HistorySection>
       ) : null}
 
       <div className="space-y-2">
@@ -444,15 +447,13 @@ export function LogAuditClient({
           const setsForExercise = editableSets[exercise.id] ?? [];
 
           return (
-            <AppPanel key={exercise.id} className="space-y-2 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-[0.96rem] font-semibold leading-snug text-[rgb(var(--text)/0.98)]">{name}</p>
-                  {isEditing ? <p className="text-xs text-[rgb(var(--text-muted)/0.78)]">Editing enabled</p> : null}
-                </div>
-                <AppBadge>{setsForExercise.length} SETS</AppBadge>
-              </div>
-
+            <HistorySection
+              key={exercise.id}
+              title={name}
+              description={isEditing ? "Editing enabled" : undefined}
+              action={<AppBadge>{setsForExercise.length} SETS</AppBadge>}
+              className="space-y-3 p-3.5"
+            >
               {isEditing ? (
                 <div className="flex flex-wrap gap-2">
                   <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
@@ -563,7 +564,7 @@ export function LogAuditClient({
               ) : notesValue.trim() ? (
                 <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">Notes: {notesValue}</p>
               ) : null}
-            </AppPanel>
+            </HistorySection>
           );
         })}
       </div>

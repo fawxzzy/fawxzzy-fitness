@@ -1,3 +1,11 @@
+## 2026-03-21 — History detail screens should rebuild only at the shared shell boundary
+- Type: Pattern
+- Summary: History list surfaces can stay lightly aligned when they already use the normalized family shell, but deep log-detail screens should rebuild onto shared history header, section, metadata, and footer primitives when route-local cards start owning that structure themselves.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents working history routes from being over-rewritten while still converging the highest-drift detail surface onto one canonical hierarchy, summary language, and bottom-action ownership model.
+- Evidence: src/components/history/HistoryShared.tsx, src/app/history/HistorySessionsClient.tsx, src/app/history/[sessionId]/LogAuditClient.tsx
+- Status: Proposed
+
 ## 2026-03-21 — Adjacent parent/child editors should share one shell while keeping selector ownership local
 - Type: Pattern
 - Summary: Edit Routine and Edit Day should reuse the same header, section, and footer shell language, while selector controls stay only on the screen that owns that switch and parent editors stop at metadata boundaries.

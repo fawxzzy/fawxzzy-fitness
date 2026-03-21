@@ -3,7 +3,8 @@ import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
-import { SubtitleText } from "@/components/ui/text-roles";
+import { SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
 
 export function HistoryPageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
@@ -13,6 +14,57 @@ export function HistoryPageHeader({ title, subtitle }: { title: string; subtitle
         title={title}
         subtitleLeft={subtitle}
       />
+    </AppPanel>
+  );
+}
+
+export function HistoryDetailHeader({
+  title,
+  subtitle,
+  meta,
+  action,
+  children,
+  className,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  meta?: ReactNode;
+  action?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <AppPanel className={cn("space-y-4 p-4", className)}>
+      <AppHeader eyebrow="History" title={title} subtitleLeft={subtitle} action={action} actionClassName="pt-0" />
+      {meta ? <div className="space-y-2">{meta}</div> : null}
+      {children ? <div className="space-y-3 border-t border-white/8 pt-3">{children}</div> : null}
+    </AppPanel>
+  );
+}
+
+export function HistorySection({
+  title,
+  description,
+  action,
+  children,
+  className,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <AppPanel className={cn("space-y-4 p-4", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <TitleText as="h3" className="text-base">{title}</TitleText>
+          {description ? <SubtitleText className="text-sm">{description}</SubtitleText> : null}
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+      {children}
     </AppPanel>
   );
 }
@@ -68,4 +120,33 @@ export function HistoryMetaChip({ label, value, emphasized = false }: { label: s
       <span className="ml-1 text-slate-100">{value}</span>
     </div>
   );
+}
+
+export function buildHistorySessionSummaryParts(args: {
+  durationSec?: number | null;
+  exerciseCount: number;
+  setCount: number;
+  prLabel?: string | null;
+}) {
+  return [
+    args.durationSec ? formatDurationShort(args.durationSec) : null,
+    formatCount(args.exerciseCount, "exercise"),
+    formatCount(args.setCount, "set"),
+    args.prLabel || null,
+  ].filter((part): part is string => Boolean(part));
+}
+
+export function buildHistorySessionMeta(args: {
+  startedAt: string;
+  durationSec?: number | null;
+  exerciseCount: number;
+  setCount: number;
+  prLabel?: string | null;
+  dayTitle?: string | null;
+}) {
+  const dateLine = args.dayTitle ? `${args.dayTitle} • ${formatDateShort(args.startedAt)}` : formatDateShort(args.startedAt);
+  return {
+    dateLine,
+    summaryLine: buildHistorySessionSummaryParts(args).join(" • "),
+  };
 }
