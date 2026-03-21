@@ -1,3 +1,7 @@
+- WHAT: View Day screen normalized to Today layout pattern.
+- WHY: Reduce UI fragmentation and reinforce the shared screen system.
+- Removed header-based View Day actions in favor of the shared bottom action pattern so the route follows the same primary/secondary action ownership as Today.
+
 ## 2026-03-21
 ### WHAT
 - Added a new top-level `AGENT.md` that defines repo-local agent guidance for Fawxzzy Fitness around product identity, canonical domain language, UI consistency, implementation boundaries, and editing workflow expectations.
