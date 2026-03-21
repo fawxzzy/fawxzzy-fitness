@@ -83,7 +83,7 @@ export function BottomActionUtilityCluster({ children, className }: { children: 
 export function BottomActionStack({ utility, primary, className }: { utility?: ReactNode; primary: ReactNode; className?: string }) {
   return (
     <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, "grid grid-cols-1 gap-2", itemBaseClassName, className)}>
-      {utility ? <BottomActionUtilityRow className="[&>*]:min-h-11 [&>*]:flex-none">{utility}</BottomActionUtilityRow> : null}
+      {utility ? <BottomActionUtilityRow>{utility}</BottomActionUtilityRow> : null}
       <div className="grid grid-cols-1 gap-2">{primary}</div>
     </div>
   );
