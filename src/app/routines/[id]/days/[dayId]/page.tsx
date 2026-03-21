@@ -12,6 +12,7 @@ import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/Routine
 import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
+import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
@@ -23,10 +24,13 @@ type PageProps = {
     id: string;
     dayId: string;
   };
+  searchParams?: {
+    returnTo?: string;
+  };
 };
 
 
-export default async function RoutineDayDetailPage({ params }: PageProps) {
+export default async function RoutineDayDetailPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -73,9 +77,9 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
   const daySummary = dayRow.is_rest
     ? "Rest day"
     : getExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? []).label;
-  const returnToPath = `/routines/${routineRow.id}/days/${dayRow.id}`;
-  const backHref = `/routines`;
-  const editDayHref = `/routines/${routineRow.id}/edit/day/${dayRow.id}?returnTo=${encodeURIComponent(returnToPath)}`;
+  const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
+  const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
+  const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
 
   return (
     <MainTabScreen className="space-y-0">
@@ -86,7 +90,7 @@ export default async function RoutineDayDetailPage({ params }: PageProps) {
               title={dayLabel}
               subtitleLeft={routineRow.name}
               subtitleRight={daySummary}
-              action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" />}
+              action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
             />
 
             {canonicalDay?.state === "partial" ? (
