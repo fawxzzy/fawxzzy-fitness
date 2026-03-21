@@ -2,6 +2,8 @@
 
 Fawxzzy Fitness is a Next.js app for tracking workouts, routines, and exercise history.
 
+Repo-local agent guidance lives in `AGENT.md`. Treat it as the product-specific operating layer for app behavior, UI language, and implementation preferences in this repository.
+
 ## Playbook runtime command path (canonical)
 
 This repository uses the top-level npm commands backed by `scripts/playbook-runtime.mjs`, which resolves the runtime through the canonical official fallback path or an explicitly enabled package install. Treat those top-level npm commands as the only supported operator path for Playbook in this repo.

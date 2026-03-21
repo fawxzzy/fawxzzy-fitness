@@ -1,4 +1,16 @@
 ## 2026-03-21
+### WHAT
+- Added a new top-level `AGENT.md` that defines repo-local agent guidance for Fawxzzy Fitness around product identity, canonical domain language, UI consistency, implementation boundaries, and editing workflow expectations.
+- Added a short `README.md` pointer so contributors and agents can find the local guidance quickly from the main repo entry point.
+- Rule: Repo-local agent guidance should define product truth and local operating constraints rather than restating Playbook-global doctrine.
+- Pattern: Playbook owns global operating posture while the repo `AGENT.md` owns product behavior, UI language, and local implementation preferences.
+- Failure Mode: Copying framework-level doctrine into a product-local guide weakens repo identity and produces generic agent behavior.
+
+### WHY
+- The repo already has strong architecture and governance docs, but it did not yet have one concise standalone file focused on local product truth for coding agents.
+- Adding a repo-local guide makes it easier to preserve the app's deterministic workout/tracking behavior, canonical fitness language, and normalized UI patterns without duplicating framework-wide instructions.
+
+## 2026-03-21
 - Normalized Edit Routine and Edit Day onto the same shared routine-editor shell by extracting a common header/section scaffold, moving Edit Day onto the same title/subtitle rhythm as Edit Routine, and keeping day switching owned by the header while save/cancel remain in one canonical footer surface.
 - Tightened the parent/child editor boundary by keeping Edit Routine focused on routine metadata only and framing Edit Day metadata, planned-workout rows, and exercise adding as separate sections inside the same page family instead of bespoke route-local containers.
 - Rule: Fix shared layout ownership and shell drift in shared editor primitives before adding route-local overrides.
