@@ -2,14 +2,14 @@
 
 ## Completed Alignments
 
-- **View Day → Today screen pattern:** complete.
-  - Kept the shared app-shell top nav treatment and removed only the unwanted route-local extra header chrome, so the screen stays in the main tab-family shell.
-  - Rebuilt the View Day content header to match the Today title/subtitle hierarchy using the shared `AppHeader` + `AppPanel` scaffold.
-  - Reused the Today-style exercise row shell and bottom split action bar (`Start Workout` + `Select Day`) instead of keeping route-local header actions.
+- **View Day → shared workout-screen scaffold:** complete.
+  - Kept the shared app-shell top nav treatment and reused the same `AppHeader` + `AppPanel` spacing/list rhythm as Today so the screen stays inside the normalized page family.
+  - Preserved shared start-session plumbing and the Today-style exercise row shell, but stopped short of copying Today's full route contract.
+  - Restored View Day-specific ownership for title and actions: day-first title semantics, top-right Back control, and bottom split actions of `Start Workout` + `Edit Day`.
   - Follow-up fix: kept the shared visual/button shell, but moved start-session ownership behind a client-safe API boundary so the normalized route does not pass server callbacks through client props.
 
 ## Playbook Notes
 
-- **Pattern:** High-frequency screens should converge on a shared layout system instead of introducing parallel variants.
-- **Rule:** Do not introduce new layout primitives when an existing screen pattern already solves the use case.
-- **Failure Mode:** Creating near-identical screens with slight structural differences leads to long-term UI drift and component fragmentation.
+- **Pattern:** Normalize by layer: shared app shell first, shared content scaffold second, route-specific title/actions last.
+- **Rule:** Do not introduce new layout primitives when an existing screen pattern already solves the shell/scaffold problem, but do preserve route-owned identity and action semantics.
+- **Failure Mode:** Copying another screen's full contract instead of only its reusable scaffold erases route-specific title meaning and action ownership.

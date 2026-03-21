@@ -1,3 +1,9 @@
+- WHAT: View Day now keeps the shared app-shell and Today-aligned content scaffold while restoring its own day-first title, top-right Back action, and route-owned bottom secondary action.
+- WHY: Shared normalization should reuse shell/layout polish without copying another screen's full title/action contract.
+- Replaced the View Day header title with the day name, kept routine identity as supporting subtitle metadata, and added the shared top-right Back control with history-first behavior plus deterministic fallback to `/routines`.
+- Preserved the shared `TodayStartButton` start-session contract and Today-like panel/list rhythm, but changed the secondary footer action from `Select Day` to `Edit Day` and routed it to the route-aware day editor.
+- Clarified the normalization rule: share app shell + content scaffold, then let each route keep its own header semantics and action ownership.
+
 - WHAT: View Day screen normalized to Today layout pattern without opting out of the shared app-shell top nav.
 - WHY: Reduce UI fragmentation and reinforce the shared screen system without removing shared navigation ownership.
 - Removed only the route-local extra header treatment while keeping the shared app-level top nav shell, so View Day now follows the same primary/secondary action ownership as Today without dropping out of the tab-family chrome.
