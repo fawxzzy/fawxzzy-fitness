@@ -181,12 +181,12 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip px-1 pb-1">
+    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip px-1">
       {!isExerciseOpen ? (
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
 
-      <section className="flex min-h-full flex-col space-y-3">
+      <section className="flex min-h-full flex-col space-y-3 pb-[max(0.25rem,var(--app-safe-bottom))]">
         {!isExerciseOpen ? (
           <SessionHeaderControls
             sessionTitle={sessionTitle}

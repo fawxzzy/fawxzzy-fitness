@@ -932,7 +932,7 @@ export function SetLoggerCard({
                   }}
                   aria-label={`Delete ${isCardio ? "interval" : "set"} ${index + 1}`}
                   className={cn(
-                    "-my-[1px] -mr-[1px] self-stretch rounded-r-[1rem] border-l border-white/10 bg-white/[0.04] px-3 text-[11px] font-semibold text-muted transition hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25",
+                    "-my-px -mr-px self-stretch rounded-r-[calc(1rem-1px)] border-l border-rose-400/18 bg-[linear-gradient(180deg,rgba(244,63,94,0.2),rgba(190,24,93,0.16))] px-3.5 text-[11px] font-semibold text-rose-100 shadow-[-8px_0_20px_-18px_rgba(244,63,94,0.85)] transition hover:bg-[linear-gradient(180deg,rgba(244,63,94,0.28),rgba(190,24,93,0.2))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/30",
                     tapFeedbackClass,
                   )}
                 >
