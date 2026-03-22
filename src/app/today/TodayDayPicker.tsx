@@ -8,7 +8,7 @@ import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { SharedDayList, SharedDayListRow } from "@/components/routines/RoutinesScreenFamily";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
-import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle, BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
@@ -109,38 +109,46 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
   const hasInProgressSession = Boolean(inProgressSessionId);
 
-  const actionsNode = useMemo(() => (
-    <BottomActionUtilityCluster className="[&>*]:basis-[calc(50%-0.25rem)]">
+  const actionsNode = useMemo(() => {
+    const selectDayButton = (
       <SecondaryButton
         id="today-day-picker"
         type="button"
-        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+        className="w-full justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
         onClick={togglePicker}
         aria-expanded={isPickerOpen}
         aria-controls="today-day-selector-list"
       >
         <span>{isPickerOpen ? "Hide Days" : "Select Day"}</span>
       </SecondaryButton>
-      {hasInProgressSession ? (
-        <TodayStartButton
-          sessionId={inProgressSessionId ?? undefined}
-          returnTo="/today"
-          fullWidth
-          className="w-full"
-          label="Resume Workout"
-        />
-      ) : isRunnableDay ? (
-        <TodayStartButton
-          selectedDayIndex={selectedDayIndex}
-          returnTo="/today"
-          fullWidth
-          className="w-full"
-        />
-      ) : (
-        <div aria-hidden="true" className="min-h-[44px] w-full invisible" />
-      )}
-    </BottomActionUtilityCluster>
-  ), [hasInProgressSession, inProgressSessionId, isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
+    );
+
+    if (!hasInProgressSession && !isRunnableDay) {
+      return <BottomActionSingle>{selectDayButton}</BottomActionSingle>;
+    }
+
+    return (
+      <BottomActionUtilityCluster className="[&>*]:basis-[calc(50%-0.25rem)]">
+        {selectDayButton}
+        {hasInProgressSession ? (
+          <TodayStartButton
+            sessionId={inProgressSessionId ?? undefined}
+            returnTo="/today"
+            fullWidth
+            className="w-full"
+            label="Resume Workout"
+          />
+        ) : (
+          <TodayStartButton
+            selectedDayIndex={selectedDayIndex}
+            returnTo="/today"
+            fullWidth
+            className="w-full"
+          />
+        )}
+      </BottomActionUtilityCluster>
+    );
+  }, [hasInProgressSession, inProgressSessionId, isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
 
   usePublishBottomActions(actionsNode);
 
@@ -149,7 +157,7 @@ export function TodayDayPicker({
       {selectedDay ? (
         <AnchoredSelectorPanel
           title={`${routineName} | ${selectedDay.name}`}
-          subtitleRight={selectedDay.state === "rest" ? "Rest day" : getExerciseCountSummaryFromInputs(selectedDay.exercises).label}
+          subtitleRight={selectedDay.state === "rest" ? "Rest Day" : getExerciseCountSummaryFromInputs(selectedDay.exercises).label}
           action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
           revealOpen={isPickerOpen}
           revealId="today-day-selector-list"
@@ -168,7 +176,7 @@ export function TodayDayPicker({
                       setIsPickerOpen(false);
                     }}
                     state={isSelected ? "selected" : day.isRest ? "empty" : "default"}
-                    badgeText={day.dayIndex === currentDayIndex ? "Today" : day.isRest ? "Rest" : undefined}
+                    badgeText={day.dayIndex === currentDayIndex ? "Today" : day.isRest ? "Rest Day" : undefined}
                     rightIcon={null}
                   />
                 );
@@ -208,7 +216,7 @@ export function TodayDayPicker({
                 />
               </li>
             ))}
-            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3"><SubtitleText>{selectedDay.state === "rest" ? "Rest day." : "No exercises yet."}</SubtitleText></li> : null}
+            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3"><SubtitleText>{selectedDay.state === "rest" ? "Recovery and mobility only." : "No exercises yet."}</SubtitleText></li> : null}
           </ul> : null}
         </AnchoredSelectorPanel>
       ) : null}

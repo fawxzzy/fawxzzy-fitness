@@ -4,7 +4,7 @@ import { memo, useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { BOTTOM_ACTION_SURFACE_INNER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
@@ -178,6 +178,7 @@ export function QuickAddExerciseSheet({
         onClose={() => setOpen(false)}
         title="Quick Add Exercise"
         description="Select an exercise and add starter sets."
+        className="max-w-md"
         contentClassName="space-y-5"
       >
         <section className="space-y-3">
@@ -289,7 +290,7 @@ export function QuickAddExerciseSheet({
               <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">Volume</span>
             </div>
 
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
               <AppButton
                 type="button"
                 variant="secondary"
@@ -340,11 +341,11 @@ export function QuickAddExerciseSheet({
         </section>
 
         <div className="sticky bottom-0 -mx-4 bg-[rgb(var(--surface-rgb)/0.985)] px-4 pb-[max(0.25rem,var(--app-safe-bottom))] pt-3">
-          <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, "border-white/10 bg-[rgb(var(--surface-rgb)/0.985)]") }>
+          <BottomActionSingle className={cn("border-white/10 bg-[rgb(var(--surface-rgb)/0.985)]")}>
             <AppButton type="button" variant="primary" fullWidth loading={isPending} onClick={handleSubmit}>
               Add to Session
             </AppButton>
-          </div>
+          </BottomActionSingle>
         </div>
       </BottomSheet>
       <ExerciseInfo

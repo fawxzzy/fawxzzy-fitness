@@ -302,14 +302,14 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     <AppHeader
                       title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
                       subtitleRight={todayPayload.routine.state === "rest"
-                        ? "Rest day"
+                        ? "Rest Day"
                         : getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).label}
                       action={todayPayload.completedTodayCount > 0 ? <AppBadge>Completed</AppBadge> : undefined}
                     />
 
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}
-                      emptyMessage={todayPayload.routine.state === "rest" ? "Rest day. No workout to start today." : "No runnable exercises planned for this day."}
+                      emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
                     />
                   </AppPanel>
                 </div>

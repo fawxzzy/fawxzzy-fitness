@@ -4174,6 +4174,21 @@ WHY:
 
 ## 0.3.77 — 2026-03-19
 
+## 0.3.74 — 2026-03-22
+
+### WHAT
+- Normalized Current Session and exercise log headers onto one shared session-header shell so both screens now share the same spacing rhythm, back-action placement, and metadata chip layout while keeping screen-specific content.
+- Unified sticky footer CTA sizing around the shared bottom-action contract so split action bars keep equal-width buttons and single-action bars expand to fill the full primary row width.
+- Fixed Quick Add mobile overflow by clamping the bottom sheet to the viewport, removing horizontal bleed inside the sheet, and stacking the volume controls on narrow screens.
+- Added a shared inset form-section card treatment and applied it to warm-up/effort logging groups to remove the repeated double-boxed border look.
+- Cleaned up rest-day copy on Today and View Day so rest states show a single clear label plus concise recovery guidance.
+
+### WHY
+- Prevents header/footer primitives from drifting independently across closely related workout screens.
+- Keeps mobile workout flows readable and tappable by enforcing one CTA size contract and removing off-screen Quick Add controls.
+- Reduces visual noise in repeated form groups so exercise logging feels intentional instead of layered by accident.
+- Makes rest-day states easier to scan by removing duplicate “Rest day” phrasing.
+
 ### WHAT
 - Unified save-return behavior around the same in-app history contract used by Back, including current-session Save Session plus routine save flows that previously jumped to fixed routes.
 - Added a reusable navigation-return helper/input so server actions can safely fall back to deterministic routes when no valid in-app history entry exists.
