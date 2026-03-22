@@ -11,8 +11,8 @@ export function FormSectionCard({
   insetClassName?: string;
 }) {
   return (
-    <div className={cn("rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] p-3", className)}>
-      <div className={cn("space-y-3", insetClassName)}>{children}</div>
+    <div className={cn("rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] p-2.5", className)}>
+      <div className={cn("space-y-2.5", insetClassName)}>{children}</div>
     </div>
   );
 }
