@@ -119,7 +119,7 @@ export function TodayDayPicker({
         aria-expanded={isPickerOpen}
         aria-controls="today-day-selector-list"
       >
-        <span>{isPickerOpen ? "Hide days" : "Select day"}</span>
+        <span>{isPickerOpen ? "Hide Days" : "Select Day"}</span>
       </SecondaryButton>
       {hasInProgressSession ? (
         <TodayStartButton

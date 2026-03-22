@@ -1,3 +1,20 @@
+## [v0.3.73] – View Day & Session UI Polish
+
+### WHAT
+
+* Removed excess top spacing in View Day header
+* Reduced empty space in Current Session header
+* Converted Current Session bottom actions to split layout
+* Updated "+ Quick Add" → "Quick Add Exercise"
+* Standardized bottom action button labels to Title Case
+
+### WHY
+
+* Improves visual density and alignment across screens
+* Aligns Current Session with established bottom action patterns
+* Ensures consistent CTA language and readability
+* Reduces UI drift across feature families
+
 ## [v0.3.72] – Routines Action Ordering Alignment
 
 ### WHAT

@@ -69,7 +69,7 @@ export function EditDayHeaderSwitcher({
             aria-controls="edit-day-switcher-panel"
             className="min-h-11 px-4"
           >
-            {open ? "Hide days" : "Select day"}
+            {open ? "Hide Days" : "Select Day"}
           </SecondaryButton>
           {activeDay?.isRest ? <AppBadge>Rest day</AppBadge> : null}
         </div>

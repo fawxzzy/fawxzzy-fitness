@@ -170,13 +170,13 @@ export function QuickAddExerciseSheet({
 
   return (
     <>
-      <AppButton type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        + Quick Add
+      <AppButton type="button" variant="secondary" size="md" fullWidth onClick={() => setOpen(true)}>
+        Quick Add Exercise
       </AppButton>
       <BottomSheet
         open={open}
         onClose={() => setOpen(false)}
-        title="Quick Add"
+        title="Quick Add Exercise"
         description="Select an exercise and add starter sets."
         contentClassName="space-y-5"
       >
