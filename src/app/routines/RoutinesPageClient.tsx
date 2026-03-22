@@ -88,7 +88,7 @@ export function RoutinesPageClient({
         aria-expanded={isRoutineListOpen}
         aria-controls="routines-switch-list"
       >
-        <span>{isRoutineListOpen ? "Hide routines" : "Select routine"}</span>
+        <span>{isRoutineListOpen ? "Hide Routines" : "Select Routine"}</span>
       </SecondaryButton>
       {activeRoutineEditHref ? (
         <Link
