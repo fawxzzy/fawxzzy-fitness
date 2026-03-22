@@ -75,7 +75,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : `Day ${dayRow.day_index}`);
   const daySummary = dayRow.is_rest
-    ? "Rest day"
+    ? "Rest Day"
     : getExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? []).label;
   const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
   const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
@@ -102,7 +102,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             {canonicalDay && !isRunnableDayState(canonicalDay.state) ? (
               <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
                 {canonicalDay.state === "rest"
-                  ? "Rest day. No workout to start today."
+                  ? "Recovery and mobility only."
                   : canonicalDay.invalidExercises.length > 0
                     ? "This day has invalid exercises. Edit the day before starting a workout."
                     : "No runnable exercises planned for this day."}

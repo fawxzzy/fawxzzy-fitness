@@ -7,7 +7,7 @@ export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   "px-3 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-md",
 );
 
-const itemBaseClassName = "[&>*]:min-h-12 [&>*]:w-full";
+const itemBaseClassName = "[&>*]:min-h-12 [&>*]:w-full [&>*]:rounded-[1rem] [&>*]:px-4 [&>*]:text-sm [&>*]:font-semibold [&>*]:tracking-[0.01em]";
 
 function BottomActionSlot({ children, className }: { children: ReactNode; className?: string }) {
   return (

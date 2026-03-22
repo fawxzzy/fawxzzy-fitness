@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { SessionHeaderCard } from "@/components/ui/workout-entry/SessionHeaderCard";
 
 export function WorkoutEntrySection({
   eyebrow,
@@ -54,24 +55,7 @@ export function WorkoutEntryIdentity({
   actions?: ReactNode;
   className?: string;
 }) {
-  return (
-    <section
-      className={cn(
-        "space-y-3 rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-4 shadow-[0_12px_32px_rgba(0,0,0,0.18)]",
-        className,
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          {eyebrow ? <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{eyebrow}</p> : null}
-          <p className="text-xl font-semibold leading-tight text-text">{title}</p>
-          {description ? <p className="text-sm text-muted">{description}</p> : null}
-        </div>
-        {actions ? <div className="shrink-0">{actions}</div> : null}
-      </div>
-      {meta ? <div className="flex flex-wrap items-center gap-2">{meta}</div> : null}
-    </section>
-  );
+  return <SessionHeaderCard eyebrow={eyebrow} title={title} subtitle={description} meta={meta} action={actions} className={className} />;
 }
 
 export function WorkoutEntryMetric({

@@ -18,6 +18,7 @@ import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
+import { FormSectionCard } from "@/components/ui/workout-entry/FormSectionCard";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
@@ -778,8 +779,8 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <div className="rounded-[1.35rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-3">
-        <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5 text-sm text-text">
+      <FormSectionCard className="bg-[rgb(var(--surface-rgb)/0.42)]" insetClassName="p-0">
+        <label className="flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-sm text-text">
           <EyebrowText as="span">Warm-up</EyebrowText>
           <span className="flex items-center gap-2">
             <span className="text-sm font-medium text-text">{resolvedIsWarmup ? "On" : "Off"}</span>
@@ -791,7 +792,7 @@ export function SetLoggerCard({
             />
           </span>
         </label>
-      </div>
+      </FormSectionCard>
 
       <WorkoutEntrySection
         className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
@@ -841,11 +842,8 @@ export function SetLoggerCard({
           showHeader={false}
         />
       </WorkoutEntrySection>
-      <WorkoutEntrySection
-        className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
-      >
-        <div className="space-y-2">
-          <div className="space-y-2 rounded-2xl border border-white/8 bg-white/5 p-3">
+      <WorkoutEntrySection className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]">
+        <FormSectionCard className="border-0 bg-transparent p-0" insetClassName="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
                 <TitleText as="h3" className="text-sm">Effort</TitleText>
@@ -878,8 +876,7 @@ export function SetLoggerCard({
               placeholder="0-10"
               className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
             />
-          </div>
-        </div>
+        </FormSectionCard>
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
       </WorkoutEntrySection>
 
