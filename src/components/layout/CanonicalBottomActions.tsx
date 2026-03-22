@@ -11,7 +11,7 @@ const itemBaseClassName = "[&>*]:min-h-12 [&>*]:w-full [&>*]:rounded-[1rem] [&>*
 
 function BottomActionSlot({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("flex min-w-0 flex-1 basis-0 items-stretch justify-center [&>*]:w-full", className)}>
+    <div className={cn("flex min-w-0 flex-1 basis-0 items-stretch justify-center self-stretch [&>*]:min-h-12 [&>*]:w-full", className)}>
       {children}
     </div>
   );
@@ -26,7 +26,8 @@ export function BottomActionSplit({ primary, secondary, className }: { primary: 
     <div
       className={cn(
         BOTTOM_ACTION_SURFACE_INNER_CLASSNAME,
-        "flex items-stretch gap-2",
+        "grid grid-cols-2 items-stretch gap-2 [&>*]:h-full",
+        itemBaseClassName,
         className,
       )}
     >

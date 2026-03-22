@@ -32,8 +32,12 @@ export function SessionHeaderControls({
         subtitle={sessionSummary}
         action={<SessionBackButton href={backHref} />}
         meta={(
-          <div className="inline-flex min-h-10 min-w-[7.4rem] items-center rounded-2xl border border-white/8 bg-white/5 px-3 py-2 text-sm font-medium tabular-nums text-text" suppressHydrationWarning aria-live={isTimerHydrated ? "off" : undefined}>
-            Elapsed {formatDurationClock(durationSeconds)}
+          <div
+            className="inline-flex min-h-9 items-center rounded-full border border-white/8 bg-white/5 px-2.5 py-1 text-[0.82rem] font-semibold tabular-nums text-text"
+            suppressHydrationWarning
+            aria-live={isTimerHydrated ? "off" : undefined}
+          >
+            {formatDurationClock(durationSeconds)}
           </div>
         )}
         footer={<OfflineSyncBadge />}

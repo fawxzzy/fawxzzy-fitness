@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { WorkoutEntryIdentity, WorkoutEntryMetric } from "@/components/ui/workout-entry/EntrySection";
+import { WorkoutEntryIdentity } from "@/components/ui/workout-entry/EntrySection";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -250,14 +250,12 @@ export function SessionExerciseFocus({
             eyebrow="Exercise Log"
             title={selectedExercise?.name ?? "Exercise"}
             description={selectedExercise?.goalLabel || undefined}
-            meta={(
-              <>
-                <WorkoutEntryMetric label="Logged" value={`${(loggedSetCounts[selectedExercise?.id ?? ""] ?? selectedExercise?.loggedSetCount ?? 0)} ${selectedExercise?.isCardio ? "intervals" : "sets"}`} />
-                <WorkoutEntryMetric label="Type" value={selectedExercise?.isCardio ? "Cardio" : "Strength"} />
+            meta={selectedExercise?.routineDayExerciseId === null || selectedExercise?.isSkipped ? (
+              <div className="flex flex-wrap items-center gap-2">
                 {selectedExercise?.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-text">Added today</Pill> : null}
                 {selectedExercise?.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-amber-200">Skipped</Pill> : null}
-              </>
-            )}
+              </div>
+            ) : undefined}
             actions={(
               <BackButton
                 onClick={(event) => {

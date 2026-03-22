@@ -47,7 +47,7 @@ type TodayDay = {
 
 function getDaySummary(day: TodayDay) {
   if (day.state === "rest") {
-    return "Rest day. Recovery and mobility only.";
+    return "Recover, move lightly, and come back ready for the next workout.";
   }
 
   if (day.state === "empty" && day.invalidExerciseCount > 0) {
@@ -153,11 +153,11 @@ export function TodayDayPicker({
   usePublishBottomActions(actionsNode);
 
   return (
-    <div className="flex min-h-0 flex-col gap-4">
+    <div className="flex min-h-0 flex-col gap-3">
       {selectedDay ? (
         <AnchoredSelectorPanel
           title={`${routineName} | ${selectedDay.name}`}
-          subtitleRight={selectedDay.state === "rest" ? "Rest Day" : getExerciseCountSummaryFromInputs(selectedDay.exercises).label}
+          subtitleRight={selectedDay.state === "rest" ? undefined : getExerciseCountSummaryFromInputs(selectedDay.exercises).label}
           action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
           revealOpen={isPickerOpen}
           revealId="today-day-selector-list"
@@ -201,7 +201,7 @@ export function TodayDayPicker({
             </div>
           ) : null}
 
-          {!isPickerOpen ? <ul className="space-y-2">
+          {!isPickerOpen ? <ul className={selectedDay.state === "rest" ? "space-y-0" : "space-y-2"}>
             {selectedDay.exercises.map((exercise) => (
               <li key={exercise.id}>
                 <StandardExerciseRow
@@ -216,7 +216,11 @@ export function TodayDayPicker({
                 />
               </li>
             ))}
-            {selectedDay.exercises.length === 0 ? <li className="px-3 py-3"><SubtitleText>{selectedDay.state === "rest" ? "Recovery and mobility only." : "No exercises yet."}</SubtitleText></li> : null}
+            {selectedDay.exercises.length === 0 ? (
+              <li className={selectedDay.state === "rest" ? "pt-1" : "px-3 py-3"}>
+                {selectedDay.state === "rest" ? null : <SubtitleText>No exercises yet.</SubtitleText>}
+              </li>
+            ) : null}
           </ul> : null}
         </AnchoredSelectorPanel>
       ) : null}
