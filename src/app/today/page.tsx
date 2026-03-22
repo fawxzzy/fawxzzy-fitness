@@ -4,6 +4,7 @@ import { AppNav } from "@/components/AppNav";
 import { TodayClientShell } from "@/app/today/TodayClientShell";
 import { TodayOfflineBridge } from "@/app/today/TodayOfflineBridge";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
+import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
@@ -293,6 +294,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     <MainTabScreen>
       <AppNav />
       <ScrollScreenWithBottomActions>
+          <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
             <div className="space-y-4 px-1">
               <OfflineSyncBadge />
@@ -375,7 +377,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     action={discardInProgressSessionAction}
                     hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
                     triggerLabel="Discard session"
-                    triggerClassName="w-full"
+                    triggerClassName="h-full w-full"
                     size="md"
                     modalTitle="Discard workout?"
                     modalDescription="This will delete your in-progress workout, including exercises and sets."

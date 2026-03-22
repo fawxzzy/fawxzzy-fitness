@@ -18,6 +18,7 @@ import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
 import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
+import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { FormSectionCard } from "@/components/ui/workout-entry/FormSectionCard";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
@@ -884,23 +885,24 @@ export function SetLoggerCard({
         className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
         contentClassName="space-y-0"
       >
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-1.5 text-sm">
         {animatedSets.map((set, index) => (
           <li
             key={set.id}
             className={[
-              "rounded-2xl border border-white/8 bg-surface/65 px-3 py-3",
               "origin-top transition-all duration-150 motion-reduce:transition-none",
-              set.isLeaving ? "max-h-0 scale-[0.98] py-0 opacity-0" : "max-h-32 scale-100 opacity-100",
+              set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
             ].join(" ")}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 space-y-2">
-                <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
-                  <span className="font-medium text-text">{isCardio ? "Interval" : "Set"} {index + 1}</span>
+            <CompactLogRow
+              label={(
+                <>
+                  <span className="font-semibold text-text">{isCardio ? "Interval" : "Set"} {index + 1}</span>
                   {set.queueStatus ? <span>{set.queueStatus}</span> : null}
                   {set.pending && !set.queueStatus ? <span>saving...</span> : null}
-                </div>
+                </>
+              )}
+              summary={(
                 <MeasurementSummary
                   values={{
                     reps: set.reps,
@@ -914,27 +916,29 @@ export function SetLoggerCard({
                   emptyLabel="No measurements"
                   className="text-muted"
                 />
-                {(set.is_warmup || set.rpe !== null) ? (
-                  <div className="flex flex-wrap gap-2">
-                    {set.is_warmup ? <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-text">Warm-up</span> : null}
-                    {set.rpe !== null ? <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-text">RPE {set.rpe}</span> : null}
-                  </div>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  void handleDeleteSet(set);
-                }}
-                aria-label={`Delete ${isCardio ? "interval" : "set"} ${index + 1}`}
-                className={`rounded-full border border-white/10 px-2.5 py-1 text-xs font-medium text-muted hover:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
-              >
-                Delete
-              </button>
-            </div>
+              )}
+              meta={(set.is_warmup || set.rpe !== null) ? (
+                <>
+                  {set.is_warmup ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">Warm-up</span> : null}
+                  {set.rpe !== null ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">RPE {set.rpe}</span> : null}
+                </>
+              ) : undefined}
+              action={(
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDeleteSet(set);
+                  }}
+                  aria-label={`Delete ${isCardio ? "interval" : "set"} ${index + 1}`}
+                  className={`rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-medium text-muted hover:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+                >
+                  Delete
+                </button>
+              )}
+            />
           </li>
         ))}
-        {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-4 text-slate-400">No {isCardio ? "intervals" : "sets"} logged yet.</li> : null}
+        {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-3 text-slate-400">No {isCardio ? "intervals" : "sets"} logged yet.</li> : null}
         </ul>
       </WorkoutEntrySection>
 

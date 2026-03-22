@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { WorkoutEntryIdentity } from "@/components/ui/workout-entry/EntrySection";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -257,14 +258,12 @@ export function SessionExerciseFocus({
               </div>
             ) : undefined}
             actions={(
-              <BackButton
+              <TopRightBackButton
+                ariaLabel="Collapse exercise"
                 onClick={(event) => {
                   event.preventDefault();
                   onSelectedExerciseIdChange(null);
                 }}
-                ariaLabel="Collapse exercise"
-                iconOnly
-                className={tapFeedbackClass}
               />
             )}
             className="scroll-mt-4"

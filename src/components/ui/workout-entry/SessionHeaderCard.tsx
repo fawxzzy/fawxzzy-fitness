@@ -7,6 +7,7 @@ export function SessionHeaderCard({
   title,
   subtitle,
   meta,
+  metaBelowTitle = false,
   action,
   footer,
   className,
@@ -15,6 +16,7 @@ export function SessionHeaderCard({
   title: string;
   subtitle?: string;
   meta?: ReactNode;
+  metaBelowTitle?: boolean;
   action?: ReactNode;
   footer?: ReactNode;
   className?: string;
@@ -29,16 +31,15 @@ export function SessionHeaderCard({
       {eyebrow ? <EyebrowText className="mb-1">{eyebrow}</EyebrowText> : null}
 
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex items-start gap-2.5">
-            <div className="min-w-0 flex-1 space-y-1">
-              <TitleText as="h1" className="text-[1.02rem] leading-tight">{title}</TitleText>
-              {subtitle ? <SubtitleText className="leading-snug">{subtitle}</SubtitleText> : null}
-            </div>
-            {meta ? <div className="shrink-0 self-center">{meta}</div> : null}
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="min-w-0 space-y-1">
+            <TitleText as="h1" className="text-[1.02rem] leading-tight">{title}</TitleText>
+            {subtitle ? <SubtitleText className="leading-snug">{subtitle}</SubtitleText> : null}
           </div>
+          {meta && metaBelowTitle ? <div className="flex min-h-0 items-center">{meta}</div> : null}
         </div>
         {action ? <div className="shrink-0 self-start pt-0.5">{action}</div> : null}
+        {meta && !metaBelowTitle ? <div className="shrink-0 self-center">{meta}</div> : null}
       </div>
 
       {footer ? <div className="mt-1.5 min-h-[1rem] px-0.5 text-xs text-muted">{footer}</div> : null}
