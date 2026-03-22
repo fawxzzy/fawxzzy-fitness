@@ -40,6 +40,7 @@ export function SessionHeaderControls({
             {formatDurationClock(durationSeconds)}
           </div>
         )}
+        metaBelowTitle
         footer={<OfflineSyncBadge />}
       />
     </div>

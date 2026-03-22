@@ -7,11 +7,11 @@ export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   "px-3 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-md",
 );
 
-const itemBaseClassName = "[&>*]:min-h-12 [&>*]:w-full [&>*]:rounded-[1rem] [&>*]:px-4 [&>*]:text-sm [&>*]:font-semibold [&>*]:tracking-[0.01em]";
+const itemBaseClassName = "[&>*]:min-h-12 [&>*]:w-full [&>*]:rounded-[1rem] [&>*]:px-4 [&>*]:text-sm [&>*]:font-semibold [&>*]:tracking-[0.01em] [&>form]:flex [&>form]:h-full [&>form]:w-full [&>form]:items-stretch";
 
 function BottomActionSlot({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("flex min-w-0 flex-1 basis-0 items-stretch justify-center self-stretch [&>*]:min-h-12 [&>*]:w-full", className)}>
+    <div className={cn("flex min-w-0 flex-1 basis-0 items-stretch justify-center self-stretch [&>*]:min-h-12 [&>*]:w-full [&>form>*]:h-full", className)}>
       {children}
     </div>
   );

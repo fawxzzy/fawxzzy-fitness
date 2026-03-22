@@ -1,3 +1,17 @@
+## [v0.3.76] – Session Flow Polish and Resume Rehydration
+
+### WHAT
+
+* Refined the shared session header shell so Current Session and Exercise Log keep title/subtitle left-aligned, restore the back action to the top-right corner, and place the live timer on its own compact row below the title block.
+* Added explicit Today revalidation on return/focus so active in-progress workouts rehydrate into the Resume Workout branch immediately after leaving session flow instead of waiting for a manual refresh.
+* Hardened the shared split bottom-action contract so Resume Session and Discard Session render as true equal-width, equal-height columns even when one action is wrapped in a form.
+* Slimmed the shared logged-set/history row treatment by introducing a compact log-row pattern with denser measurement summaries, lighter chips, and cleaner action placement across Current Session and History log entries.
+
+### WHY
+
+* The session family was already close to normalized, but the remaining polish lived in shared primitives and route rehydration boundaries rather than screen-specific rewrites.
+* Tightening those shared contracts removes the last bits of visual drift while fixing the stale Today resume-state behavior that showed up after navigation.
+
 ## [v0.3.75] – Session Surface Density Cleanup
 
 ### WHAT
