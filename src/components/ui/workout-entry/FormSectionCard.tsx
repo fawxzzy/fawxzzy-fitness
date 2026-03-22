@@ -12,7 +12,7 @@ export function FormSectionCard({
 }) {
   return (
     <div className={cn("rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] p-3", className)}>
-      <div className={cn("rounded-2xl bg-white/5 p-3", insetClassName)}>{children}</div>
+      <div className={cn("space-y-3", insetClassName)}>{children}</div>
     </div>
   );
 }

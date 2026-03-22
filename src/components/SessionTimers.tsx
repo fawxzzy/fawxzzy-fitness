@@ -779,9 +779,12 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <FormSectionCard className="bg-[rgb(var(--surface-rgb)/0.42)]" insetClassName="p-0">
-        <label className="flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-sm text-text">
-          <EyebrowText as="span">Warm-up</EyebrowText>
+      <FormSectionCard className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]" insetClassName="space-y-3">
+        <label className="flex items-center justify-between gap-3 rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-3 py-2.5 text-sm text-text">
+          <span className="flex min-w-0 items-center gap-2">
+            <EyebrowText as="span" className="text-[10px]">Warm-up</EyebrowText>
+            <span className="text-sm text-muted">Mark this entry as prep work.</span>
+          </span>
           <span className="flex items-center gap-2">
             <span className="text-sm font-medium text-text">{resolvedIsWarmup ? "On" : "Off"}</span>
             <input
@@ -792,6 +795,39 @@ export function SetLoggerCard({
             />
           </span>
         </label>
+
+        <div className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <TitleText as="h3" className="text-sm">Effort</TitleText>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowRpeTooltip((value) => !value)}
+                className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] text-muted"
+              >
+                ⓘ
+              </button>
+              {showRpeTooltip ? (
+                <div className="pointer-events-none absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
+                  <TitleText as="p" className="text-[11px]">0-10 effort scale</TitleText>
+                  <SubtitleText className="text-[11px]">10 = max effort</SubtitleText>
+                  <SubtitleText className="text-[11px]">8 = about 2 reps left</SubtitleText>
+                  <SubtitleText className="text-[11px]">6 = moderate effort</SubtitleText>
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <input
+            type="number"
+            min={0}
+            step="0.5"
+            value={rpe}
+            onChange={(event) => setRpe(event.target.value)}
+            placeholder="0-10"
+            className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
+          />
+          {error ? <p className="text-sm text-red-400">{error}</p> : null}
+        </div>
       </FormSectionCard>
 
       <WorkoutEntrySection
@@ -841,43 +877,6 @@ export function SetLoggerCard({
           tapFeedbackClass={tapFeedbackClass}
           showHeader={false}
         />
-      </WorkoutEntrySection>
-      <WorkoutEntrySection className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]">
-        <FormSectionCard className="border-0 bg-transparent p-0" insetClassName="space-y-2">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <TitleText as="h3" className="text-sm">Effort</TitleText>
-                <SubtitleText className="text-xs">Use RPE only when it helps capture how hard the work felt.</SubtitleText>
-              </div>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowRpeTooltip((value) => !value)}
-                  className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] text-muted"
-                >
-                  ⓘ
-                </button>
-                {showRpeTooltip ? (
-                  <div className="pointer-events-none absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
-                    <TitleText as="p" className="text-[11px]">0-10 effort scale</TitleText>
-                    <SubtitleText className="text-[11px]">10 = max effort</SubtitleText>
-                    <SubtitleText className="text-[11px]">8 = about 2 reps left</SubtitleText>
-                    <SubtitleText className="text-[11px]">6 = moderate effort</SubtitleText>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <input
-              type="number"
-              min={0}
-              step="0.5"
-              value={rpe}
-              onChange={(event) => setRpe(event.target.value)}
-              placeholder="0-10"
-              className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
-            />
-        </FormSectionCard>
-        {error ? <p className="text-sm text-red-400">{error}</p> : null}
       </WorkoutEntrySection>
 
       <WorkoutEntrySection

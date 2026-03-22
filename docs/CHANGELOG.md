@@ -1,3 +1,18 @@
+## [v0.3.75] – Session Surface Density Cleanup
+
+### WHAT
+
+* Cleaned up the Today rest-day state so `Rest Day` appears once, the recovery copy is shorter, and the empty/rest branch no longer carries extra dead space.
+* Tightened the shared session header shell by moving the live timer inline with the title row, removing the `Elapsed` label, and reducing padding/gap values used by Current Session and Exercise Log.
+* Normalized split bottom actions so both footer buttons render as true equal-width, equal-height columns regardless of label length.
+* Simplified the Exercise Log header by removing the Logged/Type metric boxes while preserving the exercise title, goal subtitle, back action, and state pills.
+* Consolidated Warm-up and Effort into one shared form section card and removed the extra Effort helper sentence.
+
+### WHY
+
+* These screens belong to the same high-frequency workout family, so small spacing and chrome mismatches made the mobile flow feel heavier than it needed to.
+* Fixing the primitive-layer header, footer, section-card, and rest-state contracts keeps the screen family visually aligned without changing workout or logging behavior.
+
 ## [v0.3.73] – View Day & Session UI Polish
 
 ### WHAT

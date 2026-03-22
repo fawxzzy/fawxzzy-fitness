@@ -104,11 +104,11 @@ export function TodayClientShell({
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 space-y-1">
           <TitleText as="h2" className="text-lg">
-            {display.routine.name}: {display.routine.isRest ? `REST DAY — ${display.routine.dayName}` : display.routine.dayName}
+            {display.routine.name}: {display.routine.dayName}
           </TitleText>
           <SubtitleText>
             {display.routine.isRest
-              ? "Rest day"
+              ? "Recovery focus."
               : getExerciseCountSummaryFromInputs(display.exercises).label}
           </SubtitleText>
         </div>
@@ -140,7 +140,7 @@ export function TodayClientShell({
           </li>
         ))}
         {display.exercises.length === 0 ? (
-          <li className="px-3 py-2"><SubtitleText>No exercises today.</SubtitleText></li>
+          <li className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] px-3 py-3"><SubtitleText>{display.routine.isRest ? "Take the day to recover, move lightly, and come back ready." : "No exercises today."}</SubtitleText></li>
         ) : null}
       </ul>
 
