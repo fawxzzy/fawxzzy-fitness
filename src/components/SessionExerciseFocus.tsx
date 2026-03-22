@@ -206,7 +206,7 @@ export function SessionExerciseFocus({
   }, [onSelectedExerciseIdChange, selectedExerciseId]);
 
   return (
-    <div className="flex min-h-full flex-col space-y-3">
+    <div className="flex min-h-full flex-col space-y-2.5">
       {selectedExerciseId === null ? (
         <ul className="space-y-2">
           {exercises.map((exercise) => {
@@ -246,7 +246,7 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="flex min-h-full flex-col space-y-4">
+        <div className="flex min-h-full flex-col space-y-3">
           <WorkoutEntryIdentity
             eyebrow="Exercise Log"
             title={selectedExercise?.name ?? "Exercise"}

@@ -26,6 +26,7 @@ import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { cn } from "@/lib/cn";
 
 type AddSetPayload = {
   sessionId: string;
@@ -780,7 +781,39 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <FormSectionCard className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]" insetClassName="space-y-3">
+      <FormSectionCard className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]" insetClassName="space-y-2.5">
+        <div className="space-y-2">
+          <EyebrowText as="h3">EFFORT</EyebrowText>
+          <div className="relative">
+            <input
+              type="number"
+              min={0}
+              step="0.5"
+              value={rpe}
+              onChange={(event) => setRpe(event.target.value)}
+              placeholder="0-10"
+              className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 pr-11 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setShowRpeTooltip((value) => !value)}
+              aria-label="Effort scale help"
+              className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-[rgb(var(--bg)/0.42)] text-[11px] text-muted transition hover:bg-[rgb(var(--bg)/0.58)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+            >
+              ⓘ
+            </button>
+            {showRpeTooltip ? (
+              <div className="pointer-events-none absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
+                <TitleText as="p" className="text-[11px]">0-10 effort scale</TitleText>
+                <SubtitleText className="text-[11px]">10 = max effort</SubtitleText>
+                <SubtitleText className="text-[11px]">8 = about 2 reps left</SubtitleText>
+                <SubtitleText className="text-[11px]">6 = moderate effort</SubtitleText>
+              </div>
+            ) : null}
+          </div>
+          {error ? <p className="text-sm text-red-400">{error}</p> : null}
+        </div>
+
         <button
           type="button"
           onClick={() => setWarmupValue(!resolvedIsWarmup)}
@@ -801,39 +834,6 @@ export function SetLoggerCard({
           </span>
           <span className={resolvedIsWarmup ? "text-sm font-semibold text-emerald-100" : "text-sm font-medium text-text"}>{resolvedIsWarmup ? "On" : "Off"}</span>
         </button>
-
-        <div className="space-y-2">
-          <div className="flex items-start justify-between gap-3">
-            <TitleText as="h3" className="text-sm">Effort</TitleText>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowRpeTooltip((value) => !value)}
-                className="rounded-full border border-border/70 px-1.5 py-0.5 text-[10px] text-muted"
-              >
-                ⓘ
-              </button>
-              {showRpeTooltip ? (
-                <div className="pointer-events-none absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
-                  <TitleText as="p" className="text-[11px]">0-10 effort scale</TitleText>
-                  <SubtitleText className="text-[11px]">10 = max effort</SubtitleText>
-                  <SubtitleText className="text-[11px]">8 = about 2 reps left</SubtitleText>
-                  <SubtitleText className="text-[11px]">6 = moderate effort</SubtitleText>
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <input
-            type="number"
-            min={0}
-            step="0.5"
-            value={rpe}
-            onChange={(event) => setRpe(event.target.value)}
-            placeholder="0-10"
-            className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 text-sm"
-          />
-          {error ? <p className="text-sm text-red-400">{error}</p> : null}
-        </div>
       </FormSectionCard>
 
       <WorkoutEntrySection
@@ -900,29 +900,30 @@ export function SetLoggerCard({
             ].join(" ")}
           >
             <CompactLogRow
-              label={(
-                <>
+              summary={(
+                <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-snug text-[rgb(var(--text)/0.94)]">
                   <span className="font-semibold text-text">{isCardio ? "Interval" : "Set"} {index + 1}</span>
-                  {set.queueStatus ? <span>{set.queueStatus}</span> : null}
-                  {set.pending && !set.queueStatus ? <span>saving...</span> : null}
-                </>
+                  <span className="text-muted">—</span>
+                  <span>{formatMeasurementSummaryText({
+                    reps: set.reps,
+                    weight: set.weight,
+                    weightUnit: set.weight_unit ?? unitLabel,
+                    durationSeconds: set.duration_seconds,
+                    distance: set.distance,
+                    distanceUnit: set.distance_unit,
+                    calories: set.calories,
+                    emptyLabel: "No measurements",
+                  })}</span>
+                  {set.is_warmup ? (
+                    <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-100">Warm-Up</span>
+                  ) : null}
+                  {set.rpe !== null ? (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">RPE {set.rpe}</span>
+                  ) : null}
+                  {set.queueStatus ? <span className="text-[11px] text-muted">{set.queueStatus}</span> : null}
+                  {set.pending && !set.queueStatus ? <span className="text-[11px] text-muted">saving...</span> : null}
+                </span>
               )}
-              summary={formatMeasurementSummaryText({
-                reps: set.reps,
-                weight: set.weight,
-                weightUnit: set.weight_unit ?? unitLabel,
-                durationSeconds: set.duration_seconds,
-                distance: set.distance,
-                distanceUnit: set.distance_unit,
-                calories: set.calories,
-                emptyLabel: "No measurements",
-              })}
-              meta={(set.is_warmup || set.rpe !== null) ? (
-                <>
-                  {set.is_warmup ? <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-100">Warm-Up</span> : null}
-                  {set.rpe !== null ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">RPE {set.rpe}</span> : null}
-                </>
-              ) : undefined}
               action={(
                 <button
                   type="button"
@@ -930,7 +931,10 @@ export function SetLoggerCard({
                     void handleDeleteSet(set);
                   }}
                   aria-label={`Delete ${isCardio ? "interval" : "set"} ${index + 1}`}
-                  className={`rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-medium text-muted hover:bg-surface-2-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${tapFeedbackClass}`}
+                  className={cn(
+                    "-my-[1px] -mr-[1px] self-stretch rounded-r-[1rem] border-l border-white/10 bg-white/[0.04] px-3 text-[11px] font-semibold text-muted transition hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25",
+                    tapFeedbackClass,
+                  )}
                 >
                   Delete
                 </button>

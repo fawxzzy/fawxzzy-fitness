@@ -1,3 +1,15 @@
+## [v0.3.77] – Session Density and Logged Set Cleanup
+
+### WHAT
+
+* Tightened Current Session spacing between the shared header, exercise list, and three-slot footer so the workout surface feels denser without changing footer ownership or button order.
+* Reordered Exercise Log details so `EFFORT` now appears above Warm-up, uses the shared uppercase eyebrow hierarchy, and keeps the info button inside the effort input field.
+* Flattened logged sets into single-line summaries and integrated the Delete action into the row edge with a border-bleed treatment instead of a separate floating pill.
+
+### WHY
+
+* These are high-frequency workout screens, so reducing vertical fragmentation and integrating controls into their containers improves scan speed and tap confidence on mobile.
+
 ## [v0.3.76] – Session Footer Timer and Log Summary Cleanup
 
 ### WHAT
