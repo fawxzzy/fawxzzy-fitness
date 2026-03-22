@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { readTodayCache } from "@/lib/offline/today-cache";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
@@ -10,6 +11,7 @@ import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { ACTIVE_SESSION_EVENT, readActiveSessionHint } from "@/lib/session-state-sync";
 
 type TodayPayload = {
   routine: {
@@ -52,6 +54,8 @@ export function TodayClientShell({
 }) {
   const [cachedSnapshot, setCachedSnapshot] = useState<TodayCacheSnapshot | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [activeSessionHintId, setActiveSessionHintId] = useState<string | null>(payload.inProgressSessionId);
+  const router = useRouter();
 
   useEffect(() => {
     if (!fetchFailed) {
@@ -63,13 +67,39 @@ export function TodayClientShell({
     });
   }, [fetchFailed]);
 
+  useEffect(() => {
+    setActiveSessionHintId(payload.inProgressSessionId);
+  }, [payload.inProgressSessionId]);
+
+  useEffect(() => {
+    const syncActiveSessionHint = () => {
+      const nextSessionId = payload.inProgressSessionId ?? readActiveSessionHint()?.sessionId ?? null;
+      setActiveSessionHintId(nextSessionId);
+
+      if (!payload.inProgressSessionId && nextSessionId) {
+        router.refresh();
+      }
+    };
+
+    syncActiveSessionHint();
+    window.addEventListener("focus", syncActiveSessionHint);
+    window.addEventListener("pageshow", syncActiveSessionHint);
+    window.addEventListener(ACTIVE_SESSION_EVENT, syncActiveSessionHint as EventListener);
+
+    return () => {
+      window.removeEventListener("focus", syncActiveSessionHint);
+      window.removeEventListener("pageshow", syncActiveSessionHint);
+      window.removeEventListener(ACTIVE_SESSION_EVENT, syncActiveSessionHint as EventListener);
+    };
+  }, [payload.inProgressSessionId, router]);
+
   const display = useMemo(() => {
     if (payload.routine) {
       return {
         routine: payload.routine,
         exercises: payload.exercises,
         completedTodayCount: payload.completedTodayCount,
-        inProgressSessionId: payload.inProgressSessionId,
+        inProgressSessionId: activeSessionHintId,
         staleAt: null,
       };
     }
@@ -79,13 +109,13 @@ export function TodayClientShell({
         routine: cachedSnapshot.routine,
         exercises: cachedSnapshot.exercises,
         completedTodayCount: cachedSnapshot.hints.completedTodayCount,
-        inProgressSessionId: cachedSnapshot.hints.inProgressSessionId,
+        inProgressSessionId: activeSessionHintId ?? cachedSnapshot.hints.inProgressSessionId,
         staleAt: cachedSnapshot.capturedAt,
       };
     }
 
     return null;
-  }, [cachedSnapshot, fetchFailed, payload]);
+  }, [activeSessionHintId, cachedSnapshot, fetchFailed, payload]);
 
   if (!display) {
     return (

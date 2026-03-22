@@ -72,6 +72,26 @@ function parseDurationInput(rawValue: string): number | null {
 type DisplaySet = SetRow & { pending?: boolean; queueStatus?: SetLogQueueItem["status"] };
 type AnimatedDisplaySet = DisplaySet & { isLeaving?: boolean };
 
+function mergeDisplaySets(baseSets: DisplaySet[], incomingSets: DisplaySet[]) {
+  const merged = new Map<string, DisplaySet>();
+
+  for (const set of baseSets) {
+    merged.set(set.id, set);
+  }
+
+  for (const set of incomingSets) {
+    const current = merged.get(set.id);
+    if (!current) {
+      merged.set(set.id, set);
+      continue;
+    }
+
+    merged.set(set.id, { ...current, ...set });
+  }
+
+  return Array.from(merged.values()).sort((left, right) => left.set_index - right.set_index);
+}
+
 export function SetLoggerCard({
   sessionId,
   sessionExerciseId,
@@ -194,8 +214,10 @@ export function SetLoggerCard({
     setRpe("");
     setWarmupValue(false);
     setError(null);
+    setSets(initialSets);
+    setAnimatedSets(initialSets);
     lastPublishedSetCountRef.current = initialSets.length;
-  }, [defaultDistanceUnit, initialSets.length, prefill, sessionExerciseId, setWarmupValue, unitLabel]);
+  }, [defaultDistanceUnit, initialSets, prefill, sessionExerciseId, setWarmupValue, unitLabel]);
 
   useEffect(() => {
     if (!onSetCountChange) {
@@ -225,7 +247,7 @@ export function SetLoggerCard({
       };
 
       if (Array.isArray(parsed.sets)) {
-        setSets(parsed.sets);
+        setSets(mergeDisplaySets(initialSets, parsed.sets));
       }
 
       if (parsed.form) {
@@ -252,7 +274,7 @@ export function SetLoggerCard({
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [activeMetrics, sessionExerciseId, sessionId, setWarmupValue]);
+  }, [activeMetrics, initialSets, sessionExerciseId, sessionId, setWarmupValue]);
 
   useEffect(() => {
     const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
@@ -932,7 +954,7 @@ export function SetLoggerCard({
                   }}
                   aria-label={`Delete ${isCardio ? "interval" : "set"} ${index + 1}`}
                   className={cn(
-                    "-my-px -mr-px self-stretch rounded-r-[calc(1rem-1px)] border-l border-rose-400/18 bg-[linear-gradient(180deg,rgba(244,63,94,0.2),rgba(190,24,93,0.16))] px-3.5 text-[11px] font-semibold text-rose-100 shadow-[-8px_0_20px_-18px_rgba(244,63,94,0.85)] transition hover:bg-[linear-gradient(180deg,rgba(244,63,94,0.28),rgba(190,24,93,0.2))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/30",
+                    "-my-px -mr-px self-stretch rounded-r-[calc(1rem-1px)] border-l border-rose-400/14 bg-[linear-gradient(180deg,rgba(244,63,94,0.14),rgba(190,24,93,0.1))] px-3 text-[11px] font-medium text-rose-100/90 shadow-none transition hover:bg-[linear-gradient(180deg,rgba(244,63,94,0.2),rgba(190,24,93,0.14))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/30",
                     tapFeedbackClass,
                   )}
                 >

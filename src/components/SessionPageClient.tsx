@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
@@ -11,6 +12,7 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { useToast } from "@/components/ui/ToastProvider";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
+import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 
@@ -104,6 +106,7 @@ export function SessionPageClient({
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const router = useRouter();
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [hasMountedTimer, setHasMountedTimer] = useState(false);
@@ -113,6 +116,10 @@ export function SessionPageClient({
     [requestedReturnTo, sessionId],
   );
   const { navigateReturn } = useReturnNavigation(fallbackReturnHref ?? "/today");
+
+  useEffect(() => {
+    writeActiveSessionHint(sessionId);
+  }, [sessionId]);
 
   useEffect(() => {
     setHasMountedTimer(true);
@@ -143,6 +150,8 @@ export function SessionPageClient({
           });
 
           if (result.ok) {
+            clearActiveSessionHint(sessionId);
+            router.refresh();
             navigateReturn();
           }
         }}
@@ -177,7 +186,7 @@ export function SessionPageClient({
         />
       </form>
     ),
-    [baseDurationSeconds, durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, saveSessionAction, sessionId, toast],
+    [baseDurationSeconds, durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, toast],
   );
 
   return (

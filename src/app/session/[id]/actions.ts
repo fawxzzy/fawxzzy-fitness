@@ -121,6 +121,7 @@ export async function addSetAction(payload: {
         userId: user.id,
         supabase,
       });
+      revalidateSessionViews(sessionId);
       return { ok: true, data: { set: existingByClientLogId as SetRow } };
     }
   }
@@ -187,6 +188,7 @@ export async function addSetAction(payload: {
         userId: user.id,
         supabase,
       });
+      revalidateSessionViews(sessionId);
       return { ok: true, data: { set: insertedSet as SetRow } };
     }
 
@@ -286,6 +288,7 @@ export async function deleteSetAction(payload: {
     return { ok: false, error: error.message };
   }
 
+  revalidateSessionViews(sessionId);
   return { ok: true };
 }
 
