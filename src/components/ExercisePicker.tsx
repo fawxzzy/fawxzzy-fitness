@@ -51,6 +51,15 @@ type ExercisePickerProps = {
     weightUnit: "lbs" | "kg";
   };
   footerSlot?: ReactNode;
+  onSelectedExerciseChange?: (exercise: ExerciseOption | null) => void;
+  renderFooter?: (context: {
+    selectedExercise: ExerciseOption | undefined;
+    selectedCanonicalExerciseId: string | null;
+    filteredExercises: ExerciseOption[];
+    selectedFilteredIndex: number;
+    selectPreviousExercise: () => void;
+    selectNextExercise: () => void;
+  }) => ReactNode;
 };
 
 type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
@@ -207,6 +216,8 @@ export function ExercisePicker({
   routineTargetConfig,
   exerciseStats = [],
   footerSlot,
+  onSelectedExerciseChange,
+  renderFooter,
 }: ExercisePickerProps) {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
@@ -328,6 +339,9 @@ export function ExercisePicker({
   }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
+  useEffect(() => {
+    onSelectedExerciseChange?.(selectedExercise ?? null);
+  }, [onSelectedExerciseChange, selectedExercise]);
   const exerciseMetadataById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean).join(" • ")])), [uniqueExercises]);
   const exerciseIconSrcById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, getExerciseIconSrc(exercise)])), [uniqueExercises]);
   const selectedFilteredIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
@@ -372,6 +386,16 @@ export function ExercisePicker({
     }
     setSelectedId(exerciseId);
   }, []);
+
+  const selectPreviousExercise = useCallback(() => {
+    if (selectedFilteredIndex <= 0) return;
+    setSelectedId(filteredExercises[selectedFilteredIndex - 1]?.id ?? selectedId);
+  }, [filteredExercises, selectedFilteredIndex, selectedId]);
+
+  const selectNextExercise = useCallback(() => {
+    if (selectedFilteredIndex === -1 || selectedFilteredIndex >= filteredExercises.length - 1) return;
+    setSelectedId(filteredExercises[selectedFilteredIndex + 1]?.id ?? selectedId);
+  }, [filteredExercises, selectedFilteredIndex, selectedId]);
 
   return (
     <div className="space-y-4">
@@ -422,10 +446,10 @@ export function ExercisePicker({
               <AppButton type="button" variant="secondary" size="sm" onClick={() => setIsExerciseInfoOpen(true)}>
                 Exercise info
               </AppButton>
-              <AppButton type="button" variant="ghost" size="sm" onClick={() => setSelectedId(filteredExercises[selectedFilteredIndex - 1]?.id ?? selectedId)} disabled={selectedFilteredIndex <= 0}>
+              <AppButton type="button" variant="ghost" size="sm" onClick={selectPreviousExercise} disabled={selectedFilteredIndex <= 0}>
                 Previous
               </AppButton>
-              <AppButton type="button" variant="ghost" size="sm" onClick={() => setSelectedId(filteredExercises[selectedFilteredIndex + 1]?.id ?? selectedId)} disabled={selectedFilteredIndex === -1 || selectedFilteredIndex >= filteredExercises.length - 1}>
+              <AppButton type="button" variant="ghost" size="sm" onClick={selectNextExercise} disabled={selectedFilteredIndex === -1 || selectedFilteredIndex >= filteredExercises.length - 1}>
                 Next
               </AppButton>
             </div>
@@ -564,7 +588,14 @@ export function ExercisePicker({
         </section>
       ) : null}
 
-      {footerSlot}
+      {renderFooter ? renderFooter({
+        selectedExercise,
+        selectedCanonicalExerciseId,
+        filteredExercises,
+        selectedFilteredIndex,
+        selectPreviousExercise,
+        selectNextExercise,
+      }) : footerSlot}
 
       <ExerciseInfo
         exerciseId={selectedCanonicalExerciseId}

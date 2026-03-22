@@ -15,7 +15,7 @@ export function CompactLogRow({
   return (
     <div
       className={cn(
-        "flex items-stretch justify-between gap-0 overflow-hidden rounded-[1rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.34)]",
+        "flex items-stretch justify-between gap-0 overflow-visible rounded-[1rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.34)] shadow-[0_10px_22px_-20px_rgba(0,0,0,0.95)]",
         className,
       )}
     >
