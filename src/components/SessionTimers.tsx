@@ -16,12 +16,12 @@ import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
-import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { FormSectionCard } from "@/components/ui/workout-entry/FormSectionCard";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
+import { formatMeasurementSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
@@ -781,21 +781,26 @@ export function SetLoggerCard({
           - Save button remains stable while toggling measurements */}
 
       <FormSectionCard className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]" insetClassName="space-y-3">
-        <label className="flex items-center justify-between gap-3 rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-3 py-2.5 text-sm text-text">
-          <span className="flex min-w-0 items-center gap-2">
-            <EyebrowText as="span" className="text-[10px]">Warm-up</EyebrowText>
-            <span className="text-sm text-muted">Mark this entry as prep work.</span>
+        <button
+          type="button"
+          onClick={() => setWarmupValue(!resolvedIsWarmup)}
+          aria-pressed={resolvedIsWarmup}
+          className={[
+            "flex w-full items-center justify-between gap-3 rounded-[1.1rem] border px-3 py-2.5 text-left transition",
+            resolvedIsWarmup
+              ? "border-emerald-400/35 bg-emerald-400/14 text-emerald-100"
+              : "border-white/8 bg-white/[0.04] text-text hover:bg-white/[0.06]",
+            tapFeedbackClass,
+          ].join(" ")}
+        >
+          <span className="min-w-0">
+            <span className="flex items-center gap-2">
+              <EyebrowText as="span" className={resolvedIsWarmup ? "text-emerald-200" : "text-[10px]"}>Warm-up</EyebrowText>
+              <span className={resolvedIsWarmup ? "text-sm text-emerald-100/90" : "text-sm text-muted"}>Tap to mark as warm-up</span>
+            </span>
           </span>
-          <span className="flex items-center gap-2">
-            <span className="text-sm font-medium text-text">{resolvedIsWarmup ? "On" : "Off"}</span>
-            <input
-              type="checkbox"
-              checked={resolvedIsWarmup}
-              onChange={(event) => setWarmupValue(event.target.checked)}
-              className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
-            />
-          </span>
-        </label>
+          <span className={resolvedIsWarmup ? "text-sm font-semibold text-emerald-100" : "text-sm font-medium text-text"}>{resolvedIsWarmup ? "On" : "Off"}</span>
+        </button>
 
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-3">
@@ -902,24 +907,19 @@ export function SetLoggerCard({
                   {set.pending && !set.queueStatus ? <span>saving...</span> : null}
                 </>
               )}
-              summary={(
-                <MeasurementSummary
-                  values={{
-                    reps: set.reps,
-                    weight: set.weight,
-                    weightUnit: set.weight_unit ?? unitLabel,
-                    durationSeconds: set.duration_seconds,
-                    distance: set.distance,
-                    distanceUnit: set.distance_unit,
-                    calories: set.calories,
-                  }}
-                  emptyLabel="No measurements"
-                  className="text-muted"
-                />
-              )}
+              summary={formatMeasurementSummaryText({
+                reps: set.reps,
+                weight: set.weight,
+                weightUnit: set.weight_unit ?? unitLabel,
+                durationSeconds: set.duration_seconds,
+                distance: set.distance,
+                distanceUnit: set.distance_unit,
+                calories: set.calories,
+                emptyLabel: "No measurements",
+              })}
               meta={(set.is_warmup || set.rpe !== null) ? (
                 <>
-                  {set.is_warmup ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">Warm-up</span> : null}
+                  {set.is_warmup ? <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-100">Warm-Up</span> : null}
                   {set.rpe !== null ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">RPE {set.rpe}</span> : null}
                 </>
               ) : undefined}

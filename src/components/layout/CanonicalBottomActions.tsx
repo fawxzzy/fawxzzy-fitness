@@ -9,9 +9,16 @@ export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
 
 const itemBaseClassName = "[&>*]:min-h-12 [&>*]:w-full [&>*]:rounded-[1rem] [&>*]:px-4 [&>*]:text-sm [&>*]:font-semibold [&>*]:tracking-[0.01em] [&>form]:flex [&>form]:h-full [&>form]:w-full [&>form]:items-stretch";
 
-function BottomActionSlot({ children, className }: { children: ReactNode; className?: string }) {
+function BottomActionSlot({ children, className, fill = true }: { children: ReactNode; className?: string; fill?: boolean }) {
   return (
-    <div className={cn("flex min-w-0 flex-1 basis-0 items-stretch justify-center self-stretch [&>*]:min-h-12 [&>*]:w-full [&>form>*]:h-full", className)}>
+    <div
+      className={cn(
+        "flex min-w-0 items-stretch justify-center self-stretch",
+        fill ? "flex-1 basis-0 [&>*]:w-full" : "shrink-0 [&>*]:w-auto",
+        "[&>*]:min-h-12 [&>form>*]:h-full",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -42,24 +49,32 @@ export function BottomActionTriple({
   secondary,
   tertiary,
   className,
+  primaryClassName,
+  secondaryClassName,
+  tertiaryClassName,
+  tertiaryFill = false,
 }: {
   primary: ReactNode;
   secondary: ReactNode;
   tertiary: ReactNode;
   className?: string;
+  primaryClassName?: string;
+  secondaryClassName?: string;
+  tertiaryClassName?: string;
+  tertiaryFill?: boolean;
 }) {
   return (
     <div
       className={cn(
         BOTTOM_ACTION_SURFACE_INNER_CLASSNAME,
-        "grid grid-cols-1 gap-2 sm:grid-cols-3",
+        "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-2",
         itemBaseClassName,
         className,
       )}
     >
-      <BottomActionSlot>{secondary}</BottomActionSlot>
-      <BottomActionSlot>{tertiary}</BottomActionSlot>
-      <BottomActionSlot>{primary}</BottomActionSlot>
+      <BottomActionSlot className={secondaryClassName}>{secondary}</BottomActionSlot>
+      <BottomActionSlot className={tertiaryClassName} fill={tertiaryFill}>{tertiary}</BottomActionSlot>
+      <BottomActionSlot className={primaryClassName}>{primary}</BottomActionSlot>
     </div>
   );
 }

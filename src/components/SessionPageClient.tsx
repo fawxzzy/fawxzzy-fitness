@@ -5,7 +5,7 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionTriple } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -51,6 +51,12 @@ type SyncQueuedSetLogsAction = (payload: {
 }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
 type ServerAction = (formData: FormData) => Promise<ActionResult<{ sessionId: string }>>;
+function formatDurationClock(totalSeconds: number) {
+  const safeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
 
 function getElapsedDuration(baseDurationSeconds: number, performedAt: string) {
   const parsed = Date.parse(performedAt);
@@ -144,8 +150,17 @@ export function SessionPageClient({
       >
         <input type="hidden" name="sessionId" value={sessionId} />
         <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-        <BottomActionSplit
+        <BottomActionTriple
           secondary={quickAddAction}
+          tertiary={(
+            <div
+              className="inline-flex min-h-12 items-center justify-center rounded-full border border-emerald-400/22 bg-emerald-400/12 px-3 py-2 text-sm font-semibold tabular-nums text-emerald-100"
+              suppressHydrationWarning
+              aria-live={hasMountedTimer ? "off" : undefined}
+            >
+              {formatDurationClock(hasMountedTimer ? durationSeconds : baseDurationSeconds)}
+            </div>
+          )}
           primary={(
             <AppButton
               type="submit"
@@ -158,10 +173,11 @@ export function SessionPageClient({
             </AppButton>
           )}
           className="w-full"
+          tertiaryClassName="px-1"
         />
       </form>
     ),
-    [durationSeconds, navigateReturn, quickAddAction, saveSessionAction, sessionId, toast],
+    [baseDurationSeconds, durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, saveSessionAction, sessionId, toast],
   );
 
   return (
@@ -175,8 +191,6 @@ export function SessionPageClient({
           <SessionHeaderControls
             sessionTitle={sessionTitle}
             sessionSummary={sessionSummary}
-            durationSeconds={hasMountedTimer ? durationSeconds : baseDurationSeconds}
-            isTimerHydrated={hasMountedTimer}
             backHref={fallbackReturnHref ?? "/today"}
           />
         ) : null}
