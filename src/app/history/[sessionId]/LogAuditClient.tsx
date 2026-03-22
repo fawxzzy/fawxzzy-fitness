@@ -17,7 +17,6 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
-import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -30,6 +29,7 @@ import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { formatMeasurementSummaryText } from "@/lib/measurement-display";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -470,22 +470,18 @@ export function LogAuditClient({
                         <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId((current) => (current === set.id ? null : set.id))}>
                           <CompactLogRow
                             label={<span className="font-semibold text-text">Set {index + 1}</span>}
-                            summary={(
-                              <MeasurementSummary
-                                values={{
-                                  ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
-                                    reps: set.values.reps.trim() ? Number(set.values.reps) : null,
-                                    weight: set.values.weight.trim() ? Number(set.values.weight) : null,
-                                    durationSeconds: parseDurationInput(set.values.duration),
-                                    distance: set.values.distance.trim() ? Number(set.values.distance) : null,
-                                    calories: set.values.calories.trim() ? Number(set.values.calories) : null,
-                                  }),
-                                  weightUnit: set.values.weightUnit,
-                                  distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
-                                }}
-                                emptyLabel="No measurements"
-                              />
-                            )}
+                            summary={`Set ${index + 1} · ${formatMeasurementSummaryText({
+                              ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
+                                reps: set.values.reps.trim() ? Number(set.values.reps) : null,
+                                weight: set.values.weight.trim() ? Number(set.values.weight) : null,
+                                durationSeconds: parseDurationInput(set.values.duration),
+                                distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+                                calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+                              }),
+                              weightUnit: set.values.weightUnit,
+                              distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
+                              emptyLabel: "No measurements",
+                            })}`}
                             action={<span className="text-xs text-slate-400">{expandedSetId === set.id ? "▾" : "▸"}</span>}
                             className="transition-colors hover:bg-[rgb(var(--surface-rgb)/0.42)]"
                           />
@@ -530,23 +526,19 @@ export function LogAuditClient({
                       </div>
                     ) : (
                       <CompactLogRow
-                        label={<span className="font-semibold text-text">Set {index + 1}</span>}
-                        summary={(
-                          <MeasurementSummary
-                            values={{
-                              ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
-                                reps: set.values.reps.trim() ? Number(set.values.reps) : null,
-                                weight: set.values.weight.trim() ? Number(set.values.weight) : null,
-                                durationSeconds: parseDurationInput(set.values.duration),
-                                distance: set.values.distance.trim() ? Number(set.values.distance) : null,
-                                calories: set.values.calories.trim() ? Number(set.values.calories) : null,
-                              }),
-                              weightUnit: set.values.weightUnit,
-                              distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
-                            }}
-                            emptyLabel="No measurements"
-                          />
-                        )}
+                        label={<span className="font-semibold text-text">Logged set</span>}
+                        summary={`Set ${index + 1} · ${formatMeasurementSummaryText({
+                          ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
+                            reps: set.values.reps.trim() ? Number(set.values.reps) : null,
+                            weight: set.values.weight.trim() ? Number(set.values.weight) : null,
+                            durationSeconds: parseDurationInput(set.values.duration),
+                            distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+                            calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+                          }),
+                          weightUnit: set.values.weightUnit,
+                          distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
+                          emptyLabel: "No measurements",
+                        })}`}
                       />
                     )}
                   </li>

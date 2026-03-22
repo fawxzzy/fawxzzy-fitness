@@ -1,16 +1,16 @@
-## [v0.3.76] – Session Flow Polish and Resume Rehydration
+## [v0.3.76] – Session Footer Timer and Log Summary Cleanup
 
 ### WHAT
 
-* Refined the shared session header shell so Current Session and Exercise Log keep title/subtitle left-aligned, restore the back action to the top-right corner, and place the live timer on its own compact row below the title block.
-* Added explicit Today revalidation on return/focus so active in-progress workouts rehydrate into the Resume Workout branch immediately after leaving session flow instead of waiting for a manual refresh.
-* Hardened the shared split bottom-action contract so Resume Session and Discard Session render as true equal-width, equal-height columns even when one action is wrapped in a form.
-* Slimmed the shared logged-set/history row treatment by introducing a compact log-row pattern with denser measurement summaries, lighter chips, and cleaner action placement across Current Session and History log entries.
+* Moved the live Current Session timer out of the header and into the bottom action bar so Quick Add Exercise, timer status, and Complete Session now share one balanced three-slot footer.
+* Changed Current Session back navigation to be navigation-only so leaving the screen no longer risks clearing the in-progress workout, and Today immediately returns in the Resume Session state without needing a manual refresh.
+* Replaced the Warm-up checkbox control with a full-row toggle treatment that uses green active styling and clearer mobile copy: `Tap to mark as warm-up`.
+* Flattened saved-set and history-log rows into concise one-line summaries for standard measurements while keeping chips reserved for special annotations such as Warm-Up or RPE.
 
 ### WHY
 
-* The session family was already close to normalized, but the remaining polish lived in shared primitives and route rehydration boundaries rather than screen-specific rewrites.
-* Tightening those shared contracts removes the last bits of visual drift while fixing the stale Today resume-state behavior that showed up after navigation.
+* Session status belongs next to the session controls it affects, not duplicated in the header where it adds visual weight.
+* Warm-up and logged-set interactions are high-frequency touches, so they should favor large touch targets and readable summaries over small checkbox affordances and dense measurement pills.
 
 ## [v0.3.75] – Session Surface Density Cleanup
 
