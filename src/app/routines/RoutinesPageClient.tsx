@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit, BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import {
   ActiveRoutineStatusBadge,
@@ -79,31 +79,58 @@ export function RoutinesPageClient({
     });
   }, [activeRoutineId, isPending, setActiveRoutineAction]);
 
-  const actionsNode = useMemo(() => (
-    <BottomActionSplit
-      secondary={(
-        <SecondaryButton
-          type="button"
-          className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-          onClick={handleToggleRoutineList}
-          aria-expanded={isRoutineListOpen}
-          aria-controls="routines-switch-list"
-        >
-          <span>{isRoutineListOpen ? "Hide Routines" : "Select Routine"}</span>
-        </SecondaryButton>
-      )}
-      primary={activeRoutineEditHref ? (
-        <Link
-          href={activeRoutineEditHref}
-          className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
-        >
-          Edit Routine
-        </Link>
-      ) : (
-        <div aria-hidden="true" />
-      )}
-    />
-  ), [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen]);
+  const actionsNode = useMemo(() => {
+    const toggleButton = (
+      <SecondaryButton
+        type="button"
+        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+        onClick={handleToggleRoutineList}
+        aria-expanded={isRoutineListOpen}
+        aria-controls="routines-switch-list"
+      >
+        <span>{isRoutineListOpen ? "Hide Routines" : "Select Routine"}</span>
+      </SecondaryButton>
+    );
+
+    const editRoutineAction = activeRoutineEditHref ? (
+      <Link
+        href={activeRoutineEditHref}
+        className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
+      >
+        Edit Routine
+      </Link>
+    ) : (
+      <div aria-hidden="true" />
+    );
+
+    if (isRoutineListOpen) {
+      return (
+        <BottomActionStackedPrimary
+          utility={(
+            <>
+              {toggleButton}
+              {editRoutineAction}
+            </>
+          )}
+          primary={(
+            <Link
+              href={newRoutineHref}
+              className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true })}
+            >
+              New Routine
+            </Link>
+          )}
+        />
+      );
+    }
+
+    return (
+      <BottomActionSplit
+        secondary={toggleButton}
+        primary={editRoutineAction}
+      />
+    );
+  }, [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen, newRoutineHref]);
 
   usePublishBottomActions(actionsNode);
 
@@ -121,14 +148,6 @@ export function RoutinesPageClient({
         <RoutinesSectionCard
           title="Routines"
           meta={routines.length === 1 ? "1 routine" : `${routines.length} routines`}
-          action={(
-            <Link
-              href={newRoutineHref}
-              className={getAppButtonClassName({ variant: "primary", size: "sm" })}
-            >
-              New Routine
-            </Link>
-          )}
         >
           <div id="routines-switch-list" aria-label="Routines">
             <RoutinesCardList>

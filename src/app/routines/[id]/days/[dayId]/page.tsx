@@ -82,7 +82,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
 
   return (
-    <MainTabScreen className="space-y-0">
+    <MainTabScreen topNavMode="none" className="space-y-0">
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
         <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
           <AppPanel className="space-y-3 pt-3">
@@ -127,7 +127,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
           <BottomActionSingle>
             <Link
               href={editDayHref}
-              className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true, className: "w-full" })}
+              className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true, className: "w-full" })}
             >
               Edit Day
             </Link>
