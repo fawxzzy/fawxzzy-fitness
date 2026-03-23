@@ -1,3 +1,16 @@
+## [v0.3.85] – Edit Routine Simplification and Weekday Anchoring
+
+### WHAT
+
+* Simplified Edit Routine into the normalized editor-family flow by moving the editable routine name into the top editor card, consolidating routine-level fields into one `DETAILS` card, and removing the inline day list plus bottom delete warning box.
+* Replaced `Start Date` editing on Edit Routine with a weekday-based `Starts On` control that derives the stored anchor date while preserving routine/calendar mapping and existing routine edit compatibility.
+* Kept the shared bottom action bar contract in place with segmented `Cancel` / `Delete Routine` utilities and a full-width `Save Routine` primary action.
+
+### WHY
+
+* Routine-level editing should stay focused on routine identity, schedule, and defaults instead of mixing in day-management and destructive warning content that belongs elsewhere in the flow.
+* Weekday-based anchoring matches how people think about recurring training plans better than raw date entry while still letting the app compute the internal cycle anchor it needs.
+
 ## [v0.3.84] – Editor Primitive Extraction Follow-Through
 
 ### WHAT
