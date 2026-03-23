@@ -14,6 +14,8 @@ type AppListboxFieldProps = {
   name: string;
   options: readonly ListboxOption[];
   defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
   required?: boolean;
   className?: string;
   buttonClassName?: string;
@@ -24,6 +26,8 @@ export function AppListboxField({
   name,
   options,
   defaultValue,
+  value: controlledValue,
+  onValueChange,
   required = false,
   className,
   buttonClassName,
@@ -31,7 +35,8 @@ export function AppListboxField({
   const generatedId = useId();
   const buttonId = `${generatedId}-button`;
   const listboxId = `${generatedId}-listbox`;
-  const [value, setValue] = useState(defaultValue ?? options[0]?.value ?? "");
+  const [internalValue, setInternalValue] = useState(defaultValue ?? options[0]?.value ?? "");
+  const value = controlledValue ?? internalValue;
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(() => Math.max(0, options.findIndex((option) => option.value === (defaultValue ?? options[0]?.value))));
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -41,10 +46,10 @@ export function AppListboxField({
 
   useEffect(() => {
     if (!defaultValue) return;
-    setValue(defaultValue);
+    if (controlledValue === undefined) setInternalValue(defaultValue);
     const nextIndex = options.findIndex((option) => option.value === defaultValue);
     if (nextIndex >= 0) setActiveIndex(nextIndex);
-  }, [defaultValue, options]);
+  }, [controlledValue, defaultValue, options]);
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value) ?? options[0],
@@ -97,7 +102,8 @@ export function AppListboxField({
   const selectIndex = (index: number) => {
     const option = options[index];
     if (!option) return;
-    setValue(option.value);
+    if (controlledValue === undefined) setInternalValue(option.value);
+    onValueChange?.(option.value);
     setActiveIndex(index);
     setIsOpen(false);
     requestAnimationFrame(() => {

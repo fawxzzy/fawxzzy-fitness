@@ -25,6 +25,8 @@ export function RoutineEditorFormFields({
   timezoneDefaultValue,
   weightUnitDefaultValue,
   titleInput = false,
+  values,
+  onFieldChange,
 }: {
   nameDefaultValue?: string;
   cycleLengthDefaultValue: number;
@@ -32,6 +34,8 @@ export function RoutineEditorFormFields({
   timezoneDefaultValue: string;
   weightUnitDefaultValue: string;
   titleInput?: boolean;
+  values?: Partial<{ name: string; cycleLengthDays: number; startWeekday: string; timezone: string; weightUnit: string }>;
+  onFieldChange?: (field: string, value: string) => void;
 }) {
   return (
     <>
@@ -41,6 +45,8 @@ export function RoutineEditorFormFields({
           name="name"
           required
           defaultValue={nameDefaultValue}
+          value={values?.name}
+          onChange={(event) => onFieldChange?.("name", event.target.value)}
           aria-label="Routine Name"
           placeholder="Push/Pull/Legs"
           className={titleInput ? controlClassName.replace("h-11", "h-12") : controlClassName}
@@ -57,6 +63,8 @@ export function RoutineEditorFormFields({
             max={365}
             required
             defaultValue={cycleLengthDefaultValue}
+            value={values?.cycleLengthDays ?? undefined}
+            onChange={(event) => onFieldChange?.("cycleLengthDays", event.target.value)}
             className={controlClassName}
           />
         </label>
@@ -66,6 +74,8 @@ export function RoutineEditorFormFields({
           name="startWeekday"
           required
           defaultValue={startWeekdayDefaultValue}
+          value={values?.startWeekday}
+          onValueChange={(value) => onFieldChange?.("startWeekday", value)}
           options={weekdayOptions}
         />
 
@@ -74,6 +84,8 @@ export function RoutineEditorFormFields({
           name="timezone"
           required
           defaultValue={timezoneDefaultValue}
+          value={values?.timezone}
+          onValueChange={(value) => onFieldChange?.("timezone", value)}
           options={timezoneOptions}
         />
 
@@ -81,6 +93,8 @@ export function RoutineEditorFormFields({
           label="Weight Unit"
           name="weightUnit"
           defaultValue={weightUnitDefaultValue}
+          value={values?.weightUnit}
+          onValueChange={(value) => onFieldChange?.("weightUnit", value)}
           options={weightUnitOptions}
         />
       </div>

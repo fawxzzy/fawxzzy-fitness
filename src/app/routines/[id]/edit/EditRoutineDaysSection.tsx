@@ -9,6 +9,7 @@ type EditRoutineDayItem = {
   summary: string;
   notes: string | null;
   href: string;
+  needsSetup?: boolean;
 };
 
 export function EditRoutineDaysSection({
@@ -40,14 +41,14 @@ export function EditRoutineDaysSection({
       {days.length > 0 ? (
         <ul className="space-y-2">
           {days.map((day) => {
-            const subtitle = [day.summary, day.notes?.trim() || null].filter(Boolean).join(" • ");
+            const subtitle = day.needsSetup ? "Not configured yet • Tap to set up this day" : [day.summary, day.notes?.trim() || null].filter(Boolean).join(" • ");
             return (
               <li key={day.id}>
                 <RoutineEditorDayRow
                   title={`Day ${day.dayIndex} | ${day.title}`}
                   subtitle={subtitle}
-                  badgeText={day.isRest ? "Rest Day" : undefined}
-                  state={day.isRest ? "empty" : "default"}
+                  badgeText={day.isRest ? "Rest Day" : day.needsSetup ? "Needs Setup" : undefined}
+                  state={day.isRest || day.needsSetup ? "empty" : "default"}
                   href={day.href}
                   rightLabel={<span aria-hidden="true" className="text-muted">Edit</span>}
                 />

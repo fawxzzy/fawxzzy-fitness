@@ -1,3 +1,17 @@
+## [v0.3.87] – Autosave Routine Editors and Draft-Based Routine Creation
+
+### WHAT
+
+* Shifted Edit Routine and Edit Day toward debounced autosave with lightweight `Saving...` / `Saved` feedback, removed explicit routine/day save CTAs, and kept delete as the only bottom-bar action on Edit Routine.
+* Converted New Routine into a local draft flow that autosaves in-progress fields, lets users leave and resume without a blocking discard overlay, and finishes with an explicit `Create Routine` action.
+* Added clearer unconfigured-day guidance in day cards and switchers with `Not configured yet`, `Tap to set up this day`, and `Needs Setup` treatment, and now routes newly created routines directly into the first day setup flow.
+
+### WHY
+
+* Routine editor screens should feel lightweight and continuous, so ordinary edits now save in the background while explicit confirmation stays reserved for final or destructive actions.
+* New Routine needs draft semantics instead of pretending every intermediate edit is already a fully created live routine.
+* Unconfigured days need stronger setup affordances so users can discover the next step without re-bloating Edit Routine with inline day editing.
+
 ## [v0.3.86] – Routine Editor Family Unification and Dark Selects
 
 ### WHAT

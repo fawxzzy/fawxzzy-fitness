@@ -13,6 +13,7 @@ type EditDayHeaderSwitcherDay = {
   name: string;
   isRest: boolean;
   exerciseSummary: string;
+  needsSetup?: boolean;
 };
 
 type EditDayHeaderSwitcherProps = {
@@ -66,7 +67,7 @@ export function EditDayHeaderSwitcher({
           >
             {open ? "Hide Days" : "Select Day"}
           </SecondaryButton>
-          {activeDay?.isRest ? <AppBadge>Rest Day</AppBadge> : null}
+          {activeDay?.isRest ? <AppBadge>Rest Day</AppBadge> : activeDay?.needsSetup ? <AppBadge>Needs Setup</AppBadge> : null}
         </div>
 
         {open ? (
@@ -80,9 +81,9 @@ export function EditDayHeaderSwitcher({
                 <RoutineEditorDayRow
                   key={day.id}
                   title={title}
-                  subtitle={day.exerciseSummary}
-                  badgeText={isCurrent ? "Current" : day.isRest ? "Rest" : undefined}
-                  state={isCurrent ? "selected" : day.isRest ? "empty" : "default"}
+                  subtitle={day.needsSetup ? `Not configured yet • Tap to set up this day` : day.exerciseSummary}
+                  badgeText={isCurrent ? "Current" : day.isRest ? "Rest" : day.needsSetup ? "Needs Setup" : undefined}
+                  state={isCurrent ? "selected" : day.isRest || day.needsSetup ? "empty" : "default"}
                   href={isCurrent ? undefined : dayHref}
                 />
               );
