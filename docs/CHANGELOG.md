@@ -1,3 +1,15 @@
+## [v0.3.84] – Edit Routine Editor-Family Normalization
+
+### WHAT
+
+* Rebuilt Edit Routine around the shared editor-family shell with a tighter header, normalized section cards, and a compact metadata rhythm that matches Edit Day and the main Routines screen.
+* Added a shared-family days section to Edit Routine so routine days now reuse the canonical day-row visuals while still routing into the existing day-specific editor flow.
+* Moved Edit Routine&apos;s dominant save action into the finalized stacked-primary footer with supporting Cancel and Delete Routine actions, removing route-local CTA drift from the content column.
+
+### WHY
+
+* Edit Routine is the parent editor for the routines feature, so it should read as part of the same section, row, and footer family instead of a one-off form screen.
+* Keeping primary actions in the bottom action bar and day editing entry points in canonical day rows preserves the app&apos;s newer editing rhythm without changing routine-specific behavior.
 ## [v0.3.84] – Edit Day Editor Family Normalization
 
 ### WHAT

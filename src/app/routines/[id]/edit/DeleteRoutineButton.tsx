@@ -10,7 +10,7 @@ import { deleteRoutineAction } from "@/app/routines/actions";
 export function DeleteRoutineButton({
   routineId,
   routineName,
-  className = "w-full",
+  className = "w-full min-h-[44px]",
 }: {
   routineId: string;
   routineName: string;
