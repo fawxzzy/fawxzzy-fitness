@@ -19,7 +19,7 @@ export function RoutineEditorPageHeader({
   children,
   className,
 }: {
-  eyebrow: ReactNode;
+  eyebrow?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
   subtitleRight?: ReactNode;

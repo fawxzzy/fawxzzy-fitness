@@ -1,3 +1,16 @@
+## [v0.3.86] – Routine Editor Family Unification and Dark Selects
+
+### WHAT
+
+* Merged Edit Routine into one unified editor card, removed the leftover training/rest/day summary strip, and kept the routine name, back action, and normalized footer actions inside the same editor-family flow.
+* Rebuilt New Routine to match the same editor-family structure, field order, labels, and footer system used by Edit Routine while preserving create-only behavior.
+* Replaced native routine-form `<select>` controls with a shared dark listbox/select primitive so Starts On, Timezone, and Weight Unit now open on-theme menu surfaces instead of white browser popups.
+
+### WHY
+
+* New Routine and Edit Routine both edit the same object, so they should share one layout contract, one field language, and one input system instead of looking like different product generations.
+* Native select popups were breaking the app's dark visual system and making routine editing feel inconsistent with the rest of the UI.
+
 ## [v0.3.85] – Edit Routine Simplification and Weekday Anchoring
 
 ### WHAT
