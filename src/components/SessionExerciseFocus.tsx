@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { AppButton } from "@/components/ui/AppButton";
-import { BackButton } from "@/components/ui/BackButton";
 import { Pill } from "@/components/ui/Pill";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { SessionExerciseActionRow } from "@/components/session/SessionExerciseActionRow";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { WorkoutEntryIdentity } from "@/components/ui/workout-entry/EntrySection";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -18,6 +18,7 @@ import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
+import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
 
 type AddSetPayload = {
   sessionId: string;
@@ -81,6 +82,7 @@ export type SessionExerciseFocusItem = {
   planTargetsHash: string | null;
   goalLabel: string;
   prefill?: SessionExercisePrefill;
+  quickLogTarget?: SessionQuickLogTarget;
   initialSets: SetRow[];
   loggedSetCount: number;
   image_path?: string | null;
@@ -118,6 +120,8 @@ export function SessionExerciseFocus({
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount])),
   );
   const [warmupDraft, setWarmupDraft] = useState(false);
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
   const focusedRef = useRef<HTMLDivElement | null>(null);
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
@@ -134,6 +138,25 @@ export function SessionExerciseFocus({
 
   useEffect(() => {
     setWarmupDraft(false);
+  }, [selectedExerciseId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const syncDesktop = () => setIsDesktop(mediaQuery.matches);
+    syncDesktop();
+    mediaQuery.addEventListener("change", syncDesktop);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncDesktop);
+    };
+  }, []);
+
+  useEffect(() => {
+    setOpenRowId(null);
   }, [selectedExerciseId]);
 
   const handleRemoveExercise = (exerciseId: string) => {
@@ -222,25 +245,76 @@ export function SessionExerciseFocus({
                   isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-40 scale-100 opacity-100",
                 ].join(" ")}
               >
-                <StandardExerciseRow
-                  exercise={exercise}
-                  summary={exercise.goalLabel}
-                  variant="expanded"
-                  state={setCount > 0 ? "completed" : undefined}
-                  onPress={() => onSelectedExerciseIdChange(exercise.id)}
-                  className="shadow-none"
-                  trailingClassName="self-center text-muted"
-                  rightIcon={<ChevronRightIcon className="h-5 w-5" />}
-                  badgeText={setCount > 0 ? `${setCount} logged` : undefined}
+                <SessionExerciseActionRow
+                  id={exercise.id}
+                  isDesktop={isDesktop}
+                  isOpen={openRowId === exercise.id}
+                  onOpenChange={setOpenRowId}
+                  onQuickLog={async () => {
+                    const quickLogResolution = resolveQuickLogFromTarget(exercise.quickLogTarget, unitLabel === "lbs" ? "lbs" : "kg");
+                    if (!quickLogResolution.ok) {
+                      toast.error(quickLogResolution.reason);
+                      onSelectedExerciseIdChange(exercise.id);
+                      return;
+                    }
+
+                    const result = await addSetAction({
+                      sessionId,
+                      sessionExerciseId: exercise.id,
+                      ...quickLogResolution.payload,
+                      isWarmup: false,
+                      rpe: null,
+                      notes: null,
+                    });
+
+                    toastActionResult(toast, result, {
+                      success: "Set logged.",
+                      error: "Could not quick log set.",
+                    });
+
+                    if (result.ok) {
+                      handleSetCountChange(exercise.id, setCount + 1);
+                      router.refresh();
+                    }
+                  }}
+                  onSkip={async () => {
+                    const formData = new FormData();
+                    formData.set("sessionId", sessionId);
+                    formData.set("sessionExerciseId", exercise.id);
+                    formData.set("nextSkipped", String(!exercise.isSkipped));
+                    const result = await toggleSkipAction(formData);
+
+                    toastActionResult(toast, result, {
+                      success: exercise.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
+                      error: "Could not update skip state.",
+                    });
+
+                    if (result.ok) {
+                      router.refresh();
+                    }
+                  }}
+                  skipLabel={exercise.isSkipped ? "Unskip" : "Skip"}
                 >
-                  {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      {exercise.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-text">Added today</Pill> : null}
-                      {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill> : null}
-                    </div>
-                  ) : null}
-                  {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No sets yet.</p> : null}
-                </StandardExerciseRow>
+                  <StandardExerciseRow
+                    exercise={exercise}
+                    summary={exercise.goalLabel}
+                    variant="expanded"
+                    state={setCount > 0 ? "completed" : undefined}
+                    onPress={() => onSelectedExerciseIdChange(exercise.id)}
+                    className="shadow-none"
+                    trailingClassName="self-center text-muted"
+                    rightIcon={<ChevronRightIcon className="h-5 w-5" />}
+                    badgeText={setCount > 0 ? `${setCount} logged` : undefined}
+                  >
+                    {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        {exercise.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-text">Added today</Pill> : null}
+                        {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill> : null}
+                      </div>
+                    ) : null}
+                    {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No sets yet.</p> : null}
+                  </StandardExerciseRow>
+                </SessionExerciseActionRow>
               </li>
             );
           })}

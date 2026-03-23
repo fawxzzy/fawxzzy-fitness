@@ -164,6 +164,18 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               })(),
               goalLabel: formatSessionGoalLabel(displayTarget, unitLabel),
               prefill: getGoalPrefill(displayTarget, unitLabel),
+              quickLogTarget: displayTarget ? {
+                repsMin: displayTarget.repsMin,
+                repsMax: displayTarget.repsMax,
+                weightMin: displayTarget.weightMin,
+                weightMax: displayTarget.weightMax,
+                weightUnit: displayTarget.weightUnit,
+                durationSeconds: displayTarget.durationSeconds,
+                distance: displayTarget.distance,
+                distanceUnit: displayTarget.distanceUnit,
+                calories: displayTarget.calories,
+                measurementType: displayTarget.measurementType,
+              } : undefined,
               initialSets: setsByExercise.get(exercise.id) ?? [],
               loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,
             };
