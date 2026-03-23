@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import {
   ActiveRoutineStatusBadge,
@@ -80,25 +80,29 @@ export function RoutinesPageClient({
   }, [activeRoutineId, isPending, setActiveRoutineAction]);
 
   const actionsNode = useMemo(() => (
-    <BottomActionUtilityCluster>
-      <SecondaryButton
-        type="button"
-        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
-        onClick={handleToggleRoutineList}
-        aria-expanded={isRoutineListOpen}
-        aria-controls="routines-switch-list"
-      >
-        <span>{isRoutineListOpen ? "Hide Routines" : "Select Routine"}</span>
-      </SecondaryButton>
-      {activeRoutineEditHref ? (
+    <BottomActionSplit
+      secondary={(
+        <SecondaryButton
+          type="button"
+          className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+          onClick={handleToggleRoutineList}
+          aria-expanded={isRoutineListOpen}
+          aria-controls="routines-switch-list"
+        >
+          <span>{isRoutineListOpen ? "Hide Routines" : "Select Routine"}</span>
+        </SecondaryButton>
+      )}
+      primary={activeRoutineEditHref ? (
         <Link
           href={activeRoutineEditHref}
           className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
         >
           Edit Routine
         </Link>
-      ) : null}
-    </BottomActionUtilityCluster>
+      ) : (
+        <div aria-hidden="true" />
+      )}
+    />
   ), [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen]);
 
   usePublishBottomActions(actionsNode);

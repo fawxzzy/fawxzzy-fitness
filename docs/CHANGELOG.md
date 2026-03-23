@@ -1,3 +1,17 @@
+## [v0.3.81] – Bottom Action Bar Primitive Finalization
+
+### WHAT
+
+* Finalized the shared BottomActionBar family around four explicit app-wide variants: `single`, `split`, `stackedPrimary`, and `triad`, with the segmented row now acting as one canonical control surface instead of route-local footer styling.
+* Reduced the leftover segmented background hotspot, tightened internal seams/dividers, and normalized wrapped-label centering/line-height so long labels like `Quick Add Exercise` stay visually centered without width drift.
+* Locked slot sizing rules across the system: split actions stay true equal-width, stacked utility rows preserve equal segmented columns above a dominant full-width primary CTA, and the Current Session timer now lives in a fixed-width tabular-numeral center slot that no longer jitters as time advances.
+* Routed Today, Routines, View Day, Current Session, and Exercise Log through the normalized shared variants so those screens now reuse one canonical footer contract without per-screen drift.
+
+### WHY
+
+* Bottom action bars are app-level control surfaces, so letting screens keep their own footer spacing, segment sizing, or highlight treatments would reintroduce the same inconsistency this shared system was created to prevent.
+* Explicit variant contracts make future reuse safer: product screens can choose the right footer shape for the job without inventing new segmented layouts or re-tuning timer/label behavior locally.
+
 ## [v0.3.80] – Bottom Action Bar Segmented Control Refinement
 
 ### WHAT
