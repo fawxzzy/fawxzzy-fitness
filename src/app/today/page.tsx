@@ -369,14 +369,14 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               <BottomActionSplit
                 primary={(
                   <Link href={`/session/${todayPayload.inProgressSessionId}?returnTo=${encodeURIComponent("/today")}`} className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true, className: "border-emerald-300/60 bg-emerald-500/28 text-emerald-50 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform hover:bg-emerald-500/34 active:scale-[0.98] active:bg-emerald-500/38" })}>
-                    Resume session
+                    Resume Session
                   </Link>
                 )}
                 secondary={(
                   <ConfirmedServerFormButton
                     action={discardInProgressSessionAction}
                     hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
-                    triggerLabel="Discard session"
+                    triggerLabel="Discard Session"
                     triggerClassName="h-full w-full"
                     size="md"
                     modalTitle="Discard workout?"

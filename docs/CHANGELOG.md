@@ -1,3 +1,16 @@
+## [v0.3.82] – Bottom Action Bar Micro-Polish
+
+### WHAT
+
+* Applied one final shared-primitive polish pass to the canonical bottom action bar surface by reducing interior sheen, easing shadow weight, and softening segmented hover/press treatments so the footer reads premium without the brighter hotspot feel.
+* Refined segmented seams at the primitive layer with more structural centered dividers plus tighter label line-height/centering rules, which keeps wrapped labels like `Quick Add Exercise` and the triad timer slot visually balanced.
+* Normalized the remaining bottom-bar CTA copy to Title Case by updating Today&apos;s in-progress action from `Resume Workout` to `Resume Session`, and nudged the shared top-nav title block slightly lower for cleaner vertical centering on screens like Today and Routines.
+
+### WHY
+
+* Once the shared footer contract is structurally correct, the last visible quality issues are usually micro-details like glow weight, divider treatment, casing drift, and tiny alignment offsets that accumulate across every screen.
+* Finishing those details in the shared primitive and nav shell preserves the canonical system without reintroducing route-local tweaks.
+
 ## [v0.3.81] – Bottom Action Bar Primitive Finalization
 
 ### WHAT

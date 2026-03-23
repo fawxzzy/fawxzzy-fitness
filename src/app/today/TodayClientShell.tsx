@@ -179,7 +179,7 @@ export function TodayClientShell({
           href={`/session/${display.inProgressSessionId}?returnTo=${encodeURIComponent("/today")}`}
           className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
         >
-          Resume session
+          Resume Session
         </Link>
       ) : (
         <SubtitleText className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center">

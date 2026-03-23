@@ -4,22 +4,22 @@ import { cn } from "@/lib/cn";
 export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3.5 pb-[calc(var(--app-safe-bottom)+0.3rem)]";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   "rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(var(--surface-rgb),0.985),rgba(var(--surface-rgb),0.955))]",
-  "px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-md",
+  "px-2 py-2 shadow-[0_8px_20px_rgba(0,0,0,0.15)] backdrop-blur-md",
 );
 
 const CONTROL_LABEL_CLASSNAME = cn(
-  "[&_.app-button]:leading-[1.15] [&_.app-button]:text-center [&_.app-button]:whitespace-normal",
+  "[&_.app-button]:leading-[1.08] [&_.app-button]:text-center [&_.app-button]:whitespace-normal",
   "[&_.app-button>span:last-child]:flex [&_.app-button>span:last-child]:min-w-0 [&_.app-button>span:last-child]:flex-1",
-  "[&_.app-button>span:last-child]:items-center [&_.app-button>span:last-child]:justify-center [&_.app-button>span:last-child]:text-center",
-  "[&_.app-button>span:last-child]:leading-[1.15]",
-  "[&>a]:leading-[1.15] [&>a]:text-center [&>a]:whitespace-normal",
+  "[&_.app-button>span:last-child]:items-center [&_.app-button>span:last-child]:justify-center [&_.app-button>span:last-child]:text-center [&_.app-button>span:last-child]:self-center",
+  "[&_.app-button>span:last-child]:leading-[1.08]",
+  "[&>a]:leading-[1.08] [&>a]:text-center [&>a]:whitespace-normal",
   "[&>a>span:last-child]:flex [&>a>span:last-child]:min-w-0 [&>a>span:last-child]:flex-1",
-  "[&>a>span:last-child]:items-center [&>a>span:last-child]:justify-center [&>a>span:last-child]:text-center",
-  "[&>a>span:last-child]:leading-[1.15]",
-  "[&>button]:leading-[1.15] [&>button]:text-center [&>button]:whitespace-normal",
+  "[&>a>span:last-child]:items-center [&>a>span:last-child]:justify-center [&>a>span:last-child]:text-center [&>a>span:last-child]:self-center",
+  "[&>a>span:last-child]:leading-[1.08]",
+  "[&>button]:leading-[1.08] [&>button]:text-center [&>button]:whitespace-normal",
   "[&>button>span:last-child]:flex [&>button>span:last-child]:min-w-0 [&>button>span:last-child]:flex-1",
-  "[&>button>span:last-child]:items-center [&>button>span:last-child]:justify-center [&>button>span:last-child]:text-center",
-  "[&>button>span:last-child]:leading-[1.15]",
+  "[&>button>span:last-child]:items-center [&>button>span:last-child]:justify-center [&>button>span:last-child]:text-center [&>button>span:last-child]:self-center",
+  "[&>button>span:last-child]:leading-[1.08]",
   "[&>form]:flex [&>form]:h-full [&>form]:w-full [&>form]:items-stretch",
   "[&>form_.app-button]:h-full [&>form_.app-button]:w-full",
 );
@@ -30,21 +30,21 @@ const itemBaseClassName = cn(
 );
 
 const segmentedSurfaceClassName = cn(
-  "overflow-hidden rounded-[1.12rem] border border-white/7 bg-[rgba(255,255,255,0.025)]",
-  "shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]",
-  "[&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:inset-y-[8px] [&>*+*]:before:left-0 [&>*+*]:before:w-px [&>*+*]:before:bg-white/10",
+  "overflow-hidden rounded-[1.12rem] border border-white/[0.06] bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.014))]",
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.018),inset_0_-1px_0_rgba(0,0,0,0.08)]",
+  "[&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:inset-y-[9px] [&>*+*]:before:left-0 [&>*+*]:before:w-px [&>*+*]:before:-translate-x-1/2 [&>*+*]:before:bg-[linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.09),rgba(255,255,255,0))] [&>*+*]:after:absolute [&>*+*]:after:inset-y-[9px] [&>*+*]:after:left-0 [&>*+*]:after:w-px [&>*+*]:after:translate-x-1/2 [&>*+*]:after:bg-[linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,0.16),rgba(0,0,0,0))]",
 );
 
 const segmentedItemClassName = cn(
   "[&_.app-button]:rounded-none [&_.app-button]:border-transparent [&_.app-button]:bg-transparent [&_.app-button]:shadow-none",
-  "[&_.app-button]:text-[rgb(var(--text)/0.86)] [&_.app-button:hover]:bg-white/[0.025] [&_.app-button:active]:bg-white/[0.05]",
+  "[&_.app-button]:text-[rgb(var(--text)/0.86)] [&_.app-button:hover]:bg-white/[0.02] [&_.app-button:active]:bg-white/[0.04]",
   "[&_.app-button]:focus-visible:ring-[var(--button-focus-ring)] [&_.app-button]:focus-visible:ring-inset",
   "[&>a]:rounded-none [&>a]:border-transparent [&>a]:bg-transparent [&>a]:shadow-none",
-  "[&>a]:text-[rgb(var(--text)/0.86)] [&>a:hover]:bg-white/[0.025] [&>a:active]:bg-white/[0.05]",
+  "[&>a]:text-[rgb(var(--text)/0.86)] [&>a:hover]:bg-white/[0.02] [&>a:active]:bg-white/[0.04]",
   "[&>button]:rounded-none [&>button]:border-transparent [&>button]:bg-transparent [&>button]:shadow-none",
-  "[&>button]:text-[rgb(var(--text)/0.86)] [&>button:hover]:bg-white/[0.025] [&>button:active]:bg-white/[0.05]",
+  "[&>button]:text-[rgb(var(--text)/0.86)] [&>button:hover]:bg-white/[0.02] [&>button:active]:bg-white/[0.04]",
   "[&>form_.app-button]:rounded-none [&>form_.app-button]:border-transparent [&>form_.app-button]:bg-transparent [&>form_.app-button]:shadow-none",
-  "[&>form_.app-button]:text-[rgb(var(--text)/0.86)] [&>form_.app-button:hover]:bg-white/[0.025] [&>form_.app-button:active]:bg-white/[0.05]",
+  "[&>form_.app-button]:text-[rgb(var(--text)/0.86)] [&>form_.app-button:hover]:bg-white/[0.02] [&>form_.app-button:active]:bg-white/[0.04]",
 );
 
 const segmentedUtilityRowClassName = cn(
@@ -112,7 +112,7 @@ export function BottomActionTriad({
         <BottomActionSlot className={cn(segmentedItemClassName, secondaryClassName)}>{secondary}</BottomActionSlot>
         <BottomActionSlot
           className={cn(
-            "px-1.5",
+            "px-1.5 justify-self-stretch [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[6.5rem]",
             CONTROL_LABEL_CLASSNAME,
             tertiaryClassName,
           )}
