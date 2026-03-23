@@ -8,7 +8,7 @@ import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { SharedDayList, SharedDayListRow } from "@/components/routines/RoutinesScreenFamily";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
-import { BottomActionSingle, BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
@@ -128,9 +128,9 @@ export function TodayDayPicker({
     }
 
     return (
-      <BottomActionUtilityCluster className="[&>*]:basis-[calc(50%-0.25rem)]">
-        {selectDayButton}
-        {hasInProgressSession ? (
+      <BottomActionSplit
+        secondary={selectDayButton}
+        primary={hasInProgressSession ? (
           <TodayStartButton
             sessionId={inProgressSessionId ?? undefined}
             returnTo="/today"
@@ -146,7 +146,7 @@ export function TodayDayPicker({
             className="w-full"
           />
         )}
-      </BottomActionUtilityCluster>
+      />
     );
   }, [hasInProgressSession, inProgressSessionId, isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
 

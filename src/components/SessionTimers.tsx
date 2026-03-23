@@ -12,7 +12,7 @@ import {
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
@@ -727,7 +727,7 @@ export function SetLoggerCard({
 
   const saveSetActions = useMemo(
     () => (
-      <BottomActionStack
+      <BottomActionStackedPrimary
         utility={(
           <>
             {skipAction ?? <div aria-hidden="true" />}

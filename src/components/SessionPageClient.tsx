@@ -6,7 +6,7 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionTriple } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -159,7 +159,7 @@ export function SessionPageClient({
       >
         <input type="hidden" name="sessionId" value={sessionId} />
         <input type="hidden" name="durationSeconds" value={String(durationSeconds)} />
-        <BottomActionTriple
+        <BottomActionTriad
           secondary={quickAddAction}
           tertiary={(
             <div
