@@ -6,8 +6,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { SubtitleText } from "@/components/ui/text-roles";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 
 type EditDayHeaderSwitcherDay = {
@@ -54,13 +53,11 @@ export function EditDayHeaderSwitcher({
       title={activeDayTitle}
       subtitle={routineName}
       subtitleRight={activeDaySummary}
-      action={(
-        <Link href={backHref} className={getAppButtonClassName({ variant: "secondary", size: "sm" })}>
-          Back
-        </Link>
-      )}
+      action={<TopRightBackButton href={backHref} ariaLabel="Back to Routine" historyBehavior="fallback-only" />}
+      actionClassName="-mt-0.5"
+      className="space-y-3 p-4 pt-3"
     >
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <SecondaryButton
             type="button"
@@ -71,22 +68,20 @@ export function EditDayHeaderSwitcher({
           >
             {open ? "Hide Days" : "Select Day"}
           </SecondaryButton>
-          {activeDay?.isRest ? <AppBadge>Rest day</AppBadge> : null}
+          {activeDay?.isRest ? <AppBadge>Rest Day</AppBadge> : null}
         </div>
-        <SubtitleText className="text-xs">
-          Day switching stays owned by this header while primary Back resolves explicit return targets first, then the editor family&apos;s canonical parent route.
-        </SubtitleText>
 
         {open ? (
           <div id="edit-day-switcher-panel" className="space-y-2">
             {days.map((day) => {
               const isCurrent = day.id === activeDayId;
               const dayHref = buildDayHref(routineId, day.id, backHref);
+              const title = day.name === `Day ${day.dayIndex}` ? day.name : `Day ${day.dayIndex} · ${day.name}`;
 
               return isCurrent ? (
                 <ExerciseCard
                   key={day.id}
-                  title={`Day ${day.dayIndex} | ${day.name}`}
+                  title={title}
                   subtitle={day.exerciseSummary}
                   state="selected"
                   badgeText="Current"
@@ -94,7 +89,7 @@ export function EditDayHeaderSwitcher({
               ) : (
                 <Link key={day.id} href={dayHref} className="block">
                   <ExerciseCard
-                    title={`Day ${day.dayIndex} | ${day.name}`}
+                    title={title}
                     subtitle={day.exerciseSummary}
                     badgeText={day.isRest ? "Rest" : undefined}
                     rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
