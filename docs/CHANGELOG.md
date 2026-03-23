@@ -1,3 +1,14 @@
+## [v0.3.79] – Logged Set Delete Endcap Refinement
+
+### WHAT
+
+* Reworked the shared compact logged-set row so inline actions clip to the row container and can render as true docked endcaps instead of overlap-based attachments.
+* Refined Current Session logged-set Delete affordances into a slimmer right-edge segment with a softer tint, cleaner seam, and preserved mobile tap target.
+
+### WHY
+
+* Destructive inline actions should read as part of the row they affect, not like separate blocks pasted onto the edge.
+
 ## [v0.3.77] – Session Density and Logged Set Cleanup
 
 ### WHAT
