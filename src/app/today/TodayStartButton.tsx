@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/action-result";
 import { useToast } from "@/components/ui/ToastProvider";
 import { PrimaryButton } from "@/components/ui/AppButton";
+import { writeActiveSessionHint } from "@/lib/session-state-sync";
 
 async function requestSessionStart(payload: { selectedDayIndex?: number; routineId?: string; dayId?: string }) {
   const response = await fetch("/api/sessions/start", {
@@ -55,6 +56,7 @@ export function TodayStartButton({
             const sessionHref = returnTo
               ? `/session/${sessionId}?returnTo=${encodeURIComponent(returnTo)}`
               : `/session/${sessionId}`;
+            writeActiveSessionHint(sessionId);
             router.push(sessionHref);
             return;
           }
@@ -67,6 +69,7 @@ export function TodayStartButton({
           const sessionHref = returnTo
             ? `/session/${result.data.sessionId}?returnTo=${encodeURIComponent(returnTo)}`
             : `/session/${result.data.sessionId}`;
+          writeActiveSessionHint(result.data.sessionId);
           router.push(sessionHref);
         });
       }}

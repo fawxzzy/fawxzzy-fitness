@@ -42,7 +42,7 @@ export function SessionHeaderCard({
         {meta && !metaBelowTitle ? <div className="shrink-0 self-center">{meta}</div> : null}
       </div>
 
-      {footer ? <div className="mt-1.5 min-h-[1rem] px-0.5 text-xs text-muted">{footer}</div> : null}
+      {footer ? <div className="mt-1 px-0.5 pb-0.5 text-xs text-muted">{footer}</div> : null}
     </section>
   );
 }
