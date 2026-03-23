@@ -1,3 +1,16 @@
+## [v0.3.83] – Bottom Action Bar Outlier Cleanup
+
+### WHAT
+
+* Finalized the remaining bottom footer outliers so `Save Set` and `Edit Day` now use the same dominant primary CTA treatment exposed by the shared `stackedPrimary` and `single` BottomActionBar variants.
+* Removed the stale top-nav shell offset from standalone View Day so the screen no longer reserves empty header space when rendered without the main app nav.
+* Normalized routines picker mode to the shared footer contract by moving `New Routine` out of the content header and into a stacked primary footer under `Hide Routines` and `Edit Routine`.
+
+### WHY
+
+* A normalized action-bar system only feels complete when the last route-local CTA holdouts and shell-level spacing leftovers are removed.
+* Moving picker-mode creation into the owned footer keeps major actions in one predictable control surface and prevents content/header CTA duplication.
+
 ## [v0.3.82] – Bottom Action Bar Micro-Polish
 
 ### WHAT

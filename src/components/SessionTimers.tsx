@@ -741,7 +741,6 @@ export function SetLoggerCard({
             disabled={isSaveDisabled}
             variant="primary"
             fullWidth
-            className="shadow-[0_10px_24px_rgba(16,185,129,0.2)]"
           >
             Save Set
           </AppButton>
