@@ -93,7 +93,7 @@ export function BottomActionBar({
       <div className={cn("mx-auto w-full max-w-md pointer-events-auto", BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME)}>
         <div
           className={cn(
-            "flex items-center justify-center gap-4",
+            "flex items-center justify-center gap-3",
             "[&>*]:min-h-[44px] [&>*]:flex-1",
             innerClassName,
           )}

@@ -10,7 +10,7 @@ export const appTokens = {
   metaText: "text-[rgb(var(--text)/0.54)]",
   dividerBorder: "border-white/15",
   listDivider: "divide-y divide-white/12",
-  stickyBar: "rounded-[1.5rem] border border-white/12 bg-[rgb(var(--surface-rgb)/0.965)] px-3 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-md",
+  stickyBar: "rounded-[1.5rem] border border-white/12 bg-[rgb(var(--surface-rgb)/0.965)] px-2.5 py-2.5 shadow-[0_8px_22px_rgba(0,0,0,0.2)] backdrop-blur-md",
   todayBadge: "inline-flex items-center justify-center shrink-0 whitespace-nowrap leading-none rounded-full border border-white/70 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-[0_0_8px_rgba(255,255,255,0.15)]",
   defaultBadge: "inline-flex items-center justify-center shrink-0 whitespace-nowrap leading-none rounded-full border border-white/25 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90",
 } as const;
