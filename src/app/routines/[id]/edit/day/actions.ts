@@ -1,12 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditDayPath, getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
-import { resolveReturnHref } from "@/lib/navigation-return";
 import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
 
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
@@ -15,11 +13,6 @@ function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getTodayPath());
 }
 
-
-function resolveRoutineDayReturnTo(formData: FormData, fallbackHref: string) {
-  const rawReturnTo = String(formData.get("returnTo") ?? "").trim();
-  return resolveReturnHref(rawReturnTo, fallbackHref);
-}
 
 function parseRoutineExercisePayload(formData: FormData) {
   const parsed = parseExerciseGoalPayload(formData, { requireSets: true });
@@ -31,7 +24,7 @@ function parseRoutineExercisePayload(formData: FormData) {
   return { ok: true as const, payload: mapExerciseGoalPayloadToRoutineDayColumns(parsed.payload) };
 }
 
-export async function saveRoutineDayAction(formData: FormData) {
+export async function updateRoutineDaySettingsAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -39,11 +32,8 @@ export async function saveRoutineDayAction(formData: FormData) {
   const routineDayId = String(formData.get("routineDayId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const isRest = formData.get("isRest") === "on";
-  const fallbackReturnTo = `/routines/${routineId}/edit`;
-  const returnTo = resolveRoutineDayReturnTo(formData, fallbackReturnTo);
-
   if (!routineId || !routineDayId) {
-    redirect(`/routines/${routineId}/edit/day/${routineDayId}?error=${encodeURIComponent("Missing day info")}`);
+    return { ok: false, error: "Missing day info" };
   }
 
   const { data: existingDay, error: existingDayError } = await supabase
@@ -55,7 +45,7 @@ export async function saveRoutineDayAction(formData: FormData) {
     .single();
 
   if (existingDayError || !existingDay) {
-    redirect(`/routines/${routineId}/edit/day/${routineDayId}?error=${encodeURIComponent(existingDayError?.message ?? "Routine day not found")}`);
+    return { ok: false, error: existingDayError?.message ?? "Routine day not found" };
   }
 
   const safeName = name || existingDay.name || null;
@@ -68,11 +58,11 @@ export async function saveRoutineDayAction(formData: FormData) {
     .eq("routine_id", routineId);
 
   if (error) {
-    redirect(`/routines/${routineId}/edit/day/${routineDayId}?error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);
-  redirect(`${returnTo}${returnTo.includes("?") ? "&" : "?"}success=${encodeURIComponent("Day saved")}`);
+  return { ok: true };
 }
 
 export async function addRoutineDayExerciseAction(formData: FormData): Promise<ActionResult> {

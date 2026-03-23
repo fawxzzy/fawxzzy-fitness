@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppButton } from "@/components/ui/AppButton";
-import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { RoutineEditorSection, RoutineEditorStickyActions } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { controlClassName } from "@/components/ui/formClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
-import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, saveRoutineDayAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
+import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
 import { EditDayHeaderSwitcher } from "@/app/routines/[id]/edit/day/[dayId]/EditDayHeaderSwitcher";
+import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm";
 import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { requireUser } from "@/lib/auth";
@@ -111,13 +111,24 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     dayExerciseSummaries.set(routineDay.id, summaryLabel);
   }
 
-  const switcherDays = (routineDays ?? []).map((routineDay) => ({
-    id: routineDay.id,
-    dayIndex: routineDay.day_index,
-    name: formatDayTitle(routineDay.day_index, routineDay.name),
-    isRest: routineDay.is_rest,
-    exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? getRestDayExerciseCountSummaryFromInputs([], routineDay.is_rest).label,
-  }));
+  const switcherDays = (routineDays ?? []).map((routineDay) => {
+    const exerciseCount = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === routineDay.id).length;
+    const trimmedName = routineDay.name?.trim() ?? "";
+    const defaultTitle = `Day ${routineDay.day_index}`.toLowerCase();
+    const needsSetup = !routineDay.is_rest
+      && exerciseCount === 0
+      && !(routineDay.notes?.trim())
+      && (!trimmedName || trimmedName.toLowerCase() === defaultTitle);
+
+    return {
+      id: routineDay.id,
+      dayIndex: routineDay.day_index,
+      name: formatDayTitle(routineDay.day_index, routineDay.name),
+      isRest: routineDay.is_rest,
+      exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? getRestDayExerciseCountSummaryFromInputs([], routineDay.is_rest).label,
+      needsSetup,
+    };
+  });
 
   const editableExercises = dayExercises.map((exercise) => {
     const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
@@ -192,25 +203,15 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             backHref={backHref}
           />
 
-          {searchParams?.error ? <SubtitleText className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-red-700">{searchParams.error}</SubtitleText> : null}
-          {searchParams?.success ? <SubtitleText className="rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-accent">{searchParams.success}</SubtitleText> : null}
-
-          <RoutineEditorSection title="Day Settings" description="Update the day name or rest state without leaving the editor flow.">
-            <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3">
-              <input type="hidden" name="routineId" value={params.id} />
-              <input type="hidden" name="routineDayId" value={params.dayId} />
-              <NavigationReturnInput fallbackHref={`/routines/${params.id}/edit`} value={backHref} />
-              <div className="space-y-2.5">
-                <label className="block text-sm">
-                  <TitleText as="span" className="text-sm">Day Name</TitleText>
-                  <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />
-                  <SubtitleText as="span" className="text-sm">Rest Day</SubtitleText>
-                </label>
-              </div>
-            </form>
+                    <RoutineEditorSection title="Day Settings" description="Update the day name or rest state here. Changes save automatically.">
+            <EditDaySettingsAutosaveForm
+              routineId={params.id}
+              routineDayId={params.dayId}
+              backHref={backHref}
+              dayIndex={day.day_index}
+              name={(day as RoutineDayRow).name}
+              isRest={(day as RoutineDayRow).is_rest}
+            />
           </RoutineEditorSection>
 
           {day.is_rest ? (
@@ -296,10 +297,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               </RoutineEditorSection>
             </>
           )}
-          <RoutineEditorStickyActions
-            cancelHref={backHref}
-            primary={<AppButton form="routine-day-settings-form" type="submit" variant="primary" fullWidth>Save Day</AppButton>}
-          />
         </section>
       </ScrollScreenWithBottomActions>
     </AppShell>

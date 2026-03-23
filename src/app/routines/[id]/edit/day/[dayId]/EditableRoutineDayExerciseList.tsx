@@ -337,7 +337,7 @@ export function EditableRoutineDayExerciseList({
                         <div className="space-y-1">
                           <EyebrowText>Planned workout</EyebrowText>
                           <TitleText as="p" className="text-sm">Editing this exercise</TitleText>
-                          <SubtitleText className="text-xs">Adjust the draft goal here, then finish this row. Use Save Day when the full day is ready.</SubtitleText>
+                          <SubtitleText className="text-xs">Adjust the draft goal here, then finish this row. Day updates save automatically.</SubtitleText>
                         </div>
                         <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2">
                           <EyebrowText>Sets</EyebrowText>
