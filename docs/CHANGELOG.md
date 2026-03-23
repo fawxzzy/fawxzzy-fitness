@@ -1,3 +1,16 @@
+## [v0.3.84] – Edit Day Editor Family Normalization
+
+### WHAT
+
+* Removed the stray standalone top offset from Edit Day and aligned the route with the same compact standalone shell used by the finalized View Day and editor-family screens.
+* Reworked Edit Day header, section cards, editable exercise rows, and rest/empty states so the screen now shares the same compact visual language as Today and View Day while preserving reorder, edit, delete, and exercise info behaviors.
+* Shifted Edit Day onto the finalized stacked-primary footer treatment and cleaned up the add-exercise card hierarchy so local CTA styling no longer drifts from the shared bottom action system.
+
+### WHY
+
+* Edit Day is the editing counterpart to View Day, so shell spacing, header rhythm, row chrome, and footer ownership need to feel like one coherent screen family rather than a route-specific exception.
+* Finishing the layout/system pass in the route and local child components keeps shared primitives stable while removing the last obvious Edit Day-specific visual drift.
+
 ## [v0.3.83] – Bottom Action Bar Outlier Cleanup
 
 ### WHAT

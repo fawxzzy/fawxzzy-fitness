@@ -61,6 +61,7 @@ export function RoutineDayAddExerciseForm({
           router.refresh();
         }
       }}
+      id="routine-day-add-exercise-form"
       className="space-y-4"
     >
       <input type="hidden" name="routineId" value={routineId} />
@@ -73,11 +74,9 @@ export function RoutineDayAddExerciseForm({
         routineTargetConfig={{ weightUnit }}
         exerciseStats={exerciseStats}
         footerSlot={(
-          <div className="rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
-            <AppButton type="submit" variant="primary" fullWidth>
-              Add to day
-            </AppButton>
-          </div>
+          <AppButton type="submit" variant="primary" fullWidth>
+            Add To Day
+          </AppButton>
         )}
       />
     </form>

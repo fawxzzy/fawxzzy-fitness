@@ -2,11 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppButton } from "@/components/ui/AppButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { controlClassName } from "@/components/ui/formClasses";
@@ -121,7 +122,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? getRestDayExerciseCountSummaryFromInputs([], routineDay.is_rest).label,
   }));
 
-
   const editableExercises = dayExercises.map((exercise) => {
     const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
     const matchingExercise = exerciseOptions.find((option) => option.id === exercise.exercise_id);
@@ -182,9 +182,9 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const activeExerciseSummary = getRestDayExerciseCountSummaryFromInputs(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest).label;
 
   return (
-    <AppShell topNavMode="none">
-      <ScrollScreenWithBottomActions>
-        <section className="space-y-4 overflow-x-clip px-1 pb-4">
+    <AppShell topNavMode="none" className="h-[100dvh]">
+      <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
+        <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
           <EditDayHeaderSwitcher
             routineId={params.id}
             routineName={routine.name}
@@ -195,39 +195,40 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             backHref={backHref}
           />
 
-          {searchParams?.error ? <SubtitleText className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-red-700">{searchParams.error}</SubtitleText> : null}
-          {searchParams?.success ? <SubtitleText className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-accent">{searchParams.success}</SubtitleText> : null}
+          {searchParams?.error ? <SubtitleText className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-red-700">{searchParams.error}</SubtitleText> : null}
+          {searchParams?.success ? <SubtitleText className="rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-accent">{searchParams.success}</SubtitleText> : null}
 
-          <RoutineEditorSection title="Day settings" description="Update the day name or rest state here. Exercise planning stays in the dedicated list and add-exercise sections below.">
+          <RoutineEditorSection title="Day Settings" description="Update the day name or rest state without leaving the editor flow.">
             <form id="routine-day-settings-form" action={saveRoutineDayAction} className="space-y-3">
               <input type="hidden" name="routineId" value={params.id} />
               <input type="hidden" name="routineDayId" value={params.dayId} />
               <NavigationReturnInput fallbackHref={`/routines/${params.id}/edit`} value={backHref} />
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <label className="block text-sm">
-                  <TitleText as="span" className="text-sm">Day name</TitleText>
+                  <TitleText as="span" className="text-sm">Day Name</TitleText>
                   <input name="name" defaultValue={(day as RoutineDayRow).name ?? ""} placeholder={`Day ${day.day_index}`} className={controlClassName} />
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" name="isRest" defaultChecked={(day as RoutineDayRow).is_rest} />
-                  <SubtitleText as="span" className="text-sm">Rest day</SubtitleText>
+                  <SubtitleText as="span" className="text-sm">Rest Day</SubtitleText>
                 </label>
               </div>
             </form>
           </RoutineEditorSection>
 
           {day.is_rest ? (
-            <SubtitleText className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3.5 py-3">Rest day enabled. Planned exercises stay saved, but this day stays non-runnable until you turn rest day off.</SubtitleText>
+            <AppPanel className="p-4">
+              <div className="space-y-1">
+                <TitleText as="h2" className="text-base">Rest Day</TitleText>
+                <SubtitleText>Planned exercises stay saved until you turn rest day off.</SubtitleText>
+              </div>
+            </AppPanel>
           ) : (
             <>
               <RoutineEditorSection
-                title="Planned workout"
-                description="Reuse the same row language as Today and View Day, with edit controls kept in trailing actions only."
+                title="Planned Workout"
+                description="Edit targets, reorder rows, or remove exercises while keeping the same row language used across the app."
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <TitleText as="h2" className="text-base">{dayTitle}</TitleText>
-                  <span className="rounded-full border border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1 text-[11px] font-semibold text-text">{activeExerciseSummary}</span>
-                </div>
                 <EditableRoutineDayExerciseList
                   routineId={params.id}
                   routineDayId={params.dayId}
@@ -239,21 +240,18 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                 />
               </RoutineEditorSection>
 
-              <CollapsibleCard
-                title="Add exercises"
-                summary="Choose a movement, confirm it, add an optional goal, then save it to this day."
-                defaultOpen={searchParams?.addExerciseOpen === "1"}
-                className="border border-border/40 bg-[rgb(var(--surface-2-soft)/0.58)] shadow-[0_6px_18px_rgba(0,0,0,0.14)]"
-                bodyClassName="space-y-3 bg-transparent"
+              <RoutineEditorSection
+                title="Add Exercise"
+                description="Choose a movement, confirm the target, and add it to this day."
               >
                 <RoutineDayAddExerciseForm
                   customExerciseSection={(
                     <CollapsibleCard
-                      title="Custom exercise tool"
+                      title="Custom Exercise Tool"
                       summary={customExercises.length > 0 ? `${customExercises.length} saved` : "Optional"}
                       defaultOpen={false}
-                      className="border border-border/50 bg-[rgb(var(--bg)/0.16)]"
-                      bodyClassName="space-y-3 bg-[rgb(var(--bg)/0.3)]"
+                      className="border border-border/40 bg-[rgb(var(--bg)/0.12)] shadow-none"
+                      bodyClassName="space-y-3 bg-transparent"
                     >
                       <p className="text-xs text-muted">Use this only when the picker does not already have what you need.</p>
                       <form action={createCustomExerciseAction} className="space-y-2">
@@ -262,9 +260,9 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                         <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
                       </form>
                       {customExercises.length > 0 ? (
-                        <ul className="space-y-2 border-t border-border/50 pt-3">
+                        <ul className="space-y-2 border-t border-border/40 pt-3">
                           {customExercises.map((exercise) => (
-                            <li key={exercise.id} className="rounded-md border border-border/60 bg-[rgb(var(--bg)/0.35)] p-2">
+                            <li key={exercise.id} className="rounded-xl border border-border/45 bg-[rgb(var(--bg)/0.18)] p-3">
                               <p className="text-xs font-semibold">{exercise.name}</p>
                               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 <form action={renameCustomExerciseAction} className="flex gap-2">
@@ -298,17 +296,17 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                   addExerciseAction={addRoutineDayExerciseAction}
                   exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
                 />
-              </CollapsibleCard>
+              </RoutineEditorSection>
             </>
           )}
           <PublishBottomActions>
-            <BottomActionSplit
-              primary={<AppButton form="routine-day-settings-form" type="submit" variant="primary" fullWidth>Save Day</AppButton>}
-              secondary={(
+            <BottomActionStackedPrimary
+              utility={(
                 <Link href={backHref} className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}>
                   Cancel
                 </Link>
               )}
+              primary={<AppButton form="routine-day-settings-form" type="submit" variant="primary" fullWidth>Save Day</AppButton>}
             />
           </PublishBottomActions>
         </section>
