@@ -136,7 +136,7 @@ export function TodayDayPicker({
             returnTo="/today"
             fullWidth
             className="w-full"
-            label="Resume Workout"
+            label="Resume Session"
           />
         ) : (
           <TodayStartButton

@@ -87,8 +87,8 @@ export function AppNav() {
           className="relative isolate min-h-[var(--header-h)] rounded-xl border border-white/15 bg-[rgb(var(--glass-tint-rgb)/0.9)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] [--glass-current-border-alpha:0.3] [--glass-current-tint-alpha:0.88] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.72)]"
           interactive={false}
         >
-          <div className="flex h-[var(--header-h)] flex-col justify-center gap-1">
-            <p className="px-2 text-center text-sm font-bold leading-none text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
+          <div className="flex h-[var(--header-h)] flex-col justify-center gap-1 pt-0.5">
+            <p className="px-2 pt-0.5 text-center text-sm font-bold leading-none text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
             <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
               {links.map((link) => {
                 const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
