@@ -3,7 +3,6 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { EditRoutineDaysSection } from "@/app/routines/[id]/edit/EditRoutineDaysSection";
-import { EditRoutineStickyActions } from "@/app/routines/[id]/edit/EditRoutineStickyActions";
 import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -12,7 +11,7 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
 import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
-import { RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageHeader, RoutineEditorSection, RoutineEditorStickyActions } from "@/components/routines/RoutineEditorShared";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { resolveReturnHref } from "@/lib/navigation-return";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
@@ -242,7 +241,6 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
           <EditRoutineDaysSection
             routineId={routine.id}
-            routineName={(routine as RoutineRow).name}
             days={sortedRoutineDays.map((day) => ({
               id: day.id,
               dayIndex: day.day_index,
@@ -267,7 +265,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
           </RoutineEditorSection>
         </section>
 
-        <EditRoutineStickyActions
+        <RoutineEditorStickyActions
           primary={<RoutineSaveButton formId="routine-update-form" originalCycleLength={(routine as RoutineRow).cycle_length_days} />}
           secondary={<DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />}
           cancelHref={returnHref}

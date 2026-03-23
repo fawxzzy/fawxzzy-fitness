@@ -1,3 +1,15 @@
+## [v0.3.84] – Editor Primitive Extraction Follow-Through
+
+### WHAT
+
+* Extracted the now-proven Edit Routine/Edit Day day-row and stacked-footer wiring into shared editor-family primitives so both routes reuse the same standalone editor shell pieces instead of keeping route-local copies.
+* Moved the Edit Routine days section onto the same editor section-card primitive used by the two editor screens, which removes leftover card/layout drift while preserving the existing navigation and screen behavior.
+
+### WHY
+
+* Once both editors had landed on the same structure, keeping duplicate row and footer markup in separate route files would reintroduce drift during future UI edits.
+* Consolidating only the stable header/row/footer pieces keeps the design-system surface area intentional while leaving route-specific workflow logic local.
+
 ## [v0.3.84] – Edit Routine Editor-Family Normalization
 
 ### WHAT
