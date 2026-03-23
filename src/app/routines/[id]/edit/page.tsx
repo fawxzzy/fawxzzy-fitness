@@ -6,17 +6,17 @@ import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { controlClassName } from "@/components/ui/formClasses";
 import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
-import { RoutineEditorPageHeader, RoutineEditorSection, RoutineEditorStickyActions } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageHeader, RoutineEditorStickyActions } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { resolveReturnHref } from "@/lib/navigation-return";
 import { ROUTINE_START_WEEKDAYS, createRoutineDaySeedsFromStartDate, getRoutineStartDateForWeekday, getRoutineStartWeekdayFromDate } from "@/lib/routines";
 import { getRoutineEditPath, revalidateRoutinesViews } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
-import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, normalizeRoutineTimezone, toCanonicalRoutineTimezone } from "@/lib/timezones";
-import type { RoutineDayRow, RoutineRow } from "@/types/db";
+import { normalizeRoutineTimezone, toCanonicalRoutineTimezone } from "@/lib/timezones";
+import type { RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +30,6 @@ type PageProps = {
     returnTo?: string;
   };
 };
-
-const topTitleInputClassName = controlClassName.replace("mt-1 ", "").replace("h-11", "h-12");
 
 async function updateRoutineAction(formData: FormData) {
   "use server";
@@ -159,19 +157,8 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
   if (!routine) notFound();
 
-  const { data: routineDays } = await supabase
-    .from("routine_days")
-    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
-    .eq("routine_id", params.id)
-    .eq("user_id", user.id)
-    .order("day_index", { ascending: true });
-
-  const sortedRoutineDays = (routineDays ?? []) as RoutineDayRow[];
-  const routineTimezoneDefault = normalizeRoutineTimezone((routine as RoutineRow).timezone);
-  const totalDays = sortedRoutineDays.length;
-  const trainingDays = sortedRoutineDays.filter((day) => !day.is_rest).length;
-  const restDays = Math.max(totalDays - trainingDays, 0);
   const returnHref = resolveReturnHref(searchParams?.returnTo, "/routines");
+  const routineTimezoneDefault = normalizeRoutineTimezone((routine as RoutineRow).timezone);
   const startWeekdayDefault = getRoutineStartWeekdayFromDate((routine as RoutineRow).start_date) ?? ROUTINE_START_WEEKDAYS[0];
 
   return (
@@ -183,51 +170,23 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
           <NavigationReturnInput fallbackHref="/routines" value={returnHref} />
 
           <RoutineEditorPageHeader
-            eyebrow="EDIT ROUTINE"
-            title={(
-              <input
-                name="name"
-                required
-                defaultValue={(routine as RoutineRow).name}
-                aria-label="Routine Name"
-                className={topTitleInputClassName}
-              />
-            )}
-            subtitle={`${trainingDays} training • ${restDays} rest • ${totalDays} ${totalDays === 1 ? "Day" : "Days"}`}
+            title="EDIT ROUTINE DETAILS"
             action={<RoutineBackButton href={returnHref} hasUnsavedChanges={false} />}
             actionClassName="-mt-1"
-          />
+            className="space-y-5"
+          >
+            <RoutineEditorFormFields
+              titleInput
+              nameDefaultValue={(routine as RoutineRow).name}
+              cycleLengthDefaultValue={(routine as RoutineRow).cycle_length_days}
+              startWeekdayDefaultValue={startWeekdayDefault}
+              timezoneDefaultValue={routineTimezoneDefault}
+              weightUnitDefaultValue={(routine as RoutineRow).weight_unit ?? "lbs"}
+            />
+          </RoutineEditorPageHeader>
 
           {searchParams?.error ? <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{searchParams.error}</AccentSubtitleText> : null}
           {searchParams?.success ? <AccentSubtitleText className="rounded-[1rem] border border-accent/40 bg-accent/10 px-3 py-2 text-accent">{searchParams.success}</AccentSubtitleText> : null}
-
-          <RoutineEditorSection title="Details">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm font-medium text-text">Cycle Length (Days)
-                <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
-              </label>
-              <label className="block text-sm font-medium text-text">Starts On
-                <select name="startWeekday" required defaultValue={startWeekdayDefault} className={controlClassName}>
-                  {ROUTINE_START_WEEKDAYS.map((weekday) => (
-                    <option key={weekday} value={weekday}>
-                      {weekday.slice(0, 3).charAt(0).toUpperCase() + weekday.slice(1, 3)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm font-medium text-text">Timezone
-                <select name="timezone" required defaultValue={routineTimezoneDefault} className={controlClassName}>
-                  {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{getRoutineTimezoneLabel(timeZoneOption)}</option>))}
-                </select>
-              </label>
-              <label className="block text-sm font-medium text-text">Weight Unit
-                <select name="weightUnit" defaultValue={(routine as RoutineRow).weight_unit ?? "lbs"} className={controlClassName}>
-                  <option value="lbs">lbs</option>
-                  <option value="kg">kg</option>
-                </select>
-              </label>
-            </div>
-          </RoutineEditorSection>
         </form>
 
         <RoutineEditorStickyActions
