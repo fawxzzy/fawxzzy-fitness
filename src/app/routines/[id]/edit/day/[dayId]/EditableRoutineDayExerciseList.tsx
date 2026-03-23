@@ -188,8 +188,8 @@ export function EditableRoutineDayExerciseList({
 
   if (orderedExercises.length === 0) {
     return (
-      <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-4 text-sm text-muted">
-        No exercises yet. Add one below.
+      <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
+        No exercises yet. Add one below when you are ready.
       </div>
     );
   }
@@ -213,7 +213,7 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="routineDayId" value={routineDayId} />
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
-      <ul className="space-y-2.5">
+      <ul className="space-y-2">
         {orderedExercises.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
           const isDragging = activeDragId === exercise.id;
@@ -251,7 +251,7 @@ export function EditableRoutineDayExerciseList({
                   "overflow-hidden rounded-[1.25rem] border transition-colors",
                   isExpanded
                     ? "border-accent/40 bg-[linear-gradient(180deg,rgba(96,200,130,0.08),rgba(var(--surface-2-soft)/0.78))] shadow-[0_18px_38px_-28px_rgba(96,200,130,0.55)]"
-                    : "border-border/45 bg-transparent",
+                    : "border-border/45 bg-[rgb(var(--surface-2-soft)/0.28)]",
                 )}
               >
                 <ExerciseCard
@@ -273,8 +273,8 @@ export function EditableRoutineDayExerciseList({
                   trailingClassName="self-start pt-0.5"
                   className={cn(
                     listShellClasses.card,
-                    "w-full rounded-[1.25rem] border-0 bg-transparent shadow-none",
-                    isExpanded ? "rounded-b-none pb-2.5" : undefined,
+                    "w-full rounded-[1.25rem] border-0 bg-transparent px-3.5 py-3.5 shadow-none",
+                    isExpanded ? "rounded-b-none pb-2" : undefined,
                   )}
                   rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
                   actions={
@@ -315,7 +315,7 @@ export function EditableRoutineDayExerciseList({
                 />
 
                 {isExpanded ? (
-                  <div className="border-t border-border/30 px-3.5 pb-3.5 pt-1.5 sm:px-4">
+                  <div className="border-t border-border/30 px-3.5 pb-3.5 pt-2 sm:px-4">
                     <form
                       action={async (formData) => {
                         const result = await updateAction(formData);
@@ -333,11 +333,11 @@ export function EditableRoutineDayExerciseList({
                       <input type="hidden" name="routineId" value={routineId} />
                       <input type="hidden" name="routineDayId" value={routineDayId} />
                       <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                      <div className="space-y-3 rounded-[1rem] bg-[rgb(var(--bg)/0.12)] p-3">
+                      <div className="space-y-3 rounded-[1rem] border border-border/30 bg-[rgb(var(--bg)/0.12)] p-3">
                         <div className="space-y-1">
                           <EyebrowText>Planned workout</EyebrowText>
                           <TitleText as="p" className="text-sm">Editing this exercise</TitleText>
-                          <SubtitleText className="text-xs">Adjust the draft goal here, then finish this row. Use the page-level Save Day action when you are done editing the day.</SubtitleText>
+                          <SubtitleText className="text-xs">Adjust the draft goal here, then finish this row. Use Save Day when the full day is ready.</SubtitleText>
                         </div>
                         <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2">
                           <EyebrowText>Sets</EyebrowText>
