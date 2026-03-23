@@ -1,24 +1,26 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
-import { RoutineBackButton } from "@/components/RoutineBackButton";
-import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
-import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
+import { EditRoutineDaysSection } from "@/app/routines/[id]/edit/EditRoutineDaysSection";
 import { EditRoutineStickyActions } from "@/app/routines/[id]/edit/EditRoutineStickyActions";
-import { AppShell } from "@/components/ui/app/AppShell";
-import { AppPanel } from "@/components/ui/app/AppPanel";
-import { SubtitleText } from "@/components/ui/text-roles";
-import { RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
-import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
-import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
+import { RoutineSaveButton } from "@/app/routines/[id]/edit/RoutineSaveButton";
+import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { requireUser } from "@/lib/auth";
+import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
+import { AppShell } from "@/components/ui/app/AppShell";
+import { controlClassName, dateControlClassName } from "@/components/ui/formClasses";
+import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
+import { RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { resolveReturnHref } from "@/lib/navigation-return";
 import { createRoutineDaySeedsFromStartDate } from "@/lib/routines";
 import { getRoutineEditPath, revalidateRoutinesViews } from "@/lib/revalidation";
-import { resolveReturnHref } from "@/lib/navigation-return";
 import { supabaseServer } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
 import { ROUTINE_TIMEZONE_OPTIONS, getRoutineTimezoneLabel, normalizeRoutineTimezone, toCanonicalRoutineTimezone } from "@/lib/timezones";
-import type { RoutineRow } from "@/types/db";
+import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,7 @@ type PageProps = {
   searchParams?: {
     error?: string;
     success?: string;
+    returnTo?: string;
   };
 };
 
@@ -146,7 +149,40 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
   if (!routine) notFound();
 
+  const { data: routineDays } = await supabase
+    .from("routine_days")
+    .select("id, user_id, routine_id, day_index, name, is_rest, notes")
+    .eq("routine_id", params.id)
+    .eq("user_id", user.id)
+    .order("day_index", { ascending: true });
+
+  const sortedRoutineDays = (routineDays ?? []) as RoutineDayRow[];
+  const routineDayExercises = sortedRoutineDays.length > 0
+    ? ((await supabase
+      .from("routine_day_exercises")
+      .select("id, routine_day_id, exercise_id, measurement_type")
+      .in("routine_day_id", sortedRoutineDays.map((day) => day.id))
+      .eq("user_id", user.id)).data ?? [])
+    : [];
+
+  const exerciseRows = routineDayExercises as Pick<RoutineDayExerciseRow, "id" | "routine_day_id" | "exercise_id" | "measurement_type">[];
+  const daySummaries = new Map<string, string>();
+  for (const day of sortedRoutineDays) {
+    const summary = getRestDayExerciseCountSummaryFromInputs(
+      exerciseRows
+        .filter((exercise) => exercise.routine_day_id === day.id)
+        .map((exercise) => ({ measurement_type: exercise.measurement_type ?? null })),
+      day.is_rest,
+    ).label;
+
+    daySummaries.set(day.id, summary);
+  }
+
   const routineTimezoneDefault = normalizeRoutineTimezone((routine as RoutineRow).timezone);
+  const totalDays = sortedRoutineDays.length;
+  const trainingDays = sortedRoutineDays.filter((day) => !day.is_rest).length;
+  const restDays = Math.max(totalDays - trainingDays, 0);
+  const returnHref = resolveReturnHref(searchParams?.returnTo, "/routines");
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
@@ -155,44 +191,46 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
           <RoutineEditorPageHeader
             eyebrow="Edit Routine"
             title={(routine as RoutineRow).name}
-            subtitle="Update routine identity, schedule, and defaults without leaking day-level editing into this parent screen."
-            subtitleRight={`${(routine as RoutineRow).cycle_length_days} ${(routine as RoutineRow).cycle_length_days === 1 ? "day" : "days"}`}
-            action={<RoutineBackButton href="/routines" />}
+            subtitle={`${trainingDays} training • ${restDays} rest`}
+            subtitleRight={`${(routine as RoutineRow).cycle_length_days} ${(routine as RoutineRow).cycle_length_days === 1 ? "Day" : "Days"}`}
+            action={<RoutineBackButton href={returnHref} hasUnsavedChanges={false} />}
             actionClassName="-mt-1"
-          />
+            className="space-y-3"
+          >
+            <SubtitleText>
+              Update routine identity, schedule, and defaults here. Open a day below when you need day-level changes.
+            </SubtitleText>
+          </RoutineEditorPageHeader>
 
-          {searchParams?.error ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchParams.error}</p> : null}
-          {searchParams?.success ? <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{searchParams.success}</p> : null}
+          {searchParams?.error ? <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{searchParams.error}</AccentSubtitleText> : null}
+          {searchParams?.success ? <AccentSubtitleText className="rounded-[1rem] border border-accent/40 bg-accent/10 px-3 py-2 text-accent">{searchParams.success}</AccentSubtitleText> : null}
 
           <form id="routine-update-form" action={updateRoutineAction} className="space-y-4">
             <input type="hidden" name="routineId" value={routine.id} />
-            <NavigationReturnInput fallbackHref="/routines" />
+            <NavigationReturnInput fallbackHref="/routines" value={returnHref} />
 
-            <RoutineEditorSection title="Identity" description="Keep the routine name recognizable wherever the plan appears.">
-              <label className="block text-sm font-medium text-text">Routine name
-                <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
-              </label>
-            </RoutineEditorSection>
-
-            <RoutineEditorSection title="Schedule" description="Day 1 and cycle length define how this routine repeats.">
+            <RoutineEditorSection title="Routine Details" description="Keep the plan recognizable and aligned with the defaults used everywhere else in the app.">
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-sm font-medium text-text">Cycle length (days)
+                <label className="block text-sm font-medium text-text sm:col-span-2">Routine Name
+                  <input name="name" required defaultValue={(routine as RoutineRow).name} className={controlClassName} />
+                </label>
+                <label className="block text-sm font-medium text-text">Cycle Length
                   <input type="number" name="cycleLengthDays" min={1} max={365} required defaultValue={(routine as RoutineRow).cycle_length_days} className={controlClassName} />
                 </label>
-                <label className="block text-sm font-medium text-text">Start date
+                <label className="block text-sm font-medium text-text">Start Date
                   <input type="date" name="startDate" required defaultValue={(routine as RoutineRow).start_date} className={dateControlClassName} />
                 </label>
               </div>
             </RoutineEditorSection>
 
-            <RoutineEditorSection title="Timezone & defaults" description="Use the same rollover timezone and base weight unit the rest of the app expects.">
-              <div className="grid gap-3">
+            <RoutineEditorSection title="Defaults" description="Use the same rollover timezone and base weight unit the rest of the routine family expects.">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-text">Timezone
                   <select name="timezone" required defaultValue={routineTimezoneDefault} className={controlClassName}>
                     {ROUTINE_TIMEZONE_OPTIONS.map((timeZoneOption) => (<option key={timeZoneOption} value={timeZoneOption}>{getRoutineTimezoneLabel(timeZoneOption)}</option>))}
                   </select>
                 </label>
-                <label className="block text-sm font-medium text-text">Weight unit
+                <label className="block text-sm font-medium text-text">Weight Unit
                   <select name="weightUnit" defaultValue={(routine as RoutineRow).weight_unit ?? "lbs"} className={controlClassName}>
                     <option value="lbs">lbs</option>
                     <option value="kg">kg</option>
@@ -202,18 +240,37 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
             </RoutineEditorSection>
           </form>
 
-          <AppPanel className="space-y-3 border-red-500/25 p-4">
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-red-300/90">Danger zone</p>
-              <h3 className="text-base font-semibold text-text">Delete this routine</h3>
-              <SubtitleText>Remove the routine only if you want to permanently delete its attached days and exercises.</SubtitleText>
+          <EditRoutineDaysSection
+            routineId={routine.id}
+            routineName={(routine as RoutineRow).name}
+            days={sortedRoutineDays.map((day) => ({
+              id: day.id,
+              dayIndex: day.day_index,
+              title: day.name?.trim() ? day.name : `Day ${day.day_index}`,
+              isRest: day.is_rest,
+              summary: daySummaries.get(day.id) ?? getRestDayExerciseCountSummaryFromInputs([], day.is_rest).label,
+              notes: day.notes,
+              href: `/routines/${routine.id}/edit/day/${day.id}`,
+            }))}
+          />
+
+          <RoutineEditorSection title="Delete Routine" description="Remove this routine only if you want to permanently delete its attached days and exercises." className="border-red-500/25">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <TitleText as="h3" className="text-base">Routine Removal</TitleText>
+                <SubtitleText>This permanently removes the routine, its days, and any planned exercises.</SubtitleText>
+              </div>
+              <Link href={returnHref} className="text-sm font-medium text-muted underline-offset-4 hover:text-text hover:underline">
+                Keep Routine
+              </Link>
             </div>
-            <DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />
-          </AppPanel>
+          </RoutineEditorSection>
         </section>
 
         <EditRoutineStickyActions
           primary={<RoutineSaveButton formId="routine-update-form" originalCycleLength={(routine as RoutineRow).cycle_length_days} />}
+          secondary={<DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />}
+          cancelHref={returnHref}
         />
       </ScrollScreenWithBottomActions>
     </AppShell>
