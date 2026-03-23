@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ExerciseCard } from "@/components/ExerciseCard";
-import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorDayRow, RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -78,25 +76,15 @@ export function EditDayHeaderSwitcher({
               const dayHref = buildDayHref(routineId, day.id, backHref);
               const title = day.name === `Day ${day.dayIndex}` ? day.name : `Day ${day.dayIndex} · ${day.name}`;
 
-              return isCurrent ? (
-                <ExerciseCard
+              return (
+                <RoutineEditorDayRow
                   key={day.id}
                   title={title}
                   subtitle={day.exerciseSummary}
-                  state="selected"
-                  badgeText="Current"
+                  badgeText={isCurrent ? "Current" : day.isRest ? "Rest" : undefined}
+                  state={isCurrent ? "selected" : day.isRest ? "empty" : "default"}
+                  href={isCurrent ? undefined : dayHref}
                 />
-              ) : (
-                <Link key={day.id} href={dayHref} className="block">
-                  <ExerciseCard
-                    title={title}
-                    subtitle={day.exerciseSummary}
-                    badgeText={day.isRest ? "Rest" : undefined}
-                    rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
-                    state={day.isRest ? "empty" : "default"}
-                    className="items-center"
-                  />
-                </Link>
               );
             })}
           </div>

@@ -3,6 +3,7 @@
 - Today and Routines now share the same selector/detail mode contract: default mode shows detail content, and selector-open mode replaces that detail region instead of stacking selector + detail together.
 - The shared day-list family now lives in `src/components/routines/RoutinesScreenFamily.tsx` and is used by both screens for the day section, list scaffold, and row card treatment; click semantics remain screen-owned through injected callbacks.
 - Bottom action rule clarified: primary actions belong on the right, secondary/supporting actions on the left, even when both actions reuse the same shared footer surface.
+- After Edit Day and Edit Routine converged, the shared editor-family layer now owns the stable standalone primitives: header shell, section-card shell, day-row visual, and stacked-primary footer wiring; route files keep only screen-specific controls and data flow.
 - Failure mode avoided: sibling screens drift into separate day-row implementations and stacked selector/detail panes that increase page height and weaken feature-family recognition.
 
 ## 2026-03-21 — Routines modes should share one page-family scaffold

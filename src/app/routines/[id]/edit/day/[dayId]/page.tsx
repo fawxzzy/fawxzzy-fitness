@@ -1,17 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppButton } from "@/components/ui/AppButton";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorSection, RoutineEditorStickyActions } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { controlClassName } from "@/components/ui/formClasses";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, saveRoutineDayAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
@@ -299,16 +296,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               </RoutineEditorSection>
             </>
           )}
-          <PublishBottomActions>
-            <BottomActionStackedPrimary
-              utility={(
-                <Link href={backHref} className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}>
-                  Cancel
-                </Link>
-              )}
-              primary={<AppButton form="routine-day-settings-form" type="submit" variant="primary" fullWidth>Save Day</AppButton>}
-            />
-          </PublishBottomActions>
+          <RoutineEditorStickyActions
+            cancelHref={backHref}
+            primary={<AppButton form="routine-day-settings-form" type="submit" variant="primary" fullWidth>Save Day</AppButton>}
+          />
         </section>
       </ScrollScreenWithBottomActions>
     </AppShell>
