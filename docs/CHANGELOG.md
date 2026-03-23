@@ -1,3 +1,17 @@
+## [v0.3.80] – Bottom Action Bar Segmented Control Refinement
+
+### WHAT
+
+* Refined the shared bottom action bar system so split utility actions now render as one segmented control surface with subtle internal dividers instead of separate floating button blocks.
+* Reduced bottom action surface padding and shadow weight so the container owns the main shape while secondary actions feel integrated into that shared surface.
+* Preserved the dominant full-width primary CTA row in stacked action layouts so commit actions like `Save Set` still read as the clear next step below the segmented utility row.
+* Applied the shared surface changes everywhere the canonical bottom action primitives are used, including Today, Current Session, Exercise Log, Routines, and View Day action bars.
+
+### WHY
+
+* The previous footer system was structurally consistent, but nested button chrome still made the action bars feel heavier and more generic than the rest of the app.
+* Treating secondary actions as segments within one owned control surface creates a cleaner action language while keeping tap targets stable and the primary CTA visually dominant.
+
 ## [v0.3.79] – Logged Set Delete Endcap Refinement
 
 ### WHAT

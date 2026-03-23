@@ -1,13 +1,30 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-4 pb-[calc(var(--app-safe-bottom)+0.4rem)]";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3.5 pb-[calc(var(--app-safe-bottom)+0.3rem)]";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   "rounded-[1.5rem] border border-white/12 bg-[rgb(var(--surface-rgb)/0.965)]",
-  "px-3 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-md",
+  "px-2.5 py-2.5 shadow-[0_8px_22px_rgba(0,0,0,0.2)] backdrop-blur-md",
 );
 
 const itemBaseClassName = "[&>*]:min-h-12 [&>*]:w-full [&>*]:rounded-[1rem] [&>*]:px-4 [&>*]:text-sm [&>*]:font-semibold [&>*]:tracking-[0.01em] [&>form]:flex [&>form]:h-full [&>form]:w-full [&>form]:items-stretch";
+const segmentedSurfaceClassName = cn(
+  "overflow-hidden rounded-[1.1rem] border border-white/8 bg-white/[0.03]",
+  "[&>*+*]:border-l [&>*+*]:border-white/10",
+);
+const segmentedItemClassName = cn(
+  "[&_.app-button]:rounded-none [&_.app-button]:border-transparent [&_.app-button]:bg-transparent [&_.app-button]:shadow-none",
+  "[&_.app-button]:text-[rgb(var(--text)/0.86)] [&_.app-button:hover]:bg-white/[0.03] [&_.app-button:active]:bg-white/[0.06]",
+  "[&_.app-button]:focus-visible:ring-[var(--button-focus-ring)] [&_.app-button]:focus-visible:ring-inset",
+  "[&>a]:rounded-none [&>a]:border-transparent [&>a]:bg-transparent [&>a]:shadow-none",
+  "[&>a]:text-[rgb(var(--text)/0.86)] [&>a:hover]:bg-white/[0.03] [&>a:active]:bg-white/[0.06]",
+  "[&>form_.app-button]:w-full",
+);
+const segmentedUtilityRowClassName = cn(
+  segmentedSurfaceClassName,
+  "[&>*]:min-h-11 [&>*]:min-w-0 [&>*]:flex-1",
+  "[&>*]:px-0",
+);
 
 function BottomActionSlot({ children, className, fill = true }: { children: ReactNode; className?: string; fill?: boolean }) {
   return (
@@ -33,13 +50,14 @@ export function BottomActionSplit({ primary, secondary, className }: { primary: 
     <div
       className={cn(
         BOTTOM_ACTION_SURFACE_INNER_CLASSNAME,
-        "grid grid-cols-2 items-stretch gap-2 [&>*]:h-full",
+        "grid grid-cols-2 items-stretch [&>*]:h-full",
+        segmentedSurfaceClassName,
         itemBaseClassName,
         className,
       )}
     >
-      <BottomActionSlot>{secondary}</BottomActionSlot>
-      <BottomActionSlot>{primary}</BottomActionSlot>
+      <BottomActionSlot className={segmentedItemClassName}>{secondary}</BottomActionSlot>
+      <BottomActionSlot className={segmentedItemClassName}>{primary}</BottomActionSlot>
     </div>
   );
 }
@@ -67,14 +85,15 @@ export function BottomActionTriple({
     <div
       className={cn(
         BOTTOM_ACTION_SURFACE_INNER_CLASSNAME,
-        "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-2",
+        "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch",
+        segmentedSurfaceClassName,
         itemBaseClassName,
         className,
       )}
     >
-      <BottomActionSlot className={secondaryClassName}>{secondary}</BottomActionSlot>
-      <BottomActionSlot className={tertiaryClassName} fill={tertiaryFill}>{tertiary}</BottomActionSlot>
-      <BottomActionSlot className={primaryClassName}>{primary}</BottomActionSlot>
+      <BottomActionSlot className={cn(segmentedItemClassName, secondaryClassName)}>{secondary}</BottomActionSlot>
+      <BottomActionSlot className={cn(segmentedItemClassName, tertiaryClassName)} fill={tertiaryFill}>{tertiary}</BottomActionSlot>
+      <BottomActionSlot className={cn(segmentedItemClassName, primaryClassName)}>{primary}</BottomActionSlot>
     </div>
   );
 }
@@ -83,7 +102,9 @@ function BottomActionUtilityRow({ children, className }: { children: ReactNode; 
   return (
     <div
       className={cn(
-        "flex flex-wrap items-stretch gap-2 [&>*]:min-h-11 [&>*]:min-w-[8rem] [&>*]:flex-1",
+        "flex flex-wrap items-stretch",
+        segmentedUtilityRowClassName,
+        segmentedItemClassName,
         className,
       )}
     >
@@ -98,7 +119,7 @@ export function BottomActionUtilityCluster({ children, className }: { children: 
 
 export function BottomActionStack({ utility, primary, className }: { utility?: ReactNode; primary: ReactNode; className?: string }) {
   return (
-    <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, "grid grid-cols-1 gap-2", itemBaseClassName, className)}>
+    <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, "grid grid-cols-1 gap-2.5", itemBaseClassName, className)}>
       {utility ? <BottomActionUtilityRow>{utility}</BottomActionUtilityRow> : null}
       <div className="grid grid-cols-1 gap-2">{primary}</div>
     </div>
