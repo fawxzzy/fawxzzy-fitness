@@ -946,6 +946,7 @@ export function SetLoggerCard({
                   {set.pending && !set.queueStatus ? <span className="text-[11px] text-muted">saving...</span> : null}
                 </span>
               )}
+              actionClassName="border-l border-white/8 bg-[linear-gradient(180deg,rgba(244,63,94,0.08),rgba(190,24,93,0.04))]"
               action={(
                 <button
                   type="button"
@@ -954,7 +955,7 @@ export function SetLoggerCard({
                   }}
                   aria-label={`Delete ${isCardio ? "interval" : "set"} ${index + 1}`}
                   className={cn(
-                    "-my-px -mr-px self-stretch rounded-r-[calc(1rem-1px)] border-l border-rose-400/14 bg-[linear-gradient(180deg,rgba(244,63,94,0.14),rgba(190,24,93,0.1))] px-3 text-[11px] font-medium text-rose-100/90 shadow-none transition hover:bg-[linear-gradient(180deg,rgba(244,63,94,0.2),rgba(190,24,93,0.14))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/30",
+                    "min-h-[44px] self-stretch px-3.5 text-[11px] font-semibold tracking-[0.02em] text-rose-100/80 transition hover:bg-rose-400/8 hover:text-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-300/30",
                     tapFeedbackClass,
                   )}
                 >
