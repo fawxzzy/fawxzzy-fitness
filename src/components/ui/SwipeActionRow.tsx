@@ -200,7 +200,7 @@ export function SwipeActionRow({
         <div
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start rounded-[1.3rem] pl-3 text-sm font-semibold transition-opacity duration-200",
+            "pointer-events-none absolute inset-y-0 left-0 flex items-center justify-start rounded-[inherit] pl-3 text-sm font-semibold transition-opacity duration-200",
             leadingProgress > 0 ? "opacity-100" : "opacity-0",
           )}
           style={{ width: `${Math.max(leadingTriggerWidth + 34, 112)}px` }}
@@ -210,7 +210,7 @@ export function SwipeActionRow({
       ) : null}
 
       {trailingActions ? (
-        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end overflow-hidden rounded-[1.3rem]" style={{ width: `${activeTrailingWidth}px` }}>
+        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end overflow-hidden rounded-[inherit]" style={{ width: `${activeTrailingWidth}px` }}>
           {trailingActions}
         </div>
       ) : null}
