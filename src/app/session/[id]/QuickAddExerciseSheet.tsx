@@ -3,13 +3,12 @@
 import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
-import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorAddExerciseFlowShell, RoutineEditorInlineSection, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
-import { cn } from "@/lib/cn";
 
 export function QuickAddExerciseSheet({
   sessionId,
@@ -72,8 +71,8 @@ export function QuickAddExerciseSheet({
       <BottomSheet
         open={open}
         onClose={() => handleOpenChange(false)}
-        title="Quick Add Exercise"
-        description="Select an exercise and add starter sets."
+        title="Add Exercise"
+        description="Select an exercise and add it to your current session with starter sets."
         className="max-w-md"
         contentClassName="space-y-5"
       >
@@ -89,19 +88,18 @@ export function QuickAddExerciseSheet({
 
             return (
               <div className="space-y-3">
-                <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Starting volume</p>
-                    <p className="text-xs text-muted">Choose how many starter sets to add for the selected exercise.</p>
-                  </div>
+                <RoutineEditorInlineSection
+                  title="Session setup"
+                  description="Choose starter sets for the selected exercise."
+                  badge="Volume"
+                >
                   <div className="flex items-start justify-between gap-3 rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] px-3 py-3">
                     <div className="min-w-0 space-y-1">
                       <p className="text-sm font-semibold text-text">
                         {selectedExercise ? `${activeSetCount} set${activeSetCount === 1 ? "" : "s"} to start` : "Choose an exercise first"}
                       </p>
-                      <p className="text-xs text-muted">Quick Add keeps the same exercise-selection flow as Edit Day and only changes what happens after selection.</p>
+                      <p className="text-xs text-muted">Quick Add applies the selected exercise directly to your current session.</p>
                     </div>
-                    <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">Volume</span>
                   </div>
 
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -151,12 +149,12 @@ export function QuickAddExerciseSheet({
                       +
                     </AppButton>
                   </div>
-                </section>
+                </RoutineEditorInlineSection>
 
                 <div className="sticky bottom-0 -mx-4 bg-[rgb(var(--surface-rgb)/0.985)] px-4 pb-[max(0.25rem,var(--app-safe-bottom))] pt-3">
-                  <BottomActionSingle className={cn("border-white/10 bg-[rgb(var(--surface-rgb)/0.985)]")}>
+                  <BottomActionSingle className="border-white/10 bg-[rgb(var(--surface-rgb)/0.985)]">
                     <AppButton type="button" variant="primary" fullWidth loading={isPending} onClick={handleSubmit}>
-                      Add to Session
+                      Add Exercise To Session
                     </AppButton>
                   </BottomActionSingle>
                 </div>

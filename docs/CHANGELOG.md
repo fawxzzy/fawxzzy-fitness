@@ -4594,6 +4594,7 @@ WHY:
 - Introduced semantic text roles for `Title`, `Subtitle`, `AccentSubtitle`, and `Eyebrow` so high-frequency surfaces can share typography intent without route-local class drift.
 - Split neutral supporting text from intentionally emphasized green supporting text so routine/session counts stay readable without turning every subtitle into an accent state.
 - Extracted shared editor-family primitives for header title inputs, full-row toggles, and mode-toggle rows, then applied them across Edit Routine and Edit Day surfaces without changing existing autosave or layout behavior.
+- Refactored Session Quick Add to reuse the shared add-exercise shell/section presentation patterns from the Edit Day Add Exercise flow, including aligned footer CTA treatment and cleaner section copy, while preserving current-session mutation behavior.
 
 ### Why
 - Today day-list breakdowns were still lagging behind Routines because their summary path was rebuilding labels from route-local exercise payloads instead of reusing the normalized canonical exercise metadata contract.
