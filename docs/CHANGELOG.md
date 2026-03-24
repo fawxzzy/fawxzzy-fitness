@@ -1,3 +1,16 @@
+## [v0.3.90] – Edit Day Row Action Cleanup and Reorder Isolation
+
+### WHAT
+
+* Tightened Edit Day row-action behavior so `Reorder` mode now fully disables trailing swipe rail rendering and keeps rows in a drag-handle-only interaction state.
+* Refined Edit/Delete swipe rail presentation to a cleaner integrated action surface that avoids clipping/bleed-through while keeping one-open-row behavior intact.
+* Removed outdated helper/instruction copy from the add/edit exercise flow so exercise selection and goal configuration read cleaner and more compactly.
+
+### WHY
+
+* Swipe actions, tap-to-open, and drag reordering should operate as clearly separate modes to prevent visual overlap and accidental interaction conflicts.
+* The Edit Day exercise flow had accumulated legacy helper copy and rough action-rail styling that made the screen feel noisy and unstable in edit/reorder states.
+
 ## [v0.3.89] – Normalize Edit Day Header into Unified Editor Card
 
 ### WHAT

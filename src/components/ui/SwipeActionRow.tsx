@@ -17,7 +17,7 @@ type SwipeActionRowProps = {
   isDesktop: boolean;
   onOpenChange: (id: string | null) => void;
   children: ReactNode;
-  trailingActions: ReactNode;
+  trailingActions?: ReactNode;
   trailingWidthMobile: number;
   trailingWidthDesktop: number;
   leadingReveal?: ReactNode;
@@ -77,9 +77,10 @@ export function SwipeActionRow({
 
   const translateX = useMemo(() => {
     if (disabled) return 0;
+    if (!trailingActions) return 0;
     if (isDragging) return dragOffset;
     return isOpen ? -(isDesktop ? trailingWidthDesktop : trailingWidthMobile) : 0;
-  }, [disabled, dragOffset, isDesktop, isDragging, isOpen, trailingWidthDesktop, trailingWidthMobile]);
+  }, [disabled, dragOffset, isDesktop, isDragging, isOpen, trailingActions, trailingWidthDesktop, trailingWidthMobile]);
 
   const leadingProgress = leadingReveal && leadingTriggerWidth > 0 && translateX > 0
     ? Math.min(translateX / leadingTriggerWidth, 1)
@@ -199,18 +200,20 @@ export function SwipeActionRow({
         </div>
       ) : null}
 
-      <div className="absolute inset-y-0 right-0 flex items-stretch justify-end gap-2 pr-0">
-        {trailingActions}
-      </div>
+      {trailingActions ? (
+        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end gap-2 pr-0">
+          {trailingActions}
+        </div>
+      ) : null}
 
       <div
         className={cn(
           "relative z-10 transition-transform duration-200 ease-out will-change-transform motion-reduce:transition-none",
           isDragging ? "duration-75" : "",
-          isDesktop && !disabled ? `group-focus-within/swipe-row:-translate-x-[var(--desktop-swipe-width)] group-hover/swipe-row:-translate-x-[var(--desktop-swipe-width)]` : "",
+          isDesktop && !disabled && trailingActions ? `group-focus-within/swipe-row:-translate-x-[var(--desktop-swipe-width)] group-hover/swipe-row:-translate-x-[var(--desktop-swipe-width)]` : "",
         )}
         style={{
-          ...(isDesktop ? { ["--desktop-swipe-width" as string]: `${trailingWidthDesktop}px` } : null),
+          ...(isDesktop && trailingActions ? { ["--desktop-swipe-width" as string]: `${trailingWidthDesktop}px` } : null),
           ...(isDesktop ? undefined : { transform: `translateX(${translateX}px)` }),
         }}
       >

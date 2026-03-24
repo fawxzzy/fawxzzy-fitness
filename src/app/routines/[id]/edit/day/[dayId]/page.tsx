@@ -179,7 +179,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
               <RoutineEditorSection
                 title="Add Exercise"
-                description="Choose a movement, confirm the target, and add it to this day."
               >
                 <RoutineDayAddExerciseForm
                   customExerciseSection={(
