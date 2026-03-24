@@ -6,7 +6,6 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
 import { Input } from "@/components/ui/Input";
-import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
@@ -429,14 +428,15 @@ export function ExercisePicker({
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
           {selectedMeasurements.map((metric) => <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-start">
-            <div className="rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
-              <Input type="number" min={1} name="targetSets" value={targetSets} onChange={(event) => setTargetSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required />
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Sets</p>
+              <Input type="number" min={1} name="targetSets" value={targetSets} onChange={(event) => setTargetSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required className="min-h-10 rounded-lg border-border/45 bg-[rgb(var(--bg)/0.32)]" />
             </div>
 
             <div className="space-y-3">
               {selectedStats && (hasLast || hasPR) ? (
-                <div className={cn("rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] px-3 py-2 text-xs text-muted", didApplyLast ? "border-accent/40" : undefined)}>
+                <div className={cn("rounded-lg border border-border/35 bg-[rgb(var(--bg)/0.14)] px-3 py-2 text-xs text-muted", didApplyLast ? "border-accent/40" : undefined)}>
                   {hasLast ? <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
                   {hasPR ? <p>PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}{selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " · " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}</p> : null}
                   {hasLast ? (
@@ -463,7 +463,7 @@ export function ExercisePicker({
               ) : null}
 
               <MeasurementConfigurator
-                values={{ reps: targetRepsMin, weight: targetWeight, duration: targetDuration, distance: targetDistance, calories: targetCalories, weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
+                values={{ reps: targetRepsMin, repsMax: targetRepsMax, weight: targetWeight, duration: targetDuration, distance: targetDistance, calories: targetCalories, weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
                 activeMetrics={{ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }}
                 isExpanded={isMeasurementsOpen}
                 onExpandedChange={setIsMeasurementsOpen}
@@ -492,6 +492,7 @@ export function ExercisePicker({
                 })}
                 onChange={(patch) => {
                   if (patch.reps !== undefined) setTargetRepsMin(patch.reps);
+                  if (patch.repsMax !== undefined) setTargetRepsMax(patch.repsMax);
                   if (patch.weight !== undefined) setTargetWeight(patch.weight);
                   if (patch.duration !== undefined) setTargetDuration(patch.duration);
                   if (patch.distance !== undefined) setTargetDistance(patch.distance);
@@ -499,13 +500,12 @@ export function ExercisePicker({
                   if (patch.weightUnit !== undefined) setTargetWeightUnit(patch.weightUnit);
                   if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
                 }}
-                names={{ reps: "targetRepsMin", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
+                names={{ reps: "targetRepsMin", repsMax: "targetRepsMax", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
                 showHeader
                 heading="MEASUREMENTS"
                 description={undefined}
               />
 
-              {selectedMeasurements.includes("reps") ? <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} /> : null}
               <GoalSummaryInline
                 values={{
                   ...sanitizeEnabledMeasurementValues(

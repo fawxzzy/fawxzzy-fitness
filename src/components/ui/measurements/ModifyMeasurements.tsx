@@ -12,6 +12,7 @@ export type MeasurementMetrics = {
 
 export type MeasurementValues = {
   reps: string;
+  repsMax?: string;
   weight: string;
   duration: string;
   distance: string;
