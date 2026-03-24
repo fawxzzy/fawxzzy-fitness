@@ -6,7 +6,14 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { DayCard, DayList, type DayListState } from "@/components/day-list/DayList";
+import {
+  DayCard,
+  DayList,
+  formatLoggedSetCount,
+  resolveDayCardBadgeText,
+  resolveDayCardState,
+  REST_DAY_CARD_COPY,
+} from "@/components/day-list/DayList";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
@@ -47,7 +54,7 @@ type TodayDay = {
 
 function getDaySummary(day: TodayDay) {
   if (day.state === "rest") {
-    return "Recover, move lightly, and come back ready for the next workout.";
+    return REST_DAY_CARD_COPY;
   }
 
   if (day.state === "empty" && day.invalidExerciseCount > 0) {
@@ -82,14 +89,18 @@ export function TodayDayPicker({
   routineName,
   days,
   currentDayIndex,
-  completedTodayCount,
   inProgressSessionId,
+  completedDayIndexes,
+  inSessionDayIndex,
+  loggedSetCountsByDayIndex,
 }: {
   routineName: string;
   days: TodayDay[];
   currentDayIndex: number;
-  completedTodayCount: number;
   inProgressSessionId?: string | null;
+  completedDayIndexes?: number[];
+  inSessionDayIndex?: number | null;
+  loggedSetCountsByDayIndex?: Record<number, number>;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -108,6 +119,7 @@ export function TodayDayPicker({
   const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
   const hasInProgressSession = Boolean(inProgressSessionId);
+  const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
 
   const actionsNode = useMemo(() => {
     const selectDayButton = (
@@ -158,7 +170,11 @@ export function TodayDayPicker({
         <AnchoredSelectorPanel
           title={`${routineName} | ${selectedDay.name}`}
           subtitleRight={selectedDay.state === "rest" ? undefined : getExerciseCountSummaryFromInputs(selectedDay.exercises).label}
-          action={completedTodayCount > 0 && selectedDay.dayIndex === currentDayIndex ? <AppBadge>Completed</AppBadge> : undefined}
+          action={inSessionDayIndex === selectedDay.dayIndex
+            ? <AppBadge>In Session</AppBadge>
+            : completedDayIndexSet.has(selectedDay.dayIndex)
+              ? <AppBadge>Completed</AppBadge>
+              : undefined}
           revealOpen={isPickerOpen}
           revealId="today-day-selector-list"
           revealLabel="Routine days"
@@ -175,8 +191,20 @@ export function TodayDayPicker({
                       setSelectedDayIndex(day.dayIndex);
                       setIsPickerOpen(false);
                     }}
-                    state={(isSelected ? "selected" : day.isRest ? "rest" : "default") satisfies DayListState}
-                    badgeText={day.dayIndex === currentDayIndex ? "Today" : day.isRest ? "Rest Day" : undefined}
+                    state={resolveDayCardState({
+                      isSelected,
+                      isToday: day.dayIndex === currentDayIndex,
+                      isRest: day.isRest,
+                      isCompleted: completedDayIndexSet.has(day.dayIndex),
+                      isInSession: inSessionDayIndex === day.dayIndex,
+                    })}
+                    badgeText={resolveDayCardBadgeText({
+                      isToday: day.dayIndex === currentDayIndex,
+                      isRest: day.isRest,
+                      isCompleted: completedDayIndexSet.has(day.dayIndex),
+                      isInSession: inSessionDayIndex === day.dayIndex,
+                    })}
+                    metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
                     rightIcon={null}
                   />
                 );

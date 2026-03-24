@@ -1,3 +1,17 @@
+## [v0.3.91] – UI: unify live day-card state across Today and Routines
+
+### WHAT
+
+* Expanded the shared day-card primitive contract with canonical state resolution for `selected`, `completed`, `inSession`, and `rest`, plus shared badge-priority rules and optional logged-set metadata (`X logged`).
+* Standardized rest-day body copy through one shared constant so both Today and Routines day cards render the exact same rest messaging text.
+* Updated Today day-picker mapping to use shared day-card state/badge rules, surface completed vs in-session statuses consistently, and attach live in-session logged-set counts as secondary metadata.
+* Updated Routines day-list mapping and server data hydration to carry completed-today and active-session day state, with in-session taking precedence over completed and live logged-set count shown on the active day card.
+
+### WHY
+
+* Today and Routines were using the same card shell but still diverging in status semantics and copy, which caused inconsistent badge language, rest messaging, and day-state highlighting.
+* Centralizing status rules in the shared primitive ensures future day-state behavior lands once and remains visually and semantically aligned across both screens.
+
 ## [v0.3.90] – Edit Day Row Action Cleanup and Reorder Isolation
 
 ### WHAT
