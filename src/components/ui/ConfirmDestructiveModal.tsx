@@ -61,16 +61,16 @@ export function ConfirmDestructiveModal({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 pb-[max(1rem,var(--app-safe-bottom))] pt-[max(1rem,var(--app-safe-top))]">
+    <div className="fixed inset-0 z-[120] flex items-end justify-center p-4 pb-[max(1rem,calc(var(--app-safe-bottom)+5.5rem))] pt-[max(1rem,var(--app-safe-top))]">
       <button
         type="button"
         aria-label="Close confirmation"
-        className="fixed inset-0 z-0 bg-black/60 backdrop-blur-md"
+        className="fixed inset-0 z-0 bg-black/46 backdrop-blur-sm"
         onClick={onCancel}
       />
       <div
         ref={modalRef}
-        className="relative z-10 w-[calc(100%-2rem)] max-w-[420px] space-y-4 rounded-2xl bg-[rgb(var(--surface-rgb)/0.97)] p-6 shadow-2xl"
+        className="relative z-10 w-[calc(100%-2rem)] max-w-[420px] space-y-3 rounded-2xl border border-white/14 bg-[rgb(var(--surface-rgb)/0.84)] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

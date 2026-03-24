@@ -1,3 +1,18 @@
+## [v0.3.94] – Fix: restore resume hydration and polish toast/discard UX
+
+### WHAT
+
+* Hardened Today active-session hydration so resume state now re-checks from active-session source-of-truth on mount/focus/pageshow and can render `Resume Session` immediately after returning from Current Session without waiting for manual refresh.
+* Updated Today route revalidation to run an immediate refresh on route mount, then continue listening to focus/navigation/session-change events for reliable in-progress session continuity.
+* Removed leftover inline `Autosave on` labels from Edit Routine and Edit Day editor-family headers now that autosave state feedback is provided by the shared toast channel.
+* Shifted shared toast `info` tone to a neutral graphite/smoky-glass style so informational feedback no longer drifts into blue-accent treatment.
+* Upgraded destructive confirm presentation from a page-takeover feel into a compact elevated glass sheet positioned above footer actions, and hide/inert the underlying destructive trigger while the confirm is open.
+
+### WHY
+
+* Today resume continuity must feel deterministic across back/return navigation, so in-progress state needs to rehydrate from live session truth instead of stale route snapshots.
+* Autosave feedback should live in one shared ephemeral system; duplicated persistent labels make save state feel noisy and split-brain.
+* Destructive confirmation should remain explicit but lightweight, preserving action safety without introducing a heavy full-screen interruption.
 ## [v0.3.94] – Fix: stabilize Edit Day rail sizing and isolate inline exercise editing
 
 ### WHAT

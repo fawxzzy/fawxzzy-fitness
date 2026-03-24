@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { SubtitleText } from "@/components/ui/text-roles";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
 import { autosaveRoutineAction } from "@/app/routines/actions";
@@ -101,7 +100,6 @@ export function EditRoutineAutosaveForm(props: Props) {
         title="EDIT ROUTINE DETAILS"
         action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={false} />}
         actionClassName="-mt-1"
-        subtitleRight={<SubtitleText className="text-xs text-muted">Autosave on</SubtitleText>}
         className="space-y-5"
       >
         <RoutineEditorFormFields

@@ -35,7 +35,7 @@ const MAX_TOASTS = 3;
 
 function toneClassName(tone: ToastTone) {
   if (tone === "info") {
-    return "border-white/20 bg-slate-900/65 text-slate-100";
+    return "border-white/16 bg-[rgb(var(--surface-rgb)/0.84)] text-[rgb(var(--text)/0.92)]";
   }
   if (tone === "success") {
     return "border-emerald-300/40 bg-emerald-500/20 text-emerald-100";

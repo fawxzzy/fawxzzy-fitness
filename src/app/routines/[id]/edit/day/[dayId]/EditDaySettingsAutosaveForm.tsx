@@ -9,7 +9,6 @@ import {
 } from "@/components/routines/RoutineEditorShared";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
-import { SubtitleText } from "@/components/ui/text-roles";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 
@@ -119,8 +118,6 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
           }}
         />
       </RoutineEditorPageHeader>
-
-      <SubtitleText className="px-1 text-xs text-muted">Autosave on</SubtitleText>
     </form>
   );
 }
