@@ -1,3 +1,18 @@
+## [v0.4.03] – UI: finalize add-flow cleanup and single-scroll behavior
+
+### WHAT
+
+* Renamed the shared add-flow secondary footer action from `Exercise Info` to `View Exercise` across both Edit Day Add Exercise and Current Session Quick Add.
+* Removed leftover selected-exercise helper copy (`Use the footer actions to view exercise info or add this exercise.`) so the selected card stays compact and information-dense.
+* Finalized single-scroll ownership in the shared add-flow family by removing the picker list’s internal viewport scroller and height clamps (`overflow-y-auto` / fixed max-height treatment), keeping vertical scrolling with the page-level add-flow container.
+* Cleaned the shared exercise list shell presentation to match the existing polished add-flow/editor structure without reintroducing nested panel behavior.
+
+### WHY
+
+* The left footer label needed clearer action wording that matches user intent when opening details for the selected exercise.
+* Remaining helper copy in the selected card added noise after footer actions were normalized.
+* Internal list scrolling still created double-scroll behavior on mobile in add-flow surfaces that already have a dedicated page scroll owner.
+
 ## [v0.4.02] – UI: remove nested scroll/add-flow clutter and simplify selected-exercise actions
 
 ### WHAT

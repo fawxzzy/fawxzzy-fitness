@@ -391,9 +391,7 @@ export function ExercisePicker({
             badgeText="Selected"
             rightIcon={null}
             className="shadow-[0_10px_24px_-18px_rgba(96,200,130,0.95)]"
-          >
-            <div className="pt-1 text-xs text-muted">Use the footer actions to view exercise info or add this exercise.</div>
-          </ExerciseCard>
+          />
         ) : (
           <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">
             Select an exercise to continue.
@@ -406,7 +404,7 @@ export function ExercisePicker({
         <div className="flex items-center justify-between gap-2 px-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercises</p>
         </div>
-        <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
+        <div className={cn("rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
           <ul
             className={cn("pr-1", listShellClasses.viewport, listShellClasses.list)}
           >
@@ -422,7 +420,6 @@ export function ExercisePicker({
             ))}
             {filteredExercises.length === 0 ? <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">No exercises match your filters.</li> : null}
           </ul>
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-md bg-gradient-to-t from-[rgb(var(--bg))] to-transparent" />
         </div>
       </section>
 

@@ -63,7 +63,7 @@ export function EditDayAddExerciseScreen({
                 onClick={openExerciseInfo}
                 disabled={!selectedCanonicalExerciseId}
               >
-                Exercise Info
+                View Exercise
               </AppButton>
             )}
             primary={(
