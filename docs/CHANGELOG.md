@@ -1,3 +1,18 @@
+## [v0.3.92] – Stabilize Edit Day Row Interactions and Rest Toggle State
+
+### WHAT
+
+* Hardened Edit Day swipe-row behavior so open rails are force-dismissed when entering row edit mode, toggling reorder mode, and when list-mode transitions invalidate swipe actions.
+* Rebalanced Edit Day `Edit` / `Delete` trailing rails to fill the available action surface more evenly, with equal-width action buttons and a cleaner integrated rail shell.
+* Refined the planned-workout mode row to use a dedicated actions slot, making the `Reorder` / `Done reordering` control placement feel intentional and easier to extend with future list-level actions.
+* Stabilized row interaction boundaries by disabling swipe/tap row actions while a row editor is open, preventing layout and gesture contention during inline editing.
+* Fixed Rest Day autosave toggle desync by submitting from an explicit draft snapshot (name + `isRest`) so the rendered label/state always derives from the same source-of-truth boolean sent to persistence.
+
+### WHY
+
+* Edit Day supports multiple interaction modes (tap details, swipe actions, inline edit, reorder), so transitions between modes need hard guardrails to prevent stuck-open rails and accidental mixed-state UI.
+* Rest Day toggles must never show an ON/OFF label opposite persisted state; snapshot-driven autosave removes stale-closure timing issues that could invert first-click behavior.
+
 ## [v0.3.91] – UI: unify live day-card state across Today and Routines
 
 ### WHAT
