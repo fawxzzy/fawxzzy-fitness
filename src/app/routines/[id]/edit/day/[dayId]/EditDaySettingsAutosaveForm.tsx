@@ -30,9 +30,9 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
   const formRef = useRef<HTMLFormElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialSnapshot = useMemo(() => JSON.stringify({ name: name ?? "", isRest }), [isRest, name]);
+  const pendingSnapshotRef = useRef<{ name: string; isRest: boolean } | null>(null);
   const lastSubmittedRef = useRef(initialSnapshot);
-  const [nameValue, setNameValue] = useState(name ?? "");
-  const [isRestValue, setIsRestValue] = useState(isRest);
+  const [draft, setDraft] = useState({ name: name ?? "", isRest });
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -41,17 +41,23 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 
+  useEffect(() => {
+    const nextDraft = { name: name ?? "", isRest };
+    setDraft(nextDraft);
+    pendingSnapshotRef.current = nextDraft;
+    lastSubmittedRef.current = JSON.stringify(nextDraft);
+  }, [isRest, name]);
+
   const submitAutosave = useCallback(() => {
     const form = formRef.current;
+    const nextSnapshot = pendingSnapshotRef.current;
     if (!form) return;
+    if (!nextSnapshot) return;
     const formData = new FormData(form);
-    const snapshot = JSON.stringify({
-      name: nameValue,
-      isRest: isRestValue,
-    });
+    const snapshot = JSON.stringify(nextSnapshot);
 
-    formData.set("name", nameValue);
-    if (isRestValue) {
+    formData.set("name", nextSnapshot.name);
+    if (nextSnapshot.isRest) {
       formData.set("isRest", "on");
     } else {
       formData.delete("isRest");
@@ -72,10 +78,11 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
       setSaveState("error");
       setError(result.error ?? "Could not save day settings.");
     });
-  }, [isRestValue, nameValue, router]);
+  }, [router]);
 
-  const scheduleAutosave = useCallback(() => {
+  const scheduleAutosave = useCallback((nextSnapshot: { name: string; isRest: boolean }) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    pendingSnapshotRef.current = nextSnapshot;
     timeoutRef.current = setTimeout(submitAutosave, 500);
   }, [submitAutosave]);
 
@@ -89,10 +96,11 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         title={(
           <RoutineEditorTitleInput
             name="name"
-            value={nameValue}
+            value={draft.name}
             onChange={(nextValue) => {
-              setNameValue(nextValue);
-              scheduleAutosave();
+              const nextSnapshot = { ...draft, name: nextValue };
+              setDraft(nextSnapshot);
+              scheduleAutosave(nextSnapshot);
             }}
             placeholder={`Day ${dayIndex}`}
             ariaLabel="Day Name"
@@ -107,13 +115,11 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         <RoutineEditorFullRowToggle
           label="Rest Day"
           description="Tap to mark this day as rest"
-          enabled={isRestValue}
+          enabled={draft.isRest}
           onToggle={() => {
-            setIsRestValue((current) => {
-              const next = !current;
-              setTimeout(scheduleAutosave, 0);
-              return next;
-            });
+            const nextSnapshot = { ...draft, isRest: !draft.isRest };
+            setDraft(nextSnapshot);
+            scheduleAutosave(nextSnapshot);
           }}
         />
       </RoutineEditorPageHeader>

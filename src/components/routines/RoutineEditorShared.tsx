@@ -132,16 +132,20 @@ export function RoutineEditorFullRowToggle({
 export function RoutineEditorModeToggleRow({
   summary,
   action,
+  actions,
   className,
 }: {
   summary: ReactNode;
-  action: ReactNode;
+  action?: ReactNode;
+  actions?: ReactNode;
   className?: string;
 }) {
   return (
     <div className={cn("mb-3 flex items-center justify-between gap-3 rounded-[1.1rem] border border-border/35 bg-[rgb(var(--surface-2-soft)/0.3)] px-3 py-2.5", className)}>
       <SubtitleText className="text-xs">{summary}</SubtitleText>
-      {action}
+      <div className="flex items-center gap-2">
+        {actions ?? action}
+      </div>
     </div>
   );
 }

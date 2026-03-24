@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { RoutineEditorModeToggleRow } from "@/components/routines/RoutineEditorShared";
@@ -185,6 +185,7 @@ export function EditableRoutineDayExerciseList({
   const [reorderMode, setReorderMode] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [dismissSignal, setDismissSignal] = useState(0);
 
   useEffect(() => {
     setItems(exercises);
@@ -205,6 +206,11 @@ export function EditableRoutineDayExerciseList({
     setItems(nextItems);
     requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
   };
+
+  const closeAllRowActions = useCallback(() => {
+    setOpenRowId(null);
+    setDismissSignal((current) => current + 1);
+  }, []);
 
   const updateLocalItem = (exerciseId: string, updater: (item: EditableRoutineDayExerciseItem) => EditableRoutineDayExerciseItem) => {
     setItems((current) => current.map((item) => item.id === exerciseId ? updater(item) : item));
@@ -262,19 +268,26 @@ export function EditableRoutineDayExerciseList({
       dragStateRef.current = null;
       return;
     }
-    setOpenRowId(null);
+    closeAllRowActions();
     setExpandedId(null);
     setSelectedExerciseId(null);
-  }, [reorderMode]);
+  }, [closeAllRowActions, reorderMode]);
+
+  useEffect(() => {
+    if (expandedId) {
+      closeAllRowActions();
+      setReorderMode(false);
+    }
+  }, [closeAllRowActions, expandedId]);
 
   const handleToggleReorderMode = () => {
-    if (!reorderMode) {
-      setOpenRowId(null);
-      setExpandedId(null);
-      setSelectedExerciseId(null);
-    }
+    closeAllRowActions();
+    setExpandedId(null);
+    setSelectedExerciseId(null);
     setReorderMode((current) => !current);
   };
+
+  const editModeActive = expandedId !== null;
 
   if (items.length === 0) {
     return (
@@ -306,10 +319,10 @@ export function EditableRoutineDayExerciseList({
       </form>
 
       <RoutineEditorModeToggleRow
-        summary={reorderMode ? "Reorder mode is on." : `${items.length} exercise${items.length === 1 ? "" : "s"}`}
-        action={(
+        summary={reorderMode ? "Reorder mode is on. Drag rows by the handle." : `${items.length} exercise${items.length === 1 ? "" : "s"}`}
+        actions={(
           <AppButton type="button" variant={reorderMode ? "secondary" : "ghost"} size="sm" onClick={handleToggleReorderMode}>
-            {reorderMode ? "Done" : "Reorder"}
+            {reorderMode ? "Done reordering" : "Reorder"}
           </AppButton>
         )}
       />
@@ -328,23 +341,24 @@ export function EditableRoutineDayExerciseList({
                 id={exercise.id}
                 isDesktop={isDesktop}
                 isOpen={!reorderMode && openRowId === exercise.id}
-                onOpenChange={reorderMode ? () => undefined : setOpenRowId}
-                disabled={reorderMode}
-                trailingWidthMobile={156}
-                trailingWidthDesktop={170}
-                trailingActions={reorderMode ? null : (
+                onOpenChange={reorderMode || editModeActive ? () => undefined : setOpenRowId}
+                disabled={reorderMode || editModeActive}
+                dismissSignal={dismissSignal}
+                trailingWidthMobile={176}
+                trailingWidthDesktop={192}
+                trailingActions={reorderMode || editModeActive ? null : (
                   <div className={cn(
-                    "flex h-full items-center justify-end gap-2 rounded-[1.3rem] border border-border/30 bg-[rgb(var(--surface-2-soft)/0.96)] p-1.5 shadow-[inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
-                    isDesktop ? "w-[10.625rem]" : "w-[9.75rem]",
+                    "grid h-full grid-cols-2 items-stretch gap-1.5 rounded-[1.3rem] border border-border/30 bg-[rgb(var(--surface-2-soft)/0.96)] p-1.5 shadow-[inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
+                    isDesktop ? "w-[12rem]" : "w-[11rem]",
                     openRowId === exercise.id ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
                   )}>
                     <AppButton
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="h-full min-h-[2.35rem] flex-1 rounded-xl"
+                      className="h-full min-h-[2.35rem] w-full rounded-xl"
                       onClick={() => {
-                        setOpenRowId(null);
+                        closeAllRowActions();
                         setExpandedId((current) => current === exercise.id ? null : exercise.id);
                       }}
                     >
@@ -355,7 +369,7 @@ export function EditableRoutineDayExerciseList({
                       hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
                       triggerLabel="Delete"
                       triggerAriaLabel={`Delete ${exercise.name}`}
-                      triggerClassName="h-full min-h-[2.35rem] min-w-[4.4rem] self-stretch rounded-xl"
+                      triggerClassName="h-full min-h-[2.35rem] w-full self-stretch rounded-xl"
                       modalTitle="Delete routine day exercise?"
                       modalDescription="This will remove this exercise from the routine day."
                       confirmLabel="Delete"
@@ -382,7 +396,7 @@ export function EditableRoutineDayExerciseList({
                     subtitle={exercise.targetSummary}
                     variant="interactive"
                     state={isExpanded ? "selected" : exercise.targetSummary === "Goal missing" ? "empty" : "default"}
-                    onPress={reorderMode ? undefined : () => setSelectedExerciseId(exercise.exerciseId)}
+                    onPress={reorderMode || editModeActive ? undefined : () => setSelectedExerciseId(exercise.exerciseId)}
                     badgeText={isExpanded ? "Editing" : exercise.targetSummary === "Goal missing" ? undefined : `#${index + 1}`}
                     leadingVisual={(
                       <ExerciseAssetImage

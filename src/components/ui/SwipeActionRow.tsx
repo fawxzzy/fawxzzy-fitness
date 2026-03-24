@@ -24,6 +24,7 @@ type SwipeActionRowProps = {
   leadingTriggerWidth?: number;
   onLeadingTrigger?: () => Promise<void> | void;
   disabled?: boolean;
+  dismissSignal?: number;
   className?: string;
 };
 
@@ -43,6 +44,7 @@ export function SwipeActionRow({
   leadingTriggerWidth = 0,
   onLeadingTrigger,
   disabled = false,
+  dismissSignal,
   className,
 }: SwipeActionRowProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -55,6 +57,12 @@ export function SwipeActionRow({
       setDragOffset(0);
     }
   }, [disabled, dragOffset, isOpen]);
+
+  useEffect(() => {
+    setDragOffset(0);
+    pointerStateRef.current = null;
+    if (isOpen) onOpenChange(null);
+  }, [dismissSignal, isOpen, onOpenChange]);
 
   useEffect(() => {
     if (!isOpen || disabled) return;
