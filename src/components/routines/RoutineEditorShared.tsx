@@ -1,14 +1,36 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
+import { ExercisePicker } from "@/components/ExercisePicker";
 import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ExerciseCard } from "@/components/ExerciseCard";
+import { AppButton } from "@/components/ui/AppButton";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { Glass } from "@/components/ui/Glass";
+import { GlassButton } from "@/components/ui/GlassButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { controlClassName } from "@/components/ui/formClasses";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
+import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
+
+export type EditorExerciseOption = {
+  id: string;
+  name: string;
+  user_id: string | null;
+  is_global: boolean;
+  primary_muscle: string | null;
+  equipment: string | null;
+  movement_pattern: string | null;
+  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  default_unit: string | null;
+  calories_estimation_method: string | null;
+  image_howto_path: string | null;
+  how_to_short?: string | null;
+  image_icon_path?: string | null;
+  slug?: string | null;
+};
 
 export function RoutineEditorPageHeader({
   eyebrow,
@@ -146,6 +168,116 @@ export function RoutineEditorModeToggleRow({
       <div className="flex items-center gap-2">
         {actions ?? action}
       </div>
+    </div>
+  );
+}
+
+export function RoutineEditorListModeControlRow({
+  summary,
+  actions,
+  className,
+}: {
+  summary: ReactNode;
+  actions: Array<{
+    label: string;
+    onClick: () => void;
+    active?: boolean;
+  }>;
+  className?: string;
+}) {
+  return (
+    <RoutineEditorModeToggleRow
+      summary={summary}
+      className={className}
+      actions={(
+        <div className="flex items-center gap-2">
+          {actions.map((action) => (
+            <AppButton
+              key={action.label}
+              type="button"
+              variant={action.active ? "secondary" : "ghost"}
+              size="sm"
+              onClick={action.onClick}
+            >
+              {action.label}
+            </AppButton>
+          ))}
+        </div>
+      )}
+    />
+  );
+}
+
+export function RoutineEditorAddExerciseFlowShell({
+  exercises,
+  initialSelectedId,
+  weightUnit,
+  exerciseStats,
+  onSelectedExerciseChange,
+  renderFooter,
+  footerSlot,
+  name = "exerciseId",
+}: {
+  exercises: EditorExerciseOption[];
+  initialSelectedId?: string;
+  weightUnit?: "lbs" | "kg";
+  exerciseStats?: ExerciseStatsOption[];
+  onSelectedExerciseChange?: ComponentProps<typeof ExercisePicker>["onSelectedExerciseChange"];
+  renderFooter?: ComponentProps<typeof ExercisePicker>["renderFooter"];
+  footerSlot?: ReactNode;
+  name?: string;
+}) {
+  return (
+    <ExercisePicker
+      exercises={exercises}
+      name={name}
+      initialSelectedId={initialSelectedId}
+      onSelectedExerciseChange={onSelectedExerciseChange}
+      routineTargetConfig={weightUnit ? { weightUnit } : undefined}
+      exerciseStats={exerciseStats}
+      renderFooter={renderFooter}
+      footerSlot={footerSlot}
+    />
+  );
+}
+
+export function RoutineEditorSaveDiscardConfirmSheet({
+  open,
+  title = "Discard changes?",
+  description,
+  stayLabel = "Stay",
+  discardLabel = "Discard",
+  onStay,
+  onDiscard,
+}: {
+  open: boolean;
+  title?: string;
+  description: ReactNode;
+  stayLabel?: string;
+  discardLabel?: string;
+  onStay: () => void;
+  onDiscard: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+      <Glass variant="overlay" className="w-full max-w-sm p-4" interactive={false}>
+        <div className="space-y-3">
+          <h2 className="text-base font-semibold text-text">{title}</h2>
+          <p className="text-sm text-muted">{description}</p>
+          <div className="flex justify-end gap-2">
+            <GlassButton className="min-w-20" onClick={onStay}>
+              {stayLabel}
+            </GlassButton>
+            <GlassButton
+              className="min-w-20 border-red-300/70 bg-red-500/30 text-white hover:bg-red-500/45"
+              onClick={onDiscard}
+            >
+              {discardLabel}
+            </GlassButton>
+          </div>
+        </div>
+      </Glass>
     </div>
   );
 }

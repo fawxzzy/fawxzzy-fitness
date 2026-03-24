@@ -2,8 +2,8 @@
 
 import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ExercisePicker } from "@/components/ExercisePicker";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -11,30 +11,13 @@ import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 
-type ExerciseOption = {
-  id: string;
-  name: string;
-  user_id: string | null;
-  is_global: boolean;
-  primary_muscle: string | null;
-  equipment: string | null;
-  movement_pattern: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
-  default_unit: string | null;
-  calories_estimation_method: string | null;
-  image_howto_path: string | null;
-  how_to_short?: string | null;
-  image_icon_path?: string | null;
-  slug?: string | null;
-};
-
 export function QuickAddExerciseSheet({
   sessionId,
   exercises,
   quickAddExerciseAction,
 }: {
   sessionId: string;
-  exercises: ExerciseOption[];
+  exercises: EditorExerciseOption[];
   quickAddExerciseAction: (formData: FormData) => Promise<ActionResult>;
 }) {
   const [open, setOpen] = useState(false);
@@ -94,7 +77,7 @@ export function QuickAddExerciseSheet({
         className="max-w-md"
         contentClassName="space-y-5"
       >
-        <ExercisePicker
+        <RoutineEditorAddExerciseFlowShell
           key={pickerInstance}
           exercises={exercises}
           name="exerciseId"
