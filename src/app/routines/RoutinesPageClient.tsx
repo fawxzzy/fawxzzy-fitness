@@ -14,10 +14,9 @@ import {
   RoutinesListItemCard,
   RoutinesPageScaffold,
   RoutinesSectionCard,
-  SharedDayList,
-  SharedDayListRow,
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
+import { DayCard, DayList, type DayListState } from "@/components/day-list/DayList";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
@@ -173,7 +172,7 @@ export function RoutinesPageClient({
       {!isRoutineListOpen ? (
         <SharedDayListSection meta={days.length === 1 ? "1 day" : `${days.length} days`}>
           {days.length > 0 ? (
-            <SharedDayList>
+            <DayList>
               {days.map((day) => {
                 const subtitleParts = [
                   day.exerciseSummary,
@@ -181,18 +180,18 @@ export function RoutinesPageClient({
                 ].filter(Boolean);
 
                 return (
-                  <SharedDayListRow
+                  <DayCard
                     key={day.id}
                     title={`Day ${day.dayIndex} | ${day.title}`}
                     subtitle={subtitleParts.join(" • ")}
-                    badgeText={day.isToday ? "Today" : day.isRest ? "Rest" : undefined}
+                    badgeText={day.isToday ? "Today" : day.isRest ? "Rest Day" : undefined}
                     rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
-                    state={day.isToday ? "selected" : day.isRest ? "empty" : "default"}
+                    state={(day.isToday ? "selected" : day.isRest ? "rest" : "default") satisfies DayListState}
                     onPress={() => router.push(day.href)}
                   />
                 );
               })}
-            </SharedDayList>
+            </DayList>
           ) : (
             <RoutinesListEmpty>No days yet.</RoutinesListEmpty>
           )}

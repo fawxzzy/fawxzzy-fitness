@@ -11,6 +11,18 @@
 
 * Edit Day should match Edit Routine’s editor-family contract: one top card for identity + key toggles, lighter section chrome, and fewer legacy navigation artifacts.
 * Folding Rest Day into the same top card control language makes day identity and day mode changes feel like one coherent editing surface.
+## [v0.3.89] – Today/Routines Day List Primitive Unification
+
+### WHAT
+
+* Extracted a shared `DayList`/`DayCard` primitive family for routine day rows so Today and Routines now render from the same card shell instead of route-local wrappers.
+* Routed both Today day selection rows and Routines day navigation rows through that shared primitive while keeping their click behavior different (`select in place` vs `open day`).
+* Normalized day-row visual treatment across both screens, including shared rest-state card styling and consistent `Rest Day` badge language.
+
+### WHY
+
+* Today and Routines were close but still drifting in day-row presentation and badge language, which made small polish passes expensive and inconsistent.
+* A single primitive keeps spacing, radius, typography, and badge treatment aligned while preserving screen-specific business behavior.
 
 ## [v0.3.88] – Edit Day Shared Row Actions and Explicit Reorder Mode
 
