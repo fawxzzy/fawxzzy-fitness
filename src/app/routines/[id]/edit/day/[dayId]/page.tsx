@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
@@ -11,7 +10,6 @@ import { controlClassName } from "@/components/ui/formClasses";
 import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
 import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
-import { EditDayHeaderSwitcher } from "@/app/routines/[id]/edit/day/[dayId]/EditDayHeaderSwitcher";
 import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm";
 import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
@@ -42,14 +40,6 @@ type PageProps = {
     returnTo?: string;
   };
 };
-
-function formatDayTitle(dayIndex: number, dayName: string | null) {
-  const fallback = `Day ${dayIndex}`;
-  const trimmedName = dayName?.trim() ?? "";
-  if (!trimmedName) return fallback;
-  if (trimmedName.toLowerCase() === fallback.toLowerCase()) return fallback;
-  return trimmedName;
-}
 
 export default async function RoutineDayEditorPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
@@ -82,7 +72,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   const allRoutineDayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
   const dayExercises = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === params.dayId);
-  const dayTitle = formatDayTitle(day.day_index, day.name);
   const exerciseOptions = await listExercises();
   const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
@@ -91,45 +80,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
   const returnTo = getRoutineDayEditHref(params.id, params.dayId);
   const backHref = resolveRoutineDayEditBackHref(params.id, searchParams?.returnTo);
-  const exerciseOptionById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
-  const dayExerciseSummaries = new Map<string, string>();
-  for (const routineDay of routineDays ?? []) {
-    const summaryLabel = getRestDayExerciseCountSummaryFromInputs(
-      allRoutineDayExercises
-        .filter((exercise) => exercise.routine_day_id === routineDay.id)
-        .map((exercise) => {
-          const matchingExercise = exerciseOptionById.get(exercise.exercise_id);
-          return {
-            measurement_type: exercise.measurement_type ?? matchingExercise?.measurement_type ?? null,
-            equipment: matchingExercise?.equipment ?? null,
-            movement_pattern: matchingExercise?.movement_pattern ?? null,
-          };
-        }),
-      routineDay.is_rest,
-    ).label;
-
-    dayExerciseSummaries.set(routineDay.id, summaryLabel);
-  }
-
-  const switcherDays = (routineDays ?? []).map((routineDay) => {
-    const exerciseCount = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === routineDay.id).length;
-    const trimmedName = routineDay.name?.trim() ?? "";
-    const defaultTitle = `Day ${routineDay.day_index}`.toLowerCase();
-    const needsSetup = !routineDay.is_rest
-      && exerciseCount === 0
-      && !(routineDay.notes?.trim())
-      && (!trimmedName || trimmedName.toLowerCase() === defaultTitle);
-
-    return {
-      id: routineDay.id,
-      dayIndex: routineDay.day_index,
-      name: formatDayTitle(routineDay.day_index, routineDay.name),
-      isRest: routineDay.is_rest,
-      exerciseSummary: dayExerciseSummaries.get(routineDay.id) ?? getRestDayExerciseCountSummaryFromInputs([], routineDay.is_rest).label,
-      needsSetup,
-    };
-  });
-
   const editableExercises = dayExercises.map((exercise) => {
     const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
     const matchingExercise = exerciseOptions.find((option) => option.id === exercise.exercise_id);
@@ -193,26 +143,16 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
         <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
-          <EditDayHeaderSwitcher
+          <EditDaySettingsAutosaveForm
             routineId={params.id}
             routineName={routine.name}
-            days={switcherDays}
-            activeDayId={params.dayId}
-            activeDayTitle={dayTitle}
-            activeDaySummary={activeExerciseSummary}
+            daySummary={activeExerciseSummary}
             backHref={backHref}
+            routineDayId={params.dayId}
+            dayIndex={day.day_index}
+            name={(day as RoutineDayRow).name}
+            isRest={(day as RoutineDayRow).is_rest}
           />
-
-                    <RoutineEditorSection title="Day Settings" description="Update the day name or rest state here. Changes save automatically.">
-            <EditDaySettingsAutosaveForm
-              routineId={params.id}
-              routineDayId={params.dayId}
-              backHref={backHref}
-              dayIndex={day.day_index}
-              name={(day as RoutineDayRow).name}
-              isRest={(day as RoutineDayRow).is_rest}
-            />
-          </RoutineEditorSection>
 
           {day.is_rest ? (
             <AppPanel className="p-4">
@@ -225,7 +165,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             <>
               <RoutineEditorSection
                 title="Planned Workout"
-                description="Edit targets, reorder rows, or remove exercises while keeping the same row language used across the app."
               >
                 <EditableRoutineDayExerciseList
                   routineId={params.id}
