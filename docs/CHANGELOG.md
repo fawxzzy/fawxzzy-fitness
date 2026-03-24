@@ -4633,6 +4633,8 @@ WHY:
 - Split neutral supporting text from intentionally emphasized green supporting text so routine/session counts stay readable without turning every subtitle into an accent state.
 - Extracted shared editor-family primitives for header title inputs, full-row toggles, and mode-toggle rows, then applied them across Edit Routine and Edit Day surfaces without changing existing autosave or layout behavior.
 - Refactored Session Quick Add to reuse the shared add-exercise shell/section presentation patterns from the Edit Day Add Exercise flow, including aligned footer CTA treatment and cleaner section copy, while preserving current-session mutation behavior.
+- Cleaned up Edit Day inline exercise editing by removing legacy helper copy, hiding the measurement heading/description block, and replacing the bottom chip-heavy goal preview with a fluid summary line (`x reps • y lbs`) that only falls back to a pill for empty goals.
+- Tightened Edit Day swipe trailing actions to match the cleaner action-rail language used in Current Session/Quick Log surfaces with full-slot fill, a centered thin divider, and a crisper integrated border/shine treatment.
 
 ### Why
 - Today day-list breakdowns were still lagging behind Routines because their summary path was rebuilding labels from route-local exercise payloads instead of reusing the normalized canonical exercise metadata contract.
@@ -4640,3 +4642,4 @@ WHY:
 - Cardio-classified exercises that relied on metadata beyond `measurement_type`/`equipment`/`movement_pattern` were still degrading to generic `N exercises` copy whenever those richer fields were dropped before the shared formatter.
 - Shared typography drift had accumulated through repeated per-screen `text-white`, muted subtitle, uppercase label, and green helper class bundles, which made hierarchy less consistent across the app.
 - Edit Routine and Edit Day had started to repeat near-identical editor controls in route-local markup, increasing drift risk for future editor-family updates.
+- The inline Edit Day row editor still felt denser and more helper-copy heavy than newer workout-entry surfaces, and its trailing Edit/Delete rail looked visually under-filled relative to the Current Session action rail.
