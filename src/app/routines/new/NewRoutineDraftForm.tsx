@@ -8,7 +8,7 @@ import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppButton } from "@/components/ui/AppButton";
-import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
 
@@ -89,7 +89,6 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
             }}
           />
         </RoutineEditorPageHeader>
-        <SubtitleText className="px-1 text-xs text-muted">Leave anytime — this draft will be here when you come back.</SubtitleText>
         {error ? <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{error}</AccentSubtitleText> : null}
       </div>
 

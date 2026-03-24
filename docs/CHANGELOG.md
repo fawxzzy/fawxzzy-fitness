@@ -1,3 +1,17 @@
+## [v0.3.99] – UI: clean routine creation footer state and center editor discard confirm
+
+### WHAT
+
+* Removed the lingering New Routine draft-return helper copy from the form body while keeping local draft autosave behavior unchanged.
+* Updated the Routines picker-open footer contract so the secondary action is now `Hide Routines` on the left and `New Routine` on the right, replacing `Edit Routine` in that open state only.
+* Centered the shared editor-family discard confirmation modal on screen and kept its compact elevated glass presentation.
+
+### WHY
+
+* New Routine no longer needs persistent draft-return messaging now that the flow is intentionally cleaner and less noisy.
+* When the picker is open, routine management is clearer with `Hide Routines` + `New Routine` rather than mixing list-open state with `Edit Routine`.
+* Discard confirmation should remain explicit and destructive-safe, but visually read as a centered modal rather than a bottom-anchored sheet.
+
 ## [v0.3.98] – Refactor: align Quick Add goal setup with Add Exercise flow
 
 ### WHAT
