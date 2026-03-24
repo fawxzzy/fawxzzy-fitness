@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -20,6 +20,7 @@ export function RoutineDayAddExerciseForm({
   customExerciseSection,
   submitLabel = "Add To Day",
   footerSlot,
+  renderFooter,
   onSuccess,
 }: {
   routineId: string;
@@ -32,6 +33,7 @@ export function RoutineDayAddExerciseForm({
   customExerciseSection?: ReactNode;
   submitLabel?: string;
   footerSlot?: ReactNode;
+  renderFooter?: ComponentProps<typeof RoutineEditorAddExerciseFlowShell>["renderFooter"];
   onSuccess?: () => void;
 }) {
   const toast = useToast();
@@ -63,6 +65,7 @@ export function RoutineDayAddExerciseForm({
         initialSelectedId={initialSelectedId}
         weightUnit={weightUnit}
         exerciseStats={exerciseStats}
+        renderFooter={renderFooter}
         footerSlot={footerSlot !== undefined ? footerSlot : (
           <AppButton type="submit" variant="primary" fullWidth>
             {submitLabel}

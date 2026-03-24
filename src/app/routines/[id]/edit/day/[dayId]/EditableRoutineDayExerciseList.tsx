@@ -115,11 +115,11 @@ function RoutineTargetInputs({
   });
 
   return (
-    <div className="space-y-3 rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
+    <div className="space-y-3">
       {Object.entries(activeMetrics).map(([metric, enabled]) => enabled ? <input key={metric} type="hidden" name="measurementSelections" value={metric} /> : null)}
-      <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2">
+      <div className="space-y-1">
         <EyebrowText>Sets</EyebrowText>
-        <input type="number" min={1} name="targetSets" value={sets} onChange={(event) => setSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} />
+        <input type="number" min={1} name="targetSets" value={sets} onChange={(event) => setSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required className={controlClassName} />
       </div>
       <MeasurementConfigurator
         values={{
@@ -534,7 +534,7 @@ export function EditableRoutineDayExerciseList({
                         <input type="hidden" name="routineId" value={routineId} />
                         <input type="hidden" name="routineDayId" value={routineDayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                        <div className="space-y-3 rounded-[1rem] border border-border/30 bg-[rgb(var(--bg)/0.12)] p-3">
+                        <div className="space-y-3">
                           <EyebrowText>Configure goal</EyebrowText>
                           <RoutineTargetInputs
                             weightUnit={weightUnit}
