@@ -15,12 +15,12 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { controlClassName } from "@/components/ui/formClasses";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
-import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
-import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { EyebrowText } from "@/components/ui/text-roles";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { formatMeasurementSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 
 type EditableRoutineDayExerciseItem = {
@@ -99,6 +99,20 @@ function RoutineTargetInputs({
     distance: defaults.targetDistance != null,
     calories: defaults.targetCalories != null,
   });
+  const summaryValues = sanitizeEnabledMeasurementValues(activeMetrics, {
+    reps: values.reps ? Number(values.reps) : null,
+    weight: values.weight ? Number(values.weight) : null,
+    durationSeconds: values.duration ? (values.duration.includes(":") ? Number(values.duration.split(":")[0]) * 60 + Number(values.duration.split(":")[1]) : Number(values.duration)) : null,
+    distance: values.distance ? Number(values.distance) : null,
+    calories: values.calories ? Number(values.calories) : null,
+  });
+  const goalSummary = formatMeasurementSummaryText({
+    ...summaryValues,
+    weightUnit: values.weightUnit,
+    distanceUnit: values.distanceUnit,
+    emptyLabel: "Goal missing",
+  });
+  const hasGoalSummary = goalSummary !== "Goal missing";
 
   return (
     <div className="space-y-3 rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
@@ -146,23 +160,18 @@ function RoutineTargetInputs({
           weightUnit: "targetWeightUnit",
           distanceUnit: "targetDistanceUnit",
         }}
-        description="Choose only the optional measurements this goal needs."
+        showHeader={false}
       />
       {activeMetrics.reps ? <input type="number" min={1} name="targetRepsMax" value={values.repsMax} onChange={(event) => setValues((current) => ({ ...current, repsMax: event.target.value }))} placeholder="Max reps" className={controlClassName} /> : null}
-      <MeasurementSummary
-        values={{
-          ...sanitizeEnabledMeasurementValues(activeMetrics, {
-            reps: values.reps ? Number(values.reps) : null,
-            weight: values.weight ? Number(values.weight) : null,
-            durationSeconds: values.duration ? (values.duration.includes(":") ? Number(values.duration.split(":")[0]) * 60 + Number(values.duration.split(":")[1]) : Number(values.duration)) : null,
-            distance: values.distance ? Number(values.distance) : null,
-            calories: values.calories ? Number(values.calories) : null,
-          }),
-          weightUnit: values.weightUnit,
-          distanceUnit: values.distanceUnit,
-        }}
-        emptyLabel="Goal missing"
-      />
+      <div className="rounded-xl border border-border/35 bg-[rgb(var(--bg)/0.16)] px-3 py-2">
+        {hasGoalSummary ? (
+          <p className="text-sm text-[rgb(var(--text)/0.88)]">{goalSummary}</p>
+        ) : (
+          <span className="inline-flex items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.24)] px-2.5 py-1 text-[11px] font-medium tracking-wide text-muted">
+            Goal missing
+          </span>
+        )}
+      </div>
       <input type="hidden" name="defaultUnit" value={activeMetrics.distance ? values.distanceUnit : "mi"} />
     </div>
   );
@@ -380,14 +389,14 @@ export function EditableRoutineDayExerciseList({
                 trailingWidthDesktop={224}
                 trailingActions={reorderMode || editModeActive ? null : (
                   <div className={cn(
-                    "grid h-full w-full grid-cols-2 items-stretch divide-x divide-border/35 overflow-hidden rounded-[inherit] border border-border/30 bg-[rgb(var(--surface-2-soft)/0.98)] shadow-[inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
+                    "grid h-full w-full grid-cols-2 items-stretch divide-x divide-border/30 overflow-hidden rounded-[inherit] border border-border/28 bg-[linear-gradient(180deg,rgba(var(--surface-2-soft),0.96),rgba(var(--surface-2-soft),0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
                     openRowId === exercise.id ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
                   )}>
                     <AppButton
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="!h-full min-h-0 w-full rounded-none border-0 bg-[rgb(var(--surface-2-soft)/0.88)] px-0"
+                      className="!h-full min-h-0 w-full rounded-none border-0 bg-transparent px-0 text-[rgb(var(--text)/0.88)] hover:bg-[rgb(var(--bg)/0.16)]"
                       onClick={() => {
                         closeAllRowActions();
                         setExpandedId((current) => current === exercise.id ? null : exercise.id);
@@ -401,7 +410,7 @@ export function EditableRoutineDayExerciseList({
                         hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
                         triggerLabel="Delete"
                         triggerAriaLabel={`Delete ${exercise.name}`}
-                        triggerClassName="!h-full min-h-0 w-full self-stretch rounded-none border-0 bg-[rgb(var(--surface-2-soft)/0.88)] px-0"
+                        triggerClassName="!h-full min-h-0 w-full self-stretch rounded-none border-0 bg-transparent px-0 text-rose-100 hover:bg-rose-400/14"
                         modalTitle="Delete routine day exercise?"
                         modalDescription="This will remove this exercise from the routine day."
                         confirmLabel="Delete"
@@ -491,11 +500,7 @@ export function EditableRoutineDayExerciseList({
                         <input type="hidden" name="routineDayId" value={routineDayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
                         <div className="space-y-3 rounded-[1rem] border border-border/30 bg-[rgb(var(--bg)/0.12)] p-3">
-                          <div className="space-y-1">
-                            <EyebrowText>Planned workout</EyebrowText>
-                            <TitleText as="p" className="text-sm">Editing this exercise</TitleText>
-                            <SubtitleText className="text-xs">Adjust the draft goal here, then finish this row. Day updates save automatically.</SubtitleText>
-                          </div>
+                          <EyebrowText>Planned workout</EyebrowText>
                           <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2">
                             <EyebrowText>Sets</EyebrowText>
                             <input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} />
