@@ -288,8 +288,8 @@ export function RoutineEditorSaveDiscardConfirmSheet({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
-      <Glass variant="overlay" className="w-full max-w-sm p-4" interactive={false}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <Glass variant="overlay" className="w-full max-w-sm p-4 shadow-[0_24px_70px_rgba(0,0,0,0.42)]" interactive={false}>
         <div className="space-y-3">
           <h2 className="text-base font-semibold text-text">{title}</h2>
           <p className="text-sm text-muted">{description}</p>

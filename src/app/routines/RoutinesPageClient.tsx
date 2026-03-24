@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { BottomActionSplit, BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import {
   ActiveRoutineStatusBadge,
@@ -114,13 +114,8 @@ export function RoutinesPageClient({
 
     if (isRoutineListOpen) {
       return (
-        <BottomActionStackedPrimary
-          utility={(
-            <>
-              {toggleButton}
-              {editRoutineAction}
-            </>
-          )}
+        <BottomActionSplit
+          secondary={toggleButton}
           primary={(
             <Link
               href={newRoutineHref}
