@@ -1,3 +1,17 @@
+## [v0.3.95] – Feature: add dedicated Edit Day Add Exercise flow using Quick Add UI shell
+
+### WHAT
+
+* Moved Edit Day add-exercise into a dedicated `/add-exercise` route and reused the shared Exercise Picker shell (selection, goal setup, measurement configurator, and summary) rather than keeping an embedded card in the main Edit Day screen.
+* Added a footer-owned `Add Exercise` bottom action on Edit Day that appears only in normal list mode and is hidden while reorder mode or inline exercise edit mode is active.
+* Kept Edit Day-specific business logic by continuing to use routine-day add mutation handlers and routine-day revalidation paths, while preserving shared toast-based success/error feedback.
+* Added a dedicated Add Exercise screen-level sticky primary action and clean return flow back to Edit Day after save.
+
+### WHY
+
+* Edit Day needed the same clean, focused add flow structure as Quick Add without coupling to Current Session mutations.
+* Moving add into its own screen reduces mixed-mode clutter inside Edit Day and keeps reorder/edit interactions isolated from exercise creation.
+
 ## [v0.3.94] – Fix: restore resume hydration and polish toast/discard UX
 
 ### WHAT

@@ -1,17 +1,11 @@
 import { notFound } from "next/navigation";
-import { AppButton } from "@/components/ui/AppButton";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { controlClassName } from "@/components/ui/formClasses";
-import { createCustomExerciseAction, deleteCustomExerciseAction, renameCustomExerciseAction } from "@/app/actions/exercises";
-import { addRoutineDayExerciseAction, reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
+import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
 import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm";
-import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
@@ -35,7 +29,6 @@ type PageProps = {
   searchParams?: {
     error?: string;
     success?: string;
-    exerciseId?: string;
     addExerciseOpen?: string;
     returnTo?: string;
   };
@@ -73,13 +66,12 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const allRoutineDayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
   const dayExercises = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === params.dayId);
   const exerciseOptions = await listExercises();
-  const customExercises = exerciseOptions.filter((exercise) => !exercise.is_global && exercise.user_id === user.id);
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   const exerciseMeasurementMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.measurement_type]));
   const exerciseUnitMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.default_unit]));
   const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
-  const returnTo = getRoutineDayEditHref(params.id, params.dayId);
   const backHref = resolveRoutineDayEditBackHref(params.id, searchParams?.returnTo);
+  const addExerciseHref = `${getRoutineDayEditHref(params.id, params.dayId)}/add-exercise`;
   const editableExercises = dayExercises.map((exercise) => {
     const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
     const matchingExercise = exerciseOptions.find((option) => option.id === exercise.exercise_id);
@@ -174,65 +166,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
                   updateAction={updateRoutineDayExerciseAction}
                   deleteAction={deleteRoutineDayExerciseAction}
                   reorderAction={reorderRoutineDayExercisesAction}
+                  addExerciseHref={addExerciseHref}
                 />
               </RoutineEditorSection>
 
-              <RoutineEditorSection
-                title="Add Exercise"
-              >
-                <RoutineDayAddExerciseForm
-                  customExerciseSection={(
-                    <CollapsibleCard
-                      title="Custom Exercise Tool"
-                      summary={customExercises.length > 0 ? `${customExercises.length} saved` : "Optional"}
-                      defaultOpen={false}
-                      className="border border-border/40 bg-[rgb(var(--bg)/0.12)] shadow-none"
-                      bodyClassName="space-y-3 bg-transparent"
-                    >
-                      <p className="text-xs text-muted">Use this only when the picker does not already have what you need.</p>
-                      <form action={createCustomExerciseAction} className="space-y-2">
-                        <input type="hidden" name="returnTo" value={returnTo} />
-                        <input name="name" required minLength={2} maxLength={80} placeholder="Exercise name" className={controlClassName} />
-                        <AppButton type="submit" variant="secondary" fullWidth>Save Custom Exercise</AppButton>
-                      </form>
-                      {customExercises.length > 0 ? (
-                        <ul className="space-y-2 border-t border-border/40 pt-3">
-                          {customExercises.map((exercise) => (
-                            <li key={exercise.id} className="rounded-xl border border-border/45 bg-[rgb(var(--bg)/0.18)] p-3">
-                              <p className="text-xs font-semibold">{exercise.name}</p>
-                              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <form action={renameCustomExerciseAction} className="flex gap-2">
-                                  <input type="hidden" name="returnTo" value={returnTo} />
-                                  <input type="hidden" name="exerciseId" value={exercise.id} />
-                                  <input name="name" defaultValue={exercise.name} minLength={2} maxLength={80} className={controlClassName} />
-                                  <AppButton type="submit" variant="secondary" size="sm">Rename</AppButton>
-                                </form>
-                                <ConfirmedServerFormButton
-                                  action={deleteCustomExerciseAction}
-                                  hiddenFields={{ returnTo, exerciseId: exercise.id }}
-                                  triggerLabel="Delete"
-                                  triggerClassName="w-full"
-                                  modalTitle="Delete custom exercise?"
-                                  modalDescription="This permanently deletes this custom exercise from your library."
-                                  confirmLabel="Delete"
-                                  details={`Exercise: ${exercise.name}`}
-                                />
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </CollapsibleCard>
-                  )}
-                  routineId={params.id}
-                  routineDayId={params.dayId}
-                  exercises={exerciseOptions}
-                  initialSelectedId={searchParams?.exerciseId}
-                  weightUnit={(routine as RoutineRow).weight_unit}
-                  addExerciseAction={addRoutineDayExerciseAction}
-                  exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
-                />
-              </RoutineEditorSection>
             </>
           )}
         </section>

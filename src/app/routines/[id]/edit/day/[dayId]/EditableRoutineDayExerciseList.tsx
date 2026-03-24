@@ -8,6 +8,8 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { SwipeActionRow } from "@/components/ui/SwipeActionRow";
 import { useToast } from "@/components/ui/ToastProvider";
 import { controlClassName } from "@/components/ui/formClasses";
@@ -54,6 +56,7 @@ type Props = {
   updateAction: (formData: FormData) => Promise<ActionResult>;
   deleteAction: (formData: FormData) => Promise<ActionResult>;
   reorderAction: (formData: FormData) => Promise<ActionResult>;
+  addExerciseHref: string;
 };
 
 type DragState = {
@@ -173,6 +176,7 @@ export function EditableRoutineDayExerciseList({
   updateAction,
   deleteAction,
   reorderAction,
+  addExerciseHref,
 }: Props) {
   const toast = useToast();
   const router = useRouter();
@@ -293,16 +297,39 @@ export function EditableRoutineDayExerciseList({
     return items.filter((exercise) => exercise.id === expandedId);
   }, [editModeActive, expandedId, items]);
 
+
+  const shouldShowAddExerciseAction = !reorderMode && !editModeActive;
+
   if (items.length === 0) {
     return (
-      <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
-        No exercises yet. Add one below when you are ready.
-      </div>
+      <>
+        <PublishBottomActions>
+          {shouldShowAddExerciseAction ? (
+            <BottomActionSingle>
+              <AppButton type="button" variant="primary" fullWidth onClick={() => router.push(addExerciseHref)}>
+                Add Exercise
+              </AppButton>
+            </BottomActionSingle>
+          ) : null}
+        </PublishBottomActions>
+        <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
+          No exercises yet. Add one below when you are ready.
+        </div>
+      </>
     );
   }
 
   return (
     <>
+      <PublishBottomActions>
+        {shouldShowAddExerciseAction ? (
+          <BottomActionSingle>
+            <AppButton type="button" variant="primary" fullWidth onClick={() => router.push(addExerciseHref)}>
+              Add Exercise
+            </AppButton>
+          </BottomActionSingle>
+        ) : null}
+      </PublishBottomActions>
       <form
         action={async (formData) => {
           const result = await reorderAction(formData);
