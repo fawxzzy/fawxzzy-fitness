@@ -10,7 +10,6 @@ import type { DisplayTarget } from "@/lib/session-targets";
 import {
   addSetAction,
   removeExerciseAction,
-  quickAddExerciseAction,
   deleteSetAction,
   saveSessionAction,
   syncQueuedSetLogsAction,
@@ -185,8 +184,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           quickAddAction={(
             <QuickAddExerciseSheet
               sessionId={params.id}
-              exercises={exerciseOptions}
-              quickAddExerciseAction={quickAddExerciseAction}
             />
           )}
           addSetAction={addSetAction}

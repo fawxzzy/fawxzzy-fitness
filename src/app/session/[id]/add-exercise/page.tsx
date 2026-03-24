@@ -1,0 +1,59 @@
+import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { AppShell } from "@/components/ui/app/AppShell";
+import { SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { quickAddExerciseAction } from "@/app/session/[id]/actions";
+import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
+import { getSessionPageData } from "@/app/session/[id]/queries";
+import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
+import { isSafeAppPath } from "@/lib/navigation-return";
+
+type PageProps = {
+  params: {
+    id: string;
+  };
+  searchParams?: {
+    returnTo?: string;
+  };
+};
+
+export default async function SessionAddExercisePage({ params, searchParams }: PageProps) {
+  const {
+    sessionRow,
+    routine,
+    exerciseOptions,
+    exerciseStatsByExerciseId,
+  } = await getSessionPageData(params.id);
+
+  const backHref = isSafeAppPath(searchParams?.returnTo)
+    ? searchParams?.returnTo
+    : `/session/${params.id}`;
+
+  return (
+    <AppShell topNavMode="none" className="h-[100dvh]">
+      <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
+        <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
+          <RoutineEditorPageHeader
+            eyebrow="CURRENT SESSION"
+            title={<TitleText as="h1" className="text-base">Add Exercise</TitleText>}
+            subtitle={<SubtitleText>{sessionRow.name || "Workout"}</SubtitleText>}
+            subtitleRight={<SubtitleText>{sessionRow.routine_day_name || "In progress"}</SubtitleText>}
+            action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
+            actionClassName="-mt-0.5"
+            className="space-y-3 p-4 pt-3"
+          />
+
+          <SessionQuickAddExerciseForm
+            sessionId={params.id}
+            exercises={exerciseOptions}
+            weightUnit={routine?.weight_unit ?? "kg"}
+            exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
+            backHref={backHref}
+            quickAddExerciseAction={quickAddExerciseAction}
+          />
+        </section>
+      </ScrollScreenWithBottomActions>
+    </AppShell>
+  );
+}

@@ -1,3 +1,15 @@
+## [v0.3.98] – Refactor: align Quick Add with shared Add Exercise flow
+
+### WHAT
+
+* Replaced Current Session’s legacy Quick Add bottom-sheet presentation with a dedicated `/session/[id]/add-exercise` screen that uses the same editor-family page shell rhythm as Edit Day Add Exercise (shared header, section ordering, picker treatment, and footer CTA ownership).
+* Kept Quick Add-specific mutation behavior intact by preserving `quickAddExerciseAction` and wiring the new screen submit to Current Session add semantics (`sessionId`, selected exercise, and set-count payload), then returning cleanly back to Session after success.
+* Moved the footer Quick Add trigger from opening a modal to navigating to the dedicated Quick Add route so in-session add now follows the same structural flow contract as Edit Day Add Exercise.
+
+### WHY
+
+* Quick Add still read like an older modal-era flow and drifted from the cleaner dedicated Add Exercise experience.
+* Aligning both surfaces to the same shared screen contract improves predictability while keeping planned-day and current-session business logic clearly separated.
 ## [v0.3.98] – Fix: use deterministic routine editor back routes and remove legacy draft save copy
 
 ### WHAT
