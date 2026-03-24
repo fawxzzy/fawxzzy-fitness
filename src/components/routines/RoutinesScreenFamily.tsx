@@ -79,20 +79,6 @@ export function RoutinesListEmpty({ children }: { children: ReactNode }) {
   return <SubtitleText className="px-1">{children}</SubtitleText>;
 }
 
-export function RoutinesListItemCard(props: ComponentProps<typeof ExerciseCard>) {
-  return <ExerciseCard {...props} className={cn("items-center", props.className)} variant="interactive" />;
-}
-
-export type SharedDayListRowProps = {
-  onPress?: () => void;
-  title: string;
-  subtitle?: string;
-  badgeText?: string;
-  state?: ComponentProps<typeof ExerciseCard>["state"];
-  rightIcon?: ReactNode;
-  wrapper?: (child: ReactNode) => ReactNode;
-};
-
 export function SharedDayListSection({
   title = "Days",
   meta,
@@ -105,11 +91,7 @@ export function SharedDayListSection({
   return <RoutinesSectionCard title={title} meta={meta}>{children}</RoutinesSectionCard>;
 }
 
-export function SharedDayList({ children }: { children: ReactNode }) {
-  return <RoutinesCardList>{children}</RoutinesCardList>;
-}
 
-export function SharedDayListRow({ onPress, wrapper, ...cardProps }: SharedDayListRowProps) {
-  const card = <RoutinesListItemCard {...cardProps} onPress={onPress} />;
-  return <RoutinesListItem>{wrapper ? wrapper(card) : card}</RoutinesListItem>;
+export function RoutinesListItemCard(props: ComponentProps<typeof ExerciseCard>) {
+  return <ExerciseCard {...props} className={cn("items-center", props.className)} variant="interactive" />;
 }
