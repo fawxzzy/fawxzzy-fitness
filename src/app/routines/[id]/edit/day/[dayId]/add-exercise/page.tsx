@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { AppPanel } from "@/components/ui/app/AppPanel";
+import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
@@ -50,10 +51,15 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
         <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
-          <AppPanel className="space-y-1 p-4">
-            <TitleText as="h1" className="text-base">Add Exercise</TitleText>
-            <SubtitleText>{routine.name} · {day.name}</SubtitleText>
-          </AppPanel>
+          <RoutineEditorPageHeader
+            eyebrow="EDIT DAY DETAILS"
+            title={<TitleText as="h1" className="text-base">Add Exercise</TitleText>}
+            subtitle={<SubtitleText>{routine.name}</SubtitleText>}
+            subtitleRight={<SubtitleText>{day.name}</SubtitleText>}
+            action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
+            actionClassName="-mt-0.5"
+            className="space-y-3 p-4 pt-3"
+          />
 
           <EditDayAddExerciseScreen
             routineId={params.id}
