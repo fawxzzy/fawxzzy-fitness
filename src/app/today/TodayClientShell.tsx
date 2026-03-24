@@ -8,10 +8,10 @@ import { readTodayCache } from "@/lib/offline/today-cache";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
-import { ACTIVE_SESSION_EVENT, readActiveSessionHint } from "@/lib/session-state-sync";
+import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
+import { TodayStartButton } from "@/app/today/TodayStartButton";
 
 type TodayPayload = {
   routine: {
@@ -54,7 +54,6 @@ export function TodayClientShell({
 }) {
   const [cachedSnapshot, setCachedSnapshot] = useState<TodayCacheSnapshot | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [activeSessionHintId, setActiveSessionHintId] = useState<string | null>(payload.inProgressSessionId);
   const router = useRouter();
 
   useEffect(() => {
@@ -68,15 +67,13 @@ export function TodayClientShell({
   }, [fetchFailed]);
 
   useEffect(() => {
-    setActiveSessionHintId(payload.inProgressSessionId);
-  }, [payload.inProgressSessionId]);
-
-  useEffect(() => {
     const syncActiveSessionHint = () => {
-      const nextSessionId = payload.inProgressSessionId ?? readActiveSessionHint()?.sessionId ?? null;
-      setActiveSessionHintId(nextSessionId);
+      const hintSessionId = readActiveSessionHint()?.sessionId ?? null;
+      if (!payload.inProgressSessionId && hintSessionId) {
+        clearActiveSessionHint(hintSessionId);
+      }
 
-      if (!payload.inProgressSessionId && nextSessionId) {
+      if (!payload.inProgressSessionId && hintSessionId) {
         router.refresh();
       }
     };
@@ -99,7 +96,7 @@ export function TodayClientShell({
         routine: payload.routine,
         exercises: payload.exercises,
         completedTodayCount: payload.completedTodayCount,
-        inProgressSessionId: activeSessionHintId,
+        inProgressSessionId: payload.inProgressSessionId,
         staleAt: null,
       };
     }
@@ -109,13 +106,13 @@ export function TodayClientShell({
         routine: cachedSnapshot.routine,
         exercises: cachedSnapshot.exercises,
         completedTodayCount: cachedSnapshot.hints.completedTodayCount,
-        inProgressSessionId: activeSessionHintId ?? cachedSnapshot.hints.inProgressSessionId,
+        inProgressSessionId: null,
         staleAt: cachedSnapshot.capturedAt,
       };
     }
 
     return null;
-  }, [activeSessionHintId, cachedSnapshot, fetchFailed, payload]);
+  }, [cachedSnapshot, fetchFailed, payload]);
 
   if (!display) {
     return (
@@ -175,12 +172,13 @@ export function TodayClientShell({
       </ul>
 
       {display.inProgressSessionId ? (
-        <Link
-          href={`/session/${display.inProgressSessionId}?returnTo=${encodeURIComponent("/today")}`}
-          className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-        >
-          Resume Session
-        </Link>
+        <TodayStartButton
+          sessionId={display.inProgressSessionId}
+          returnTo="/today"
+          fullWidth
+          className="w-full"
+          label="Resume Session"
+        />
       ) : (
         <SubtitleText className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center">
           Start session requires a live connection.

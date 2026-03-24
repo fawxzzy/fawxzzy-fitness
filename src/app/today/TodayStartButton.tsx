@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/action-result";
 import { useToast } from "@/components/ui/ToastProvider";
 import { PrimaryButton } from "@/components/ui/AppButton";
-import { writeActiveSessionHint } from "@/lib/session-state-sync";
+import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 
 async function requestSessionStart(payload: { selectedDayIndex?: number; routineId?: string; dayId?: string }) {
   const response = await fetch("/api/sessions/start", {
@@ -17,6 +17,20 @@ async function requestSessionStart(payload: { selectedDayIndex?: number; routine
   const result = (await response.json()) as ActionResult<{ sessionId: string }>;
   if (!response.ok && result.ok) {
     return { ok: false, error: "Could not start session" } satisfies ActionResult<{ sessionId: string }>;
+  }
+  return result;
+}
+
+async function requestSessionResume(payload: { sessionId: string; returnTo?: string }) {
+  const response = await fetch("/api/sessions/resume", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const result = (await response.json()) as ActionResult<{ href: string }>;
+  if (!response.ok && result.ok) {
+    return { ok: false, error: "Could not resume session" } satisfies ActionResult<{ href: string }>;
   }
   return result;
 }
@@ -53,11 +67,16 @@ export function TodayStartButton({
       onClick={() => {
         startTransition(async () => {
           if (sessionId) {
-            const sessionHref = returnTo
-              ? `/session/${sessionId}?returnTo=${encodeURIComponent(returnTo)}`
-              : `/session/${sessionId}`;
+            const resumeResult = await requestSessionResume({ sessionId, returnTo });
+            if (!resumeResult.ok || !resumeResult.data?.href) {
+              clearActiveSessionHint(sessionId);
+              toast.error(resumeResult.ok ? "Could not resume session" : resumeResult.error);
+              router.refresh();
+              return;
+            }
+
             writeActiveSessionHint(sessionId);
-            router.push(sessionHref);
+            router.push(resumeResult.data.href);
             return;
           }
 
