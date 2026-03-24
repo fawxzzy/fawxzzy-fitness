@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { RoutineEditorModeToggleRow } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorListModeControlRow } from "@/components/routines/RoutineEditorShared";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
@@ -349,16 +349,14 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
 
-      <RoutineEditorModeToggleRow
+      <RoutineEditorListModeControlRow
         summary={reorderMode ? "Reorder mode is on. Drag rows by the handle." : `${items.length} exercise${items.length === 1 ? "" : "s"}`}
         className="mb-3 rounded-[1.15rem] border-border/40 bg-[rgb(var(--surface-2-soft)/0.44)] px-3.5 py-2.5"
-        actions={(
-          <div className="flex items-center gap-2">
-            <AppButton type="button" variant={reorderMode ? "secondary" : "ghost"} size="sm" onClick={handleToggleReorderMode}>
-              {reorderMode ? "Done" : "Reorder"}
-            </AppButton>
-          </div>
-        )}
+        actions={[{
+          label: reorderMode ? "Done" : "Reorder",
+          active: reorderMode,
+          onClick: handleToggleReorderMode,
+        }]}
       />
 
       <ul className="space-y-2">

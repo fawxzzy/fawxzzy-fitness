@@ -1,3 +1,16 @@
+## [v0.3.96] – Refactor: extract shared editor add-flow and list-mode primitives
+
+### WHAT
+
+* Extracted a shared routine-editor add-flow shell (`RoutineEditorAddExerciseFlowShell`) and shared exercise option type so both Session Quick Add and Edit Day Add Exercise now use the same ExercisePicker contract and wiring.
+* Added a shared editor-family save/discard confirmation sheet (`RoutineEditorSaveDiscardConfirmSheet`) and migrated `RoutineBackButton` to it without changing discard behavior.
+* Added a shared list-mode action row primitive (`RoutineEditorListModeControlRow`) and migrated the Edit Day planned-workout row controls (`Reorder`/`Done`) to the new action-list contract for future expansion.
+
+### WHY
+
+* The add-exercise flow and list-mode control row had begun to diverge across neighboring editor-family surfaces.
+* Pulling these repeated UI contracts into shared primitives keeps behavior stable while reducing drift and making future editor/list actions easier to add consistently.
+
 ## [v0.3.95] – Feature: add dedicated Edit Day Add Exercise flow using Quick Add UI shell
 
 ### WHAT
