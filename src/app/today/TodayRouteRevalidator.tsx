@@ -29,6 +29,8 @@ export function TodayRouteRevalidator() {
       }
     };
 
+    refresh();
+
     window.addEventListener("focus", refresh);
     window.addEventListener("pageshow", refresh);
     window.addEventListener("popstate", refresh);

@@ -68,7 +68,7 @@ export function ConfirmedServerFormButton({
         variant="destructive"
         size={size}
         aria-label={triggerAriaLabel}
-        className={triggerClassName}
+        className={[triggerClassName, open ? "pointer-events-none opacity-0" : null].filter(Boolean).join(" ")}
         disabled={isLoading || disabled}
         onClick={() => setOpen(true)}
       >

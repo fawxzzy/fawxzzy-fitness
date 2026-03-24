@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppBadge } from "@/components/ui/app/AppBadge";
@@ -19,6 +19,7 @@ import { BottomActionSingle, BottomActionSplit } from "@/components/layout/Canon
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { ACTIVE_SESSION_EVENT, readActiveSessionHint } from "@/lib/session-state-sync";
 
 type TodayExercise = {
   id: string;
@@ -105,6 +106,29 @@ export function TodayDayPicker({
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(inProgressSessionId ?? null);
+
+  useEffect(() => {
+    setActiveSessionId(inProgressSessionId ?? null);
+  }, [inProgressSessionId]);
+
+  useEffect(() => {
+    const syncActiveSession = () => {
+      const nextSessionId = inProgressSessionId ?? readActiveSessionHint()?.sessionId ?? null;
+      setActiveSessionId(nextSessionId);
+    };
+
+    syncActiveSession();
+    window.addEventListener("focus", syncActiveSession);
+    window.addEventListener("pageshow", syncActiveSession);
+    window.addEventListener(ACTIVE_SESSION_EVENT, syncActiveSession as EventListener);
+
+    return () => {
+      window.removeEventListener("focus", syncActiveSession);
+      window.removeEventListener("pageshow", syncActiveSession);
+      window.removeEventListener(ACTIVE_SESSION_EVENT, syncActiveSession as EventListener);
+    };
+  }, [inProgressSessionId]);
 
   const selectedDay = useMemo(
     () => days.find((day) => day.dayIndex === selectedDayIndex) ?? days.find((day) => day.dayIndex === currentDayIndex) ?? null,
@@ -118,7 +142,7 @@ export function TodayDayPicker({
   const isRunnableDay = selectedDay?.state === "runnable" || selectedDay?.state === "partial";
   const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
-  const hasInProgressSession = Boolean(inProgressSessionId);
+  const hasInProgressSession = Boolean(activeSessionId);
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
 
   const actionsNode = useMemo(() => {
@@ -143,8 +167,8 @@ export function TodayDayPicker({
       <BottomActionSplit
         secondary={selectDayButton}
         primary={hasInProgressSession ? (
-          <TodayStartButton
-            sessionId={inProgressSessionId ?? undefined}
+            <TodayStartButton
+            sessionId={activeSessionId ?? undefined}
             returnTo="/today"
             fullWidth
             className="w-full"
@@ -160,7 +184,7 @@ export function TodayDayPicker({
         )}
       />
     );
-  }, [hasInProgressSession, inProgressSessionId, isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
+  }, [activeSessionId, hasInProgressSession, isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
 
   usePublishBottomActions(actionsNode);
 
