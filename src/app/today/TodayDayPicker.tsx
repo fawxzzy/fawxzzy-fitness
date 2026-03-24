@@ -6,7 +6,7 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { SharedDayList, SharedDayListRow } from "@/components/routines/RoutinesScreenFamily";
+import { DayCard, DayList, type DayListState } from "@/components/day-list/DayList";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
@@ -163,11 +163,11 @@ export function TodayDayPicker({
           revealId="today-day-selector-list"
           revealLabel="Routine days"
           revealContent={(
-            <SharedDayList>
+            <DayList>
               {days.map((day) => {
                 const isSelected = selectedDayIndex === day.dayIndex;
                 return (
-                  <SharedDayListRow
+                  <DayCard
                     key={day.id}
                     title={`Day ${day.dayIndex} | ${day.name}`}
                     subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : getDaySummary(day) ?? undefined}
@@ -175,13 +175,13 @@ export function TodayDayPicker({
                       setSelectedDayIndex(day.dayIndex);
                       setIsPickerOpen(false);
                     }}
-                    state={isSelected ? "selected" : day.isRest ? "empty" : "default"}
+                    state={(isSelected ? "selected" : day.isRest ? "rest" : "default") satisfies DayListState}
                     badgeText={day.dayIndex === currentDayIndex ? "Today" : day.isRest ? "Rest Day" : undefined}
                     rightIcon={null}
                   />
                 );
               })}
-            </SharedDayList>
+            </DayList>
           )}
         >
           {!isPickerOpen && daySummary ? (
