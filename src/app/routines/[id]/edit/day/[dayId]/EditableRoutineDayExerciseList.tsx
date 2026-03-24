@@ -296,10 +296,7 @@ export function EditableRoutineDayExerciseList({
       </form>
 
       <div className="mb-3 flex items-center justify-between gap-3 rounded-[1.1rem] border border-border/35 bg-[rgb(var(--surface-2-soft)/0.3)] px-3 py-2.5">
-        <div className="space-y-0.5">
-          <EyebrowText>Exercise list</EyebrowText>
-          <SubtitleText className="text-xs">{reorderMode ? "Drag handles to reorder. Swipe and tap are paused until you tap Done." : "Tap a card for exercise info, or swipe left for Edit and Delete."}</SubtitleText>
-        </div>
+        <SubtitleText className="text-xs">{reorderMode ? "Reorder mode is on." : `${items.length} exercise${items.length === 1 ? "" : "s"}`}</SubtitleText>
         <AppButton type="button" variant={reorderMode ? "secondary" : "ghost"} size="sm" onClick={() => setReorderMode((current) => !current)}>
           {reorderMode ? "Done" : "Reorder"}
         </AppButton>

@@ -1,3 +1,17 @@
+## [v0.3.89] – Normalize Edit Day Header into Unified Editor Card
+
+### WHAT
+
+* Collapsed Edit Day’s old split header/settings structure into one unified top editor card with `EDIT DAY DETAILS`, title-area day-name input, and top-right Back action.
+* Removed the old `Select Day` switcher control, `Day Settings` section wrapper, and stale helper copy/divider treatment from the day-editor top area.
+* Moved `Rest Day` into the bottom of the top editor card as a full-row warm-up-style toggle surface, while keeping autosave behavior and feedback intact.
+* Cleaned the Planned Workout surface by removing the extra instructional sentence and the `Exercise list` label so the section reads tighter and more compact.
+
+### WHY
+
+* Edit Day should match Edit Routine’s editor-family contract: one top card for identity + key toggles, lighter section chrome, and fewer legacy navigation artifacts.
+* Folding Rest Day into the same top card control language makes day identity and day mode changes feel like one coherent editing surface.
+
 ## [v0.3.88] – Edit Day Shared Row Actions and Explicit Reorder Mode
 
 ### WHAT
