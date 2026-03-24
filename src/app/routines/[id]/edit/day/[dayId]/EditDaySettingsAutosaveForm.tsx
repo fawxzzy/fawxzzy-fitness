@@ -10,6 +10,7 @@ import {
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { SubtitleText } from "@/components/ui/text-roles";
+import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 
 type Props = {
@@ -23,9 +24,8 @@ type Props = {
   isRest: boolean;
 };
 
-type SaveState = "idle" | "saving" | "saved" | "error";
-
 export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary, routineDayId, backHref, dayIndex, name, isRest }: Props) {
+  const toast = useToast();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -33,8 +33,6 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
   const pendingSnapshotRef = useRef<{ name: string; isRest: boolean } | null>(null);
   const lastSubmittedRef = useRef(initialSnapshot);
   const [draft, setDraft] = useState({ name: name ?? "", isRest });
-  const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => () => {
@@ -65,20 +63,18 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
 
     if (snapshot === lastSubmittedRef.current) return;
 
-    setSaveState("saving");
-    setError(null);
+    toast.info("Saving...", { id: "day-autosave-status", durationMs: 2000 });
     startTransition(async () => {
       const result = await updateRoutineDaySettingsAction(formData);
       if (result.ok) {
         lastSubmittedRef.current = snapshot;
-        setSaveState("saved");
+        toast.success("Saved", { id: "day-autosave-status", durationMs: 2200 });
         router.refresh();
         return;
       }
-      setSaveState("error");
-      setError(result.error ?? "Could not save day settings.");
+      toast.error(result.error ?? "Autosave failed", { id: "day-autosave-status", durationMs: 3200 });
     });
-  }, [router]);
+  }, [router, toast]);
 
   const scheduleAutosave = useCallback((nextSnapshot: { name: string; isRest: boolean }) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -124,8 +120,7 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         />
       </RoutineEditorPageHeader>
 
-      <SubtitleText className="px-1 text-xs text-muted">{saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved" : saveState === "error" ? (error ?? "Could not save") : "Autosave on"}</SubtitleText>
-      {saveState === "error" && error ? <SubtitleText className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-red-700">{error}</SubtitleText> : null}
+      <SubtitleText className="px-1 text-xs text-muted">Autosave on</SubtitleText>
     </form>
   );
 }

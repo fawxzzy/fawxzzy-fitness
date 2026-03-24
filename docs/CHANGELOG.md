@@ -1,3 +1,17 @@
+## [v0.3.93] – Feature: add shared floating toast notification system
+
+### WHAT
+
+* Upgraded the shared toast primitive into a floating translucent top-right banner with safe-area-aware placement, stacked rendering, and fade-in/fade-out dismissal transitions.
+* Expanded shared toast semantics to support `info`, `success`, `warning`, and `error`, and added keyed replacement behavior so rapid events (like autosave) update one toast cleanly instead of cluttering the stack.
+* Wired routine editor autosave flows to shared toasts for `Saving...`, `Saved`, and `Autosave failed` notifications, while keeping persistent inline state labels (`Autosave on`) in place.
+* Routed routine creation feedback through the shared toast system (`Routine created`) and removed the route query-string success handoff previously used for that confirmation.
+
+### WHY
+
+* Autosave and lightweight action confirmations should be non-blocking ephemeral feedback, not large inline banners that compete with page content.
+* A single reusable floating toast primitive keeps feedback behavior consistent across flows and avoids per-screen notification drift.
+
 ## [v0.3.92] – Stabilize Edit Day Row Interactions and Rest Toggle State
 
 ### WHAT

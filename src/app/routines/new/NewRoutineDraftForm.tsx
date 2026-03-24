@@ -9,6 +9,7 @@ import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
 
 const STORAGE_KEY = "routine-new-draft-v1";
@@ -22,6 +23,7 @@ type Draft = {
 };
 
 export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
+  const toast = useToast();
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(defaults);
   const [loadedDraft, setLoadedDraft] = useState(false);
@@ -119,15 +121,20 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
                 formData.set("weightUnit", draft.weightUnit);
                 const result = await createRoutineAction(formData);
                 if (!result.ok) {
-                  setError(result.error ?? "Could not create routine.");
+                  const nextError = result.error ?? "Could not create routine.";
+                  setError(nextError);
+                  toast.error(nextError);
                   return;
                 }
                 if (!result.routineId || !result.firstDayId) {
-                  setError("Could not create routine.");
+                  const nextError = "Could not create routine.";
+                  setError(nextError);
+                  toast.error(nextError);
                   return;
                 }
                 window.localStorage.removeItem(STORAGE_KEY);
-                router.push(`/routines/${result.routineId}/edit/day/${result.firstDayId}?success=${encodeURIComponent("Routine created")}`);
+                toast.success("Routine created");
+                router.push(`/routines/${result.routineId}/edit/day/${result.firstDayId}`);
               });
             }}
           >

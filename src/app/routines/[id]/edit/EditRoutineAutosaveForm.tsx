@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { SubtitleText } from "@/components/ui/text-roles";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
+import { useToast } from "@/components/ui/ToastProvider";
 import { autosaveRoutineAction } from "@/app/routines/actions";
 
 type Props = {
@@ -22,14 +23,8 @@ type Props = {
   error?: string;
 };
 
-type SaveState = "idle" | "saving" | "saved" | "error";
-
-function SaveStateLabel({ state, message }: { state: SaveState; message?: string | null }) {
-  const text = state === "saving" ? "Saving..." : state === "saved" ? "Saved" : state === "error" ? (message || "Could not save") : "Autosave on";
-  return <SubtitleText className="text-xs text-muted">{text}</SubtitleText>;
-}
-
 export function EditRoutineAutosaveForm(props: Props) {
+  const toast = useToast();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -41,9 +36,16 @@ export function EditRoutineAutosaveForm(props: Props) {
     weightUnit: props.weightUnit,
   }), [props]);
   const lastSubmittedRef = useRef(initialSnapshot);
-  const [saveState, setSaveState] = useState<SaveState>(props.success ? "saved" : "idle");
-  const [message, setMessage] = useState<string | null>(props.error ?? null);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (props.success) {
+      toast.success(props.success, { id: "routine-autosave-status" });
+    }
+    if (props.error) {
+      toast.error(props.error, { id: "routine-autosave-status", durationMs: 3200 });
+    }
+  }, [props.error, props.success, toast]);
 
   const submitAutosave = useCallback(() => {
     const form = formRef.current;
@@ -59,20 +61,19 @@ export function EditRoutineAutosaveForm(props: Props) {
 
     if (snapshot === lastSubmittedRef.current) return;
 
-    setSaveState("saving");
-    setMessage(null);
+    toast.info("Saving...", { id: "routine-autosave-status", durationMs: 2000 });
     startTransition(async () => {
       const result = await autosaveRoutineAction(formData);
       if (result.ok) {
         lastSubmittedRef.current = snapshot;
-        setSaveState("saved");
+        toast.success("Saved", { id: "routine-autosave-status", durationMs: 2200 });
         router.refresh();
         return;
       }
-      setSaveState("error");
-      setMessage(result.error ?? "Could not save routine.");
+      const nextError = result.error ?? "Autosave failed";
+      toast.error(nextError, { id: "routine-autosave-status", durationMs: 3200 });
     });
-  }, [router]);
+  }, [router, toast]);
 
   useEffect(() => () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -96,11 +97,11 @@ export function EditRoutineAutosaveForm(props: Props) {
       <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
       <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
 
-      <RoutineEditorPageHeader
+        <RoutineEditorPageHeader
         title="EDIT ROUTINE DETAILS"
         action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={false} />}
         actionClassName="-mt-1"
-        subtitleRight={<SaveStateLabel state={saveState} message={message} />}
+        subtitleRight={<SubtitleText className="text-xs text-muted">Autosave on</SubtitleText>}
         className="space-y-5"
       >
         <RoutineEditorFormFields
@@ -113,9 +114,6 @@ export function EditRoutineAutosaveForm(props: Props) {
           onFieldChange={() => scheduleAutosave()}
         />
       </RoutineEditorPageHeader>
-
-      {saveState === "error" && message ? <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{message}</AccentSubtitleText> : null}
-      {props.success && saveState !== "error" ? <AccentSubtitleText className="rounded-[1rem] border border-accent/40 bg-accent/10 px-3 py-2 text-accent">{props.success}</AccentSubtitleText> : null}
     </form>
   );
 }
