@@ -93,6 +93,7 @@ export function SwipeActionRow({
   const leadingProgress = leadingReveal && leadingTriggerWidth > 0 && translateX > 0
     ? Math.min(translateX / leadingTriggerWidth, 1)
     : 0;
+  const activeTrailingWidth = isDesktop ? trailingWidthDesktop : trailingWidthMobile;
 
   const resetPointerState = () => {
     pointerStateRef.current = null;
@@ -209,7 +210,7 @@ export function SwipeActionRow({
       ) : null}
 
       {trailingActions ? (
-        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end gap-2 pr-0">
+        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end" style={{ width: `${activeTrailingWidth}px` }}>
           {trailingActions}
         </div>
       ) : null}

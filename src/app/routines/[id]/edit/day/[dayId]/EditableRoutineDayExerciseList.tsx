@@ -288,6 +288,10 @@ export function EditableRoutineDayExerciseList({
   };
 
   const editModeActive = expandedId !== null;
+  const visibleItems = useMemo(() => {
+    if (!editModeActive || !expandedId) return items;
+    return items.filter((exercise) => exercise.id === expandedId);
+  }, [editModeActive, expandedId, items]);
 
   if (items.length === 0) {
     return (
@@ -320,15 +324,18 @@ export function EditableRoutineDayExerciseList({
 
       <RoutineEditorModeToggleRow
         summary={reorderMode ? "Reorder mode is on. Drag rows by the handle." : `${items.length} exercise${items.length === 1 ? "" : "s"}`}
+        className="mb-3 rounded-[1.15rem] border-border/40 bg-[rgb(var(--surface-2-soft)/0.44)] px-3.5 py-2.5"
         actions={(
-          <AppButton type="button" variant={reorderMode ? "secondary" : "ghost"} size="sm" onClick={handleToggleReorderMode}>
-            {reorderMode ? "Done reordering" : "Reorder"}
-          </AppButton>
+          <div className="flex items-center gap-2">
+            <AppButton type="button" variant={reorderMode ? "secondary" : "ghost"} size="sm" onClick={handleToggleReorderMode}>
+              {reorderMode ? "Done" : "Reorder"}
+            </AppButton>
+          </div>
         )}
       />
 
       <ul className="space-y-2">
-        {items.map((exercise, index) => {
+        {visibleItems.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
           const isDragging = activeDragId === exercise.id;
           return (
@@ -344,19 +351,18 @@ export function EditableRoutineDayExerciseList({
                 onOpenChange={reorderMode || editModeActive ? () => undefined : setOpenRowId}
                 disabled={reorderMode || editModeActive}
                 dismissSignal={dismissSignal}
-                trailingWidthMobile={176}
-                trailingWidthDesktop={192}
+                trailingWidthMobile={188}
+                trailingWidthDesktop={212}
                 trailingActions={reorderMode || editModeActive ? null : (
                   <div className={cn(
-                    "grid h-full grid-cols-2 items-stretch gap-1.5 rounded-[1.3rem] border border-border/30 bg-[rgb(var(--surface-2-soft)/0.96)] p-1.5 shadow-[inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
-                    isDesktop ? "w-[12rem]" : "w-[11rem]",
+                    "grid h-full w-full grid-cols-2 items-stretch gap-1.5 rounded-[1.3rem] border border-border/30 bg-[rgb(var(--surface-2-soft)/0.98)] p-1.5 shadow-[inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
                     openRowId === exercise.id ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
                   )}>
                     <AppButton
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="h-full min-h-[2.35rem] w-full rounded-xl"
+                      className="h-full min-h-[2.35rem] w-full rounded-xl border-border/50 bg-[rgb(var(--surface-2-soft)/0.88)]"
                       onClick={() => {
                         closeAllRowActions();
                         setExpandedId((current) => current === exercise.id ? null : exercise.id);
