@@ -1,3 +1,16 @@
+## [v0.3.98] – UI: normalize Edit Day trailing action rail fit
+
+### WHAT
+
+* Updated the shared `SwipeActionRow` primitive to inherit row corner radius in both leading-reveal and trailing-action containers so rail shells align exactly with row clipping boundaries.
+* Removed the outer Edit Day list-item overflow clipping wrapper and aligned row radius tokens so the swipe rail can occupy the full trailing action surface without corner cut-off.
+* Rebalanced Edit Day `Edit` / `Delete` trailing rail sizing and slot styling to use equal-width full-height actions with cleaner divider-based split, explicit full-height button overrides, and stretch-safe destructive form wrapping.
+
+### WHY
+
+* Edit Day’s trailing rail still presented as slightly clipped/under-fit in some states compared with Current Session row-action rails.
+* Matching radius ownership and removing extra wrapper clipping restores a full-height/full-width trailing action presentation while preserving existing swipe/tap/reorder interaction behavior.
+
 ## [v0.3.97] – Fix: validate resume session state and remove 404 path
 
 ### WHAT
