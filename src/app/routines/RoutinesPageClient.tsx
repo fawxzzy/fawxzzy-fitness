@@ -16,7 +16,14 @@ import {
   RoutinesSectionCard,
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
-import { DayCard, DayList, type DayListState } from "@/components/day-list/DayList";
+import {
+  DayCard,
+  DayList,
+  formatLoggedSetCount,
+  resolveDayCardBadgeText,
+  resolveDayCardState,
+  REST_DAY_CARD_COPY,
+} from "@/components/day-list/DayList";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
@@ -35,6 +42,9 @@ export type RoutineDayCardItem = {
   notes: string | null;
   href: string;
   isToday: boolean;
+  isCompleted: boolean;
+  isInSession: boolean;
+  loggedSetCount: number;
 };
 
 export function RoutinesPageClient({
@@ -183,10 +193,22 @@ export function RoutinesPageClient({
                   <DayCard
                     key={day.id}
                     title={`Day ${day.dayIndex} | ${day.title}`}
-                    subtitle={subtitleParts.join(" • ")}
-                    badgeText={day.isToday ? "Today" : day.isRest ? "Rest Day" : undefined}
+                    subtitle={(day.isRest ? [REST_DAY_CARD_COPY, day.notes?.trim() || null] : subtitleParts).filter(Boolean).join(" • ")}
+                    badgeText={resolveDayCardBadgeText({
+                      isToday: day.isToday,
+                      isRest: day.isRest,
+                      isCompleted: day.isCompleted,
+                      isInSession: day.isInSession,
+                    })}
+                    metaText={formatLoggedSetCount(day.loggedSetCount)}
                     rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
-                    state={(day.isToday ? "selected" : day.isRest ? "rest" : "default") satisfies DayListState}
+                    state={resolveDayCardState({
+                      isToday: day.isToday,
+                      isSelected: day.isToday,
+                      isRest: day.isRest,
+                      isCompleted: day.isCompleted,
+                      isInSession: day.isInSession,
+                    })}
                     onPress={() => router.push(day.href)}
                   />
                 );

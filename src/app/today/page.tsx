@@ -117,7 +117,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   let allDayExercises: RoutineDayExerciseRow[] = [];
   let todayDayIndex: number | null = null;
   let completedTodayCount = 0;
+  let completedDayIndexes: number[] = [];
   let inProgressSession: SessionRow | null = null;
+  let inProgressSessionLoggedSetCount = 0;
   let fetchFailed = false;
   let routineDays: RoutineDayRow[] = [];
 
@@ -177,6 +179,21 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
         completedTodayCount = completedTodayCountValue ?? 0;
 
+        const { data: completedTodaySessions } = await supabase
+          .from("sessions")
+          .select("routine_day_index")
+          .eq("user_id", user.id)
+          .eq("status", "completed")
+          .eq("routine_id", activeRoutine.id)
+          .gte("performed_at", startIso)
+          .lt("performed_at", endIso);
+
+        completedDayIndexes = [...new Set(
+          (completedTodaySessions ?? [])
+            .map((session) => session.routine_day_index)
+            .filter((value): value is number => Number.isFinite(value)),
+        )];
+
         const { data: inProgress } = await supabase
           .from("sessions")
           .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
@@ -188,6 +205,25 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           .maybeSingle();
 
         inProgressSession = (inProgress as SessionRow | null) ?? null;
+
+        if (inProgressSession?.id) {
+          const { data: sessionExercises } = await supabase
+            .from("session_exercises")
+            .select("id")
+            .eq("session_id", inProgressSession.id)
+            .eq("user_id", user.id);
+
+          const sessionExerciseIds = (sessionExercises ?? []).map((row) => row.id);
+          if (sessionExerciseIds.length > 0) {
+            const { count: loggedSetCount } = await supabase
+              .from("sets")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .in("session_exercise_id", sessionExerciseIds);
+
+            inProgressSessionLoggedSetCount = loggedSetCount ?? 0;
+          }
+        }
       }
     } catch {
       fetchFailed = true;
@@ -306,7 +342,11 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                       subtitleRight={todayPayload.routine.state === "rest"
                         ? "Rest Day"
                         : getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).label}
-                      action={todayPayload.completedTodayCount > 0 ? <AppBadge>Completed</AppBadge> : undefined}
+                      action={todayPayload.inProgressSessionId
+                        ? <AppBadge>In Session</AppBadge>
+                        : todayPayload.completedTodayCount > 0
+                          ? <AppBadge>Completed</AppBadge>
+                          : undefined}
                     />
 
                     <TodayExerciseRows
@@ -355,8 +395,12 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     })),
                   }))}
                   currentDayIndex={todayPayload.routine.dayIndex}
-                  completedTodayCount={todayPayload.completedTodayCount}
                   inProgressSessionId={todayPayload.inProgressSessionId}
+                  completedDayIndexes={completedDayIndexes}
+                  inSessionDayIndex={inProgressSession?.routine_day_index ?? null}
+                  loggedSetCountsByDayIndex={inProgressSession?.routine_day_index
+                    ? { [inProgressSession.routine_day_index]: inProgressSessionLoggedSetCount }
+                    : {}}
                 />
               )}
             </div>

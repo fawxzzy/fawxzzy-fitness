@@ -10,7 +10,7 @@ import { requireUser } from "@/lib/auth";
 import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
-import { getRoutineDayComputation } from "@/lib/routines";
+import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateRoutinesViews } from "@/lib/revalidation";
 import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
@@ -143,6 +143,60 @@ export default async function RoutinesPage() {
         return dayNumber === todayRoutineDayIndex;
       });
 
+  let completedDayIndexSet = new Set<number>();
+  let inSessionDayIndex: number | null = null;
+  let inSessionLoggedSetCount = 0;
+
+  if (activeRoutine) {
+    const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
+    const { data: completedTodaySessions } = await supabase
+      .from("sessions")
+      .select("routine_day_index")
+      .eq("user_id", user.id)
+      .eq("status", "completed")
+      .eq("routine_id", activeRoutine.id)
+      .gte("performed_at", startIso)
+      .lt("performed_at", endIso);
+
+    completedDayIndexSet = new Set(
+      (completedTodaySessions ?? [])
+        .map((session) => session.routine_day_index)
+        .filter((value): value is number => Number.isFinite(value)),
+    );
+
+    const { data: inProgressSession } = await supabase
+      .from("sessions")
+      .select("id, routine_day_index")
+      .eq("user_id", user.id)
+      .eq("routine_id", activeRoutine.id)
+      .eq("status", "in_progress")
+      .order("performed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const resolvedInProgressDayIndex = inProgressSession?.routine_day_index;
+    inSessionDayIndex = Number.isFinite(resolvedInProgressDayIndex) ? resolvedInProgressDayIndex : null;
+
+    if (inProgressSession?.id) {
+      const { data: sessionExercises } = await supabase
+        .from("session_exercises")
+        .select("id")
+        .eq("session_id", inProgressSession.id)
+        .eq("user_id", user.id);
+
+      const sessionExerciseIds = (sessionExercises ?? []).map((row) => row.id);
+      if (sessionExerciseIds.length > 0) {
+        const { count: loggedSetCount } = await supabase
+          .from("sets")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .in("session_exercise_id", sessionExerciseIds);
+
+        inSessionLoggedSetCount = loggedSetCount ?? 0;
+      }
+    }
+  }
+
   if (process.env.NODE_ENV !== "production" && sortedActiveRoutineDays.length > 0 && sortedActiveRoutineDays[0]?.day_index !== 1) {
     console.warn("[routines] Active routine days are missing Day 1 in overview preview", {
       routineId: activeRoutine?.id,
@@ -189,6 +243,9 @@ export default async function RoutinesPage() {
                     notes: day.notes ?? null,
                     href: `/routines/${activeRoutine.id}/days/${day.id}`,
                     isToday: index === todayRowIndex,
+                    isCompleted: completedDayIndexSet.has(dayNumber),
+                    isInSession: inSessionDayIndex === dayNumber,
+                    loggedSetCount: inSessionDayIndex === dayNumber ? inSessionLoggedSetCount : 0,
                   };
                 }) : []}
                 setActiveRoutineAction={setActiveRoutineAction}
