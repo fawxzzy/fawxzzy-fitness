@@ -379,3 +379,14 @@ a:focus-visible {
 .safe-area-main {
   padding-top: 0;
 }
+
+.picker-scroll-viewport {
+  scrollbar-gutter: stable both-edges;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.picker-scroll-viewport::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}

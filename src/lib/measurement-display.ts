@@ -146,7 +146,7 @@ export function formatGoalSummaryText(values: GoalSummaryValues) {
     distance: sanitizedValues.distance ?? null,
     calories: sanitizedValues.calories ?? null,
   });
-  const content = [measurementText || null, weightPart].filter((part): part is string => Boolean(part)).join(" — ");
+  const content = [measurementText || null, weightPart].filter((part): part is string => Boolean(part)).join(" • ");
   return content ? `Goal: ${content}` : (values.emptyLabel ?? "Goal missing");
 }
 
