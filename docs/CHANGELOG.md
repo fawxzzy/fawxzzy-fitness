@@ -1,3 +1,18 @@
+## [v0.3.94] – Fix: stabilize Edit Day rail sizing and isolate inline exercise editing
+
+### WHAT
+
+* Updated Edit Day row rendering so entering inline edit mode collapses the list to only the active exercise row, and restoring edit mode brings back the full list.
+* Tightened Edit Day mode transitions so reorder/edit toggles continue to hard-dismiss swipe rails while preserving explicit `Reorder` / `Done` list-mode controls.
+* Rebalanced the Edit/Delete trailing rail with a true two-column fill and widened rail width tokens so actions occupy the available surface more cleanly.
+* Updated the shared swipe-row primitive so trailing-action slots receive explicit width sizing from the configured rail width, reducing sticky/partial rail presentation across transitions.
+
+### WHY
+
+* Inline exercise editing should be a focused single-surface mode; leaving sibling rows visible creates noisy mixed-mode interactions.
+* Edit Day supports multiple row interaction modes, so mode transitions must aggressively clear stale swipe state to avoid stuck-open rails.
+* Explicit trailing rail sizing and balanced action layout align Edit Day row interactions with the cleaner Current Session action-rail behavior.
+
 ## [v0.3.93] – Feature: add shared floating toast notification system
 
 ### WHAT
