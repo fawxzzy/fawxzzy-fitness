@@ -6,6 +6,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { controlClassName } from "@/components/ui/formClasses";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
@@ -62,6 +63,86 @@ export function RoutineEditorSection({
       </div>
       {children}
     </AppPanel>
+  );
+}
+
+export function RoutineEditorTitleInput({
+  name,
+  value,
+  onChange,
+  placeholder,
+  ariaLabel,
+  className,
+}: {
+  name: string;
+  value: string;
+  onChange: (nextValue: string) => void;
+  placeholder: string;
+  ariaLabel: string;
+  className?: string;
+}) {
+  return (
+    <input
+      name={name}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      className={cn(controlClassName, "min-h-11 border-border/55 bg-[rgb(var(--bg)/0.44)] text-base font-semibold", className)}
+    />
+  );
+}
+
+export function RoutineEditorFullRowToggle({
+  label,
+  description,
+  enabledLabel = "On",
+  disabledLabel = "Off",
+  enabled,
+  onToggle,
+}: {
+  label: string;
+  description: string;
+  enabledLabel?: string;
+  disabledLabel?: string;
+  enabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={enabled}
+      className={cn(
+        "flex w-full items-center justify-between gap-3 rounded-[1.1rem] border px-3 py-2.5 text-left transition",
+        enabled
+          ? "border-emerald-400/35 bg-emerald-400/14 text-emerald-100"
+          : "border-white/8 bg-white/[0.04] text-text hover:bg-white/[0.06]",
+      )}
+    >
+      <span className="flex items-center gap-2">
+        <span className={cn("text-xs font-semibold uppercase tracking-[0.14em]", enabled ? "text-emerald-200" : "text-muted")}>{label}</span>
+        <span className={cn("text-sm", enabled ? "text-emerald-100/90" : "text-muted")}>{description}</span>
+      </span>
+      <span className={cn("text-sm", enabled ? "font-semibold text-emerald-100" : "font-medium text-text")}>{enabled ? enabledLabel : disabledLabel}</span>
+    </button>
+  );
+}
+
+export function RoutineEditorModeToggleRow({
+  summary,
+  action,
+  className,
+}: {
+  summary: ReactNode;
+  action: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mb-3 flex items-center justify-between gap-3 rounded-[1.1rem] border border-border/35 bg-[rgb(var(--surface-2-soft)/0.3)] px-3 py-2.5", className)}>
+      <SubtitleText className="text-xs">{summary}</SubtitleText>
+      {action}
+    </div>
   );
 }
 
