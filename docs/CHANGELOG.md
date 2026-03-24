@@ -1,3 +1,18 @@
+## [v0.4.02] – UI: remove nested scroll/add-flow clutter and simplify selected-exercise actions
+
+### WHAT
+
+* Removed the add-flow nested picker viewport scroller so Edit Day Add Exercise and Current Session Quick Add now rely on the page-level scroll container as the single vertical scroll owner.
+* Simplified selected-exercise actions by removing `Previous` / `Next` and moving `Exercise Info` into the shared bottom action bar as the left secondary action in both add flows.
+* Updated add-flow footers to a split action bar layout with `Exercise Info` on the left and the existing primary commit action on the right (`Add Exercise To Day` / `Add Exercise To Session`).
+* Reduced nested goal-editor framing in Edit Day inline exercise editing by removing extra inner decorative border shells around Configure Goal content while preserving measurement and save behavior.
+
+### WHY
+
+* Add/edit exercise flows were still carrying nested internal scroll regions on mobile, causing double-scroll behavior and a cramped “panel inside panel” feel.
+* The selected-exercise area had redundant navigation controls that added noise without improving selection flow.
+* Moving Exercise Info into the footer action contract keeps selected-exercise actions consistent and focused while preserving existing add/edit logic and return behavior.
+
 ## [v0.4.01] – UI: unify row-action rail format and live exercise progress state
 
 ### WHAT

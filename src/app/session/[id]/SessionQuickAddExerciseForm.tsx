@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
@@ -48,20 +48,33 @@ export function SessionQuickAddExerciseForm({
       <input type="hidden" name="sessionId" value={sessionId} />
       <input type="hidden" name="setCount" value="3" />
 
-      <PublishBottomActions>
-        <BottomActionSingle>
-          <AppButton type="submit" form="session-quick-add-exercise-form" variant="primary" fullWidth>
-            Add Exercise To Session
-          </AppButton>
-        </BottomActionSingle>
-      </PublishBottomActions>
-
       <RoutineEditorAddExerciseFlowShell
         exercises={exercises}
         name="exerciseId"
         initialSelectedId={exercises[0]?.id}
         weightUnit={weightUnit}
         exerciseStats={exerciseStats}
+        renderFooter={({ selectedCanonicalExerciseId, openExerciseInfo }) => (
+          <PublishBottomActions>
+            <BottomActionSplit
+              secondary={(
+                <AppButton
+                  type="button"
+                  variant="secondary"
+                  onClick={openExerciseInfo}
+                  disabled={!selectedCanonicalExerciseId}
+                >
+                  Exercise Info
+                </AppButton>
+              )}
+              primary={(
+                <AppButton type="submit" form="session-quick-add-exercise-form" variant="primary">
+                  Add Exercise To Session
+                </AppButton>
+              )}
+            />
+          </PublishBottomActions>
+        )}
         footerSlot={null}
       />
     </form>

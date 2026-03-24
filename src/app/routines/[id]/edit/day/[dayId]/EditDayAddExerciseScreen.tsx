@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
 import { AppButton } from "@/components/ui/AppButton";
@@ -45,26 +45,38 @@ export function EditDayAddExerciseScreen({
   const router = useRouter();
 
   return (
-    <>
-      <PublishBottomActions>
-        <BottomActionSingle>
-          <AppButton type="submit" form="routine-day-add-exercise-form" variant="primary" fullWidth>
-            Add Exercise To Day
-          </AppButton>
-        </BottomActionSingle>
-      </PublishBottomActions>
-      <RoutineDayAddExerciseForm
-        routineId={routineId}
-        routineDayId={routineDayId}
-        exercises={exercises}
-        weightUnit={weightUnit}
-        addExerciseAction={addExerciseAction}
-        exerciseStats={exerciseStats}
-        footerSlot={null}
-        onSuccess={() => {
-          router.push(backHref);
-        }}
-      />
-    </>
+    <RoutineDayAddExerciseForm
+      routineId={routineId}
+      routineDayId={routineDayId}
+      exercises={exercises}
+      weightUnit={weightUnit}
+      addExerciseAction={addExerciseAction}
+      exerciseStats={exerciseStats}
+      footerSlot={null}
+      renderFooter={({ selectedCanonicalExerciseId, openExerciseInfo }) => (
+        <PublishBottomActions>
+          <BottomActionSplit
+            secondary={(
+              <AppButton
+                type="button"
+                variant="secondary"
+                onClick={openExerciseInfo}
+                disabled={!selectedCanonicalExerciseId}
+              >
+                Exercise Info
+              </AppButton>
+            )}
+            primary={(
+              <AppButton type="submit" form="routine-day-add-exercise-form" variant="primary">
+                Add Exercise To Day
+              </AppButton>
+            )}
+          />
+        </PublishBottomActions>
+      )}
+      onSuccess={() => {
+        router.push(backHref);
+      }}
+    />
   );
 }

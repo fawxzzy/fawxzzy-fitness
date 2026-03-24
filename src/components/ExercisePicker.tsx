@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
@@ -56,9 +55,7 @@ type ExercisePickerProps = {
     selectedExercise: ExerciseOption | undefined;
     selectedCanonicalExerciseId: string | null;
     filteredExercises: ExerciseOption[];
-    selectedFilteredIndex: number;
-    selectPreviousExercise: () => void;
-    selectNextExercise: () => void;
+    openExerciseInfo: () => void;
   }) => ReactNode;
 };
 
@@ -219,20 +216,10 @@ export function ExercisePicker({
   onSelectedExerciseChange,
   renderFooter,
 }: ExercisePickerProps) {
-  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(true);
   const [isExerciseInfoOpen, setIsExerciseInfoOpen] = useState(false);
-  const scrollContainerRef = useRef<HTMLUListElement | null>(null);
-  const scrollPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollInputRef = useRef<HTMLInputElement | null>(null);
-
-  const initialScrollTop = useMemo(() => {
-    const raw = Number(searchParams.get("exerciseListScroll"));
-    if (!Number.isFinite(raw) || raw < 0) return 0;
-    return Math.round(raw);
-  }, [searchParams]);
 
   const uniqueExercises = useMemo(() => {
     const seenNames = new Set<string>();
@@ -246,7 +233,6 @@ export function ExercisePicker({
 
   const statsByExerciseId = useMemo(() => new Map(exerciseStats.map((row) => [row.exerciseId, row])), [exerciseStats]);
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
-  const scrollSnapshotRef = useRef(initialScrollTop);
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
   const [selectedMeasurements, setSelectedMeasurements] = useState<Array<"reps" | "weight" | "time" | "distance" | "calories">>([]);
   const [targetRepsMin, setTargetRepsMin] = useState("");
@@ -259,30 +245,6 @@ export function ExercisePicker({
   const [targetCalories, setTargetCalories] = useState("");
   const [didApplyLast, setDidApplyLast] = useState(false);
   const previousExerciseIdRef = useRef(selectedId);
-
-  useEffect(() => {
-    if (!scrollContainerRef.current || !initialScrollTop) return;
-    scrollContainerRef.current.scrollTop = initialScrollTop;
-  }, [initialScrollTop]);
-
-  useEffect(() => () => {
-    if (scrollPersistTimeoutRef.current) {
-      clearTimeout(scrollPersistTimeoutRef.current);
-    }
-  }, []);
-
-  const persistScrollTop = useCallback((nextScrollTop: number) => {
-    if (scrollPersistTimeoutRef.current) {
-      clearTimeout(scrollPersistTimeoutRef.current);
-    }
-
-    scrollPersistTimeoutRef.current = setTimeout(() => {
-      scrollSnapshotRef.current = nextScrollTop;
-      if (scrollInputRef.current) {
-        scrollInputRef.current.value = String(nextScrollTop);
-      }
-    }, 96);
-  }, []);
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -345,7 +307,6 @@ export function ExercisePicker({
   }, [onSelectedExerciseChange, selectedExercise]);
   const exerciseMetadataById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean).join(" • ")])), [uniqueExercises]);
   const exerciseIconSrcById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, getExerciseIconSrc(exercise)])), [uniqueExercises]);
-  const selectedFilteredIndex = filteredExercises.findIndex((exercise) => exercise.id === selectedId);
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
   const selectedStats = selectedCanonicalExerciseId ? statsByExerciseId.get(selectedCanonicalExerciseId) : undefined;
   const hasLast = selectedStats ? (selectedStats.lastWeight != null && selectedStats.lastReps != null) : false;
@@ -389,15 +350,10 @@ export function ExercisePicker({
     setSelectedId(exerciseId);
   }, []);
 
-  const selectPreviousExercise = useCallback(() => {
-    if (selectedFilteredIndex <= 0) return;
-    setSelectedId(filteredExercises[selectedFilteredIndex - 1]?.id ?? selectedId);
-  }, [filteredExercises, selectedFilteredIndex, selectedId]);
-
-  const selectNextExercise = useCallback(() => {
-    if (selectedFilteredIndex === -1 || selectedFilteredIndex >= filteredExercises.length - 1) return;
-    setSelectedId(filteredExercises[selectedFilteredIndex + 1]?.id ?? selectedId);
-  }, [filteredExercises, selectedFilteredIndex, selectedId]);
+  const openExerciseInfo = useCallback(() => {
+    if (!selectedCanonicalExerciseId) return;
+    setIsExerciseInfoOpen(true);
+  }, [selectedCanonicalExerciseId]);
 
   return (
     <div className="space-y-4">
@@ -419,7 +375,6 @@ export function ExercisePicker({
       </div>
 
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
-      <input ref={scrollInputRef} type="hidden" name="exerciseListScroll" defaultValue={String(initialScrollTop)} />
 
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2 px-1">
@@ -437,17 +392,7 @@ export function ExercisePicker({
             rightIcon={null}
             className="shadow-[0_10px_24px_-18px_rgba(96,200,130,0.95)]"
           >
-            <div className="flex flex-wrap gap-2 pt-1">
-              <AppButton type="button" variant="secondary" size="sm" onClick={() => setIsExerciseInfoOpen(true)}>
-                Exercise info
-              </AppButton>
-              <AppButton type="button" variant="ghost" size="sm" onClick={selectPreviousExercise} disabled={selectedFilteredIndex <= 0}>
-                Previous
-              </AppButton>
-              <AppButton type="button" variant="ghost" size="sm" onClick={selectNextExercise} disabled={selectedFilteredIndex === -1 || selectedFilteredIndex >= filteredExercises.length - 1}>
-                Next
-              </AppButton>
-            </div>
+            <div className="pt-1 text-xs text-muted">Use the footer actions to view exercise info or add this exercise.</div>
           </ExerciseCard>
         ) : (
           <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">
@@ -463,9 +408,7 @@ export function ExercisePicker({
         </div>
         <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
           <ul
-            ref={scrollContainerRef}
-            onScroll={(event) => persistScrollTop(Math.round(event.currentTarget.scrollTop))}
-            className={cn("max-h-[24rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]", listShellClasses.viewport, listShellClasses.list)}
+            className={cn("pr-1", listShellClasses.viewport, listShellClasses.list)}
           >
             {filteredExercises.map((exercise) => (
               <ExerciseRow
@@ -600,9 +543,7 @@ export function ExercisePicker({
         selectedExercise,
         selectedCanonicalExerciseId,
         filteredExercises,
-        selectedFilteredIndex,
-        selectPreviousExercise,
-        selectNextExercise,
+        openExerciseInfo,
       }) : footerSlot}
 
       <ExerciseInfo
