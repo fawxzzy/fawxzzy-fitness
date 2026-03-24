@@ -1,3 +1,16 @@
+## [v0.3.100] – Fix: return Edit Day to same-day view and simplify Log Set footer
+
+### WHAT
+
+* Hardened Edit Day back-target resolution so Edit Day always returns to the canonical same-day View Day route (`/routines/{id}/days/{dayId}`), regardless of incoming `returnTo` chains.
+* Explicitly blocked Edit Day back-target reuse of edit-family routes to prevent edit-route loops and history-dependent behavior.
+* Simplified the Session Log Set footer from a stacked utility+primary layout into a clean two-action split with only `Skip` (left) and `Save Set` (right), removing footer-level `Delete`.
+
+### WHY
+
+* Edit Day is a child editor surface and should deterministically return to its canonical parent day view, not bounce through mutable history or edit-route chains.
+* The Log Set footer should prioritize core logging flow actions; reducing it to `Skip` and `Save Set` keeps interaction intent clear and consistent.
+
 ## [v0.3.99] – UI: clean routine creation footer state and center editor discard confirm
 
 ### WHAT
