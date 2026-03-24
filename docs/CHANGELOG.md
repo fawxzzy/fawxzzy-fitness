@@ -10,6 +10,31 @@
 
 * Quick Add still read like an older modal-era flow and drifted from the cleaner dedicated Add Exercise experience.
 * Aligning both surfaces to the same shared screen contract improves predictability while keeping planned-day and current-session business logic clearly separated.
+## [v0.3.98] – Fix: use deterministic routine editor back routes and remove legacy draft save copy
+
+### WHAT
+
+* Updated Edit Day back navigation to use explicit canonical hrefs that prefer the matching standalone day view route and never route into Edit Routine.
+* Updated Edit Routine back navigation to use deterministic routines-overview routing (`/routines`) without depending on browser history or return-to chains.
+* Locked shared routine editor back-button behavior to fallback-only navigation so editor-family top-right back actions no longer rely on history back semantics.
+* Removed New Routine header-level draft save state wording (`Saving...`, `Saved`, and autosave copy) while preserving toast/banner feedback and local draft persistence.
+
+### WHY
+
+* Edit Day and Edit Routine should each return to stable canonical parent routes so users cannot get trapped in an edit-screen back loop.
+* Save/create status feedback now belongs to the shared toast/banner system; persistent header copy was duplicate, noisy, and out of date.
+## [v0.3.98] – UI: normalize Edit Day trailing action rail fit
+
+### WHAT
+
+* Updated the shared `SwipeActionRow` primitive to inherit row corner radius in both leading-reveal and trailing-action containers so rail shells align exactly with row clipping boundaries.
+* Removed the outer Edit Day list-item overflow clipping wrapper and aligned row radius tokens so the swipe rail can occupy the full trailing action surface without corner cut-off.
+* Rebalanced Edit Day `Edit` / `Delete` trailing rail sizing and slot styling to use equal-width full-height actions with cleaner divider-based split, explicit full-height button overrides, and stretch-safe destructive form wrapping.
+
+### WHY
+
+* Edit Day’s trailing rail still presented as slightly clipped/under-fit in some states compared with Current Session row-action rails.
+* Matching radius ownership and removing extra wrapper clipping restores a full-height/full-width trailing action presentation while preserving existing swipe/tap/reorder interaction behavior.
 
 ## [v0.3.97] – Fix: validate resume session state and remove 404 path
 

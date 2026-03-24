@@ -11,6 +11,7 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
+import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
 
 type Props = {
   routineId: string;
@@ -85,7 +86,7 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
     <form ref={formRef} id="routine-day-settings-form" className="space-y-3" onSubmit={(event) => event.preventDefault()}>
       <input type="hidden" name="routineId" value={routineId} />
       <input type="hidden" name="routineDayId" value={routineDayId} />
-      <NavigationReturnInput fallbackHref={`/routines/${routineId}/edit`} value={backHref} />
+      <NavigationReturnInput fallbackHref={getRoutineDayViewHref(routineId, routineDayId)} value={backHref} />
       <RoutineEditorPageHeader
         eyebrow="EDIT DAY DETAILS"
         title={(
@@ -103,7 +104,7 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         )}
         subtitle={routineName}
         subtitleRight={daySummary}
-        action={<TopRightBackButton href={backHref} ariaLabel="Back to Routine" historyBehavior="fallback-only" />}
+        action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
         actionClassName="-mt-0.5"
         className="space-y-3 p-4 pt-3"
       >
