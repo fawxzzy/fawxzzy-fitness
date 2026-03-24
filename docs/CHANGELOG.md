@@ -1,3 +1,16 @@
+## [v0.3.88] – Edit Day Shared Row Actions and Explicit Reorder Mode
+
+### WHAT
+
+* Reused the shared Current Session row-action interaction model on Edit Day exercise cards so tap opens exercise details, trailing swipe reveals `Edit` and `Delete`, outside taps/scroll dismiss open rails, and desktop hover/focus exposes the same contextual actions.
+* Split drag reordering into an explicit header-level `Reorder` / `Done` mode that disables swipe/tap row gestures while active and swaps in dedicated drag handles to avoid mobile gesture conflicts.
+* Kept Edit Day mutations locally responsive so delete and reorder changes update the list immediately while server persistence and route refresh stay in sync.
+
+### WHY
+
+* Edit Day should reuse the same proven row-action primitive as Current Session instead of maintaining a second mobile gesture system with different thresholds or dismissal rules.
+* Tap, swipe, and drag competing on one row makes mobile interactions feel sticky and unreliable, so reordering now lives in an explicit mode with clear handles and restored normal interactions when finished.
+
 ## [v0.3.87] – Autosave Routine Editors and Draft-Based Routine Creation
 
 ### WHAT
