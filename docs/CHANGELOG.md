@@ -1,3 +1,16 @@
+## [v0.3.98] – Refactor: align Quick Add goal setup with Add Exercise flow
+
+### WHAT
+
+* Refactored Current Session `SessionQuickAddExerciseForm` to use the same form-driven `RoutineEditorAddExerciseFlowShell` contract as Edit Day Add Exercise, removing the separate Quick Add-only `Session setup` configure block.
+* Kept Quick Add-specific behavior limited to session submit wording, `quickAddExerciseAction` mutation wiring, and return-to-session navigation after success.
+* Preserved the existing session add payload contract by continuing to submit `sessionId`, selected `exerciseId`, and default starter-set payload (`setCount`) without reintroducing a second goal-configuration layout.
+
+### WHY
+
+* Quick Add still diverged from the cleaner Add Exercise source-of-truth goal setup and looked like a parallel UI flow.
+* Reusing the same goal/configure structure keeps Edit Day Add Exercise and Current Session Quick Add visually and behaviorally aligned while preserving session-only mutation semantics.
+
 ## [v0.3.98] – Refactor: align Quick Add with shared Add Exercise flow
 
 ### WHAT
