@@ -19,8 +19,8 @@ const unitSelectClassName = "min-h-11 rounded-xl border border-border/60 bg-surf
 export function MeasurementConfigurator({
   values,
   activeMetrics,
-  isExpanded,
-  onExpandedChange,
+  isExpanded: _isExpanded,
+  onExpandedChange: _onExpandedChange,
   onMetricToggle,
   onChange,
   names,
@@ -29,7 +29,7 @@ export function MeasurementConfigurator({
   description,
   collapsedLabel: _collapsedLabel = "Optional measurements",
   collapsedDescription: _collapsedDescription = "Show only the fields this workout actually needs.",
-  hideInputsWhenCollapsed = false,
+  hideInputsWhenCollapsed: _hideInputsWhenCollapsed = false,
   showHeader = true,
   leadingContent,
   trailingContent,
@@ -62,7 +62,7 @@ export function MeasurementConfigurator({
 
       {leadingContent}
 
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.18)] p-3">
+      <div className="flex flex-wrap gap-2">
         {(Object.keys(METRIC_LABELS) as Array<keyof MeasurementMetrics>).map((metric) => (
           <button
             key={metric}
@@ -80,51 +80,47 @@ export function MeasurementConfigurator({
         ))}
       </div>
 
-      {hideInputsWhenCollapsed && !isExpanded ? (
-        <button
-          type="button"
-          onClick={() => onExpandedChange(true)}
-          className="rounded-xl border border-border/35 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-xs text-muted transition-colors hover:bg-[rgb(var(--bg)/0.24)]"
-        >
-          Show inputs
-        </button>
-      ) : null}
-
-      {!hideInputsWhenCollapsed || isExpanded ? (
-        <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] p-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div className={cn("col-span-2 overflow-hidden transition-all", activeMetrics.reps ? "max-h-24 opacity-100" : "max-h-0 opacity-0") }>
+      <div className="grid grid-cols-2 gap-2">
+        {activeMetrics.reps ? (
+          <div className="col-span-2">
               <InlineHintInput name={names?.reps} type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="reps" />
-            </div>
-            <div className={cn("col-span-2 overflow-hidden transition-all", activeMetrics.weight ? "max-h-24 opacity-100" : "max-h-0 opacity-0")}>
-              <div className="grid grid-cols-[1fr_auto] gap-2">
-                <InlineHintInput name={names?.weight} type="number" min={0} step="0.5" value={values.weight} onChange={(event) => onChange({ weight: event.target.value })} hint="weight" />
-                <select name={names?.weightUnit} value={values.weightUnit} onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })} className={unitSelectClassName}>
-                  <option value="lbs">lbs</option>
-                  <option value="kg">kg</option>
-                </select>
-              </div>
-            </div>
-            <div className={cn("col-span-2 overflow-hidden transition-all", activeMetrics.time ? "max-h-24 opacity-100" : "max-h-0 opacity-0")}>
-              <InlineHintInput name={names?.duration} type="text" inputMode="numeric" value={values.duration} onChange={(event) => onChange({ duration: event.target.value })} hint="mm:ss" />
-            </div>
-            <div className={cn("col-span-2 overflow-hidden transition-all", activeMetrics.distance ? "max-h-24 opacity-100" : "max-h-0 opacity-0")}>
-              <div className="grid grid-cols-[1fr_auto] gap-2">
-                <InlineHintInput name={names?.distance} type="number" min={0} step="0.01" value={values.distance} onChange={(event) => onChange({ distance: event.target.value })} hint="distance" />
-                <select name={names?.distanceUnit} value={values.distanceUnit} onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })} className={unitSelectClassName}>
-                  <option value="mi">mi</option>
-                  <option value="km">km</option>
-                  <option value="m">m</option>
-                </select>
-              </div>
-            </div>
-            <div className={cn("col-span-2 overflow-hidden transition-all", activeMetrics.calories ? "max-h-24 opacity-100" : "max-h-0 opacity-0")}>
-              <InlineHintInput name={names?.calories} type="number" min={0} step="1" value={values.calories} onChange={(event) => onChange({ calories: event.target.value })} hint="cal" />
+          </div>
+        ) : null}
+        {activeMetrics.weight ? (
+          <div className="col-span-2">
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <InlineHintInput name={names?.weight} type="number" min={0} step="0.5" value={values.weight} onChange={(event) => onChange({ weight: event.target.value })} hint="weight" />
+              <select name={names?.weightUnit} value={values.weightUnit} onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })} className={unitSelectClassName}>
+                <option value="lbs">lbs</option>
+                <option value="kg">kg</option>
+              </select>
             </div>
           </div>
-          {trailingContent ? <div className="mt-2">{trailingContent}</div> : null}
-        </div>
-      ) : null}
+        ) : null}
+        {activeMetrics.time ? (
+          <div className="col-span-2">
+            <InlineHintInput name={names?.duration} type="text" inputMode="numeric" value={values.duration} onChange={(event) => onChange({ duration: event.target.value })} hint="mm:ss" />
+          </div>
+        ) : null}
+        {activeMetrics.distance ? (
+          <div className="col-span-2">
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <InlineHintInput name={names?.distance} type="number" min={0} step="0.01" value={values.distance} onChange={(event) => onChange({ distance: event.target.value })} hint="distance" />
+              <select name={names?.distanceUnit} value={values.distanceUnit} onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })} className={unitSelectClassName}>
+                <option value="mi">mi</option>
+                <option value="km">km</option>
+                <option value="m">m</option>
+              </select>
+            </div>
+          </div>
+        ) : null}
+        {activeMetrics.calories ? (
+          <div className="col-span-2">
+            <InlineHintInput name={names?.calories} type="number" min={0} step="1" value={values.calories} onChange={(event) => onChange({ calories: event.target.value })} hint="cal" />
+          </div>
+        ) : null}
+      </div>
+      {trailingContent ? <div>{trailingContent}</div> : null}
     </div>
   );
 }

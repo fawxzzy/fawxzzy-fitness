@@ -8,6 +8,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { Input } from "@/components/ui/Input";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { listShellClasses } from "@/components/ui/listShellClasses";
+import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl";
@@ -404,9 +405,9 @@ export function ExercisePicker({
         <div className="flex items-center justify-between gap-2 px-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercises</p>
         </div>
-        <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
+        <PickerListViewport className={listShellClasses.card}>
           <ul
-            className={cn("pr-1", listShellClasses.viewport, listShellClasses.list)}
+            className={cn(listShellClasses.viewport, listShellClasses.list)}
           >
             {filteredExercises.map((exercise) => (
               <ExerciseRow
@@ -420,13 +421,7 @@ export function ExercisePicker({
             ))}
             {filteredExercises.length === 0 ? <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">No exercises match your filters.</li> : null}
           </ul>
-          {filteredExercises.length > 2 ? (
-            <>
-              <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-2 z-10 h-6 rounded-t-[1rem] bg-gradient-to-b from-[rgb(var(--surface-rgb)/0.92)] to-transparent" />
-              <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 bottom-2 z-10 h-6 rounded-b-[1rem] bg-gradient-to-t from-[rgb(var(--surface-rgb)/0.92)] to-transparent" />
-            </>
-          ) : null}
-        </div>
+        </PickerListViewport>
       </section>
 
       {routineTargetConfig && selectedExercise ? (

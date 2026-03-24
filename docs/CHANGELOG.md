@@ -1,3 +1,19 @@
+## [v0.4.05] – UI: restore bounded picker viewport and simplify measurements layout
+
+### WHAT
+
+* Reintroduced one shared, intentional add-flow exercise picker viewport with a fixed max-height and internal list scrolling so Edit Day Add Exercise and Current Session Quick Add both render the same contained/truncated list region.
+* Restored the picker top/bottom fade treatment directly on the shared viewport wrapper and normalized list scrolling behavior with stable gutter handling plus hidden native scrollbars to avoid right-edge jitter.
+* Kept page-shell ownership stable around the picker exception (header, selected exercise, configure goal, and footer) while removing extra list wrapper scroll behavior outside the dedicated picker viewport.
+* Redesigned shared Measurements presentation to a direct-input rhythm: title-only `MEASUREMENTS`, metric pills first, then only active metric inputs; removed accordion-like expand/collapse affordances and extra framed placeholder surfaces.
+* Kept goal state logic intact while normalizing inline goal summary rendering to the fluid bullet format (`•`) so normal states read as one clean line (for example `3 sets • 6–8 reps • 30 lbs`), with chip treatment reserved for missing-goal states.
+
+### WHY
+
+* The add-flow picker felt too expanded after earlier cleanup and lost the deliberate bounded picker feel users rely on for fast scanning.
+* Scrollbar presentation and right-gutter behavior drifted between add flows, creating visual noise.
+* Measurements still looked heavier than necessary; a direct-input layout better matches high-frequency setup behavior in add/edit flows.
+
 ## [v0.4.04] – UI: restore single-scroll add-flow polish and simplify measurement/toggle surfaces
 
 ### WHAT
