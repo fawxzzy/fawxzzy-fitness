@@ -17,4 +17,4 @@ export function getSwipeRailShellClassName({
   );
 }
 
-export const swipeRailSlotBaseClassName = "!h-full min-h-0 w-full rounded-none border-0 bg-transparent px-0";
+export const swipeRailSlotBaseClassName = "!h-full min-h-0 w-full items-center justify-center rounded-none border-0 bg-transparent px-0";

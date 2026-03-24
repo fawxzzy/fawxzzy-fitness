@@ -1,3 +1,21 @@
+## [v0.4.04] – UI: restore single-scroll add-flow polish and simplify measurement/toggle surfaces
+
+### WHAT
+
+* Locked the app-shell to a single viewport-owned scroll contract (`h-[100dvh]` with shell-level overflow clipping) so add/edit exercise screens rely on one vertical scroll owner instead of competing body/container behavior.
+* Restored the exercise-list top/bottom fade in shared add flows as a pure visual overlay mask (non-interactive gradients over the list shell) without reintroducing a nested list scroller.
+* Normalized Edit Day `Edit` / `Delete` swipe rails against the same slot sizing and interaction treatment used by Current Session (`Quick Log` / `Skip`), including width contract, slot centering, and focus/hover styling language.
+* Simplified Warm-Up and Rest Day row copy to concise all-caps tap affordances (`WARM-UP | TAP`, `REST DAY | TAP`) while preserving right-side state indicators (`On` / `Off`) and existing toggle logic.
+* Reworked shared measurement presentation from a dropdown/accordion front into a direct dense layout: title-only `MEASUREMENTS`, immediate metric pills, and inline inputs below, with explanatory wrapper copy removed.
+* Updated add/edit goal summaries to prefer cleaner empty/default output (`-`) where values are unset.
+
+### WHY
+
+* The add/edit family still felt like it had competing scroll ownership and lost the polished picker fade after nested scrolling was removed.
+* Swipe rails for similar interaction families should feel structurally identical so users can trust muscle memory between Edit Day and Current Session.
+* Warm-Up and Rest Day toggles are high-frequency controls; concise action language reduces visual noise and makes intent clearer.
+* Measurements needed to read as direct-input fitness tooling instead of accordion-heavy optional settings.
+
 ## [v0.4.03] – UI: finalize add-flow cleanup and single-scroll behavior
 
 ### WHAT

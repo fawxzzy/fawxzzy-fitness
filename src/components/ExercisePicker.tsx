@@ -404,7 +404,7 @@ export function ExercisePicker({
         <div className="flex items-center justify-between gap-2 px-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercises</p>
         </div>
-        <div className={cn("rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
+        <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
           <ul
             className={cn("pr-1", listShellClasses.viewport, listShellClasses.list)}
           >
@@ -420,6 +420,12 @@ export function ExercisePicker({
             ))}
             {filteredExercises.length === 0 ? <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">No exercises match your filters.</li> : null}
           </ul>
+          {filteredExercises.length > 2 ? (
+            <>
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-2 z-10 h-6 rounded-t-[1rem] bg-gradient-to-b from-[rgb(var(--surface-rgb)/0.92)] to-transparent" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 bottom-2 z-10 h-6 rounded-b-[1rem] bg-gradient-to-t from-[rgb(var(--surface-rgb)/0.92)] to-transparent" />
+            </>
+          ) : null}
         </div>
       </section>
 
@@ -499,9 +505,9 @@ export function ExercisePicker({
                   if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
                 }}
                 names={{ reps: "targetRepsMin", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
-                showHeader={false}
-                collapsedLabel="Optional measurements"
-                collapsedDescription="Reuse the app’s standard goal measurements only when they add value here."
+                showHeader
+                heading="MEASUREMENTS"
+                description={undefined}
               />
 
               {selectedMeasurements.includes("reps") ? <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} /> : null}
@@ -527,7 +533,7 @@ export function ExercisePicker({
                   repsMax: selectedMeasurements.includes("reps") && targetRepsMax ? Number(targetRepsMax) : null,
                   weightUnit: targetWeightUnit,
                   distanceUnit: selectedDefaultUnit,
-                  emptyLabel: "Goal missing",
+                  emptyLabel: "-",
                 }}
               />
               <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
