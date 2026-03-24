@@ -35,6 +35,9 @@ export function RoutineDayAddExerciseForm({
   addExerciseAction,
   exerciseStats,
   customExerciseSection,
+  submitLabel = "Add To Day",
+  footerSlot,
+  onSuccess,
 }: {
   routineId: string;
   routineDayId: string;
@@ -44,6 +47,9 @@ export function RoutineDayAddExerciseForm({
   addExerciseAction: (formData: FormData) => Promise<ActionResult>;
   exerciseStats: ExerciseStatsOption[];
   customExerciseSection?: ReactNode;
+  submitLabel?: string;
+  footerSlot?: ReactNode;
+  onSuccess?: () => void;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -58,6 +64,7 @@ export function RoutineDayAddExerciseForm({
         });
 
         if (result.ok) {
+          onSuccess?.();
           router.refresh();
         }
       }}
@@ -73,9 +80,9 @@ export function RoutineDayAddExerciseForm({
         initialSelectedId={initialSelectedId}
         routineTargetConfig={{ weightUnit }}
         exerciseStats={exerciseStats}
-        footerSlot={(
+        footerSlot={footerSlot !== undefined ? footerSlot : (
           <AppButton type="submit" variant="primary" fullWidth>
-            Add To Day
+            {submitLabel}
           </AppButton>
         )}
       />
