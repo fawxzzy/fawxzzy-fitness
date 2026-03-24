@@ -12,12 +12,13 @@ type Props = {
 
 export function RoutineBackButton({ href, hasUnsavedChanges = true }: Props) {
   const [showDiscardModal, setShowDiscardModal] = useState(false);
-  const { navigateBack } = useBackNavigation({ fallbackHref: href, historyBehavior: "history-first" });
+  const { navigateBack } = useBackNavigation({ fallbackHref: href, historyBehavior: "fallback-only" });
 
   return (
     <>
       <TopRightBackButton
         href={href}
+        historyBehavior="fallback-only"
         onClick={(event) => {
           if (!hasUnsavedChanges) return;
           event.preventDefault();

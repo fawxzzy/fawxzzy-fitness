@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
@@ -27,7 +27,6 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(defaults);
   const [loadedDraft, setLoadedDraft] = useState(false);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, startTransition] = useTransition();
@@ -52,14 +51,11 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
   useEffect(() => {
     if (!loadedDraft) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    setStatus("saving");
     saveTimer.current = setTimeout(() => {
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-        setStatus("saved");
         setError(null);
       } catch {
-        setStatus("error");
         setError("Could not save local draft.");
       }
     }, 400);
@@ -69,12 +65,6 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
     };
   }, [draft, loadedDraft]);
 
-  const subtitleRight = useMemo(() => (
-    <SubtitleText className="text-xs text-muted">
-      {status === "saving" ? "Saving..." : status === "saved" ? "Saved" : status === "error" ? "Could not save draft" : "Draft autosaves locally"}
-    </SubtitleText>
-  ), [status]);
-
   return (
     <>
       <div className="space-y-4 px-1 pb-4">
@@ -82,7 +72,6 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
           title="NEW ROUTINE DETAILS"
           action={<RoutineBackButton href="/routines" hasUnsavedChanges={false} />}
           actionClassName="-mt-1"
-          subtitleRight={subtitleRight}
           className="space-y-5"
         >
           <RoutineEditorFormFields

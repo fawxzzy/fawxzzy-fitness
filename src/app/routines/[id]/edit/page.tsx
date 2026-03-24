@@ -6,7 +6,6 @@ import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { resolveReturnHref } from "@/lib/navigation-return";
 import { ROUTINE_START_WEEKDAYS, getRoutineStartWeekdayFromDate } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
@@ -17,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: { id: string };
-  searchParams?: { error?: string; success?: string; returnTo?: string };
+  searchParams?: { error?: string; success?: string };
 };
 
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
@@ -33,7 +32,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
   if (!routine) notFound();
 
-  const returnHref = resolveReturnHref(searchParams?.returnTo, "/routines");
+  const returnHref = "/routines";
   const routineTimezoneDefault = normalizeRoutineTimezone((routine as RoutineRow).timezone);
   const startWeekdayDefault = getRoutineStartWeekdayFromDate((routine as RoutineRow).start_date) ?? ROUTINE_START_WEEKDAYS[0];
 

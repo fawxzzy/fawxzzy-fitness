@@ -39,6 +39,11 @@ export function resolveRoutineDayViewBackHref(rawReturnTo: string | null | undef
   return resolveReturnHref(decodeReturnTo(rawReturnTo), getRoutineOverviewHref());
 }
 
-export function resolveRoutineDayEditBackHref(routineId: string, rawReturnTo: string | null | undefined) {
-  return resolveReturnHref(decodeReturnTo(rawReturnTo), getRoutineEditHref(routineId));
+export function resolveRoutineDayEditBackHref(routineId: string, dayId: string, rawReturnTo: string | null | undefined) {
+  const canonicalDayViewHref = getRoutineDayViewHref(routineId, dayId);
+  const resolvedReturnTo = resolveReturnHref(decodeReturnTo(rawReturnTo), canonicalDayViewHref);
+  if (resolvedReturnTo.startsWith(`${getRoutineEditHref(routineId)}/`)) {
+    return canonicalDayViewHref;
+  }
+  return resolvedReturnTo;
 }
