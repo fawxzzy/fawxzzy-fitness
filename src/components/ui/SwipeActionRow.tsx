@@ -210,7 +210,7 @@ export function SwipeActionRow({
       ) : null}
 
       {trailingActions ? (
-        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end" style={{ width: `${activeTrailingWidth}px` }}>
+        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end overflow-hidden rounded-[1.3rem]" style={{ width: `${activeTrailingWidth}px` }}>
           {trailingActions}
         </div>
       ) : null}

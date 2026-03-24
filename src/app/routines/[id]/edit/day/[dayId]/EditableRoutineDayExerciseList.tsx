@@ -380,14 +380,14 @@ export function EditableRoutineDayExerciseList({
                 trailingWidthDesktop={212}
                 trailingActions={reorderMode || editModeActive ? null : (
                   <div className={cn(
-                    "grid h-full w-full grid-cols-2 items-stretch gap-1.5 rounded-[1.3rem] border border-border/30 bg-[rgb(var(--surface-2-soft)/0.98)] p-1.5 shadow-[inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
+                    "grid h-full w-full grid-cols-2 items-stretch overflow-hidden rounded-[1.3rem] border border-border/30 bg-[rgb(var(--surface-2-soft)/0.98)] shadow-[inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
                     openRowId === exercise.id ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
                   )}>
                     <AppButton
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="h-full min-h-[2.35rem] w-full rounded-xl border-border/50 bg-[rgb(var(--surface-2-soft)/0.88)]"
+                      className="h-full min-h-[2.35rem] w-full rounded-none border-0 border-r border-border/35 bg-[rgb(var(--surface-2-soft)/0.88)]"
                       onClick={() => {
                         closeAllRowActions();
                         setExpandedId((current) => current === exercise.id ? null : exercise.id);
@@ -395,22 +395,24 @@ export function EditableRoutineDayExerciseList({
                     >
                       {isExpanded ? "Done" : "Edit"}
                     </AppButton>
-                    <ConfirmedServerFormButton
-                      action={deleteAction}
-                      hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
-                      triggerLabel="Delete"
-                      triggerAriaLabel={`Delete ${exercise.name}`}
-                      triggerClassName="h-full min-h-[2.35rem] w-full self-stretch rounded-xl"
-                      modalTitle="Delete routine day exercise?"
-                      modalDescription="This will remove this exercise from the routine day."
-                      confirmLabel="Delete"
-                      details={`Exercise: ${exercise.name}`}
-                      onSuccess={() => {
-                        setItems((current) => current.filter((item) => item.id !== exercise.id));
-                        setExpandedId((current) => current === exercise.id ? null : current);
-                        setOpenRowId(null);
-                      }}
-                    />
+                    <div className="[&>form]:h-full [&>form]:w-full">
+                      <ConfirmedServerFormButton
+                        action={deleteAction}
+                        hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
+                        triggerLabel="Delete"
+                        triggerAriaLabel={`Delete ${exercise.name}`}
+                        triggerClassName="h-full min-h-[2.35rem] w-full self-stretch rounded-none border-0 bg-[rgb(var(--surface-2-soft)/0.88)]"
+                        modalTitle="Delete routine day exercise?"
+                        modalDescription="This will remove this exercise from the routine day."
+                        confirmLabel="Delete"
+                        details={`Exercise: ${exercise.name}`}
+                        onSuccess={() => {
+                          setItems((current) => current.filter((item) => item.id !== exercise.id));
+                          setExpandedId((current) => current === exercise.id ? null : current);
+                          setOpenRowId(null);
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               >

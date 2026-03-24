@@ -1,3 +1,16 @@
+## [v0.3.97] – UI: fix Edit Day action rail sizing and add add-exercise back button
+
+### WHAT
+
+* Updated the shared swipe-row trailing-action container to enforce rounded full-height clipping at the primitive level so rail actions fill their configured width cleanly without horizontal cut-off.
+* Refined Edit Day planned-workout `Edit` / `Delete` trailing actions into true full-height two-slot rails (no inner gap/padding drift), and forced the destructive form wrapper to stretch to slot width/height so both actions remain balanced and uncut.
+* Replaced the dedicated Edit Day Add Exercise title panel with the shared editor-family page header rhythm and added a top-right Back button that returns to Edit Day.
+
+### WHY
+
+* The Edit Day swipe rail still showed clipped/half-cut action surfaces in some states because row-level action slots were not consistently stretching to the full trailing container.
+* The dedicated Add Exercise route needed to read as part of the same editor family as Edit Day/Edit Routine, including a deterministic top-right back affordance.
+
 ## [v0.3.96] – Refactor: extract shared editor add-flow and list-mode primitives
 
 ### WHAT
