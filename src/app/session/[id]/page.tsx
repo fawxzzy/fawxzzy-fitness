@@ -175,6 +175,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                 calories: displayTarget.calories,
                 measurementType: displayTarget.measurementType,
               } : undefined,
+              targetSetsMin: displayTarget?.setsMin ?? null,
+              targetSetsMax: displayTarget?.setsMax ?? null,
               initialSets: setsByExercise.get(exercise.id) ?? [],
               loggedSetCount: (setsByExercise.get(exercise.id) ?? []).length,
             };

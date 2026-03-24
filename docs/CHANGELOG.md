@@ -1,3 +1,18 @@
+## [v0.4.01] – UI: unify row-action rail format and live exercise progress state
+
+### WHAT
+
+* Unified the swipe trailing-rail format contract behind shared rail shell/slot tokens, then applied it to both Current Session (`Quick Log` / `Skip`) and Edit Day (`Edit` / `Delete`) so both surfaces share the same full-height slot fit, integrated border/shine treatment, and crisp divider behavior.
+* Added a shared deterministic session exercise progress mapper (`neutral`, `partial`, `skipped`, `completed`) and wired Current Session list rows plus Today resume exercise rows through the same mapper.
+* Updated Today in-progress exercise mapping to hydrate live per-exercise session state (logged set count, skipped flag, and set-goal threshold) so Resume reflects Current Session mutations immediately after refresh/revalidation.
+* Tightened completion coloring rules so green completed styling only appears when set-goal thresholds are actually reached; partial logging remains neutral with metadata such as `1 logged` / `2 logged`, and skipped continues to render as a skipped tag/state.
+
+### WHY
+
+* Edit Day and Current Session rails had minor visual drift despite representing the same interaction family, which made action surfaces feel inconsistent.
+* Progress and completion state logic was split across routes, which allowed Today resume and Current Session to disagree after in-session mutations.
+* Treating any logged set as completed caused premature green emphasis and obscured true goal completion.
+
 ## [v0.4.00] – Refactor: unify exercise goal editor across edit/add/quick-add flows
 
 ### WHAT

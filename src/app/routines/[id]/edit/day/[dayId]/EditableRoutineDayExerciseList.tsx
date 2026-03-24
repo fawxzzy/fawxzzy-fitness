@@ -20,6 +20,7 @@ import { EyebrowText } from "@/components/ui/text-roles";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
+import { getSwipeRailShellClassName, swipeRailSlotBaseClassName } from "@/components/ui/swipeRailStyles";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
@@ -392,15 +393,12 @@ export function EditableRoutineDayExerciseList({
                 trailingWidthMobile={192}
                 trailingWidthDesktop={224}
                 trailingActions={reorderMode || editModeActive ? null : (
-                  <div className={cn(
-                    "grid h-full w-full grid-cols-2 items-stretch divide-x divide-border/30 overflow-hidden rounded-[inherit] border border-border/28 bg-[linear-gradient(180deg,rgba(var(--surface-2-soft),0.96),rgba(var(--surface-2-soft),0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
-                    openRowId === exercise.id ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
-                  )}>
+                  <div className={getSwipeRailShellClassName({ columnCount: 2, isVisible: openRowId === exercise.id })}>
                     <AppButton
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="!h-full min-h-0 w-full rounded-none border-0 bg-transparent px-0 text-[rgb(var(--text)/0.88)] hover:bg-[rgb(var(--bg)/0.16)]"
+                      className={cn(swipeRailSlotBaseClassName, "text-[rgb(var(--text)/0.88)] hover:bg-[rgb(var(--bg)/0.16)]")}
                       onClick={() => {
                         closeAllRowActions();
                         setExpandedId((current) => current === exercise.id ? null : exercise.id);
@@ -414,7 +412,7 @@ export function EditableRoutineDayExerciseList({
                         hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
                         triggerLabel="Delete"
                         triggerAriaLabel={`Delete ${exercise.name}`}
-                        triggerClassName="!h-full min-h-0 w-full self-stretch rounded-none border-0 bg-transparent px-0 text-rose-100 hover:bg-rose-400/14"
+                        triggerClassName={cn(swipeRailSlotBaseClassName, "self-stretch text-rose-100 hover:bg-rose-400/14")}
                         modalTitle="Delete routine day exercise?"
                         modalDescription="This will remove this exercise from the routine day."
                         confirmLabel="Delete"
