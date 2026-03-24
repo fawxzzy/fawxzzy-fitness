@@ -1,3 +1,16 @@
+## [v0.3.98] – Fix: use deterministic routine editor back routes and remove legacy draft save copy
+
+### WHAT
+
+* Updated Edit Day back navigation to use explicit canonical hrefs that prefer the matching standalone day view route and never route into Edit Routine.
+* Updated Edit Routine back navigation to use deterministic routines-overview routing (`/routines`) without depending on browser history or return-to chains.
+* Locked shared routine editor back-button behavior to fallback-only navigation so editor-family top-right back actions no longer rely on history back semantics.
+* Removed New Routine header-level draft save state wording (`Saving...`, `Saved`, and autosave copy) while preserving toast/banner feedback and local draft persistence.
+
+### WHY
+
+* Edit Day and Edit Routine should each return to stable canonical parent routes so users cannot get trapped in an edit-screen back loop.
+* Save/create status feedback now belongs to the shared toast/banner system; persistent header copy was duplicate, noisy, and out of date.
 ## [v0.3.98] – UI: normalize Edit Day trailing action rail fit
 
 ### WHAT

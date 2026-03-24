@@ -70,7 +70,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseMeasurementMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.measurement_type]));
   const exerciseUnitMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.default_unit]));
   const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
-  const backHref = resolveRoutineDayEditBackHref(params.id, searchParams?.returnTo);
+  const backHref = resolveRoutineDayEditBackHref(params.id, params.dayId, searchParams?.returnTo);
   const addExerciseHref = `${getRoutineDayEditHref(params.id, params.dayId)}/add-exercise`;
   const editableExercises = dayExercises.map((exercise) => {
     const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
