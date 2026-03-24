@@ -149,3 +149,8 @@ export function formatGoalSummaryText(values: GoalSummaryValues) {
   const content = [measurementText || null, weightPart].filter((part): part is string => Boolean(part)).join(" — ");
   return content ? `Goal: ${content}` : (values.emptyLabel ?? "Goal missing");
 }
+
+export function formatGoalInlineSummaryText(values: GoalSummaryValues) {
+  const full = formatGoalSummaryText(values);
+  return full.startsWith("Goal: ") ? full.slice(6) : full;
+}

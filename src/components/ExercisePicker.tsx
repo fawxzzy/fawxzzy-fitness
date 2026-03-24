@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
-import { MeasurementSummary } from "@/components/ui/measurements/MeasurementSummary";
+import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
@@ -251,6 +251,7 @@ export function ExercisePicker({
   const [selectedMeasurements, setSelectedMeasurements] = useState<Array<"reps" | "weight" | "time" | "distance" | "calories">>([]);
   const [targetRepsMin, setTargetRepsMin] = useState("");
   const [targetRepsMax, setTargetRepsMax] = useState("");
+  const [targetSets, setTargetSets] = useState("3");
   const [targetWeight, setTargetWeight] = useState("");
   const [targetWeightUnit, setTargetWeightUnit] = useState<"lbs" | "kg">(routineTargetConfig?.weightUnit ?? "lbs");
   const [targetDuration, setTargetDuration] = useState("");
@@ -351,6 +352,7 @@ export function ExercisePicker({
   const hasPR = selectedStats ? ((selectedStats.prWeight != null && selectedStats.prReps != null) || selectedStats.prEst1rm != null) : false;
 
   const resetMeasurementFields = useCallback(() => {
+    setTargetSets("3");
     setTargetRepsMin("");
     setTargetRepsMax("");
     setTargetWeight("");
@@ -488,7 +490,7 @@ export function ExercisePicker({
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-start">
             <div className="rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
-              <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
+              <Input type="number" min={1} name="targetSets" value={targetSets} onChange={(event) => setTargetSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required />
             </div>
 
             <div className="space-y-3">
@@ -563,9 +565,30 @@ export function ExercisePicker({
               />
 
               {selectedMeasurements.includes("reps") ? <InlineHintInput type="number" min={1} name="targetRepsMax" hint="max" value={targetRepsMax} onChange={(event) => setTargetRepsMax(event.target.value)} /> : null}
-              <MeasurementSummary
-                values={{ ...sanitizeEnabledMeasurementValues({ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }, { reps: targetRepsMin ? Number(targetRepsMin) : null, weight: targetWeight ? Number(targetWeight) : null, durationSeconds: parseDurationInput(targetDuration), distance: targetDistance ? Number(targetDistance) : null, calories: targetCalories ? Number(targetCalories) : null }), weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
-                emptyLabel="Goal missing"
+              <GoalSummaryInline
+                values={{
+                  ...sanitizeEnabledMeasurementValues(
+                    {
+                      reps: selectedMeasurements.includes("reps"),
+                      weight: selectedMeasurements.includes("weight"),
+                      time: selectedMeasurements.includes("time"),
+                      distance: selectedMeasurements.includes("distance"),
+                      calories: selectedMeasurements.includes("calories"),
+                    },
+                    {
+                      reps: targetRepsMin ? Number(targetRepsMin) : null,
+                      weight: targetWeight ? Number(targetWeight) : null,
+                      durationSeconds: parseDurationInput(targetDuration),
+                      distance: targetDistance ? Number(targetDistance) : null,
+                      calories: targetCalories ? Number(targetCalories) : null,
+                    },
+                  ),
+                  sets: targetSets ? Number(targetSets) : null,
+                  repsMax: selectedMeasurements.includes("reps") && targetRepsMax ? Number(targetRepsMax) : null,
+                  weightUnit: targetWeightUnit,
+                  distanceUnit: selectedDefaultUnit,
+                  emptyLabel: "Goal missing",
+                }}
               />
               <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
             </div>
