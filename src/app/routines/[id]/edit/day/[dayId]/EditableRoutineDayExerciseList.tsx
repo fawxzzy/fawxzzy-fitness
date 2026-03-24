@@ -266,6 +266,15 @@ export function EditableRoutineDayExerciseList({
     setSelectedExerciseId(null);
   }, [reorderMode]);
 
+  const handleToggleReorderMode = () => {
+    if (!reorderMode) {
+      setOpenRowId(null);
+      setExpandedId(null);
+      setSelectedExerciseId(null);
+    }
+    setReorderMode((current) => !current);
+  };
+
   if (items.length === 0) {
     return (
       <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
@@ -297,7 +306,7 @@ export function EditableRoutineDayExerciseList({
 
       <div className="mb-3 flex items-center justify-between gap-3 rounded-[1.1rem] border border-border/35 bg-[rgb(var(--surface-2-soft)/0.3)] px-3 py-2.5">
         <SubtitleText className="text-xs">{reorderMode ? "Reorder mode is on." : `${items.length} exercise${items.length === 1 ? "" : "s"}`}</SubtitleText>
-        <AppButton type="button" variant={reorderMode ? "secondary" : "ghost"} size="sm" onClick={() => setReorderMode((current) => !current)}>
+        <AppButton type="button" variant={reorderMode ? "secondary" : "ghost"} size="sm" onClick={handleToggleReorderMode}>
           {reorderMode ? "Done" : "Reorder"}
         </AppButton>
       </div>
@@ -320,17 +329,17 @@ export function EditableRoutineDayExerciseList({
                 disabled={reorderMode}
                 trailingWidthMobile={156}
                 trailingWidthDesktop={170}
-                trailingActions={(
+                trailingActions={reorderMode ? null : (
                   <div className={cn(
-                    "flex h-full items-center justify-end gap-2 rounded-[1.3rem] border border-border/24 bg-[rgb(var(--surface-2-soft)/0.92)] p-2 transition-opacity duration-200",
+                    "flex h-full items-center justify-end gap-2 rounded-[1.3rem] border border-border/30 bg-[rgb(var(--surface-2-soft)/0.96)] p-1.5 shadow-[inset_0_0_0_1px_rgba(var(--bg),0.08)] transition-opacity duration-200",
                     isDesktop ? "w-[10.625rem]" : "w-[9.75rem]",
-                    !reorderMode && openRowId === exercise.id ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
+                    openRowId === exercise.id ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
                   )}>
                     <AppButton
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="min-h-full flex-1"
+                      className="h-full min-h-[2.35rem] flex-1 rounded-xl"
                       onClick={() => {
                         setOpenRowId(null);
                         setExpandedId((current) => current === exercise.id ? null : exercise.id);
@@ -343,7 +352,7 @@ export function EditableRoutineDayExerciseList({
                       hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
                       triggerLabel="Delete"
                       triggerAriaLabel={`Delete ${exercise.name}`}
-                      triggerClassName="min-h-full min-w-[4.4rem] self-stretch"
+                      triggerClassName="h-full min-h-[2.35rem] min-w-[4.4rem] self-stretch rounded-xl"
                       modalTitle="Delete routine day exercise?"
                       modalDescription="This will remove this exercise from the routine day."
                       confirmLabel="Delete"

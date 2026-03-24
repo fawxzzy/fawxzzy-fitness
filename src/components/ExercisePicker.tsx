@@ -400,10 +400,6 @@ export function ExercisePicker({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <div className="space-y-1 px-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Choose exercise</p>
-          <p className="text-xs text-muted">Search or filter, then choose one movement to add.</p>
-        </div>
         <div className="relative">
           <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises" className="pr-9" />
           {search ? (
@@ -425,10 +421,7 @@ export function ExercisePicker({
 
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2 px-1">
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected exercise</p>
-            <p className="text-xs text-muted">Confirm the movement before adding goal details.</p>
-          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected exercise</p>
           <p className="text-xs text-muted">{filteredExercises.length} shown</p>
         </div>
         {selectedExercise ? (
@@ -464,10 +457,7 @@ export function ExercisePicker({
 
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2 px-1">
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercise list</p>
-            <p className="text-xs text-muted">Tap a row to select it. Tap the selected row for exercise info.</p>
-          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercises</p>
         </div>
         <div className={cn("relative rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2", listShellClasses.card)}>
           <ul
@@ -493,17 +483,12 @@ export function ExercisePicker({
 
       {routineTargetConfig && selectedExercise ? (
         <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
-            <p className="text-xs text-muted">Add only the measurements that matter for this exercise. Leave everything else off.</p>
-          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
           {selectedMeasurements.map((metric) => <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-start">
             <div className="rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Sets</p>
-              <p className="mt-1 text-xs text-muted">This is the only required goal field.</p>
-              <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required className="mt-3" />
+              <Input type="number" min={1} name="targetSets" placeholder={isCardio ? "Intervals" : "Sets"} required />
             </div>
 
             <div className="space-y-3">
