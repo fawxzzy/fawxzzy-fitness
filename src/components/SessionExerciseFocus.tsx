@@ -392,19 +392,6 @@ export function SessionExerciseFocus({
             )}
             warmupValue={warmupDraft}
             onWarmupValueChange={setWarmupDraft}
-            deleteAction={(
-              <AppButton
-                type="button"
-                variant="ghost"
-                size="md"
-                fullWidth
-                disabled={removingExerciseIds.includes(selectedExercise!.id)}
-                className={tapFeedbackClass}
-                onClick={() => handleRemoveExercise(selectedExercise!.id)}
-              >
-                {removingExerciseIds.includes(selectedExercise!.id) ? "Removing..." : "Delete"}
-              </AppButton>
-            )}
             onSetCountChange={(count) => {
               handleSetCountChange(selectedExercise!.id, count);
             }}
