@@ -42,8 +42,16 @@ export function resolveRoutineDayViewBackHref(rawReturnTo: string | null | undef
 export function resolveRoutineDayEditBackHref(routineId: string, dayId: string, rawReturnTo: string | null | undefined) {
   const canonicalDayViewHref = getRoutineDayViewHref(routineId, dayId);
   const resolvedReturnTo = resolveReturnHref(decodeReturnTo(rawReturnTo), canonicalDayViewHref);
-  if (resolvedReturnTo.startsWith(`${getRoutineEditHref(routineId)}/`)) {
+
+  // Edit Day should always return to its canonical parent (same-day View Day),
+  // never into any edit-family route chain.
+  if (
+    resolvedReturnTo === canonicalDayViewHref
+    || resolvedReturnTo === getRoutineEditHref(routineId)
+    || resolvedReturnTo.startsWith(`${getRoutineEditHref(routineId)}/`)
+  ) {
     return canonicalDayViewHref;
   }
-  return resolvedReturnTo;
+
+  return canonicalDayViewHref;
 }

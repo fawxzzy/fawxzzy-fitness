@@ -12,7 +12,7 @@ import {
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
@@ -109,7 +109,6 @@ export function SetLoggerCard({
   deleteSetAction,
   resetSignal,
   skipAction,
-  deleteAction,
   warmupValue,
   onWarmupValueChange,
 }: {
@@ -142,7 +141,6 @@ export function SetLoggerCard({
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
   skipAction?: ReactNode;
-  deleteAction?: ReactNode;
   warmupValue?: boolean;
   onWarmupValueChange?: (value: boolean) => void;
 }) {
@@ -727,13 +725,8 @@ export function SetLoggerCard({
 
   const saveSetActions = useMemo(
     () => (
-      <BottomActionStackedPrimary
-        utility={(
-          <>
-            {skipAction ?? <div aria-hidden="true" />}
-            {deleteAction ?? <div aria-hidden="true" />}
-          </>
-        )}
+      <BottomActionSplit
+        secondary={skipAction ?? <div aria-hidden="true" />}
         primary={(
           <AppButton
             type="button"
@@ -747,7 +740,7 @@ export function SetLoggerCard({
         )}
       />
     ),
-    [deleteAction, handleLogSet, isSaveDisabled, skipAction],
+    [handleLogSet, isSaveDisabled, skipAction],
   );
 
 
