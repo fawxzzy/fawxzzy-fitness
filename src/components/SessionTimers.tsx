@@ -841,10 +841,9 @@ export function SetLoggerCard({
           ].join(" ")}
         >
           <span className="min-w-0">
-            <span className="flex items-center gap-2">
-              <EyebrowText as="span" className={resolvedIsWarmup ? "text-emerald-200" : "text-[10px]"}>Warm-up</EyebrowText>
-              <span className={resolvedIsWarmup ? "text-sm text-emerald-100/90" : "text-sm text-muted"}>Tap to mark as warm-up</span>
-            </span>
+            <EyebrowText as="span" className={cn("text-xs tracking-[0.14em]", resolvedIsWarmup ? "text-emerald-200" : "text-muted")}>
+              WARM-UP | TAP
+            </EyebrowText>
           </span>
           <span className={resolvedIsWarmup ? "text-sm font-semibold text-emerald-100" : "text-sm font-medium text-text"}>{resolvedIsWarmup ? "On" : "Off"}</span>
         </button>

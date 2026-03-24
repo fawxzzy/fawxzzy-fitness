@@ -25,6 +25,9 @@ import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 
+const MOBILE_TRAILING_ACTION_WIDTH = 104;
+const DESKTOP_TRAILING_ACTION_WIDTH = 208;
+
 type EditableRoutineDayExerciseItem = {
   id: string;
   exerciseId: string;
@@ -164,7 +167,9 @@ function RoutineTargetInputs({
           weightUnit: "targetWeightUnit",
           distanceUnit: "targetDistanceUnit",
         }}
-        showHeader={false}
+        showHeader
+        heading="MEASUREMENTS"
+        description={undefined}
       />
       {activeMetrics.reps ? <input type="number" min={1} name="targetRepsMax" value={values.repsMax} onChange={(event) => setValues((current) => ({ ...current, repsMax: event.target.value }))} placeholder="Max reps" className={controlClassName} /> : null}
       <GoalSummaryInline
@@ -174,7 +179,7 @@ function RoutineTargetInputs({
           repsMax: activeMetrics.reps && values.repsMax ? Number(values.repsMax) : null,
           weightUnit: values.weightUnit,
           distanceUnit: values.distanceUnit,
-          emptyLabel: "Goal missing",
+          emptyLabel: "-",
         }}
       />
       <input type="hidden" name="defaultUnit" value={activeMetrics.distance ? values.distanceUnit : "mi"} />
@@ -313,6 +318,7 @@ export function EditableRoutineDayExerciseList({
 
 
   const shouldShowAddExerciseAction = !reorderMode && !editModeActive;
+  const isMissingGoalSummary = (summary: string) => summary === "Goal missing" || summary === "-";
 
   if (items.length === 0) {
     return (
@@ -390,15 +396,15 @@ export function EditableRoutineDayExerciseList({
                 onOpenChange={reorderMode || editModeActive ? () => undefined : setOpenRowId}
                 disabled={reorderMode || editModeActive}
                 dismissSignal={dismissSignal}
-                trailingWidthMobile={192}
-                trailingWidthDesktop={224}
+                trailingWidthMobile={MOBILE_TRAILING_ACTION_WIDTH}
+                trailingWidthDesktop={DESKTOP_TRAILING_ACTION_WIDTH}
                 trailingActions={reorderMode || editModeActive ? null : (
                   <div className={getSwipeRailShellClassName({ columnCount: 2, isVisible: openRowId === exercise.id })}>
                     <AppButton
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className={cn(swipeRailSlotBaseClassName, "text-[rgb(var(--text)/0.88)] hover:bg-[rgb(var(--bg)/0.16)]")}
+                      className={cn(swipeRailSlotBaseClassName, "text-emerald-50 hover:bg-[rgb(var(--bg)/0.16)] focus-visible:ring-2 focus-visible:ring-emerald-300/30")}
                       onClick={() => {
                         closeAllRowActions();
                         setExpandedId((current) => current === exercise.id ? null : exercise.id);
@@ -412,7 +418,7 @@ export function EditableRoutineDayExerciseList({
                         hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
                         triggerLabel="Delete"
                         triggerAriaLabel={`Delete ${exercise.name}`}
-                        triggerClassName={cn(swipeRailSlotBaseClassName, "self-stretch text-rose-100 hover:bg-rose-400/14")}
+                        triggerClassName={cn(swipeRailSlotBaseClassName, "self-stretch text-amber-100 hover:bg-rose-400/14 focus-visible:ring-2 focus-visible:ring-amber-300/30")}
                         modalTitle="Delete routine day exercise?"
                         modalDescription="This will remove this exercise from the routine day."
                         confirmLabel="Delete"
@@ -439,9 +445,9 @@ export function EditableRoutineDayExerciseList({
                     title={exercise.name}
                     subtitle={exercise.targetSummary}
                     variant="interactive"
-                    state={isExpanded ? "selected" : exercise.targetSummary === "Goal missing" ? "empty" : "default"}
+                    state={isExpanded ? "selected" : isMissingGoalSummary(exercise.targetSummary) ? "empty" : "default"}
                     onPress={reorderMode || editModeActive ? undefined : () => setSelectedExerciseId(exercise.exerciseId)}
-                    badgeText={isExpanded ? "Editing" : exercise.targetSummary === "Goal missing" ? undefined : `#${index + 1}`}
+                    badgeText={isExpanded ? "Editing" : isMissingGoalSummary(exercise.targetSummary) ? undefined : `#${index + 1}`}
                     leadingVisual={(
                       <ExerciseAssetImage
                         src={getExerciseIconSrc(exercise)}
@@ -515,7 +521,7 @@ export function EditableRoutineDayExerciseList({
                               calories: measurementSelections.has("calories") ? targetCalories : null,
                               weightUnit: targetWeightUnit,
                               distanceUnit: targetDistanceUnit,
-                              emptyLabel: "Goal missing",
+                              emptyLabel: "-",
                             });
                             updateLocalItem(exercise.id, (item) => ({
                               ...item,

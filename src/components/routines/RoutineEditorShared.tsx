@@ -124,7 +124,7 @@ export function RoutineEditorFullRowToggle({
   onToggle,
 }: {
   label: string;
-  description: string;
+  description?: string;
   enabledLabel?: string;
   disabledLabel?: string;
   enabled: boolean;
@@ -142,9 +142,9 @@ export function RoutineEditorFullRowToggle({
           : "border-white/8 bg-white/[0.04] text-text hover:bg-white/[0.06]",
       )}
     >
-      <span className="flex items-center gap-2">
-        <span className={cn("text-xs font-semibold uppercase tracking-[0.14em]", enabled ? "text-emerald-200" : "text-muted")}>{label}</span>
-        <span className={cn("text-sm", enabled ? "text-emerald-100/90" : "text-muted")}>{description}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        <span className={cn("truncate text-xs font-semibold uppercase tracking-[0.14em]", enabled ? "text-emerald-200" : "text-muted")}>{label}</span>
+        {description ? <span className={cn("text-sm", enabled ? "text-emerald-100/90" : "text-muted")}>{description}</span> : null}
       </span>
       <span className={cn("text-sm", enabled ? "font-semibold text-emerald-100" : "font-medium text-text")}>{enabled ? enabledLabel : disabledLabel}</span>
     </button>

@@ -39,5 +39,5 @@ export function ModifyMeasurements({
   tapFeedbackClass?: string;
   showHeader?: boolean;
 }) {
-  return <MeasurementConfigurator values={values} activeMetrics={activeMetrics} isExpanded={isExpanded} onExpandedChange={onExpandedChange} onMetricToggle={onMetricToggle} onChange={onChange} className={tapFeedbackClass} heading="Measurements" description="Enter this set using the same measurement language used everywhere else in the app." collapsedLabel="Optional measurements" collapsedDescription="Show only the fields you need for this set." showHeader={showHeader} />;
+  return <MeasurementConfigurator values={values} activeMetrics={activeMetrics} isExpanded={isExpanded} onExpandedChange={onExpandedChange} onMetricToggle={onMetricToggle} onChange={onChange} className={tapFeedbackClass} heading="MEASUREMENTS" description={undefined} collapsedLabel="Optional measurements" collapsedDescription="Show only the fields you need for this set." showHeader={showHeader} />;
 }

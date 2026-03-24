@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
-import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 
@@ -27,9 +26,9 @@ export function MeasurementConfigurator({
   names,
   className,
   heading = "Measurements",
-  description = "Use one consistent measurement set for this exercise.",
-  collapsedLabel = "Optional measurements",
-  collapsedDescription = "Show only the fields this workout actually needs.",
+  description,
+  collapsedLabel: _collapsedLabel = "Optional measurements",
+  collapsedDescription: _collapsedDescription = "Show only the fields this workout actually needs.",
   hideInputsWhenCollapsed = false,
   showHeader = true,
   leadingContent,
@@ -56,47 +55,40 @@ export function MeasurementConfigurator({
     <div className={cn("space-y-3", className)}>
       {showHeader ? (
         <div className="space-y-0.5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{heading}</p>
-          <p className="text-xs text-muted">{description}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{heading.toUpperCase()}</p>
+          {description ? <p className="text-xs text-muted">{description}</p> : null}
         </div>
       ) : null}
 
       {leadingContent}
 
-      <div className="overflow-hidden rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.18)]">
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.18)] p-3">
+        {(Object.keys(METRIC_LABELS) as Array<keyof MeasurementMetrics>).map((metric) => (
+          <button
+            key={metric}
+            type="button"
+            onClick={() => onMetricToggle(metric)}
+            className={cn(
+              toggleBaseClassName,
+              activeMetrics[metric]
+                ? "border-accent/25 bg-accent/10 text-text"
+                : "border-border/35 bg-transparent text-muted hover:bg-[rgb(var(--bg)/0.28)]",
+            )}
+          >
+            {METRIC_LABELS[metric]}
+          </button>
+        ))}
+      </div>
+
+      {hideInputsWhenCollapsed && !isExpanded ? (
         <button
           type="button"
-          aria-expanded={isExpanded}
-          onClick={() => onExpandedChange(!isExpanded)}
-          className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-[rgb(var(--bg)/0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+          onClick={() => onExpandedChange(true)}
+          className="rounded-xl border border-border/35 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-xs text-muted transition-colors hover:bg-[rgb(var(--bg)/0.24)]"
         >
-          <span>
-            <span className="block text-sm font-medium text-text">{collapsedLabel}</span>
-            <span className="block text-xs text-muted">{collapsedDescription}</span>
-          </span>
-          {isExpanded ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
+          Show inputs
         </button>
-
-        {isExpanded ? (
-          <div className="flex flex-wrap gap-2 border-t border-border/30 px-4 py-3">
-            {(Object.keys(METRIC_LABELS) as Array<keyof MeasurementMetrics>).map((metric) => (
-              <button
-                key={metric}
-                type="button"
-                onClick={() => onMetricToggle(metric)}
-                className={cn(
-                  toggleBaseClassName,
-                  activeMetrics[metric]
-                    ? "border-accent/25 bg-accent/10 text-text"
-                    : "border-border/35 bg-transparent text-muted hover:bg-[rgb(var(--bg)/0.28)]",
-                )}
-              >
-                {METRIC_LABELS[metric]}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      ) : null}
 
       {!hideInputsWhenCollapsed || isExpanded ? (
         <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] p-3">

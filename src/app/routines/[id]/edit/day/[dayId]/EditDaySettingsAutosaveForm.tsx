@@ -109,8 +109,7 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         className="space-y-3 p-4 pt-3"
       >
         <RoutineEditorFullRowToggle
-          label="Rest Day"
-          description="Tap to mark this day as rest"
+          label="REST DAY | TAP"
           enabled={draft.isRest}
           onToggle={() => {
             const nextSnapshot = { ...draft, isRest: !draft.isRest };
