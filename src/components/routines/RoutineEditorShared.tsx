@@ -241,6 +241,34 @@ export function RoutineEditorAddExerciseFlowShell({
   );
 }
 
+
+export function RoutineEditorInlineSection({
+  title,
+  description,
+  badge,
+  children,
+  className,
+}: {
+  title: string;
+  description?: ReactNode;
+  badge?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn("space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{title}</p>
+          {description ? <p className="text-xs text-muted">{description}</p> : null}
+        </div>
+        {badge ? <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">{badge}</span> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export function RoutineEditorSaveDiscardConfirmSheet({
   open,
   title = "Discard changes?",
