@@ -1,3 +1,17 @@
+## [v0.3.97] – Fix: validate resume session state and remove 404 path
+
+### WHAT
+
+* Hardened Today resume-state rendering so `Resume Session` is now driven only by server-validated in-progress session data, never from stale local active-session hints or offline snapshot hints.
+* Updated Today resume rehydration listeners (mount/focus/pageshow/session-change) to clear stale active-session hints and trigger route refresh instead of rendering a hint-only resume CTA.
+* Added a dedicated resume validation API endpoint (`POST /api/sessions/resume`) and routed all Resume Session clicks through that contract before navigation.
+* Replaced direct resume links with `TodayStartButton` resume actions so invalid/stale destinations are blocked, stale hint state is cleared, and Today falls back to default CTA behavior.
+
+### WHY
+
+* Resume Session must only appear when a real active session exists, and clicking it should never route users into invalid or 404 destinations.
+* Treating local hint state as advisory-only keeps Today deterministic and prevents stale client state from masquerading as a valid active-session source-of-truth.
+
 ## [v0.3.96] – Refactor: extract shared editor add-flow and list-mode primitives
 
 ### WHAT
