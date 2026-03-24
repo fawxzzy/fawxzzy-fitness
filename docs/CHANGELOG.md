@@ -1,3 +1,17 @@
+## [v0.4.00] – Refactor: unify exercise goal editor across edit/add/quick-add flows
+
+### WHAT
+
+* Unified goal-summary rendering behind a shared inline formatter and component so Add Exercise, Quick Add, and Edit current exercise all display one fluid summary style.
+* Updated add-flow goal summaries to include set count in-line (for example `3 sets • 6 reps — 30 lbs`) instead of chip-heavy measurement tags.
+* Aligned Edit Day inline exercise editing with the shared setup rhythm used by Add Exercise/Quick Add: `Configure goal` framing, set-count first, shared measurement configurator, and shared summary rendering.
+* Removed legacy Edit Day inline placeholder summary replacement (`Updated goal`) and now persist an immediate formatted goal summary from submitted fields.
+
+### WHY
+
+* These three surfaces had small but visible drift in setup language, summary formatting, and goal-preview treatment despite sharing almost the same goal contract.
+* A single goal-editor family keeps editing and adding flows predictable while still allowing each route to keep distinct header/CTA wording and mutation behavior.
+
 ## [v0.3.99] – UI: clean routine creation footer state and center editor discard confirm
 
 ### WHAT

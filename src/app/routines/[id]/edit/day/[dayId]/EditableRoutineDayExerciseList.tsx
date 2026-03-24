@@ -15,12 +15,13 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { controlClassName } from "@/components/ui/formClasses";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
+import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { EyebrowText } from "@/components/ui/text-roles";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
-import { formatMeasurementSummaryText } from "@/lib/measurement-display";
+import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 
 type EditableRoutineDayExerciseItem = {
@@ -75,13 +76,18 @@ function formatDuration(seconds: number | null | undefined) {
 function RoutineTargetInputs({
   weightUnit,
   distanceUnit,
+  defaultSets,
   defaults,
+  isCardio,
 }: {
   weightUnit: "lbs" | "kg";
   distanceUnit: "mi" | "km" | "m";
+  defaultSets: number;
   defaults: EditableRoutineDayExerciseItem["defaults"];
+  isCardio: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [sets, setSets] = useState(String(defaultSets));
   const [values, setValues] = useState({
     reps: String(defaults.targetRepsMin ?? defaults.targetReps ?? ""),
     repsMax: String(defaults.targetRepsMax ?? ""),
@@ -106,17 +112,14 @@ function RoutineTargetInputs({
     distance: values.distance ? Number(values.distance) : null,
     calories: values.calories ? Number(values.calories) : null,
   });
-  const goalSummary = formatMeasurementSummaryText({
-    ...summaryValues,
-    weightUnit: values.weightUnit,
-    distanceUnit: values.distanceUnit,
-    emptyLabel: "Goal missing",
-  });
-  const hasGoalSummary = goalSummary !== "Goal missing";
 
   return (
     <div className="space-y-3 rounded-[1rem] border border-border/35 bg-[rgb(var(--bg)/0.14)] p-3">
       {Object.entries(activeMetrics).map(([metric, enabled]) => enabled ? <input key={metric} type="hidden" name="measurementSelections" value={metric} /> : null)}
+      <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2">
+        <EyebrowText>Sets</EyebrowText>
+        <input type="number" min={1} name="targetSets" value={sets} onChange={(event) => setSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} />
+      </div>
       <MeasurementConfigurator
         values={{
           reps: values.reps,
@@ -163,15 +166,16 @@ function RoutineTargetInputs({
         showHeader={false}
       />
       {activeMetrics.reps ? <input type="number" min={1} name="targetRepsMax" value={values.repsMax} onChange={(event) => setValues((current) => ({ ...current, repsMax: event.target.value }))} placeholder="Max reps" className={controlClassName} /> : null}
-      <div className="rounded-xl border border-border/35 bg-[rgb(var(--bg)/0.16)] px-3 py-2">
-        {hasGoalSummary ? (
-          <p className="text-sm text-[rgb(var(--text)/0.88)]">{goalSummary}</p>
-        ) : (
-          <span className="inline-flex items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.24)] px-2.5 py-1 text-[11px] font-medium tracking-wide text-muted">
-            Goal missing
-          </span>
-        )}
-      </div>
+      <GoalSummaryInline
+        values={{
+          ...summaryValues,
+          sets: sets ? Number(sets) : null,
+          repsMax: activeMetrics.reps && values.repsMax ? Number(values.repsMax) : null,
+          weightUnit: values.weightUnit,
+          distanceUnit: values.distanceUnit,
+          emptyLabel: "Goal missing",
+        }}
+      />
       <input type="hidden" name="defaultUnit" value={activeMetrics.distance ? values.distanceUnit : "mi"} />
     </div>
   );
@@ -482,9 +486,42 @@ export function EditableRoutineDayExerciseList({
                           });
                           if (result.ok) {
                             const targetSets = Number(formData.get("targetSets") ?? exercise.defaults.targetSets ?? 1);
+                            const parseOptionalNumber = (value: FormDataEntryValue | null) => {
+                              const raw = String(value ?? "").trim();
+                              if (!raw) return null;
+                              const parsed = Number(raw);
+                              return Number.isFinite(parsed) ? parsed : null;
+                            };
+                            const targetRepsMin = parseOptionalNumber(formData.get("targetRepsMin"));
+                            const targetRepsMax = parseOptionalNumber(formData.get("targetRepsMax"));
+                            const targetWeight = parseOptionalNumber(formData.get("targetWeight"));
+                            const targetDuration = String(formData.get("targetDuration") ?? "");
+                            const targetDistance = parseOptionalNumber(formData.get("targetDistance"));
+                            const targetCalories = parseOptionalNumber(formData.get("targetCalories"));
+                            const targetWeightUnit = String(formData.get("targetWeightUnit") ?? weightUnit);
+                            const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? exercise.defaultDistanceUnit);
+                            const measurementSelections = new Set(formData.getAll("measurementSelections").map((value) => String(value)));
+                            const durationRaw = targetDuration.trim();
+                            const durationSeconds = durationRaw
+                              ? (durationRaw.includes(":")
+                                ? Number(durationRaw.split(":")[0]) * 60 + Number(durationRaw.split(":")[1])
+                                : Number(durationRaw))
+                              : null;
+                            const summary = formatGoalInlineSummaryText({
+                              sets: Number.isFinite(targetSets) ? targetSets : null,
+                              reps: measurementSelections.has("reps") ? targetRepsMin : null,
+                              repsMax: measurementSelections.has("reps") ? targetRepsMax : null,
+                              weight: measurementSelections.has("weight") ? targetWeight : null,
+                              durationSeconds: measurementSelections.has("time") && Number.isFinite(durationSeconds) ? durationSeconds : null,
+                              distance: measurementSelections.has("distance") ? targetDistance : null,
+                              calories: measurementSelections.has("calories") ? targetCalories : null,
+                              weightUnit: targetWeightUnit,
+                              distanceUnit: targetDistanceUnit,
+                              emptyLabel: "Goal missing",
+                            });
                             updateLocalItem(exercise.id, (item) => ({
                               ...item,
-                              targetSummary: item.targetSummary === "Goal missing" ? "Updated goal" : item.targetSummary,
+                              targetSummary: summary,
                               defaults: {
                                 ...item.defaults,
                                 targetSets,
@@ -500,12 +537,14 @@ export function EditableRoutineDayExerciseList({
                         <input type="hidden" name="routineDayId" value={routineDayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
                         <div className="space-y-3 rounded-[1rem] border border-border/30 bg-[rgb(var(--bg)/0.12)] p-3">
-                          <EyebrowText>Planned workout</EyebrowText>
-                          <div className="rounded-2xl border border-border/35 bg-[rgb(var(--bg)/0.12)] px-3 py-2">
-                            <EyebrowText>Sets</EyebrowText>
-                            <input type="number" min={1} name="targetSets" defaultValue={exercise.defaults.targetSets ?? 1} placeholder={exercise.isCardio ? "Intervals" : "Sets"} required className={`${controlClassName} mt-2`} />
-                          </div>
-                          <RoutineTargetInputs weightUnit={weightUnit} distanceUnit={exercise.defaultDistanceUnit} defaults={exercise.defaults} />
+                          <EyebrowText>Configure goal</EyebrowText>
+                          <RoutineTargetInputs
+                            weightUnit={weightUnit}
+                            distanceUnit={exercise.defaultDistanceUnit}
+                            defaultSets={exercise.defaults.targetSets ?? 1}
+                            defaults={exercise.defaults}
+                            isCardio={exercise.isCardio}
+                          />
                         </div>
                         <div className="flex justify-end">
                           <AppButton type="submit" variant="secondary" size="sm">Done editing</AppButton>
