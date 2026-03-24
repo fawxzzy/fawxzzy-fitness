@@ -120,6 +120,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   let completedDayIndexes: number[] = [];
   let inProgressSession: SessionRow | null = null;
   let inProgressSessionLoggedSetCount = 0;
+  let inProgressExerciseProgressByRoutineExerciseId: Record<string, { loggedSetCount: number; isSkipped: boolean; targetSetsMin: number | null; targetSetsMax: number | null }> = {};
+  let inProgressExerciseProgressByExerciseId: Record<string, { loggedSetCount: number; isSkipped: boolean; targetSetsMin: number | null; targetSetsMax: number | null }> = {};
   let fetchFailed = false;
   let routineDays: RoutineDayRow[] = [];
 
@@ -209,19 +211,46 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         if (inProgressSession?.id) {
           const { data: sessionExercises } = await supabase
             .from("session_exercises")
-            .select("id")
+            .select("id, exercise_id, routine_day_exercise_id, is_skipped, target_sets_min, target_sets_max")
             .eq("session_id", inProgressSession.id)
             .eq("user_id", user.id);
 
           const sessionExerciseIds = (sessionExercises ?? []).map((row) => row.id);
           if (sessionExerciseIds.length > 0) {
-            const { count: loggedSetCount } = await supabase
+            const { data: setRows } = await supabase
               .from("sets")
-              .select("id", { count: "exact", head: true })
+              .select("session_exercise_id")
               .eq("user_id", user.id)
               .in("session_exercise_id", sessionExerciseIds);
 
-            inProgressSessionLoggedSetCount = loggedSetCount ?? 0;
+            const setCountsBySessionExerciseId = (setRows ?? []).reduce<Record<string, number>>((acc, row) => {
+              const key = row.session_exercise_id;
+              if (!key) return acc;
+              acc[key] = (acc[key] ?? 0) + 1;
+              return acc;
+            }, {});
+
+            inProgressSessionLoggedSetCount = Object.values(setCountsBySessionExerciseId).reduce((sum, count) => sum + count, 0);
+
+            inProgressExerciseProgressByRoutineExerciseId = {};
+            inProgressExerciseProgressByExerciseId = {};
+
+            for (const sessionExercise of sessionExercises ?? []) {
+              const progress = {
+                loggedSetCount: setCountsBySessionExerciseId[sessionExercise.id] ?? 0,
+                isSkipped: sessionExercise.is_skipped === true,
+                targetSetsMin: sessionExercise.target_sets_min,
+                targetSetsMax: sessionExercise.target_sets_max,
+              };
+
+              if (sessionExercise.routine_day_exercise_id) {
+                inProgressExerciseProgressByRoutineExerciseId[sessionExercise.routine_day_exercise_id] = progress;
+              }
+
+              if (sessionExercise.exercise_id && !(sessionExercise.exercise_id in inProgressExerciseProgressByExerciseId)) {
+                inProgressExerciseProgressByExerciseId[sessionExercise.exercise_id] = progress;
+              }
+            }
           }
         }
       }
@@ -271,11 +300,19 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           }
         : null,
     exercises: (effectiveDaySummary?.runnableExercises ?? []).map((exercise) => {
+      const progress = inProgressExerciseProgressByRoutineExerciseId[exercise.id]
+        ?? inProgressExerciseProgressByExerciseId[exercise.details?.id ?? exercise.exercise_id]
+        ?? null;
+
       return {
         id: exercise.id,
         exerciseId: exercise.details?.id ?? exercise.exercise_id,
         name: exercise.displayName,
         targets: exercise.goalLine,
+        loggedSetCount: progress?.loggedSetCount ?? 0,
+        isSkipped: progress?.isSkipped ?? false,
+        targetSetsMin: progress?.targetSetsMin ?? null,
+        targetSetsMax: progress?.targetSetsMax ?? null,
         notes: exercise.notes,
         measurement_type: exercise.details?.measurement_type ?? exercise.measurement_type ?? null,
         primary_muscle: exercise.details?.primary_muscle ?? null,

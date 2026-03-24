@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { Pill } from "@/components/ui/Pill";
+import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 
 type TodayExerciseRow = {
   id: string;
@@ -13,6 +15,10 @@ type TodayExerciseRow = {
   image_icon_path?: string | null;
   image_howto_path?: string | null;
   slug?: string | null;
+  loggedSetCount?: number;
+  isSkipped?: boolean;
+  targetSetsMin?: number | null;
+  targetSetsMax?: number | null;
 };
 
 export function TodayExerciseRows({
@@ -27,20 +33,37 @@ export function TodayExerciseRows({
   return (
     <>
       <ul className="space-y-2">
-        {exercises.map((exercise) => (
-          <li key={exercise.id}>
-            <StandardExerciseRow
-              exercise={exercise}
-              summary={exercise.targets}
-              onPress={() => {
-                if (process.env.NODE_ENV === "development") {
-                  console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });
-                }
-                setSelectedExerciseId(exercise.exerciseId);
-              }}
-            />
-          </li>
-        ))}
+        {exercises.map((exercise) => {
+          const progressState = deriveSessionExerciseProgressState({
+            loggedSetCount: exercise.loggedSetCount ?? 0,
+            isSkipped: exercise.isSkipped === true,
+            targetSetsMin: exercise.targetSetsMin,
+            targetSetsMax: exercise.targetSetsMax,
+          });
+
+          return (
+            <li key={exercise.id}>
+              <StandardExerciseRow
+                exercise={exercise}
+                summary={exercise.targets}
+                state={progressState.cardState}
+                badgeText={progressState.badgeText}
+                onPress={() => {
+                  if (process.env.NODE_ENV === "development") {
+                    console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });
+                  }
+                  setSelectedExerciseId(exercise.exerciseId);
+                }}
+              >
+                {exercise.isSkipped ? (
+                  <div className="pt-0.5">
+                    <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill>
+                  </div>
+                ) : null}
+              </StandardExerciseRow>
+            </li>
+          );
+        })}
         {exercises.length === 0 ? <li className="px-3 py-3 text-muted">{emptyMessage}</li> : null}
       </ul>
 

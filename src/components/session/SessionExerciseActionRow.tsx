@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { AppButton } from "@/components/ui/AppButton";
 import { SwipeActionRow } from "@/components/ui/SwipeActionRow";
 import { cn } from "@/lib/cn";
+import { getSwipeRailShellClassName, swipeRailSlotBaseClassName } from "@/components/ui/swipeRailStyles";
 
 const MOBILE_TRAILING_ACTION_WIDTH = 104;
 const DESKTOP_ACTION_WIDTH = 208;
@@ -63,15 +64,12 @@ export function SessionExerciseActionRow({
         </div>
       )}
       trailingActions={isDesktop ? (
-        <div className={cn(
-          "flex h-full w-[13rem] items-center justify-center gap-2 rounded-[1.3rem] border border-border/24 bg-[rgb(var(--surface-2-soft)/0.9)] p-2 transition-opacity duration-200",
-          isOpen ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100 group-hover/swipe-row:opacity-100",
-        )}>
+        <div className={getSwipeRailShellClassName({ columnCount: 2, isVisible: isOpen })}>
           <AppButton
             type="button"
             variant="secondary"
             size="sm"
-            className="min-h-full flex-1 border-emerald-300/25 bg-emerald-400/14 text-emerald-50 hover:bg-emerald-400/20 focus-visible:ring-2 focus-visible:ring-emerald-300/30"
+            className={cn(swipeRailSlotBaseClassName, "text-emerald-50 hover:bg-[rgb(var(--bg)/0.16)] focus-visible:ring-2 focus-visible:ring-emerald-300/30")}
             onClick={async () => {
               setIsQuickLogging(true);
               try {
@@ -89,7 +87,7 @@ export function SessionExerciseActionRow({
             type="button"
             variant="secondary"
             size="sm"
-            className="min-h-full flex-1 border-amber-300/28 bg-amber-400/14 text-amber-100 hover:bg-amber-400/20 focus-visible:ring-2 focus-visible:ring-amber-300/30"
+            className={cn(swipeRailSlotBaseClassName, "text-amber-100 hover:bg-rose-400/14 focus-visible:ring-2 focus-visible:ring-amber-300/30")}
             onClick={async () => {
               setIsSkipPending(true);
               try {
@@ -105,15 +103,12 @@ export function SessionExerciseActionRow({
           </AppButton>
         </div>
       ) : (
-        <div className={cn(
-          "flex h-full w-[6.5rem] items-center justify-center rounded-[1.3rem] border border-amber-300/22 bg-amber-400/12 p-2 transition-opacity duration-200",
-          isOpen ? "opacity-100" : "opacity-0 group-focus-within/swipe-row:opacity-100",
-        )}>
+        <div className={getSwipeRailShellClassName({ columnCount: 1, isVisible: isOpen })}>
           <AppButton
             type="button"
             variant="secondary"
             size="sm"
-            className="min-h-full w-full border-amber-300/28 bg-amber-400/14 text-amber-100 hover:bg-amber-400/20 focus-visible:ring-2 focus-visible:ring-amber-300/30"
+            className={cn(swipeRailSlotBaseClassName, "text-amber-100 hover:bg-rose-400/14 focus-visible:ring-2 focus-visible:ring-amber-300/30")}
             onClick={async () => {
               setIsSkipPending(true);
               try {

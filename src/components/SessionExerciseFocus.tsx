@@ -19,6 +19,7 @@ import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
 import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
+import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 
 type AddSetPayload = {
   sessionId: string;
@@ -85,6 +86,8 @@ export type SessionExerciseFocusItem = {
   quickLogTarget?: SessionQuickLogTarget;
   initialSets: SetRow[];
   loggedSetCount: number;
+  targetSetsMin?: number | null;
+  targetSetsMax?: number | null;
   image_path?: string | null;
   image_icon_path?: string | null;
   image_howto_path?: string | null;
@@ -236,6 +239,12 @@ export function SessionExerciseFocus({
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
             const hasGoalSummary = hasMeaningfulExerciseGoalSummary(exercise.goalLabel);
+            const progressState = deriveSessionExerciseProgressState({
+              loggedSetCount: setCount,
+              isSkipped: exercise.isSkipped,
+              targetSetsMin: exercise.targetSetsMin,
+              targetSetsMax: exercise.targetSetsMax,
+            });
 
             return (
               <li
@@ -299,12 +308,12 @@ export function SessionExerciseFocus({
                     exercise={exercise}
                     summary={exercise.goalLabel}
                     variant="expanded"
-                    state={setCount > 0 ? "completed" : undefined}
+                    state={progressState.cardState}
                     onPress={() => onSelectedExerciseIdChange(exercise.id)}
                     className="shadow-none"
                     trailingClassName="self-center text-muted"
                     rightIcon={<ChevronRightIcon className="h-5 w-5" />}
-                    badgeText={setCount > 0 ? `${setCount} logged` : undefined}
+                    badgeText={progressState.badgeText}
                   >
                     {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
                       <div className="flex flex-wrap items-center gap-1.5 pt-0.5">

@@ -8,10 +8,12 @@ import { readTodayCache } from "@/lib/offline/today-cache";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { Pill } from "@/components/ui/Pill";
 import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
+import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 
 type TodayPayload = {
   routine: {
@@ -40,6 +42,10 @@ type TodayPayload = {
     how_to_short?: string | null;
     image_icon_path?: string | null;
     slug?: string | null;
+    loggedSetCount?: number;
+    isSkipped?: boolean;
+    targetSetsMin?: number | null;
+    targetSetsMax?: number | null;
   }>;
   completedTodayCount: number;
   inProgressSessionId: string | null;
@@ -151,21 +157,38 @@ export function TodayClientShell({
       ) : null}
 
       <ul className="space-y-2">
-        {display.exercises.map((exercise) => (
-          <li key={exercise.id}>
-            <StandardExerciseRow
-              exercise={exercise}
-              summary={exercise.targets}
-              onPress={() => {
-                const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
-                if (process.env.NODE_ENV === "development") {
-                  console.debug("[ExerciseInfo:open] TodayClientShell", { exerciseId: canonicalExerciseId, exercise: { id: exercise.id, exerciseId: "exerciseId" in exercise ? exercise.exerciseId : undefined, name: exercise.name } });
-                }
-                setSelectedExerciseId(canonicalExerciseId);
-              }}
-            />
-          </li>
-        ))}
+        {display.exercises.map((exercise) => {
+          const progressState = deriveSessionExerciseProgressState({
+            loggedSetCount: exercise.loggedSetCount ?? 0,
+            isSkipped: exercise.isSkipped === true,
+            targetSetsMin: exercise.targetSetsMin,
+            targetSetsMax: exercise.targetSetsMax,
+          });
+
+          return (
+            <li key={exercise.id}>
+              <StandardExerciseRow
+                exercise={exercise}
+                summary={exercise.targets}
+                state={progressState.cardState}
+                badgeText={progressState.badgeText}
+                onPress={() => {
+                  const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
+                  if (process.env.NODE_ENV === "development") {
+                    console.debug("[ExerciseInfo:open] TodayClientShell", { exerciseId: canonicalExerciseId, exercise: { id: exercise.id, exerciseId: "exerciseId" in exercise ? exercise.exerciseId : undefined, name: exercise.name } });
+                  }
+                  setSelectedExerciseId(canonicalExerciseId);
+                }}
+              >
+                {exercise.isSkipped ? (
+                  <div className="pt-0.5">
+                    <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill>
+                  </div>
+                ) : null}
+              </StandardExerciseRow>
+            </li>
+          );
+        })}
         {display.exercises.length === 0 ? (
           <li className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] px-3 py-3"><SubtitleText>{display.routine.isRest ? "Take the day to recover, move lightly, and come back ready." : "No exercises today."}</SubtitleText></li>
         ) : null}

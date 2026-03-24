@@ -14,6 +14,7 @@ export type CachedTodayRoutineSummary = {
 
 export type CachedTodayExercise = {
   id: string;
+  exerciseId?: string;
   name: string;
   targets: string | null;
   notes: string | null;
@@ -26,6 +27,10 @@ export type CachedTodayExercise = {
   type?: string | null;
   tags?: string[] | string | null;
   categories?: string[] | string | null;
+  loggedSetCount?: number;
+  isSkipped?: boolean;
+  targetSetsMin?: number | null;
+  targetSetsMax?: number | null;
 };
 
 export type CachedTodayHints = {
