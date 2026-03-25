@@ -1,3 +1,17 @@
+## [v0.4.17] – UI: unify log set screen around one stat-entry surface
+
+### WHAT
+
+* Removed the standalone `EFFORT` card treatment from Exercise Log set entry and moved RPE into the shared `MeasurementPanelV2` stat grid as `RPE (0–10)`.
+* Converted Warm-Up into a lightweight floating pill toggle adjacent to measurements instead of a dedicated boxed section.
+* Replaced the in-panel `Stat Entry` heading with `Measurements` so the block reads as one coherent measurement surface.
+* Added a live “This set logs” summary row inside the measurements shell that updates from the same in-progress input state used by Save Set.
+
+### WHY
+
+* The previous layout still felt fragmented (effort, warm-up, stat entry, and review split across separate framed mini-sections).
+* Grouping Warm-Up, measurements, RPE, and live set output under one visual family reduces hierarchy noise and better matches the single action users are taking: logging the next set.
+
 ## [v0.4.16] – UI: replace measurements form shell with MeasurementPanelV2
 
 ### WHAT
