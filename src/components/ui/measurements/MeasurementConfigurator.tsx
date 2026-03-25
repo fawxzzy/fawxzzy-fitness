@@ -13,9 +13,8 @@ const METRIC_LABELS: Record<keyof MeasurementMetrics, string> = {
   calories: "Calories",
 };
 
-const toggleBaseClassName = "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors";
-const metricInputClassName = "min-h-10 w-full rounded-lg border border-border/45 bg-[rgb(var(--bg)/0.32)] px-3 py-2 text-sm text-text placeholder:text-muted/65 focus-visible:border-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
-const unitSelectClassName = "min-h-10 rounded-r-lg border-y border-r border-border/45 bg-[rgb(var(--bg)/0.32)] px-3 py-2 text-sm text-text focus-visible:border-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
+const toggleBaseClassName = "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors";
+const metricInputClassName = "min-h-9 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:border-accent/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
 
 export function MeasurementConfigurator({
   values,
@@ -53,7 +52,7 @@ export function MeasurementConfigurator({
   trailingContent?: ReactNode;
 }) {
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2.5", className)}>
       {showHeader ? (
         <div className="space-y-0.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{heading.toUpperCase()}</p>
@@ -63,7 +62,7 @@ export function MeasurementConfigurator({
 
       {leadingContent}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {(Object.keys(METRIC_LABELS) as Array<keyof MeasurementMetrics>).map((metric) => (
           <button
             key={metric}
@@ -72,8 +71,8 @@ export function MeasurementConfigurator({
             className={cn(
               toggleBaseClassName,
               activeMetrics[metric]
-                ? "border-accent/25 bg-accent/10 text-text"
-                : "border-border/35 bg-transparent text-muted hover:bg-[rgb(var(--bg)/0.28)]",
+                ? "border-accent/55 bg-accent/20 text-text shadow-[inset_0_0_0_1px_rgb(var(--accent)/0.25)]"
+                : "border-border/35 bg-transparent text-muted/80 hover:bg-[rgb(var(--bg)/0.24)] hover:text-muted",
             )}
           >
             {METRIC_LABELS[metric]}
@@ -81,12 +80,12 @@ export function MeasurementConfigurator({
         ))}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {activeMetrics.reps ? (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Reps</p>
             {"repsMax" in values ? (
-              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
                 <InlineHintInput name={names?.reps} type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="min" className={metricInputClassName} />
                 <span className="text-sm text-muted">—</span>
                 <InlineHintInput name={names?.repsMax} type="number" min={0} value={values.repsMax ?? ""} onChange={(event) => onChange({ repsMax: event.target.value })} hint="max" className={metricInputClassName} />
@@ -97,11 +96,11 @@ export function MeasurementConfigurator({
           </div>
         ) : null}
         {activeMetrics.weight ? (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Weight</p>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-0">
-              <InlineHintInput name={names?.weight} type="number" min={0} step="0.5" value={values.weight} onChange={(event) => onChange({ weight: event.target.value })} hint="value" className={cn(metricInputClassName, "rounded-r-none border-r-0")} />
-              <select name={names?.weightUnit} value={values.weightUnit} onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })} className={unitSelectClassName}>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] focus-within:border-accent/45 focus-within:ring-2 focus-within:ring-accent/20">
+              <InlineHintInput name={names?.weight} type="number" min={0} step="0.5" value={values.weight} onChange={(event) => onChange({ weight: event.target.value })} hint="value" className="min-h-9 w-full rounded-none border-0 bg-transparent px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-0" />
+              <select name={names?.weightUnit} value={values.weightUnit} onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })} className="min-h-9 border-l border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-0">
                 <option value="lbs">lbs</option>
                 <option value="kg">kg</option>
               </select>
@@ -109,17 +108,17 @@ export function MeasurementConfigurator({
           </div>
         ) : null}
         {activeMetrics.time ? (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Time</p>
             <InlineHintInput name={names?.duration} type="text" inputMode="numeric" value={values.duration} onChange={(event) => onChange({ duration: event.target.value })} hint="mm:ss" className={metricInputClassName} />
           </div>
         ) : null}
         {activeMetrics.distance ? (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Distance</p>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-0">
-              <InlineHintInput name={names?.distance} type="number" min={0} step="0.01" value={values.distance} onChange={(event) => onChange({ distance: event.target.value })} hint="value" className={cn(metricInputClassName, "rounded-r-none border-r-0")} />
-              <select name={names?.distanceUnit} value={values.distanceUnit} onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })} className={unitSelectClassName}>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] focus-within:border-accent/45 focus-within:ring-2 focus-within:ring-accent/20">
+              <InlineHintInput name={names?.distance} type="number" min={0} step="0.01" value={values.distance} onChange={(event) => onChange({ distance: event.target.value })} hint="value" className="min-h-9 w-full rounded-none border-0 bg-transparent px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-0" />
+              <select name={names?.distanceUnit} value={values.distanceUnit} onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })} className="min-h-9 border-l border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-0">
                 <option value="mi">mi</option>
                 <option value="km">km</option>
                 <option value="m">m</option>
@@ -128,7 +127,7 @@ export function MeasurementConfigurator({
           </div>
         ) : null}
         {activeMetrics.calories ? (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Calories</p>
             <InlineHintInput name={names?.calories} type="number" min={0} step="1" value={values.calories} onChange={(event) => onChange({ calories: event.target.value })} hint="cal" className={metricInputClassName} />
           </div>

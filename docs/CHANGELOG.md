@@ -1,3 +1,18 @@
+## [v0.4.07] – UI: tighten measurements density and render active metrics only
+
+### WHAT
+
+* Tightened the shared `MeasurementConfigurator` vertical rhythm by reducing section/row gaps, lowering input heights, and compacting metric label-to-input spacing so the Measurements block reads denser without losing readability.
+* Increased active/inactive metric pill contrast while keeping the same visual family: selected pills now use a stronger accent treatment and inactive pills remain visible but intentionally quieter.
+* Kept active-only metric row rendering as the shared contract and preserved direct-input behavior (no helper copy or accordion reintroduction).
+* Refined WEIGHT and DISTANCE value+unit rows into unified bordered controls with shared focus treatment so each metric reads as one compact stat-entry line item.
+
+### WHY
+
+* Measurements still felt slightly oversized and boxy relative to the rest of the stat-driven setup UI.
+* Selected-vs-inactive pill states needed clearer visual separation for faster scanning.
+* Value+unit metrics needed tighter composition to avoid the appearance of disconnected controls.
+
 ## [v0.4.06] – UI: redesign measurements into compact stat-entry rows
 
 ### WHAT
