@@ -14,9 +14,9 @@ const METRIC_LABELS: Record<keyof MeasurementMetrics, string> = {
 };
 
 const toggleBaseClassName = "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors";
-const statCellClassName = "rounded-lg border border-border/25 bg-[rgb(var(--bg)/0.2)] px-3 py-2";
-const statValueButtonClassName = "-mx-1 mt-0.5 min-h-8 rounded-md px-1 text-left text-base font-semibold text-text transition-colors hover:bg-[rgb(var(--bg)/0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35";
-const metricInputClassName = "min-h-9 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:border-accent/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
+const statCellClassName = "rounded-md border border-border/20 bg-[rgb(var(--bg)/0.12)] px-2.5 py-2";
+const statValueButtonClassName = "-mx-1 mt-0.5 min-h-8 rounded-md px-1 text-left text-base font-semibold text-text transition-colors hover:bg-[rgb(var(--bg)/0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/30";
+const metricInputClassName = "min-h-9 w-full rounded-md border border-border/40 bg-[rgb(var(--bg)/0.2)] px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/20";
 
 function normalizeValue(value: string | undefined) {
   return value?.trim() ?? "";
@@ -127,7 +127,7 @@ export function MeasurementConfigurator({
   };
 
   return (
-    <div className={cn("space-y-2.5", className)}>
+    <div className={cn("space-y-2", className)}>
       {showHeader ? (
         <div className="space-y-0.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{heading.toUpperCase()}</p>
@@ -146,7 +146,7 @@ export function MeasurementConfigurator({
             className={cn(
               toggleBaseClassName,
               activeMetrics[metric]
-                ? "border-accent/55 bg-accent/20 text-text shadow-[inset_0_0_0_1px_rgb(var(--accent)/0.25)]"
+                ? "border-emerald-400/40 bg-emerald-400/12 text-emerald-50"
                 : "border-border/35 bg-transparent text-muted/80 hover:bg-[rgb(var(--bg)/0.24)] hover:text-muted",
             )}
           >
@@ -161,7 +161,7 @@ export function MeasurementConfigurator({
           const displayValue = metricDisplay(metric, values);
 
           return (
-            <div key={metric} className={cn(statCellClassName, isEditing ? "border-accent/45 bg-[rgb(var(--bg)/0.32)]" : "")} onBlur={isEditing ? closeIfLeavingMetric : undefined}>
+            <div key={metric} className={cn(statCellClassName, isEditing ? "border-emerald-300/40 bg-[rgb(var(--bg)/0.2)]" : "")} onBlur={isEditing ? closeIfLeavingMetric : undefined}>
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS[metric]}</p>
 
               {isEditing ? (
@@ -179,7 +179,7 @@ export function MeasurementConfigurator({
                   ) : null}
 
                   {metric === "weight" ? (
-                    <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] focus-within:border-accent/45 focus-within:ring-2 focus-within:ring-accent/20">
+                    <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.2)] focus-within:border-emerald-300/45 focus-within:ring-2 focus-within:ring-emerald-300/20">
                       <InlineHintInput ref={(node) => { editRefs.current.weight = node; }} name={names?.weight} type="number" min={0} step="0.5" value={values.weight} onChange={(event) => onChange({ weight: event.target.value })} hint="value" className="min-h-9 w-full rounded-none border-0 bg-transparent px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-0" onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
                       <select name={names?.weightUnit} value={values.weightUnit} onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })} className="min-h-9 border-l border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-0">
                         <option value="lbs">lbs</option>
@@ -193,7 +193,7 @@ export function MeasurementConfigurator({
                   ) : null}
 
                   {metric === "distance" ? (
-                    <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] focus-within:border-accent/45 focus-within:ring-2 focus-within:ring-accent/20">
+                    <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.2)] focus-within:border-emerald-300/45 focus-within:ring-2 focus-within:ring-emerald-300/20">
                       <InlineHintInput ref={(node) => { editRefs.current.distance = node; }} name={names?.distance} type="number" min={0} step="0.01" value={values.distance} onChange={(event) => onChange({ distance: event.target.value })} hint="value" className="min-h-9 w-full rounded-none border-0 bg-transparent px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-0" onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
                       <select name={names?.distanceUnit} value={values.distanceUnit} onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })} className="min-h-9 border-l border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-0">
                         <option value="mi">mi</option>

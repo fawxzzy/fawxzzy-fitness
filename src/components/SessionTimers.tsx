@@ -956,7 +956,7 @@ export function SetLoggerCard({
             />
           </li>
         ))}
-        {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-3 text-slate-400">No {isCardio ? "intervals" : "sets"} logged yet.</li> : null}
+        {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-3 text-muted">No {isCardio ? "intervals" : "sets"} logged yet.</li> : null}
         </ul>
       </WorkoutEntrySection>
 
