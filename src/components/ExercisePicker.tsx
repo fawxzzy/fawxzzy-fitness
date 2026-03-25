@@ -194,7 +194,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, 
             className={cn(
               "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
               isSelected
-                ? "border-accent/40 bg-accent/24 text-[rgb(var(--text)/0.98)] shadow-[0_6px_18px_-14px_rgba(96,200,130,0.95)]"
+                ? "border-emerald-400/40 bg-emerald-400/18 text-[rgb(var(--text)/0.98)] shadow-[0_6px_18px_-14px_rgba(96,200,130,0.95)]"
                 : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
             )}
           >
@@ -365,7 +365,7 @@ export function ExercisePicker({
               type="button"
               onClick={() => setSearch("")}
               aria-label="Clear exercise search"
-              className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text"
+              className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
             >
               ×
             </button>
@@ -424,116 +424,112 @@ export function ExercisePicker({
       </section>
 
       {routineTargetConfig && selectedExercise ? (
-        <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4">
+        <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.46)] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
           {selectedMeasurements.map((metric) => <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
 
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Sets</p>
-              <Input type="number" min={1} name="targetSets" value={targetSets} onChange={(event) => setTargetSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required className="min-h-10 rounded-lg border-border/45 bg-[rgb(var(--bg)/0.32)]" />
-            </div>
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Sets</p>
+            <Input type="number" min={1} name="targetSets" value={targetSets} onChange={(event) => setTargetSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required className="min-h-10 rounded-lg border-border/45 bg-[rgb(var(--bg)/0.24)]" />
+          </div>
 
-            <div className="space-y-3">
-              {selectedStats && (hasLast || hasPR) ? (
-                <div className={cn("rounded-lg border border-border/35 bg-[rgb(var(--bg)/0.14)] px-3 py-2 text-xs text-muted", didApplyLast ? "border-accent/40" : undefined)}>
-                  {hasLast ? <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
-                  {hasPR ? <p>PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}{selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " · " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}</p> : null}
-                  {hasLast ? (
-                    <div className="mt-2 flex justify-start">
-                      <AppButton
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setTargetWeight(String(selectedStats.lastWeight));
-                          setTargetRepsMin(String(selectedStats.lastReps));
-                          setTargetRepsMax(String(selectedStats.lastReps));
-                          if (selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs") setTargetWeightUnit(selectedStats.lastUnit);
-                          setSelectedMeasurements((current) => Array.from(new Set([...current, "weight", "reps"])));
-                          setDidApplyLast(true);
-                          setTimeout(() => setDidApplyLast(false), 1200);
-                        }}
-                      >
-                        Use last
-                      </AppButton>
-                    </div>
-                  ) : null}
+          {selectedStats && (hasLast || hasPR) ? (
+            <div className={cn("space-y-1 px-0.5 text-xs text-muted", didApplyLast ? "text-[rgb(var(--text)/0.9)]" : undefined)}>
+              {hasLast ? <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
+              {hasPR ? <p>PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}{selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " · " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}</p> : null}
+              {hasLast ? (
+                <div className="pt-0.5">
+                  <AppButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setTargetWeight(String(selectedStats.lastWeight));
+                      setTargetRepsMin(String(selectedStats.lastReps));
+                      setTargetRepsMax(String(selectedStats.lastReps));
+                      if (selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs") setTargetWeightUnit(selectedStats.lastUnit);
+                      setSelectedMeasurements((current) => Array.from(new Set([...current, "weight", "reps"])));
+                      setDidApplyLast(true);
+                      setTimeout(() => setDidApplyLast(false), 1200);
+                    }}
+                  >
+                    Use last
+                  </AppButton>
                 </div>
               ) : null}
-
-              <MeasurementConfigurator
-                values={{ reps: targetRepsMin, repsMax: targetRepsMax, weight: targetWeight, duration: targetDuration, distance: targetDistance, calories: targetCalories, weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
-                activeMetrics={{ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }}
-                isExpanded={isMeasurementsOpen}
-                onExpandedChange={setIsMeasurementsOpen}
-                onMetricToggle={(metric) => setSelectedMeasurements((current) => {
-                  const nextMeasurements = current.includes(metric) ? current.filter((value) => value !== metric) : [...current, metric];
-                  const sanitizedValues = sanitizeEnabledMeasurementValues({
-                    reps: nextMeasurements.includes("reps"),
-                    weight: nextMeasurements.includes("weight"),
-                    time: nextMeasurements.includes("time"),
-                    distance: nextMeasurements.includes("distance"),
-                    calories: nextMeasurements.includes("calories"),
-                  }, {
-                    reps: targetRepsMin,
-                    weight: targetWeight,
-                    duration: targetDuration,
-                    distance: targetDistance,
-                    calories: targetCalories,
-                  });
-                  setTargetRepsMin(sanitizedValues.reps);
-                  setTargetRepsMax(nextMeasurements.includes("reps") ? targetRepsMax : "");
-                  setTargetWeight(sanitizedValues.weight);
-                  setTargetDuration(sanitizedValues.duration);
-                  setTargetDistance(sanitizedValues.distance);
-                  setTargetCalories(sanitizedValues.calories);
-                  return nextMeasurements;
-                })}
-                onChange={(patch) => {
-                  if (patch.reps !== undefined) setTargetRepsMin(patch.reps);
-                  if (patch.repsMax !== undefined) setTargetRepsMax(patch.repsMax);
-                  if (patch.weight !== undefined) setTargetWeight(patch.weight);
-                  if (patch.duration !== undefined) setTargetDuration(patch.duration);
-                  if (patch.distance !== undefined) setTargetDistance(patch.distance);
-                  if (patch.calories !== undefined) setTargetCalories(patch.calories);
-                  if (patch.weightUnit !== undefined) setTargetWeightUnit(patch.weightUnit);
-                  if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
-                }}
-                names={{ reps: "targetRepsMin", repsMax: "targetRepsMax", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
-                showHeader
-                heading="MEASUREMENTS"
-                description={undefined}
-              />
-
-              <GoalSummaryInline
-                values={{
-                  ...sanitizeEnabledMeasurementValues(
-                    {
-                      reps: selectedMeasurements.includes("reps"),
-                      weight: selectedMeasurements.includes("weight"),
-                      time: selectedMeasurements.includes("time"),
-                      distance: selectedMeasurements.includes("distance"),
-                      calories: selectedMeasurements.includes("calories"),
-                    },
-                    {
-                      reps: targetRepsMin ? Number(targetRepsMin) : null,
-                      weight: targetWeight ? Number(targetWeight) : null,
-                      durationSeconds: parseDurationInput(targetDuration),
-                      distance: targetDistance ? Number(targetDistance) : null,
-                      calories: targetCalories ? Number(targetCalories) : null,
-                    },
-                  ),
-                  sets: targetSets ? Number(targetSets) : null,
-                  repsMax: selectedMeasurements.includes("reps") && targetRepsMax ? Number(targetRepsMax) : null,
-                  weightUnit: targetWeightUnit,
-                  distanceUnit: selectedDefaultUnit,
-                  emptyLabel: "-",
-                }}
-              />
-              <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
             </div>
-          </div>
+          ) : null}
+
+          <MeasurementConfigurator
+            values={{ reps: targetRepsMin, repsMax: targetRepsMax, weight: targetWeight, duration: targetDuration, distance: targetDistance, calories: targetCalories, weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
+            activeMetrics={{ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }}
+            isExpanded={isMeasurementsOpen}
+            onExpandedChange={setIsMeasurementsOpen}
+            onMetricToggle={(metric) => setSelectedMeasurements((current) => {
+              const nextMeasurements = current.includes(metric) ? current.filter((value) => value !== metric) : [...current, metric];
+              const sanitizedValues = sanitizeEnabledMeasurementValues({
+                reps: nextMeasurements.includes("reps"),
+                weight: nextMeasurements.includes("weight"),
+                time: nextMeasurements.includes("time"),
+                distance: nextMeasurements.includes("distance"),
+                calories: nextMeasurements.includes("calories"),
+              }, {
+                reps: targetRepsMin,
+                weight: targetWeight,
+                duration: targetDuration,
+                distance: targetDistance,
+                calories: targetCalories,
+              });
+              setTargetRepsMin(sanitizedValues.reps);
+              setTargetRepsMax(nextMeasurements.includes("reps") ? targetRepsMax : "");
+              setTargetWeight(sanitizedValues.weight);
+              setTargetDuration(sanitizedValues.duration);
+              setTargetDistance(sanitizedValues.distance);
+              setTargetCalories(sanitizedValues.calories);
+              return nextMeasurements;
+            })}
+            onChange={(patch) => {
+              if (patch.reps !== undefined) setTargetRepsMin(patch.reps);
+              if (patch.repsMax !== undefined) setTargetRepsMax(patch.repsMax);
+              if (patch.weight !== undefined) setTargetWeight(patch.weight);
+              if (patch.duration !== undefined) setTargetDuration(patch.duration);
+              if (patch.distance !== undefined) setTargetDistance(patch.distance);
+              if (patch.calories !== undefined) setTargetCalories(patch.calories);
+              if (patch.weightUnit !== undefined) setTargetWeightUnit(patch.weightUnit);
+              if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
+            }}
+            names={{ reps: "targetRepsMin", repsMax: "targetRepsMax", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
+            showHeader
+            heading="MEASUREMENTS"
+            description={undefined}
+          />
+
+          <GoalSummaryInline
+            values={{
+              ...sanitizeEnabledMeasurementValues(
+                {
+                  reps: selectedMeasurements.includes("reps"),
+                  weight: selectedMeasurements.includes("weight"),
+                  time: selectedMeasurements.includes("time"),
+                  distance: selectedMeasurements.includes("distance"),
+                  calories: selectedMeasurements.includes("calories"),
+                },
+                {
+                  reps: targetRepsMin ? Number(targetRepsMin) : null,
+                  weight: targetWeight ? Number(targetWeight) : null,
+                  durationSeconds: parseDurationInput(targetDuration),
+                  distance: targetDistance ? Number(targetDistance) : null,
+                  calories: targetCalories ? Number(targetCalories) : null,
+                },
+              ),
+              sets: targetSets ? Number(targetSets) : null,
+              repsMax: selectedMeasurements.includes("reps") && targetRepsMax ? Number(targetRepsMax) : null,
+              weightUnit: targetWeightUnit,
+              distanceUnit: selectedDefaultUnit,
+              emptyLabel: "-",
+            }}
+          />
+          <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
         </section>
       ) : null}
 

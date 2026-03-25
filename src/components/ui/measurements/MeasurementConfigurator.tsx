@@ -13,10 +13,10 @@ const METRIC_LABELS: Record<keyof MeasurementMetrics, string> = {
   calories: "Calories",
 };
 
-const toggleBaseClassName = "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors";
-const statCellClassName = "rounded-md border border-border/20 bg-[rgb(var(--bg)/0.12)] px-2.5 py-2";
+const toggleBaseClassName = "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
+const statCellClassName = "rounded-md border border-border/30 bg-transparent px-2.5 py-2";
 const statValueButtonClassName = "-mx-1 mt-0.5 min-h-8 rounded-md px-1 text-left text-base font-semibold text-text transition-colors hover:bg-[rgb(var(--bg)/0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/30";
-const metricInputClassName = "min-h-9 w-full rounded-md border border-border/40 bg-[rgb(var(--bg)/0.2)] px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/20";
+const metricInputClassName = "min-h-9 w-full rounded-md border border-border/40 bg-[rgb(var(--bg)/0.12)] px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/20";
 
 function normalizeValue(value: string | undefined) {
   return value?.trim() ?? "";
@@ -161,7 +161,7 @@ export function MeasurementConfigurator({
           const displayValue = metricDisplay(metric, values);
 
           return (
-            <div key={metric} className={cn(statCellClassName, isEditing ? "border-emerald-300/40 bg-[rgb(var(--bg)/0.2)]" : "")} onBlur={isEditing ? closeIfLeavingMetric : undefined}>
+            <div key={metric} className={cn(statCellClassName, isEditing ? "border-emerald-300/40 bg-[rgb(var(--bg)/0.1)]" : "")} onBlur={isEditing ? closeIfLeavingMetric : undefined}>
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS[metric]}</p>
 
               {isEditing ? (
