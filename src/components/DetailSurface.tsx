@@ -24,8 +24,8 @@ export function DetailHeader({
   actionClassName?: string;
 }) {
   return (
-    <AppPanel className={cn("space-y-4 p-4 pt-[1.2rem]", className)}>
-      <AppHeader eyebrow={eyebrow} title={title} subtitleLeft={subtitle} action={action} actionClassName={actionClassName} />
+    <AppPanel className={cn("space-y-4 rounded-[1.65rem] border-white/12 p-4 pt-5 shadow-[0_14px_34px_rgba(0,0,0,0.22)]", className)}>
+      <AppHeader eyebrow={eyebrow} title={title} subtitleLeft={subtitle} action={action} actionClassName={cn("pt-0.5", actionClassName)} titleClassName="text-[1.32rem] leading-tight" />
       {meta ? <div className="space-y-2">{meta}</div> : null}
       {children ? <div className="space-y-3 border-t border-white/8 pt-3">{children}</div> : null}
     </AppPanel>

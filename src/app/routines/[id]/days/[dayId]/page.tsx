@@ -85,13 +85,15 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
     <MainTabScreen topNavMode="none" className="space-y-0">
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
         <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
-          <AppPanel className="space-y-3 pt-[1.2rem]">
+          <AppPanel className="space-y-4 rounded-[1.65rem] border-white/12 pt-5 shadow-[0_14px_34px_rgba(0,0,0,0.22)]">
             <AppHeader
               eyebrow="View Day"
               title={dayLabel}
               subtitleLeft={routineRow.name}
               subtitleRight={daySummary}
               action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
+              titleClassName="text-[1.32rem] leading-tight"
+              actionClassName="pt-0.5"
             />
 
             {canonicalDay?.state === "partial" ? (
