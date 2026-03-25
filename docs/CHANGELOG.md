@@ -1,3 +1,19 @@
+## [v0.4.08] – UI: redesign measurements to display-first stat entry
+
+### WHAT
+
+* Redesigned the shared `MeasurementConfigurator` metric rows from always-visible form fields into compact display-first stat cells with label-on-top and value (or `-`) as the primary interaction target.
+* Added per-metric inline edit mode so only the tapped metric shows input chrome, while inactive metrics remain dense display cells without heavy field borders.
+* Updated resting-state metric display formatting to fuse values with units (`65 lbs`, `1.2 mi`) and show compact reps ranges (`8–12`) when range data exists.
+* Kept shared measurement state/mutation wiring and metric pill behavior intact across Edit Day inline editing, Edit Day Add Exercise, Current Session Quick Add, and set-entry surfaces that consume the shared layer.
+* Upgraded `InlineHintInput` to support refs via `forwardRef` so the newly active stat editor can autofocus reliably when entering edit mode.
+
+### WHY
+
+* Measurements still read like generic stacked form fields and carried too much inactive input chrome.
+* A display-first stat-entry rhythm better matches high-frequency workout logging ergonomics and reference UI direction.
+* Autofocus and active-only editor rendering improve speed and predictability on both desktop and mobile keyboards without changing shared measurement logic.
+
 ## [v0.4.07] – UI: tighten measurements density and render active metrics only
 
 ### WHAT

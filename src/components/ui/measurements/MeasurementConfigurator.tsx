@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
@@ -14,7 +14,46 @@ const METRIC_LABELS: Record<keyof MeasurementMetrics, string> = {
 };
 
 const toggleBaseClassName = "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors";
+const statCellClassName = "rounded-lg border border-border/25 bg-[rgb(var(--bg)/0.2)] px-3 py-2";
+const statValueButtonClassName = "-mx-1 mt-0.5 min-h-8 rounded-md px-1 text-left text-base font-semibold text-text transition-colors hover:bg-[rgb(var(--bg)/0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35";
 const metricInputClassName = "min-h-9 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:border-accent/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
+
+function normalizeValue(value: string | undefined) {
+  return value?.trim() ?? "";
+}
+
+function metricDisplay(metric: keyof MeasurementMetrics, values: MeasurementValues) {
+  switch (metric) {
+    case "reps": {
+      const reps = normalizeValue(values.reps);
+      if (!("repsMax" in values)) {
+        return reps || "-";
+      }
+      const repsMax = normalizeValue(values.repsMax);
+      if (reps && repsMax) {
+        return `${reps}–${repsMax}`;
+      }
+      return reps || repsMax || "-";
+    }
+    case "weight": {
+      const weight = normalizeValue(values.weight);
+      return weight ? `${weight} ${values.weightUnit}` : "-";
+    }
+    case "time": {
+      return normalizeValue(values.duration) || "-";
+    }
+    case "distance": {
+      const distance = normalizeValue(values.distance);
+      return distance ? `${distance} ${values.distanceUnit}` : "-";
+    }
+    case "calories": {
+      const calories = normalizeValue(values.calories);
+      return calories ? `${calories} cal` : "-";
+    }
+    default:
+      return "-";
+  }
+}
 
 export function MeasurementConfigurator({
   values,
@@ -51,6 +90,42 @@ export function MeasurementConfigurator({
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
 }) {
+  const [editingMetric, setEditingMetric] = useState<keyof MeasurementMetrics | null>(null);
+  const editRefs = useRef<Partial<Record<keyof MeasurementMetrics, HTMLInputElement | null>>>({});
+
+  const activeMetricKeys = useMemo(
+    () => (Object.keys(METRIC_LABELS) as Array<keyof MeasurementMetrics>).filter((metric) => activeMetrics[metric]),
+    [activeMetrics],
+  );
+
+  useEffect(() => {
+    if (editingMetric && !activeMetrics[editingMetric]) {
+      setEditingMetric(null);
+    }
+  }, [activeMetrics, editingMetric]);
+
+  useEffect(() => {
+    if (!editingMetric) {
+      return;
+    }
+    const target = editRefs.current[editingMetric];
+    if (!target) {
+      return;
+    }
+    const animationId = window.requestAnimationFrame(() => {
+      target.focus();
+      target.select?.();
+    });
+    return () => window.cancelAnimationFrame(animationId);
+  }, [editingMetric]);
+
+  const closeIfLeavingMetric = (event: React.FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+    setEditingMetric(null);
+  };
+
   return (
     <div className={cn("space-y-2.5", className)}>
       {showHeader ? (
@@ -80,58 +155,70 @@ export function MeasurementConfigurator({
         ))}
       </div>
 
-      <div className="space-y-1.5">
-        {activeMetrics.reps ? (
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Reps</p>
-            {"repsMax" in values ? (
-              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
-                <InlineHintInput name={names?.reps} type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="min" className={metricInputClassName} />
-                <span className="text-sm text-muted">—</span>
-                <InlineHintInput name={names?.repsMax} type="number" min={0} value={values.repsMax ?? ""} onChange={(event) => onChange({ repsMax: event.target.value })} hint="max" className={metricInputClassName} />
-              </div>
-            ) : (
-              <InlineHintInput name={names?.reps} type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="reps" className={metricInputClassName} />
-            )}
-          </div>
-        ) : null}
-        {activeMetrics.weight ? (
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Weight</p>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] focus-within:border-accent/45 focus-within:ring-2 focus-within:ring-accent/20">
-              <InlineHintInput name={names?.weight} type="number" min={0} step="0.5" value={values.weight} onChange={(event) => onChange({ weight: event.target.value })} hint="value" className="min-h-9 w-full rounded-none border-0 bg-transparent px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-0" />
-              <select name={names?.weightUnit} value={values.weightUnit} onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })} className="min-h-9 border-l border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-0">
-                <option value="lbs">lbs</option>
-                <option value="kg">kg</option>
-              </select>
+      <div className="grid gap-1.5 sm:grid-cols-2">
+        {activeMetricKeys.map((metric) => {
+          const isEditing = editingMetric === metric;
+          const displayValue = metricDisplay(metric, values);
+
+          return (
+            <div key={metric} className={cn(statCellClassName, isEditing ? "border-accent/45 bg-[rgb(var(--bg)/0.32)]" : "")} onBlur={isEditing ? closeIfLeavingMetric : undefined}>
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS[metric]}</p>
+
+              {isEditing ? (
+                <>
+                  {metric === "reps" ? (
+                    "repsMax" in values ? (
+                      <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
+                        <InlineHintInput ref={(node) => { editRefs.current.reps = node; }} name={names?.reps} type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="min" className={metricInputClassName} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                        <span className="text-sm text-muted">—</span>
+                        <InlineHintInput name={names?.repsMax} type="number" min={0} value={values.repsMax ?? ""} onChange={(event) => onChange({ repsMax: event.target.value })} hint="max" className={metricInputClassName} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                      </div>
+                    ) : (
+                      <InlineHintInput ref={(node) => { editRefs.current.reps = node; }} name={names?.reps} type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="reps" className={cn(metricInputClassName, "mt-1")} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                    )
+                  ) : null}
+
+                  {metric === "weight" ? (
+                    <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] focus-within:border-accent/45 focus-within:ring-2 focus-within:ring-accent/20">
+                      <InlineHintInput ref={(node) => { editRefs.current.weight = node; }} name={names?.weight} type="number" min={0} step="0.5" value={values.weight} onChange={(event) => onChange({ weight: event.target.value })} hint="value" className="min-h-9 w-full rounded-none border-0 bg-transparent px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-0" onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                      <select name={names?.weightUnit} value={values.weightUnit} onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })} className="min-h-9 border-l border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-0">
+                        <option value="lbs">lbs</option>
+                        <option value="kg">kg</option>
+                      </select>
+                    </div>
+                  ) : null}
+
+                  {metric === "time" ? (
+                    <InlineHintInput ref={(node) => { editRefs.current.time = node; }} name={names?.duration} type="text" inputMode="numeric" value={values.duration} onChange={(event) => onChange({ duration: event.target.value })} hint="mm:ss" className={cn(metricInputClassName, "mt-1")} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                  ) : null}
+
+                  {metric === "distance" ? (
+                    <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] focus-within:border-accent/45 focus-within:ring-2 focus-within:ring-accent/20">
+                      <InlineHintInput ref={(node) => { editRefs.current.distance = node; }} name={names?.distance} type="number" min={0} step="0.01" value={values.distance} onChange={(event) => onChange({ distance: event.target.value })} hint="value" className="min-h-9 w-full rounded-none border-0 bg-transparent px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-0" onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                      <select name={names?.distanceUnit} value={values.distanceUnit} onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })} className="min-h-9 border-l border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-0">
+                        <option value="mi">mi</option>
+                        <option value="km">km</option>
+                        <option value="m">m</option>
+                      </select>
+                    </div>
+                  ) : null}
+
+                  {metric === "calories" ? (
+                    <InlineHintInput ref={(node) => { editRefs.current.calories = node; }} name={names?.calories} type="number" min={0} step="1" value={values.calories} onChange={(event) => onChange({ calories: event.target.value })} hint="cal" className={cn(metricInputClassName, "mt-1")} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                  ) : null}
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className={cn(statValueButtonClassName, displayValue === "-" ? "text-muted" : "")}
+                  onClick={() => setEditingMetric(metric)}
+                >
+                  {displayValue}
+                </button>
+              )}
             </div>
-          </div>
-        ) : null}
-        {activeMetrics.time ? (
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Time</p>
-            <InlineHintInput name={names?.duration} type="text" inputMode="numeric" value={values.duration} onChange={(event) => onChange({ duration: event.target.value })} hint="mm:ss" className={metricInputClassName} />
-          </div>
-        ) : null}
-        {activeMetrics.distance ? (
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Distance</p>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.28)] focus-within:border-accent/45 focus-within:ring-2 focus-within:ring-accent/20">
-              <InlineHintInput name={names?.distance} type="number" min={0} step="0.01" value={values.distance} onChange={(event) => onChange({ distance: event.target.value })} hint="value" className="min-h-9 w-full rounded-none border-0 bg-transparent px-3 py-1.5 text-sm text-text placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-0" />
-              <select name={names?.distanceUnit} value={values.distanceUnit} onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })} className="min-h-9 border-l border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 py-1.5 text-sm text-text focus-visible:outline-none focus-visible:ring-0">
-                <option value="mi">mi</option>
-                <option value="km">km</option>
-                <option value="m">m</option>
-              </select>
-            </div>
-          </div>
-        ) : null}
-        {activeMetrics.calories ? (
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Calories</p>
-            <InlineHintInput name={names?.calories} type="number" min={0} step="1" value={values.calories} onChange={(event) => onChange({ calories: event.target.value })} hint="cal" className={metricInputClassName} />
-          </div>
-        ) : null}
+          );
+        })}
       </div>
       {trailingContent ? <div>{trailingContent}</div> : null}
     </div>
