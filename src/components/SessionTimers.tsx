@@ -15,7 +15,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
-import { ModifyMeasurements } from "@/components/ui/measurements/ModifyMeasurements";
+import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { FormSectionCard } from "@/components/ui/workout-entry/FormSectionCard";
@@ -852,7 +852,7 @@ export function SetLoggerCard({
       <WorkoutEntrySection
         className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
       >
-        <ModifyMeasurements
+        <MeasurementPanelV2
           values={{
             reps,
             weight,
@@ -893,7 +893,7 @@ export function SetLoggerCard({
             if (patch.weightUnit !== undefined) setSelectedWeightUnit(patch.weightUnit);
             if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
           }}
-          tapFeedbackClass={tapFeedbackClass}
+          className={tapFeedbackClass}
           showHeader={false}
         />
       </WorkoutEntrySection>

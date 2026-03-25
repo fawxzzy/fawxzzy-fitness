@@ -1,3 +1,18 @@
+## [v0.4.16] – UI: replace measurements form shell with MeasurementPanelV2
+
+### WHAT
+
+* Introduced a new shared `MeasurementPanelV2` component with a visibly different structure: one outer shell, compact title row, and a stable two-column stat-entry grid.
+* Applied the new panel to Exercise Log first by wiring `SessionTimers` directly to `MeasurementPanelV2`, replacing the previous measurements surface silhouette.
+* Migrated shared `MeasurementConfigurator` to render through `MeasurementPanelV2`, so Edit Day inline edit, Edit Day Add Exercise, and Current Session Quick Add adopt the same V2 panel without duplicating measurement state logic.
+* Shifted measurements styling to emerald-led tokens and removed blue-leaning focus/interaction accents in the panel.
+
+### WHY
+
+* Incremental tweaks to the old measurements DOM were no longer producing a clearly visible UI shift.
+* A clean structural replacement ensures the measurements area reads as a value-first workout stat-entry panel instead of a generic nested settings form.
+* Centralizing adoption through the shared measurement presentation layer keeps behavior consistent while allowing one obvious visual before/after change across log/edit/add flows.
+
 ## [v0.4.15] – Fix/UI: repair header hydration and visibly unify standalone header family
 
 ### WHAT
