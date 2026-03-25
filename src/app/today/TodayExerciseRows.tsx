@@ -57,7 +57,7 @@ export function TodayExerciseRows({
               >
                 {exercise.isSkipped ? (
                   <div className="pt-0.5">
-                    <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill>
+                    <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill>
                   </div>
                 ) : null}
               </StandardExerciseRow>

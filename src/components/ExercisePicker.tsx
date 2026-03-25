@@ -8,6 +8,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { Input } from "@/components/ui/Input";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
+import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl";
@@ -397,7 +398,7 @@ export function ExercisePicker({
               leadingVisual={<ExerciseThumbnail exercise={selectedExercise} iconSrc={exerciseIconSrcById.get(selectedExercise.id) ?? getExerciseIconSrc(selectedExercise)} />}
               className={cn(listShellClasses.card, "items-center")}
               trailingClassName="self-center text-[rgb(var(--text)/0.98)]"
-              rightIcon={<span className="inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-400/14 px-2.5 text-[11px] font-semibold leading-none text-[rgb(var(--text)/0.98)]">Selected</span>}
+              rightIcon={<AppBadge tone="success" className="min-h-6 min-w-[3.25rem]">Selected</AppBadge>}
             />
           ) : (
             <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">

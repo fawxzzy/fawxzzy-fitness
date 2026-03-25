@@ -195,9 +195,9 @@ export function TodayDayPicker({
           title={`${routineName} | ${selectedDay.name}`}
           subtitleRight={selectedDay.state === "rest" ? undefined : getExerciseCountSummaryFromInputs(selectedDay.exercises).label}
           action={inSessionDayIndex === selectedDay.dayIndex
-            ? <AppBadge>In Session</AppBadge>
+            ? <AppBadge tone="success">In Session</AppBadge>
             : completedDayIndexSet.has(selectedDay.dayIndex)
-              ? <AppBadge>Completed</AppBadge>
+              ? <AppBadge tone="success">Completed</AppBadge>
               : undefined}
           revealOpen={isPickerOpen}
           revealId="today-day-selector-list"

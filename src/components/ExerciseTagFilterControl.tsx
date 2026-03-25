@@ -43,7 +43,7 @@ export function ExerciseTagFilterControl({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   const selectedSummary = useMemo(() => {
-    if (selectedTags.length === 0) return "All";
+    if (selectedTags.length === 0) return "No filters active";
 
     const labelByValue = new Map(groups.flatMap((group) => group.tags.map((tag) => [tag.value, tag.label] as const)));
     const labels = selectedTags.map((tag) => labelByValue.get(tag) ?? formatTagLabel(tag));
@@ -82,15 +82,12 @@ export function ExerciseTagFilterControl({
 
       {isOpen ? (
         <div className={compact ? "space-y-2 rounded-lg border border-border/35 bg-[rgb(var(--bg)/0.16)] p-2.5" : "space-y-2"}>
-          <div className="flex items-center gap-1.5">
-            <PillButton type="button" active={selectedTags.length === 0} onClick={() => onChange([])}>
-              All
-            </PillButton>
+          <div className="flex items-center justify-end">
             {selectedTags.length > 0 ? (
               <button
                 type="button"
                 onClick={() => onChange([])}
-                className="inline-flex min-h-7 items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 text-[11px] font-medium text-muted transition-colors hover:text-text"
+                className="inline-flex min-h-7 items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 text-[11px] font-medium uppercase tracking-[0.1em] text-muted transition-colors hover:text-text"
               >
                 Clear
               </button>

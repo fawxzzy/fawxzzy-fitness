@@ -1,3 +1,20 @@
+## [v0.4.14] – UI: simplify filter actions, restore picker list fade cue, and normalize chip styling
+
+### WHAT
+
+* Removed the redundant `All` action from the shared `ExerciseTagFilterControl`; the default unselected state now communicates “all,” while `Clear` remains available only when filters are active.
+* Updated filter summaries to use explicit no-filter copy (`No filters active`) instead of `All` phrasing so filter behavior is consistent across picker/history flows.
+* Restored a subtle bottom-only continuation fade in the shared `PickerListViewport` so exercise lists visibly imply scroll depth without adding extra scrollbar noise.
+* Normalized chip/badge language by tightening shared `Pill`, `PillButton`, `AppBadge`, and `ExerciseCard` badge sizing, spacing, border treatment, and type scale.
+* Extended shared badge/chip tone support for app semantics (`success`, `warning`, `destructive`) and applied it to high-visibility states including `Selected`, `Active`, `In Session`, `Completed`, and `Skipped`.
+
+### WHY
+
+* `All` and `Clear` overlapped semantically in filter controls and added unnecessary UI churn.
+* Picker lists felt visually static when no continuation cue signaled additional content below the fold.
+* Chips/badges had drifted across screens in weight, padding, and visual intent, making small status labels feel inconsistent and overly heavy.
+* This pass re-centers shared list/filter/status UI around one compact graphite + green/amber/red contract and keeps blue accents out of state language.
+
 ## [v0.4.13] – UI: unify picker panel, simplify filters, and remove per-field unit dropdowns
 
 ### WHAT

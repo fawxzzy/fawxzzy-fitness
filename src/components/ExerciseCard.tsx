@@ -48,11 +48,11 @@ const stateClassNames: Record<ExerciseCardState, string> = {
 };
 
 const badgeStateClassNames: Record<ExerciseCardState, string> = {
-  default: "border-border/45 bg-surface/45 text-muted",
-  selected: "border-emerald-400/34 bg-emerald-400/10 text-emerald-100/95",
-  active: "border-emerald-300/38 bg-emerald-400/12 text-emerald-100",
-  completed: "border-emerald-400/42 bg-emerald-400/18 text-emerald-50",
-  empty: "border-amber-300/26 bg-amber-400/10 text-amber-100",
+  default: "border-border/45 bg-[rgb(var(--bg)/0.34)] text-[rgb(var(--text)/0.8)]",
+  selected: "border-emerald-400/32 bg-emerald-400/10 text-emerald-100",
+  active: "border-emerald-300/34 bg-emerald-400/10 text-emerald-100",
+  completed: "border-emerald-400/36 bg-emerald-400/12 text-emerald-100",
+  empty: "border-amber-300/30 bg-amber-400/10 text-amber-100",
 };
 
 export function ExerciseCard({
@@ -96,7 +96,7 @@ export function ExerciseCard({
             {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal break-words", subtitleStateClassNames[state])}>{subtitle}</p> : null}
           </div>
           {badgeText ? (
-            <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold leading-none", badgeStateClassNames[state])}>
+            <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none", badgeStateClassNames[state])}>
               {badgeText}
             </span>
           ) : null}

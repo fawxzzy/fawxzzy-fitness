@@ -317,8 +317,8 @@ export function SessionExerciseFocus({
                   >
                     {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
                       <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                        {exercise.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-text">Added today</Pill> : null}
-                        {exercise.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 normal-case tracking-normal text-[10px] text-amber-200">Skipped</Pill> : null}
+                        {exercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
+                        {exercise.isSkipped ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
                       </div>
                     ) : null}
                     {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No sets yet.</p> : null}
@@ -336,8 +336,8 @@ export function SessionExerciseFocus({
             description={selectedExercise?.goalLabel || undefined}
             meta={selectedExercise?.routineDayExerciseId === null || selectedExercise?.isSkipped ? (
               <div className="flex flex-wrap items-center gap-2">
-                {selectedExercise?.routineDayExerciseId === null ? <Pill className="border border-accent/30 bg-accent/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-text">Added today</Pill> : null}
-                {selectedExercise?.isSkipped ? <Pill className="border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 normal-case tracking-normal text-[11px] text-amber-200">Skipped</Pill> : null}
+                {selectedExercise?.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
+                {selectedExercise?.isSkipped ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
               </div>
             ) : undefined}
             actions={(
