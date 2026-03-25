@@ -72,6 +72,7 @@ export type SessionExerciseFocusItem = {
   isSkipped: boolean;
   defaultUnit: "mi" | "km" | "m" | null;
   isCardio: boolean;
+  useIntervalLanguage: boolean;
   initialEnabledMetrics: {
     reps: boolean;
     weight: boolean;
@@ -321,7 +322,7 @@ export function SessionExerciseFocus({
                         {exercise.isSkipped ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
                       </div>
                     ) : null}
-                    {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No sets yet.</p> : null}
+                    {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No {exercise.useIntervalLanguage ? "intervals" : "sets"} yet.</p> : null}
                   </StandardExerciseRow>
                 </SessionExerciseActionRow>
               </li>
@@ -349,7 +350,7 @@ export function SessionExerciseFocus({
                 }}
               />
             )}
-            className="scroll-mt-4"
+            className="mt-1 scroll-mt-24"
           />
 
           <div ref={focusedRef} />
@@ -371,6 +372,7 @@ export function SessionExerciseFocus({
             prefill={selectedExercise!.prefill}
             defaultDistanceUnit={selectedExercise!.defaultUnit}
             isCardio={selectedExercise!.isCardio}
+            useIntervalLanguage={selectedExercise!.useIntervalLanguage}
             initialEnabledMetrics={selectedExercise!.initialEnabledMetrics}
             routineDayExerciseId={selectedExercise!.routineDayExerciseId}
             planTargetsHash={selectedExercise!.planTargetsHash}

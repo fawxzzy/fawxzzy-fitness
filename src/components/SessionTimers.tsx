@@ -101,6 +101,7 @@ export function SetLoggerCard({
   prefill,
   defaultDistanceUnit,
   isCardio,
+  useIntervalLanguage = false,
   initialEnabledMetrics,
   routineDayExerciseId,
   planTargetsHash,
@@ -127,6 +128,7 @@ export function SetLoggerCard({
   };
   defaultDistanceUnit: "mi" | "km" | "m" | null;
   isCardio: boolean;
+  useIntervalLanguage?: boolean;
   initialEnabledMetrics: {
     reps: boolean;
     weight: boolean;
@@ -751,11 +753,12 @@ export function SetLoggerCard({
       calories: calories.trim() ? Number(calories) : null,
       emptyLabel: "Add measurements",
     });
-    const parts = [`${isCardio ? "Interval" : "Set"} ${sets.length + 1}`, summary];
+    const setNoun = useIntervalLanguage ? "Interval" : "Set";
+    const parts = [`${setNoun} ${sets.length + 1}`, summary];
     if (rpe.trim()) parts.push(`RPE ${rpe.trim()}`);
     if (resolvedIsWarmup) parts.push("Warm-Up");
     return parts.join(" • ");
-  }, [calories, distance, distanceUnit, durationInput, isCardio, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sets.length, weight]);
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sets.length, useIntervalLanguage, weight]);
 
 
   async function handleDeleteSet(set: DisplaySet) {
@@ -873,78 +876,80 @@ export function SetLoggerCard({
           }}
           className={tapFeedbackClass}
           heading="MEASUREMENTS"
+          showInnerHeader={false}
           rpe={rpe}
           onRpeChange={setRpe}
           footerContent={(
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-text/90">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</span>
-              <p className="mt-0.5">{liveSummaryText}</p>
+            <div className="space-y-2.5">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-text/90">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</span>
+                <p className="mt-0.5">{liveSummaryText}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-[rgb(var(--surface-rgb)/0.42)] px-2.5 py-2">
+                <div className="mb-2 flex items-center justify-between gap-2 px-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Sets</span>
+                  <span className="text-[11px] text-muted">{sets.length} logged</span>
+                </div>
+                <ul className="space-y-1.5 text-sm">
+                  {animatedSets.map((set, index) => (
+                    <li
+                      key={set.id}
+                      className={[
+                        "origin-top transition-all duration-150 motion-reduce:transition-none",
+                        set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
+                      ].join(" ")}
+                    >
+                      <CompactLogRow
+                        summary={(
+                          <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-snug text-[rgb(var(--text)/0.94)]">
+                            <span className="font-semibold text-text">{useIntervalLanguage ? "Interval" : "Set"} {index + 1}</span>
+                            <span className="text-muted">—</span>
+                            <span>{formatMeasurementSummaryText({
+                              reps: set.reps,
+                              weight: set.weight,
+                              weightUnit: set.weight_unit ?? unitLabel,
+                              durationSeconds: set.duration_seconds,
+                              distance: set.distance,
+                              distanceUnit: set.distance_unit,
+                              calories: set.calories,
+                              emptyLabel: "No measurements",
+                            })}</span>
+                            {set.is_warmup ? (
+                              <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-100">Warm-Up</span>
+                            ) : null}
+                            {set.rpe !== null ? (
+                              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">RPE {set.rpe}</span>
+                            ) : null}
+                            {set.queueStatus ? <span className="text-[11px] text-muted">{set.queueStatus}</span> : null}
+                            {set.pending && !set.queueStatus ? <span className="text-[11px] text-muted">saving...</span> : null}
+                          </span>
+                        )}
+                        actionClassName="border-l border-white/8 bg-[linear-gradient(180deg,rgba(244,63,94,0.08),rgba(190,24,93,0.04))]"
+                        action={(
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleDeleteSet(set);
+                            }}
+                            aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
+                            className={cn(
+                              "min-h-[44px] self-stretch px-3.5 text-[11px] font-semibold tracking-[0.02em] text-rose-100/80 transition hover:bg-rose-400/8 hover:text-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-300/30",
+                              tapFeedbackClass,
+                            )}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      />
+                    </li>
+                  ))}
+                  {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-3 text-muted">No {useIntervalLanguage ? "intervals" : "sets"} logged yet.</li> : null}
+                </ul>
+              </div>
             </div>
           )}
         />
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
-      </WorkoutEntrySection>
-
-      <WorkoutEntrySection
-        eyebrow="Logged Sets"
-        className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]"
-        contentClassName="space-y-0"
-      >
-        <ul className="space-y-1.5 text-sm">
-        {animatedSets.map((set, index) => (
-          <li
-            key={set.id}
-            className={[
-              "origin-top transition-all duration-150 motion-reduce:transition-none",
-              set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
-            ].join(" ")}
-          >
-            <CompactLogRow
-              summary={(
-                <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-snug text-[rgb(var(--text)/0.94)]">
-                  <span className="font-semibold text-text">{isCardio ? "Interval" : "Set"} {index + 1}</span>
-                  <span className="text-muted">—</span>
-                  <span>{formatMeasurementSummaryText({
-                    reps: set.reps,
-                    weight: set.weight,
-                    weightUnit: set.weight_unit ?? unitLabel,
-                    durationSeconds: set.duration_seconds,
-                    distance: set.distance,
-                    distanceUnit: set.distance_unit,
-                    calories: set.calories,
-                    emptyLabel: "No measurements",
-                  })}</span>
-                  {set.is_warmup ? (
-                    <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-100">Warm-Up</span>
-                  ) : null}
-                  {set.rpe !== null ? (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">RPE {set.rpe}</span>
-                  ) : null}
-                  {set.queueStatus ? <span className="text-[11px] text-muted">{set.queueStatus}</span> : null}
-                  {set.pending && !set.queueStatus ? <span className="text-[11px] text-muted">saving...</span> : null}
-                </span>
-              )}
-              actionClassName="border-l border-white/8 bg-[linear-gradient(180deg,rgba(244,63,94,0.08),rgba(190,24,93,0.04))]"
-              action={(
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleDeleteSet(set);
-                  }}
-                  aria-label={`Delete ${isCardio ? "interval" : "set"} ${index + 1}`}
-                  className={cn(
-                    "min-h-[44px] self-stretch px-3.5 text-[11px] font-semibold tracking-[0.02em] text-rose-100/80 transition hover:bg-rose-400/8 hover:text-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-300/30",
-                    tapFeedbackClass,
-                  )}
-                >
-                  Delete
-                </button>
-              )}
-            />
-          </li>
-        ))}
-        {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-3 text-muted">No {isCardio ? "intervals" : "sets"} logged yet.</li> : null}
-        </ul>
       </WorkoutEntrySection>
 
       <PublishBottomActions>{saveSetActions}</PublishBottomActions>

@@ -44,7 +44,7 @@ export function SessionHeaderCard({
         {meta && !metaBelowTitle ? <div className="shrink-0 self-center">{meta}</div> : null}
       </div>
 
-      {footer ? <div className="mt-2.5 border-t border-white/10 pt-2 text-xs text-muted">{footer}</div> : null}
+      {footer ? <div className={cn(standaloneHeaderFamily.dividerClassName, "text-xs text-muted")}>{footer}</div> : null}
     </section>
   );
 }
