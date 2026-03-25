@@ -1,5 +1,16 @@
 import { cn } from "@/lib/cn";
 
+export const swipeRailInteractionTokens = {
+  mobileTrailingWidth: 112,
+  desktopTrailingWidth: 208,
+  pointerLockThreshold: 10,
+  horizontalIntentThreshold: 20,
+  horizontalIntentRatio: 1.35,
+  openRatio: 0.62,
+  closeRatioWhenOpen: 0.42,
+  leadingOverscroll: 20,
+} as const;
+
 export const swipeRailShellClassName = "grid h-full w-full items-stretch overflow-hidden rounded-[inherit] border border-border/28 bg-[linear-gradient(180deg,rgba(var(--surface-2-soft),0.96),rgba(var(--surface-2-soft),0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgba(var(--bg),0.08)]";
 
 export function getSwipeRailShellClassName({

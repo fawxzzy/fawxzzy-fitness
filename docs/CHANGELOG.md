@@ -1,3 +1,18 @@
+## [v0.4.20] – UI: tune shared swipe rail for mobile-first interaction
+
+### WHAT
+
+* Tuned the shared swipe-row gesture contract for touch-first usage with stronger horizontal-intent detection, cleaner activation thresholds, and safer vertical-scroll priority so incidental drags are less likely to reveal rails.
+* Updated shared swipe rail interaction tokens and adopted those tokens in both Current Session and Edit Day row actions, including a slightly wider mobile trailing rail for more reliable tap targets once open.
+* Smoothed mobile snap behavior by refining drag overscroll limits, easing curves, and pointer-leave handling to reduce abrupt rail closes during touch movement.
+* Preserved desktop parity by retaining hover/focus reveal behavior while keeping touch gesture logic isolated to mobile pointer flows.
+
+### WHY
+
+* The previous rail behavior worked but still felt desktop-adapted on touch, especially around accidental opens and drag confidence while scrolling lists.
+* Centralizing interaction thresholds and widths in shared tokens keeps Current Session and Edit Day aligned on one rail contract and avoids drift across row-action surfaces.
+* This pass makes rail reveal feel more deliberate and forgiving on mobile without regressing desktop discoverability.
+
 ## [v0.4.19] – UI: unify log-set naming, merge sets into measurements, and normalize log header
 
 ### WHAT
