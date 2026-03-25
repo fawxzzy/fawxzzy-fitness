@@ -24,8 +24,10 @@ export function PillButton({ active, className, type = "button", ...props }: But
     <button
       type={type}
       className={cn(
-        "inline-flex rounded-full px-2 py-1 text-[11px] font-medium uppercase tracking-wide transition-colors",
-        active ? "bg-surface-2-active text-text" : "bg-surface-2-soft text-muted hover:bg-surface-2-active hover:text-text",
+        "inline-flex rounded-full border px-2 py-1 text-[11px] font-medium uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25",
+        active
+          ? "border-emerald-400/40 bg-emerald-400/12 text-emerald-100"
+          : "border-border/40 bg-surface-2-soft text-muted hover:bg-surface-2-active hover:text-text",
         className,
       )}
       {...props}

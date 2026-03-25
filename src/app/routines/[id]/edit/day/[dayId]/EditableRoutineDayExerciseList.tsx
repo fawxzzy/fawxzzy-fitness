@@ -438,7 +438,7 @@ export function EditableRoutineDayExerciseList({
                   className={cn(
                     "overflow-hidden rounded-[1.25rem] border transition-colors",
                     isExpanded
-                      ? "border-accent/40 bg-[linear-gradient(180deg,rgba(96,200,130,0.08),rgba(var(--surface-2-soft)/0.78))] shadow-[0_18px_38px_-28px_rgba(96,200,130,0.55)]"
+                      ? "border-emerald-400/40 bg-[linear-gradient(180deg,rgba(96,200,130,0.08),rgba(var(--surface-2-soft)/0.78))] shadow-[0_18px_38px_-28px_rgba(96,200,130,0.55)]"
                       : "border-border/45 bg-[rgb(var(--surface-2-soft)/0.28)]",
                   )}
                 >
@@ -541,7 +541,7 @@ export function EditableRoutineDayExerciseList({
                         <input type="hidden" name="routineId" value={routineId} />
                         <input type="hidden" name="routineDayId" value={routineDayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                        <div className="space-y-3">
+                        <div className="space-y-3 rounded-[1.1rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
                           <EyebrowText>Configure goal</EyebrowText>
                           <RoutineTargetInputs
                             weightUnit={weightUnit}

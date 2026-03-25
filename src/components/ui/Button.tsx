@@ -13,8 +13,8 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex h-11 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-55",
-        variant === "primary" && "bg-accent text-white hover:bg-accent-strong",
+        "inline-flex h-11 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 disabled:cursor-not-allowed disabled:opacity-55",
+        variant === "primary" && "bg-emerald-500/80 text-white hover:bg-emerald-500",
         variant === "secondary" && "border border-border bg-surface-2-soft text-text hover:bg-surface-2-active",
         variant === "ghost" && "text-muted hover:bg-white/5 hover:text-text",
         variant === "danger" && "bg-red-600 text-white hover:bg-red-700",
