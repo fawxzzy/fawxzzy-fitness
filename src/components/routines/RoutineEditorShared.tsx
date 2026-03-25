@@ -7,6 +7,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppButton } from "@/components/ui/AppButton";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
 import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -52,17 +53,18 @@ export function RoutineEditorPageHeader({
   className?: string;
 }) {
   return (
-    <AppPanel className={cn("space-y-4 rounded-[1.65rem] border-white/12 p-4 pt-5 shadow-[0_14px_34px_rgba(0,0,0,0.22)]", className)}>
+    <AppPanel className={cn(standaloneHeaderFamily.panelClassName, className)}>
       <AppHeader
         eyebrow={eyebrow}
         title={title}
         subtitleLeft={subtitle}
         subtitleRight={subtitleRight}
         action={action}
-        actionClassName={cn("pt-0.5", actionClassName)}
-        titleClassName="text-[1.32rem] leading-tight"
+        className={standaloneHeaderFamily.headerClassName}
+        actionClassName={cn(standaloneHeaderFamily.actionClassName, actionClassName)}
+        titleClassName={standaloneHeaderFamily.titleClassName}
       />
-      {children ? <div className="space-y-3 border-t border-white/8 pt-3">{children}</div> : null}
+      {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
     </AppPanel>
   );
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { AppHeader } from "@/components/ui/app/AppHeader";
+import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
@@ -34,10 +35,18 @@ export function HistoryDetailHeader({
   className?: string;
 }) {
   return (
-    <AppPanel className={cn("space-y-4 rounded-[1.65rem] border-white/12 p-4 pt-5 shadow-[0_14px_34px_rgba(0,0,0,0.22)]", className)}>
-      <AppHeader eyebrow="History" title={title} subtitleLeft={subtitle} action={action} actionClassName="pt-0.5" titleClassName="text-[1.32rem] leading-tight" />
-      {meta ? <div className="space-y-2">{meta}</div> : null}
-      {children ? <div className="space-y-3 border-t border-white/8 pt-3">{children}</div> : null}
+    <AppPanel className={cn(standaloneHeaderFamily.panelClassName, className)}>
+      <AppHeader
+        eyebrow="History"
+        title={title}
+        subtitleLeft={subtitle}
+        action={action}
+        className={standaloneHeaderFamily.headerClassName}
+        actionClassName={standaloneHeaderFamily.actionClassName}
+        titleClassName={standaloneHeaderFamily.titleClassName}
+      />
+      {meta ? <div className={standaloneHeaderFamily.metaClassName}>{meta}</div> : null}
+      {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
     </AppPanel>
   );
 }

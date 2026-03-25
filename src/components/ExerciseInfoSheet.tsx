@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
-import { BackButton } from "@/components/ui/BackButton";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { formatCount, formatDateShort, formatWeight } from "@/lib/formatting";
 import { formatCalories, formatDistance, formatDurationShort, formatPace } from "@/lib/exercise-stats-formatting";
@@ -213,8 +213,8 @@ export function ExerciseInfoSheet({
       <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
         <section className="flex h-full w-full flex-col">
           <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(var(--app-safe-top),0px)]">
-            <div className="mx-auto w-full max-w-xl px-4 py-2.5">
-              <BackButton
+            <div className="mx-auto flex w-full max-w-xl justify-end px-4 py-2.5">
+              <TopRightBackButton
                 onClick={(event) => {
                   event.preventDefault();
                   if (onClose) {
@@ -224,9 +224,7 @@ export function ExerciseInfoSheet({
 
                   router.back();
                 }}
-                label="Back"
                 ariaLabel="Back"
-                iconOnly
               />
             </div>
           </div>

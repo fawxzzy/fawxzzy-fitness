@@ -14,7 +14,7 @@ export function SessionHeaderControls({
   backHref?: string;
 }) {
   return (
-    <div className="sticky top-0 z-40 px-1 pt-[max(0.35rem,env(safe-area-inset-top))]">
+    <div className="sticky top-0 z-40 px-1 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <SessionHeaderCard
         eyebrow="Current Session"
         title={sessionTitle}

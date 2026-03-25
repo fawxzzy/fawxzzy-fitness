@@ -1,3 +1,19 @@
+## [v0.4.18] – UI: visibly unify standalone/detail/editor/session headers
+
+### WHAT
+
+* Introduced a shared standalone header-family token module and applied it across the editor/detail/history/session wrappers so top inset, panel silhouette, title scale, subtitle rhythm, and divider spacing all resolve from one canonical contract.
+* Rebased `RoutineEditorPageHeader`, `DetailHeader`, `HistoryDetailHeader`, and standalone View Day header usage onto the same stronger shell sizing/shape instead of route-local class drift.
+* Updated `SessionHeaderCard` (Current Session + Exercise Log identity header) to match the same family silhouette and typography rhythm, including stronger top breathing room and aligned footer/divider behavior.
+* Increased shared `TopRightBackButton` footprint and visual weight so back controls now land with one consistent size/offset presence across session/editor/detail/add flows.
+* Swapped Exercise Info overlay chrome from a local left-aligned back control to the same top-right back-button contract used by the rest of the standalone family.
+
+### WHY
+
+* The previous normalization pass improved structure but still read as “close enough” rather than one unmistakable screen family.
+* Consolidating family-level spacing/shape/title/back-control decisions in one shared token layer prevents route-level drift from returning.
+* This pass intentionally makes the before/after more visible so visual differences now come from content and state, not from per-screen header chrome.
+
 ## [v0.4.17] – UI: unify log set screen around one stat-entry surface
 
 ### WHAT

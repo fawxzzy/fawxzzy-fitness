@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
 
 export function SessionHeaderCard({
   eyebrow,
@@ -24,25 +25,26 @@ export function SessionHeaderCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.045))] px-3.5 py-3 shadow-[0_16px_32px_rgba(0,0,0,0.2)] backdrop-blur-md",
+        "overflow-hidden border bg-[rgb(var(--surface-2-soft)/0.74)] px-4 pb-4 pt-6 backdrop-blur-md",
+        standaloneHeaderFamily.panelClassName,
         className,
       )}
     >
-      {eyebrow ? <EyebrowText className="mb-1.5">{eyebrow}</EyebrowText> : null}
+      {eyebrow ? <EyebrowText className="mb-2 block">{eyebrow}</EyebrowText> : null}
 
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="min-w-0 space-y-1">
-            <TitleText as="h1" className="text-lg font-semibold leading-tight">{title}</TitleText>
-            {subtitle ? <SubtitleText className="leading-snug">{subtitle}</SubtitleText> : null}
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="min-w-0 space-y-1.5">
+            <TitleText as="h1" className={standaloneHeaderFamily.titleClassName}>{title}</TitleText>
+            {subtitle ? <SubtitleText className="leading-snug text-[rgb(var(--text)/0.72)]">{subtitle}</SubtitleText> : null}
           </div>
           {meta && metaBelowTitle ? <div className="flex min-h-0 items-center">{meta}</div> : null}
         </div>
-        {action ? <div className="shrink-0 self-start pt-0.5">{action}</div> : null}
+        {action ? <div className={cn("shrink-0 self-start", standaloneHeaderFamily.actionClassName)}>{action}</div> : null}
         {meta && !metaBelowTitle ? <div className="shrink-0 self-center">{meta}</div> : null}
       </div>
 
-      {footer ? <div className="mt-1 px-0.5 pb-0.5 text-xs text-muted">{footer}</div> : null}
+      {footer ? <div className="mt-2.5 border-t border-white/10 pt-2 text-xs text-muted">{footer}</div> : null}
     </section>
   );
 }
