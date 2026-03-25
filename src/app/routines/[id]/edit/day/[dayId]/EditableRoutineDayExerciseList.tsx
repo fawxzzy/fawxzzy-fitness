@@ -20,13 +20,13 @@ import { EyebrowText } from "@/components/ui/text-roles";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
-import { getSwipeRailShellClassName, swipeRailSlotBaseClassName } from "@/components/ui/swipeRailStyles";
+import { getSwipeRailShellClassName, swipeRailInteractionTokens, swipeRailSlotBaseClassName } from "@/components/ui/swipeRailStyles";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 
-const MOBILE_TRAILING_ACTION_WIDTH = 104;
-const DESKTOP_TRAILING_ACTION_WIDTH = 208;
+const MOBILE_TRAILING_ACTION_WIDTH = swipeRailInteractionTokens.mobileTrailingWidth;
+const DESKTOP_TRAILING_ACTION_WIDTH = swipeRailInteractionTokens.desktopTrailingWidth;
 
 type EditableRoutineDayExerciseItem = {
   id: string;

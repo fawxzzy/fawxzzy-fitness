@@ -4,10 +4,10 @@ import { useState, type ReactNode } from "react";
 import { AppButton } from "@/components/ui/AppButton";
 import { SwipeActionRow } from "@/components/ui/SwipeActionRow";
 import { cn } from "@/lib/cn";
-import { getSwipeRailShellClassName, swipeRailSlotBaseClassName } from "@/components/ui/swipeRailStyles";
+import { getSwipeRailShellClassName, swipeRailInteractionTokens, swipeRailSlotBaseClassName } from "@/components/ui/swipeRailStyles";
 
-const MOBILE_TRAILING_ACTION_WIDTH = 104;
-const DESKTOP_ACTION_WIDTH = 208;
+const MOBILE_TRAILING_ACTION_WIDTH = swipeRailInteractionTokens.mobileTrailingWidth;
+const DESKTOP_ACTION_WIDTH = swipeRailInteractionTokens.desktopTrailingWidth;
 const QUICK_LOG_TRIGGER = 78;
 
 type SessionExerciseActionRowProps = {

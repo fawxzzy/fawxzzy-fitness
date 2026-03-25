@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { swipeRailInteractionTokens } from "@/components/ui/swipeRailStyles";
 
 type PointerState = {
   pointerId: number;
@@ -27,9 +28,6 @@ type SwipeActionRowProps = {
   dismissSignal?: number;
   className?: string;
 };
-
-const SWIPE_LOCK_THRESHOLD = 12;
-const SWIPE_ACTIVATION_THRESHOLD = 18;
 
 export function SwipeActionRow({
   id,
@@ -120,13 +118,16 @@ export function SwipeActionRow({
     const deltaY = event.clientY - pointerState.startY;
 
     if (pointerState.intent === "pending") {
-      if (Math.abs(deltaY) > SWIPE_LOCK_THRESHOLD && Math.abs(deltaY) > Math.abs(deltaX)) {
+      if (Math.abs(deltaY) > swipeRailInteractionTokens.pointerLockThreshold && Math.abs(deltaY) > Math.abs(deltaX)) {
         pointerState.intent = "vertical";
         setDragOffset(0);
         return;
       }
 
-      if (Math.abs(deltaX) > SWIPE_ACTIVATION_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+      const horizontalIntentEstablished = Math.abs(deltaX) > swipeRailInteractionTokens.horizontalIntentThreshold
+        && Math.abs(deltaX) > Math.abs(deltaY) * swipeRailInteractionTokens.horizontalIntentRatio;
+
+      if (horizontalIntentEstablished) {
         pointerState.intent = "horizontal";
         onOpenChange(pointerState.startedOpen ? id : null);
       }
@@ -135,7 +136,7 @@ export function SwipeActionRow({
     if (pointerState.intent !== "horizontal") return;
 
     event.preventDefault();
-    const maxRight = leadingReveal ? leadingTriggerWidth + 28 : 0;
+    const maxRight = leadingReveal ? leadingTriggerWidth + swipeRailInteractionTokens.leadingOverscroll : 0;
     const nextOffset = pointerState.startedOpen
       ? Math.min(Math.max(deltaX - trailingWidthMobile, -trailingWidthMobile), maxRight)
       : Math.min(Math.max(deltaX, -trailingWidthMobile), maxRight);
@@ -145,6 +146,7 @@ export function SwipeActionRow({
 
   const finishHorizontalGesture = async () => {
     const currentOffset = dragOffset;
+    const startedOpen = pointerStateRef.current?.startedOpen ?? false;
     resetPointerState();
 
     if (leadingReveal && onLeadingTrigger && leadingTriggerWidth > 0 && currentOffset >= leadingTriggerWidth) {
@@ -153,7 +155,10 @@ export function SwipeActionRow({
       return;
     }
 
-    if (currentOffset <= -(trailingWidthMobile / 2)) {
+    const openRatio = startedOpen
+      ? swipeRailInteractionTokens.closeRatioWhenOpen
+      : swipeRailInteractionTokens.openRatio;
+    if (currentOffset <= -(trailingWidthMobile * openRatio)) {
       onOpenChange(id);
       return;
     }
@@ -175,16 +180,19 @@ export function SwipeActionRow({
   };
 
   const handlePointerCancel = () => resetPointerState();
+  const handlePointerLeave = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse") resetPointerState();
+  };
 
   return (
     <div
       ref={containerRef}
-      className={cn("group/swipe-row relative overflow-hidden rounded-[1.3rem]", className)}
+      className={cn("group/swipe-row relative overflow-hidden rounded-[1.3rem] touch-pan-y", className)}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
-      onPointerLeave={handlePointerCancel}
+      onPointerLeave={handlePointerLeave}
       onMouseEnter={isDesktop && !disabled ? () => onOpenChange(id) : undefined}
       onMouseLeave={isDesktop && !disabled ? () => onOpenChange(null) : undefined}
       onFocusCapture={() => {
@@ -217,8 +225,8 @@ export function SwipeActionRow({
 
       <div
         className={cn(
-          "relative z-10 transition-transform duration-200 ease-out will-change-transform motion-reduce:transition-none",
-          isDragging ? "duration-75" : "",
+          "relative z-10 transition-transform duration-220 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform motion-reduce:transition-none",
+          isDragging ? "duration-100 ease-out" : "",
           isDesktop && !disabled && trailingActions ? `group-focus-within/swipe-row:-translate-x-[var(--desktop-swipe-width)] group-hover/swipe-row:-translate-x-[var(--desktop-swipe-width)]` : "",
         )}
         style={{
