@@ -1,3 +1,18 @@
+## [v0.4.09] – UI: finalize measurements layout and remove leftover blue accents
+
+### WHAT
+
+* Finalized the shared `MeasurementConfigurator` styling pass to reduce framing noise: tighter section rhythm, lighter stat-cell chrome, and emerald-led active/focus states for metric pills and inline editors.
+* Removed the remaining nested measurement wrapper in the editable Exercise Log set editor so active metric cells render directly on the parent section surface.
+* Replaced lingering slate/blue-leaning form accents in this editor/add/log family with app-palette tokens (`border-border`, `text-muted`, `text-text`, emerald focus rings).
+* Normalized an outlier empty-state text color in session logging from `slate` to the shared neutral muted token.
+
+### WHY
+
+* Measurements still felt slightly over-framed in edit/log contexts due to an extra inner container around active stat cells.
+* Blue/slate drift remained in a few editor surfaces and conflicted with the established neutral + emerald + amber + red system.
+* This pass aligns add/edit/log stat-entry visuals to one cleaner workout-entry language without changing shared goal state logic.
+
 ## [v0.4.08] – UI: redesign measurements to display-first stat entry
 
 ### WHAT

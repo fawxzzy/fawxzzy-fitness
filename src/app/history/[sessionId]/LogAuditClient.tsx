@@ -414,17 +414,17 @@ export function LogAuditClient({
       >
         {isEditing ? (
           <div className="space-y-3">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
               Day Name
-              <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
+              <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
             </label>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
               Session Notes
-              <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100" />
+              <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
             </label>
             <div className="space-y-2 rounded-[1.15rem] border border-white/12 bg-black/10 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Add Exercise</p>
-              <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-white/15 bg-black/15 px-3 py-2 text-sm text-slate-100">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Add Exercise</p>
+              <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25">
                 {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
               </select>
               <div className="flex justify-end">
@@ -482,13 +482,13 @@ export function LogAuditClient({
                               distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
                               emptyLabel: "No measurements",
                             })}`}
-                            action={<span className="text-xs text-slate-400">{expandedSetId === set.id ? "▾" : "▸"}</span>}
+                            action={<span className="text-xs text-muted">{expandedSetId === set.id ? "▾" : "▸"}</span>}
                             className="transition-colors hover:bg-[rgb(var(--surface-rgb)/0.42)]"
                           />
                         </button>
 
                         {expandedSetId === set.id ? (
-                          <div className="space-y-2 rounded-[1.1rem] border border-white/8 bg-black/10 p-2.5" onClick={(event) => event.stopPropagation()}>
+                          <div className="space-y-2" onClick={(event) => event.stopPropagation()}>
                             <ModifyMeasurements
                               values={set.values}
                               activeMetrics={set.activeMetrics}
@@ -546,7 +546,7 @@ export function LogAuditClient({
               </ul>
 
               {isEditing ? (
-                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-300">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
                   Exercise Notes
                   <textarea
                     value={notesValue}
@@ -555,7 +555,7 @@ export function LogAuditClient({
                       setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
                     }}
                     rows={2}
-                    className="mt-1 w-full rounded-md border border-white/15 bg-black/10 px-3 py-2 text-sm text-slate-100"
+                    className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.22)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
                   />
                 </label>
               ) : notesValue.trim() ? (
