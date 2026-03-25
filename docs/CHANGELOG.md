@@ -1,3 +1,20 @@
+## [v0.4.13] – UI: unify picker panel, simplify filters, and remove per-field unit dropdowns
+
+### WHAT
+
+* Unified add-flow picker structure into one shared panel that wraps search, filters, selected exercise, subtle centered divider, and the exercise list in a single container before `Configure goal`.
+* Slimmed the selected exercise treatment to the standard compact `ExerciseCard` pattern while keeping selected state clear via a lightweight trailing selected badge.
+* Removed the standalone `Exercises` heading and replaced it with a centered, soft divider that does not touch container edges.
+* Redesigned `ExerciseTagFilterControl` into a cleaner compact mode with tighter toggle/header chrome, clearer active-count state, lighter group headings, and denser expanded content.
+* Removed per-field weight/distance unit dropdowns from the shared `MeasurementConfigurator` stat cells and switched to label-only unit display (`WEIGHT (lbs|kg)`, `DISTANCE (mi|km)`), while preserving hidden unit field submission from the shared source-of-truth values.
+
+### WHY
+
+* The add-flow picker area felt visually fragmented with stacked independent surfaces and heavy filter/chip treatment.
+* The selected exercise card had drifted into a special-case presentation that didn’t match shared exercise-card language.
+* Embedded unit selectors inside each measurement cell added unnecessary chrome and reduced stat-entry clarity.
+* This pass restores one cleaner shared picker contract across Edit Day Add Exercise and Current Session Quick Add without changing configure-goal/footer behavior.
+
 ## [v0.4.12] – UI: polish stat-grid labels and replace In Session aqua state
 
 ### WHAT

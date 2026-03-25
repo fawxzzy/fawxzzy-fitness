@@ -357,53 +357,63 @@ export function ExercisePicker({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <div className="relative">
-          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises" className="pr-9" />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              aria-label="Clear exercise search"
-              className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
-            >
-              ×
-            </button>
-          ) : null}
-        </div>
-        <ExerciseTagFilterControl selectedTags={selectedTags} onChange={setSelectedTags} groups={availableTagGroups} className="space-y-2" />
-      </div>
-
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
-      <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2 px-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected exercise</p>
-          <p className="text-xs text-muted">{filteredExercises.length} shown</p>
-        </div>
-        {selectedExercise ? (
-          <ExerciseCard
-            title={selectedExercise.name}
-            subtitle={exerciseMetadataById.get(selectedExercise.id) || "No details"}
-            variant="summary"
-            state="selected"
-            leadingVisual={<ExerciseThumbnail exercise={selectedExercise} iconSrc={exerciseIconSrcById.get(selectedExercise.id) ?? getExerciseIconSrc(selectedExercise)} />}
-            badgeText="Selected"
-            rightIcon={null}
-            className="shadow-[0_10px_24px_-18px_rgba(96,200,130,0.95)]"
-          />
-        ) : (
-          <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">
-            Select an exercise to continue.
+      <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.46)] p-3.5 sm:p-4">
+        <div className="space-y-2">
+          <div className="relative">
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises" className="pr-9" />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Clear exercise search"
+                className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+              >
+                ×
+              </button>
+            ) : null}
           </div>
-        )}
-      </section>
-
-
-      <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2 px-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercises</p>
+          <ExerciseTagFilterControl
+            selectedTags={selectedTags}
+            onChange={setSelectedTags}
+            groups={availableTagGroups}
+            className="space-y-1.5"
+            variant="compact"
+          />
         </div>
+
+        <section className="space-y-2">
+          <div className="flex items-center justify-between gap-2 px-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected exercise</p>
+            <p className="text-xs text-muted">{filteredExercises.length} shown</p>
+          </div>
+          {selectedExercise ? (
+            <ExerciseCard
+              title={selectedExercise.name}
+              subtitle={exerciseMetadataById.get(selectedExercise.id) || "No details"}
+              variant="compact"
+              state="selected"
+              leadingVisual={<ExerciseThumbnail exercise={selectedExercise} iconSrc={exerciseIconSrcById.get(selectedExercise.id) ?? getExerciseIconSrc(selectedExercise)} />}
+              className={cn(listShellClasses.card, "items-center")}
+              trailingClassName="self-center text-[rgb(var(--text)/0.98)]"
+              rightIcon={<span className="inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-400/14 px-2.5 text-[11px] font-semibold leading-none text-[rgb(var(--text)/0.98)]">Selected</span>}
+            />
+          ) : (
+            <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">
+              Select an exercise to continue.
+            </div>
+          )}
+        </section>
+
+        <div className="flex items-center justify-center px-4 py-0.5">
+          <div className="flex w-full max-w-[15rem] items-center gap-2">
+            <span className="h-px flex-1 bg-border/45" />
+            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted/70">Browse</span>
+            <span className="h-px flex-1 bg-border/45" />
+          </div>
+        </div>
+
         <PickerListViewport className={listShellClasses.card}>
           <ul
             className={cn(listShellClasses.viewport, listShellClasses.list)}

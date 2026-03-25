@@ -14,9 +14,6 @@ const METRIC_LABELS: Record<keyof MeasurementMetrics, string> = {
 
 const statCellClassName = "flex h-full min-h-[5.5rem] flex-col rounded-lg border border-border/28 bg-[rgb(var(--bg)/0.08)] px-3 py-2";
 const statInputClassName = "input-no-spinner mt-1 h-9 w-full rounded-md border border-border/35 bg-[rgb(var(--bg)/0.2)] px-2.5 py-1 text-[0.95rem] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/20";
-const pairedValueRowClassName = "mt-1 grid h-9 grid-cols-[minmax(0,7fr)_minmax(0,3fr)] items-stretch overflow-hidden rounded-md border border-border/35 bg-[rgb(var(--bg)/0.2)] focus-within:border-emerald-300/45 focus-within:ring-2 focus-within:ring-emerald-300/20";
-const pairedValueInputClassName = "input-no-spinner h-full w-full border-0 bg-transparent px-2.5 py-1 text-[0.95rem] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:outline-none focus-visible:ring-0";
-const pairedValueUnitClassName = "h-full border-l border-border/35 bg-[rgb(var(--bg)/0.3)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/90 focus-visible:outline-none focus-visible:ring-0";
 
 function MetricLabel({ label, suffix }: { label: string; suffix: string }) {
   return (
@@ -133,30 +130,20 @@ export function MeasurementConfigurator({
 
         <div className={statCellClassName}>
           <MetricLabel label={METRIC_LABELS.weight} suffix={values.weightUnit} />
-          <div className={pairedValueRowClassName}>
-            <input
-              name={names?.weight}
-              type="number"
-              min={0}
-              step="0.5"
-              value={values.weight}
-              onChange={(event) => {
-                ensureMetricActive("weight");
-                onChange({ weight: event.target.value });
-              }}
-              className={pairedValueInputClassName}
-              placeholder="-"
-            />
-            <select
-              name={names?.weightUnit}
-              value={values.weightUnit}
-              onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })}
-              className={pairedValueUnitClassName}
-            >
-              <option value="lbs">lbs</option>
-              <option value="kg">kg</option>
-            </select>
-          </div>
+          <input
+            name={names?.weight}
+            type="number"
+            min={0}
+            step="0.5"
+            value={values.weight}
+            onChange={(event) => {
+              ensureMetricActive("weight");
+              onChange({ weight: event.target.value });
+            }}
+            className={statInputClassName}
+            placeholder="-"
+          />
+          {names?.weightUnit ? <input type="hidden" name={names.weightUnit} value={values.weightUnit} /> : null}
         </div>
 
         <div className={statCellClassName}>
@@ -177,30 +164,20 @@ export function MeasurementConfigurator({
 
         <div className={statCellClassName}>
           <MetricLabel label={METRIC_LABELS.distance} suffix={resolvedDistanceUnit} />
-          <div className={pairedValueRowClassName}>
-            <input
-              name={names?.distance}
-              type="number"
-              min={0}
-              step="0.01"
-              value={values.distance}
-              onChange={(event) => {
-                ensureMetricActive("distance");
-                onChange({ distance: event.target.value });
-              }}
-              className={pairedValueInputClassName}
-              placeholder="-"
-            />
-            <select
-              name={names?.distanceUnit}
-              value={resolvedDistanceUnit}
-              onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" })}
-              className={pairedValueUnitClassName}
-            >
-              <option value="mi">mi</option>
-              <option value="km">km</option>
-            </select>
-          </div>
+          <input
+            name={names?.distance}
+            type="number"
+            min={0}
+            step="0.01"
+            value={values.distance}
+            onChange={(event) => {
+              ensureMetricActive("distance");
+              onChange({ distance: event.target.value });
+            }}
+            className={statInputClassName}
+            placeholder="-"
+          />
+          {names?.distanceUnit ? <input type="hidden" name={names.distanceUnit} value={resolvedDistanceUnit} /> : null}
         </div>
 
         <div className={cn(statCellClassName, "sm:col-start-1")}>
