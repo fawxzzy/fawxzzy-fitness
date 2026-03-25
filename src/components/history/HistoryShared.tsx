@@ -8,7 +8,7 @@ import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatt
 
 export function HistoryPageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <AppPanel className="space-y-3 p-4">
+    <AppPanel className="space-y-3 p-4 pt-[1.2rem]">
       <AppHeader
         eyebrow="History"
         title={title}
@@ -34,8 +34,8 @@ export function HistoryDetailHeader({
   className?: string;
 }) {
   return (
-    <AppPanel className={cn("space-y-4 p-4", className)}>
-      <AppHeader eyebrow="History" title={title} subtitleLeft={subtitle} action={action} actionClassName="pt-0" />
+    <AppPanel className={cn("space-y-4 p-4 pt-[1.2rem]", className)}>
+      <AppHeader eyebrow="History" title={title} subtitleLeft={subtitle} action={action} />
       {meta ? <div className="space-y-2">{meta}</div> : null}
       {children ? <div className="space-y-3 border-t border-white/8 pt-3">{children}</div> : null}
     </AppPanel>

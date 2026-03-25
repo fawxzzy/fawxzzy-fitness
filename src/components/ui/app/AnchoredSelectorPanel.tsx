@@ -35,8 +35,8 @@ export function AnchoredSelectorPanel({
   const hasSummary = Boolean(summaryLabel || summaryHint);
 
   return (
-    <AppPanel className={cn("space-y-4 p-4", className)}>
-      <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3">
+    <AppPanel className={cn("space-y-4 p-4 pt-[1.2rem]", className)}>
+      <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3.5">
         <AppHeader title={title} subtitleRight={subtitleRight} action={action} />
 
         {hasSummary ? (

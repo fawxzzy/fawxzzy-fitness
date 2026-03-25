@@ -52,7 +52,7 @@ export function RoutineEditorPageHeader({
   className?: string;
 }) {
   return (
-    <AppPanel className={cn("space-y-4 p-4", className)}>
+    <AppPanel className={cn("space-y-4 p-4 pt-[1.2rem]", className)}>
       <AppHeader
         eyebrow={eyebrow}
         title={title}

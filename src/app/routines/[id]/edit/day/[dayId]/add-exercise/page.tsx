@@ -52,13 +52,12 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
         <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
           <RoutineEditorPageHeader
-            eyebrow="EDIT DAY DETAILS"
+            eyebrow="Edit Day"
             title={<TitleText as="h1" className="text-base">Add Exercise</TitleText>}
             subtitle={<SubtitleText>{routine.name}</SubtitleText>}
             subtitleRight={<SubtitleText>{day.name}</SubtitleText>}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
-            actionClassName="-mt-0.5"
-            className="space-y-3 p-4 pt-3"
+            className="space-y-3"
           />
 
           <EditDayAddExerciseScreen

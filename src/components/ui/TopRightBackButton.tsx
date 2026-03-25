@@ -8,8 +8,9 @@ type TopRightBackButtonProps = {
   historyBehavior?: "history-first" | "fallback-only";
   ariaLabel?: string;
   onClick?: MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>;
+  className?: string;
 };
 
-export function TopRightBackButton({ href, ariaLabel = "Back", onClick, historyBehavior = "history-first" }: TopRightBackButtonProps) {
-  return <BackButton href={href} label={ariaLabel} ariaLabel={ariaLabel} onClick={onClick} iconOnly historyBehavior={historyBehavior} />;
+export function TopRightBackButton({ href, ariaLabel = "Back", onClick, historyBehavior = "history-first", className }: TopRightBackButtonProps) {
+  return <BackButton href={href} label={ariaLabel} ariaLabel={ariaLabel} onClick={onClick} className={className} iconOnly historyBehavior={historyBehavior} />;
 }

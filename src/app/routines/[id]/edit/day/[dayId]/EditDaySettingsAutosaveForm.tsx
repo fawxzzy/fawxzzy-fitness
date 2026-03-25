@@ -88,7 +88,7 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
       <input type="hidden" name="routineDayId" value={routineDayId} />
       <NavigationReturnInput fallbackHref={getRoutineDayViewHref(routineId, routineDayId)} value={backHref} />
       <RoutineEditorPageHeader
-        eyebrow="EDIT DAY DETAILS"
+        eyebrow="Edit Day"
         title={(
           <RoutineEditorTitleInput
             name="name"
@@ -105,8 +105,7 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         subtitle={routineName}
         subtitleRight={daySummary}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
-        actionClassName="-mt-0.5"
-        className="space-y-3 p-4 pt-3"
+        className="space-y-3"
       >
         <RoutineEditorFullRowToggle
           label="REST DAY | TAP"

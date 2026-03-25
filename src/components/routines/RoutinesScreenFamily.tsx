@@ -27,8 +27,8 @@ export function ActiveRoutineSummaryCard({
   children?: ReactNode;
 }) {
   return (
-    <AppPanel className="space-y-4 p-4">
-      <div className="rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3">
+    <AppPanel className="space-y-4 p-4 pt-[1.2rem]">
+      <div className="rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3.5">
         <AppHeader title={title} subtitleRight={subtitle} action={status} />
       </div>
       {children ? <div className="space-y-3">{children}</div> : null}

@@ -95,11 +95,10 @@ export function EditRoutineAutosaveForm(props: Props) {
       <input type="hidden" name="routineId" value={props.routineId} />
       <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
       <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
-
-        <RoutineEditorPageHeader
-        title="EDIT ROUTINE DETAILS"
+      <RoutineEditorPageHeader
+        eyebrow="Edit Routine"
+        title="Routine Details"
         action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={false} />}
-        actionClassName="-mt-1"
         className="space-y-5"
       >
         <RoutineEditorFormFields

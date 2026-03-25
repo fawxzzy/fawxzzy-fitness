@@ -373,8 +373,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
                 <div className="space-y-4">
-                  <AppPanel className="space-y-3">
+                  <AppPanel className="space-y-3 pt-[1.2rem]">
                     <AppHeader
+                      eyebrow="Today"
                       title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
                       subtitleRight={todayPayload.routine.state === "rest"
                         ? "Rest Day"
