@@ -1,3 +1,19 @@
+## [v0.4.06] – UI: redesign measurements into compact stat-entry rows
+
+### WHAT
+
+* Refined the shared goal Measurements editor into compact, row-based stat entry controls with tighter spacing and reduced vertical dead space across add/edit goal flows.
+* Updated reps to render as an integrated min/max row (`min — max`) inside the shared measurements component, removing the separate stacked max-reps field in Configure Goal surfaces.
+* Bound value+unit pairs for weight and distance into unified input groups so the numeric field and unit selector read as one control system.
+* Simplified Configure Goal framing by tightening the sets row treatment and reducing inner nested box language while keeping one outer shell.
+* Kept metric pills, selected-only metric rendering, and the shared inline summary formatter/state contract intact; normal summary states now stay fluid text-first with chip treatment only for missing-goal states.
+
+### WHY
+
+* Measurements still felt visually heavy and form-like instead of fast, stat-driven entry.
+* Reps range and unit-based metrics needed denser, clearer row patterns to match the intended fitness panel feel.
+* Reducing nested wrappers and stacked empty fields keeps add/edit/quick-add goal setup more compact without changing shared measurement logic.
+
 ## [v0.4.05] – UI: restore bounded picker viewport and simplify measurements layout
 
 ### WHAT

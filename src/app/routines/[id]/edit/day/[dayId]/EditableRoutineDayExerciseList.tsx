@@ -127,6 +127,7 @@ function RoutineTargetInputs({
       <MeasurementConfigurator
         values={{
           reps: values.reps,
+          repsMax: values.repsMax,
           weight: values.weight,
           duration: values.duration,
           distance: values.distance,
@@ -160,6 +161,7 @@ function RoutineTargetInputs({
         onChange={(patch) => setValues((current) => ({ ...current, ...patch }))}
         names={{
           reps: "targetRepsMin",
+          repsMax: "targetRepsMax",
           weight: "targetWeight",
           duration: "targetDuration",
           distance: "targetDistance",
@@ -171,7 +173,6 @@ function RoutineTargetInputs({
         heading="MEASUREMENTS"
         description={undefined}
       />
-      {activeMetrics.reps ? <input type="number" min={1} name="targetRepsMax" value={values.repsMax} onChange={(event) => setValues((current) => ({ ...current, repsMax: event.target.value }))} placeholder="Max reps" className={controlClassName} /> : null}
       <GoalSummaryInline
         values={{
           ...summaryValues,

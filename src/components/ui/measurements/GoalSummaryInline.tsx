@@ -23,7 +23,7 @@ export function GoalSummaryInline({
   const isMissing = summary === (values.emptyLabel ?? "Goal missing");
 
   return (
-    <div className={cn("rounded-xl border border-border/35 bg-[rgb(var(--bg)/0.16)] px-3 py-2", className)}>
+    <div className={cn("px-0.5 py-1", className)}>
       {isMissing ? (
         <span className="inline-flex items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.24)] px-2.5 py-1 text-[11px] font-medium tracking-wide text-muted">
           {summary}
