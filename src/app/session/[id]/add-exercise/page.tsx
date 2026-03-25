@@ -35,13 +35,12 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
         <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
           <RoutineEditorPageHeader
-            eyebrow="CURRENT SESSION"
+            eyebrow="Current Session"
             title={<TitleText as="h1" className="text-base">Add Exercise</TitleText>}
             subtitle={<SubtitleText>{sessionRow.name || "Workout"}</SubtitleText>}
             subtitleRight={<SubtitleText>{sessionRow.routine_day_name || "In progress"}</SubtitleText>}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
-            actionClassName="-mt-0.5"
-            className="space-y-3 p-4 pt-3"
+            className="space-y-3"
           />
 
           <SessionQuickAddExerciseForm

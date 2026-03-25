@@ -4886,6 +4886,9 @@ WHY:
 ## Unreleased
 
 ### Changed
+- Normalized the app’s header family rhythm across main-tab, detail, editor, and current-session surfaces by tightening shared title sizing, standardizing subtitle spacing, and applying a consistent top breathing inset on header cards.
+- Unified top-right back-button alignment across standalone detail/editor/session headers by removing route-local offset hacks and relying on one shared header action position.
+- Aligned header eyebrow usage/casing in editor and current-session add flows so context labels read consistently without shouting or per-screen variants.
 - Normalized day/exercise breakdown summaries onto one shared metadata contract so Today now renders the same strength/cardio breakdown quality as Routines, View Day, and Edit Day instead of falling back to generic exercise counts.
 - Extended canonical exercise details plus Today/day-summary payloads to carry full cardio-classification metadata (`kind`, `type`, `tags`, `categories`) all the way into the shared summary formatter, including offline Today snapshots.
 - Aligned the View Day route with the same canonical summary path used on Today and Routines by loading the fallback exercise measurement fields that canonical summaries expect and by removing the route-local rest-day summary bypass.

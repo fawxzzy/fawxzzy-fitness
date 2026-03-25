@@ -85,8 +85,9 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
     <MainTabScreen topNavMode="none" className="space-y-0">
       <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
         <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
-          <AppPanel className="space-y-3 pt-3">
+          <AppPanel className="space-y-3 pt-[1.2rem]">
             <AppHeader
+              eyebrow="View Day"
               title={dayLabel}
               subtitleLeft={routineRow.name}
               subtitleRight={daySummary}

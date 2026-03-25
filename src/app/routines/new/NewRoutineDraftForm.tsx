@@ -69,9 +69,9 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
     <>
       <div className="space-y-4 px-1 pb-4">
         <RoutineEditorPageHeader
-          title="NEW ROUTINE DETAILS"
+          eyebrow="New Routine"
+          title="Routine Details"
           action={<RoutineBackButton href="/routines" hasUnsavedChanges={false} />}
-          actionClassName="-mt-1"
           className="space-y-5"
         >
           <RoutineEditorFormFields
