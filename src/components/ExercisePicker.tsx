@@ -360,7 +360,7 @@ export function ExercisePicker({
     <div className="space-y-4">
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
-      <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.46)] p-3.5 sm:p-4">
+      <section className="space-y-3.5 rounded-[1.35rem] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-3.5 shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] sm:p-4">
         <div className="space-y-2">
           <div className="relative">
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises" className="pr-9" />
@@ -396,7 +396,7 @@ export function ExercisePicker({
               variant="compact"
               state="selected"
               leadingVisual={<ExerciseThumbnail exercise={selectedExercise} iconSrc={exerciseIconSrcById.get(selectedExercise.id) ?? getExerciseIconSrc(selectedExercise)} />}
-              className={cn(listShellClasses.card, "items-center")}
+              className={cn(listShellClasses.card, "items-center py-2.5")}
               trailingClassName="self-center text-[rgb(var(--text)/0.98)]"
               rightIcon={<AppBadge tone="success" className="min-h-6 min-w-[3.25rem]">Selected</AppBadge>}
             />
@@ -407,15 +407,15 @@ export function ExercisePicker({
           )}
         </section>
 
-        <div className="flex items-center justify-center px-4 py-0.5">
-          <div className="flex w-full max-w-[15rem] items-center gap-2">
-            <span className="h-px flex-1 bg-border/45" />
-            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted/70">Browse</span>
-            <span className="h-px flex-1 bg-border/45" />
+        <div className="flex items-center justify-center px-1 pb-0.5 pt-1">
+          <div className="flex w-full items-center gap-2 rounded-full border border-white/10 bg-[rgb(var(--bg)/0.28)] px-3 py-1.5">
+            <span className="h-px flex-1 bg-white/15" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.72)]">Browse exercise library</span>
+            <span className="h-px flex-1 bg-white/15" />
           </div>
         </div>
 
-        <PickerListViewport className={listShellClasses.card}>
+        <PickerListViewport className={cn(listShellClasses.card, "border-white/10 bg-[rgb(var(--surface-rgb)/0.3)]")}>
           <ul
             className={cn(listShellClasses.viewport, listShellClasses.list)}
           >

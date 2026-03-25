@@ -3,7 +3,6 @@ import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShar
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { addRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditDayAddExerciseScreen } from "@/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen";
 import { requireUser } from "@/lib/auth";
@@ -53,9 +52,9 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
         <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
           <RoutineEditorPageHeader
             eyebrow="Edit Day"
-            title={<TitleText as="h1" className="text-base">Add Exercise</TitleText>}
-            subtitle={<SubtitleText>{routine.name}</SubtitleText>}
-            subtitleRight={<SubtitleText>{day.name}</SubtitleText>}
+            title="Add Exercise"
+            subtitle={routine.name}
+            subtitleRight={day.name}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
             className="space-y-3"
           />

@@ -1,3 +1,19 @@
+## [v0.4.15] – Fix/UI: repair header hydration and visibly unify standalone header family
+
+### WHAT
+
+* Repaired shared header semantics by removing nested semantic-tag collisions in the header stack: `text-roles` now defaults to non-semantic inline wrappers (`span`), and `AppHeader` owns the single heading element for each header instance.
+* Removed invalid header usage in add-exercise routes that previously passed heading/paragraph helper elements into `AppHeader` title/subtitle slots, eliminating `h1`-inside-`h2` and `p`-inside-`p` output from this family.
+* Strengthened the standalone/detail/editor/session header contract across `RoutineEditorPageHeader`, `DetailHeader`, `HistoryDetailHeader`, and `View Day` header usage with a more obvious shared rhythm: stronger top breathing room, larger title scale, aligned subtitle spacing, consistent top-right action placement, and deeper unified panel framing.
+* Normalized the top-right back button treatment so standalone/detail/editor/session screens share one clearer size, border, and surface treatment.
+* Reworked the shared add-flow picker/list shell to make the design change visibly stronger: tighter selected-exercise card density, stronger “Browse exercise library” continuation affordance, and more pronounced scroll continuation fades in `PickerListViewport`.
+
+### WHY
+
+* Hydration/semantic nesting issues in shared header primitives caused invalid HTML and client fallback rendering, which made header styling unreliable.
+* Prior visual passes were too subtle for this screen family; this pass intentionally increases visual contrast so standalone/detail/editor/session headers read as one deliberate, repeatable system.
+* The add-flow picker needed a clearer continuation cue and stronger separation between selected/context and browse/configure regions so before/after impact is immediately visible.
+
 ## [v0.4.14] – UI: simplify filter actions, restore picker list fade cue, and normalize chip styling
 
 ### WHAT
