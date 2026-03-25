@@ -381,9 +381,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                         ? "Rest Day"
                         : getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).label}
                       action={todayPayload.inProgressSessionId
-                        ? <AppBadge>In Session</AppBadge>
+                        ? <AppBadge tone="success">In Session</AppBadge>
                         : todayPayload.completedTodayCount > 0
-                          ? <AppBadge>Completed</AppBadge>
+                          ? <AppBadge tone="success">Completed</AppBadge>
                           : undefined}
                     />
 

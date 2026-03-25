@@ -198,7 +198,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
           />
         </HistoryControlGroup>
 
-        <HistoryControlGroup label="Filters" summary={selectedTags.length > 0 ? `${selectedTags.length} active` : "All exercises"}>
+        <HistoryControlGroup label="Filters" summary={selectedTags.length > 0 ? `${selectedTags.length} active` : "No filters active"}>
           <ExerciseTagFilterControl
             selectedTags={selectedTags}
             onChange={setSelectedTags}

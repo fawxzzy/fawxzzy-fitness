@@ -37,7 +37,7 @@ export function ActiveRoutineSummaryCard({
 }
 
 export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {
-  return active ? <AppBadge>Active</AppBadge> : null;
+  return active ? <AppBadge tone="success">Active</AppBadge> : null;
 }
 
 export function RoutinesSectionCard({

@@ -11,6 +11,10 @@ export const appTokens = {
   dividerBorder: "border-white/15",
   listDivider: "divide-y divide-white/12",
   stickyBar: "rounded-[1.5rem] border border-white/12 bg-[rgb(var(--surface-rgb)/0.965)] px-2.5 py-2.5 shadow-[0_8px_22px_rgba(0,0,0,0.2)] backdrop-blur-md",
-  todayBadge: "inline-flex items-center justify-center shrink-0 whitespace-nowrap leading-none rounded-full border border-white/70 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-[0_0_8px_rgba(255,255,255,0.15)]",
-  defaultBadge: "inline-flex items-center justify-center shrink-0 whitespace-nowrap leading-none rounded-full border border-white/25 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90",
+  badgeBase: "inline-flex items-center justify-center shrink-0 whitespace-nowrap leading-none rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+  todayBadge: "border-emerald-300/34 bg-emerald-300/10 text-emerald-100",
+  defaultBadge: "border-border/45 bg-[rgb(var(--bg)/0.32)] text-[rgb(var(--text)/0.84)]",
+  successBadge: "border-emerald-400/34 bg-emerald-400/12 text-emerald-100",
+  warningBadge: "border-amber-400/34 bg-amber-400/10 text-amber-100",
+  destructiveBadge: "border-rose-400/36 bg-rose-400/12 text-rose-100",
 } as const;

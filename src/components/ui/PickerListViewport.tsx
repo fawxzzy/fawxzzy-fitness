@@ -23,10 +23,7 @@ export function PickerListViewport({
         {children}
       </div>
       {showFade ? (
-        <>
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-2 z-10 h-7 rounded-t-[1rem] bg-gradient-to-b from-[rgb(var(--surface-rgb)/0.96)] to-transparent" />
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 bottom-2 z-10 h-7 rounded-b-[1rem] bg-gradient-to-t from-[rgb(var(--surface-rgb)/0.96)] to-transparent" />
-        </>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 bottom-2 z-10 h-9 rounded-b-[1rem] bg-gradient-to-t from-[rgb(var(--surface-rgb)/0.78)] via-[rgb(var(--surface-rgb)/0.32)] to-transparent" />
       ) : null}
     </div>
   );
