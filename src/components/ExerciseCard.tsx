@@ -11,7 +11,7 @@ const defaultChevron = <span aria-hidden="true" className="text-muted">›</span
 const titleStateClassNames: Record<ExerciseCardState, string> = {
   default: textRoles.title,
   selected: "text-[rgb(var(--text)/1)]",
-  active: "text-emerald-50",
+  active: "text-[rgb(var(--text)/0.98)]",
   completed: "text-emerald-50",
   empty: "text-[rgb(var(--text)/0.92)]",
 };
@@ -19,15 +19,15 @@ const titleStateClassNames: Record<ExerciseCardState, string> = {
 const subtitleStateClassNames: Record<ExerciseCardState, string> = {
   default: textRoles.subtitle,
   selected: "text-[rgb(var(--text)/0.7)]",
-  active: "text-emerald-100/80",
+  active: "text-[rgb(var(--text)/0.64)]",
   completed: "text-emerald-100/76",
   empty: "text-[rgb(var(--text)/0.58)]",
 };
 
 const leadingVisualStateClassNames: Record<ExerciseCardState, string> = {
   default: "border-border/35",
-  selected: "border-emerald-400/42 bg-emerald-400/10 shadow-[0_0_0_1px_rgba(96,200,130,0.16)]",
-  active: "border-emerald-300/28 bg-emerald-300/10 shadow-[0_0_0_1px_rgba(52,211,153,0.14)]",
+  selected: "border-emerald-400/34 bg-emerald-400/8 shadow-[0_0_0_1px_rgba(96,200,130,0.12)]",
+  active: "border-emerald-300/26 bg-[rgb(var(--bg)/0.12)] shadow-[0_0_0_1px_rgba(52,211,153,0.12)]",
   completed: "border-emerald-400/34 bg-emerald-400/8 shadow-[0_0_0_1px_rgba(52,211,153,0.16)]",
   empty: "border-dashed border-border/26 saturate-[0.78] opacity-80",
 };
@@ -41,16 +41,16 @@ const variantClassNames: Record<ExerciseCardVariant, string> = {
 
 const stateClassNames: Record<ExerciseCardState, string> = {
   default: "border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] hover:border-border/70 hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
-  selected: "border-emerald-400/50 bg-[linear-gradient(180deg,rgba(96,200,130,0.2),rgba(96,200,130,0.08))] shadow-[0_16px_36px_-22px_rgba(96,200,130,0.95)] ring-1 ring-emerald-300/24 hover:border-emerald-400/60 hover:bg-[linear-gradient(180deg,rgba(96,200,130,0.22),rgba(96,200,130,0.1))]",
-  active: "border-emerald-300/34 bg-[linear-gradient(180deg,rgba(52,211,153,0.18),rgba(15,23,42,0.88))] shadow-[0_16px_38px_-24px_rgba(52,211,153,0.72)] ring-1 ring-emerald-300/18 hover:border-emerald-300/42 hover:bg-[linear-gradient(180deg,rgba(52,211,153,0.2),rgba(15,23,42,0.92))]",
+  selected: "border-emerald-400/36 bg-[linear-gradient(180deg,rgba(96,200,130,0.12),rgba(96,200,130,0.04))] shadow-[0_14px_30px_-24px_rgba(96,200,130,0.46)] ring-1 ring-emerald-300/16 hover:border-emerald-400/46 hover:bg-[linear-gradient(180deg,rgba(96,200,130,0.14),rgba(96,200,130,0.06))]",
+  active: "border-emerald-300/36 bg-[rgb(var(--surface-2-soft)/0.72)] shadow-[0_14px_32px_-26px_rgba(52,211,153,0.62)] ring-1 ring-emerald-300/20 hover:border-emerald-300/46 hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
   completed: "border-emerald-400/42 bg-[linear-gradient(180deg,rgba(52,211,153,0.2),rgba(16,185,129,0.08))] shadow-[0_14px_30px_-24px_rgba(16,185,129,0.85)] hover:border-emerald-400/52 hover:bg-[linear-gradient(180deg,rgba(52,211,153,0.22),rgba(16,185,129,0.1))]",
   empty: "border-dashed border-amber-300/28 bg-[linear-gradient(180deg,rgba(245,158,11,0.05),rgba(var(--surface-2-soft)/0.42))] hover:border-amber-300/38 hover:bg-[linear-gradient(180deg,rgba(245,158,11,0.07),rgba(var(--surface-2-soft)/0.5))]",
 };
 
 const badgeStateClassNames: Record<ExerciseCardState, string> = {
   default: "border-border/45 bg-surface/45 text-muted",
-  selected: "border-emerald-400/44 bg-emerald-400/18 text-[rgb(var(--text)/0.98)]",
-  active: "border-emerald-300/34 bg-emerald-300/16 text-emerald-50",
+  selected: "border-emerald-400/34 bg-emerald-400/10 text-emerald-100/95",
+  active: "border-emerald-300/38 bg-emerald-400/12 text-emerald-100",
   completed: "border-emerald-400/42 bg-emerald-400/18 text-emerald-50",
   empty: "border-amber-300/26 bg-amber-400/10 text-amber-100",
 };

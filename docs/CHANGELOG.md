@@ -1,3 +1,20 @@
+## [v0.4.12] – UI: polish stat-grid labels and replace In Session aqua state
+
+### WHAT
+
+* Polished the shared `MeasurementConfigurator` stat-grid labels so unit/context metadata now lives in each title line: `REPS (min/max)`, dynamic `WEIGHT (lbs|kg)`, `TIME (mm:ss)`, dynamic `DISTANCE (mi|km)`, and `CALORIES (cal)`.
+* Styled label suffix metadata as intentionally secondary copy (smaller size and low-emphasis opacity) to keep the value entry visually primary.
+* Tightened measurement field sizing and normalized outer measurement card dimensions so each metric cell reads as an equal two-column grid item, with calories left-aligned on the final row.
+* Rebalanced weight/distance value+unit internals to a fixed 70/30 split and removed excess placeholder hinting so fields stay compact and scan-friendly.
+* Replaced the previous in-session day-card treatment with a neutral-led card plus subtle green border/ring language and an `In Session` badge.
+* Kept `Completed` as the strongest green day-card state and softened the `Today`/selected treatment so it remains distinct from both in-session and completed.
+
+### WHY
+
+* Measurements were still carrying unit/context noise inside controls and inconsistent input density across metrics.
+* The previous in-session visual treatment drifted from the app’s emerald-forward system and did not align with the intended neutral-to-success state hierarchy.
+* This pass reinforces a clearer day-state hierarchy (`default` → `today` → `in session` → `completed`) while keeping the stat-entry UI compact and value-first.
+
 ## [v0.4.11] – UI: restore crisp green and finalize stat-entry measurements
 
 ### WHAT

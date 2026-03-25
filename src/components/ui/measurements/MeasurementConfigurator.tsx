@@ -12,11 +12,20 @@ const METRIC_LABELS: Record<keyof MeasurementMetrics, string> = {
   calories: "Calories",
 };
 
-const statCellClassName = "rounded-lg border border-border/28 bg-[rgb(var(--bg)/0.08)] px-3 py-2.5";
-const statInputClassName = "input-no-spinner mt-1 min-h-10 w-full rounded-md border border-border/35 bg-[rgb(var(--bg)/0.2)] px-3 py-1.5 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.33)] focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/20";
-const pairedValueRowClassName = "mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-md border border-border/35 bg-[rgb(var(--bg)/0.2)] focus-within:border-emerald-300/45 focus-within:ring-2 focus-within:ring-emerald-300/20";
-const pairedValueInputClassName = "input-no-spinner min-h-10 w-full border-0 bg-transparent px-3 py-1.5 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.33)] focus-visible:outline-none focus-visible:ring-0";
-const pairedValueUnitClassName = "min-h-10 border-l border-border/35 bg-[rgb(var(--bg)/0.3)] px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted/90 focus-visible:outline-none focus-visible:ring-0";
+const statCellClassName = "flex h-full min-h-[5.5rem] flex-col rounded-lg border border-border/28 bg-[rgb(var(--bg)/0.08)] px-3 py-2";
+const statInputClassName = "input-no-spinner mt-1 h-9 w-full rounded-md border border-border/35 bg-[rgb(var(--bg)/0.2)] px-2.5 py-1 text-[0.95rem] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/20";
+const pairedValueRowClassName = "mt-1 grid h-9 grid-cols-[minmax(0,7fr)_minmax(0,3fr)] items-stretch overflow-hidden rounded-md border border-border/35 bg-[rgb(var(--bg)/0.2)] focus-within:border-emerald-300/45 focus-within:ring-2 focus-within:ring-emerald-300/20";
+const pairedValueInputClassName = "input-no-spinner h-full w-full border-0 bg-transparent px-2.5 py-1 text-[0.95rem] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:outline-none focus-visible:ring-0";
+const pairedValueUnitClassName = "h-full border-l border-border/35 bg-[rgb(var(--bg)/0.3)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/90 focus-visible:outline-none focus-visible:ring-0";
+
+function MetricLabel({ label, suffix }: { label: string; suffix: string }) {
+  return (
+    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+      {label}
+      <span className="ml-1 text-[10px] font-medium tracking-[0.1em] text-muted/30">({suffix})</span>
+    </p>
+  );
+}
 
 export function MeasurementConfigurator({
   values,
@@ -53,6 +62,8 @@ export function MeasurementConfigurator({
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
 }) {
+  const resolvedDistanceUnit = values.distanceUnit === "km" ? "km" : "mi";
+
   const ensureMetricActive = (metric: keyof MeasurementMetrics) => {
     if (!activeMetrics[metric]) {
       onMetricToggle(metric);
@@ -70,12 +81,12 @@ export function MeasurementConfigurator({
 
       {leadingContent}
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div className={statCellClassName}>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS.reps}</p>
+          <MetricLabel label={METRIC_LABELS.reps} suffix="min/max" />
           {"repsMax" in values ? (
             <div className="mt-1 grid grid-cols-2 gap-2">
-              <div className="relative">
+              <div>
                 <input
                   name={names?.reps}
                   type="number"
@@ -86,10 +97,10 @@ export function MeasurementConfigurator({
                     onChange({ reps: event.target.value });
                   }}
                   className={statInputClassName}
-                  placeholder="min"
+                  placeholder="-"
                 />
               </div>
-              <div className="relative">
+              <div>
                 <input
                   name={names?.repsMax}
                   type="number"
@@ -100,7 +111,7 @@ export function MeasurementConfigurator({
                     onChange({ repsMax: event.target.value });
                   }}
                   className={statInputClassName}
-                  placeholder="max"
+                  placeholder="-"
                 />
               </div>
             </div>
@@ -121,7 +132,7 @@ export function MeasurementConfigurator({
         </div>
 
         <div className={statCellClassName}>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS.weight}</p>
+          <MetricLabel label={METRIC_LABELS.weight} suffix={values.weightUnit} />
           <div className={pairedValueRowClassName}>
             <input
               name={names?.weight}
@@ -149,7 +160,7 @@ export function MeasurementConfigurator({
         </div>
 
         <div className={statCellClassName}>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS.time}</p>
+          <MetricLabel label={METRIC_LABELS.time} suffix="mm:ss" />
           <input
             name={names?.duration}
             type="text"
@@ -165,7 +176,7 @@ export function MeasurementConfigurator({
         </div>
 
         <div className={statCellClassName}>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS.distance}</p>
+          <MetricLabel label={METRIC_LABELS.distance} suffix={resolvedDistanceUnit} />
           <div className={pairedValueRowClassName}>
             <input
               name={names?.distance}
@@ -182,19 +193,18 @@ export function MeasurementConfigurator({
             />
             <select
               name={names?.distanceUnit}
-              value={values.distanceUnit}
-              onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })}
+              value={resolvedDistanceUnit}
+              onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" })}
               className={pairedValueUnitClassName}
             >
               <option value="mi">mi</option>
               <option value="km">km</option>
-              <option value="m">m</option>
             </select>
           </div>
         </div>
 
-        <div className={statCellClassName}>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS.calories}</p>
+        <div className={cn(statCellClassName, "sm:col-start-1")}>
+          <MetricLabel label={METRIC_LABELS.calories} suffix="cal" />
           <input
             name={names?.calories}
             type="number"
