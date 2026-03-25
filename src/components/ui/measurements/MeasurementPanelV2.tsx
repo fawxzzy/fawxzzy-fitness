@@ -49,6 +49,9 @@ export function MeasurementPanelV2({
   showHeader = true,
   leadingContent,
   trailingContent,
+  rpe,
+  onRpeChange,
+  footerContent,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -66,6 +69,9 @@ export function MeasurementPanelV2({
   showHeader?: boolean;
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
+  rpe?: string;
+  onRpeChange?: (value: string) => void;
+  footerContent?: ReactNode;
 }) {
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
   const resolvedDistanceUnit = values.distanceUnit === "km" ? "km" : "mi";
@@ -73,6 +79,8 @@ export function MeasurementPanelV2({
   const ensureMetricActive = (metric: keyof MeasurementMetrics) => {
     if (!activeMetrics[metric]) onMetricToggle(metric);
   };
+
+  const hasRpeInput = typeof onRpeChange === "function";
 
   return (
     <section className={cn("space-y-2.5", className)}>
@@ -87,8 +95,8 @@ export function MeasurementPanelV2({
 
       <div className={shellClassName}>
         <div className="mb-2.5 flex items-center justify-between gap-2 border-b border-emerald-300/14 pb-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-emerald-100/90">Stat Entry</p>
-          <p className="text-[11px] text-muted">{enabledCount}/5 active</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-emerald-100/90">Measurements</p>
+          <p className="text-[11px] text-muted">{enabledCount}/{hasRpeInput ? "6" : "5"} active</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -205,7 +213,26 @@ export function MeasurementPanelV2({
               placeholder="-"
             />
           </div>
+
+          {hasRpeInput ? (
+            <div className={cn(metricCardClassName, "col-span-2")}>
+              <p className="inline-flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                <span>RPE (0–10)</span>
+              </p>
+              <input
+                type="number"
+                min={0}
+                step="0.5"
+                value={rpe ?? ""}
+                onChange={(event) => onRpeChange(event.target.value)}
+                className={valueInputClassName}
+                placeholder="-"
+              />
+            </div>
+          ) : null}
         </div>
+
+        {footerContent ? <div className="mt-2.5 border-t border-emerald-300/14 pt-2.5">{footerContent}</div> : null}
       </div>
 
       {trailingContent ? <div>{trailingContent}</div> : null}

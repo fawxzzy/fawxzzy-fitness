@@ -18,14 +18,12 @@ import { useUndoAction } from "@/components/ui/useUndoAction";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
-import { FormSectionCard } from "@/components/ui/workout-entry/FormSectionCard";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import { formatMeasurementSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
-import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
 type AddSetPayload = {
@@ -176,7 +174,6 @@ export function SetLoggerCard({
   const [hasUserModifiedMetrics, setHasUserModifiedMetrics] = useState(false);
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [showRpeTooltip, setShowRpeTooltip] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
   const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
 
@@ -743,6 +740,23 @@ export function SetLoggerCard({
     [handleLogSet, isSaveDisabled, skipAction],
   );
 
+  const liveSummaryText = useMemo(() => {
+    const summary = formatMeasurementSummaryText({
+      reps: reps.trim() ? Number(reps) : null,
+      weight: weight.trim() ? Number(weight) : null,
+      weightUnit: selectedWeightUnit,
+      durationSeconds: parseDurationInput(durationInput),
+      distance: distance.trim() ? Number(distance) : null,
+      distanceUnit,
+      calories: calories.trim() ? Number(calories) : null,
+      emptyLabel: "Add measurements",
+    });
+    const parts = [`${isCardio ? "Interval" : "Set"} ${sets.length + 1}`, summary];
+    if (rpe.trim()) parts.push(`RPE ${rpe.trim()}`);
+    if (resolvedIsWarmup) parts.push("Warm-Up");
+    return parts.join(" • ");
+  }, [calories, distance, distanceUnit, durationInput, isCardio, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sets.length, weight]);
+
 
   async function handleDeleteSet(set: DisplaySet) {
     if (set.pending || set.queueStatus) {
@@ -795,63 +809,27 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <FormSectionCard className="border-white/8 bg-[rgb(var(--surface-rgb)/0.42)]" insetClassName="space-y-2.5">
-        <div className="space-y-2">
-          <EyebrowText as="h3">EFFORT</EyebrowText>
-          <div className="relative">
-            <input
-              type="number"
-              min={0}
-              step="0.5"
-              value={rpe}
-              onChange={(event) => setRpe(event.target.value)}
-              placeholder="0-10"
-              className="min-h-11 w-full rounded-xl border border-border/55 bg-surface/70 px-3 py-2 pr-11 text-sm"
-            />
-            <button
-              type="button"
-              onClick={() => setShowRpeTooltip((value) => !value)}
-              aria-label="Effort scale help"
-              className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-[rgb(var(--bg)/0.42)] text-[11px] text-muted transition hover:bg-[rgb(var(--bg)/0.58)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-            >
-              ⓘ
-            </button>
-            {showRpeTooltip ? (
-              <div className="pointer-events-none absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-border/70 bg-surface p-2 text-[11px] text-muted shadow-sm">
-                <TitleText as="p" className="text-[11px]">0-10 effort scale</TitleText>
-                <SubtitleText className="text-[11px]">10 = max effort</SubtitleText>
-                <SubtitleText className="text-[11px]">8 = about 2 reps left</SubtitleText>
-                <SubtitleText className="text-[11px]">6 = moderate effort</SubtitleText>
-              </div>
-            ) : null}
-          </div>
-          {error ? <p className="text-sm text-red-400">{error}</p> : null}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setWarmupValue(!resolvedIsWarmup)}
-          aria-pressed={resolvedIsWarmup}
-          className={[
-            "flex w-full items-center justify-between gap-3 rounded-[1.1rem] border px-3 py-2.5 text-left transition",
-            resolvedIsWarmup
-              ? "border-emerald-400/35 bg-emerald-400/14 text-emerald-100"
-              : "border-white/8 bg-white/[0.04] text-text hover:bg-white/[0.06]",
-            tapFeedbackClass,
-          ].join(" ")}
-        >
-          <span className="min-w-0">
-            <EyebrowText as="span" className={cn("text-xs tracking-[0.14em]", resolvedIsWarmup ? "text-emerald-200" : "text-muted")}>
-              WARM-UP | TAP
-            </EyebrowText>
-          </span>
-          <span className={resolvedIsWarmup ? "text-sm font-semibold text-emerald-100" : "text-sm font-medium text-text"}>{resolvedIsWarmup ? "On" : "Off"}</span>
-        </button>
-      </FormSectionCard>
-
       <WorkoutEntrySection
         className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
       >
+        <div className="px-0.5">
+          <button
+            type="button"
+            onClick={() => setWarmupValue(!resolvedIsWarmup)}
+            aria-pressed={resolvedIsWarmup}
+            className={[
+              "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+              resolvedIsWarmup
+                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
+                : "border-white/12 bg-white/[0.04] text-muted hover:text-text",
+              tapFeedbackClass,
+            ].join(" ")}
+          >
+            <span>Warm-Up</span>
+            <span className={resolvedIsWarmup ? "text-emerald-100" : "text-text/80"}>{resolvedIsWarmup ? "On" : "Off"}</span>
+          </button>
+        </div>
+
         <MeasurementPanelV2
           values={{
             reps,
@@ -894,8 +872,17 @@ export function SetLoggerCard({
             if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
           }}
           className={tapFeedbackClass}
-          showHeader={false}
+          heading="MEASUREMENTS"
+          rpe={rpe}
+          onRpeChange={setRpe}
+          footerContent={(
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-text/90">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</span>
+              <p className="mt-0.5">{liveSummaryText}</p>
+            </div>
+          )}
         />
+        {error ? <p className="text-sm text-red-400">{error}</p> : null}
       </WorkoutEntrySection>
 
       <WorkoutEntrySection
