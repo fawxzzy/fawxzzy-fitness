@@ -551,7 +551,15 @@ export function EditableRoutineDayExerciseList({
                             isCardio={exercise.isCardio}
                           />
                         </div>
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-between gap-2">
+                          <AppButton
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedId(null)}
+                          >
+                            Back
+                          </AppButton>
                           <AppButton type="submit" variant="secondary" size="sm">Done editing</AppButton>
                         </div>
                       </form>

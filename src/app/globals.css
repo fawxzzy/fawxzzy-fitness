@@ -11,8 +11,8 @@
   --text: 245 247 250;
   --muted: 198 206 216;
   --faint: 148 158 171;
-  --accent: 18 94 74;
-  --accent-strong: 28 124 99;
+  --accent: 16 185 129;
+  --accent-strong: 5 150 105;
 
   --button-height: 2.75rem;
   --button-height-sm: 2.125rem;
@@ -26,9 +26,9 @@
 
   --button-primary-bg: var(--accent);
   --button-primary-bg-hover: var(--accent-strong);
-  --button-primary-bg-active: 15 82 65;
+  --button-primary-bg-active: 4 120 84;
   --button-primary-text: 247 250 252;
-  --button-primary-border: 32 115 93;
+  --button-primary-border: 20 145 104;
 
   --button-secondary-bg: 48 56 68;
   --button-secondary-bg-hover: 58 68 83;

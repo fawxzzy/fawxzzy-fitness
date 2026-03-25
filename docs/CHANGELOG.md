@@ -1,3 +1,20 @@
+## [v0.4.11] – UI: restore crisp green and finalize stat-entry measurements
+
+### WHAT
+
+* Restored the stronger crisp green accent tokens in the global palette so primary and active states return to the original emerald-forward look.
+* Reworked the shared `MeasurementConfigurator` into a fully stable stat-entry grid: removed metric pill/toggle controls, kept all measurement inputs visible at all times, and preserved `-` as the empty-field placeholder pattern.
+* Updated reps range entry to always use side-by-side min/max fields with subtle in-field ghost hints (`min`, `max`) instead of extra hint chips.
+* Kept shared measurement behavior intact across Exercise Log, Edit Day inline exercise editing, Edit Day Add Exercise, and Current Session Quick Add by applying the presentation change at the shared component layer.
+* Added a clear inline Back action to Edit Day exercise editing so users can exit the active inline editor cleanly without feeling trapped.
+* Simplified add-flow primary CTA copy to `Add Exercise` for both Edit Day Add Exercise and Current Session Quick Add while preserving route-specific add logic.
+
+### WHY
+
+* The previous UI pass still sat between a configurable-form model and the intended compact stat-entry model.
+* Always-visible measurement boxes improve scan speed and reduce interaction overhead for fast workout programming/logging.
+* Restoring the established emerald accent and adding an explicit inline exit affordance makes editing states feel clearer, stronger, and more predictable.
+
 ## [v0.4.10] – UI: restore green accents and clean measurement entry controls
 
 ### WHAT

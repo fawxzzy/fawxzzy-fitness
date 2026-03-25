@@ -68,7 +68,7 @@ export function EditDayAddExerciseScreen({
             )}
             primary={(
               <AppButton type="submit" form="routine-day-add-exercise-form" variant="primary">
-                Add Exercise To Day
+                Add Exercise
               </AppButton>
             )}
           />

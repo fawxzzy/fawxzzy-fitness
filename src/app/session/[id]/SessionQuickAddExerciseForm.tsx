@@ -69,7 +69,7 @@ export function SessionQuickAddExerciseForm({
               )}
               primary={(
                 <AppButton type="submit" form="session-quick-add-exercise-form" variant="primary">
-                  Add Exercise To Session
+                  Add Exercise
                 </AppButton>
               )}
             />
