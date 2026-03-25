@@ -177,6 +177,17 @@ textarea::placeholder {
   color: rgb(var(--faint));
 }
 
+.input-no-spinner::-webkit-outer-spin-button,
+.input-no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-no-spinner[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 button,
 [type="button"],
 [type="submit"],

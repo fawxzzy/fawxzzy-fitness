@@ -1,3 +1,18 @@
+## [v0.4.10] – UI: restore green accents and clean measurement entry controls
+
+### WHAT
+
+* Restored stronger emerald edit-state emphasis inside the shared `MeasurementConfigurator` stat cells so active measurement editing returns to the established green accent language.
+* Cleaned shared measurement entry controls for weight/distance by removing `value` hint clutter, increasing number-field visual priority (larger tabular numeric text), and allocating more width to typed values versus unit selectors.
+* Standardized compact attached unit selectors (`lbs`, `kg`, `mi`, `km`, `m`) as secondary controls with smaller uppercase styling so number entry remains primary.
+* Added a reusable `.input-no-spinner` utility in global styles and applied it to shared measurement number fields to suppress native browser spinner arrows.
+
+### WHY
+
+* The previous pass over-corrected visual language in the measurements flow and reduced the intended emerald-led active/editing feel.
+* Numeric stat entry was still cramped/noisy due to spinner controls and placeholder-like value hints that competed with the actual typed number.
+* This update keeps the display-first measurement direction while making the editing state denser, clearer, and faster to parse.
+
 ## [v0.4.09] – UI: finalize measurements layout and remove leftover blue accents
 
 ### WHAT
