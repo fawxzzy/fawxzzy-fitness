@@ -4,6 +4,7 @@ import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { isCardioExercise } from "@/lib/exercise-metadata";
+import { usesIntervalLanguage } from "@/lib/log-set-language";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import type { DisplayTarget } from "@/lib/session-targets";
@@ -125,6 +126,11 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               movement_pattern: canonicalExercise?.movement_pattern ?? null,
             };
             const isCardio = isCardioExercise(exerciseMetadata);
+            const useIntervalLanguage = usesIntervalLanguage({
+              isCardio,
+              measurementType: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
+              exerciseName: exerciseNameMap.get(exercise.exercise_id) ?? null,
+            });
 
             return {
               id: exercise.id,
@@ -132,6 +138,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               isSkipped: exercise.is_skipped,
               defaultUnit: exercise.default_unit ?? null,
               isCardio,
+              useIntervalLanguage,
               routineDayExerciseId: exercise.routine_day_exercise_id ?? null,
               image_howto_path: canonicalExercise?.image_howto_path ?? null,
               planTargetsHash: (() => {

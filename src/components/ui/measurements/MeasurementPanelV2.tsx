@@ -52,6 +52,7 @@ export function MeasurementPanelV2({
   rpe,
   onRpeChange,
   footerContent,
+  showInnerHeader = true,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -72,6 +73,7 @@ export function MeasurementPanelV2({
   rpe?: string;
   onRpeChange?: (value: string) => void;
   footerContent?: ReactNode;
+  showInnerHeader?: boolean;
 }) {
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
   const resolvedDistanceUnit = values.distanceUnit === "km" ? "km" : "mi";
@@ -94,10 +96,12 @@ export function MeasurementPanelV2({
       {leadingContent}
 
       <div className={shellClassName}>
-        <div className="mb-2.5 flex items-center justify-between gap-2 border-b border-emerald-300/14 pb-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-emerald-100/90">Measurements</p>
-          <p className="text-[11px] text-muted">{enabledCount}/{hasRpeInput ? "6" : "5"} active</p>
-        </div>
+        {showInnerHeader ? (
+          <div className="mb-2.5 flex items-center justify-between gap-2 border-b border-emerald-300/14 pb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-emerald-100/90">Measurements</p>
+            <p className="text-[11px] text-muted">{enabledCount}/{hasRpeInput ? "6" : "5"} active</p>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-2">
           <div className={metricCardClassName}>

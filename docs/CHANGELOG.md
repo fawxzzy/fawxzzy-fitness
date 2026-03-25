@@ -1,3 +1,18 @@
+## [v0.4.19] – UI: unify log-set naming, merge sets into measurements, and normalize log header
+
+### WHAT
+
+* Updated Exercise Log terminology to default to `Set` and only use `Interval` when the selected exercise is truly interval-style cardio (cardio + interval tokens or pure time-based cardio measurement).
+* Moved logged set rows into the `MEASUREMENTS` panel footer so set count, live summary, and stat entry now live on one coherent measurement surface.
+* Removed duplicate measurements titling on Exercise Log by allowing the shared panel to hide its inner heading when the route already provides the canonical `MEASUREMENTS` title.
+* Normalized Exercise Log header rhythm with the shared standalone family by matching divider behavior in `SessionHeaderCard` footer treatment and increasing Exercise Log anchor breathing room.
+
+### WHY
+
+* The log flow was structurally close but still split ownership between measurement entry and a separate logged-sets card, which made the stat-entry model feel fragmented.
+* Cardio is not always interval-style; defaulting to `Set` preserves canonical product language and avoids mislabeled strength-like cardio logs.
+* Header-family polish should be systemic, not per-screen; removing remaining divider and spacing drift keeps Exercise Log aligned with session/editor/detail siblings.
+
 ## [v0.4.18] – UI: visibly unify standalone/detail/editor/session headers
 
 ### WHAT
