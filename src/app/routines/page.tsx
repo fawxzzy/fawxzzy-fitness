@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
-import { AppShell } from "@/components/ui/app/AppShell";
+import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { Glass } from "@/components/ui/Glass";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -205,55 +205,53 @@ export default async function RoutinesPage() {
   }
 
   return (
-    <AppShell className="h-[100dvh] gap-3">
+    <MainTabScreen>
       <AppNav />
-      <div className="mt-3 flex-1 min-h-0">
-        <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
-          <Glass variant="base" className="space-y-3 p-3" interactive={false}>
-            {routines.length === 0 ? (
-              <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
-                <p className="text-sm text-muted">No routines yet.</p>
-                <Link
-                  href="/routines/new"
-                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-                >
-                  Create your first routine
-                </Link>
-              </div>
-            ) : (
-              <RoutinesPageClient
-                activeRoutineId={activeRoutine?.id ?? null}
-                activeRoutineName={activeRoutine?.name ?? "Select routine"}
-                activeRoutineSummary={cycleSummary}
-                activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
-                newRoutineHref="/routines/new"
-                routines={routines.map((routine) => ({
-                  id: routine.id,
-                  name: routine.name,
-                  summary: `${routine.cycle_length_days}-day cycle`,
-                }))}
-                days={activeRoutine ? sortedActiveRoutineDays.map((day, index) => {
-                  const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
-                  return {
-                    id: day.id,
-                    dayIndex: dayNumber,
-                    title: day.name?.trim() || (day.is_rest ? "Rest" : "Training"),
-                    isRest: Boolean(day.is_rest),
-                    exerciseSummary: activeRoutineExerciseSummaries.get(day.id) ?? formatRestDayExerciseCountSummary([], Boolean(day.is_rest)).label,
-                    notes: day.notes ?? null,
-                    href: `/routines/${activeRoutine.id}/days/${day.id}`,
-                    isToday: index === todayRowIndex,
-                    isCompleted: completedDayIndexSet.has(dayNumber),
-                    isInSession: inSessionDayIndex === dayNumber,
-                    loggedSetCount: inSessionDayIndex === dayNumber ? inSessionLoggedSetCount : 0,
-                  };
-                }) : []}
-                setActiveRoutineAction={setActiveRoutineAction}
-              />
-            )}
-          </Glass>
-        </ScrollScreenWithBottomActions>
-      </div>
-    </AppShell>
+      <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
+        <Glass variant="base" className="space-y-3 p-3" interactive={false}>
+          {routines.length === 0 ? (
+            <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
+              <p className="text-sm text-muted">No routines yet.</p>
+              <Link
+                href="/routines/new"
+                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+              >
+                Create your first routine
+              </Link>
+            </div>
+          ) : (
+            <RoutinesPageClient
+              activeRoutineId={activeRoutine?.id ?? null}
+              activeRoutineName={activeRoutine?.name ?? "Select routine"}
+              activeRoutineSummary={cycleSummary}
+              activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
+              newRoutineHref="/routines/new"
+              routines={routines.map((routine) => ({
+                id: routine.id,
+                name: routine.name,
+                summary: `${routine.cycle_length_days}-day cycle`,
+              }))}
+              days={activeRoutine ? sortedActiveRoutineDays.map((day, index) => {
+                const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
+                return {
+                  id: day.id,
+                  dayIndex: dayNumber,
+                  title: day.name?.trim() || (day.is_rest ? "Rest" : "Training"),
+                  isRest: Boolean(day.is_rest),
+                  exerciseSummary: activeRoutineExerciseSummaries.get(day.id) ?? formatRestDayExerciseCountSummary([], Boolean(day.is_rest)).label,
+                  notes: day.notes ?? null,
+                  href: `/routines/${activeRoutine.id}/days/${day.id}`,
+                  isToday: index === todayRowIndex,
+                  isCompleted: completedDayIndexSet.has(dayNumber),
+                  isInSession: inSessionDayIndex === dayNumber,
+                  loggedSetCount: inSessionDayIndex === dayNumber ? inSessionLoggedSetCount : 0,
+                };
+              }) : []}
+              setActiveRoutineAction={setActiveRoutineAction}
+            />
+          )}
+        </Glass>
+      </ScrollScreenWithBottomActions>
+    </MainTabScreen>
   );
 }
