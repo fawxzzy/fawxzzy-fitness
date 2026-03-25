@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { InlineHintInput } from "@/components/ui/InlineHintInput";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 
@@ -14,9 +13,12 @@ const METRIC_LABELS: Record<keyof MeasurementMetrics, string> = {
 };
 
 const toggleBaseClassName = "rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
-const statCellClassName = "rounded-md border border-border/30 bg-transparent px-2.5 py-2";
-const statValueButtonClassName = "-mx-1 mt-0.5 min-h-8 rounded-md px-1 text-left text-base font-semibold text-text transition-colors hover:bg-[rgb(var(--bg)/0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/30";
-const metricInputClassName = "min-h-10 w-full rounded-md border border-border/40 bg-[rgb(var(--bg)/0.12)] px-3 py-1.5 text-base font-semibold tabular-nums text-text placeholder:text-muted/55 focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/20";
+const statCellClassName = "rounded-lg border border-border/28 bg-[rgb(var(--bg)/0.08)] px-3 py-2.5";
+const statValueButtonClassName = "mt-1 block w-full text-left text-lg font-semibold leading-tight tabular-nums text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
+const statInputClassName = "input-no-spinner mt-1 min-h-10 w-full rounded-md border border-border/35 bg-[rgb(var(--bg)/0.2)] px-3 py-1.5 text-base font-semibold tabular-nums text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/20";
+const pairedValueRowClassName = "mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-md border border-border/35 bg-[rgb(var(--bg)/0.2)] focus-within:border-emerald-300/45 focus-within:ring-2 focus-within:ring-emerald-300/20";
+const pairedValueInputClassName = "input-no-spinner min-h-10 w-full border-0 bg-transparent px-3 py-1.5 text-base font-semibold tabular-nums text-text focus-visible:outline-none focus-visible:ring-0";
+const pairedValueUnitClassName = "min-h-10 border-l border-border/35 bg-[rgb(var(--bg)/0.3)] px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted/90 focus-visible:outline-none focus-visible:ring-0";
 
 function normalizeValue(value: string | undefined) {
   return value?.trim() ?? "";
@@ -155,33 +157,87 @@ export function MeasurementConfigurator({
         ))}
       </div>
 
-      <div className="grid gap-1.5 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         {activeMetricKeys.map((metric) => {
           const isEditing = editingMetric === metric;
           const displayValue = metricDisplay(metric, values);
 
           return (
-            <div key={metric} className={cn(statCellClassName, isEditing ? "border-emerald-300/45 bg-emerald-400/8" : "")} onBlur={isEditing ? closeIfLeavingMetric : undefined}>
+            <div key={metric} className={cn(statCellClassName, isEditing ? "border-emerald-300/45" : "")} onBlur={isEditing ? closeIfLeavingMetric : undefined}>
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{METRIC_LABELS[metric]}</p>
 
               {isEditing ? (
                 <>
                   {metric === "reps" ? (
                     "repsMax" in values ? (
-                      <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
-                        <InlineHintInput ref={(node) => { editRefs.current.reps = node; }} name={names?.reps} type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="min" className={cn("input-no-spinner", metricInputClassName)} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
-                        <span className="text-sm text-muted">—</span>
-                        <InlineHintInput name={names?.repsMax} type="number" min={0} value={values.repsMax ?? ""} onChange={(event) => onChange({ repsMax: event.target.value })} hint="max" className={cn("input-no-spinner", metricInputClassName)} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                      <div className="mt-1 grid grid-cols-2 items-center gap-2">
+                        <input
+                          ref={(node) => {
+                            editRefs.current.reps = node;
+                          }}
+                          name={names?.reps}
+                          type="number"
+                          min={0}
+                          value={values.reps}
+                          onChange={(event) => onChange({ reps: event.target.value })}
+                          className={statInputClassName}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") setEditingMetric(null);
+                          }}
+                        />
+                        <input
+                          name={names?.repsMax}
+                          type="number"
+                          min={0}
+                          value={values.repsMax ?? ""}
+                          onChange={(event) => onChange({ repsMax: event.target.value })}
+                          className={statInputClassName}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") setEditingMetric(null);
+                          }}
+                        />
                       </div>
                     ) : (
-                      <InlineHintInput ref={(node) => { editRefs.current.reps = node; }} name={names?.reps} type="number" min={0} value={values.reps} onChange={(event) => onChange({ reps: event.target.value })} hint="reps" className={cn("input-no-spinner", metricInputClassName, "mt-1")} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                      <input
+                        ref={(node) => {
+                          editRefs.current.reps = node;
+                        }}
+                        name={names?.reps}
+                        type="number"
+                        min={0}
+                        value={values.reps}
+                        onChange={(event) => onChange({ reps: event.target.value })}
+                        className={statInputClassName}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") setEditingMetric(null);
+                        }}
+                      />
                     )
                   ) : null}
 
                   {metric === "weight" ? (
-                    <div className="mt-1 grid grid-cols-[minmax(0,1.55fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.22)] focus-within:border-emerald-300/45 focus-within:ring-2 focus-within:ring-emerald-300/20">
-                      <input ref={(node) => { editRefs.current.weight = node; }} name={names?.weight} type="number" min={0} step="0.5" value={values.weight} onChange={(event) => onChange({ weight: event.target.value })} className="input-no-spinner min-h-10 w-full rounded-none border-0 bg-transparent px-3.5 py-1.5 text-base font-semibold tabular-nums text-text focus-visible:outline-none focus-visible:ring-0" onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
-                      <select name={names?.weightUnit} value={values.weightUnit} onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })} className="min-h-10 border-l border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted/90 focus-visible:outline-none focus-visible:ring-0">
+                    <div className={pairedValueRowClassName}>
+                      <input
+                        ref={(node) => {
+                          editRefs.current.weight = node;
+                        }}
+                        name={names?.weight}
+                        type="number"
+                        min={0}
+                        step="0.5"
+                        value={values.weight}
+                        onChange={(event) => onChange({ weight: event.target.value })}
+                        className={pairedValueInputClassName}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") setEditingMetric(null);
+                        }}
+                      />
+                      <select
+                        name={names?.weightUnit}
+                        value={values.weightUnit}
+                        onChange={(event) => onChange({ weightUnit: event.target.value === "kg" ? "kg" : "lbs" })}
+                        className={pairedValueUnitClassName}
+                      >
                         <option value="lbs">lbs</option>
                         <option value="kg">kg</option>
                       </select>
@@ -189,13 +245,45 @@ export function MeasurementConfigurator({
                   ) : null}
 
                   {metric === "time" ? (
-                    <InlineHintInput ref={(node) => { editRefs.current.time = node; }} name={names?.duration} type="text" inputMode="numeric" value={values.duration} onChange={(event) => onChange({ duration: event.target.value })} hint="mm:ss" className={cn(metricInputClassName, "mt-1")} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                    <input
+                      ref={(node) => {
+                        editRefs.current.time = node;
+                      }}
+                      name={names?.duration}
+                      type="text"
+                      inputMode="numeric"
+                      value={values.duration}
+                      onChange={(event) => onChange({ duration: event.target.value })}
+                      className={statInputClassName}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") setEditingMetric(null);
+                      }}
+                    />
                   ) : null}
 
                   {metric === "distance" ? (
-                    <div className="mt-1 grid grid-cols-[minmax(0,1.55fr)_auto] overflow-hidden rounded-md border border-border/45 bg-[rgb(var(--bg)/0.22)] focus-within:border-emerald-300/45 focus-within:ring-2 focus-within:ring-emerald-300/20">
-                      <input ref={(node) => { editRefs.current.distance = node; }} name={names?.distance} type="number" min={0} step="0.01" value={values.distance} onChange={(event) => onChange({ distance: event.target.value })} className="input-no-spinner min-h-10 w-full rounded-none border-0 bg-transparent px-3.5 py-1.5 text-base font-semibold tabular-nums text-text focus-visible:outline-none focus-visible:ring-0" onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
-                      <select name={names?.distanceUnit} value={values.distanceUnit} onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })} className="min-h-10 border-l border-border/45 bg-[rgb(var(--bg)/0.32)] px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted/90 focus-visible:outline-none focus-visible:ring-0">
+                    <div className={pairedValueRowClassName}>
+                      <input
+                        ref={(node) => {
+                          editRefs.current.distance = node;
+                        }}
+                        name={names?.distance}
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={values.distance}
+                        onChange={(event) => onChange({ distance: event.target.value })}
+                        className={pairedValueInputClassName}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") setEditingMetric(null);
+                        }}
+                      />
+                      <select
+                        name={names?.distanceUnit}
+                        value={values.distanceUnit}
+                        onChange={(event) => onChange({ distanceUnit: event.target.value as "mi" | "km" | "m" })}
+                        className={pairedValueUnitClassName}
+                      >
                         <option value="mi">mi</option>
                         <option value="km">km</option>
                         <option value="m">m</option>
@@ -204,15 +292,25 @@ export function MeasurementConfigurator({
                   ) : null}
 
                   {metric === "calories" ? (
-                    <InlineHintInput ref={(node) => { editRefs.current.calories = node; }} name={names?.calories} type="number" min={0} step="1" value={values.calories} onChange={(event) => onChange({ calories: event.target.value })} hint="cal" className={cn("input-no-spinner", metricInputClassName, "mt-1")} onKeyDown={(event) => { if (event.key === "Enter") setEditingMetric(null); }} />
+                    <input
+                      ref={(node) => {
+                        editRefs.current.calories = node;
+                      }}
+                      name={names?.calories}
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={values.calories}
+                      onChange={(event) => onChange({ calories: event.target.value })}
+                      className={statInputClassName}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") setEditingMetric(null);
+                      }}
+                    />
                   ) : null}
                 </>
               ) : (
-                <button
-                  type="button"
-                  className={cn(statValueButtonClassName, displayValue === "-" ? "text-muted" : "")}
-                  onClick={() => setEditingMetric(metric)}
-                >
+                <button type="button" className={cn(statValueButtonClassName, displayValue === "-" ? "text-muted" : "")} onClick={() => setEditingMetric(metric)}>
                   {displayValue}
                 </button>
               )}

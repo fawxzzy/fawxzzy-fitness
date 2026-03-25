@@ -116,7 +116,7 @@ export function ExerciseCard({
     className,
   );
 
-  const bodyClassName = "min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
+  const bodyClassName = "min-w-0 flex-1 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
 
   if (onPress && actions) {
     return (
