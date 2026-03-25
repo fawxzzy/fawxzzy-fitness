@@ -19,6 +19,7 @@ type ExerciseTagFilterControlProps = {
   defaultOpen?: boolean;
   headerLabel?: string;
   className?: string;
+  variant?: "default" | "compact";
 };
 
 function formatTagLabel(tag: string) {
@@ -37,6 +38,7 @@ export function ExerciseTagFilterControl({
   defaultOpen = false,
   headerLabel = "Filters",
   className,
+  variant = "default",
 }: ExerciseTagFilterControlProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -51,32 +53,56 @@ export function ExerciseTagFilterControl({
   const shouldShowSummary =
     countDisplayMode === "always" || (countDisplayMode === "whenNonZero" && selectedTags.length > 0);
 
+  const compact = variant === "compact";
+
   return (
     <div className={className ?? "space-y-2"}>
       <Button
         type="button"
-        variant="ghost"
+        variant={compact ? "secondary" : "ghost"}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
-        className="w-full justify-between border border-white/10 bg-black/10 [-webkit-tap-highlight-color:transparent]"
+        className={compact
+          ? "min-h-10 w-full justify-between rounded-lg border border-border/45 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-sm font-medium [-webkit-tap-highlight-color:transparent]"
+          : "w-full justify-between border border-white/10 bg-black/10 [-webkit-tap-highlight-color:transparent]"}
       >
-        <span>{headerLabel}</span>
-        <span className="ml-auto inline-flex items-center">
+        <span className="inline-flex items-center gap-2">
+          <span>{headerLabel}</span>
+          <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.45)] px-1.5 text-[11px] font-semibold text-muted">
+            {selectedTags.length}
+          </span>
+        </span>
+        <span className="ml-auto inline-flex items-center gap-2">
+          {compact && selectedTags.length > 0 ? <span className="text-[11px] font-medium text-muted">Active</span> : null}
           {isOpen ? <ChevronUpIcon className="h-4 w-4 text-muted" /> : <ChevronDownIcon className="h-4 w-4 text-muted" />}
         </span>
       </Button>
 
-      {shouldShowSummary ? <p className="text-xs text-muted">{selectedSummary}</p> : null}
+      {shouldShowSummary ? <p className={compact ? "px-1 text-[11px] text-muted" : "text-xs text-muted"}>{selectedSummary}</p> : null}
 
       {isOpen ? (
-        <div className="space-y-2">
-          <PillButton type="button" active={selectedTags.length === 0} onClick={() => onChange([])}>
-            All
-          </PillButton>
+        <div className={compact ? "space-y-2 rounded-lg border border-border/35 bg-[rgb(var(--bg)/0.16)] p-2.5" : "space-y-2"}>
+          <div className="flex items-center gap-1.5">
+            <PillButton type="button" active={selectedTags.length === 0} onClick={() => onChange([])}>
+              All
+            </PillButton>
+            {selectedTags.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="inline-flex min-h-7 items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 text-[11px] font-medium text-muted transition-colors hover:text-text"
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
           {groups.map((group) => (
-            <div key={group.key} className="space-y-1">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{group.label}</p>
-              <div className="flex gap-1 overflow-x-auto px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
+            <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
+              <p className={compact ? "text-[10px] font-medium uppercase tracking-[0.14em] text-muted/80" : "text-[11px] font-medium uppercase tracking-wide text-muted"}>{group.label}</p>
+              <div className={compact
+                ? "flex gap-1.5 overflow-x-auto px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap"
+                : "flex gap-1 overflow-x-auto px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap"}
+              >
                 {group.tags.map((tag) => {
                   const isSelected = selectedTags.includes(tag.value);
                   return (
