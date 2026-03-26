@@ -93,12 +93,14 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
               title={dayLabel}
               subtitleLeft={routineRow.name}
               subtitleRight={daySummary}
-              leading={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
+              action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
               className={standaloneHeaderFamily.headerClassName}
               titleClassName={standaloneHeaderFamily.titleClassName}
               actionClassName={standaloneHeaderFamily.actionClassName}
             />
+          </AppPanel>
 
+          <AppPanel className="space-y-3 p-4">
             {canonicalDay?.state === "partial" ? (
               <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
                 Some exercises could not be loaded and will be skipped when you start this workout.

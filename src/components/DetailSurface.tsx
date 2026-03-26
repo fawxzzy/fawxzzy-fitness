@@ -30,7 +30,7 @@ export function DetailHeader({
         eyebrow={eyebrow}
         title={title}
         subtitle={subtitle}
-        leading={action}
+        action={action}
         meta={meta}
         className={standaloneHeaderFamily.headerClassName}
         actionClassName={cn(standaloneHeaderFamily.actionClassName, actionClassName)}

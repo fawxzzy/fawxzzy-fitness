@@ -92,6 +92,7 @@ export function SwipeActionRow({
     ? Math.min(translateX / leadingTriggerWidth, 1)
     : 0;
   const activeTrailingWidth = isDesktop ? trailingWidthDesktop : trailingWidthMobile;
+  const isActiveRow = isOpen || isDragging;
 
   const resetPointerState = () => {
     pointerStateRef.current = null;
@@ -187,7 +188,12 @@ export function SwipeActionRow({
   return (
     <div
       ref={containerRef}
-      className={cn("group/swipe-row relative overflow-hidden rounded-[1.3rem] touch-pan-y", className)}
+      className={cn(
+        "group/swipe-row relative overflow-visible rounded-[1.3rem] touch-pan-y",
+        isActiveRow ? "z-30" : "z-0",
+        className,
+      )}
+      style={isActiveRow ? { elevation: 12 } : undefined}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -218,7 +224,7 @@ export function SwipeActionRow({
       ) : null}
 
       {trailingActions ? (
-        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end overflow-hidden rounded-[inherit]" style={{ width: `${activeTrailingWidth}px` }}>
+        <div className="absolute inset-y-0 right-0 flex items-stretch justify-end overflow-visible rounded-[inherit]" style={{ width: `${activeTrailingWidth}px` }}>
           {trailingActions}
         </div>
       ) : null}

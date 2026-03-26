@@ -51,7 +51,7 @@ export function MeasurementPanelV2({
   rpe,
   onRpeChange,
   footerContent,
-  showInnerHeader = true,
+  showInnerHeader = false,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;

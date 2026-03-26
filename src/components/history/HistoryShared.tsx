@@ -40,7 +40,7 @@ export function HistoryDetailHeader({
         eyebrow="History"
         title={title}
         subtitle={subtitle}
-        leading={action}
+        action={action}
         meta={meta}
         className={standaloneHeaderFamily.headerClassName}
         actionClassName={standaloneHeaderFamily.actionClassName}
