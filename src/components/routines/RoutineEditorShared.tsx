@@ -72,19 +72,24 @@ export function RoutineEditorPageHeader({
 export function RoutineEditorSection({
   title,
   description,
+  action,
   children,
   className,
 }: {
   title: string;
   description?: ReactNode;
+  action?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <AppPanel className={cn("space-y-4 p-4", className)}>
-      <div className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.58)]">{title}</p>
-        {description ? <SubtitleText>{description}</SubtitleText> : null}
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.58)]">{title}</p>
+          {description ? <SubtitleText>{description}</SubtitleText> : null}
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {children}
     </AppPanel>
