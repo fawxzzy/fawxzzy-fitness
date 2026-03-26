@@ -1,0 +1,17 @@
+﻿name: "fitness"
+archetype: "node-web"
+repo: "https://github.com/ZachariahRedfield/FawxzzyFitness.git"
+branch: "main"
+installCommand: "npm ci"
+buildCommand: "npm run build"
+startCommand: "npm run start -- --hostname 127.0.0.1 --port 4301"
+port: 4301
+healthcheckPath: "/login"
+
+env:
+  mode: "inline"
+  requiredKeys: []
+
+deploy:
+  strategy: "rebuild"
+  workingDirectory: ".."
