@@ -20,7 +20,7 @@ export function SessionHeaderControls({
         eyebrow="Current Session"
         title={sessionTitle}
         subtitle={sessionSummary}
-        leading={<SessionBackButton href={backHref} />}
+        action={<SessionBackButton href={backHref} />}
       />
       <div className="px-5 pb-4">
         <OfflineSyncBadge />

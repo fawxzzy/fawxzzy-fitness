@@ -100,7 +100,7 @@ export default function ForgotPasswordFormClient({
         </form>
 
         <AuthFooter>
-          <BackButton href="/login" label="Back to log in" />
+          <BackButton href="/login" label="Back to log in" className="ml-auto" />
         </AuthFooter>
       </AuthCard>
     </AuthShell>
