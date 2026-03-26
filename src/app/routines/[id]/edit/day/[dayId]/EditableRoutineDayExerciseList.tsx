@@ -12,11 +12,9 @@ import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
-import { controlClassName } from "@/components/ui/formClasses";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
-import { EyebrowText } from "@/components/ui/text-roles";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
@@ -119,10 +117,6 @@ function RoutineTargetInputs({
   return (
     <div className="space-y-3">
       {Object.entries(activeMetrics).map(([metric, enabled]) => enabled ? <input key={metric} type="hidden" name="measurementSelections" value={metric} /> : null)}
-      <div className="space-y-1">
-        <EyebrowText>Sets</EyebrowText>
-        <input type="number" min={1} name="targetSets" value={sets} onChange={(event) => setSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required className={controlClassName} />
-      </div>
       <MeasurementConfigurator
         values={{
           reps: values.reps,
@@ -170,6 +164,22 @@ function RoutineTargetInputs({
         }}
         showHeader={false}
         description={undefined}
+        topField={{
+          title: "Sets",
+          suffix: isCardio ? "intervals" : "target",
+          input: (
+            <input
+              type="number"
+              min={1}
+              name="targetSets"
+              value={sets}
+              onChange={(event) => setSets(event.target.value)}
+              placeholder={isCardio ? "Intervals" : "Sets"}
+              required
+              className="input-no-spinner h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+            />
+          ),
+        }}
       />
       <GoalSummaryInline
         values={{
@@ -309,7 +319,7 @@ export function EditableRoutineDayExerciseList({
   }, [editModeActive, expandedId, items]);
 
 
-  const shouldShowAddExerciseAction = !reorderMode && !editModeActive && !isRestDay;
+  const shouldShowAddExerciseAction = !reorderMode && !editModeActive;
   const isMissingGoalSummary = (summary: string) => summary === "Goal missing" || summary === "-";
 
   if (items.length === 0) {
@@ -577,7 +587,7 @@ export function EditableRoutineDayExerciseList({
                           >
                             Back
                           </AppButton>
-                          <AppButton type="submit" variant="secondary" size="sm">Done editing</AppButton>
+                          <AppButton type="submit" variant="secondary" size="sm">Save</AppButton>
                         </div>
                       </form>
                     </div>

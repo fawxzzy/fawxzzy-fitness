@@ -439,11 +439,6 @@ export function ExercisePicker({
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
           {selectedMeasurements.map((metric) => <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
 
-          <div className="space-y-1">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Sets</p>
-            <Input type="number" min={1} name="targetSets" value={targetSets} onChange={(event) => setTargetSets(event.target.value)} placeholder={isCardio ? "Intervals" : "Sets"} required className="min-h-10 rounded-lg border-border/45 bg-[rgb(var(--bg)/0.24)]" />
-          </div>
-
           {selectedStats && (hasLast || hasPR) ? (
             <div className={cn("space-y-1 px-0.5 text-xs text-muted", didApplyLast ? "text-[rgb(var(--text)/0.9)]" : undefined)}>
               {hasLast ? <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
@@ -512,6 +507,22 @@ export function ExercisePicker({
             names={{ reps: "targetRepsMin", repsMax: "targetRepsMax", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
             showHeader={false}
             description={undefined}
+            topField={{
+              title: "Sets",
+              suffix: isCardio ? "intervals" : "target",
+              input: (
+                <input
+                  type="number"
+                  min={1}
+                  name="targetSets"
+                  value={targetSets}
+                  onChange={(event) => setTargetSets(event.target.value)}
+                  placeholder={isCardio ? "Intervals" : "Sets"}
+                  required
+                  className="input-no-spinner h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+                />
+              ),
+            }}
           />
 
           <GoalSummaryInline

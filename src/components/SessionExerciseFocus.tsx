@@ -16,7 +16,7 @@ import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
-import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
+import { formatQuickLogPreviewLabel, resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 
 type AddSetPayload = {
@@ -256,7 +256,13 @@ export function SessionExerciseFocus({
                     </StandardExerciseRow>
                   </SessionExerciseCard>
                   <AttachedQuickActionStrip
-                    label="Quick Add"
+                    label={formatQuickLogPreviewLabel({
+                      target: exercise.quickLogTarget,
+                      loggedSetCount: setCount,
+                      targetSetsMin: exercise.targetSetsMin,
+                      targetSetsMax: exercise.targetSetsMax,
+                      fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
+                    })}
                     isPending={quickAddPendingId === exercise.id}
                     onPress={async () => {
                       setQuickAddPendingId(exercise.id);

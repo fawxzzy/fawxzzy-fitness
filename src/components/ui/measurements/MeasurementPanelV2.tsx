@@ -52,6 +52,7 @@ export function MeasurementPanelV2({
   onRpeChange,
   footerContent,
   showInnerHeader = false,
+  topField,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -72,6 +73,11 @@ export function MeasurementPanelV2({
   onRpeChange?: (value: string) => void;
   footerContent?: ReactNode;
   showInnerHeader?: boolean;
+  topField?: {
+    title: string;
+    suffix?: string;
+    input: ReactNode;
+  };
 }) {
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
   const resolvedDistanceUnit = values.distanceUnit === "km" ? "km" : "mi";
@@ -96,6 +102,16 @@ export function MeasurementPanelV2({
         ) : null}
 
         <div className="grid grid-cols-2 gap-2">
+          {topField ? (
+            <div className={cn(metricCardClassName, "col-span-2")}>
+              <p className="inline-flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                <span>{topField.title}</span>
+                {topField.suffix ? <span className="text-[10px] font-medium tracking-[0.1em] text-muted/70">({topField.suffix})</span> : null}
+              </p>
+              <div className="mt-1">{topField.input}</div>
+            </div>
+          ) : null}
+
           <div className={metricCardClassName}>
             <MetricHeader title={METRICS[0].title} suffix={METRICS[0].suffix(values)} active={activeMetrics.reps} onToggle={() => onMetricToggle("reps")} />
             {"repsMax" in values ? (

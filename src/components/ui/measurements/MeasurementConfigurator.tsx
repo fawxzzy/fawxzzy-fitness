@@ -20,6 +20,7 @@ export function MeasurementConfigurator({
   showHeader = false,
   leadingContent,
   trailingContent,
+  topField,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -36,6 +37,11 @@ export function MeasurementConfigurator({
   showHeader?: boolean;
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
+  topField?: {
+    title: string;
+    suffix?: string;
+    input: ReactNode;
+  };
 }) {
   return (
     <MeasurementPanelV2
@@ -54,6 +60,7 @@ export function MeasurementConfigurator({
       showHeader={showHeader}
       leadingContent={leadingContent}
       trailingContent={trailingContent}
+      topField={topField}
     />
   );
 }

@@ -11,7 +11,7 @@ export function SessionExerciseCard({ children }: { children: ReactNode }) {
 }
 
 export function AttachedQuickActionStrip({
-  label = "Quick Add",
+  label = "Log: Set",
   onPress,
   isPending,
   className,
@@ -34,7 +34,7 @@ export function AttachedQuickActionStrip({
         size="sm"
         onClick={onPress}
         disabled={isPending}
-        className="min-h-[42px] w-full border-white/8 bg-transparent text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--text)/0.72)] shadow-none hover:bg-white/[0.05]"
+        className="min-h-[38px] w-full border-white/8 bg-transparent text-[12px] font-medium text-[rgb(var(--text)/0.74)] shadow-none hover:bg-white/[0.05]"
       >
         {isPending ? "Adding…" : label}
       </AppButton>
