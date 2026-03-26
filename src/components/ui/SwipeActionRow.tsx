@@ -193,7 +193,7 @@ export function SwipeActionRow({
         isActiveRow ? "z-30" : "z-0",
         className,
       )}
-      style={isActiveRow ? { elevation: 12 } : undefined}
+      style={isActiveRow ? { boxShadow: "0 12px 24px rgba(0, 0, 0, 0.18)", zIndex: 1 } : undefined}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
