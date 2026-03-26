@@ -540,16 +540,13 @@ export function EditableRoutineDayExerciseList({
                         <input type="hidden" name="routineId" value={routineId} />
                         <input type="hidden" name="routineDayId" value={routineDayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                        <div className="space-y-3 rounded-[1.1rem] border border-border/40 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
-                          <EyebrowText>Configure goal</EyebrowText>
-                          <RoutineTargetInputs
-                            weightUnit={weightUnit}
-                            distanceUnit={exercise.defaultDistanceUnit}
-                            defaultSets={exercise.defaults.targetSets ?? 1}
-                            defaults={exercise.defaults}
-                            isCardio={exercise.isCardio}
-                          />
-                        </div>
+                        <RoutineTargetInputs
+                          weightUnit={weightUnit}
+                          distanceUnit={exercise.defaultDistanceUnit}
+                          defaultSets={exercise.defaults.targetSets ?? 1}
+                          defaults={exercise.defaults}
+                          isCardio={exercise.isCardio}
+                        />
                         <div className="flex items-center justify-between gap-2">
                           <AppButton
                             type="button"
