@@ -44,7 +44,6 @@ export function MeasurementPanelV2({
   onChange,
   names,
   className,
-  heading: _heading = "Measurements",
   description,
   showHeader = false,
   leadingContent,
@@ -62,7 +61,6 @@ export function MeasurementPanelV2({
   onChange: (patch: Partial<MeasurementValues>) => void;
   names?: Partial<Record<"reps" | "repsMax" | "weight" | "duration" | "distance" | "calories" | "weightUnit" | "distanceUnit", string>>;
   className?: string;
-  heading?: string;
   description?: string;
   collapsedLabel?: string;
   collapsedDescription?: string;

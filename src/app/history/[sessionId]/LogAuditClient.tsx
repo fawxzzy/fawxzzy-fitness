@@ -488,8 +488,7 @@ export function LogAuditClient({
                         </button>
 
                         {expandedSetId === set.id ? (
-                          <div className="space-y-2 rounded-[1rem] border border-border/35 bg-[rgb(var(--surface-rgb)/0.34)] p-2.5" onClick={(event) => event.stopPropagation()}>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
+                          <div className="space-y-2.5 px-0.5 pt-1" onClick={(event) => event.stopPropagation()}>
                             <ModifyMeasurements
                               values={set.values}
                               activeMetrics={set.activeMetrics}
