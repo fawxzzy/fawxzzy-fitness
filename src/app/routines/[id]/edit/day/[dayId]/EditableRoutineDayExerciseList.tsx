@@ -343,6 +343,10 @@ export function EditableRoutineDayExerciseList({
 
   const flushAutosave = () => {
     if (!expandedId || !activeEditFormRef.current) return;
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+      autosaveTimeoutRef.current = null;
+    }
     const formData = new FormData(activeEditFormRef.current);
     const snapshot = createDraftSnapshot(formData);
     const lastSavedSnapshot = lastSavedSnapshotRef.current[expandedId] ?? null;
@@ -369,6 +373,11 @@ export function EditableRoutineDayExerciseList({
     autosaveTimeoutRef.current = setTimeout(() => {
       activeEditFormRef.current?.requestSubmit();
     }, 500);
+  };
+
+  const handleCloseInlineEditor = () => {
+    flushAutosave();
+    setExpandedId(null);
   };
 
   const editModeActive = expandedId !== null;
@@ -460,8 +469,7 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
 
-      <div className="mb-2 flex items-center justify-between gap-3 px-1">
-        <p className="text-xs text-muted">{items.length} exercise{items.length === 1 ? "" : "s"}</p>
+      <div className="mb-2 flex items-center justify-end gap-3 px-1">
         <button
           type="button"
           onClick={handleToggleReorderMode}
@@ -478,8 +486,6 @@ export function EditableRoutineDayExerciseList({
           {reorderMode ? "Done" : "Reorder"}
         </button>
       </div>
-
-      {reorderMode ? <p className="mb-2 px-1 text-[11px] text-muted">Reorder mode is on. Drag rows by the handle.</p> : null}
 
       {isRestDay ? null : (
       <ul className="space-y-2">
@@ -616,8 +622,7 @@ export function EditableRoutineDayExerciseList({
                             ariaLabel="Close exercise editor"
                             onClick={(event) => {
                               event.preventDefault();
-                              flushAutosave();
-                              setExpandedId(null);
+                              handleCloseInlineEditor();
                             }}
                           />
                         </div>
