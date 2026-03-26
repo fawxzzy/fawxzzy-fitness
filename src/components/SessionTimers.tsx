@@ -65,6 +65,14 @@ function parseDurationInput(rawValue: string): number | null {
   return totalSeconds;
 }
 
+function formatDurationInput(durationSeconds: number | null) {
+  if (durationSeconds === null || durationSeconds < 0) return "";
+  const safeSeconds = Math.floor(durationSeconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 type DisplaySet = SetRow & { pending?: boolean; queueStatus?: SetLogQueueItem["status"] };
 type AnimatedDisplaySet = DisplaySet & { isLeaving?: boolean };
 
@@ -692,9 +700,9 @@ export function SetLoggerCard({
       return;
     }
 
-    setDurationInput(activeMetrics.time ? "" : sanitizedValues.duration);
-    setDistance(activeMetrics.distance ? "" : sanitizedValues.distance);
-    setCalories(activeMetrics.calories ? "" : sanitizedValues.calories);
+    setDurationInput(activeMetrics.time ? formatDurationInput(parsedDuration) : sanitizedValues.duration);
+    setDistance(activeMetrics.distance ? (parsedDistance === null ? "" : String(parsedDistance)) : sanitizedValues.distance);
+    setCalories(activeMetrics.calories ? (parsedCalories === null ? "" : String(parsedCalories)) : sanitizedValues.calories);
     setWeight(activeMetrics.weight ? String(parsedWeight) : sanitizedValues.weight);
     setReps(activeMetrics.reps ? String(parsedReps) : sanitizedValues.reps);
     setRpe(parsedRpe === null ? "" : String(parsedRpe));

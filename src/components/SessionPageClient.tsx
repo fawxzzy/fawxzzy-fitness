@@ -179,7 +179,7 @@ export function SessionPageClient({
               fullWidth
               className="min-h-12 font-semibold shadow-[0_10px_24px_rgba(16,185,129,0.18)] transition hover:bg-[rgb(var(--accent-strong-rgb,16_185_129))] hover:brightness-105 active:brightness-95"
             >
-              Complete Session
+              Complete
             </AppButton>
           )}
           className="w-full"

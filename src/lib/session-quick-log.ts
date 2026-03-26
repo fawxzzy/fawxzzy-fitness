@@ -29,6 +29,54 @@ function hasValue(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
+function formatDurationPreview(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatRange(min?: number, max?: number, suffix = "") {
+  const hasMin = hasValue(min);
+  const hasMax = hasValue(max);
+  if (hasMin && hasMax && min !== max) return `${min}–${max}${suffix}`;
+  if (hasMin) return `${min}${suffix}`;
+  if (hasMax) return `${max}${suffix}`;
+  return null;
+}
+
+export function formatQuickLogPreviewLabel({
+  target,
+  loggedSetCount,
+  targetSetsMin,
+  targetSetsMax,
+  fallbackWeightUnit,
+}: {
+  target: SessionQuickLogTarget | undefined;
+  loggedSetCount: number;
+  targetSetsMin?: number | null;
+  targetSetsMax?: number | null;
+  fallbackWeightUnit: "lbs" | "kg";
+}) {
+  const weightUnit = target?.weightUnit ?? fallbackWeightUnit;
+  const repsSummary = formatRange(target?.repsMin, target?.repsMax, " reps");
+  const weightSummary = formatRange(target?.weightMin, target?.weightMax, ` ${weightUnit}`);
+  const durationSummary = hasValue(target?.durationSeconds) ? formatDurationPreview(Number(target?.durationSeconds)) : null;
+  const distanceSummary = hasValue(target?.distance) ? `${target?.distance} ${target?.distanceUnit ?? "mi"}` : null;
+
+  const combinedStrength = [repsSummary, weightSummary].filter(Boolean).slice(0, 2).join(" • ");
+  const primarySummary = combinedStrength || durationSummary || distanceSummary;
+  if (primarySummary) return `Log: ${primarySummary}`;
+
+  const nextSet = loggedSetCount + 1;
+  const goalSetCount = targetSetsMax ?? targetSetsMin;
+  if (goalSetCount && goalSetCount > 0) {
+    return `Log: Set ${nextSet} of ${goalSetCount}`;
+  }
+
+  return `Log: Set ${nextSet}`;
+}
+
 export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): QuickLogResolution {
   if (!target) {
     return { ok: false, reason: "No goal target available for quick log." };
