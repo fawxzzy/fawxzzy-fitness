@@ -127,9 +127,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             };
             const isCardio = isCardioExercise(exerciseMetadata);
             const useIntervalLanguage = usesIntervalLanguage({
-              isCardio,
-              measurementType: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
-              exerciseName: exerciseNameMap.get(exercise.exercise_id) ?? null,
+              intervalMode: false,
             });
 
             return {

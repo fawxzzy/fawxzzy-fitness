@@ -3,19 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { RoutineEditorListModeControlRow } from "@/components/routines/RoutineEditorShared";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
-import { toastActionResult } from "@/lib/action-feedback";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
@@ -55,8 +54,6 @@ type Props = {
   updateAction: (formData: FormData) => Promise<ActionResult>;
   deleteAction: (formData: FormData) => Promise<ActionResult>;
   reorderAction: (formData: FormData) => Promise<ActionResult>;
-  updateDaySettingsAction: (formData: FormData) => Promise<ActionResult>;
-  dayName: string;
   initialIsRest: boolean;
   addExerciseHref: string;
 };
@@ -166,7 +163,7 @@ function RoutineTargetInputs({
         description={undefined}
         topField={{
           title: "Sets",
-          suffix: isCardio ? "intervals" : "target",
+          suffix: "target",
           input: (
             <input
               type="number"
@@ -174,7 +171,7 @@ function RoutineTargetInputs({
               name="targetSets"
               value={sets}
               onChange={(event) => setSets(event.target.value)}
-              placeholder={isCardio ? "Intervals" : "Sets"}
+              placeholder="Sets"
               required
               className="input-no-spinner h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
             />
@@ -204,8 +201,6 @@ export function EditableRoutineDayExerciseList({
   updateAction,
   deleteAction,
   reorderAction,
-  updateDaySettingsAction,
-  dayName,
   initialIsRest,
   addExerciseHref,
 }: Props) {
@@ -219,6 +214,12 @@ export function EditableRoutineDayExerciseList({
   const [isRestDay, setIsRestDay] = useState(initialIsRest);
   const [reorderMode, setReorderMode] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [autosaveError, setAutosaveError] = useState<string | null>(null);
+  const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeEditFormRef = useRef<HTMLFormElement | null>(null);
+  const pendingSnapshotRef = useRef<string | null>(null);
+  const lastSavedSnapshotRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     setItems(exercises);
@@ -227,6 +228,10 @@ export function EditableRoutineDayExerciseList({
   useEffect(() => {
     setIsRestDay(initialIsRest);
   }, [initialIsRest]);
+
+  useEffect(() => () => {
+    if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
+  }, []);
 
   const orderedIds = useMemo(() => items.map((exercise) => exercise.id), [items]);
   const initialOrder = useMemo(() => exercises.map((exercise) => exercise.id), [exercises]);
@@ -297,15 +302,73 @@ export function EditableRoutineDayExerciseList({
   }, [reorderMode]);
 
   useEffect(() => {
+    if (isRestDay) {
+      setReorderMode(false);
+      setExpandedId(null);
+      setSelectedExerciseId(null);
+    }
+  }, [isRestDay]);
+
+  useEffect(() => {
     if (expandedId) {
       setReorderMode(false);
     }
   }, [expandedId]);
 
   const handleToggleReorderMode = () => {
+    if (isRestDay) return;
     setExpandedId(null);
     setSelectedExerciseId(null);
     setReorderMode((current) => !current);
+  };
+
+  const createDraftSnapshot = (formData: FormData) => {
+    const trackedKeys = [
+      "targetSets",
+      "targetRepsMin",
+      "targetRepsMax",
+      "targetWeight",
+      "targetDuration",
+      "targetDistance",
+      "targetCalories",
+      "targetWeightUnit",
+      "targetDistanceUnit",
+    ];
+    const snapshotPayload = {
+      fields: Object.fromEntries(trackedKeys.map((key) => [key, String(formData.get(key) ?? "").trim()])),
+      measurementSelections: formData.getAll("measurementSelections").map((value) => String(value)).sort(),
+    };
+    return JSON.stringify(snapshotPayload);
+  };
+
+  const flushAutosave = () => {
+    if (!expandedId || !activeEditFormRef.current) return;
+    const formData = new FormData(activeEditFormRef.current);
+    const snapshot = createDraftSnapshot(formData);
+    const lastSavedSnapshot = lastSavedSnapshotRef.current[expandedId] ?? null;
+    if (snapshot === lastSavedSnapshot) {
+      pendingSnapshotRef.current = null;
+      return;
+    }
+    pendingSnapshotRef.current = snapshot;
+    activeEditFormRef.current.requestSubmit();
+  };
+
+  const scheduleAutosave = () => {
+    if (!expandedId || !activeEditFormRef.current) return;
+    const formData = new FormData(activeEditFormRef.current);
+    const snapshot = createDraftSnapshot(formData);
+    const lastSavedSnapshot = lastSavedSnapshotRef.current[expandedId] ?? null;
+    if (snapshot === lastSavedSnapshot) {
+      pendingSnapshotRef.current = null;
+      if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
+      return;
+    }
+    pendingSnapshotRef.current = snapshot;
+    if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
+    autosaveTimeoutRef.current = setTimeout(() => {
+      activeEditFormRef.current?.requestSubmit();
+    }, 500);
   };
 
   const editModeActive = expandedId !== null;
@@ -327,26 +390,18 @@ export function EditableRoutineDayExerciseList({
       <>
         <PublishBottomActions>
           {editModeActive && activeExercise ? (
-            <BottomActionSingle className="grid grid-cols-2 gap-2">
-              <BottomDockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
-                View Exercise
-              </BottomDockButton>
-              <ConfirmedServerFormButton
-                action={deleteAction}
-                hiddenFields={{ routineId, routineDayId, exerciseRowId: activeExercise.id }}
-                triggerLabel="Delete Exercise"
-                triggerAriaLabel={`Delete ${activeExercise.name}`}
-                triggerClassName="w-full"
-                modalTitle="Delete routine day exercise?"
-                modalDescription="This will remove this exercise from the routine day."
-                confirmLabel="Delete"
-                details={`Exercise: ${activeExercise.name}`}
-                onSuccess={() => {
-                  setItems((current) => current.filter((item) => item.id !== activeExercise.id));
-                  setExpandedId(null);
-                }}
-              />
-            </BottomActionSingle>
+            <BottomActionDock
+              left={(
+                <DockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
+                  View Exercise
+                </DockButton>
+              )}
+              right={(
+                <DockButton type="button" variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
+                  Delete Exercise
+                </DockButton>
+              )}
+            />
           ) : shouldShowAddExerciseAction ? (
             <BottomActionSingle>
               <BottomDockButton type="button" variant="primary" onClick={() => router.push(addExerciseHref)}>
@@ -366,26 +421,18 @@ export function EditableRoutineDayExerciseList({
     <>
       <PublishBottomActions>
         {editModeActive && activeExercise ? (
-          <BottomActionSingle className="grid grid-cols-2 gap-2">
-            <BottomDockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
-              View Exercise
-            </BottomDockButton>
-            <ConfirmedServerFormButton
-              action={deleteAction}
-              hiddenFields={{ routineId, routineDayId, exerciseRowId: activeExercise.id }}
-              triggerLabel="Delete Exercise"
-              triggerAriaLabel={`Delete ${activeExercise.name}`}
-              triggerClassName="w-full"
-              modalTitle="Delete routine day exercise?"
-              modalDescription="This will remove this exercise from the routine day."
-              confirmLabel="Delete"
-              details={`Exercise: ${activeExercise.name}`}
-              onSuccess={() => {
-                setItems((current) => current.filter((item) => item.id !== activeExercise.id));
-                setExpandedId(null);
-              }}
-            />
-          </BottomActionSingle>
+          <BottomActionDock
+            left={(
+              <DockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
+                View Exercise
+              </DockButton>
+            )}
+            right={(
+              <DockButton type="button" variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
+                Delete Exercise
+              </DockButton>
+            )}
+          />
         ) : shouldShowAddExerciseAction ? (
           <BottomActionSingle>
             <BottomDockButton type="button" variant="primary" onClick={() => router.push(addExerciseHref)}>
@@ -413,47 +460,28 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
 
-      <RoutineEditorListModeControlRow
-        summary={reorderMode ? "Reorder mode is on. Drag rows by the handle." : `${items.length} exercise${items.length === 1 ? "" : "s"}`}
-        className="mb-3 rounded-[1.15rem] border-border/40 bg-[rgb(var(--surface-2-soft)/0.44)] px-3.5 py-2.5"
-        actions={[
-          {
-            label: "Rest Day",
-            active: isRestDay,
-            onClick: async () => {
-              const nextIsRest = !isRestDay;
-              setIsRestDay(nextIsRest);
-              const formData = new FormData();
-              formData.set("routineId", routineId);
-              formData.set("routineDayId", routineDayId);
-              formData.set("name", dayName);
-              if (nextIsRest) formData.set("isRest", "on");
-              const result = await updateDaySettingsAction(formData);
-              if (!result.ok) {
-                setIsRestDay(!nextIsRest);
-                toast.error(result.error ?? "Could not update rest day.");
-                return;
-              }
-              setExpandedId(null);
-              setSelectedExerciseId(null);
-              setReorderMode(false);
-              toast.success(nextIsRest ? "Rest day on." : "Rest day off.");
-              router.refresh();
-            },
-          },
-          {
-            label: reorderMode ? "Done" : "Reorder",
-            active: reorderMode,
-            onClick: handleToggleReorderMode,
-          },
-        ]}
-      />
+      <div className="mb-2 flex items-center justify-between gap-3 px-1">
+        <p className="text-xs text-muted">{items.length} exercise{items.length === 1 ? "" : "s"}</p>
+        <button
+          type="button"
+          onClick={handleToggleReorderMode}
+          aria-pressed={reorderMode}
+          disabled={isRestDay}
+          className={cn(
+            "inline-flex min-h-8 items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+            reorderMode
+              ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
+              : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
+            isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
+          )}
+        >
+          {reorderMode ? "Done" : "Reorder"}
+        </button>
+      </div>
 
-      {isRestDay ? (
-        <div className="rounded-[1.2rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.28)] px-4 py-3 text-sm text-muted">
-          Planned exercises stay saved until you turn rest day off.
-        </div>
-      ) : (
+      {reorderMode ? <p className="mb-2 px-1 text-[11px] text-muted">Reorder mode is on. Drag rows by the handle.</p> : null}
+
+      {isRestDay ? null : (
       <ul className="space-y-2">
         {visibleItems.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
@@ -513,13 +541,24 @@ export function EditableRoutineDayExerciseList({
                   {isExpanded ? (
                     <div className="border-t border-border/30 px-3.5 pb-3.5 pt-2 sm:px-4">
                       <form
+                        ref={(node) => {
+                          if (isExpanded) activeEditFormRef.current = node;
+                        }}
                         action={async (formData) => {
                           const result = await updateAction(formData);
-                          toastActionResult(toast, result, {
-                            success: "Exercise draft updated.",
-                            error: "Could not update exercise.",
-                          });
+                          if (!result.ok) {
+                            const nextError = result.error ?? "Could not update exercise.";
+                            setAutosaveError(nextError);
+                            toast.error(nextError);
+                            return;
+                          }
+
+                          setAutosaveError(null);
+                          if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
                           if (result.ok) {
+                            const snapshot = pendingSnapshotRef.current ?? createDraftSnapshot(formData);
+                            lastSavedSnapshotRef.current[exercise.id] = snapshot;
+                            pendingSnapshotRef.current = null;
                             const targetSets = Number(formData.get("targetSets") ?? exercise.defaults.targetSets ?? 1);
                             const parseOptionalNumber = (value: FormDataEntryValue | null) => {
                               const raw = String(value ?? "").trim();
@@ -562,15 +601,26 @@ export function EditableRoutineDayExerciseList({
                                 targetSets,
                               },
                             }));
-                            setExpandedId(null);
                             router.refresh();
                           }
                         }}
                         className="space-y-3"
+                        onChangeCapture={scheduleAutosave}
+                        onBlurCapture={flushAutosave}
                       >
                         <input type="hidden" name="routineId" value={routineId} />
                         <input type="hidden" name="routineDayId" value={routineDayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
+                        <div className="flex justify-end">
+                          <TopRightBackButton
+                            ariaLabel="Close exercise editor"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              flushAutosave();
+                              setExpandedId(null);
+                            }}
+                          />
+                        </div>
                         <RoutineTargetInputs
                           weightUnit={weightUnit}
                           distanceUnit={exercise.defaultDistanceUnit}
@@ -578,17 +628,7 @@ export function EditableRoutineDayExerciseList({
                           defaults={exercise.defaults}
                           isCardio={exercise.isCardio}
                         />
-                        <div className="flex items-center justify-between gap-2">
-                          <AppButton
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setExpandedId(null)}
-                          >
-                            Back
-                          </AppButton>
-                          <AppButton type="submit" variant="secondary" size="sm">Save</AppButton>
-                        </div>
+                        {autosaveError ? <p className="text-xs text-rose-300">{autosaveError}</p> : null}
                       </form>
                     </div>
                   ) : null}
@@ -598,6 +638,34 @@ export function EditableRoutineDayExerciseList({
         })}
       </ul>
       )}
+
+      <ConfirmDestructiveModal
+        open={deleteConfirmOpen}
+        title="Delete routine day exercise?"
+        description="This will remove this exercise from the routine day."
+        confirmLabel="Delete"
+        details={activeExercise ? `Exercise: ${activeExercise.name}` : undefined}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={async () => {
+          if (!activeExercise) {
+            setDeleteConfirmOpen(false);
+            return;
+          }
+          const formData = new FormData();
+          formData.set("routineId", routineId);
+          formData.set("routineDayId", routineDayId);
+          formData.set("exerciseRowId", activeExercise.id);
+          const result = await deleteAction(formData);
+          if (!result.ok) {
+            toast.error(result.error ?? "Could not delete exercise.");
+            return;
+          }
+          setDeleteConfirmOpen(false);
+          setItems((current) => current.filter((item) => item.id !== activeExercise.id));
+          setExpandedId(null);
+          toast.success("Exercise removed.");
+        }}
+      />
 
       <ExerciseInfo
         exerciseId={selectedExerciseId}
