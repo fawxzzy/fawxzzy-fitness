@@ -69,7 +69,7 @@ export function SessionQuickAddExerciseForm({
               )}
               primary={(
                 <BottomDockButton type="submit" form="session-quick-add-exercise-form" variant="primary">
-                  Add Exercise
+                  + Exercise
                 </BottomDockButton>
               )}
             />

@@ -20,6 +20,28 @@ const shellClassName = "space-y-2.5";
 const metricCardClassName = "min-h-[5.2rem] rounded-xl border border-emerald-300/16 bg-[rgb(var(--bg)/0.28)] px-3 py-2.5";
 const valueInputClassName = "input-no-spinner mt-1 h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
 
+function StatFieldLabel({
+  title,
+  suffix,
+  tone = "muted",
+}: {
+  title: string;
+  suffix?: string;
+  tone?: "muted" | "active";
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] transition",
+        tone === "active" ? "text-emerald-100" : "text-muted/85",
+      )}
+    >
+      <span>{title}</span>
+      {suffix ? <span className="text-[10px] font-medium tracking-[0.1em] text-muted/70">({suffix})</span> : null}
+    </span>
+  );
+}
+
 function MetricHeader({ title, suffix, active, onToggle }: { title: string; suffix: string; active: boolean; onToggle: () => void }) {
   return (
     <button
@@ -27,12 +49,11 @@ function MetricHeader({ title, suffix, active, onToggle }: { title: string; suff
       onClick={onToggle}
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] transition",
+        "inline-flex text-left",
         active ? "text-emerald-100" : "text-muted/85 hover:text-emerald-100",
       )}
     >
-      <span>{title}</span>
-      <span className="text-[10px] font-medium tracking-[0.1em] text-muted/70">({suffix})</span>
+      <StatFieldLabel title={title} suffix={suffix} tone={active ? "active" : "muted"} />
     </button>
   );
 }
@@ -104,10 +125,7 @@ export function MeasurementPanelV2({
         <div className="grid grid-cols-2 gap-2">
           {topField ? (
             <div className={cn(metricCardClassName, "col-span-2")}>
-              <p className="inline-flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
-                <span>{topField.title}</span>
-                {topField.suffix ? <span className="text-[10px] font-medium tracking-[0.1em] text-muted/70">({topField.suffix})</span> : null}
-              </p>
+              <StatFieldLabel title={topField.title} suffix={topField.suffix} tone="active" />
               <div className="mt-1">{topField.input}</div>
             </div>
           ) : null}
@@ -228,9 +246,7 @@ export function MeasurementPanelV2({
 
           {hasRpeInput ? (
             <div className={cn(metricCardClassName, "col-span-2")}>
-              <p className="inline-flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
-                <span>RPE (0–10)</span>
-              </p>
+              <StatFieldLabel title="RPE" suffix="0–10" tone="active" />
               <input
                 type="number"
                 min={0}
