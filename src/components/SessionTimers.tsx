@@ -875,17 +875,16 @@ export function SetLoggerCard({
             if (patch.distanceUnit !== undefined) setDistanceUnit(patch.distanceUnit);
           }}
           className={tapFeedbackClass}
-          heading="MEASUREMENTS"
           showInnerHeader={false}
           rpe={rpe}
           onRpeChange={setRpe}
           footerContent={(
             <div className="space-y-2.5">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-text/90">
+              <div className="rounded-lg bg-white/[0.03] px-3 py-2 text-sm text-text/90">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</span>
                 <p className="mt-0.5">{liveSummaryText}</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-[rgb(var(--surface-rgb)/0.42)] px-2.5 py-2">
+              <div className="rounded-lg bg-[rgb(var(--surface-rgb)/0.42)] px-2.5 py-2">
                 <div className="mb-2 flex items-center justify-between gap-2 px-1">
                   <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Sets</span>
                   <span className="text-[11px] text-muted">{sets.length} logged</span>

@@ -29,7 +29,7 @@ export function ModifyMeasurements({
   onMetricToggle,
   onChange,
   tapFeedbackClass = "",
-  showHeader = true,
+  showHeader = false,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -40,5 +40,5 @@ export function ModifyMeasurements({
   tapFeedbackClass?: string;
   showHeader?: boolean;
 }) {
-  return <MeasurementConfigurator values={values} activeMetrics={activeMetrics} isExpanded={isExpanded} onExpandedChange={onExpandedChange} onMetricToggle={onMetricToggle} onChange={onChange} className={tapFeedbackClass} heading="MEASUREMENTS" description={undefined} collapsedLabel="Optional measurements" collapsedDescription="Show only the fields you need for this set." showHeader={showHeader} />;
+  return <MeasurementConfigurator values={values} activeMetrics={activeMetrics} isExpanded={isExpanded} onExpandedChange={onExpandedChange} onMetricToggle={onMetricToggle} onChange={onChange} className={tapFeedbackClass} description={undefined} collapsedLabel="Optional measurements" collapsedDescription="Show only the fields you need for this set." showHeader={showHeader} />;
 }
