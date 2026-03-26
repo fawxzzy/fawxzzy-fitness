@@ -11,7 +11,7 @@ export function QuickAddExerciseSheet({
       href={`/session/${sessionId}/add-exercise?returnTo=${encodeURIComponent(`/session/${sessionId}`)}`}
       className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
     >
-      <span>Add Exercise</span>
+      <span>+ Exercise</span>
     </Link>
   );
 }

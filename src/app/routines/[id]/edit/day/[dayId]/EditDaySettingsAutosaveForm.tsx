@@ -104,7 +104,28 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         subtitle={routineName}
         subtitleRight={daySummary}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
-      />
+      >
+        <div className="px-1 pt-1">
+          <button
+            type="button"
+            aria-pressed={draft.isRest}
+            onClick={() => {
+              const nextSnapshot = { ...draft, isRest: !draft.isRest };
+              setDraft(nextSnapshot);
+              scheduleAutosave(nextSnapshot);
+            }}
+            className={[
+              "inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+              draft.isRest
+                ? "border-emerald-400/35 bg-emerald-400/14 text-emerald-100"
+                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
+            ].join(" ")}
+          >
+            <span>Rest Day</span>
+            <span>{draft.isRest ? "On" : "Off"}</span>
+          </button>
+        </div>
+      </RoutineEditorPageHeader>
     </form>
   );
 }

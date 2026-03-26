@@ -24,20 +24,32 @@ function StatFieldLabel({
   title,
   suffix,
   tone = "muted",
+  variant = "standard",
 }: {
   title: string;
   suffix?: string;
   tone?: "muted" | "active";
+  variant?: "standard" | "target";
 }) {
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] transition",
         tone === "active" ? "text-emerald-100" : "text-muted/85",
+        variant === "target" ? "text-emerald-100" : undefined,
       )}
     >
       <span>{title}</span>
-      {suffix ? <span className="text-[10px] font-medium tracking-[0.1em] text-muted/70">({suffix})</span> : null}
+      {suffix ? (
+        <span
+          className={cn(
+            "text-[10px] font-medium tracking-[0.1em]",
+            variant === "target" ? "text-emerald-200/80" : "text-muted/70",
+          )}
+        >
+          ({suffix})
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -125,7 +137,7 @@ export function MeasurementPanelV2({
         <div className="grid grid-cols-2 gap-2">
           {topField ? (
             <div className={cn(metricCardClassName, "col-span-2")}>
-              <StatFieldLabel title={topField.title} suffix={topField.suffix} tone="active" />
+              <StatFieldLabel title={topField.title} suffix={topField.suffix} tone="active" variant="target" />
               <div className="mt-1">{topField.input}</div>
             </div>
           ) : null}

@@ -3,7 +3,7 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction, updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
+import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
 import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm";
 import { requireUser } from "@/lib/auth";
@@ -147,6 +147,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
           <RoutineEditorSection
             title="Planned Workout"
+            description={activeExerciseSummary}
           >
             <EditableRoutineDayExerciseList
               routineId={params.id}
@@ -156,8 +157,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               updateAction={updateRoutineDayExerciseAction}
               deleteAction={deleteRoutineDayExerciseAction}
               reorderAction={reorderRoutineDayExercisesAction}
-              updateDaySettingsAction={updateRoutineDaySettingsAction}
-              dayName={(day as RoutineDayRow).name ?? ""}
               initialIsRest={(day as RoutineDayRow).is_rest}
               addExerciseHref={addExerciseHref}
             />
