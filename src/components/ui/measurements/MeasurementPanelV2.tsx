@@ -17,8 +17,9 @@ const METRICS: Array<{
 ];
 
 const shellClassName = "space-y-2.5";
-const metricCardClassName = "min-h-[5.2rem] rounded-xl border border-emerald-300/16 bg-[rgb(var(--bg)/0.28)] px-3 py-2.5";
+const metricCardClassName = "min-h-[5.2rem] rounded-xl border px-3 py-2.5 transition-colors";
 const valueInputClassName = "input-no-spinner mt-1 h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
+const statFieldLabelClassName = "inline-flex select-none items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] [-webkit-tap-highlight-color:transparent]";
 
 function StatFieldLabel({
   title,
@@ -34,7 +35,7 @@ function StatFieldLabel({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] transition",
+        statFieldLabelClassName,
         tone === "active" ? "text-emerald-100" : "text-muted/85",
         variant === "target" ? "text-emerald-100" : undefined,
       )}
@@ -60,12 +61,9 @@ function MetricHeader({ title, suffix, active, onToggle }: { title: string; suff
       type="button"
       onClick={onToggle}
       aria-pressed={active}
-      className={cn(
-        "inline-flex text-left",
-        active ? "text-emerald-100" : "text-muted/85 hover:text-emerald-100",
-      )}
+      className="inline-flex rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
     >
-      <StatFieldLabel title={title} suffix={suffix} tone={active ? "active" : "muted"} />
+      <StatFieldLabel title={title} suffix={suffix} tone="muted" />
     </button>
   );
 }
@@ -136,13 +134,13 @@ export function MeasurementPanelV2({
 
         <div className="grid grid-cols-2 gap-2">
           {topField ? (
-            <div className={cn(metricCardClassName, "col-span-2")}>
+            <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
               <StatFieldLabel title={topField.title} suffix={topField.suffix} tone="active" variant="target" />
               <div className="mt-1">{topField.input}</div>
             </div>
           ) : null}
 
-          <div className={metricCardClassName}>
+          <div className={cn(metricCardClassName, activeMetrics.reps ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}>
             <MetricHeader title={METRICS[0].title} suffix={METRICS[0].suffix(values)} active={activeMetrics.reps} onToggle={() => onMetricToggle("reps")} />
             {"repsMax" in values ? (
               <div className="mt-1 grid grid-cols-2 gap-2">
@@ -187,7 +185,7 @@ export function MeasurementPanelV2({
             )}
           </div>
 
-          <div className={metricCardClassName}>
+          <div className={cn(metricCardClassName, activeMetrics.weight ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}>
             <MetricHeader title={METRICS[1].title} suffix={METRICS[1].suffix(values)} active={activeMetrics.weight} onToggle={() => onMetricToggle("weight")} />
             <input
               name={names?.weight}
@@ -205,7 +203,7 @@ export function MeasurementPanelV2({
             {names?.weightUnit ? <input type="hidden" name={names.weightUnit} value={values.weightUnit} /> : null}
           </div>
 
-          <div className={metricCardClassName}>
+          <div className={cn(metricCardClassName, activeMetrics.time ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}>
             <MetricHeader title={METRICS[2].title} suffix={METRICS[2].suffix(values)} active={activeMetrics.time} onToggle={() => onMetricToggle("time")} />
             <input
               name={names?.duration}
@@ -221,7 +219,7 @@ export function MeasurementPanelV2({
             />
           </div>
 
-          <div className={metricCardClassName}>
+          <div className={cn(metricCardClassName, activeMetrics.distance ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}>
             <MetricHeader title={METRICS[3].title} suffix={METRICS[3].suffix(values)} active={activeMetrics.distance} onToggle={() => onMetricToggle("distance")} />
             <input
               name={names?.distance}
@@ -239,7 +237,7 @@ export function MeasurementPanelV2({
             {names?.distanceUnit ? <input type="hidden" name={names.distanceUnit} value={resolvedDistanceUnit} /> : null}
           </div>
 
-          <div className={cn(metricCardClassName, "col-span-2")}> 
+          <div className={cn(metricCardClassName, "col-span-2", activeMetrics.calories ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}>
             <MetricHeader title={METRICS[4].title} suffix={METRICS[4].suffix(values)} active={activeMetrics.calories} onToggle={() => onMetricToggle("calories")} />
             <input
               name={names?.calories}
@@ -257,7 +255,7 @@ export function MeasurementPanelV2({
           </div>
 
           {hasRpeInput ? (
-            <div className={cn(metricCardClassName, "col-span-2")}>
+            <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
               <StatFieldLabel title="RPE" suffix="0–10" tone="active" />
               <input
                 type="number"
