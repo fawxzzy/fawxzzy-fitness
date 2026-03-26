@@ -3,13 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
-import { AppButton } from "@/components/ui/AppButton";
 import { Pill } from "@/components/ui/Pill";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
-import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { SessionExerciseActionRow } from "@/components/session/SessionExerciseActionRow";
+import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } from "@/components/session/SessionExerciseBlock";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { WorkoutEntryIdentity } from "@/components/ui/workout-entry/EntrySection";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -124,8 +122,7 @@ export function SessionExerciseFocus({
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount])),
   );
   const [warmupDraft, setWarmupDraft] = useState(false);
-  const [openRowId, setOpenRowId] = useState<string | null>(null);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [quickAddPendingId, setQuickAddPendingId] = useState<string | null>(null);
   const focusedRef = useRef<HTMLDivElement | null>(null);
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
@@ -142,25 +139,6 @@ export function SessionExerciseFocus({
 
   useEffect(() => {
     setWarmupDraft(false);
-  }, [selectedExerciseId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const syncDesktop = () => setIsDesktop(mediaQuery.matches);
-    syncDesktop();
-    mediaQuery.addEventListener("change", syncDesktop);
-
-    return () => {
-      mediaQuery.removeEventListener("change", syncDesktop);
-    };
-  }, []);
-
-  useEffect(() => {
-    setOpenRowId(null);
   }, [selectedExerciseId]);
 
   const handleRemoveExercise = (exerciseId: string) => {
@@ -255,76 +233,65 @@ export function SessionExerciseFocus({
                   isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-40 scale-100 opacity-100",
                 ].join(" ")}
               >
-                <SessionExerciseActionRow
-                  id={exercise.id}
-                  isDesktop={isDesktop}
-                  isOpen={openRowId === exercise.id}
-                  onOpenChange={setOpenRowId}
-                  onQuickLog={async () => {
-                    const quickLogResolution = resolveQuickLogFromTarget(exercise.quickLogTarget, unitLabel === "lbs" ? "lbs" : "kg");
-                    if (!quickLogResolution.ok) {
-                      toast.error(quickLogResolution.reason);
-                      onSelectedExerciseIdChange(exercise.id);
-                      return;
-                    }
+                <SessionExerciseBlock>
+                  <SessionExerciseCard>
+                    <StandardExerciseRow
+                      exercise={exercise}
+                      summary={exercise.goalLabel}
+                      variant="expanded"
+                      state={progressState.cardState}
+                      onPress={() => onSelectedExerciseIdChange(exercise.id)}
+                      className="shadow-none"
+                      trailingClassName="self-center text-muted"
+                      rightIcon={<ChevronRightIcon className="h-5 w-5" />}
+                      badgeText={progressState.badgeText}
+                    >
+                      {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          {exercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
+                          {exercise.isSkipped ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
+                        </div>
+                      ) : null}
+                      {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No {exercise.useIntervalLanguage ? "intervals" : "sets"} yet.</p> : null}
+                    </StandardExerciseRow>
+                  </SessionExerciseCard>
+                  <AttachedQuickActionStrip
+                    label="Quick Add"
+                    isPending={quickAddPendingId === exercise.id}
+                    onPress={async () => {
+                      setQuickAddPendingId(exercise.id);
+                      try {
+                        const quickLogResolution = resolveQuickLogFromTarget(exercise.quickLogTarget, unitLabel === "lbs" ? "lbs" : "kg");
+                        if (!quickLogResolution.ok) {
+                          toast.error(quickLogResolution.reason);
+                          onSelectedExerciseIdChange(exercise.id);
+                          return;
+                        }
 
-                    const result = await addSetAction({
-                      sessionId,
-                      sessionExerciseId: exercise.id,
-                      ...quickLogResolution.payload,
-                      isWarmup: false,
-                      rpe: null,
-                      notes: null,
-                    });
+                        const result = await addSetAction({
+                          sessionId,
+                          sessionExerciseId: exercise.id,
+                          ...quickLogResolution.payload,
+                          isWarmup: false,
+                          rpe: null,
+                          notes: null,
+                        });
 
-                    toastActionResult(toast, result, {
-                      success: "Set logged.",
-                      error: "Could not quick log set.",
-                    });
+                        toastActionResult(toast, result, {
+                          success: "Set logged.",
+                          error: "Could not quick log set.",
+                        });
 
-                    if (result.ok) {
-                      handleSetCountChange(exercise.id, setCount + 1);
-                      router.refresh();
-                    }
-                  }}
-                  onSkip={async () => {
-                    const formData = new FormData();
-                    formData.set("sessionId", sessionId);
-                    formData.set("sessionExerciseId", exercise.id);
-                    formData.set("nextSkipped", String(!exercise.isSkipped));
-                    const result = await toggleSkipAction(formData);
-
-                    toastActionResult(toast, result, {
-                      success: exercise.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
-                      error: "Could not update skip state.",
-                    });
-
-                    if (result.ok) {
-                      router.refresh();
-                    }
-                  }}
-                  skipLabel={exercise.isSkipped ? "Unskip" : "Skip"}
-                >
-                  <StandardExerciseRow
-                    exercise={exercise}
-                    summary={exercise.goalLabel}
-                    variant="expanded"
-                    state={progressState.cardState}
-                    onPress={() => onSelectedExerciseIdChange(exercise.id)}
-                    className="shadow-none"
-                    trailingClassName="self-center text-muted"
-                    rightIcon={<ChevronRightIcon className="h-5 w-5" />}
-                    badgeText={progressState.badgeText}
-                  >
-                    {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
-                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                        {exercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
-                        {exercise.isSkipped ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
-                      </div>
-                    ) : null}
-                    {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No {exercise.useIntervalLanguage ? "intervals" : "sets"} yet.</p> : null}
-                  </StandardExerciseRow>
-                </SessionExerciseActionRow>
+                        if (result.ok) {
+                          handleSetCountChange(exercise.id, setCount + 1);
+                          router.refresh();
+                        }
+                      } finally {
+                        setQuickAddPendingId((current) => (current === exercise.id ? null : current));
+                      }
+                    }}
+                  />
+                </SessionExerciseBlock>
               </li>
             );
           })}
@@ -378,29 +345,22 @@ export function SessionExerciseFocus({
             planTargetsHash={selectedExercise!.planTargetsHash}
             deleteSetAction={deleteSetAction}
             resetSignal={setLoggerResetSignal}
-            skipAction={(
-              <form
-                action={async (formData) => {
-                  const result = await toggleSkipAction(formData);
-                  toastActionResult(toast, result, {
-                    success: selectedExercise!.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
-                    error: "Could not update skip state.",
-                  });
+            skipLabel={selectedExercise!.isSkipped ? "Unskip" : "Skip"}
+            onSkip={async () => {
+              const formData = new FormData();
+              formData.set("sessionId", sessionId);
+              formData.set("sessionExerciseId", selectedExercise!.id);
+              formData.set("nextSkipped", String(!selectedExercise!.isSkipped));
+              const result = await toggleSkipAction(formData);
+              toastActionResult(toast, result, {
+                success: selectedExercise!.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
+                error: "Could not update skip state.",
+              });
 
-                  if (result.ok) {
-                    router.refresh();
-                  }
-                }}
-                className="w-full"
-              >
-                <input type="hidden" name="sessionId" value={sessionId} />
-                <input type="hidden" name="sessionExerciseId" value={selectedExercise!.id} />
-                <input type="hidden" name="nextSkipped" value={String(!selectedExercise!.isSkipped)} />
-                <AppButton type="submit" variant="secondary" size="md" fullWidth className={tapFeedbackClass}>
-                  {selectedExercise!.isSkipped ? "Unskip" : "Skip"}
-                </AppButton>
-              </form>
-            )}
+              if (result.ok) {
+                router.refresh();
+              }
+            }}
             warmupValue={warmupDraft}
             onWarmupValueChange={setWarmupDraft}
             onSetCountChange={(count) => {
