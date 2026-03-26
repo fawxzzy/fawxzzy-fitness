@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { formatCount, formatDateShort, formatWeight } from "@/lib/formatting";
 import { formatCalories, formatDistance, formatDurationShort, formatPace } from "@/lib/exercise-stats-formatting";
@@ -212,29 +213,25 @@ export function ExerciseInfoSheet({
     >
       <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
         <section className="flex h-full w-full flex-col">
-          <div className="sticky top-0 z-10 border-b border-border bg-[rgb(var(--bg))] pt-[max(var(--app-safe-top),0px)]">
-            <div className="mx-auto flex w-full max-w-xl justify-end px-4 py-2.5">
-              <TopRightBackButton
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (onClose) {
-                    onClose();
-                    return;
-                  }
-
-                  router.back();
-                }}
-                ariaLabel="Back"
-              />
-            </div>
-          </div>
-
           <div className="flex-1 overflow-y-auto overscroll-contain">
-            <div className="mx-auto w-full max-w-xl space-y-4 px-4 pb-[calc(var(--app-safe-bottom)+1rem)] pt-4">
+            <ScreenScaffold className="mx-auto w-full max-w-xl space-y-4 px-4 pb-[calc(var(--app-safe-bottom)+1rem)]">
               <DetailHeader
                 eyebrow="Exercise"
                 title={exercise.name}
                 subtitle={stats ? `${stats.kind === "cardio" ? "Cardio" : "Strength"} details` : "Exercise details"}
+                action={(
+                  <TopRightBackButton
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (onClose) {
+                        onClose();
+                        return;
+                      }
+                      router.back();
+                    }}
+                    ariaLabel="Back"
+                  />
+                )}
                 meta={metadata.length > 0 ? (
                   <DetailMetaRow>
                     {metadata.map((item) => (
@@ -278,7 +275,7 @@ export function ExerciseInfoSheet({
                   />
                 </div>
               </DetailSection>
-            </div>
+            </ScreenScaffold>
           </div>
         </section>
       </div>

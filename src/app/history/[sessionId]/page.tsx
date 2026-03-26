@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { getExerciseNameMap, listExercises } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
@@ -165,35 +166,37 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
   return (
     <AppShell className="gap-4" topNavMode="none">
       <ScrollScreenWithBottomActions className={`flex flex-col gap-3 px-1 ${FIXED_CTA_RESERVE_CLASS}`}>
-        <HistoryLogPageClient
-          logId={sessionRow.id}
-          initialDayName={effectiveDayName}
-          initialNotes={sessionRow.notes}
-          unitLabel={unitLabel}
-          exerciseNameMap={exerciseNameRecord}
-          exerciseOptions={exerciseOptions}
-          sessionSummary={sessionSummary}
-          initialIsEditing={initialIsEditing}
-          backHref={backHref}
-          exercises={orderedSessionExercises.map((exercise) => ({
-            id: exercise.id,
-            exercise_id: exercise.exercise_id,
-            notes: exercise.notes,
-            measurement_type: exercise.measurement_type ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.measurement_type : exercise.exercise?.measurement_type) ?? "reps",
-            default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? null,
-            sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
-              id: set.id,
-              set_index: set.set_index,
-              weight: set.weight,
-              reps: set.reps,
-              duration_seconds: set.duration_seconds,
-              distance: set.distance,
-              distance_unit: set.distance_unit,
-              calories: set.calories,
-              weight_unit: set.weight_unit,
-            })),
-          }))}
-        />
+        <ScreenScaffold className="space-y-2">
+          <HistoryLogPageClient
+            logId={sessionRow.id}
+            initialDayName={effectiveDayName}
+            initialNotes={sessionRow.notes}
+            unitLabel={unitLabel}
+            exerciseNameMap={exerciseNameRecord}
+            exerciseOptions={exerciseOptions}
+            sessionSummary={sessionSummary}
+            initialIsEditing={initialIsEditing}
+            backHref={backHref}
+            exercises={orderedSessionExercises.map((exercise) => ({
+              id: exercise.id,
+              exercise_id: exercise.exercise_id,
+              notes: exercise.notes,
+              measurement_type: exercise.measurement_type ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.measurement_type : exercise.exercise?.measurement_type) ?? "reps",
+              default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? null,
+              sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
+                id: set.id,
+                set_index: set.set_index,
+                weight: set.weight,
+                reps: set.reps,
+                duration_seconds: set.duration_seconds,
+                distance: set.distance,
+                distance_unit: set.distance_unit,
+                calories: set.calories,
+                weight_unit: set.weight_unit,
+              })),
+            }))}
+          />
+        </ScreenScaffold>
       </ScrollScreenWithBottomActions>
     </AppShell>
   );

@@ -2,6 +2,7 @@ import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShar
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { AppShell } from "@/components/ui/app/AppShell";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { quickAddExerciseAction } from "@/app/session/[id]/actions";
 import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
 import { getSessionPageData } from "@/app/session/[id]/queries";
@@ -31,15 +32,14 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
-        <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
+      <ScrollScreenWithBottomActions className="px-4 pb-0">
+        <ScreenScaffold className="mx-auto w-full max-w-md space-y-3 pb-4">
           <RoutineEditorPageHeader
             eyebrow="Current Session"
             title="Add Exercise"
             subtitle={sessionRow.name || "Workout"}
             subtitleRight={sessionRow.routine_day_name || "In progress"}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
-            className="space-y-3"
           />
 
           <SessionQuickAddExerciseForm
@@ -50,7 +50,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
             backHref={backHref}
             quickAddExerciseAction={quickAddExerciseAction}
           />
-        </section>
+        </ScreenScaffold>
       </ScrollScreenWithBottomActions>
     </AppShell>
   );

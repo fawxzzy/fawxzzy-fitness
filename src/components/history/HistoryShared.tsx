@@ -39,13 +39,13 @@ export function HistoryDetailHeader({
       <AppHeader
         eyebrow="History"
         title={title}
-        subtitleLeft={subtitle}
-        action={action}
+        subtitle={subtitle}
+        leading={action}
+        meta={meta}
         className={standaloneHeaderFamily.headerClassName}
         actionClassName={standaloneHeaderFamily.actionClassName}
         titleClassName={standaloneHeaderFamily.titleClassName}
       />
-      {meta ? <div className={standaloneHeaderFamily.metaClassName}>{meta}</div> : null}
       {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
     </AppPanel>
   );

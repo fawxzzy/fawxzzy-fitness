@@ -2,7 +2,8 @@
 
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionBackButton } from "@/components/SessionBackButton";
-import { SessionHeaderCard } from "@/components/ui/workout-entry/SessionHeaderCard";
+import { AppHeader } from "@/components/ui/app/AppHeader";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 
 export function SessionHeaderControls({
   sessionTitle,
@@ -14,14 +15,16 @@ export function SessionHeaderControls({
   backHref?: string;
 }) {
   return (
-    <div className="sticky top-0 z-40 px-1 pt-[max(0.75rem,env(safe-area-inset-top))]">
-      <SessionHeaderCard
+    <AppPanel className="space-y-0 rounded-[1.8rem] border-white/14 shadow-[0_20px_42px_rgba(0,0,0,0.28)]">
+      <AppHeader
         eyebrow="Current Session"
         title={sessionTitle}
         subtitle={sessionSummary}
-        action={<SessionBackButton href={backHref} />}
-        footer={<OfflineSyncBadge />}
+        leading={<SessionBackButton href={backHref} />}
       />
-    </div>
+      <div className="px-5 pb-4">
+        <OfflineSyncBadge />
+      </div>
+    </AppPanel>
   );
 }
