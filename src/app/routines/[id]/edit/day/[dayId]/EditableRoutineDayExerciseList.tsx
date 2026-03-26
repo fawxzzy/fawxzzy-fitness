@@ -14,7 +14,6 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
@@ -470,21 +469,32 @@ export function EditableRoutineDayExerciseList({
       </form>
 
       <div className="mb-2 flex items-center justify-end gap-3 px-1">
-        <button
-          type="button"
-          onClick={handleToggleReorderMode}
-          aria-pressed={reorderMode}
-          disabled={isRestDay}
-          className={cn(
-            "inline-flex min-h-8 items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-            reorderMode
-              ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-              : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-            isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
-          )}
-        >
-          {reorderMode ? "Done" : "Reorder"}
-        </button>
+        {editModeActive ? (
+          <button
+            type="button"
+            aria-label="Close exercise editor"
+            onClick={handleCloseInlineEditor}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-lg text-muted transition hover:bg-white/[0.06] hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+          >
+            ←
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleToggleReorderMode}
+            aria-pressed={reorderMode}
+            disabled={isRestDay}
+            className={cn(
+              "inline-flex min-h-8 items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+              reorderMode
+                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
+                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
+              isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
+            )}
+          >
+            {reorderMode ? "Done" : "Reorder"}
+          </button>
+        )}
       </div>
 
       {isRestDay ? null : (
@@ -617,15 +627,6 @@ export function EditableRoutineDayExerciseList({
                         <input type="hidden" name="routineId" value={routineId} />
                         <input type="hidden" name="routineDayId" value={routineDayId} />
                         <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                        <div className="flex justify-end">
-                          <TopRightBackButton
-                            ariaLabel="Close exercise editor"
-                            onClick={(event) => {
-                              event.preventDefault();
-                              handleCloseInlineEditor();
-                            }}
-                          />
-                        </div>
                         <RoutineTargetInputs
                           weightUnit={weightUnit}
                           distanceUnit={exercise.defaultDistanceUnit}
