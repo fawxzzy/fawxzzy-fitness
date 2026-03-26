@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
@@ -11,8 +10,7 @@ import {
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
-import { AppButton } from "@/components/ui/AppButton";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
@@ -107,7 +105,8 @@ export function SetLoggerCard({
   planTargetsHash,
   deleteSetAction,
   resetSignal,
-  skipAction,
+  skipLabel,
+  onSkip,
   warmupValue,
   onWarmupValueChange,
 }: {
@@ -140,7 +139,8 @@ export function SetLoggerCard({
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
-  skipAction?: ReactNode;
+  skipLabel?: string;
+  onSkip?: () => Promise<void> | void;
   warmupValue?: boolean;
   onWarmupValueChange?: (value: boolean) => void;
 }) {
@@ -171,6 +171,7 @@ export function SetLoggerCard({
   }, [onWarmupValueChange]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSkipPending, setIsSkipPending] = useState(false);
   const [sets, setSets] = useState<DisplaySet[]>(initialSets);
   const [activeMetrics, setActiveMetrics] = useState(initialEnabledMetrics);
   const [hasUserModifiedMetrics, setHasUserModifiedMetrics] = useState(false);
@@ -724,22 +725,32 @@ export function SetLoggerCard({
 
   const saveSetActions = useMemo(
     () => (
-      <BottomActionSplit
-        secondary={skipAction ?? <div aria-hidden="true" />}
-        primary={(
-          <AppButton
+      <BottomActionDock
+        left={onSkip ? (
+          <DockButton
             type="button"
-            onClick={handleLogSet}
-            disabled={isSaveDisabled}
-            variant="primary"
-            fullWidth
+            variant="secondary"
+            disabled={isSkipPending}
+            onClick={async () => {
+              setIsSkipPending(true);
+              try {
+                await onSkip();
+              } finally {
+                setIsSkipPending(false);
+              }
+            }}
           >
+            {isSkipPending ? "Saving…" : (skipLabel ?? "Skip")}
+          </DockButton>
+        ) : <div aria-hidden="true" />}
+        right={(
+          <DockButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary">
             Save Set
-          </AppButton>
+          </DockButton>
         )}
       />
     ),
-    [handleLogSet, isSaveDisabled, skipAction],
+    [handleLogSet, isSaveDisabled, isSkipPending, onSkip, skipLabel],
   );
 
   const liveSummaryText = useMemo(() => {
