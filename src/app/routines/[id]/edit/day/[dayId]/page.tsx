@@ -148,6 +148,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           <RoutineEditorSection
             title="Planned Workout"
             description={activeExerciseSummary}
+            action={<div id="planned-workout-header-action-slot" />}
           >
             <EditableRoutineDayExerciseList
               routineId={params.id}
@@ -159,6 +160,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               reorderAction={reorderRoutineDayExercisesAction}
               initialIsRest={(day as RoutineDayRow).is_rest}
               addExerciseHref={addExerciseHref}
+              headerActionSlotId="planned-workout-header-action-slot"
             />
           </RoutineEditorSection>
         </ScreenScaffold>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -11,6 +12,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
@@ -55,6 +57,7 @@ type Props = {
   reorderAction: (formData: FormData) => Promise<ActionResult>;
   initialIsRest: boolean;
   addExerciseHref: string;
+  headerActionSlotId?: string;
 };
 
 type DragState = {
@@ -202,6 +205,7 @@ export function EditableRoutineDayExerciseList({
   reorderAction,
   initialIsRest,
   addExerciseHref,
+  headerActionSlotId,
 }: Props) {
   const toast = useToast();
   const router = useRouter();
@@ -392,10 +396,44 @@ export function EditableRoutineDayExerciseList({
 
   const shouldShowAddExerciseAction = !reorderMode && !editModeActive;
   const isMissingGoalSummary = (summary: string) => summary === "Goal missing" || summary === "-";
+  const [headerActionTarget, setHeaderActionTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!headerActionSlotId) return;
+    setHeaderActionTarget(document.getElementById(headerActionSlotId));
+  }, [headerActionSlotId]);
+
+  const headerAction = editModeActive ? (
+    <TopRightBackButton
+      ariaLabel="Close exercise editor"
+      historyBehavior="fallback-only"
+      onClick={(event) => {
+        event.preventDefault();
+        handleCloseInlineEditor();
+      }}
+    />
+  ) : (
+    <button
+      type="button"
+      onClick={handleToggleReorderMode}
+      aria-pressed={reorderMode}
+      disabled={isRestDay}
+      className={cn(
+        "inline-flex min-h-8 items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+        reorderMode
+          ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
+          : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
+        isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
+      )}
+    >
+      {reorderMode ? "Done" : "Reorder"}
+    </button>
+  );
 
   if (items.length === 0) {
     return (
       <>
+        {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
         <PublishBottomActions>
           {editModeActive && activeExercise ? (
             <BottomActionDock
@@ -427,6 +465,7 @@ export function EditableRoutineDayExerciseList({
 
   return (
     <>
+      {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
       <PublishBottomActions>
         {editModeActive && activeExercise ? (
           <BottomActionDock
@@ -467,35 +506,6 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="routineDayId" value={routineDayId} />
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
-
-      <div className="mb-2 flex items-center justify-end gap-3 px-1">
-        {editModeActive ? (
-          <button
-            type="button"
-            aria-label="Close exercise editor"
-            onClick={handleCloseInlineEditor}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-lg text-muted transition hover:bg-white/[0.06] hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
-          >
-            ←
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleToggleReorderMode}
-            aria-pressed={reorderMode}
-            disabled={isRestDay}
-            className={cn(
-              "inline-flex min-h-8 items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-              reorderMode
-                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-              isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
-            )}
-          >
-            {reorderMode ? "Done" : "Reorder"}
-          </button>
-        )}
-      </div>
 
       {isRestDay ? null : (
       <ul className="space-y-2">
