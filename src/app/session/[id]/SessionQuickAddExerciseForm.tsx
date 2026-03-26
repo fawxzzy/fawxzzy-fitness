@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
-import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -58,19 +58,19 @@ export function SessionQuickAddExerciseForm({
           <PublishBottomActions>
             <BottomActionSplit
               secondary={(
-                <AppButton
+                <BottomDockButton
                   type="button"
                   variant="secondary"
                   onClick={openExerciseInfo}
                   disabled={!selectedCanonicalExerciseId}
                 >
                   View Exercise
-                </AppButton>
+                </BottomDockButton>
               )}
               primary={(
-                <AppButton type="submit" form="session-quick-add-exercise-form" variant="primary">
+                <BottomDockButton type="submit" form="session-quick-add-exercise-form" variant="primary">
                   Add Exercise
-                </AppButton>
+                </BottomDockButton>
               )}
             />
           </PublishBottomActions>

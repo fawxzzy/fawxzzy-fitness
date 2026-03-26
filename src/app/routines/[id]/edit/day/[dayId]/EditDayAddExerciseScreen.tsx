@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
-import { AppButton } from "@/components/ui/AppButton";
 import type { ActionResult } from "@/lib/action-result";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 
@@ -57,19 +57,19 @@ export function EditDayAddExerciseScreen({
         <PublishBottomActions>
           <BottomActionSplit
             secondary={(
-              <AppButton
+              <BottomDockButton
                 type="button"
                 variant="secondary"
                 onClick={openExerciseInfo}
                 disabled={!selectedCanonicalExerciseId}
               >
                 View Exercise
-              </AppButton>
+              </BottomDockButton>
             )}
             primary={(
-              <AppButton type="submit" form="routine-day-add-exercise-form" variant="primary">
+              <BottomDockButton type="submit" form="routine-day-add-exercise-form" variant="primary">
                 Add Exercise
-              </AppButton>
+              </BottomDockButton>
             )}
           />
         </PublishBottomActions>

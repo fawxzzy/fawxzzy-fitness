@@ -195,15 +195,20 @@ export function RoutineEditorListModeControlRow({
       actions={(
         <div className="flex items-center gap-2">
           {actions.map((action) => (
-            <AppButton
+            <button
               key={action.label}
               type="button"
-              variant={action.active ? "secondary" : "ghost"}
-              size="sm"
               onClick={action.onClick}
+              aria-pressed={Boolean(action.active)}
+              className={cn(
+                "inline-flex min-h-9 min-w-[5.8rem] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+                action.active
+                  ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
+                  : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
+              )}
             >
               {action.label}
-            </AppButton>
+            </button>
           ))}
         </div>
       )}
