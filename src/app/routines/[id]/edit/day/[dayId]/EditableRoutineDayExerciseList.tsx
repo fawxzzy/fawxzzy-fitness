@@ -169,8 +169,7 @@ function RoutineTargetInputs({
           weightUnit: "targetWeightUnit",
           distanceUnit: "targetDistanceUnit",
         }}
-        showHeader
-        heading="MEASUREMENTS"
+        showHeader={false}
         description={undefined}
       />
       <GoalSummaryInline

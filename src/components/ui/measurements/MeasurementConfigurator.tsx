@@ -13,12 +13,11 @@ export function MeasurementConfigurator({
   onChange,
   names,
   className,
-  heading = "Measurements",
   description,
   collapsedLabel,
   collapsedDescription,
   hideInputsWhenCollapsed,
-  showHeader = true,
+  showHeader = false,
   leadingContent,
   trailingContent,
 }: {
@@ -30,7 +29,6 @@ export function MeasurementConfigurator({
   onChange: (patch: Partial<MeasurementValues>) => void;
   names?: Partial<Record<"reps" | "repsMax" | "weight" | "duration" | "distance" | "calories" | "weightUnit" | "distanceUnit", string>>;
   className?: string;
-  heading?: string;
   description?: string;
   collapsedLabel?: string;
   collapsedDescription?: string;
@@ -49,7 +47,6 @@ export function MeasurementConfigurator({
       onChange={onChange}
       names={names}
       className={className}
-      heading={heading}
       description={description}
       collapsedLabel={collapsedLabel}
       collapsedDescription={collapsedDescription}

@@ -1,3 +1,17 @@
+## [v0.4.21] – UI: flatten measurements hierarchy and remove redundant borders
+
+### WHAT
+
+* Flattened shared `MeasurementPanelV2` structure by removing the extra framed inner shell treatment so bordered stat cells are now the primary measurements structure.
+* Removed duplicate loose `MEASUREMENTS` heading ownership from shared measurement wrappers and configure/edit/add consumers so each flow keeps one measurements owner instead of stacked titles.
+* Reduced nested border stacking in Exercise Log measurement footer content (`This set logs` + logged sets area) by shifting from framed sub-panels to lighter, unframed surface blocks.
+* Applied the flattened measurement heading/shell contract through shared primitives used by Exercise Log, Edit Day inline editing, Edit Day Add Exercise, Current Session Quick Add, and shared modify/edit surfaces.
+
+### WHY
+
+* Measurements surfaces had drifted into box-in-box framing with redundant title ownership, which made high-frequency set/goal entry feel visually cramped.
+* A flatter one-owner hierarchy keeps structure clear while reclaiming space and reducing perceived clutter across all related measurement/editor flows.
+
 ## [v0.4.20] – UI: tune shared swipe rail for mobile-first interaction
 
 ### WHAT

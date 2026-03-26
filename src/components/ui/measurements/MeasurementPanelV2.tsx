@@ -16,7 +16,7 @@ const METRICS: Array<{
   { key: "calories", title: "Calories", suffix: () => "cal" },
 ];
 
-const shellClassName = "rounded-2xl border border-emerald-300/22 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(8,12,10,0.2))] p-3.5 sm:p-4";
+const shellClassName = "space-y-2.5";
 const metricCardClassName = "min-h-[5.2rem] rounded-xl border border-emerald-300/16 bg-[rgb(var(--bg)/0.28)] px-3 py-2.5";
 const valueInputClassName = "input-no-spinner mt-1 h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
 
@@ -44,9 +44,9 @@ export function MeasurementPanelV2({
   onChange,
   names,
   className,
-  heading = "Measurements",
+  heading: _heading = "Measurements",
   description,
-  showHeader = true,
+  showHeader = false,
   leadingContent,
   trailingContent,
   rpe,
@@ -86,19 +86,13 @@ export function MeasurementPanelV2({
 
   return (
     <section className={cn("space-y-2.5", className)}>
-      {showHeader ? (
-        <div className="space-y-0.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{heading.toUpperCase()}</p>
-          {description ? <p className="text-xs text-muted">{description}</p> : null}
-        </div>
-      ) : null}
+      {showHeader ? <div className="space-y-0.5">{description ? <p className="text-xs text-muted">{description}</p> : null}</div> : null}
 
       {leadingContent}
 
       <div className={shellClassName}>
         {showInnerHeader ? (
-          <div className="mb-2.5 flex items-center justify-between gap-2 border-b border-emerald-300/14 pb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-emerald-100/90">Measurements</p>
+          <div className="mb-1.5 flex items-center justify-end gap-2">
             <p className="text-[11px] text-muted">{enabledCount}/{hasRpeInput ? "6" : "5"} active</p>
           </div>
         ) : null}
@@ -236,7 +230,7 @@ export function MeasurementPanelV2({
           ) : null}
         </div>
 
-        {footerContent ? <div className="mt-2.5 border-t border-emerald-300/14 pt-2.5">{footerContent}</div> : null}
+        {footerContent ? <div className="mt-2">{footerContent}</div> : null}
       </div>
 
       {trailingContent ? <div>{trailingContent}</div> : null}

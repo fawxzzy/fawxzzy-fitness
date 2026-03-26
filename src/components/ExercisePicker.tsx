@@ -510,8 +510,7 @@ export function ExercisePicker({
               if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
             }}
             names={{ reps: "targetRepsMin", repsMax: "targetRepsMax", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
-            showHeader
-            heading="MEASUREMENTS"
+            showHeader={false}
             description={undefined}
           />
 
