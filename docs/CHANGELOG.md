@@ -5020,6 +5020,10 @@ WHY:
 - Refactored Session Quick Add to reuse the shared add-exercise shell/section presentation patterns from the Edit Day Add Exercise flow, including aligned footer CTA treatment and cleaner section copy, while preserving current-session mutation behavior.
 - Cleaned up Edit Day inline exercise editing by removing legacy helper copy, hiding the measurement heading/description block, and replacing the bottom chip-heavy goal preview with a fluid summary line (`x reps • y lbs`) that only falls back to a pill for empty goals.
 - Tightened Edit Day swipe trailing actions to match the cleaner action-rail language used in Current Session/Quick Log surfaces with full-slot fill, a centered thin divider, and a crisper integrated border/shine treatment.
+- Corrected CTA copy ownership so Current Session keeps `+ Exercise` in its bottom dock while add/configure-goal submit actions stay `Add Exercise`.
+- Removed cardio-driven `Interval` wording from add/configure-goal set targeting so set language defaults to `Set` unless an explicit interval mode is ever provided.
+- Flattened the Edit Day Planned Workout utility area by reducing top-of-section chrome to a small Reorder action and removing the extra reorder helper callout.
+- Hardened Edit Day inline row-editor exit behavior so the top-right back control flushes pending debounced autosave before closing.
 
 ### Why
 - Today day-list breakdowns were still lagging behind Routines because their summary path was rebuilding labels from route-local exercise payloads instead of reusing the normalized canonical exercise metadata contract.
@@ -5028,3 +5032,5 @@ WHY:
 - Shared typography drift had accumulated through repeated per-screen `text-white`, muted subtitle, uppercase label, and green helper class bundles, which made hierarchy less consistent across the app.
 - Edit Routine and Edit Day had started to repeat near-identical editor controls in route-local markup, increasing drift risk for future editor-family updates.
 - The inline Edit Day row editor still felt denser and more helper-copy heavy than newer workout-entry surfaces, and its trailing Edit/Delete rail looked visually under-filled relative to the Current Session action rail.
+- CTA label ownership had drifted during refactors, which made add-entry language inconsistent between Current Session and goal-configuration flows.
+- The Planned Workout section still read like a nested utility card stack instead of a flatter editor list with lightweight section-level actions.

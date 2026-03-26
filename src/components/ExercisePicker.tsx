@@ -509,7 +509,7 @@ export function ExercisePicker({
             description={undefined}
             topField={{
               title: "Sets",
-              suffix: isCardio ? "intervals" : "target",
+              suffix: "target",
               input: (
                 <input
                   type="number"
@@ -517,7 +517,7 @@ export function ExercisePicker({
                   name="targetSets"
                   value={targetSets}
                   onChange={(event) => setTargetSets(event.target.value)}
-                  placeholder={isCardio ? "Intervals" : "Sets"}
+                  placeholder="Sets"
                   required
                   className="input-no-spinner h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
                 />
