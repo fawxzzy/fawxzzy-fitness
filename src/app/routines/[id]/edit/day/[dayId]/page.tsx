@@ -1,13 +1,11 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
+import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction, updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
 import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm";
-import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
@@ -147,32 +145,23 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             isRest={(day as RoutineDayRow).is_rest}
           />
 
-          {day.is_rest ? (
-            <AppPanel className="p-4">
-              <div className="space-y-1">
-                <TitleText as="h2" className="text-base">Rest Day</TitleText>
-                <SubtitleText>Planned exercises stay saved until you turn rest day off.</SubtitleText>
-              </div>
-            </AppPanel>
-          ) : (
-            <>
-              <RoutineEditorSection
-                title="Planned Workout"
-              >
-                <EditableRoutineDayExerciseList
-                  routineId={params.id}
-                  routineDayId={params.dayId}
-                  weightUnit={(routine as RoutineRow).weight_unit}
-                  exercises={editableExercises}
-                  updateAction={updateRoutineDayExerciseAction}
-                  deleteAction={deleteRoutineDayExerciseAction}
-                  reorderAction={reorderRoutineDayExercisesAction}
-                  addExerciseHref={addExerciseHref}
-                />
-              </RoutineEditorSection>
-
-            </>
-          )}
+          <RoutineEditorSection
+            title="Planned Workout"
+          >
+            <EditableRoutineDayExerciseList
+              routineId={params.id}
+              routineDayId={params.dayId}
+              weightUnit={(routine as RoutineRow).weight_unit}
+              exercises={editableExercises}
+              updateAction={updateRoutineDayExerciseAction}
+              deleteAction={deleteRoutineDayExerciseAction}
+              reorderAction={reorderRoutineDayExercisesAction}
+              updateDaySettingsAction={updateRoutineDaySettingsAction}
+              dayName={(day as RoutineDayRow).name ?? ""}
+              initialIsRest={(day as RoutineDayRow).is_rest}
+              addExerciseHref={addExerciseHref}
+            />
+          </RoutineEditorSection>
         </ScreenScaffold>
       </ScrollScreenWithBottomActions>
     </AppShell>

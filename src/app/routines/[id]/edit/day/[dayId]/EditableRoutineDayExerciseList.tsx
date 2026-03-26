@@ -9,8 +9,8 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { SwipeActionRow } from "@/components/ui/SwipeActionRow";
 import { useToast } from "@/components/ui/ToastProvider";
 import { controlClassName } from "@/components/ui/formClasses";
 import { listShellClasses } from "@/components/ui/listShellClasses";
@@ -20,13 +20,9 @@ import { EyebrowText } from "@/components/ui/text-roles";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
-import { getSwipeRailShellClassName, swipeRailInteractionTokens, swipeRailSlotBaseClassName } from "@/components/ui/swipeRailStyles";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
-
-const MOBILE_TRAILING_ACTION_WIDTH = swipeRailInteractionTokens.mobileTrailingWidth;
-const DESKTOP_TRAILING_ACTION_WIDTH = swipeRailInteractionTokens.desktopTrailingWidth;
 
 type EditableRoutineDayExerciseItem = {
   id: string;
@@ -61,6 +57,9 @@ type Props = {
   updateAction: (formData: FormData) => Promise<ActionResult>;
   deleteAction: (formData: FormData) => Promise<ActionResult>;
   reorderAction: (formData: FormData) => Promise<ActionResult>;
+  updateDaySettingsAction: (formData: FormData) => Promise<ActionResult>;
+  dayName: string;
+  initialIsRest: boolean;
   addExerciseHref: string;
 };
 
@@ -195,6 +194,9 @@ export function EditableRoutineDayExerciseList({
   updateAction,
   deleteAction,
   reorderAction,
+  updateDaySettingsAction,
+  dayName,
+  initialIsRest,
   addExerciseHref,
 }: Props) {
   const toast = useToast();
@@ -204,23 +206,17 @@ export function EditableRoutineDayExerciseList({
   const [items, setItems] = useState(exercises);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [openRowId, setOpenRowId] = useState<string | null>(null);
+  const [isRestDay, setIsRestDay] = useState(initialIsRest);
   const [reorderMode, setReorderMode] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [isDesktop, setIsDesktop] = useState(false);
-  const [dismissSignal, setDismissSignal] = useState(0);
 
   useEffect(() => {
     setItems(exercises);
   }, [exercises]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const sync = () => setIsDesktop(mediaQuery.matches);
-    sync();
-    mediaQuery.addEventListener("change", sync);
-    return () => mediaQuery.removeEventListener("change", sync);
-  }, []);
+    setIsRestDay(initialIsRest);
+  }, [initialIsRest]);
 
   const orderedIds = useMemo(() => items.map((exercise) => exercise.id), [items]);
   const initialOrder = useMemo(() => exercises.map((exercise) => exercise.id), [exercises]);
@@ -229,11 +225,6 @@ export function EditableRoutineDayExerciseList({
     setItems(nextItems);
     requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
   };
-
-  const closeAllRowActions = useCallback(() => {
-    setOpenRowId(null);
-    setDismissSignal((current) => current + 1);
-  }, []);
 
   const updateLocalItem = (exerciseId: string, updater: (item: EditableRoutineDayExerciseItem) => EditableRoutineDayExerciseItem) => {
     setItems((current) => current.map((item) => item.id === exerciseId ? updater(item) : item));
@@ -291,44 +282,66 @@ export function EditableRoutineDayExerciseList({
       dragStateRef.current = null;
       return;
     }
-    closeAllRowActions();
     setExpandedId(null);
     setSelectedExerciseId(null);
-  }, [closeAllRowActions, reorderMode]);
+  }, [reorderMode]);
 
   useEffect(() => {
     if (expandedId) {
-      closeAllRowActions();
       setReorderMode(false);
     }
-  }, [closeAllRowActions, expandedId]);
+  }, [expandedId]);
 
   const handleToggleReorderMode = () => {
-    closeAllRowActions();
     setExpandedId(null);
     setSelectedExerciseId(null);
     setReorderMode((current) => !current);
   };
 
   const editModeActive = expandedId !== null;
+  const activeExercise = useMemo(
+    () => items.find((exercise) => exercise.id === expandedId) ?? null,
+    [expandedId, items],
+  );
   const visibleItems = useMemo(() => {
     if (!editModeActive || !expandedId) return items;
     return items.filter((exercise) => exercise.id === expandedId);
   }, [editModeActive, expandedId, items]);
 
 
-  const shouldShowAddExerciseAction = !reorderMode && !editModeActive;
+  const shouldShowAddExerciseAction = !reorderMode && !editModeActive && !isRestDay;
   const isMissingGoalSummary = (summary: string) => summary === "Goal missing" || summary === "-";
 
   if (items.length === 0) {
     return (
       <>
         <PublishBottomActions>
-          {shouldShowAddExerciseAction ? (
+          {editModeActive && activeExercise ? (
+            <BottomActionSingle className="grid grid-cols-2 gap-2">
+              <BottomDockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
+                View Exercise
+              </BottomDockButton>
+              <ConfirmedServerFormButton
+                action={deleteAction}
+                hiddenFields={{ routineId, routineDayId, exerciseRowId: activeExercise.id }}
+                triggerLabel="Delete Exercise"
+                triggerAriaLabel={`Delete ${activeExercise.name}`}
+                triggerClassName="w-full"
+                modalTitle="Delete routine day exercise?"
+                modalDescription="This will remove this exercise from the routine day."
+                confirmLabel="Delete"
+                details={`Exercise: ${activeExercise.name}`}
+                onSuccess={() => {
+                  setItems((current) => current.filter((item) => item.id !== activeExercise.id));
+                  setExpandedId(null);
+                }}
+              />
+            </BottomActionSingle>
+          ) : shouldShowAddExerciseAction ? (
             <BottomActionSingle>
-              <AppButton type="button" variant="primary" fullWidth onClick={() => router.push(addExerciseHref)}>
+              <BottomDockButton type="button" variant="primary" onClick={() => router.push(addExerciseHref)}>
                 Add Exercise
-              </AppButton>
+              </BottomDockButton>
             </BottomActionSingle>
           ) : null}
         </PublishBottomActions>
@@ -342,11 +355,32 @@ export function EditableRoutineDayExerciseList({
   return (
     <>
       <PublishBottomActions>
-        {shouldShowAddExerciseAction ? (
+        {editModeActive && activeExercise ? (
+          <BottomActionSingle className="grid grid-cols-2 gap-2">
+            <BottomDockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
+              View Exercise
+            </BottomDockButton>
+            <ConfirmedServerFormButton
+              action={deleteAction}
+              hiddenFields={{ routineId, routineDayId, exerciseRowId: activeExercise.id }}
+              triggerLabel="Delete Exercise"
+              triggerAriaLabel={`Delete ${activeExercise.name}`}
+              triggerClassName="w-full"
+              modalTitle="Delete routine day exercise?"
+              modalDescription="This will remove this exercise from the routine day."
+              confirmLabel="Delete"
+              details={`Exercise: ${activeExercise.name}`}
+              onSuccess={() => {
+                setItems((current) => current.filter((item) => item.id !== activeExercise.id));
+                setExpandedId(null);
+              }}
+            />
+          </BottomActionSingle>
+        ) : shouldShowAddExerciseAction ? (
           <BottomActionSingle>
-            <AppButton type="button" variant="primary" fullWidth onClick={() => router.push(addExerciseHref)}>
+            <BottomDockButton type="button" variant="primary" onClick={() => router.push(addExerciseHref)}>
               Add Exercise
-            </AppButton>
+            </BottomDockButton>
           </BottomActionSingle>
         ) : null}
       </PublishBottomActions>
@@ -372,13 +406,44 @@ export function EditableRoutineDayExerciseList({
       <RoutineEditorListModeControlRow
         summary={reorderMode ? "Reorder mode is on. Drag rows by the handle." : `${items.length} exercise${items.length === 1 ? "" : "s"}`}
         className="mb-3 rounded-[1.15rem] border-border/40 bg-[rgb(var(--surface-2-soft)/0.44)] px-3.5 py-2.5"
-        actions={[{
-          label: reorderMode ? "Done" : "Reorder",
-          active: reorderMode,
-          onClick: handleToggleReorderMode,
-        }]}
+        actions={[
+          {
+            label: "Rest Day",
+            active: isRestDay,
+            onClick: async () => {
+              const nextIsRest = !isRestDay;
+              setIsRestDay(nextIsRest);
+              const formData = new FormData();
+              formData.set("routineId", routineId);
+              formData.set("routineDayId", routineDayId);
+              formData.set("name", dayName);
+              if (nextIsRest) formData.set("isRest", "on");
+              const result = await updateDaySettingsAction(formData);
+              if (!result.ok) {
+                setIsRestDay(!nextIsRest);
+                toast.error(result.error ?? "Could not update rest day.");
+                return;
+              }
+              setExpandedId(null);
+              setSelectedExerciseId(null);
+              setReorderMode(false);
+              toast.success(nextIsRest ? "Rest day on." : "Rest day off.");
+              router.refresh();
+            },
+          },
+          {
+            label: reorderMode ? "Done" : "Reorder",
+            active: reorderMode,
+            onClick: handleToggleReorderMode,
+          },
+        ]}
       />
 
+      {isRestDay ? (
+        <div className="rounded-[1.2rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.28)] px-4 py-3 text-sm text-muted">
+          Planned exercises stay saved until you turn rest day off.
+        </div>
+      ) : (
       <ul className="space-y-2">
         {visibleItems.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
@@ -389,50 +454,6 @@ export function EditableRoutineDayExerciseList({
               data-exercise-row-id={exercise.id}
               className={cn("rounded-[1.3rem] transition-all", isDragging ? "scale-[0.99] opacity-80" : undefined)}
             >
-              <SwipeActionRow
-                id={exercise.id}
-                isDesktop={isDesktop}
-                isOpen={!reorderMode && openRowId === exercise.id}
-                onOpenChange={reorderMode || editModeActive ? () => undefined : setOpenRowId}
-                disabled={reorderMode || editModeActive}
-                dismissSignal={dismissSignal}
-                trailingWidthMobile={MOBILE_TRAILING_ACTION_WIDTH}
-                trailingWidthDesktop={DESKTOP_TRAILING_ACTION_WIDTH}
-                trailingActions={reorderMode || editModeActive ? null : (
-                  <div className={getSwipeRailShellClassName({ columnCount: 2, isVisible: openRowId === exercise.id })}>
-                    <AppButton
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className={cn(swipeRailSlotBaseClassName, "text-emerald-50 hover:bg-[rgb(var(--bg)/0.16)] focus-visible:ring-2 focus-visible:ring-emerald-300/30")}
-                      onClick={() => {
-                        closeAllRowActions();
-                        setExpandedId((current) => current === exercise.id ? null : exercise.id);
-                      }}
-                    >
-                      {isExpanded ? "Done" : "Edit"}
-                    </AppButton>
-                    <div className="[&>form]:flex [&>form]:h-full [&>form]:w-full">
-                      <ConfirmedServerFormButton
-                        action={deleteAction}
-                        hiddenFields={{ routineId, routineDayId, exerciseRowId: exercise.id }}
-                        triggerLabel="Delete"
-                        triggerAriaLabel={`Delete ${exercise.name}`}
-                        triggerClassName={cn(swipeRailSlotBaseClassName, "self-stretch text-amber-100 hover:bg-rose-400/14 focus-visible:ring-2 focus-visible:ring-amber-300/30")}
-                        modalTitle="Delete routine day exercise?"
-                        modalDescription="This will remove this exercise from the routine day."
-                        confirmLabel="Delete"
-                        details={`Exercise: ${exercise.name}`}
-                        onSuccess={() => {
-                          setItems((current) => current.filter((item) => item.id !== exercise.id));
-                          setExpandedId((current) => current === exercise.id ? null : current);
-                          setOpenRowId(null);
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              >
                 <div
                   className={cn(
                     "overflow-hidden rounded-[1.25rem] border transition-colors",
@@ -446,7 +467,7 @@ export function EditableRoutineDayExerciseList({
                     subtitle={exercise.targetSummary}
                     variant="interactive"
                     state={isExpanded ? "selected" : isMissingGoalSummary(exercise.targetSummary) ? "empty" : "default"}
-                    onPress={reorderMode || editModeActive ? undefined : () => setSelectedExerciseId(exercise.exerciseId)}
+                    onPress={reorderMode ? undefined : () => setExpandedId((current) => current === exercise.id ? null : exercise.id)}
                     badgeText={isExpanded ? "Editing" : isMissingGoalSummary(exercise.targetSummary) ? undefined : `#${index + 1}`}
                     leadingVisual={(
                       <ExerciseAssetImage
@@ -562,11 +583,11 @@ export function EditableRoutineDayExerciseList({
                     </div>
                   ) : null}
                 </div>
-              </SwipeActionRow>
             </li>
           );
         })}
       </ul>
+      )}
 
       <ExerciseInfo
         exerciseId={selectedExerciseId}

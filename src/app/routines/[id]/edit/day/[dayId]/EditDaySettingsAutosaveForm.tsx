@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  RoutineEditorFullRowToggle,
   RoutineEditorPageHeader,
   RoutineEditorTitleInput,
 } from "@/components/routines/RoutineEditorShared";
@@ -105,17 +104,7 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         subtitle={routineName}
         subtitleRight={daySummary}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
-      >
-        <RoutineEditorFullRowToggle
-          label="REST DAY | TAP"
-          enabled={draft.isRest}
-          onToggle={() => {
-            const nextSnapshot = { ...draft, isRest: !draft.isRest };
-            setDraft(nextSnapshot);
-            scheduleAutosave(nextSnapshot);
-          }}
-        />
-      </RoutineEditorPageHeader>
+      />
     </form>
   );
 }
