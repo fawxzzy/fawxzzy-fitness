@@ -105,7 +105,6 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
         subtitle={routineName}
         subtitleRight={daySummary}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
-        className="space-y-3"
       >
         <RoutineEditorFullRowToggle
           label="REST DAY | TAP"

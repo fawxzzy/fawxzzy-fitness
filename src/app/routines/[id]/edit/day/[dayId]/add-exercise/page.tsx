@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { AppShell } from "@/components/ui/app/AppShell";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { addRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditDayAddExerciseScreen } from "@/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen";
@@ -48,15 +49,14 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
-        <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
+      <ScrollScreenWithBottomActions className="px-4 pb-0">
+        <ScreenScaffold className="mx-auto w-full max-w-md space-y-3 pb-4">
           <RoutineEditorPageHeader
             eyebrow="Edit Day"
             title="Add Exercise"
             subtitle={routine.name}
             subtitleRight={day.name}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
-            className="space-y-3"
           />
 
           <EditDayAddExerciseScreen
@@ -68,7 +68,7 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
             exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
             backHref={backHref}
           />
-        </section>
+        </ScreenScaffold>
       </ScrollScreenWithBottomActions>
     </AppShell>
   );

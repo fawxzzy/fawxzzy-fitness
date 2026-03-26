@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -84,15 +85,15 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
 
   return (
     <MainTabScreen topNavMode="none" className="space-y-0">
-      <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
-        <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
+      <ScrollScreenWithBottomActions className="px-4 pb-0">
+        <ScreenScaffold className="mx-auto w-full max-w-md space-y-3 pb-4">
           <AppPanel className={standaloneHeaderFamily.panelClassName}>
             <AppHeader
               eyebrow="View Day"
               title={dayLabel}
               subtitleLeft={routineRow.name}
               subtitleRight={daySummary}
-              action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
+              leading={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
               className={standaloneHeaderFamily.headerClassName}
               titleClassName={standaloneHeaderFamily.titleClassName}
               actionClassName={standaloneHeaderFamily.actionClassName}
@@ -126,7 +127,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
               />
             )}
           </AppPanel>
-        </section>
+        </ScreenScaffold>
 
         <PublishBottomActions>
           <BottomActionSingle>

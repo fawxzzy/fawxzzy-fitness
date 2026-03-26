@@ -59,7 +59,7 @@ export function RoutineEditorPageHeader({
         title={title}
         subtitleLeft={subtitle}
         subtitleRight={subtitleRight}
-        action={action}
+        leading={action}
         className={standaloneHeaderFamily.headerClassName}
         actionClassName={cn(standaloneHeaderFamily.actionClassName, actionClassName)}
         titleClassName={standaloneHeaderFamily.titleClassName}

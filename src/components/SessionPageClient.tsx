@@ -9,6 +9,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -195,7 +196,7 @@ export function SessionPageClient({
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
 
-      <section className="flex min-h-full flex-col space-y-3 pb-[max(0.25rem,var(--app-safe-bottom))]">
+      <ScreenScaffold className="flex min-h-full flex-col space-y-3 pb-[max(0.25rem,var(--app-safe-bottom))]">
         {!isExerciseOpen ? (
           <SessionHeaderControls
             sessionTitle={sessionTitle}
@@ -223,7 +224,7 @@ export function SessionPageClient({
         ) : null}
 
         {emptyState}
-      </section>
+      </ScreenScaffold>
     </ScrollScreenWithBottomActions>
   );
 }

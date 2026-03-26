@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
@@ -133,8 +134,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions className="px-4 pb-0 pt-0">
-        <section className="mx-auto w-full max-w-md space-y-3 pb-4 pt-0">
+      <ScrollScreenWithBottomActions className="px-4 pb-0">
+        <ScreenScaffold className="mx-auto w-full max-w-md space-y-3 pb-4">
           <EditDaySettingsAutosaveForm
             routineId={params.id}
             routineName={routine.name}
@@ -172,7 +173,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
             </>
           )}
-        </section>
+        </ScreenScaffold>
       </ScrollScreenWithBottomActions>
     </AppShell>
   );
