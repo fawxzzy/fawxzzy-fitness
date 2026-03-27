@@ -33,7 +33,7 @@ export async function getSessionPageData(sessionId: string) {
   }
 
   const { data: routine } = session.routine_id
-    ? await supabase.from("routines").select("weight_unit").eq("id", session.routine_id).eq("user_id", user.id).maybeSingle()
+    ? await supabase.from("routines").select("name, weight_unit").eq("id", session.routine_id).eq("user_id", user.id).maybeSingle()
     : { data: null };
 
   const { data: sessionExercisesData } = await supabase
