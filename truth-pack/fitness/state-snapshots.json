@@ -1,0 +1,25 @@
+{
+  "stateSnapshots": [
+    {
+      "type": "athlete_readiness_state",
+      "inspectableFields": ["memberId", "readinessScore", "fatigueScore", "capturedAt"],
+      "freshnessSlaSeconds": 300
+    },
+    {
+      "type": "weekly_progress_state",
+      "inspectableFields": [
+        "memberId",
+        "weekStartDate",
+        "plannedWorkoutCount",
+        "completedWorkoutCount",
+        "capturedAt"
+      ],
+      "freshnessSlaSeconds": 300
+    },
+    {
+      "type": "streak_health_state",
+      "inspectableFields": ["memberId", "activeStreakDays", "lastCompletedDate", "streakAtRisk", "capturedAt"],
+      "freshnessSlaSeconds": 300
+    }
+  ]
+}

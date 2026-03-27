@@ -1,0 +1,34 @@
+{
+  "signals": [
+    {
+      "type": "workout_completed",
+      "channel": "fitness.session.events",
+      "target": "playbook",
+      "priority": "normal"
+    },
+    {
+      "type": "workout_missed",
+      "channel": "fitness.session.events",
+      "target": "playbook",
+      "priority": "high"
+    },
+    {
+      "type": "recovery_warning",
+      "channel": "fitness.recovery.events",
+      "target": "playbook",
+      "priority": "high"
+    },
+    {
+      "type": "weekly_goal_hit",
+      "channel": "fitness.goal.events",
+      "target": "playbook",
+      "priority": "normal"
+    },
+    {
+      "type": "streak_broken",
+      "channel": "fitness.streak.events",
+      "target": "playbook",
+      "priority": "high"
+    }
+  ]
+}

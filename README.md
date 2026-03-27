@@ -134,3 +134,15 @@ npm run dev
 npm run lint
 npm run build
 ```
+
+## Fitness governed ecosystem contract
+
+Fitness now ships an in-repo deterministic integration contract and fixtures for the governed ecosystem loop.
+
+Key paths:
+- Contract/types: `src/lib/ecosystem/`
+- Deterministic fixtures: `src/lib/ecosystem/fixtures/`
+- Canonical truth pack: `truth-pack/fitness/`
+- Architecture doc: `docs/architecture/fitness-integration.md`
+
+The contract is intentionally reusable for future apps by keeping the base ecosystem schemas generic and app bindings explicit.
