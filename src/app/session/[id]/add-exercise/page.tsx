@@ -35,6 +35,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
       <ScrollScreenWithBottomActions className="px-4 pb-0">
         <ScreenScaffold className="mx-auto w-full max-w-md space-y-3 pb-4">
           <RoutineEditorPageHeader
+            recipe="sessionAddExercise"
             eyebrow="Current Session"
             title="Add Exercise"
             subtitle={sessionRow.name || "Workout"}

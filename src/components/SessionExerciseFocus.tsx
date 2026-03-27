@@ -11,6 +11,7 @@ import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } f
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { WorkoutEntryIdentity } from "@/components/ui/workout-entry/EntrySection";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
@@ -116,6 +117,7 @@ export function SessionExerciseFocus({
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
+  const contract = resolveScreenContract("exerciseLog");
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
   const [setLoggerResetSignal, setSetLoggerResetSignal] = useState(0);
   const [loggedSetCounts, setLoggedSetCounts] = useState<Record<string, number>>(() =>
@@ -211,7 +213,7 @@ export function SessionExerciseFocus({
   }, [onSelectedExerciseIdChange, selectedExerciseId]);
 
   return (
-    <div className="flex min-h-full flex-col space-y-2.5">
+    <div className="flex min-h-full flex-col space-y-2.5" data-row-interaction={contract.rowInteraction}>
       {selectedExerciseId === null ? (
         <ul className="space-y-2">
           {exercises.map((exercise) => {
