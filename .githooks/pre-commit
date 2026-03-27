@@ -1,6 +1,3 @@
-#!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
-
-const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const run = spawnSync(npmCmd, ['run', 'lint'], { stdio: 'inherit', shell: false });
-process.exit(run.status ?? 1);
+#!/usr/bin/env bash
+set -euo pipefail
+npm run lint
