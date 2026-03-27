@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { resolveScreenRecipe, type ScreenContractName } from "@/components/ui/app/screenContract";
 import { cn } from "@/lib/cn";
 
 type AnchoredSelectorPanelProps = {
@@ -16,6 +17,7 @@ type AnchoredSelectorPanelProps = {
   children?: ReactNode;
   className?: string;
   bodyClassName?: string;
+  recipe?: ScreenContractName;
 };
 
 export function AnchoredSelectorPanel({
@@ -31,13 +33,20 @@ export function AnchoredSelectorPanel({
   children,
   className,
   bodyClassName,
+  recipe = "todayOverview",
 }: AnchoredSelectorPanelProps) {
   const hasSummary = Boolean(summaryLabel || summaryHint);
+  const screenRecipe = resolveScreenRecipe(recipe);
 
   return (
-    <AppPanel className={cn("space-y-4 p-4 pt-[1.2rem]", className)}>
+    <AppPanel
+      data-screen-scaffold={screenRecipe.scaffold}
+      data-section-chrome={screenRecipe.sectionChrome}
+      data-footer-dock={screenRecipe.footerDock}
+      className={cn(screenRecipe.headerPanelClassName, className)}
+    >
       <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3.5">
-        <AppHeader title={title} subtitleRight={subtitleRight} action={action} />
+        <SharedScreenHeader recipe={recipe} title={title} subtitleRight={subtitleRight} action={action} className="rounded-none border-0 bg-transparent p-0 shadow-none" />
 
         {hasSummary ? (
           <div className="min-w-0 space-y-1 border-t border-white/8 pt-3">

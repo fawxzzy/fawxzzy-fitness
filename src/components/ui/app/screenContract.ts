@@ -16,6 +16,12 @@ export type ScreenContract = {
   sectionActionSlot: SectionActionSlotType;
 };
 
+export type ScreenRecipe = ScreenContract & {
+  scaffoldClassName: string;
+  headerPanelClassName: string;
+  sectionClassName: string;
+};
+
 const sharedStatBaseContract = {
   header: "shared",
   fieldLabelStyle: "sharedStat",
@@ -86,10 +92,79 @@ export const screenContracts = {
     sectionActionSlot: "section-trailing",
     ...sharedStatBaseContract,
   },
+  todayOverview: {
+    scaffold: "standard",
+    sectionChrome: "card",
+    rowInteraction: "tap-detail",
+    footerDock: "session",
+    sectionActionSlot: "section-trailing",
+    ...sharedStatBaseContract,
+  },
 } satisfies Record<string, ScreenContract>;
 
 export type ScreenContractName = keyof typeof screenContracts;
 
 export function resolveScreenContract(name: ScreenContractName): ScreenContract {
   return screenContracts[name];
+}
+
+export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
+  currentSession: {
+    ...screenContracts.currentSession,
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3",
+  },
+  exerciseLog: {
+    ...screenContracts.exerciseLog,
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3",
+  },
+  sessionAddExercise: {
+    ...screenContracts.sessionAddExercise,
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3",
+  },
+  editDay: {
+    ...screenContracts.editDay,
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3",
+  },
+  viewDay: {
+    ...screenContracts.viewDay,
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3",
+  },
+  historyDetail: {
+    ...screenContracts.historyDetail,
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3",
+  },
+  exerciseDetail: {
+    ...screenContracts.exerciseDetail,
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3",
+  },
+  routinesOverview: {
+    ...screenContracts.routinesOverview,
+    scaffoldClassName: "space-y-4",
+    headerPanelClassName: "space-y-4 p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3 p-4",
+  },
+  todayOverview: {
+    ...screenContracts.todayOverview,
+    scaffoldClassName: "space-y-4",
+    headerPanelClassName: "space-y-4 p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3 p-4",
+  },
+};
+
+export function resolveScreenRecipe(name: ScreenContractName): ScreenRecipe {
+  return screenRecipes[name];
 }
