@@ -19,25 +19,22 @@ const METRICS: Array<{
 const shellClassName = "space-y-2.5";
 const metricCardClassName = "min-h-[5.2rem] rounded-xl border px-3 py-2.5 transition-colors";
 const valueInputClassName = "input-no-spinner mt-1 h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
-const statFieldLabelClassName = "inline-flex select-none items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] [-webkit-tap-highlight-color:transparent]";
+const statFieldLabelClassName = "inline-flex select-none items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] [-webkit-tap-highlight-color:transparent] [user-select:none]";
 
 function StatFieldLabel({
   title,
   suffix,
-  tone = "muted",
   variant = "standard",
 }: {
   title: string;
   suffix?: string;
-  tone?: "muted" | "active";
   variant?: "standard" | "target";
 }) {
   return (
     <span
       className={cn(
         statFieldLabelClassName,
-        tone === "active" ? "text-emerald-100" : "text-muted/85",
-        variant === "target" ? "text-emerald-100" : undefined,
+        variant === "target" ? "text-emerald-100" : "text-muted/85",
       )}
     >
       <span>{title}</span>
@@ -61,9 +58,9 @@ function MetricHeader({ title, suffix, active, onToggle }: { title: string; suff
       type="button"
       onClick={onToggle}
       aria-pressed={active}
-      className="inline-flex rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+      className="inline-flex text-left [-webkit-tap-highlight-color:transparent] focus:outline-none"
     >
-      <StatFieldLabel title={title} suffix={suffix} tone="muted" />
+      <StatFieldLabel title={title} suffix={suffix} variant="standard" />
     </button>
   );
 }
@@ -135,7 +132,7 @@ export function MeasurementPanelV2({
         <div className="grid grid-cols-2 gap-2">
           {topField ? (
             <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
-              <StatFieldLabel title={topField.title} suffix={topField.suffix} tone="active" variant="target" />
+              <StatFieldLabel title={topField.title} suffix={topField.suffix} variant="target" />
               <div className="mt-1">{topField.input}</div>
             </div>
           ) : null}
@@ -256,7 +253,7 @@ export function MeasurementPanelV2({
 
           {hasRpeInput ? (
             <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
-              <StatFieldLabel title="RPE" suffix="0–10" tone="active" />
+              <StatFieldLabel title="RPE" suffix="0–10" variant="standard" />
               <input
                 type="number"
                 min={0}
