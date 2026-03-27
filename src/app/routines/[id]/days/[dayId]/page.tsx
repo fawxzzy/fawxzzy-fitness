@@ -16,6 +16,7 @@ import { isRunnableDayState } from "@/lib/runnable-day";
 import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
+import { formatRoutineHeaderMeta } from "@/lib/header-meta";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -75,9 +76,13 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   });
   const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : `Day ${dayRow.day_index}`);
+  const dayExerciseSummary = getExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? []);
   const daySummary = dayRow.is_rest
     ? "Rest Day"
-    : getExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? []).label;
+    : formatRoutineHeaderMeta({
+      routineName: routineRow.name,
+      totalExercises: dayExerciseSummary.total,
+    });
   const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
   const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
   const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
@@ -90,8 +95,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             recipe="viewDay"
             eyebrow="View Day"
             title={dayLabel}
-            subtitle={routineRow.name}
-            subtitleRight={daySummary}
+            subtitle={daySummary}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
           />
 

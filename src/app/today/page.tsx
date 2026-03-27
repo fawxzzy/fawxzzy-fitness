@@ -25,6 +25,7 @@ import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
 import { getExerciseCountSummaryFromCanonicalExercises, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { formatRoutineHeaderMeta } from "@/lib/header-meta";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -381,7 +382,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                       title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
                       subtitleRight={todayPayload.routine.state === "rest"
                         ? "Rest Day"
-                        : getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).label}
+                        : formatRoutineHeaderMeta({
+                          routineName: todayPayload.routine.name,
+                          totalExercises: getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).total,
+                        })}
                       action={todayPayload.inProgressSessionId
                         ? <AppBadge tone="success">In Session</AppBadge>
                         : todayPayload.completedTodayCount > 0

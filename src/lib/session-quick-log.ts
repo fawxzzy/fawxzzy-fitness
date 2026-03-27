@@ -1,3 +1,5 @@
+import { formatSetCountLabel } from "./measurement-display";
+
 export type SessionQuickLogTarget = {
   repsMin?: number;
   repsMax?: number;
@@ -66,15 +68,18 @@ export function formatQuickLogPreviewLabel({
 
   const combinedStrength = [repsSummary, weightSummary].filter(Boolean).slice(0, 2).join(" • ");
   const primarySummary = combinedStrength || durationSummary || distanceSummary;
-  if (primarySummary) return `Log: ${primarySummary}`;
+  if (primarySummary) {
+    const nextSetSummary = formatSetCountLabel(loggedSetCount + 1);
+    return [nextSetSummary, primarySummary].filter((part): part is string => Boolean(part)).join(" • ");
+  }
 
   const nextSet = loggedSetCount + 1;
   const goalSetCount = targetSetsMax ?? targetSetsMin;
   if (goalSetCount && goalSetCount > 0) {
-    return `Log: Set ${nextSet} of ${goalSetCount}`;
+    return `Set ${nextSet} of ${formatSetCountLabel(goalSetCount) ?? `${goalSetCount} sets`}`;
   }
 
-  return `Log: Set ${nextSet}`;
+  return formatSetCountLabel(nextSet) ?? `Set ${nextSet}`;
 }
 
 export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): QuickLogResolution {

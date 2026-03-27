@@ -20,6 +20,7 @@ import { BottomActionSingle, BottomActionSplit } from "@/components/layout/Canon
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { formatRoutineHeaderMeta } from "@/lib/header-meta";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 
 type TodayExercise = {
@@ -193,7 +194,12 @@ export function TodayDayPicker({
       {selectedDay ? (
         <AnchoredSelectorPanel
           title={`${routineName} | ${selectedDay.name}`}
-          subtitleRight={selectedDay.state === "rest" ? undefined : getExerciseCountSummaryFromInputs(selectedDay.exercises).label}
+          subtitleRight={selectedDay.state === "rest"
+            ? "Rest Day"
+            : formatRoutineHeaderMeta({
+              routineName,
+              totalExercises: getExerciseCountSummaryFromInputs(selectedDay.exercises).total,
+            })}
           action={inSessionDayIndex === selectedDay.dayIndex
             ? <AppBadge tone="success">In Session</AppBadge>
             : completedDayIndexSet.has(selectedDay.dayIndex)

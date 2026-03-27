@@ -27,6 +27,17 @@ function formatNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
 }
 
+export function formatSetCountLabel(count: number | null | undefined, noun: "set" | "interval" = "set") {
+  if (!Number.isFinite(count ?? null) || (count ?? 0) <= 0) return null;
+  const normalizedCount = Math.floor(count as number);
+  return `${normalizedCount} ${noun}${normalizedCount === 1 ? "" : "s"}`;
+}
+
+export function formatSetPositionLabel(index: number | null | undefined, noun: "Set" | "Interval" = "Set") {
+  if (!Number.isFinite(index ?? null) || (index ?? 0) <= 0) return noun;
+  return `${noun} ${Math.floor(index as number)}`;
+}
+
 function formatRepRange(reps: number | null | undefined, repsMax: number | null | undefined) {
   if (!Number.isFinite(reps ?? null) || (reps ?? 0) <= 0) {
     return null;
@@ -43,9 +54,6 @@ function formatRepRange(reps: number | null | undefined, repsMax: number | null 
 
 function formatGoalSummaryCore(values: GoalSummaryValues) {
   const measurementParts: string[] = [];
-  if (Number.isFinite(values.sets ?? null) && (values.sets ?? 0) > 0) {
-    measurementParts.push(`${Math.floor(values.sets as number)} sets`);
-  }
 
   const repRange = formatRepRange(values.reps, values.repsMax);
   if (repRange) {
@@ -146,11 +154,16 @@ export function formatGoalSummaryText(values: GoalSummaryValues) {
     distance: sanitizedValues.distance ?? null,
     calories: sanitizedValues.calories ?? null,
   });
-  const content = [measurementText || null, weightPart].filter((part): part is string => Boolean(part)).join(" • ");
+  const setCount = formatSetCountLabel(values.sets);
+  const content = [setCount, measurementText || null, weightPart].filter((part): part is string => Boolean(part)).join(" • ");
   return content ? `Goal: ${content}` : (values.emptyLabel ?? "Goal missing");
 }
 
 export function formatGoalInlineSummaryText(values: GoalSummaryValues) {
   const full = formatGoalSummaryText(values);
   return full.startsWith("Goal: ") ? full.slice(6) : full;
+}
+
+export function formatCurrentDraftSummaryText(values: GoalSummaryValues) {
+  return formatGoalInlineSummaryText(values);
 }

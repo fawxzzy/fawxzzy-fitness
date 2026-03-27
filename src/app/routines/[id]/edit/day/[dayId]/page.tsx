@@ -16,6 +16,7 @@ import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { formatExerciseCountMetaLabel, formatRoutineHeaderMeta } from "@/lib/header-meta";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -128,7 +129,14 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       },
     };
   });
-  const activeExerciseSummary = getRestDayExerciseCountSummaryFromInputs(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest).label;
+  const activeExerciseCountSummary = getRestDayExerciseCountSummaryFromInputs(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest);
+  const headerMetaSummary = day.is_rest
+    ? "Rest Day"
+    : formatRoutineHeaderMeta({
+      routineName: routine.name,
+      totalExercises: activeExerciseCountSummary.total,
+    });
+  const sectionSummary = day.is_rest ? "Rest Day" : formatExerciseCountMetaLabel(activeExerciseCountSummary.total);
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
@@ -136,8 +144,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         <ScreenScaffold className="mx-auto w-full max-w-md space-y-3 pb-4">
           <EditDaySettingsAutosaveForm
             routineId={params.id}
-            routineName={routine.name}
-            daySummary={activeExerciseSummary}
+            daySummary={headerMetaSummary}
             backHref={backHref}
             routineDayId={params.dayId}
             dayIndex={day.day_index}
@@ -147,7 +154,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
           <RoutineEditorSection
             title="Planned Workout"
-            description={activeExerciseSummary}
+            description={sectionSummary}
             action={<div id="planned-workout-header-action-slot" />}
           >
             <EditableRoutineDayExerciseList

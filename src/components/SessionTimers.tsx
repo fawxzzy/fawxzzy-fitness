@@ -18,7 +18,7 @@ import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection"
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
-import { formatMeasurementSummaryText } from "@/lib/measurement-display";
+import { formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
@@ -772,8 +772,8 @@ export function SetLoggerCard({
       calories: calories.trim() ? Number(calories) : null,
       emptyLabel: "Add measurements",
     });
-    const setNoun = useIntervalLanguage ? "Interval" : "Set";
-    const parts = [`${setNoun} ${sets.length + 1}`, summary];
+    const setLabel = formatSetPositionLabel(sets.length + 1, useIntervalLanguage ? "Interval" : "Set");
+    const parts = [setLabel, summary];
     if (rpe.trim()) parts.push(`RPE ${rpe.trim()}`);
     if (resolvedIsWarmup) parts.push("Warm-Up");
     return parts.join(" • ");
@@ -925,7 +925,7 @@ export function SetLoggerCard({
                         summary={(
                           <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-snug text-[rgb(var(--text)/0.94)]">
                             <span className="font-semibold text-text">{useIntervalLanguage ? "Interval" : "Set"} {index + 1}</span>
-                            <span className="text-muted">—</span>
+                            <span className="text-muted">•</span>
                             <span>{formatMeasurementSummaryText({
                               reps: set.reps,
                               weight: set.weight,
