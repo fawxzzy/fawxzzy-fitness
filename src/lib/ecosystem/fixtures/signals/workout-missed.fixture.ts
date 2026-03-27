@@ -1,5 +1,5 @@
-import type { DeterministicSignalFixture } from "../../contract-types.ts";
-import type { FitnessSignalType } from "../../fitness-integration-contract.ts";
+import type { DeterministicSignalFixture } from "../../contract-types";
+import type { FitnessSignalType } from "../../fitness-integration-contract";
 
 export const workoutMissedFixture: DeterministicSignalFixture<FitnessSignalType> = {
   fixtureId: "fitness-signal-workout-missed-v1",

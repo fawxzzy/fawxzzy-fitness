@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fitnessSignalFixtures } from "./fixtures/signals/index.ts";
-import { fitnessStateSnapshotFixtures } from "./fixtures/state-snapshots/index.ts";
+import { fitnessSignalFixtures } from "./fixtures/signals/index";
+import { fitnessStateSnapshotFixtures } from "./fixtures/state-snapshots/index";
 import {
   fitnessIntegrationContract,
   validateActionReceiptMappings,
   validateSignalFixture,
   validateStateSnapshotFixture,
-} from "./fitness-integration-contract.ts";
+} from "./fitness-integration-contract";
 
 test("all deterministic signal fixtures validate against the fitness contract", () => {
   for (const fixture of fitnessSignalFixtures) {

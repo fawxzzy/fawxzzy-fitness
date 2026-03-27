@@ -7,7 +7,7 @@ import type {
   SignalContract,
   StateSnapshotContract,
   ValidationResult,
-} from "./contract-types.ts";
+} from "./contract-types";
 
 export const fitnessSignalTypes = [
   "workout_completed",

@@ -1,5 +1,5 @@
-import type { DeterministicStateSnapshotFixture } from "../../contract-types.ts";
-import type { FitnessStateSnapshotType } from "../../fitness-integration-contract.ts";
+import type { DeterministicStateSnapshotFixture } from "../../contract-types";
+import type { FitnessStateSnapshotType } from "../../fitness-integration-contract";
 
 export const athleteReadinessStateFixture: DeterministicStateSnapshotFixture<FitnessStateSnapshotType> = {
   fixtureId: "fitness-state-athlete-readiness-v1",
