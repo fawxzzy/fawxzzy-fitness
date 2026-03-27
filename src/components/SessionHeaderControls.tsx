@@ -2,8 +2,7 @@
 
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionBackButton } from "@/components/SessionBackButton";
-import { AppHeader } from "@/components/ui/app/AppHeader";
-import { AppPanel } from "@/components/ui/app/AppPanel";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 
 export function SessionHeaderControls({
   sessionTitle,
@@ -15,16 +14,17 @@ export function SessionHeaderControls({
   backHref?: string;
 }) {
   return (
-    <AppPanel className="space-y-0 rounded-[1.8rem] border-white/14 shadow-[0_20px_42px_rgba(0,0,0,0.28)]">
-      <AppHeader
-        eyebrow="Current Session"
-        title={sessionTitle}
-        subtitle={sessionSummary}
-        action={<SessionBackButton href={backHref} />}
-      />
+    <SharedScreenHeader
+      recipe="currentSession"
+      className="space-y-0"
+      eyebrow="Current Session"
+      title={sessionTitle}
+      subtitle={sessionSummary}
+      action={<SessionBackButton href={backHref} />}
+    >
       <div className="px-5 pb-4">
         <OfflineSyncBadge />
       </div>
-    </AppPanel>
+    </SharedScreenHeader>
   );
 }

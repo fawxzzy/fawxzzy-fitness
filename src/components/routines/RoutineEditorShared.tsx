@@ -5,9 +5,9 @@ import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomA
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppButton } from "@/components/ui/AppButton";
-import { AppHeader } from "@/components/ui/app/AppHeader";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
+import type { ScreenContractName } from "@/components/ui/app/screenContract";
 import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -42,6 +42,7 @@ export function RoutineEditorPageHeader({
   actionClassName,
   children,
   className,
+  recipe = "editDay",
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -51,21 +52,21 @@ export function RoutineEditorPageHeader({
   actionClassName?: string;
   children?: ReactNode;
   className?: string;
+  recipe?: ScreenContractName;
 }) {
   return (
-    <AppPanel className={cn(standaloneHeaderFamily.panelClassName, className)}>
-      <AppHeader
-        eyebrow={eyebrow}
-        title={title}
-        subtitleLeft={subtitle}
-        subtitleRight={subtitleRight}
-        action={action}
-        className={standaloneHeaderFamily.headerClassName}
-        actionClassName={cn(standaloneHeaderFamily.actionClassName, actionClassName)}
-        titleClassName={standaloneHeaderFamily.titleClassName}
-      />
-      {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
-    </AppPanel>
+    <SharedScreenHeader
+      recipe={recipe}
+      eyebrow={eyebrow}
+      title={title}
+      subtitle={subtitle}
+      subtitleRight={subtitleRight}
+      action={action}
+      className={className}
+      actionClassName={actionClassName}
+    >
+      {children}
+    </SharedScreenHeader>
   );
 }
 

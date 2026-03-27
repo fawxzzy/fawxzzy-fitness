@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
+import { resolveScreenContract } from "@/components/ui/app/screenContract";
+import { StatFieldLabel } from "@/components/ui/measurements/StatFieldLabel";
 
 const METRICS: Array<{
   key: keyof MeasurementMetrics;
@@ -19,39 +21,6 @@ const METRICS: Array<{
 const shellClassName = "space-y-2.5";
 const metricCardClassName = "min-h-[5.2rem] rounded-xl border px-3 py-2.5 transition-colors";
 const valueInputClassName = "input-no-spinner mt-1 h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
-const statFieldLabelClassName = "inline-flex select-none items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] [-webkit-tap-highlight-color:transparent] [user-select:none]";
-
-function StatFieldLabel({
-  title,
-  suffix,
-  variant = "standard",
-}: {
-  title: string;
-  suffix?: string;
-  variant?: "standard" | "target";
-}) {
-  return (
-    <span
-      className={cn(
-        statFieldLabelClassName,
-        variant === "target" ? "text-emerald-100" : "text-muted/85",
-      )}
-    >
-      <span>{title}</span>
-      {suffix ? (
-        <span
-          className={cn(
-            "text-[10px] font-medium tracking-[0.1em]",
-            variant === "target" ? "text-emerald-200/80" : "text-muted/70",
-          )}
-        >
-          ({suffix})
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
 function MetricHeader({ title, suffix, active, onToggle }: { title: string; suffix: string; active: boolean; onToggle: () => void }) {
   return (
     <button
@@ -60,7 +29,7 @@ function MetricHeader({ title, suffix, active, onToggle }: { title: string; suff
       aria-pressed={active}
       className="inline-flex text-left [-webkit-tap-highlight-color:transparent] focus:outline-none"
     >
-      <StatFieldLabel title={title} suffix={suffix} variant="standard" />
+      <StatFieldLabel title={title} suffix={suffix} />
     </button>
   );
 }
@@ -115,9 +84,10 @@ export function MeasurementPanelV2({
   };
 
   const hasRpeInput = typeof onRpeChange === "function";
+  const contract = resolveScreenContract("exerciseLog");
 
   return (
-    <section className={cn("space-y-2.5", className)}>
+    <section className={cn("space-y-2.5", className)} data-field-label-style={contract.fieldLabelStyle}>
       {showHeader ? <div className="space-y-0.5">{description ? <p className="text-xs text-muted">{description}</p> : null}</div> : null}
 
       {leadingContent}
@@ -132,7 +102,7 @@ export function MeasurementPanelV2({
         <div className="grid grid-cols-2 gap-2">
           {topField ? (
             <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
-              <StatFieldLabel title={topField.title} suffix={topField.suffix} variant="target" />
+              <StatFieldLabel title={topField.title} suffix={topField.suffix} emphasis="target" />
               <div className="mt-1">{topField.input}</div>
             </div>
           ) : null}
@@ -253,7 +223,7 @@ export function MeasurementPanelV2({
 
           {hasRpeInput ? (
             <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
-              <StatFieldLabel title="RPE" suffix="0–10" variant="standard" />
+              <StatFieldLabel title="RPE" suffix="0–10" />
               <input
                 type="number"
                 min={0}

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { AppHeader } from "@/components/ui/app/AppHeader";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
@@ -25,19 +24,18 @@ export function DetailHeader({
   actionClassName?: string;
 }) {
   return (
-    <AppPanel className={cn(standaloneHeaderFamily.panelClassName, className)}>
-      <AppHeader
-        eyebrow={eyebrow}
-        title={title}
-        subtitle={subtitle}
-        action={action}
-        meta={meta}
-        className={standaloneHeaderFamily.headerClassName}
-        actionClassName={cn(standaloneHeaderFamily.actionClassName, actionClassName)}
-        titleClassName={standaloneHeaderFamily.titleClassName}
-      />
-      {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
-    </AppPanel>
+    <SharedScreenHeader
+      recipe="exerciseDetail"
+      eyebrow={eyebrow}
+      title={title}
+      subtitle={subtitle}
+      action={action}
+      meta={meta}
+      className={className}
+      actionClassName={actionClassName}
+    >
+      {children}
+    </SharedScreenHeader>
   );
 }
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { SessionHeaderCard } from "@/components/ui/workout-entry/SessionHeaderCard";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 
 export function WorkoutEntrySection({
   eyebrow,
@@ -55,7 +55,17 @@ export function WorkoutEntryIdentity({
   actions?: ReactNode;
   className?: string;
 }) {
-  return <SessionHeaderCard eyebrow={eyebrow} title={title} subtitle={description} meta={meta} action={actions} className={className} />;
+  return (
+    <SharedScreenHeader
+      recipe="exerciseLog"
+      eyebrow={eyebrow}
+      title={title}
+      subtitle={description}
+      meta={meta}
+      action={actions}
+      className={className}
+    />
+  );
 }
 
 export function WorkoutEntryMetric({

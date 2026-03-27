@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { AppHeader } from "@/components/ui/app/AppHeader";
-import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
@@ -9,13 +8,13 @@ import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatt
 
 export function HistoryPageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <AppPanel className="space-y-3 p-4 pt-[1.2rem]">
-      <AppHeader
-        eyebrow="History"
-        title={title}
-        subtitleLeft={subtitle}
-      />
-    </AppPanel>
+    <SharedScreenHeader
+      recipe="historyDetail"
+      className="p-4 pt-[1.2rem]"
+      eyebrow="History"
+      title={title}
+      subtitle={subtitle}
+    />
   );
 }
 
@@ -35,19 +34,17 @@ export function HistoryDetailHeader({
   className?: string;
 }) {
   return (
-    <AppPanel className={cn(standaloneHeaderFamily.panelClassName, className)}>
-      <AppHeader
-        eyebrow="History"
-        title={title}
-        subtitle={subtitle}
-        action={action}
-        meta={meta}
-        className={standaloneHeaderFamily.headerClassName}
-        actionClassName={standaloneHeaderFamily.actionClassName}
-        titleClassName={standaloneHeaderFamily.titleClassName}
-      />
-      {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
-    </AppPanel>
+    <SharedScreenHeader
+      recipe="historyDetail"
+      eyebrow="History"
+      title={title}
+      subtitle={subtitle}
+      action={action}
+      meta={meta}
+      className={className}
+    >
+      {children}
+    </SharedScreenHeader>
   );
 }
 
