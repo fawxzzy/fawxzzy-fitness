@@ -27,7 +27,7 @@ function MetricHeader({ title, suffix, active, onToggle }: { title: string; suff
       type="button"
       onClick={onToggle}
       aria-pressed={active}
-      className="inline-flex text-left [-webkit-tap-highlight-color:transparent] focus:outline-none"
+      className="inline-flex border-0 bg-transparent p-0 text-left text-inherit shadow-none [-webkit-tap-highlight-color:transparent] hover:bg-transparent active:bg-transparent focus-visible:shadow-none focus:outline-none"
     >
       <StatFieldLabel title={title} suffix={suffix} />
     </button>
