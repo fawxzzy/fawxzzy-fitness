@@ -11,11 +11,11 @@ const METRICS: Array<{
   title: string;
   suffix: (values: MeasurementValues) => string;
 }> = [
-  { key: "reps", title: "Reps", suffix: () => "min/max" },
-  { key: "weight", title: "Weight", suffix: (values) => values.weightUnit },
-  { key: "time", title: "Time", suffix: () => "mm:ss" },
-  { key: "distance", title: "Distance", suffix: (values) => (values.distanceUnit === "km" ? "km" : "mi") },
-  { key: "calories", title: "Calories", suffix: () => "cal" },
+  { key: "reps", title: "REPS", suffix: () => "min/max" },
+  { key: "weight", title: "WEIGHT", suffix: (values) => values.weightUnit },
+  { key: "time", title: "TIME", suffix: () => "mm:ss" },
+  { key: "distance", title: "DISTANCE", suffix: (values) => (values.distanceUnit === "km" ? "km" : "mi") },
+  { key: "calories", title: "CALORIES", suffix: () => "cal" },
 ];
 
 const shellClassName = "space-y-2.5";

@@ -13,6 +13,9 @@ export function StatFieldLabel({
   emphasis?: "default" | "target";
   className?: string;
 }) {
+  const normalizedTitle = title.trim().toUpperCase();
+  const normalizedSuffix = suffix?.trim().toUpperCase();
+
   return (
     <span
       className={cn(
@@ -21,15 +24,15 @@ export function StatFieldLabel({
         className,
       )}
     >
-      <span className={cn(emphasis === "target" ? "font-semibold" : "font-medium")}>{title}</span>
-      {suffix ? (
+      <span className={cn(emphasis === "target" ? "font-semibold" : "font-medium")}>{normalizedTitle}</span>
+      {normalizedSuffix ? (
         <span
           className={cn(
             "text-[10px] tracking-[0.1em]",
             emphasis === "target" ? "text-emerald-200/80" : "text-emerald-200/72",
           )}
         >
-          ({suffix})
+          ({normalizedSuffix})
         </span>
       ) : null}
     </span>

@@ -547,7 +547,7 @@ export function ExercisePicker({
               repsMax: selectedMeasurements.includes("reps") && targetRepsMax ? Number(targetRepsMax) : null,
               weightUnit: targetWeightUnit,
               distanceUnit: selectedDefaultUnit,
-              emptyLabel: "-",
+              emptyLabel: "Goal missing",
             }}
           />
           <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />

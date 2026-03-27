@@ -187,7 +187,7 @@ function RoutineTargetInputs({
           repsMax: activeMetrics.reps && values.repsMax ? Number(values.repsMax) : null,
           weightUnit: values.weightUnit,
           distanceUnit: values.distanceUnit,
-          emptyLabel: "-",
+          emptyLabel: "Goal missing",
         }}
       />
       <input type="hidden" name="defaultUnit" value={activeMetrics.distance ? values.distanceUnit : "mi"} />
@@ -395,7 +395,7 @@ export function EditableRoutineDayExerciseList({
 
 
   const shouldShowAddExerciseAction = !reorderMode && !editModeActive;
-  const isMissingGoalSummary = (summary: string) => summary === "Goal missing" || summary === "-";
+  const isMissingGoalSummary = (summary: string) => summary === "Goal missing";
   const [headerActionTarget, setHeaderActionTarget] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -617,7 +617,7 @@ export function EditableRoutineDayExerciseList({
                               calories: measurementSelections.has("calories") ? targetCalories : null,
                               weightUnit: targetWeightUnit,
                               distanceUnit: targetDistanceUnit,
-                              emptyLabel: "-",
+                              emptyLabel: "Goal missing",
                             });
                             updateLocalItem(exercise.id, (item) => ({
                               ...item,
