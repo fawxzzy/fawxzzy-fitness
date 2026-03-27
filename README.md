@@ -146,3 +146,8 @@ Key paths:
 - Architecture doc: `docs/architecture/fitness-integration.md`
 
 The contract is intentionally reusable for future apps by keeping the base ecosystem schemas generic and app bindings explicit.
+
+Runtime app-boundary surfaces:
+- Seam adapter/client: `src/lib/ecosystem/fitness-integration-client.ts`
+- App-state snapshot fetch + publish bridge: `src/lib/ecosystem/fitness-integration-server.ts`
+- Dev inspection endpoint: `src/app/api/ecosystem/fitness/debug/route.ts`

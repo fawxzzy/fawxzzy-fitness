@@ -21,8 +21,21 @@
     }
   ],
   "receipts": [
-    "schedule_adjustment_applied",
-    "recovery_guardrail_applied",
-    "goal_plan_amended"
-  ]
+    {
+      "type": "schedule_adjustment_applied",
+      "requiredAppFields": ["receiptId", "actionType", "memberId", "appliedAt", "sourceOutboundId"]
+    },
+    {
+      "type": "recovery_guardrail_applied",
+      "requiredAppFields": ["receiptId", "actionType", "memberId", "appliedAt", "sourceOutboundId"]
+    },
+    {
+      "type": "goal_plan_amended",
+      "requiredAppFields": ["receiptId", "actionType", "memberId", "appliedAt", "sourceOutboundId"]
+    }
+  ],
+  "appHandling": {
+    "receiptIngest": "fitnessIntegrationClient.ingestReceipt",
+    "debugInspection": "fitnessIntegrationClient.getDebugState"
+  }
 }
