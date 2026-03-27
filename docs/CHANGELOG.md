@@ -1,3 +1,17 @@
+## [v0.4.22] – Dev: add deterministic UI contract audit surface
+
+### WHAT
+
+* Added a dev-only route at `/dev/ui-contract` that renders canonical inspection groups for shared headers, Current Session cards + footer dock, Exercise Log, Configure Goal, Edit Day inline editor, View Day, rest-day state, and planned workout variants.
+* Added deterministic fixture data for the audit surface so repeated UI families can be rechecked after refactors without ad hoc setup.
+* Added explicit “winner” notes and grouping labels inside the surface so contract drift is easier to spot by family instead of by memory.
+* Documented the new audit workflow and contract rule/pattern/failure mode in the root README.
+
+### WHY
+
+* Repeated UI families were being validated through scattered screenshots and human memory, which makes visual regressions easy to miss during iterative UI refactors.
+* A deterministic, dev-only contract surface provides one repeatable inspection target that can be reused on every refactor pass without introducing business logic into the screen.
+
 ## [v0.4.21] – UI: flatten measurements hierarchy and remove redundant borders
 
 ### WHAT
