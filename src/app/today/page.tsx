@@ -9,7 +9,7 @@ import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppHeader } from "@/components/ui/app/AppHeader";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { AppPanel } from "@/components/ui/app/AppPanel";
@@ -373,8 +373,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
                 <div className="space-y-4">
-                  <AppPanel className="space-y-3 pt-[1.2rem]">
-                    <AppHeader
+                  <AppPanel className="space-y-3">
+                    <SharedScreenHeader
+                      recipe="todayOverview"
+                      className="p-0 shadow-none"
                       eyebrow="Today"
                       title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
                       subtitleRight={todayPayload.routine.state === "rest"

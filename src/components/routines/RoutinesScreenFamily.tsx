@@ -1,8 +1,9 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
@@ -26,11 +27,15 @@ export function ActiveRoutineSummaryCard({
   status?: ReactNode;
   children?: ReactNode;
 }) {
+  const recipe = resolveScreenRecipe("routinesOverview");
   return (
-    <AppPanel className="space-y-4 p-4 pt-[1.2rem]">
-      <div className="rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3.5">
-        <AppHeader title={title} subtitleRight={subtitle} action={status} />
-      </div>
+    <AppPanel
+      data-screen-scaffold={recipe.scaffold}
+      data-section-chrome={recipe.sectionChrome}
+      data-footer-dock={recipe.footerDock}
+      className={recipe.headerPanelClassName}
+    >
+      <SharedScreenHeader recipe="routinesOverview" title={title} subtitleRight={subtitle} action={status} className="rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-0 shadow-none" />
       {children ? <div className="space-y-3">{children}</div> : null}
     </AppPanel>
   );
@@ -51,8 +56,14 @@ export function RoutinesSectionCard({
   action?: ReactNode;
   children: ReactNode;
 }) {
+  const recipe = resolveScreenRecipe("routinesOverview");
   return (
-    <AppPanel className="space-y-3 p-4">
+    <AppPanel
+      data-screen-scaffold={recipe.scaffold}
+      data-section-chrome={recipe.sectionChrome}
+      data-footer-dock={recipe.footerDock}
+      className={recipe.sectionClassName}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <TitleText as="h2" className="text-base">

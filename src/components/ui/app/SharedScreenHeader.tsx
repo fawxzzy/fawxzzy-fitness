@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { AppHeader } from "@/components/ui/app/AppHeader";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { resolveScreenContract, type ScreenContractName } from "@/components/ui/app/screenContract";
+import { resolveScreenRecipe, type ScreenContractName } from "@/components/ui/app/screenContract";
 import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
 import { cn } from "@/lib/cn";
 
@@ -28,14 +28,14 @@ export function SharedScreenHeader({
   className?: string;
   actionClassName?: string;
 }) {
-  const contract = resolveScreenContract(recipe);
+  const screenRecipe = resolveScreenRecipe(recipe);
 
   return (
     <AppPanel
-      data-screen-scaffold={contract.scaffold}
-      data-section-chrome={contract.sectionChrome}
-      data-footer-dock={contract.footerDock}
-      className={cn(standaloneHeaderFamily.panelClassName, className)}
+      data-screen-scaffold={screenRecipe.scaffold}
+      data-section-chrome={screenRecipe.sectionChrome}
+      data-footer-dock={screenRecipe.footerDock}
+      className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}
     >
       <AppHeader
         eyebrow={eyebrow}
