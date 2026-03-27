@@ -1,7 +1,28 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { headerTokens } from "@/components/ui/app/headerTokens";
+import { resolveScreenRecipe, type ScreenContractName } from "@/components/ui/app/screenContract";
 
-export function ScreenScaffold({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("bg-[rgb(var(--bg))]", headerTokens.topGap, className)}>{children}</section>;
+export function ScreenScaffold({
+  children,
+  className,
+  recipe,
+}: {
+  children: ReactNode;
+  className?: string;
+  recipe?: ScreenContractName;
+}) {
+  const resolvedRecipe = recipe ? resolveScreenRecipe(recipe) : null;
+
+  return (
+    <section
+      data-screen-scaffold={resolvedRecipe?.scaffold}
+      data-section-chrome={resolvedRecipe?.sectionChrome}
+      data-footer-dock={resolvedRecipe?.footerDock}
+      data-row-interaction={resolvedRecipe?.rowInteraction}
+      className={cn("bg-[rgb(var(--bg))]", headerTokens.topGap, resolvedRecipe?.scaffoldClassName, className)}
+    >
+      {children}
+    </section>
+  );
 }

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
@@ -90,7 +90,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   return (
     <MainTabScreen topNavMode="none" className="space-y-0">
       <ScrollScreenWithBottomActions className="px-4 pb-0">
-        <ScreenScaffold className="mx-auto w-full max-w-md space-y-3 pb-4">
+        <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md pb-4">
           <SharedScreenHeader
             recipe="viewDay"
             eyebrow="View Day"
@@ -99,7 +99,12 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
           />
 
-          <AppPanel className="space-y-3 p-4">
+          <SharedSectionShell
+            recipe="viewDay"
+            label="Planned Workout"
+            context={dayRow.is_rest ? "Rest Day" : `${dayExerciseSummary.total} planned`}
+            bodyClassName="space-y-3"
+          >
             {canonicalDay?.state === "partial" ? (
               <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
                 Some exercises could not be loaded and will be skipped when you start this workout.
@@ -127,7 +132,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                 }))}
               />
             )}
-          </AppPanel>
+          </SharedSectionShell>
         </ScreenScaffold>
 
         <PublishBottomActions>

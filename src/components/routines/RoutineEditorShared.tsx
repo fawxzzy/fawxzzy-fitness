@@ -6,7 +6,7 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppButton } from "@/components/ui/AppButton";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { AppPanel } from "@/components/ui/app/AppPanel";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import type { ScreenContractName } from "@/components/ui/app/screenContract";
 import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
@@ -84,16 +84,16 @@ export function RoutineEditorSection({
   className?: string;
 }) {
   return (
-    <AppPanel className={cn("space-y-4 p-4", className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.58)]">{title}</p>
-          {description ? <SubtitleText>{description}</SubtitleText> : null}
-        </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
+    <SharedSectionShell
+      recipe="editDay"
+      label={title}
+      context={description}
+      action={action}
+      className={cn("space-y-4", className)}
+      bodyClassName="space-y-4"
+    >
       {children}
-    </AppPanel>
+    </SharedSectionShell>
   );
 }
 

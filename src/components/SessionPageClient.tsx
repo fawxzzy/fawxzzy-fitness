@@ -196,7 +196,7 @@ export function SessionPageClient({
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
 
-      <ScreenScaffold className="flex min-h-full flex-col space-y-3 pb-[max(0.25rem,var(--app-safe-bottom))]">
+      <ScreenScaffold recipe="currentSession" className="flex min-h-full flex-col pb-[max(0.25rem,var(--app-safe-bottom))]">
         {!isExerciseOpen ? (
           <SessionHeaderControls
             sessionTitle={sessionTitle}
