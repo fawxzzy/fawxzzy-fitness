@@ -27,9 +27,9 @@ function MetricHeader({ title, suffix, active, onToggle }: { title: string; suff
       type="button"
       onClick={onToggle}
       aria-pressed={active}
-      className="inline-flex border-0 bg-transparent p-0 text-left text-inherit shadow-none [-webkit-tap-highlight-color:transparent] hover:bg-transparent active:bg-transparent focus-visible:shadow-none focus:outline-none"
+      className="inline-flex appearance-none rounded-none border-0 bg-transparent p-0 text-left text-inherit shadow-none outline-none [-webkit-tap-highlight-color:transparent] hover:bg-transparent active:bg-transparent focus-visible:shadow-none focus-visible:outline-none"
     >
-      <StatFieldLabel title={title} suffix={suffix} />
+      <StatFieldLabel title={title} suffix={suffix} emphasis={active ? "target" : "default"} />
     </button>
   );
 }
