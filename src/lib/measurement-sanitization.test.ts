@@ -53,3 +53,30 @@ test("formatGoalSummaryText excludes disabled measurements from summaries", asyn
 
   assert.equal(summary, "Goal: 3 sets • 10 reps");
 });
+
+test("goal and draft summaries share canonical grammar with omitted zero metrics", async () => {
+  const { formatGoalSummaryText, formatGoalInlineSummaryText, formatCurrentDraftSummaryText } = await import("./measurement-display.ts");
+  const values = {
+    sets: 4,
+    reps: 8,
+    repsMax: 10,
+    weight: 155,
+    durationSeconds: 0,
+    distance: null,
+    calories: 0,
+    weightUnit: "lbs",
+  };
+
+  assert.equal(
+    formatGoalSummaryText(values),
+    "Goal: 4 sets • 8–10 reps • 155 lbs",
+  );
+  assert.equal(
+    formatGoalInlineSummaryText(values),
+    "4 sets • 8–10 reps • 155 lbs",
+  );
+  assert.equal(
+    formatCurrentDraftSummaryText(values),
+    "4 sets • 8–10 reps • 155 lbs",
+  );
+});

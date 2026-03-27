@@ -1,3 +1,18 @@
+## [v0.4.23] – UI: enforce one truth for measurement labels and summary grammar
+
+### WHAT
+
+* Kept `SETS (TARGET)` as the shared stat-label winner and normalized all measurement labels (`REPS`, `WEIGHT`, `TIME`, `DISTANCE`, `CALORIES`, `RPE`) to the same `StatFieldLabel` visual family so shared measurement surfaces no longer read as mixed label systems.
+* Canonicalized shared measurement summary grammar to one contract: `Goal: <set count> • <metrics>` for goal text, `<set count> • <metrics>` for draft/current inline summaries, and `Set <n> • <metrics>` for live/logged rows.
+* Normalized goal empty-state wording on shared measurement surfaces to `Goal missing` instead of mixed placeholder fallbacks, and kept missing/disabled metrics omitted (never zero-filled) in formatted summaries.
+* Updated measurement summary ordering to one deterministic metric flow (`reps`, `weight`, `time`, `distance`, `calories`) across goal and live summary helpers.
+
+### WHY
+
+* Rule: repeated summaries must share one grammar for the same meaning.
+* Pattern: stat labels are one family with subtypes, not multiple visual languages.
+* Failure Mode: allowing multiple summary/label truths destroys UI trust and slows refactors.
+
 ## [v0.4.22] – Dev: add deterministic UI contract audit surface
 
 ### WHAT

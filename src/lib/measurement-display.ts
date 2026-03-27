@@ -52,34 +52,40 @@ function formatRepRange(reps: number | null | undefined, repsMax: number | null 
   return `${minReps} reps`;
 }
 
-function formatGoalSummaryCore(values: GoalSummaryValues) {
-  const measurementParts: string[] = [];
+function getMetricSummaryParts(values: {
+  reps?: number | null;
+  repsMax?: number | null;
+  weight?: number | null;
+  weightUnit?: string | null;
+  durationSeconds?: number | null;
+  distance?: number | null;
+  distanceUnit?: string | null;
+  calories?: number | null;
+}): Array<{ metric: MeasurementMetric; label: string }> {
+  const measurementParts: Array<{ metric: MeasurementMetric; label: string }> = [];
 
   const repRange = formatRepRange(values.reps, values.repsMax);
   if (repRange) {
-    measurementParts.push(repRange);
+    measurementParts.push({ metric: "reps", label: repRange });
+  }
+
+  if (Number.isFinite(values.weight ?? null) && (values.weight ?? 0) > 0) {
+    measurementParts.push({ metric: "weight", label: `${formatNumber(values.weight as number)} ${values.weightUnit ?? "lbs"}` });
   }
 
   if (Number.isFinite(values.durationSeconds ?? null) && (values.durationSeconds ?? 0) > 0) {
-    measurementParts.push(formatDurationClock(values.durationSeconds as number));
+    measurementParts.push({ metric: "time", label: formatDurationClock(values.durationSeconds as number) });
   }
 
   if (Number.isFinite(values.distance ?? null) && (values.distance ?? 0) > 0) {
-    measurementParts.push(`${formatNumber(values.distance as number)} ${values.distanceUnit ?? "mi"}`);
+    measurementParts.push({ metric: "distance", label: `${formatNumber(values.distance as number)} ${values.distanceUnit ?? "mi"}` });
   }
 
   if (Number.isFinite(values.calories ?? null) && (values.calories ?? 0) > 0) {
-    measurementParts.push(`${formatNumber(values.calories as number)} cal`);
+    measurementParts.push({ metric: "calories", label: `${formatNumber(values.calories as number)} cal` });
   }
 
-  const weightPart = Number.isFinite(values.weight ?? null) && (values.weight ?? 0) > 0
-    ? `${formatNumber(values.weight as number)} ${values.weightUnit ?? "lbs"}`
-    : null;
-
-  return {
-    measurementText: measurementParts.join(" • "),
-    weightPart,
-  };
+  return measurementParts;
 }
 
 export function formatMeasurementSummaryItems(values: {
@@ -92,27 +98,7 @@ export function formatMeasurementSummaryItems(values: {
   calories?: number | null;
   emptyLabel?: string;
 }): SummaryItem[] {
-  const items: SummaryItem[] = [];
-
-  if (Number.isFinite(values.reps ?? null) && (values.reps ?? 0) > 0) {
-    items.push({ metric: "reps", label: `${Math.floor(values.reps as number)} reps` });
-  }
-
-  if (Number.isFinite(values.weight ?? null) && (values.weight ?? 0) > 0) {
-    items.push({ metric: "weight", label: `${formatNumber(values.weight as number)} ${values.weightUnit ?? "lbs"}` });
-  }
-
-  if (Number.isFinite(values.durationSeconds ?? null) && (values.durationSeconds ?? 0) > 0) {
-    items.push({ metric: "time", label: formatDurationClock(values.durationSeconds as number) });
-  }
-
-  if (Number.isFinite(values.distance ?? null) && (values.distance ?? 0) > 0) {
-    items.push({ metric: "distance", label: `${formatNumber(values.distance as number)} ${values.distanceUnit ?? "mi"}` });
-  }
-
-  if (Number.isFinite(values.calories ?? null) && (values.calories ?? 0) > 0) {
-    items.push({ metric: "calories", label: `${formatNumber(values.calories as number)} cal` });
-  }
+  const items: SummaryItem[] = getMetricSummaryParts(values);
 
   if (items.length === 0) {
     items.push({ metric: "reps", label: values.emptyLabel ?? "No measurements", tone: "muted" });
@@ -146,7 +132,7 @@ export function formatGoalSummaryText(values: GoalSummaryValues) {
     )
     : values;
 
-  const { measurementText, weightPart } = formatGoalSummaryCore({
+  const metricSummary = getMetricSummaryParts({
     ...values,
     reps: sanitizedValues.reps ?? null,
     weight: sanitizedValues.weight ?? null,
@@ -155,7 +141,7 @@ export function formatGoalSummaryText(values: GoalSummaryValues) {
     calories: sanitizedValues.calories ?? null,
   });
   const setCount = formatSetCountLabel(values.sets);
-  const content = [setCount, measurementText || null, weightPart].filter((part): part is string => Boolean(part)).join(" • ");
+  const content = [setCount, ...metricSummary.map((entry) => entry.label)].filter((part): part is string => Boolean(part)).join(" • ");
   return content ? `Goal: ${content}` : (values.emptyLabel ?? "Goal missing");
 }
 
