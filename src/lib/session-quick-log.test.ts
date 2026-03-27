@@ -19,7 +19,7 @@ test("formatQuickLogPreviewLabel omits unconfigured zero-valued metrics", () => 
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "Log: 10–15 reps");
+  assert.equal(label, "1 set • 10–15 reps");
 });
 
 test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", () => {
@@ -38,7 +38,7 @@ test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", ()
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "Log: 5–8 reps • 225 lbs");
+  assert.equal(label, "1 set • 5–8 reps • 225 lbs");
 });
 
 test("formatQuickLogPreviewLabel falls back to set progression when no real metrics exist", () => {
@@ -56,5 +56,5 @@ test("formatQuickLogPreviewLabel falls back to set progression when no real metr
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "Log: Set 2 of 3");
+  assert.equal(label, "Set 2 of 3 sets");
 });

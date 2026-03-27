@@ -14,7 +14,6 @@ import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
 
 type Props = {
   routineId: string;
-  routineName: string;
   daySummary: string;
   routineDayId: string;
   backHref: string;
@@ -23,7 +22,7 @@ type Props = {
   isRest: boolean;
 };
 
-export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary, routineDayId, backHref, dayIndex, name, isRest }: Props) {
+export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayId, backHref, dayIndex, name, isRest }: Props) {
   const toast = useToast();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -101,8 +100,7 @@ export function EditDaySettingsAutosaveForm({ routineId, routineName, daySummary
             ariaLabel="Day Name"
           />
         )}
-        subtitle={routineName}
-        subtitleRight={daySummary}
+        subtitle={daySummary}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
       >
         <div className="px-1 pt-1">

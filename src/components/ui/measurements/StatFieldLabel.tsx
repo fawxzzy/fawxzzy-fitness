@@ -17,15 +17,15 @@ export function StatFieldLabel({
     <span
       className={cn(
         statFieldLabelClassName,
-        emphasis === "target" ? "text-emerald-100" : "text-emerald-100/92",
+        emphasis === "target" ? "text-emerald-100" : "text-emerald-100/90",
         className,
       )}
     >
-      <span>{title}</span>
+      <span className={cn(emphasis === "target" ? "font-semibold" : "font-medium")}>{title}</span>
       {suffix ? (
         <span
           className={cn(
-            "text-[10px] font-medium tracking-[0.1em]",
+            "text-[10px] tracking-[0.1em]",
             emphasis === "target" ? "text-emerald-200/80" : "text-emerald-200/72",
           )}
         >

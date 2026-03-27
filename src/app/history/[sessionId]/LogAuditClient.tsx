@@ -470,7 +470,7 @@ export function LogAuditClient({
                         <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId((current) => (current === set.id ? null : set.id))}>
                           <CompactLogRow
                             label={<span className="font-semibold text-text">Set {index + 1}</span>}
-                            summary={`Set ${index + 1} · ${formatMeasurementSummaryText({
+                            summary={`Set ${index + 1} • ${formatMeasurementSummaryText({
                               ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
                                 reps: set.values.reps.trim() ? Number(set.values.reps) : null,
                                 weight: set.values.weight.trim() ? Number(set.values.weight) : null,
@@ -527,7 +527,7 @@ export function LogAuditClient({
                     ) : (
                       <CompactLogRow
                         label={<span className="font-semibold text-text">Logged set</span>}
-                        summary={`Set ${index + 1} · ${formatMeasurementSummaryText({
+                        summary={`Set ${index + 1} • ${formatMeasurementSummaryText({
                           ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
                             reps: set.values.reps.trim() ? Number(set.values.reps) : null,
                             weight: set.values.weight.trim() ? Number(set.values.weight) : null,
