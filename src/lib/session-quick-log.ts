@@ -26,7 +26,7 @@ type QuickLogResolution =
   | { ok: false; reason: string };
 
 function hasValue(value: number | undefined) {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 function formatDurationPreview(totalSeconds: number) {

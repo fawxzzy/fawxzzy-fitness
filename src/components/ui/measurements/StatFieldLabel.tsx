@@ -6,16 +6,19 @@ export function StatFieldLabel({
   title,
   suffix,
   emphasis = "default",
+  className,
 }: {
   title: string;
   suffix?: string;
   emphasis?: "default" | "target";
+  className?: string;
 }) {
   return (
     <span
       className={cn(
         statFieldLabelClassName,
-        emphasis === "target" ? "text-emerald-100" : "text-emerald-100/88",
+        emphasis === "target" ? "text-emerald-100" : "text-emerald-100/92",
+        className,
       )}
     >
       <span>{title}</span>
