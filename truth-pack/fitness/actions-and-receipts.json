@@ -1,0 +1,28 @@
+{
+  "actions": [
+    {
+      "type": "adjust_upcoming_workout_load",
+      "receiptType": "schedule_adjustment_applied",
+      "constraints": [
+        "must_route_through_playbook_plan",
+        "max_duration_days_14",
+        "no_direct_lifeline_bypass"
+      ]
+    },
+    {
+      "type": "schedule_recovery_block",
+      "receiptType": "recovery_guardrail_applied",
+      "constraints": ["must_route_through_playbook_plan", "no_direct_lifeline_bypass"]
+    },
+    {
+      "type": "revise_weekly_goal_plan",
+      "receiptType": "goal_plan_amended",
+      "constraints": ["must_route_through_playbook_plan", "no_direct_lifeline_bypass", "same_week_only"]
+    }
+  ],
+  "receipts": [
+    "schedule_adjustment_applied",
+    "recovery_guardrail_applied",
+    "goal_plan_amended"
+  ]
+}
