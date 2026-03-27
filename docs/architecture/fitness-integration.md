@@ -2,49 +2,75 @@
 
 ## Purpose
 
-Fitness is the first governed ecosystem participant and publishes a deterministic integration contract that can be reused by future apps.
+Fitness is a governed ecosystem participant and must stay inside the Playbook/Lifeline seam.
 
-## Contract surfaces
+## Ownership boundary (Fitness vs Playbook/Lifeline)
 
-Fitness exposes these contract surfaces in `src/lib/ecosystem`:
+**Rule: Fitness owns signal emission and inspectable app snapshots, not ecosystem planning.**
 
-- app identity (`fitness` as a `sensor-actuator`)
-- supported deterministic signals
-- supported deterministic state snapshots
-- supported bounded actions
-- declared receipt types
-- routing and constraint metadata
+Fitness owns:
+- deterministic signal emission from app transitions
+- deterministic state snapshot builders from app truth
+- thin seam packaging/adapters for outbound payloads
+- receipt ingest, local inspectability, and debug tooling
 
-## Governed loop (required)
+Playbook owns:
+- planning and policy decisions
+- interpreting multi-signal context into bounded plans
 
-**Rule: Every app must participate through the same governed signal -> plan -> action -> receipt loop.**
+Lifeline owns:
+- bounded execution and action application
+- returning typed receipts after execution
 
-Fitness follows this governed sequence:
+## Seam pattern
 
-1. Emit deterministic signals to Playbook.
-2. Allow planning in Playbook.
-3. Execute bounded actions through the Playbook/Lifeline seam.
-4. Emit typed receipts for action outcomes.
+**Pattern: app repos prepare governed payloads and consume receipts through a thin seam adapter.**
 
-## Ecosystem participation model
+Fitness packages app facts using:
+- `emitFitnessSignal(...)`
+- `buildFitnessSnapshots(...)`
+- `fitnessIntegrationClient` for seam-safe packaging and ingest
+- `ingestFitnessReceipt(...)` for app-side receipt handling
+- `getFitnessIntegrationDebugState(...)` for local inspection
 
-**Pattern: apps are sensors and actuators in the ecosystem, not isolated silos.**
+No Playbook planning logic or Lifeline execution logic is embedded in these paths.
 
-Fitness operates as a sensor (signals + state snapshots) and actuator (bounded actions + receipts) under one contract.
+## Real emit points in Fitness
+
+Current real app transitions wired to signal emission:
+
+- Session completion (`saveSessionAction`) emits `workout_completed` and then publishes snapshot-derived evaluations.
+- In-progress session discard on Today (`discardInProgressSessionAction`) emits `workout_missed` and then publishes snapshot-derived evaluations.
+- Snapshot evaluation path can emit `weekly_goal_hit`, `recovery_warning`, and `streak_broken` from deterministic app state.
+
+## Deterministic snapshots
+
+Fitness snapshots are built from app state (sessions, routine day plans, in-progress session summary):
+
+- `athlete_readiness_state`
+- `weekly_progress_state`
+- `streak_health_state`
+
+Snapshot derivation is deterministic given `(memberId, now, fetched app state)`.
+
+## Receipt handling and inspectability
+
+Fitness maintains a bounded local debug store for:
+- emitted signals
+- exported snapshots
+- ingested receipts
+
+Receipts are first-class and keep `sourceOutboundId` so outbound-to-receipt traceability is inspectable in-app.
+
+Dev inspection surface:
+- `GET /api/ecosystem/fitness/debug`
+- `POST /api/ecosystem/fitness/debug` with commands:
+  - `refresh-live-state`
+  - `replay-fixtures`
+  - `ingest-receipt`
 
 ## Failure mode
 
-**Failure Mode: standalone app logic that never feeds Playbook destroys compounding value.**
+**Failure Mode: embedding Playbook planning or Lifeline execution inside the app destroys the governed architecture.**
 
-Any logic that emits local decisions without producing governed ecosystem signals, bounded actions, and receipts violates this architecture.
-
-## Deterministic fixtures and truth pack
-
-The repo includes deterministic fixtures for all signal and state snapshot types and a human-readable truth pack under `truth-pack/fitness/`.
-
-These artifacts are designed to be:
-
-- inspectable
-- deterministic
-- contract-validatable
-- reusable as reference context for future governed app integrations
+Any app change that introduces local planning decisions or direct execution bypasses the seam and is out of bounds.

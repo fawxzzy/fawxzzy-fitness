@@ -3,7 +3,8 @@
     {
       "type": "athlete_readiness_state",
       "inspectableFields": ["memberId", "readinessScore", "fatigueScore", "capturedAt"],
-      "freshnessSlaSeconds": 300
+      "freshnessSlaSeconds": 300,
+      "derivedFrom": ["recent completed session durations", "consecutive misses", "active streak days"]
     },
     {
       "type": "weekly_progress_state",
@@ -14,12 +15,14 @@
         "completedWorkoutCount",
         "capturedAt"
       ],
-      "freshnessSlaSeconds": 300
+      "freshnessSlaSeconds": 300,
+      "derivedFrom": ["active routine non-rest day count", "current week completed sessions"]
     },
     {
       "type": "streak_health_state",
       "inspectableFields": ["memberId", "activeStreakDays", "lastCompletedDate", "streakAtRisk", "capturedAt"],
-      "freshnessSlaSeconds": 300
+      "freshnessSlaSeconds": 300,
+      "derivedFrom": ["14-day completed session history", "consecutive misses"]
     }
   ]
 }

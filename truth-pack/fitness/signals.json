@@ -4,31 +4,36 @@
       "type": "workout_completed",
       "channel": "fitness.session.events",
       "target": "playbook",
-      "priority": "normal"
+      "priority": "normal",
+      "emitPoints": ["src/app/session/[id]/actions.ts#saveSessionAction"]
     },
     {
       "type": "workout_missed",
       "channel": "fitness.session.events",
       "target": "playbook",
-      "priority": "high"
+      "priority": "high",
+      "emitPoints": ["src/app/today/page.tsx#discardInProgressSessionAction", "snapshot-evaluation"]
     },
     {
       "type": "recovery_warning",
       "channel": "fitness.recovery.events",
       "target": "playbook",
-      "priority": "high"
+      "priority": "high",
+      "emitPoints": ["snapshot-evaluation"]
     },
     {
       "type": "weekly_goal_hit",
       "channel": "fitness.goal.events",
       "target": "playbook",
-      "priority": "normal"
+      "priority": "normal",
+      "emitPoints": ["snapshot-evaluation"]
     },
     {
       "type": "streak_broken",
       "channel": "fitness.streak.events",
       "target": "playbook",
-      "priority": "high"
+      "priority": "high",
+      "emitPoints": ["snapshot-evaluation"]
     }
   ]
 }

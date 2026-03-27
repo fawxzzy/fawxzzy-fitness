@@ -10,6 +10,8 @@ import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
+import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
+import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
 
 const SHOULD_DEBUG_CANONICAL_LINKING = process.env.NODE_ENV === "development";
 
@@ -636,6 +638,28 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
 
   const affectedExerciseIds = await getExerciseIdsForSession(user.id, sessionId);
   await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds);
+
+  const now = new Date();
+
+  fitnessIntegrationClient.packageSignal({
+    memberId: user.id,
+    signalType: "workout_completed",
+    reason: "session_completed",
+    emittedAt: now,
+    payload: {
+      memberId: user.id,
+      sessionId,
+      completedAt: now.toISOString(),
+      durationMinutes: Math.max(0, Math.round((durationSeconds ?? 0) / 60)),
+      completionRate: 1,
+    },
+  });
+
+  await publishFitnessIntegrationStateForMember({
+    memberId: user.id,
+    reason: "session_completed",
+    now,
+  });
 
   revalidatePath("/today");
   revalidateHistoryViews();

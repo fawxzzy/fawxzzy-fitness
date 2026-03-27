@@ -27,6 +27,8 @@ import { getRunnableDayState } from "@/lib/runnable-day";
 import { getExerciseCountSummaryFromCanonicalExercises, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import { formatRoutineHeaderMeta } from "@/lib/header-meta";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
+import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
+import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
 
 export const dynamic = "force-dynamic";
 
@@ -104,6 +106,28 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
   if (sessionDeleteError) {
     redirect(`/today?error=${encodeURIComponent(safeError)}`);
   }
+
+  const now = new Date();
+
+  fitnessIntegrationClient.packageSignal({
+    memberId: user.id,
+    signalType: "workout_missed",
+    reason: "session_discarded",
+    emittedAt: now,
+    payload: {
+      memberId: user.id,
+      sessionId,
+      scheduledAt: now.toISOString(),
+      missReasonCode: "discarded_in_progress",
+      consecutiveMisses: 1,
+    },
+  });
+
+  await publishFitnessIntegrationStateForMember({
+    memberId: user.id,
+    reason: "session_discarded",
+    now,
+  });
 
   redirect("/today");
 }
