@@ -47,3 +47,8 @@
   - Header ownership and top-level spacing moved further into shared header + recipe plumbing.
   - Today and Routines overview now consume shared recipe metadata directly instead of local-only header assembly.
   - Remaining divergence is mostly section-level content composition, not top-header contract ownership.
+
+## Contract ownership rules (updated)
+- **Rule**: repeated screen families must render through shared contracts, not ad hoc local assembly.
+- **Pattern**: headers and section shells are contract-owned primitives (`SharedScreenHeader`, `SharedSectionShell`), not screen-owned inventions.
+- **Failure mode**: metadata-only contracts that do not own rendering allow visual drift to survive because local wrappers can silently diverge while still claiming the same contract family.

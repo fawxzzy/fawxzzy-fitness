@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 
 export function WorkoutEntrySection({
   eyebrow,
@@ -20,23 +21,17 @@ export function WorkoutEntrySection({
   contentClassName?: string;
 }) {
   return (
-    <section className={cn("space-y-3 rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.48)] p-4", className)}>
-      <div className="flex items-start justify-between gap-3">
-        {(eyebrow || title || description) ? (
-          <div className="min-w-0 space-y-1">
-            {eyebrow ? <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{eyebrow}</p> : null}
-            {(title || description) ? (
-              <div className="space-y-1">
-                {title ? <p className="text-sm font-semibold text-text">{title}</p> : null}
-                {description ? <p className="text-sm text-muted">{description}</p> : null}
-              </div>
-            ) : null}
-          </div>
-        ) : <div />}
-        {aside ? <div className="shrink-0">{aside}</div> : null}
-      </div>
-      {children ? <div className={cn("space-y-3", contentClassName)}>{children}</div> : null}
-    </section>
+    <SharedSectionShell
+      recipe="exerciseLog"
+      label={eyebrow}
+      context={title}
+      meta={description}
+      action={aside}
+      className={cn("rounded-[1.35rem] border border-white/8 bg-[rgb(var(--surface-rgb)/0.48)]", className)}
+      bodyClassName={cn("space-y-3", contentClassName)}
+    >
+      {children}
+    </SharedSectionShell>
   );
 }
 
