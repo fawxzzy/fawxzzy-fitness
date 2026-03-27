@@ -121,6 +121,23 @@ Rule: ignore tuning should narrow scan noise, **not** hide system truth. Keep ar
 - Vendored subtree workflow guidance is retired.
 - Historical migration notes remain in `docs/CHANGELOG.md`, but they are not part of the active operator workflow.
 
+
+## Dev-only UI contract audit surface
+
+Use `/dev/ui-contract` in local development as the canonical visual inspection route for repeated UI families (headers, session cards + footer dock, Exercise Log, Configure Goal, Edit Day inline editor, View Day, rest-day, and planned workout variants).
+
+Principles for this surface:
+- **Rule:** every repeated UI family needs a canonical visual inspection surface.
+- **Pattern:** deterministic fixtures turn styling drift into something inspectable and repeatable.
+- **Failure Mode:** relying on memory and scattered screenshots causes “fixed in code, still wrong in render” regressions.
+
+Usage loop:
+1. Run `npm run dev` and open `http://localhost:3000/dev/ui-contract`.
+2. Compare all grouped families and winner notes before/after a refactor.
+3. Keep fixture values deterministic; update fixtures intentionally when contract changes are approved.
+
+This route is internal/dev-only and intentionally excluded from production by returning `notFound()` when `NODE_ENV === "production"`.
+
 ## Local development
 
 ```bash
