@@ -772,12 +772,12 @@ export function SetLoggerCard({
       calories: calories.trim() ? Number(calories) : null,
       emptyLabel: "Add measurements",
     });
-    const setLabel = formatSetPositionLabel(sets.length + 1, useIntervalLanguage ? "Interval" : "Set");
-    const parts = [setLabel, summary];
+    const parts = [summary];
     if (rpe.trim()) parts.push(`RPE ${rpe.trim()}`);
     if (resolvedIsWarmup) parts.push("Warm-Up");
     return parts.join(" • ");
-  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sets.length, useIntervalLanguage, weight]);
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
+  const currentSetLabel = formatSetPositionLabel(sets.length + 1, useIntervalLanguage ? "Interval" : "Set");
 
 
   async function handleDeleteSet(set: DisplaySet) {
@@ -881,7 +881,7 @@ export function SetLoggerCard({
             <div className="flex items-start justify-between gap-2 rounded-xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.3)] px-3 py-2">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</p>
-                <p className="mt-0.5 truncate text-sm text-text/90">{useIntervalLanguage ? "Interval" : "Set"} {sets.length + 1}</p>
+                <p className="mt-0.5 truncate text-sm text-text/90">{currentSetLabel} • {liveSummaryText}</p>
               </div>
               <button
                 type="button"
@@ -904,9 +904,6 @@ export function SetLoggerCard({
           onRpeChange={setRpe}
           footerContent={(
             <div className="space-y-2.5">
-              <div className="rounded-lg bg-white/[0.03] px-3 py-2 text-sm text-text/90">
-                <p>{liveSummaryText}</p>
-              </div>
               <div className="rounded-lg bg-[rgb(var(--surface-rgb)/0.42)] px-2.5 py-2">
                 <div className="mb-2 flex items-center justify-between gap-2 px-1">
                   <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Sets</span>

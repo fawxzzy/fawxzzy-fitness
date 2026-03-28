@@ -526,6 +526,7 @@ export function ExercisePicker({
           />
 
           <GoalSummaryInline
+            includeSets={false}
             values={{
               ...sanitizeEnabledMeasurementValues(
                 {
