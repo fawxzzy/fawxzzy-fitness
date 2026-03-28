@@ -19,6 +19,57 @@ import {
 import { getSessionPageData } from "./queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
 
+function buildSessionExerciseTarget(exercise: {
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  target_sets_min?: number | null;
+  target_sets_max?: number | null;
+  target_reps_min?: number | null;
+  target_reps_max?: number | null;
+  target_weight_min?: number | null;
+  target_weight_max?: number | null;
+  target_weight_unit?: "lbs" | "kg" | null;
+  target_time_seconds_min?: number | null;
+  target_time_seconds_max?: number | null;
+  target_distance_min?: number | null;
+  target_distance_max?: number | null;
+  target_distance_unit?: "mi" | "km" | "m" | null;
+  target_calories_min?: number | null;
+  target_calories_max?: number | null;
+}): DisplayTarget | null {
+  const hasGoal = exercise.target_sets_min !== null
+    || exercise.target_sets_max !== null
+    || exercise.target_reps_min !== null
+    || exercise.target_reps_max !== null
+    || exercise.target_weight_min !== null
+    || exercise.target_weight_max !== null
+    || exercise.target_time_seconds_min !== null
+    || exercise.target_time_seconds_max !== null
+    || exercise.target_distance_min !== null
+    || exercise.target_distance_max !== null
+    || exercise.target_calories_min !== null
+    || exercise.target_calories_max !== null;
+
+  if (!hasGoal) {
+    return null;
+  }
+
+  return {
+    source: "engine",
+    measurementType: exercise.measurement_type ?? "reps",
+    setsMin: exercise.target_sets_min ?? undefined,
+    setsMax: exercise.target_sets_max ?? undefined,
+    repsMin: exercise.target_reps_min ?? undefined,
+    repsMax: exercise.target_reps_max ?? undefined,
+    weightMin: exercise.target_weight_min ?? undefined,
+    weightMax: exercise.target_weight_max ?? undefined,
+    weightUnit: exercise.target_weight_unit ?? undefined,
+    durationSeconds: exercise.target_time_seconds_min ?? exercise.target_time_seconds_max ?? undefined,
+    distance: exercise.target_distance_min ?? exercise.target_distance_max ?? undefined,
+    distanceUnit: exercise.target_distance_unit ?? undefined,
+    calories: exercise.target_calories_min ?? exercise.target_calories_max ?? undefined,
+  };
+}
+
 export const dynamic = "force-dynamic";
 
 function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): {
@@ -114,7 +165,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           searchError={searchParams?.error}
           unitLabel={unitLabel}
           exercises={sessionExercises.map((exercise) => {
-            const displayTarget = sessionTargets.get(exercise.id);
+            const displayTarget = buildSessionExerciseTarget(exercise) ?? sessionTargets.get(exercise.id);
             const canonicalExercise = exerciseById.get(exercise.exercise_id);
             const exerciseMetadata = {
               measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,

@@ -114,6 +114,25 @@ export async function getSessionPageData(sessionId: string) {
       || item.target_distance_max !== null
       || item.target_calories_min !== null
       || item.target_calories_max !== null;
+
+    const inheritedGoalColumns = !hasSessionGoal && linkedRoutine
+      ? {
+          target_sets_min: linkedRoutine.target_sets ?? null,
+          target_sets_max: linkedRoutine.target_sets ?? null,
+          target_reps_min: linkedRoutine.target_reps_min ?? linkedRoutine.target_reps ?? null,
+          target_reps_max: linkedRoutine.target_reps_max ?? linkedRoutine.target_reps ?? null,
+          target_weight_min: linkedRoutine.target_weight ?? null,
+          target_weight_max: linkedRoutine.target_weight ?? null,
+          target_weight_unit: linkedRoutine.target_weight_unit ?? null,
+          target_time_seconds_min: linkedRoutine.target_duration_seconds ?? null,
+          target_time_seconds_max: linkedRoutine.target_duration_seconds ?? null,
+          target_distance_min: linkedRoutine.target_distance ?? null,
+          target_distance_max: linkedRoutine.target_distance ?? null,
+          target_distance_unit: linkedRoutine.target_distance_unit ?? null,
+          target_calories_min: linkedRoutine.target_calories ?? null,
+          target_calories_max: linkedRoutine.target_calories ?? null,
+        }
+      : null;
     const goalSource = hasSessionGoal ? item : linkedRoutine ?? item;
     const hasSetsTarget = ("target_sets_min" in goalSource && goalSource.target_sets_min !== null) || ("target_sets_max" in goalSource && goalSource.target_sets_max !== null) || ("target_sets" in goalSource && goalSource.target_sets !== null);
     const enabledMetrics = {
@@ -127,6 +146,7 @@ export async function getSessionPageData(sessionId: string) {
 
     return {
       ...item,
+      ...(inheritedGoalColumns ?? {}),
       measurement_type: effectiveMeasurementType,
       default_unit: effectiveDefaultUnit,
       enabled_metrics: enabledMetrics,

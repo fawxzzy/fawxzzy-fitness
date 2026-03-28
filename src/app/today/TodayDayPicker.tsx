@@ -143,6 +143,7 @@ export function TodayDayPicker({
   const isRunnableDay = selectedDay?.state === "runnable" || selectedDay?.state === "partial";
   const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
   const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
+  const isRestDaySelected = selectedDay?.state === "rest";
   const hasInProgressSession = Boolean(inProgressSessionId);
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
 
@@ -242,7 +243,7 @@ export function TodayDayPicker({
             </DayList>
           )}
         >
-          {!isPickerOpen && daySummary ? (
+          {!isPickerOpen && !isRestDaySelected && daySummary ? (
             <div
               className={[
                 "rounded-md px-3 py-2",
@@ -259,7 +260,7 @@ export function TodayDayPicker({
             </div>
           ) : null}
 
-          {!isPickerOpen ? <ul className={selectedDay.state === "rest" ? "space-y-0" : "space-y-2"}>
+          {!isPickerOpen && !isRestDaySelected ? <ul className="space-y-2">
             {selectedDay.exercises.map((exercise) => (
               <li key={exercise.id}>
                 <StandardExerciseRow
@@ -275,8 +276,8 @@ export function TodayDayPicker({
               </li>
             ))}
             {selectedDay.exercises.length === 0 ? (
-              <li className={selectedDay.state === "rest" ? "pt-1" : "px-3 py-3"}>
-                {selectedDay.state === "rest" ? null : <SubtitleText>No exercises yet.</SubtitleText>}
+              <li className="px-3 py-3">
+                <SubtitleText>No exercises yet.</SubtitleText>
               </li>
             ) : null}
           </ul> : null}

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { HistoryPageHeader } from "@/components/history/HistoryShared";
 import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -39,12 +38,11 @@ function decodeCursor(value?: string): HistoryCursor | null {
 export default async function HistoryPage({
   searchParams,
 }: {
-  searchParams?: { cursor?: string; view?: string; tab?: string };
+  searchParams?: { cursor?: string; tab?: string; selected?: string };
 }) {
   const user = await requireUser();
   const supabase = supabaseServer();
   const cursor = decodeCursor(searchParams?.cursor);
-  const viewMode = searchParams?.view === "compact" ? "compact" : "list";
 
   let query = supabase
     .from("sessions")
@@ -226,12 +224,12 @@ export default async function HistoryPage({
       <ScrollContainer className="px-1">
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistoryPageHeader title="Training history" subtitle="Review completed sessions and exercise trends in the same shared history shell." />
-          <HistorySessionsClient sessions={sessionItems} initialViewMode={viewMode} />
+          <HistorySessionsClient sessions={sessionItems} selectedSessionId={searchParams?.selected} />
 
           {nextCursor ? (
             <div className="flex justify-center">
               <Link
-                href={`/history?tab=sessions&view=${viewMode}&cursor=${encodeURIComponent(nextCursor)}`}
+                href={`/history?tab=sessions&cursor=${encodeURIComponent(nextCursor)}`}
                 className={getAppButtonClassName({ variant: "secondary", size: "md" })}
               >
                 Load more

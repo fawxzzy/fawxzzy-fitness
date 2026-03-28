@@ -15,10 +15,9 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: { sessionId: string };
-  searchParams?: { returnTab?: string; view?: string };
 };
 
-export default async function HistoryLogDetailsPage({ params, searchParams }: PageProps) {
+export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const user = await requireUser();
   const supabase = supabaseServer();
 
@@ -95,8 +94,7 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
     ?? sessionRow.routine_day_name
     ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
   const exerciseOptions = await listExercises();
-  const returnView = searchParams?.view === "compact" ? "compact" : "list";
-  const backHref = `/history?tab=sessions&view=${returnView}`;
+  const backHref = `/history?tab=sessions&selected=${params.sessionId}`;
 
   const exerciseIds = orderedSessionExercises.map((exercise) => exercise.exercise_id);
   const { data: historicalSetRows } = exerciseIds.length
