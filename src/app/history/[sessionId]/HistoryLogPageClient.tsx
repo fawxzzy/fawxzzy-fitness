@@ -33,7 +33,6 @@ export function HistoryLogPageClient(props: {
   exercises: AuditExercise[];
   exerciseOptions: Array<{ id: string; name: string; user_id: string | null; is_global: boolean }>;
   sessionSummary: SessionSummary;
-  initialIsEditing: boolean;
   backHref: string;
 }) {
   return <LogAuditClient {...props} />;

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -7,7 +6,7 @@ import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { requireUser } from "@/lib/auth";
@@ -137,12 +136,9 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
 
         <PublishBottomActions>
           <BottomActionSingle>
-            <Link
-              href={editDayHref}
-              className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true, className: "w-full" })}
-            >
+            <BottomDockLink href={editDayHref} variant="primary">
               Edit Day
-            </Link>
+            </BottomDockLink>
           </BottomActionSingle>
         </PublishBottomActions>
       </ScrollScreenWithBottomActions>

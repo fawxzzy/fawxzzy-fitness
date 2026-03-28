@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { deleteCompletedSessionAction } from "@/app/actions/history";
-import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
-import { BottomSheet } from "@/components/ui/BottomSheet";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { HistoryControlGroup, HistoryControlPanel, HistoryMetaChip, HistoryMetaRow, HistoryTabs, buildHistorySessionSummaryParts } from "@/components/history/HistoryShared";
 import { cn } from "@/lib/cn";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
@@ -43,80 +39,6 @@ function isWeekdayTitle(value?: string) {
   if (!value) return false;
   const normalized = value.trim().toLowerCase();
   return ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "mon", "tue", "wed", "thu", "fri", "sat", "sun"].includes(normalized);
-}
-
-function SheetActionRow({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-2xl border border-white/10 bg-black/10 p-1">{children}</div>;
-}
-
-function SessionCardMenu({ sessionId, mode, routineTitle, startedAt, durationSec }: {
-  sessionId: string;
-  mode: ViewMode;
-  routineTitle: string;
-  startedAt: string;
-  durationSec?: number;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="relative z-20" onClick={(event) => event.stopPropagation()}>
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/20 text-base text-slate-200 transition-colors hover:bg-black/35"
-      >
-        ⋯
-      </button>
-
-      <BottomSheet open={open} title="Session actions" onClose={() => setOpen(false)}>
-        <div className="space-y-3 pb-2">
-          <div className="px-1">
-            <p className="text-sm font-semibold text-slate-50">{routineTitle}</p>
-            <p className="mt-1 text-xs text-slate-400">
-              {formatDateShort(startedAt)}
-              {durationSec ? ` • ${formatDurationShort(durationSec)}` : ""}
-            </p>
-          </div>
-
-          <SheetActionRow>
-            <Link
-              href={`/history/${sessionId}?returnTab=sessions&view=${mode}&edit=1`}
-              onClick={() => setOpen(false)}
-              className="flex min-h-12 w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-100 transition hover:bg-white/8"
-            >
-              <span>Edit log</span>
-              <span className="text-xs text-slate-400">Open editor</span>
-            </Link>
-          </SheetActionRow>
-
-          <SheetActionRow>
-            <button type="button" disabled className="flex min-h-12 w-full cursor-not-allowed items-center justify-between rounded-xl px-4 py-3 text-left text-sm text-slate-500">
-              <span>Perform again</span>
-              <span className="text-xs text-slate-600">Coming soon</span>
-            </button>
-            <button type="button" disabled className="flex min-h-12 w-full cursor-not-allowed items-center justify-between rounded-xl px-4 py-3 text-left text-sm text-slate-500">
-              <span>Save as template</span>
-              <span className="text-xs text-slate-600">Coming soon</span>
-            </button>
-          </SheetActionRow>
-
-          <ConfirmedServerFormButton
-            action={deleteCompletedSessionAction}
-            hiddenFields={{ sessionId }}
-            triggerLabel="Delete log"
-            triggerAriaLabel="Delete session"
-            triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "w-full justify-center" })}
-            modalTitle="Delete log?"
-            modalDescription="This will permanently delete this workout session and all logged sets."
-            confirmLabel="Delete"
-            contextLines={[routineTitle, `${formatDateShort(startedAt)}${durationSec ? ` • ${formatDurationShort(durationSec)}` : ""}`]}
-          />
-        </div>
-      </BottomSheet>
-    </div>
-  );
 }
 
 function ViewModePills({ value, onChange }: { value: ViewMode; onChange: (next: ViewMode) => void }) {
@@ -162,20 +84,20 @@ function HistorySessionRow({ session, mode }: { session: SessionSummary; mode: V
     <AppPanel
       clip
       className={cn(
-        "transition-colors hover:border-border/70",
+        "group transition-all hover:-translate-y-[1px] hover:border-border/80 hover:bg-[rgb(var(--surface-rgb)/0.46)]",
         mode === "compact" ? "p-3" : "p-3.5",
         session.prCounts.total > 0 ? "border-[rgb(var(--button-primary-border)/0.38)]" : undefined,
       )}
     >
-      <div className={cn("relative", mode === "compact" ? "min-h-[108px]" : "min-h-[180px]")}>
+      <div className={cn("relative", mode === "compact" ? "min-h-[102px]" : "min-h-[152px]")}>
         <Link
           href={`/history/${session.id}?returnTab=sessions&view=${mode}`}
           aria-label={`View session details for ${routineTitle}`}
           className="absolute inset-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
         />
 
-        <div className="relative z-10 flex items-start gap-3">
-          <div className="min-w-0 flex-1 space-y-2 pr-1">
+        <div className="relative z-10 flex items-start gap-2.5">
+          <div className="min-w-0 flex-1 space-y-2">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">Session</p>
               <p className={cn(
@@ -207,14 +129,7 @@ function HistorySessionRow({ session, mode }: { session: SessionSummary; mode: V
               </HistoryMetaRow>
             )}
           </div>
-
-          <SessionCardMenu
-            sessionId={session.id}
-            mode={mode}
-            routineTitle={routineTitle}
-            startedAt={session.startedAt}
-            durationSec={session.durationSec}
-          />
+          <div className="pt-1 text-lg leading-none text-[rgb(var(--text)/0.42)] transition-colors group-hover:text-[rgb(var(--text)/0.68)]" aria-hidden="true">›</div>
         </div>
 
         {mode !== "compact" && session.prCounts.total > 0 ? (
@@ -234,6 +149,8 @@ function HistorySessionRow({ session, mode }: { session: SessionSummary; mode: V
             </p>
           </div>
         ) : null}
+
+        <p className="relative z-10 mt-2 text-xs font-medium text-[rgb(var(--text)/0.62)]">Open log</p>
       </div>
     </AppPanel>
   );

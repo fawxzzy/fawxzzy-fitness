@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: { sessionId: string };
-  searchParams?: { returnTab?: string; view?: string; edit?: string };
+  searchParams?: { returnTab?: string; view?: string };
 };
 
 export default async function HistoryLogDetailsPage({ params, searchParams }: PageProps) {
@@ -161,8 +161,6 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
     prCounts: sessionCountsById.get(sessionRow.id) ?? { ...EMPTY_PR_COUNTS },
   });
 
-  const initialIsEditing = searchParams?.edit === "1";
-
   return (
     <AppShell className="gap-4" topNavMode="none">
       <ScrollScreenWithBottomActions className={`flex flex-col gap-3 px-1 ${FIXED_CTA_RESERVE_CLASS}`}>
@@ -175,7 +173,6 @@ export default async function HistoryLogDetailsPage({ params, searchParams }: Pa
             exerciseNameMap={exerciseNameRecord}
             exerciseOptions={exerciseOptions}
             sessionSummary={sessionSummary}
-            initialIsEditing={initialIsEditing}
             backHref={backHref}
             exercises={orderedSessionExercises.map((exercise) => ({
               id: exercise.id,
