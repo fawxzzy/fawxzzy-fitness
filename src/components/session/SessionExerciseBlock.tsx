@@ -11,7 +11,7 @@ export function SessionExerciseCard({ children }: { children: ReactNode }) {
 }
 
 export function AttachedQuickActionStrip({
-  label = "Log: Set",
+  label = "Quick Log: Set",
   onPress,
   isPending,
   className,

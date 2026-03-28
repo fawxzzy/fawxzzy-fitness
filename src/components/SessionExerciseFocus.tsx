@@ -258,13 +258,13 @@ export function SessionExerciseFocus({
                     </StandardExerciseRow>
                   </SessionExerciseCard>
                   <AttachedQuickActionStrip
-                    label={formatQuickLogPreviewLabel({
+                    label={`Quick Log: ${formatQuickLogPreviewLabel({
                       target: exercise.quickLogTarget,
                       loggedSetCount: setCount,
                       targetSetsMin: exercise.targetSetsMin,
                       targetSetsMax: exercise.targetSetsMax,
                       fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
-                    })}
+                    })}`}
                     isPending={quickAddPendingId === exercise.id}
                     onPress={async () => {
                       setQuickAddPendingId(exercise.id);
