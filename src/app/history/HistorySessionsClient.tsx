@@ -38,7 +38,7 @@ function HistorySessionCard({
           "space-y-1.5 p-3.5 transition-colors",
           "hover:border-border/85 hover:bg-[rgb(var(--surface-rgb)/0.48)]",
           selected
-            ? "border-[rgb(var(--accent-rgb)/0.55)] bg-[rgb(var(--accent-rgb)/0.14)]"
+            ? "border-[rgb(var(--accent-rgb)/0.78)] bg-[rgb(var(--accent-rgb)/0.2)] ring-1 ring-[rgb(var(--accent-rgb)/0.38)] shadow-[0_16px_30px_-24px_rgba(16,185,129,0.62)]"
             : undefined,
         )}
       >
@@ -46,7 +46,7 @@ function HistorySessionCard({
         <p className="text-xs text-slate-300">{formatSubtitle(session)}</p>
         <p className="text-xs text-[rgb(var(--text)/0.82)]">{formatSummaryLine(session)}</p>
         <p className="line-clamp-1 text-xs text-[rgb(var(--text)/0.7)]">
-          Top set: {session.topSet ? `${session.topSet.exerciseName} • ${session.topSet.display}` : "No set data"}
+          Top set • {session.topSet ? `${session.topSet.exerciseName} • ${session.topSet.display}` : "No set data"}
         </p>
       </AppPanel>
     </Link>

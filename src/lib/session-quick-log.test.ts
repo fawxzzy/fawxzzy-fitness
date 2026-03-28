@@ -19,7 +19,7 @@ test("formatQuickLogPreviewLabel omits unconfigured zero-valued metrics", () => 
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "1 set • 10–15 reps");
+  assert.equal(label, "10–15 reps");
 });
 
 test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", () => {
@@ -38,7 +38,7 @@ test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", ()
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "1 set • 5–8 reps • 225 lbs");
+  assert.equal(label, "5–8 reps • 225 lbs");
 });
 
 test("formatQuickLogPreviewLabel falls back to set progression when no real metrics exist", () => {
@@ -56,5 +56,24 @@ test("formatQuickLogPreviewLabel falls back to set progression when no real metr
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "Set 2 of 3 sets");
+  assert.equal(label, "Set 2 of 3");
+});
+
+
+test("formatQuickLogPreviewLabel uses metric-based cardio summary when metrics exist", () => {
+  const label = formatQuickLogPreviewLabel({
+    target: {
+      durationSeconds: 720,
+      distance: 2,
+      distanceUnit: "mi",
+      calories: 250,
+      measurementType: "time_distance",
+    },
+    loggedSetCount: 0,
+    targetSetsMin: 3,
+    targetSetsMax: 3,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(label, "12:00 • 2 mi • 250 cal");
 });

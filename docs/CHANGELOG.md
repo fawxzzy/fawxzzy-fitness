@@ -1,3 +1,19 @@
+## [v0.4.24] – UI: polish history metadata clarity and quick-log preview consistency
+
+### WHAT
+
+* Removed redundant history detail summary chips and kept one metadata summary line in the history header, eliminating duplicate PR/session summary representation in the same block.
+* Increased selected-state emphasis on history session cards with stronger accent border/background/ring treatment so active selection is easier to distinguish at a glance.
+* Normalized quick-log preview formatting to always prefer metric summaries by measurement type (`reps`, `time`, `distance`, `time + distance`) and only fall back to `Set n of m` when no meaningful metrics exist.
+* Aligned history card metadata separator rhythm by using bullet separators consistently in top-set metadata copy.
+
+### WHY
+
+* Duplicate metadata chips under the same summary family made history headers noisy and introduced duplicate information.
+* Selected history cards needed a clearer visual state to reduce ambiguity when returning from detail views.
+* Quick Log preview labels mixed set-progression and metric formats even when metrics existed, which reduced consistency across exercise types.
+* A single separator convention improves scan rhythm and prevents subtle metadata-style drift.
+
 ## [v0.4.23] – UI: enforce one truth for measurement labels and summary grammar
 
 ### WHAT

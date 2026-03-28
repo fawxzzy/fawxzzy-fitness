@@ -21,7 +21,7 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
-import { HistoryDetailHeader, HistoryMetaChip, HistoryMetaRow, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
+import { HistoryDetailHeader, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -403,12 +403,7 @@ export function LogAuditClient({
         subtitle={sessionMeta.dateLine}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />}
         className={isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : undefined}
-        meta={(
-          <HistoryMetaRow>
-            <HistoryMetaChip label="Summary" value={sessionMeta.summaryLine} />
-            {sessionSummary.prLabel ? <HistoryMetaChip label="PRs" value={sessionSummary.prLabel} emphasized /> : null}
-          </HistoryMetaRow>
-        )}
+        meta={<p className="text-sm text-[rgb(var(--text)/0.82)]">{sessionMeta.summaryLine}</p>}
       >
         {isEditing ? (
           <div className="space-y-2">
