@@ -5,7 +5,6 @@ import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
-import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { formatRoutineHeaderMeta } from "@/lib/header-meta";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import type { DisplayTarget } from "@/lib/session-targets";
@@ -96,17 +95,9 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
   const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
-  const sessionExerciseSummary = getExerciseCountSummaryFromInputs(sessionExercises.map((exercise) => {
-    const canonicalExercise = exerciseById.get(exercise.exercise_id);
-    return {
-      measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
-      equipment: canonicalExercise?.equipment ?? null,
-      movement_pattern: canonicalExercise?.movement_pattern ?? null,
-    };
-  }));
   const sessionSummary = formatRoutineHeaderMeta({
     routineName: routine?.name ?? (sessionRow.name || "Routine"),
-    totalExercises: sessionExerciseSummary.total,
+    totalExercises: sessionExercises.length,
   });
 
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
