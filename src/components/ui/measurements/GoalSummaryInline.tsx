@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 export function GoalSummaryInline({
   values,
   className,
+  includeSets = true,
 }: {
   values: {
     sets?: number | null;
@@ -18,8 +19,9 @@ export function GoalSummaryInline({
     emptyLabel?: string;
   };
   className?: string;
+  includeSets?: boolean;
 }) {
-  const summary = formatGoalInlineSummaryText(values);
+  const summary = formatGoalInlineSummaryText(includeSets ? values : { ...values, sets: null });
   const isMissing = summary === (values.emptyLabel ?? "Goal missing");
 
   return (

@@ -394,7 +394,7 @@ export function EditableRoutineDayExerciseList({
   }, [editModeActive, expandedId, items]);
 
 
-  const shouldShowAddExerciseAction = !reorderMode && !editModeActive;
+  const shouldShowAddExerciseAction = !isRestDay && !reorderMode && !editModeActive;
   const isMissingGoalSummary = (summary: string) => summary === "Goal missing";
   const [headerActionTarget, setHeaderActionTarget] = useState<HTMLElement | null>(null);
 

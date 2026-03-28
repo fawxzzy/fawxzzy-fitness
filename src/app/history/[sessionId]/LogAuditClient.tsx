@@ -411,24 +411,32 @@ export function LogAuditClient({
         )}
       >
         {isEditing ? (
-          <div className="space-y-3">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
-              Day Name
-              <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
-            </label>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
-              Session Notes
-              <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
-            </label>
-            <div className="space-y-2 rounded-[1.15rem] border border-white/12 bg-black/10 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Add Exercise</p>
-              <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25">
-                {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
-              </select>
-              <div className="flex justify-end">
-                <SecondaryButton type="button" size="sm" onClick={handleAddExercise}>Add Exercise</SecondaryButton>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Edit mode</p>
+            <details className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
+              <summary className="cursor-pointer list-none text-sm font-semibold text-slate-100">Session details</summary>
+              <div className="mt-3 space-y-3">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+                  Day Name
+                  <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
+                </label>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+                  Session Notes
+                  <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
+                </label>
               </div>
-            </div>
+            </details>
+            <details className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
+              <summary className="cursor-pointer list-none text-sm font-semibold text-slate-100">Add exercise</summary>
+              <div className="mt-3 space-y-2">
+                <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25">
+                  {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
+                </select>
+                <div className="flex justify-end">
+                  <SecondaryButton type="button" size="sm" onClick={handleAddExercise}>Add Exercise</SecondaryButton>
+                </div>
+              </div>
+            </details>
           </div>
         ) : null}
       </HistoryDetailHeader>
@@ -449,15 +457,18 @@ export function LogAuditClient({
             <HistorySection
               key={exercise.id}
               title={name}
-              description={isEditing ? "Editing enabled" : undefined}
+              description={undefined}
               action={<AppBadge>{setsForExercise.length} SETS</AppBadge>}
               className="space-y-3 p-3.5"
             >
               {isEditing ? (
-                <div className="flex flex-wrap gap-2">
-                  <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
-                  <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
-                </div>
+                <details className="rounded-xl border border-white/8 bg-black/10 px-3 py-2">
+                  <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.14em] text-muted">Exercise tools</summary>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
+                    <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
+                  </div>
+                </details>
               ) : null}
 
               <ul className="space-y-1.5 text-sm">

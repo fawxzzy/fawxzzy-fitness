@@ -20,11 +20,12 @@ export function SessionHeaderControls({
       eyebrow="Current Session"
       title={sessionTitle}
       subtitle={sessionSummary}
-      action={<SessionBackButton href={backHref} />}
-    >
-      <div className="px-5 pb-4">
-        <OfflineSyncBadge />
-      </div>
-    </SharedScreenHeader>
+      action={(
+        <div className="flex items-center gap-2">
+          <OfflineSyncBadge />
+          <SessionBackButton href={backHref} />
+        </div>
+      )}
+    />
   );
 }

@@ -77,28 +77,28 @@ function HistorySessionRow({ session, mode }: { session: SessionSummary; mode: V
   const dateLabel = formatDateShort(session.startedAt);
   const dayLabel = session.dayTitle?.trim();
   const showDayLabel = dayLabel && !isWeekdayTitle(dayLabel);
-  const metrics = performanceParts(session);
   const condensedMetrics = compactMetricsSummary(session).join(" • ");
+  const metrics = performanceParts(session);
 
   return (
     <AppPanel
       clip
       className={cn(
-        "group transition-all hover:-translate-y-[1px] hover:border-border/80 hover:bg-[rgb(var(--surface-rgb)/0.46)]",
+        "group relative transition-all hover:-translate-y-[1px] hover:border-border/80 hover:bg-[rgb(var(--surface-rgb)/0.46)]",
         mode === "compact" ? "p-3" : "p-3.5",
         session.prCounts.total > 0 ? "border-[rgb(var(--button-primary-border)/0.38)]" : undefined,
       )}
     >
-      <div className={cn("relative", mode === "compact" ? "min-h-[102px]" : "min-h-[152px]")}>
+      <div className={cn("relative", mode === "compact" ? "min-h-[92px]" : "min-h-[108px]")}>
         <Link
           href={`/history/${session.id}?returnTab=sessions&view=${mode}`}
           aria-label={`View session details for ${routineTitle}`}
-          className="absolute inset-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+          className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
         />
 
         <div className="relative z-10 flex items-start gap-2.5">
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="space-y-1">
+          <div className="min-w-0 flex-1 space-y-2.5">
+            <div className="space-y-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">Session</p>
               <p className={cn(
                 "min-w-0 pr-1 text-slate-50",
@@ -117,40 +117,30 @@ function HistorySessionRow({ session, mode }: { session: SessionSummary; mode: V
               </p>
             </div>
 
-            {mode === "compact" ? (
-              <div className="rounded-2xl border border-white/8 bg-black/10 px-3 py-2">
-                <p className="line-clamp-2 text-[11px] leading-4 text-slate-300">{condensedMetrics}</p>
-              </div>
-            ) : (
+            <div className="rounded-xl border border-white/8 bg-black/10 px-3 py-2">
+              <p className={cn("line-clamp-2 text-slate-300", mode === "compact" ? "text-[11px] leading-4" : "text-xs leading-4")}>
+                {condensedMetrics}
+              </p>
+            </div>
+
+            {mode !== "compact" ? (
               <HistoryMetaRow>
                 {metrics.map((metric) => (
                   <HistoryMetaChip key={metric.label} label={metric.label} value={metric.value ?? ""} emphasized={metric.label === "PRs"} />
                 ))}
               </HistoryMetaRow>
-            )}
+            ) : null}
+
+            {session.topSet ? (
+              <p className="line-clamp-1 text-xs text-[rgb(var(--text)/0.68)]">
+                <span className="font-medium text-slate-200">{session.topSet.exerciseName}</span>
+                <span className="mx-1 text-slate-500">•</span>
+                <span>{session.topSet.display}</span>
+              </p>
+            ) : null}
           </div>
           <div className="pt-1 text-lg leading-none text-[rgb(var(--text)/0.42)] transition-colors group-hover:text-[rgb(var(--text)/0.68)]" aria-hidden="true">›</div>
         </div>
-
-        {mode !== "compact" && session.prCounts.total > 0 ? (
-          <div className="relative z-10 mt-3 rounded-2xl border border-[rgb(var(--button-primary-border)/0.26)] bg-[rgb(var(--button-primary-bg)/0.08)] px-3 py-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">PR summary</p>
-            <p className="mt-1 text-sm font-medium leading-5 text-slate-100">{session.prLabel}</p>
-          </div>
-        ) : null}
-
-        {mode !== "compact" && session.topSet ? (
-          <div className="relative z-10 mt-3 rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Top set</p>
-            <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-300" title={`Top set: ${session.topSet.exerciseName} — ${session.topSet.display}`}>
-              <span className="font-medium text-slate-100">{session.topSet.exerciseName}</span>
-              <span className="mx-1 text-slate-600">•</span>
-              <span>{session.topSet.display}</span>
-            </p>
-          </div>
-        ) : null}
-
-        <p className="relative z-10 mt-2 text-xs font-medium text-[rgb(var(--text)/0.62)]">Open log</p>
       </div>
     </AppPanel>
   );
