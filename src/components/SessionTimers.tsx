@@ -426,16 +426,7 @@ export function SetLoggerCard({
   }, [sessionExerciseId]);
 
 
-  const requiresReps = activeMetrics.reps;
-  const requiresDuration = activeMetrics.time;
-  const requiresDistance = activeMetrics.distance;
-  const parsedDurationForSave = parseDurationInput(durationInput);
-  const parsedDistanceForSave = distance.trim() ? Number(distance) : null;
-  const parsedRepsForSave = reps.trim() ? Number(reps) : 0;
-  const isSaveDisabled = isSubmitting
-    || (requiresReps && (!Number.isFinite(parsedRepsForSave) || parsedRepsForSave <= 0))
-    || (requiresDuration && (parsedDurationForSave === null || parsedDurationForSave <= 0))
-    || (requiresDistance && (!Number.isFinite(parsedDistanceForSave) || (parsedDistanceForSave ?? 0) <= 0));
+  const isSaveDisabled = isSubmitting;
 
   const resetLoggerState = useCallback(() => {
     setDurationInput("");
@@ -466,27 +457,6 @@ export function SetLoggerCard({
     const parsedDistance = sanitizedValues.distance.trim() ? Number(sanitizedValues.distance) : null;
     const parsedCalories = sanitizedValues.calories.trim() ? Number(sanitizedValues.calories) : null;
     const parsedRpe = rpe.trim() ? Number(rpe) : null;
-
-    if (requiresReps && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
-      const message = "Reps must be greater than 0 for this exercise.";
-      setError(message);
-      toast.error(message);
-      return;
-    }
-
-    if (requiresDuration && (parsedDuration === null || parsedDuration <= 0)) {
-      const message = "Time must be greater than 0 for this exercise.";
-      setError(message);
-      toast.error(message);
-      return;
-    }
-
-    if (requiresDistance && (parsedDistance === null || parsedDistance <= 0)) {
-      const message = "Distance must be greater than 0 for this exercise.";
-      setError(message);
-      toast.error(message);
-      return;
-    }
 
     if (activeMetrics.weight && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
       const message = "Weight must be 0 or greater.";
@@ -716,9 +686,6 @@ export function SetLoggerCard({
     durationInput,
     resolvedIsWarmup,
     reps,
-    requiresDistance,
-    requiresDuration,
-    requiresReps,
     rpe,
     selectedWeightUnit,
     sessionExerciseId,

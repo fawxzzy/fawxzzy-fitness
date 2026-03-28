@@ -447,7 +447,8 @@ export function LogAuditClient({
         </HistorySection>
       ) : null}
 
-      <div className="space-y-2">
+      <HistorySection title="Exercises" description="Expand each exercise to review its logged sets." className="space-y-3 p-3.5">
+        <div className="space-y-2">
         {exercises.map((exercise) => {
           const name = exerciseNameMap[exercise.exercise_id] ?? exercise.exercise_id;
           const notesValue = exerciseNotes[exercise.id] ?? "";
@@ -457,7 +458,7 @@ export function LogAuditClient({
             <HistorySection
               key={exercise.id}
               title={name}
-              description={undefined}
+              description="Sets"
               action={<AppBadge>{setsForExercise.length} SETS</AppBadge>}
               className="space-y-3 p-3.5"
             >
@@ -573,7 +574,8 @@ export function LogAuditClient({
             </HistorySection>
           );
         })}
-      </div>
+        </div>
+      </HistorySection>
 
 
       <ConfirmDestructiveModal
