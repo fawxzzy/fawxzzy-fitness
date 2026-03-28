@@ -65,18 +65,25 @@ export function formatQuickLogPreviewLabel({
   const weightSummary = formatRange(target?.weightMin, target?.weightMax, ` ${weightUnit}`);
   const durationSummary = hasValue(target?.durationSeconds) ? formatDurationPreview(Number(target?.durationSeconds)) : null;
   const distanceSummary = hasValue(target?.distance) ? `${target?.distance} ${target?.distanceUnit ?? "mi"}` : null;
+  const caloriesSummary = hasValue(target?.calories) ? `${target?.calories} cal` : null;
 
-  const combinedStrength = [repsSummary, weightSummary].filter(Boolean).slice(0, 2).join(" • ");
-  const primarySummary = combinedStrength || durationSummary || distanceSummary;
+  const measurementType = target?.measurementType ?? "reps";
+  const metricSummaryByType: Record<"reps" | "time" | "distance" | "time_distance", string | null> = {
+    reps: [repsSummary, weightSummary].filter(Boolean).join(" • ") || null,
+    time: [durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
+    distance: [distanceSummary, durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
+    time_distance: [durationSummary, distanceSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
+  };
+
+  const primarySummary = metricSummaryByType[measurementType] ?? null;
   if (primarySummary) {
-    const nextSetSummary = formatSetCountLabel(loggedSetCount + 1);
-    return [nextSetSummary, primarySummary].filter((part): part is string => Boolean(part)).join(" • ");
+    return primarySummary;
   }
 
   const nextSet = loggedSetCount + 1;
   const goalSetCount = targetSetsMax ?? targetSetsMin;
   if (goalSetCount && goalSetCount > 0) {
-    return `Set ${nextSet} of ${formatSetCountLabel(goalSetCount) ?? `${goalSetCount} sets`}`;
+    return `Set ${nextSet} of ${goalSetCount}`;
   }
 
   return formatSetCountLabel(nextSet) ?? `Set ${nextSet}`;
