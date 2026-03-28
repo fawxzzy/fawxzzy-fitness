@@ -126,13 +126,13 @@ function ExerciseInfoStatGrid({ title, rows }: { title: string; rows: ExerciseIn
   if (!visibleRows.length) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{title}</p>
-      <div className="grid gap-2 text-left sm:grid-cols-2">
+      <div className="grid gap-1.5 text-left sm:grid-cols-2">
         {visibleRows.map((row) => (
-          <div key={`${title}-${row.label}`} className="rounded-[1rem] border border-white/8 bg-black/10 px-3 py-2.5">
+          <div key={`${title}-${row.label}`} className="rounded-[0.95rem] border border-white/6 bg-black/5 px-3 py-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{row.label}</p>
-            <p className="mt-1 break-words text-sm leading-5 text-[rgb(var(--text)/0.95)]">{row.value}</p>
+            <p className="mt-0.5 break-words text-sm leading-5 text-[rgb(var(--text)/0.93)]">{row.value}</p>
           </div>
         ))}
       </div>
@@ -243,11 +243,24 @@ export function ExerciseInfoSheet({
                 {exercise.how_to_short ? <p className="text-sm text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
               </DetailHeader>
 
-              <DetailSection title="Stats" description="Recent activity, totals, and bests for this exercise.">
+              <DetailSection title="How to" description="Reference visual for movement setup and execution.">
+                <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.2)] p-1.5">
+                  <ExerciseAssetImage
+                    key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
+                    src={resolvedHowToSrc}
+                    alt="How-to visual"
+                    className="h-full w-full"
+                    imageClassName="object-contain object-center"
+                    sizes="(max-width: 768px) 100vw, 480px"
+                  />
+                </div>
+              </DetailSection>
+
+              <DetailSection title="Stats" description="Recent activity and lifetime progress for this exercise.">
                 <div
                   id={statsPanelId}
                   data-testid="exercise-info-stats-box"
-                  className="min-h-[94px] space-y-3 text-xs text-muted"
+                  className="min-h-[94px] space-y-2.5 text-xs text-muted"
                 >
                   {statsLoading ? (
                     <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
@@ -260,19 +273,6 @@ export function ExerciseInfoSheet({
                   ) : (
                     <p className="text-muted">No stats yet — log a set to generate stats.</p>
                   )}
-                </div>
-              </DetailSection>
-
-              <DetailSection title="How to" description="Reference visual for movement setup and execution.">
-                <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md border border-border/60 bg-[rgb(var(--bg)/0.28)] p-3">
-                  <ExerciseAssetImage
-                    key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
-                    src={resolvedHowToSrc}
-                    alt="How-to visual"
-                    className="h-full w-full"
-                    imageClassName="object-contain object-center"
-                    sizes="(max-width: 768px) 100vw, 480px"
-                  />
                 </div>
               </DetailSection>
             </ScreenScaffold>

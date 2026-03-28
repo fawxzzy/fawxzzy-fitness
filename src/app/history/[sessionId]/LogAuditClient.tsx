@@ -152,7 +152,6 @@ export function LogAuditClient({
   exercises,
   exerciseOptions,
   sessionSummary,
-  initialIsEditing,
   backHref
 }: {
   logId: string;
@@ -163,14 +162,13 @@ export function LogAuditClient({
   exercises: AuditExercise[];
   exerciseOptions: Array<{ id: string; name: string; user_id: string | null; is_global: boolean }>;
   sessionSummary: SessionSummary;
-  initialIsEditing: boolean;
   backHref: string;
 }) {
   const router = useRouter();
   const toast = useToast();
   const { navigateReturn } = useReturnNavigation(backHref);
   const [isPending, startTransition] = useTransition();
-  const [isEditing, setIsEditing] = useState(initialIsEditing);
+  const [isEditing, setIsEditing] = useState(false);
   const [dayName, setDayName] = useState(initialDayName);
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
   const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseOptions[0]?.id ?? "");
