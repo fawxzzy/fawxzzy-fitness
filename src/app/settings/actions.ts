@@ -10,6 +10,17 @@ export type EmailUpdateState = {
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PROFILE_PREFERENCE_COLUMN_MISSING_MESSAGE =
+  "Unit preferences require the latest profile migration. Run migrations and try again.";
+
+function isMissingProfilePreferenceColumnError(error: { message?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return (
+    message.includes("schema cache") &&
+    message.includes("profiles") &&
+    (message.includes("preferred_weight_unit") || message.includes("preferred_distance_unit"))
+  );
+}
 
 export async function updateAccountEmailAction(_previous: EmailUpdateState, formData: FormData): Promise<EmailUpdateState> {
   const user = await requireUser();
@@ -60,6 +71,9 @@ export async function updateUnitPreferencesAction(formData: FormData): Promise<{
     .eq("id", user.id);
 
   if (error) {
+    if (isMissingProfilePreferenceColumnError(error)) {
+      return { ok: false, error: PROFILE_PREFERENCE_COLUMN_MISSING_MESSAGE };
+    }
     return { ok: false, error: error.message || "Unable to save preferences." };
   }
 
