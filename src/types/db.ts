@@ -61,6 +61,8 @@ export type ProfileRow = {
   id: string;
   timezone: string;
   active_routine_id: string | null;
+  preferred_weight_unit: "lbs" | "kg" | null;
+  preferred_distance_unit: "mi" | "km" | null;
 };
 
 export type RoutineRow = {
