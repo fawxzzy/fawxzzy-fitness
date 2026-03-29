@@ -1,3 +1,21 @@
+## [v0.4.28] – Stabilization: lock history log-detail normalization seam with deterministic coverage
+
+### WHAT
+
+* Extracted history log-detail exercise/set boundary normalization into a shared non-UI utility so the route client consumes one deterministic, null-safe view-model shape before rendering shared cards.
+* Preserved the existing shared `ExerciseCard`/history shell contract and left route rendering behavior intact, including the intentional zero-exercise empty-state path.
+* Added deterministic regression coverage for standard payloads, alias-driven payload drift, null/undefined exercise collections, null/empty sets, and mixed valid+partial records so malformed neighbors cannot blank valid exercise rendering.
+* Audited adjacent history/session flows for duplicate alias normalization drift and kept normalization ownership at the existing history log-detail boundary helper seam.
+* Captured stabilization guidance in this pass:
+  * Rule: Shared UI shells should consume one normalized view-model shape, not raw route-specific payloads.
+  * Pattern: Normalize once at the boundary, render many through the shared card system.
+  * Failure Mode: Route-local blank-screen fixes hide contract drift instead of resolving it.
+
+### WHY
+
+* Inline route-client normalization was harder to test directly and easier to drift as adjacent payload aliases changed.
+* A dedicated boundary utility with deterministic tests prevents regressions while keeping the shared card/UI contract untouched.
+
 ## [v0.4.27] – Fix: harden history log-detail exercise boundary rendering
 
 ### WHAT
