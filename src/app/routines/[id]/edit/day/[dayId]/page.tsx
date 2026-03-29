@@ -152,24 +152,26 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             isRest={(day as RoutineDayRow).is_rest}
           />
 
-          <RoutineEditorSection
-            title="Planned Workout"
-            description={sectionSummary}
-            action={<div id="planned-workout-header-action-slot" />}
-          >
-            <EditableRoutineDayExerciseList
-              routineId={params.id}
-              routineDayId={params.dayId}
-              weightUnit={(routine as RoutineRow).weight_unit}
-              exercises={editableExercises}
-              updateAction={updateRoutineDayExerciseAction}
-              deleteAction={deleteRoutineDayExerciseAction}
-              reorderAction={reorderRoutineDayExercisesAction}
-              initialIsRest={(day as RoutineDayRow).is_rest}
-              addExerciseHref={addExerciseHref}
-              headerActionSlotId="planned-workout-header-action-slot"
-            />
-          </RoutineEditorSection>
+          {!day.is_rest ? (
+            <RoutineEditorSection
+              title="Planned Workout"
+              description={sectionSummary}
+              action={<div id="planned-workout-header-action-slot" />}
+            >
+              <EditableRoutineDayExerciseList
+                routineId={params.id}
+                routineDayId={params.dayId}
+                weightUnit={(routine as RoutineRow).weight_unit}
+                exercises={editableExercises}
+                updateAction={updateRoutineDayExerciseAction}
+                deleteAction={deleteRoutineDayExerciseAction}
+                reorderAction={reorderRoutineDayExercisesAction}
+                initialIsRest={(day as RoutineDayRow).is_rest}
+                addExerciseHref={addExerciseHref}
+                headerActionSlotId="planned-workout-header-action-slot"
+              />
+            </RoutineEditorSection>
+          ) : null}
         </ScreenScaffold>
       </ScrollScreenWithBottomActions>
     </AppShell>

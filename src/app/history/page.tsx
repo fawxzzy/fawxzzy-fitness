@@ -223,7 +223,7 @@ export default async function HistoryPage({
 
       <ScrollContainer className="px-1">
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <HistoryPageHeader title="Training history" subtitle="Review completed sessions and exercise trends in the same shared history shell." />
+          <HistoryPageHeader title="SESSIONS" />
           <HistorySessionsClient sessions={sessionItems} selectedSessionId={searchParams?.selected} />
 
           {nextCursor ? (

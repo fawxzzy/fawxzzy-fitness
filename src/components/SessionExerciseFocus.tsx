@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
+import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { Pill } from "@/components/ui/Pill";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
@@ -67,6 +68,7 @@ type SessionExercisePrefill = {
 
 export type SessionExerciseFocusItem = {
   id: string;
+  exerciseId: string;
   name: string;
   isSkipped: boolean;
   defaultUnit: "mi" | "km" | "m" | null;
@@ -125,6 +127,8 @@ export function SessionExerciseFocus({
   );
   const [warmupDraft, setWarmupDraft] = useState(false);
   const [quickAddPendingId, setQuickAddPendingId] = useState<string | null>(null);
+  const [skipPendingId, setSkipPendingId] = useState<string | null>(null);
+  const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
   const focusedRef = useRef<HTMLDivElement | null>(null);
   const selectedExercise = useMemo(
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
@@ -265,6 +269,28 @@ export function SessionExerciseFocus({
                       targetSetsMax: exercise.targetSetsMax,
                       fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
                     })}`}
+                    skipLabel={exercise.isSkipped ? "Unskip" : "Skip"}
+                    isSkipPending={skipPendingId === exercise.id}
+                    onSkip={async () => {
+                      setSkipPendingId(exercise.id);
+                      try {
+                        const formData = new FormData();
+                        formData.set("sessionId", sessionId);
+                        formData.set("sessionExerciseId", exercise.id);
+                        formData.set("nextSkipped", String(!exercise.isSkipped));
+                        const result = await toggleSkipAction(formData);
+                        toastActionResult(toast, result, {
+                          success: exercise.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
+                          error: "Could not update skip state.",
+                        });
+
+                        if (result.ok) {
+                          router.refresh();
+                        }
+                      } finally {
+                        setSkipPendingId((current) => (current === exercise.id ? null : current));
+                      }
+                    }}
                     isPending={quickAddPendingId === exercise.id}
                     onPress={async () => {
                       setQuickAddPendingId(exercise.id);
@@ -353,22 +379,8 @@ export function SessionExerciseFocus({
             planTargetsHash={selectedExercise!.planTargetsHash}
             deleteSetAction={deleteSetAction}
             resetSignal={setLoggerResetSignal}
-            skipLabel={selectedExercise!.isSkipped ? "Unskip" : "Skip"}
-            onSkip={async () => {
-              const formData = new FormData();
-              formData.set("sessionId", sessionId);
-              formData.set("sessionExerciseId", selectedExercise!.id);
-              formData.set("nextSkipped", String(!selectedExercise!.isSkipped));
-              const result = await toggleSkipAction(formData);
-              toastActionResult(toast, result, {
-                success: selectedExercise!.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
-                error: "Could not update skip state.",
-              });
-
-              if (result.ok) {
-                router.refresh();
-              }
-            }}
+            secondaryActionLabel="View Exercise"
+            onSecondaryAction={() => setExerciseInfoExerciseId(selectedExercise!.exerciseId)}
             warmupValue={warmupDraft}
             onWarmupValueChange={setWarmupDraft}
             onSetCountChange={(count) => {
@@ -377,6 +389,15 @@ export function SessionExerciseFocus({
           />
         </div>
       )}
+      <ExerciseInfo
+        exerciseId={exerciseInfoExerciseId}
+        open={Boolean(exerciseInfoExerciseId)}
+        onOpenChange={(open) => {
+          if (!open) setExerciseInfoExerciseId(null);
+        }}
+        onClose={() => setExerciseInfoExerciseId(null)}
+        sourceContext="SessionExerciseFocus"
+      />
     </div>
   );
 }

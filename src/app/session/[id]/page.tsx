@@ -179,6 +179,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
 
             return {
               id: exercise.id,
+              exerciseId: exercise.exercise_id,
               name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
               isSkipped: exercise.is_skipped,
               defaultUnit: exercise.default_unit ?? null,

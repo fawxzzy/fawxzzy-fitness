@@ -12,12 +12,18 @@ export function SessionExerciseCard({ children }: { children: ReactNode }) {
 
 export function AttachedQuickActionStrip({
   label = "Quick Log: Set",
+  skipLabel = "Skip",
   onPress,
+  onSkip,
+  isSkipPending,
   isPending,
   className,
 }: {
   label?: string;
+  skipLabel?: string;
   onPress: () => Promise<void> | void;
+  onSkip?: () => Promise<void> | void;
+  isSkipPending?: boolean;
   isPending?: boolean;
   className?: string;
 }) {
@@ -28,16 +34,28 @@ export function AttachedQuickActionStrip({
         className,
       )}
     >
-      <AppButton
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={onPress}
-        disabled={isPending}
-        className="min-h-[38px] w-full border-white/8 bg-transparent text-[12px] font-medium text-[rgb(var(--text)/0.74)] shadow-none hover:bg-white/[0.05]"
-      >
-        {isPending ? "Adding…" : label}
-      </AppButton>
+      <div className="flex items-center gap-2">
+        <AppButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onSkip}
+          disabled={isSkipPending || !onSkip}
+          className="min-h-[38px] w-1/3 border-white/8 bg-transparent text-[12px] font-medium text-[rgb(var(--text)/0.74)] shadow-none hover:bg-white/[0.05]"
+        >
+          {isSkipPending ? "Saving…" : skipLabel}
+        </AppButton>
+        <AppButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onPress}
+          disabled={isPending}
+          className="min-h-[38px] w-2/3 border-white/8 bg-transparent text-[12px] font-medium text-[rgb(var(--text)/0.74)] shadow-none hover:bg-white/[0.05]"
+        >
+          {isPending ? "Adding…" : label}
+        </AppButton>
+      </div>
     </div>
   );
 }

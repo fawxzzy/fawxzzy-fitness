@@ -119,7 +119,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
                 : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
             ].join(" ")}
           >
-            <span>Rest Day</span>
+            <span>Rest</span>
             <span>{draft.isRest ? "On" : "Off"}</span>
           </button>
         </div>
