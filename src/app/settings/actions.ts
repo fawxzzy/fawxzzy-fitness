@@ -29,7 +29,7 @@ function isMissingProfilePreferenceColumnError(error: { message?: string } | nul
   );
 }
 
-export async function updateAccountEmailAction(_previous: EmailUpdateState, formData: FormData): Promise<EmailUpdateState> {
+export async function updateAccountEmailAction(formData: FormData): Promise<EmailUpdateState> {
   const user = await requireUser();
   const supabase = supabaseServer();
   const nextEmail = String(formData.get("email") ?? "").trim().toLowerCase();
