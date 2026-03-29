@@ -326,8 +326,8 @@ export function LogAuditClient({
       id: tempId,
       source: { id: tempId, set_index: (editableSets[exerciseId]?.length ?? 0), weight: 0, reps: 0, duration_seconds: null, distance: null, distance_unit: null, calories: null, weight_unit: unitLabel },
       values: {
-        weight: "0",
-        reps: "0",
+        weight: "",
+        reps: "",
         duration: "",
         distance: "",
         distanceUnit: resolveDistanceUnit(exercise.default_unit) ?? "mi",
@@ -485,7 +485,7 @@ export function LogAuditClient({
               />
 
               {isExpanded ? (
-                <div className="space-y-2.5 px-1.5 pb-1">
+                <div className="space-y-2.5 px-1.5 pb-1 pt-2">
                   {isEditing ? (
                     <div className="flex flex-wrap gap-2">
                       <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
@@ -577,8 +577,8 @@ export function LogAuditClient({
                   </ul>
 
                   {setsForExercise.length === 0 ? (
-                    <p className="rounded-[0.95rem] border border-dashed border-border/40 bg-black/10 px-3 py-2 text-xs text-[rgb(var(--text-muted)/0.82)]">
-                      No sets logged for this exercise yet.
+                    <p className="rounded-[0.95rem] border border-dashed border-border/35 bg-black/10 px-3 py-2.5 text-sm text-[rgb(var(--text-muted)/0.84)]">
+                      No sets logged yet
                     </p>
                   ) : null}
 

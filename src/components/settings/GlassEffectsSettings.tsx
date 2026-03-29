@@ -13,11 +13,7 @@ export function GlassEffectsSettings() {
   const { mode, setMode } = useGlassEffects();
 
   return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-sm font-semibold text-[rgb(var(--text)/0.96)]">Glass effects</p>
-        <p className="text-xs text-[rgb(var(--text)/0.72)]">Pick visual intensity for translucent surfaces.</p>
-      </div>
+    <div className="space-y-2.5">
       <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Glass effects mode">
         {OPTIONS.map((option) => {
           const isActive = option.value === mode;
@@ -29,7 +25,7 @@ export function GlassEffectsSettings() {
               role="radio"
               aria-checked={isActive}
               onClick={() => setMode(option.value)}
-              className={`flex-col gap-1 px-2 py-2 text-center text-xs ${isActive ? "border-accent/70 bg-accent/18 text-accent" : "text-[rgb(var(--text)/0.82)]"}`}
+              className={`flex-col gap-0.5 px-2 py-2 text-center text-xs ${isActive ? "border-accent/60 bg-accent/14 text-accent" : "border-white/10 bg-white/5 text-[rgb(var(--text)/0.82)]"}`}
             >
               <span className="font-semibold">{option.label}</span>
               <span className="text-[10px] opacity-80">{option.description}</span>
