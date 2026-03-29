@@ -17,9 +17,10 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
-import { AppBadge } from "@/components/ui/app/AppBadge";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { HistoryDetailHeader, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
@@ -172,6 +173,7 @@ export function LogAuditClient({
   const [dayName, setDayName] = useState(initialDayName);
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
   const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseOptions[0]?.id ?? "");
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
   const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])));
@@ -399,9 +401,10 @@ export function LogAuditClient({
   return (
     <>
       <HistoryDetailHeader
+        eyebrow={null}
         title={sessionSummary.routineTitle}
         subtitle={sessionMeta.dateLine}
-        action={<TopRightBackButton href={backHref} ariaLabel="Back to History sessions" />}
+        action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
         className={isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : undefined}
         meta={<p className="text-sm text-[rgb(var(--text)/0.82)]">{sessionMeta.summaryLine}</p>}
       >
@@ -442,39 +445,103 @@ export function LogAuditClient({
         </HistorySection>
       ) : null}
 
-      <HistorySection title="Exercises" description="Expand each exercise to review its logged sets." className="space-y-3 p-3.5">
-        <div className="space-y-2">
+      <section className="space-y-2">
         {exercises.map((exercise) => {
           const name = exerciseNameMap[exercise.exercise_id] ?? exercise.exercise_id;
           const notesValue = exerciseNotes[exercise.id] ?? "";
           const setsForExercise = editableSets[exercise.id] ?? [];
+          const isExpanded = expandedExerciseId === exercise.id;
 
           return (
-            <HistorySection
-              key={exercise.id}
-              title={name}
-              description="Sets"
-              action={<AppBadge>{setsForExercise.length} SETS</AppBadge>}
-              className="space-y-3 p-3.5"
-            >
-              {isEditing ? (
-                <details className="rounded-xl border border-white/8 bg-black/10 px-3 py-2">
-                  <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.14em] text-muted">Exercise tools</summary>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
-                    <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
-                  </div>
-                </details>
-              ) : null}
+            <article key={exercise.id} className="space-y-2">
+              <ExerciseCard
+                title={name}
+                subtitle={`${setsForExercise.length} ${setsForExercise.length === 1 ? "set" : "sets"}`}
+                onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
+                rightIcon={isExpanded
+                  ? <ChevronDownIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
+                  : <ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
+                variant="interactive"
+                state={isExpanded ? "selected" : "default"}
+              />
 
-              <ul className="space-y-1.5 text-sm">
-                {setsForExercise.map((set, index) => (
-                  <li key={set.id}>
-                    {isEditing ? (
-                      <div className="space-y-2">
-                        <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId((current) => (current === set.id ? null : set.id))}>
+              {isExpanded ? (
+                <div className="rounded-[1.15rem] border border-white/10 bg-black/10 p-3">
+                  {isEditing ? (
+                    <details className="rounded-xl border border-white/8 bg-black/10 px-3 py-2">
+                      <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.14em] text-muted">Exercise tools</summary>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
+                        <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
+                      </div>
+                    </details>
+                  ) : null}
+
+                  <ul className="space-y-1.5 pt-2 text-sm">
+                    {setsForExercise.map((set, index) => (
+                      <li key={set.id}>
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId((current) => (current === set.id ? null : set.id))}>
+                              <CompactLogRow
+                                label={<span className="font-semibold text-text">Set {index + 1}</span>}
+                                summary={`Set ${index + 1} • ${formatMeasurementSummaryText({
+                                  ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
+                                    reps: set.values.reps.trim() ? Number(set.values.reps) : null,
+                                    weight: set.values.weight.trim() ? Number(set.values.weight) : null,
+                                    durationSeconds: parseDurationInput(set.values.duration),
+                                    distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+                                    calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+                                  }),
+                                  weightUnit: set.values.weightUnit,
+                                  distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
+                                  emptyLabel: "No measurements",
+                                })}`}
+                                action={<span className="text-xs text-muted">{expandedSetId === set.id ? "▾" : "▸"}</span>}
+                                className="transition-colors hover:bg-[rgb(var(--surface-rgb)/0.42)]"
+                              />
+                            </button>
+
+                            {expandedSetId === set.id ? (
+                              <div className="space-y-2.5 px-0.5 pt-1" onClick={(event) => event.stopPropagation()}>
+                                <ModifyMeasurements
+                                  values={set.values}
+                                  activeMetrics={set.activeMetrics}
+                                  isExpanded={set.isMetricsExpanded}
+                                  onExpandedChange={(nextExpanded) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, isMetricsExpanded: nextExpanded }))}
+                                  onMetricToggle={(metric) => updateEditableSet(exercise.id, set.id, (current) => {
+                                    const nextMetrics = { ...current.activeMetrics, [metric]: !current.activeMetrics[metric] };
+                                    const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
+                                      reps: current.values.reps,
+                                      weight: current.values.weight,
+                                      duration: current.values.duration,
+                                      distance: current.values.distance,
+                                      calories: current.values.calories,
+                                    });
+                                    return {
+                                      ...current,
+                                      activeMetrics: nextMetrics,
+                                      values: {
+                                        ...current.values,
+                                        reps: sanitizedValues.reps,
+                                        weight: sanitizedValues.weight,
+                                        duration: sanitizedValues.duration,
+                                        distance: sanitizedValues.distance,
+                                        calories: sanitizedValues.calories,
+                                      },
+                                    };
+                                  })}
+                                  onChange={(patch) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
+                                />
+                                <div className="grid grid-cols-1 gap-2">
+                                  <DestructiveButton type="button" size="md" className="w-full" disabled={set.id.startsWith("temp-")} onClick={(event) => { event.stopPropagation(); handleDeleteSet(exercise.id, set.id); }}>Delete Set</DestructiveButton>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : (
                           <CompactLogRow
-                            label={<span className="font-semibold text-text">Set {index + 1}</span>}
+                            label={<span className="font-semibold text-text">Logged set</span>}
                             summary={`Set ${index + 1} • ${formatMeasurementSummaryText({
                               ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
                                 reps: set.values.reps.trim() ? Number(set.values.reps) : null,
@@ -487,90 +554,34 @@ export function LogAuditClient({
                               distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
                               emptyLabel: "No measurements",
                             })}`}
-                            action={<span className="text-xs text-muted">{expandedSetId === set.id ? "▾" : "▸"}</span>}
-                            className="transition-colors hover:bg-[rgb(var(--surface-rgb)/0.42)]"
                           />
-                        </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
 
-                        {expandedSetId === set.id ? (
-                          <div className="space-y-2.5 px-0.5 pt-1" onClick={(event) => event.stopPropagation()}>
-                            <ModifyMeasurements
-                              values={set.values}
-                              activeMetrics={set.activeMetrics}
-                              isExpanded={set.isMetricsExpanded}
-                              onExpandedChange={(nextExpanded) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, isMetricsExpanded: nextExpanded }))}
-                              onMetricToggle={(metric) => updateEditableSet(exercise.id, set.id, (current) => {
-                                const nextMetrics = { ...current.activeMetrics, [metric]: !current.activeMetrics[metric] };
-                                const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
-                                  reps: current.values.reps,
-                                  weight: current.values.weight,
-                                  duration: current.values.duration,
-                                  distance: current.values.distance,
-                                  calories: current.values.calories,
-                                });
-                                return {
-                                  ...current,
-                                  activeMetrics: nextMetrics,
-                                  values: {
-                                    ...current.values,
-                                    reps: sanitizedValues.reps,
-                                    weight: sanitizedValues.weight,
-                                    duration: sanitizedValues.duration,
-                                    distance: sanitizedValues.distance,
-                                    calories: sanitizedValues.calories,
-                                  },
-                                };
-                              })}
-                              onChange={(patch) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
-                            />
-                            <div className="grid grid-cols-1 gap-2">
-                              <DestructiveButton type="button" size="md" className="w-full" disabled={set.id.startsWith("temp-")} onClick={(event) => { event.stopPropagation(); handleDeleteSet(exercise.id, set.id); }}>Delete Set</DestructiveButton>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <CompactLogRow
-                        label={<span className="font-semibold text-text">Logged set</span>}
-                        summary={`Set ${index + 1} • ${formatMeasurementSummaryText({
-                          ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
-                            reps: set.values.reps.trim() ? Number(set.values.reps) : null,
-                            weight: set.values.weight.trim() ? Number(set.values.weight) : null,
-                            durationSeconds: parseDurationInput(set.values.duration),
-                            distance: set.values.distance.trim() ? Number(set.values.distance) : null,
-                            calories: set.values.calories.trim() ? Number(set.values.calories) : null,
-                          }),
-                          weightUnit: set.values.weightUnit,
-                          distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
-                          emptyLabel: "No measurements",
-                        })}`}
+                  {isEditing ? (
+                    <label className="block pt-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                      Exercise Notes
+                      <textarea
+                        value={notesValue}
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
+                        }}
+                        rows={2}
+                        className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.22)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
                       />
-                    )}
-                  </li>
-                ))}
-              </ul>
-
-              {isEditing ? (
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
-                  Exercise Notes
-                  <textarea
-                    value={notesValue}
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
-                    }}
-                    rows={2}
-                    className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.22)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
-                  />
-                </label>
-              ) : notesValue.trim() ? (
-                <p className="text-xs text-[rgb(var(--text-muted)/0.75)]">Notes: {notesValue}</p>
+                    </label>
+                  ) : notesValue.trim() ? (
+                    <p className="pt-2 text-xs text-[rgb(var(--text-muted)/0.75)]">Notes: {notesValue}</p>
+                  ) : null}
+                </div>
               ) : null}
-            </HistorySection>
+            </article>
           );
         })}
-        </div>
-      </HistorySection>
+      </section>
 
 
       <ConfirmDestructiveModal

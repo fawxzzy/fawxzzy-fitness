@@ -30,6 +30,7 @@ export function HistoryPageHeader({
 export function HistoryDetailHeader({
   title,
   subtitle,
+  eyebrow = "History",
   meta,
   action,
   children,
@@ -37,6 +38,7 @@ export function HistoryDetailHeader({
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
+  eyebrow?: ReactNode;
   meta?: ReactNode;
   action?: ReactNode;
   children?: ReactNode;
@@ -45,7 +47,7 @@ export function HistoryDetailHeader({
   return (
     <SharedScreenHeader
       recipe="historyDetail"
-      eyebrow="History"
+      eyebrow={eyebrow}
       title={title}
       subtitle={subtitle}
       action={action}

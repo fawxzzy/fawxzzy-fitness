@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppPanel } from "@/components/ui/app/AppPanel";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
-import { cn } from "@/lib/cn";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
 
@@ -36,40 +36,18 @@ function HistorySessionCard({
     <Link
       href={`/history/${session.id}?returnTab=sessions`}
       aria-current={selected ? "page" : undefined}
-      className={cn(
-        "block rounded-[1.25rem] transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
-        "active:scale-[0.995]",
-      )}
+      className="block rounded-[1.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      <AppPanel
-        className={cn(
-          "space-y-1 p-3 transition-colors",
-          "hover:border-border/85 hover:bg-[rgb(var(--surface-rgb)/0.48)]",
-          selected
-            ? "border-[rgb(var(--accent-rgb)/0.78)] bg-[rgb(var(--accent-rgb)/0.2)] ring-1 ring-[rgb(var(--accent-rgb)/0.38)] shadow-[0_16px_30px_-24px_rgba(16,185,129,0.62)]"
-            : undefined,
-        )}
+      <ExerciseCard
+        variant={viewMode === "compact" ? "compact" : "summary"}
+        state={selected ? "selected" : "default"}
+        title={viewMode === "compact" ? `${session.routineTitle || "Unknown routine"} | ${formatSubtitle(session)}` : (session.routineTitle || "Unknown routine")}
+        subtitle={viewMode === "compact" ? undefined : formatSubtitle(session)}
+        rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
       >
-        <div className="flex items-center justify-between gap-2">
-          {viewMode === "compact" ? (
-            <p className="line-clamp-1 text-sm font-semibold text-slate-50">
-              {(session.routineTitle || "Unknown routine")} {"|"} {formatSubtitle(session)}
-            </p>
-          ) : (
-            <p className="line-clamp-1 text-base font-semibold text-slate-50">{session.routineTitle || "Unknown routine"}</p>
-          )}
-          <ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
-        </div>
-        {viewMode === "compact" ? null : <p className="text-xs text-slate-300">{formatSubtitle(session)}</p>}
-        {viewMode === "compact" ? null : (
-          <p className="text-xs text-[rgb(var(--text)/0.82)]">{formatSummaryLine(session)}</p>
-        )}
-        {viewMode === "detailed" ? (
-          <p className="line-clamp-1 text-xs text-[rgb(var(--text)/0.7)]">
-            Top set • {session.topSet ? `${session.topSet.exerciseName} • ${session.topSet.display}` : "No set data"}
-          </p>
-        ) : null}
-      </AppPanel>
+        {viewMode === "compact" ? null : <p className="text-xs text-[rgb(var(--text)/0.82)]">{formatSummaryLine(session)}</p>}
+        {viewMode === "detailed" ? <p className="line-clamp-1 text-xs text-[rgb(var(--text)/0.7)]">Top set • {session.topSet ? `${session.topSet.exerciseName} • ${session.topSet.display}` : "No set data"}</p> : null}
+      </ExerciseCard>
     </Link>
   );
 }
