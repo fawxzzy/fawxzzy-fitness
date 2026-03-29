@@ -114,7 +114,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
                   toast.error(nextError);
                   return;
                 }
-                if (!result.routineId || !result.firstDayId) {
+                if (!result.routineId) {
                   const nextError = "Could not create routine.";
                   setError(nextError);
                   toast.error(nextError);
@@ -122,7 +122,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
                 }
                 window.localStorage.removeItem(STORAGE_KEY);
                 toast.success("Routine created");
-                router.push(`/routines/${result.routineId}/edit/day/${result.firstDayId}`);
+                router.push("/routines?view=list");
               });
             }}
           >

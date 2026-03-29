@@ -52,7 +52,13 @@ async function setActiveRoutineAction(formData: FormData) {
   revalidateRoutinesViews();
 }
 
-export default async function RoutinesPage() {
+export default async function RoutinesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ view?: string }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const initialRoutineListOpen = resolvedSearchParams?.view === "list";
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
   const supabase = supabaseServer();
@@ -292,6 +298,7 @@ export default async function RoutinesPage() {
                 };
               }) : []}
               setActiveRoutineAction={setActiveRoutineAction}
+              initialRoutineListOpen={initialRoutineListOpen}
             />
           )}
         </Glass>
