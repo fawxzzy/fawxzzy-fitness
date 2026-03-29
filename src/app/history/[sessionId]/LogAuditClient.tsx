@@ -429,6 +429,11 @@ export function LogAuditClient({
       ) : null}
 
       <section className="space-y-2">
+        {exercises.length === 0 ? (
+          <p className="rounded-[0.95rem] border border-dashed border-border/35 bg-black/10 px-3 py-2.5 text-sm text-[rgb(var(--text-muted)/0.84)]">
+            No exercises logged for this session yet.
+          </p>
+        ) : null}
         {exercises.map((exercise) => {
           const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
           const notesValue = exerciseNotes[exercise.id] ?? "";

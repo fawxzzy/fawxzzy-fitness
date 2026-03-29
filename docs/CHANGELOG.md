@@ -1,3 +1,20 @@
+## [v0.4.27] – Fix: harden history log-detail exercise boundary rendering
+
+### WHAT
+
+* Fixed the history log-detail regression where the page shell mounted but the exercise list rendered blank by normalizing incoming exercise payloads to one stable local shape before rendering the shared cards.
+* Added safe field-drift fallbacks across log-detail exercise/set payloads (`id`/`exercise_id`, `exercise_name`/`name`, media/image aliases, `sets`/`logged_sets`) so nullable or renamed fields no longer collapse the render path.
+* Preserved the shared detailed `ExerciseCard` shell, per-exercise collapse/expand behavior, and existing edit-mode behavior while adding an intentional inline empty state when a session has zero exercises.
+* Captured boundary guidance in this pass:
+  * Rule: Shared UI shells require normalized boundary data before rendering.
+  * Pattern: Normalize server payloads once, then render shared components from a stable local shape.
+  * Failure Mode: Payload drift plus silent filtering causes “blank but mounted” screens that look like UI bugs but are actually boundary bugs.
+
+### WHY
+
+* The log-detail route depended on stricter server/client shape alignment than historical payloads reliably guaranteed, allowing optional-field drift to produce a blank mounted list region.
+* Normalizing at the route-local client boundary keeps shared card UI intact while making rendering resilient to incomplete/null-heavy exercise data.
+
 ## [v0.4.26] – Fix/UI: recover history log-detail rendering and normalize Settings into Account
 
 ### WHAT
