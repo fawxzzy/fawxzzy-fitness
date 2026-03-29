@@ -77,6 +77,13 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
 
   if (daysError) return { ok: false, error: daysError.message };
 
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ active_routine_id: routine.id })
+    .eq("id", user.id);
+
+  if (profileError) return { ok: false, error: profileError.message };
+
   revalidateRoutinesViews();
   revalidatePath(getRoutineEditPath(routine.id));
 

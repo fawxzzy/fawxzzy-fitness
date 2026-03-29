@@ -56,6 +56,7 @@ export function RoutinesPageClient({
   routines,
   days,
   setActiveRoutineAction,
+  initialRoutineListOpen = false,
 }: {
   activeRoutineId: string | null;
   activeRoutineName: string;
@@ -65,9 +66,10 @@ export function RoutinesPageClient({
   routines: RoutineSwitcherItem[];
   days: RoutineDayCardItem[];
   setActiveRoutineAction: (formData: FormData) => Promise<void>;
+  initialRoutineListOpen?: boolean;
 }) {
   const router = useRouter();
-  const [isRoutineListOpen, setIsRoutineListOpen] = useState(false);
+  const [isRoutineListOpen, setIsRoutineListOpen] = useState(initialRoutineListOpen);
   const [isPending, startTransition] = useTransition();
 
   const handleToggleRoutineList = useCallback(() => {

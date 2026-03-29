@@ -2,9 +2,9 @@
 
 import { memo, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import type { ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -92,50 +92,52 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     ? [row.bestSummary ? `Best ${row.bestSummary}` : null, row.prLabel ? `PRs ${row.prLabel}` : null, strengthPrSummary ? `1RM ${strengthPrSummary}` : null].filter(Boolean).join(" • ")
     : row.bestSummary ? `Best ${row.bestSummary}` : null;
 
+  const fallbackLine = row.kind === "strength" ? "Strength history" : "Cardio history";
+
+  if (viewMode === "compact") {
+    return (
+      <ExerciseCard
+        title={`${displayName} | ${primaryLine || fallbackLine}`}
+        onPress={() => {
+          if (process.env.NODE_ENV === "development") {
+            console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
+          }
+          onOpen(row.exerciseId);
+        }}
+        rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
+        variant="compact"
+        state={hasSignal ? "selected" : "default"}
+        className="items-center"
+      />
+    );
+  }
+
   return (
-    <button
-      type="button"
-      onClick={() => {
+    <ExerciseCard
+      title={displayName}
+      subtitle={primaryLine || fallbackLine}
+      onPress={() => {
         if (process.env.NODE_ENV === "development") {
           console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
         }
         onOpen(row.exerciseId);
       }}
-      className="block w-full rounded-[1.25rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-      >
-      <AppPanel
-        className={cn(
-          "space-y-1.5 p-3.5 transition-colors hover:border-border/85 hover:bg-[rgb(var(--surface-rgb)/0.48)]",
-          hasSignal ? "border-emerald-400/35 bg-emerald-500/10 hover:border-emerald-300/45 hover:bg-emerald-500/14" : undefined,
-        )}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex items-start gap-2">
-              {viewMode === "compact" ? null : (
-                <ExerciseAssetImage
-                  src={iconSrc}
-                  alt={displayName}
-                  className="h-11 w-11 shrink-0 rounded-lg border border-border/25 bg-black/10"
-                  imageClassName="object-cover object-center"
-                  sizes="44px"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-1 text-sm font-semibold text-slate-50">{displayName}</p>
-                <p className="line-clamp-1 text-xs text-slate-300">
-                  {primaryLine || (row.kind === "strength" ? "Strength history" : "Cardio history")}
-                </p>
-              </div>
-            </div>
-            {viewMode === "detailed" && secondaryLine ? (
-              <p className="line-clamp-1 text-xs text-[rgb(var(--text)/0.62)]">{secondaryLine}</p>
-            ) : null}
-          </div>
-          <ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
-        </div>
-      </AppPanel>
-    </button>
+      rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
+      variant="summary"
+      state={hasSignal ? "selected" : "default"}
+      leadingVisual={(
+        <ExerciseAssetImage
+          src={iconSrc}
+          alt={displayName}
+          className="h-20 w-20 shrink-0 rounded-xl border border-border/25 bg-black/10"
+          imageClassName="object-cover object-center"
+          sizes="80px"
+        />
+      )}
+      className="items-center"
+    >
+      {secondaryLine ? <p className={cn("line-clamp-2 text-xs text-[rgb(var(--text)/0.62)]")}>{secondaryLine}</p> : null}
+    </ExerciseCard>
   );
 });
 
