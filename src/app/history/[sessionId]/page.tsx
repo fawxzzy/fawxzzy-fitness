@@ -10,7 +10,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionRow, SetRow } from "@/types/db";
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
-import { loadHistoryDetailRows } from "@/lib/history-session-detail-loader";
+import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -162,11 +162,18 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             sessionSummary={sessionSummary}
             backHref={backHref}
             exercises={orderedSessionExercises.map((exercise) => {
-              const metadata = exerciseMetadataById.get(exercise.exercise_id);
+              const exerciseId = String(exercise.exercise_id);
+              const metadata = exerciseMetadataById.get(exerciseId);
+              const resolvedExerciseName = resolveHistoryExerciseName({
+                metadataName: metadata?.name,
+                rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
+                rowName: (exercise as { name?: string | null }).name,
+                mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
+              });
               return ({
                 id: exercise.id,
-                exercise_id: exercise.exercise_id,
-                exercise_name: metadata?.name ?? null,
+                exercise_id: exerciseId,
+                exercise_name: resolvedExerciseName,
                 exercise_slug: metadata?.slug ?? null,
                 exercise_image_path: metadata?.image_path ?? null,
                 exercise_image_icon_path: metadata?.image_icon_path ?? null,

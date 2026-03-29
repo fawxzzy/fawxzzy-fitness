@@ -13,6 +13,19 @@ export type ExerciseMetadata = {
   default_unit: string | null;
 };
 
+export function resolveHistoryExerciseName(options: {
+  metadataName?: string | null;
+  rowExerciseName?: string | null;
+  rowName?: string | null;
+  mapExerciseName?: string | null;
+}) {
+  return options.metadataName
+    ?? options.rowExerciseName
+    ?? options.rowName
+    ?? options.mapExerciseName
+    ?? "Exercise";
+}
+
 type LoaderSummary = {
   sessionId: string;
   sessionFound: boolean;
@@ -71,8 +84,12 @@ export async function loadHistoryDetailRows({
     return [...performed, ...untouched];
   })();
 
-  const sessionExerciseIds = orderedSessionExercises.map((row) => row.id);
-  const exerciseIds = Array.from(new Set(orderedSessionExercises.map((row) => row.exercise_id).filter(Boolean)));
+  const sessionExerciseIds = orderedSessionExercises.map((row) => String(row.id));
+  const exerciseIds = Array.from(new Set(
+    orderedSessionExercises
+      .map((row) => String(row.exercise_id))
+      .filter((id) => id.length > 0),
+  ));
   let exerciseMetadataById = new Map<string, ExerciseMetadata>();
 
   if (exerciseIds.length) {
@@ -81,7 +98,7 @@ export async function loadHistoryDetailRows({
       .select("id, name, slug, image_path, image_icon_path, image_howto_path, measurement_type, default_unit")
       .in("id", exerciseIds);
     const exerciseRows = (exerciseQuery.data ?? []) as ExerciseMetadata[];
-    exerciseMetadataById = new Map(exerciseRows.map((row) => [row.id, row]));
+    exerciseMetadataById = new Map(exerciseRows.map((row) => [String(row.id), row]));
   }
 
   let sets = [] as SetRow[];
