@@ -5,13 +5,12 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
-import { Input } from "@/components/ui/Input";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
-import { ExerciseTagFilterControl } from "@/components/ExerciseTagFilterControl";
+import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
@@ -361,28 +360,13 @@ export function ExercisePicker({
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
       <section className="space-y-3.5 rounded-[1.35rem] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-3.5 shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] sm:p-4">
-        <div className="space-y-2">
-          <div className="relative">
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exercises" className="pr-9" />
-            {search ? (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                aria-label="Clear exercise search"
-                className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
-              >
-                ×
-              </button>
-            ) : null}
-          </div>
-          <ExerciseTagFilterControl
-            selectedTags={selectedTags}
-            onChange={setSelectedTags}
-            groups={availableTagGroups}
-            className="space-y-1.5"
-            variant="compact"
-          />
-        </div>
+        <ExerciseSearchFilters
+          query={search}
+          onQueryChange={setSearch}
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
+          groups={availableTagGroups}
+        />
 
         <section className="space-y-2">
           <div className="flex items-center justify-between gap-2 px-1">

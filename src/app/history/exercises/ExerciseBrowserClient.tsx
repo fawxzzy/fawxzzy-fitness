@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { Input } from "@/components/ui/Input";
+import type { ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
-import { HistoryControlGroup, HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
@@ -105,27 +105,29 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     >
       <AppPanel
         className={cn(
-          "p-3 transition-colors hover:border-border/85 hover:bg-[rgb(var(--surface-rgb)/0.48)]",
+          "space-y-1.5 p-3.5 transition-colors hover:border-border/85 hover:bg-[rgb(var(--surface-rgb)/0.48)]",
           hasSignal ? "border-emerald-400/30 bg-[rgb(var(--surface-rgb)/0.56)]" : undefined,
         )}
       >
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            {viewMode === "compact" ? null : (
-              <div className="mb-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex items-start gap-2">
+              {viewMode === "compact" ? null : (
                 <ExerciseAssetImage
                   src={iconSrc}
                   alt={displayName}
-                  className="h-11 w-11 rounded-lg border border-border/25 bg-black/10"
+                  className="h-11 w-11 shrink-0 rounded-lg border border-border/25 bg-black/10"
                   imageClassName="object-cover object-center"
                   sizes="44px"
                 />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-1 text-sm font-semibold text-slate-50">{displayName}</p>
+                <p className="line-clamp-1 text-xs text-slate-300">
+                  {primaryLine || (row.kind === "strength" ? "Strength history" : "Cardio history")}
+                </p>
               </div>
-            )}
-            <p className="line-clamp-1 text-sm font-semibold text-slate-50">{displayName}</p>
-            <p className="line-clamp-1 text-xs text-slate-300">
-              {primaryLine || (row.kind === "strength" ? "Strength history" : "Cardio history")}
-            </p>
+            </div>
             {viewMode === "detailed" && secondaryLine ? (
               <p className="line-clamp-1 text-xs text-[rgb(var(--text)/0.62)]">{secondaryLine}</p>
             ) : null}
@@ -205,25 +207,15 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <HistoryTitleControlShell viewMode={viewMode} onViewModeChange={setViewMode}>
-        <HistoryControlGroup label="Search" summary={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"}`}>
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search exercises"
-            aria-label="Search exercises"
-          />
-        </HistoryControlGroup>
-
-        <HistoryControlGroup label="Filters" summary={selectedTags.length > 0 ? `${selectedTags.length} active` : "No filters active"}>
-          <ExerciseTagFilterControl
-            selectedTags={selectedTags}
-            onChange={setSelectedTags}
-            groups={availableTagGroups}
-            className="space-y-2"
-          />
-        </HistoryControlGroup>
+      <HistoryTitleControlShell label="Exercises" viewMode={viewMode} onViewModeChange={setViewMode}>
+        <ExerciseSearchFilters
+          query={query}
+          onQueryChange={setQuery}
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
+          groups={availableTagGroups}
+        />
+        <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
       </HistoryTitleControlShell>
 
       <div className="relative min-h-0">

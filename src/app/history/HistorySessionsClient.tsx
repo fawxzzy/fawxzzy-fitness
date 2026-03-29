@@ -86,7 +86,7 @@ export function HistorySessionsClient({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <HistoryTitleControlShell viewMode={viewMode} onViewModeChange={setViewMode} />
+      <HistoryTitleControlShell label="Sessions" viewMode={viewMode} onViewModeChange={setViewMode} />
 
       {sessions.length > 0 ? (
         <ul className="space-y-1.5 pb-24">
