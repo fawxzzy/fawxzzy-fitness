@@ -64,6 +64,7 @@ type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
 type ExerciseRowProps = {
   exercise: ExerciseOption;
   isSelected: boolean;
+  hasStats: boolean;
   metadata: string;
   iconSrc: string;
   onPress: (exerciseId: string, isSelected: boolean) => void;
@@ -155,6 +156,21 @@ function formatStatDate(value: string | null) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
+  if (!stats) return false;
+  return Boolean(
+    stats.lastWeight != null
+    || stats.lastReps != null
+    || stats.lastPerformedAt
+    || stats.prWeight != null
+    || stats.prReps != null
+    || stats.prEst1rm != null
+    || stats.actualPrWeight != null
+    || stats.actualPrReps != null
+    || stats.actualPrAt,
+  );
+}
+
 function parseDurationInput(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -176,7 +192,7 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
   );
 }
 
-const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, iconSrc, onPress }: ExerciseRowProps) {
+const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, metadata, iconSrc, onPress }: ExerciseRowProps) {
   return (
     <li>
       <ExerciseCard
@@ -186,7 +202,11 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, metadata, 
         state={isSelected ? "selected" : "default"}
         onPress={() => onPress(exercise.id, isSelected)}
         leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
-        className={cn(listShellClasses.card, "items-center")}
+        className={cn(
+          listShellClasses.card,
+          "items-center",
+          hasStats ? "border-emerald-400/35 bg-emerald-500/10 hover:bg-emerald-500/14" : undefined,
+        )}
         trailingClassName={cn("self-center", isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted")}
         rightIcon={(
           <span
@@ -408,6 +428,7 @@ export function ExercisePicker({
                 key={exercise.id}
                 exercise={exercise}
                 isSelected={exercise.id === selectedId}
+                hasStats={hasExerciseStatsSignal(statsByExerciseId.get(resolveCanonicalExerciseId(exercise)))}
                 metadata={exerciseMetadataById.get(exercise.id) ?? ""}
                 iconSrc={exerciseIconSrcById.get(exercise.id) ?? getExerciseIconSrc(exercise)}
                 onPress={handleExercisePress}
