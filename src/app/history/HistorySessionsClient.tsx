@@ -5,7 +5,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { cn } from "@/lib/cn";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
@@ -49,10 +52,12 @@ function HistorySessionCard({
       >
         <div className="flex items-start justify-between gap-2">
           <p className="line-clamp-1 text-base font-semibold text-slate-50">{session.routineTitle || "Unknown routine"}</p>
-          <span aria-hidden="true" className="text-lg leading-none text-[rgb(var(--text)/0.56)]">&gt;</span>
+          <ChevronRightIcon className="h-5 w-5 shrink-0 text-[rgb(var(--text)/0.6)]" />
         </div>
         <p className="text-xs text-slate-300">{formatSubtitle(session)}</p>
-        <p className="text-xs text-[rgb(var(--text)/0.82)]">{formatSummaryLine(session)}</p>
+        {viewMode === "compact" ? null : (
+          <p className="text-xs text-[rgb(var(--text)/0.82)]">{formatSummaryLine(session)}</p>
+        )}
         {viewMode === "detailed" ? (
           <p className="line-clamp-1 text-xs text-[rgb(var(--text)/0.7)]">
             Top set • {session.topSet ? `${session.topSet.exerciseName} • ${session.topSet.display}` : "No set data"}
@@ -75,36 +80,7 @@ export function HistorySessionsClient({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <AppPanel className="p-3">
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setViewMode("compact")}
-            aria-pressed={viewMode === "compact"}
-            className={cn(
-              "inline-flex min-h-9 min-w-[6.2rem] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-              viewMode === "compact"
-                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-            )}
-          >
-            Compact
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("detailed")}
-            aria-pressed={viewMode === "detailed"}
-            className={cn(
-              "inline-flex min-h-9 min-w-[6.2rem] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-              viewMode === "detailed"
-                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-            )}
-          >
-            Detailed
-          </button>
-        </div>
-      </AppPanel>
+      <HistoryTitleControlShell title="Sessions" viewMode={viewMode} onViewModeChange={setViewMode} />
 
       {sessions.length > 0 ? (
         <ul className="space-y-2 pb-8">
@@ -118,14 +94,11 @@ export function HistorySessionsClient({
         <AppPanel className="rounded-[1.5rem] border-dashed p-5 text-sm text-muted">No completed sessions yet.</AppPanel>
       )}
       <PublishBottomActions>
-        <BottomActionDock
-          left={<div aria-hidden="true" />}
-          right={(
-            <DockButton type="button" variant="secondary" onClick={() => router.push("/history/exercises")}>
-              View Exercises
-            </DockButton>
-          )}
-        />
+        <BottomActionSingle>
+          <BottomDockButton type="button" variant="secondary" onClick={() => router.push("/history/exercises")}>
+            View Exercises
+          </BottomDockButton>
+        </BottomActionSingle>
       </PublishBottomActions>
     </div>
   );

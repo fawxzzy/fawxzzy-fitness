@@ -7,10 +7,11 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { Input } from "@/components/ui/Input";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
-import { HistoryControlGroup, HistoryControlPanel } from "@/components/history/HistoryShared";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { HistoryControlGroup, HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
@@ -114,13 +115,17 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         onOpen(row.exerciseId);
       }}
       trailingClassName="self-start pt-1 text-muted"
-      rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
+      rightIcon={<ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text)/0.6)]" />}
       className="overflow-hidden"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.5)]">
-        {row.kind === "strength" ? "Strength history" : "Cardio history"}
-      </p>
-      {viewMode === "detailed" && secondaryLine ? <p className="line-clamp-2 text-xs leading-4 text-[rgb(var(--text)/0.62)]">{secondaryLine}</p> : null}
+      {viewMode === "detailed" ? (
+        <>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.5)]">
+            {row.kind === "strength" ? "Strength history" : "Cardio history"}
+          </p>
+          {secondaryLine ? <p className="line-clamp-2 text-xs leading-4 text-[rgb(var(--text)/0.62)]">{secondaryLine}</p> : null}
+        </>
+      ) : null}
     </ExerciseCard>
   );
 });
@@ -193,36 +198,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <HistoryControlPanel>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setViewMode("compact")}
-            aria-pressed={viewMode === "compact"}
-            className={cn(
-              "inline-flex min-h-9 min-w-[6.2rem] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-              viewMode === "compact"
-                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-            )}
-          >
-            Compact
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("detailed")}
-            aria-pressed={viewMode === "detailed"}
-            className={cn(
-              "inline-flex min-h-9 min-w-[6.2rem] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-              viewMode === "detailed"
-                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-            )}
-          >
-            Detailed
-          </button>
-        </div>
-
+      <HistoryTitleControlShell title="Exercises" viewMode={viewMode} onViewModeChange={setViewMode}>
         <HistoryControlGroup label="Search" summary={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"}`}>
           <Input
             type="search"
@@ -241,7 +217,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
             className="space-y-2"
           />
         </HistoryControlGroup>
-      </HistoryControlPanel>
+      </HistoryTitleControlShell>
 
       <div className="relative min-h-0">
         <ul className="space-y-2.5 scroll-py-2 pb-8">
@@ -268,14 +244,11 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         sourceContext="ExerciseBrowserClient"
       />
       <PublishBottomActions>
-        <BottomActionDock
-          left={<div aria-hidden="true" />}
-          right={(
-            <DockButton type="button" variant="secondary" onClick={() => router.push("/history")}>
-              View Sessions
-            </DockButton>
-          )}
-        />
+        <BottomActionSingle>
+          <BottomDockButton type="button" variant="secondary" onClick={() => router.push("/history")}>
+            View Sessions
+          </BottomDockButton>
+        </BottomActionSingle>
       </PublishBottomActions>
     </div>
   );
