@@ -94,6 +94,35 @@ test("normalizes exercises with null or empty set arrays", () => {
   assert.deepEqual(emptySets[0].sets, []);
 });
 
+test("prefers non-empty sets alias over empty sets alias", () => {
+  const result = normalizeHistoryLogExercises({
+    exercises: [{
+      id: "se-1",
+      exercise_id: "ex-1",
+      sets: [],
+      logged_sets: [{ id: "legacy-set", set_index: 1, reps: 12 }],
+    }],
+  });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].sets.length, 1);
+  assert.equal(result[0].sets[0].id, "legacy-set");
+});
+
+test("keeps exercise when sets aliases are empty or null", () => {
+  const result = normalizeHistoryLogExercises({
+    exercises: [{
+      id: "se-2",
+      exercise_id: "ex-2",
+      sets: null,
+      logged_sets: [],
+    }],
+  });
+
+  assert.equal(result.length, 1);
+  assert.deepEqual(result[0].sets, []);
+});
+
 test("keeps valid exercises when neighboring records are partial or malformed", () => {
   const result = normalizeHistoryLogExercises({
     exercises: [
@@ -111,7 +140,7 @@ test("keeps valid exercises when neighboring records are partial or malformed", 
   assert.equal(result[1].exercise_name, "Partial");
 });
 
-test("uses first available inbound collection alias in precedence order", () => {
+test("prefers first non-empty inbound collection alias over key order", () => {
   const result = normalizeHistoryLogExercises({
     exercises: [],
     sessionExercises: [{ id: "session-ex", exercise_id: "ex-session" }],
@@ -119,13 +148,28 @@ test("uses first available inbound collection alias in precedence order", () => 
     workoutExercises: [{ id: "workout-ex", exercise_id: "ex-workout" }],
   });
 
-  assert.equal(result.length, 0);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].id, "session-ex");
+});
 
-  const fallbackResult = normalizeHistoryLogExercises({
-    sessionExercises: [{ id: "session-ex", exercise_id: "ex-session" }],
-    logExercises: [{ id: "log-ex", exercise_id: "ex-log" }],
+test("falls back to first valid alias when all collections are empty", () => {
+  const result = normalizeHistoryLogExercises({
+    exercises: [],
+    sessionExercises: [],
+    logExercises: [],
   });
 
-  assert.equal(fallbackResult.length, 1);
-  assert.equal(fallbackResult[0].id, "session-ex");
+  assert.equal(result.length, 0);
+});
+
+test("selects populated collection even when it appears later in alias order", () => {
+  const result = normalizeHistoryLogExercises({
+    exercises: [],
+    sessionExercises: [],
+    logExercises: [],
+    workoutExercises: [{ id: "workout-ex", exercise_id: "ex-workout" }],
+  });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].id, "workout-ex");
 });
