@@ -12,7 +12,6 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -398,30 +397,27 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
                 <div className="space-y-4">
-                  <AppPanel className="space-y-3">
-                    <SharedScreenHeader
-                      recipe="todayOverview"
-                      className="p-0 shadow-none"
-                      eyebrow="Today"
-                      title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
-                      subtitleRight={todayPayload.routine.state === "rest"
-                        ? "Rest Day"
-                        : formatRoutineHeaderMeta({
-                          routineName: todayPayload.routine.name,
-                          totalExercises: getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).total,
-                        })}
-                      action={todayPayload.inProgressSessionId
-                        ? <AppBadge tone="success">In Session</AppBadge>
-                        : todayPayload.completedTodayCount > 0
-                          ? <AppBadge tone="success">Completed</AppBadge>
-                          : undefined}
-                    />
+                  <SharedScreenHeader
+                    recipe="todayOverview"
+                    eyebrow="Today"
+                    title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
+                    subtitleRight={todayPayload.routine.state === "rest"
+                      ? "Rest Day"
+                      : formatRoutineHeaderMeta({
+                        routineName: todayPayload.routine.name,
+                        totalExercises: getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).total,
+                      })}
+                    action={todayPayload.inProgressSessionId
+                      ? <AppBadge tone="success">In Session</AppBadge>
+                      : todayPayload.completedTodayCount > 0
+                        ? <AppBadge tone="success">Completed</AppBadge>
+                        : undefined}
+                  />
 
-                    <TodayExerciseRows
-                      exercises={todayPayload.exercises}
-                      emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
-                    />
-                  </AppPanel>
+                  <TodayExerciseRows
+                    exercises={todayPayload.exercises}
+                    emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
+                  />
                 </div>
               ) : (
                 <TodayDayPicker

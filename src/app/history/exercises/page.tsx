@@ -1,10 +1,10 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { AppNav } from "@/components/AppNav";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { HistoryPageHeader } from "@/components/history/HistoryShared";
-import { ScrollContainer } from "@/components/ui/app/ScrollContainer";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
 
@@ -27,12 +27,12 @@ export default async function HistoryExercisesPage() {
       <MainTabScreen>
         <AppNav />
 
-        <ScrollContainer className="px-1">
+        <ScrollScreenWithBottomActions className="px-1">
           <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
             <HistoryPageHeader title="EXERCISES" />
             <ExerciseBrowserClient rows={rows} />
           </div>
-        </ScrollContainer>
+        </ScrollScreenWithBottomActions>
       </MainTabScreen>
     );
   } catch (error) {
@@ -45,9 +45,9 @@ export default async function HistoryExercisesPage() {
     return (
       <MainTabScreen>
         <AppNav />
-        <ScrollContainer className="px-1">
+        <ScrollScreenWithBottomActions className="px-1">
           <ExercisesBrowserError />
-        </ScrollContainer>
+        </ScrollScreenWithBottomActions>
       </MainTabScreen>
     );
   }

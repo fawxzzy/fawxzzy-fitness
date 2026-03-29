@@ -151,7 +151,7 @@ export function RoutinesPageClient({
       {isRoutineListOpen ? (
         <RoutinesSectionCard
           title="Routines"
-          meta={routines.length === 1 ? "1 routine" : `${routines.length} routines`}
+          meta={String(routines.length)}
         >
           <div id="routines-switch-list" aria-label="Routines">
             <RoutinesCardList>
@@ -175,7 +175,7 @@ export function RoutinesPageClient({
         </RoutinesSectionCard>
       ) : null}
       {!isRoutineListOpen ? (
-        <SharedDayListSection meta={days.length === 1 ? "1 day" : `${days.length} days`}>
+        <SharedDayListSection meta={String(days.length)}>
           {days.length > 0 ? (
             <DayList>
               {days.map((day) => {
