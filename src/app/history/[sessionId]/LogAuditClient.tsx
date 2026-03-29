@@ -37,8 +37,8 @@ import type { SessionSummary } from "../session-summary";
 type AuditSet = {
   id: string;
   set_index: number;
-  weight: number;
-  reps: number;
+  weight: number | null;
+  reps: number | null;
   duration_seconds: number | null;
   distance: number | null;
   distance_unit: "mi" | "km" | "m" | null;
@@ -102,8 +102,8 @@ const toEditableSet = (set: AuditSet, unitLabel: "lbs" | "kg", measurementType: 
   id: set.id,
   source: set,
   values: {
-    weight: String(set.weight),
-    reps: String(set.reps),
+    weight: set.weight === null ? "" : String(set.weight),
+    reps: set.reps === null ? "" : String(set.reps),
     duration: set.duration_seconds === null ? "" : formatDurationClock(set.duration_seconds),
     distance: set.distance === null ? "" : String(set.distance),
     distanceUnit: set.distance_unit ?? "mi",
@@ -430,7 +430,7 @@ export function LogAuditClient({
 
       <section className="space-y-2">
         {exercises.map((exercise) => {
-          const name = exerciseNameMap[exercise.exercise_id] ?? exercise.exercise_id;
+          const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
           const notesValue = exerciseNotes[exercise.id] ?? "";
           const setsForExercise = editableSets[exercise.id] ?? [];
           const isExpanded = expandedExerciseId === exercise.id;
@@ -575,6 +575,12 @@ export function LogAuditClient({
                       </li>
                     ))}
                   </ul>
+
+                  {setsForExercise.length === 0 ? (
+                    <p className="rounded-[0.95rem] border border-dashed border-border/40 bg-black/10 px-3 py-2 text-xs text-[rgb(var(--text-muted)/0.82)]">
+                      No sets logged for this exercise yet.
+                    </p>
+                  ) : null}
 
                   {isEditing ? (
                     <label className="block pt-2 text-xs font-semibold uppercase tracking-wide text-muted">
