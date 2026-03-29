@@ -65,6 +65,43 @@ export default async function RoutinesPage() {
 
   const routines = (data ?? []) as RoutineRow[];
   const activeRoutine = routines.find((routine) => routine.id === profile.active_routine_id) ?? routines[0] ?? null;
+  const routineIds = routines.map((routine) => routine.id);
+
+  const { data: allRoutineDaysData } = routineIds.length
+    ? await supabase
+      .from("routine_days")
+      .select("id, routine_id, is_rest")
+      .in("routine_id", routineIds)
+      .eq("user_id", user.id)
+    : { data: [] };
+  const allRoutineDays = (allRoutineDaysData ?? []) as Array<Pick<RoutineDayRow, "id" | "routine_id" | "is_rest">>;
+
+  const allRoutineDayIds = allRoutineDays.map((day) => day.id);
+  const { data: allRoutineDayExercisesData } = allRoutineDayIds.length
+    ? await supabase
+      .from("routine_day_exercises")
+      .select("id, routine_day_id")
+      .in("routine_day_id", allRoutineDayIds)
+      .eq("user_id", user.id)
+    : { data: [] };
+  const allRoutineDayExercises = (allRoutineDayExercisesData ?? []) as Array<Pick<RoutineDayExerciseRow, "id" | "routine_day_id">>;
+
+  const routineDayStatsByRoutineId = new Map<string, { totalDays: number; restDays: number }>();
+  const routineIdByDayId = new Map<string, string>();
+  for (const day of allRoutineDays) {
+    const current = routineDayStatsByRoutineId.get(day.routine_id) ?? { totalDays: 0, restDays: 0 };
+    current.totalDays += 1;
+    if (day.is_rest) current.restDays += 1;
+    routineDayStatsByRoutineId.set(day.routine_id, current);
+    routineIdByDayId.set(day.id, day.routine_id);
+  }
+
+  const exerciseCountByRoutineId = new Map<string, number>();
+  for (const dayExercise of allRoutineDayExercises) {
+    const routineId = routineIdByDayId.get(dayExercise.routine_day_id);
+    if (!routineId) continue;
+    exerciseCountByRoutineId.set(routineId, (exerciseCountByRoutineId.get(routineId) ?? 0) + 1);
+  }
 
   let activeRoutineDays: RoutineDayRow[] = [];
   let activeRoutineExerciseSummaries = new Map<string, string>();
@@ -229,7 +266,14 @@ export default async function RoutinesPage() {
               routines={routines.map((routine) => ({
                 id: routine.id,
                 name: routine.name,
-                summary: `${routine.cycle_length_days}-day cycle`,
+                summary: (() => {
+                  const dayStats = routineDayStatsByRoutineId.get(routine.id);
+                  const totalDaysForSummary = dayStats?.totalDays ?? routine.cycle_length_days;
+                  const restDaysForSummary = dayStats?.restDays ?? 0;
+                  const trainingDaysForSummary = Math.max(totalDaysForSummary - restDaysForSummary, 0);
+                  const exerciseCountForSummary = exerciseCountByRoutineId.get(routine.id) ?? 0;
+                  return `${totalDaysForSummary} days • ${trainingDaysForSummary} training • ${restDaysForSummary} rest • ${exerciseCountForSummary} exercises`;
+                })(),
               }))}
               days={activeRoutine ? sortedActiveRoutineDays.map((day, index) => {
                 const dayNumber = Number.isFinite(day.day_index) ? day.day_index : index + 1;
