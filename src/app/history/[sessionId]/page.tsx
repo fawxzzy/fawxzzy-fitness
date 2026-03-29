@@ -3,7 +3,7 @@ import { AppShell } from "@/components/ui/app/AppShell";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { getExerciseNameMap, listExercises } from "@/lib/exercises";
+import { getExerciseNameMap } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -35,12 +35,22 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
   const { data: sessionExercisesData } = await supabase
     .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit, exercise:exercises(measurement_type, default_unit)")
+    .select("id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit, exercise:exercises(id, name, slug, image_path, image_icon_path, image_howto_path, measurement_type, default_unit)")
     .eq("session_id", params.sessionId)
     .eq("user_id", user.id)
     .order("position", { ascending: true });
 
-  const sessionExercises = (sessionExercisesData ?? []) as Array<SessionExerciseRow & { exercise?: { measurement_type?: "reps" | "time" | "distance" | "time_distance"; default_unit?: string | null } | null }>;
+  const sessionExercises = (sessionExercisesData ?? []) as Array<SessionExerciseRow & {
+    exercise?: {
+      name?: string | null;
+      slug?: string | null;
+      image_path?: string | null;
+      image_icon_path?: string | null;
+      image_howto_path?: string | null;
+      measurement_type?: "reps" | "time" | "distance" | "time_distance";
+      default_unit?: string | null;
+    } | null;
+  }>;
   const orderedSessionExercises = (() => {
     const performed = sessionExercises
       .filter((exercise) => typeof exercise.performed_index === "number")
@@ -93,7 +103,6 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     ?? routineDay?.name
     ?? sessionRow.routine_day_name
     ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
-  const exerciseOptions = await listExercises();
   const backHref = `/history?tab=sessions&selected=${params.sessionId}`;
 
   const exerciseIds = orderedSessionExercises.map((exercise) => exercise.exercise_id);
@@ -169,12 +178,16 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             initialNotes={sessionRow.notes}
             unitLabel={unitLabel}
             exerciseNameMap={exerciseNameRecord}
-            exerciseOptions={exerciseOptions}
             sessionSummary={sessionSummary}
             backHref={backHref}
             exercises={orderedSessionExercises.map((exercise) => ({
               id: exercise.id,
               exercise_id: exercise.exercise_id,
+              exercise_name: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.name ?? null : exercise.exercise?.name ?? null,
+              exercise_slug: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.slug ?? null : exercise.exercise?.slug ?? null,
+              exercise_image_path: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.image_path ?? null : exercise.exercise?.image_path ?? null,
+              exercise_image_icon_path: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.image_icon_path ?? null : exercise.exercise?.image_icon_path ?? null,
+              exercise_image_howto_path: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.image_howto_path ?? null : exercise.exercise?.image_howto_path ?? null,
               notes: exercise.notes,
               measurement_type: exercise.measurement_type ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.measurement_type : exercise.exercise?.measurement_type) ?? "reps",
               default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? null,

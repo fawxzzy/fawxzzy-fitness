@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  addLogExerciseAction,
   addLogExerciseSetAction,
   deleteCompletedSessionAction,
   deleteLogExerciseAction,
@@ -18,6 +17,7 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { ExerciseCard } from "@/components/ExerciseCard";
+import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -28,7 +28,8 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
-import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
+import { formatDateShort, formatDurationShort } from "@/lib/formatting";
+import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { formatMeasurementSummaryText } from "@/lib/measurement-display";
 import type { SessionSummary } from "../session-summary";
@@ -56,6 +57,11 @@ type EditableSet = {
 type AuditExercise = {
   id: string;
   exercise_id: string;
+  exercise_name?: string | null;
+  exercise_slug?: string | null;
+  exercise_image_path?: string | null;
+  exercise_image_icon_path?: string | null;
+  exercise_image_howto_path?: string | null;
   notes: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance";
   default_unit: string | null;
@@ -151,7 +157,6 @@ export function LogAuditClient({
   unitLabel,
   exerciseNameMap,
   exercises,
-  exerciseOptions,
   sessionSummary,
   backHref
 }: {
@@ -161,7 +166,6 @@ export function LogAuditClient({
   unitLabel: "lbs" | "kg";
   exerciseNameMap: Record<string, string>;
   exercises: AuditExercise[];
-  exerciseOptions: Array<{ id: string; name: string; user_id: string | null; is_global: boolean }>;
   sessionSummary: SessionSummary;
   backHref: string;
 }) {
@@ -172,7 +176,6 @@ export function LogAuditClient({
   const [isEditing, setIsEditing] = useState(false);
   const [dayName, setDayName] = useState(initialDayName);
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
-  const [selectedExerciseId, setSelectedExerciseId] = useState(exerciseOptions[0]?.id ?? "");
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
@@ -369,15 +372,6 @@ export function LogAuditClient({
     });
   };
 
-  const handleAddExercise = () => {
-    if (!selectedExerciseId) return;
-    startTransition(async () => {
-      const result = await addLogExerciseAction({ logId, exerciseId: selectedExerciseId });
-      toastActionResult(toast, result, { success: "Exercise added.", error: "Unable to add exercise." });
-      if (result.ok) router.refresh();
-    });
-  };
-
   const handleDeleteExercise = (logExerciseId: string) => {
     startTransition(async () => {
       const result = await deleteLogExerciseAction({ logId, logExerciseId });
@@ -411,8 +405,8 @@ export function LogAuditClient({
         {isEditing ? (
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Edit mode</p>
-            <details className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
-              <summary className="cursor-pointer list-none text-sm font-semibold text-slate-100">Session details</summary>
+            <div className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
+              <p className="text-sm font-semibold text-slate-100">Session details</p>
               <div className="mt-3 space-y-3">
                 <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
                   Day Name
@@ -423,18 +417,7 @@ export function LogAuditClient({
                   <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
                 </label>
               </div>
-            </details>
-            <details className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
-              <summary className="cursor-pointer list-none text-sm font-semibold text-slate-100">Add exercise</summary>
-              <div className="mt-3 space-y-2">
-                <select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)} className="w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25">
-                  {exerciseOptions.map((option) => (<option key={option.id} value={option.id}>{option.name}</option>))}
-                </select>
-                <div className="flex justify-end">
-                  <SecondaryButton type="button" size="sm" onClick={handleAddExercise}>Add Exercise</SecondaryButton>
-                </div>
-              </div>
-            </details>
+            </div>
           </div>
         ) : null}
       </HistoryDetailHeader>
@@ -451,33 +434,66 @@ export function LogAuditClient({
           const notesValue = exerciseNotes[exercise.id] ?? "";
           const setsForExercise = editableSets[exercise.id] ?? [];
           const isExpanded = expandedExerciseId === exercise.id;
+          const latestSet = setsForExercise[setsForExercise.length - 1] ?? null;
+          const latestSummary = latestSet
+            ? formatMeasurementSummaryText({
+              ...sanitizeEnabledMeasurementValues(latestSet.activeMetrics, {
+                reps: latestSet.values.reps.trim() ? Number(latestSet.values.reps) : null,
+                weight: latestSet.values.weight.trim() ? Number(latestSet.values.weight) : null,
+                durationSeconds: parseDurationInput(latestSet.values.duration),
+                distance: latestSet.values.distance.trim() ? Number(latestSet.values.distance) : null,
+                calories: latestSet.values.calories.trim() ? Number(latestSet.values.calories) : null,
+              }),
+              weightUnit: latestSet.values.weightUnit,
+              distanceUnit: latestSet.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
+              emptyLabel: "No measurements",
+            })
+            : "No measurements";
+          const exerciseIconSrc = getExerciseIconSrc({
+            name,
+            slug: exercise.exercise_slug ?? null,
+            image_path: exercise.exercise_image_path ?? null,
+            image_icon_path: exercise.exercise_image_icon_path ?? null,
+            image_howto_path: exercise.exercise_image_howto_path ?? null,
+          });
+          const subtitleParts = [
+            `Latest: ${latestSummary}`,
+            `${setsForExercise.length} ${setsForExercise.length === 1 ? "set" : "sets"}`,
+          ];
 
           return (
             <article key={exercise.id} className="space-y-2">
               <ExerciseCard
                 title={name}
-                subtitle={`${setsForExercise.length} ${setsForExercise.length === 1 ? "set" : "sets"}`}
+                subtitle={subtitleParts.join(" • ")}
                 onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
                 rightIcon={isExpanded
                   ? <ChevronDownIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
                   : <ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-                variant="interactive"
+                variant="summary"
                 state={isExpanded ? "selected" : "default"}
+                leadingVisual={(
+                  <ExerciseAssetImage
+                    src={exerciseIconSrc}
+                    alt={name}
+                    className="h-20 w-20 shrink-0 rounded-xl border border-border/25 bg-black/10"
+                    imageClassName="object-cover object-center"
+                    sizes="80px"
+                  />
+                )}
+                className="items-center"
               />
 
               {isExpanded ? (
-                <div className="rounded-[1.15rem] border border-white/10 bg-black/10 p-3">
+                <div className="space-y-2.5 px-1.5 pb-1">
                   {isEditing ? (
-                    <details className="rounded-xl border border-white/8 bg-black/10 px-3 py-2">
-                      <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.14em] text-muted">Exercise tools</summary>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
-                        <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
-                      </div>
-                    </details>
+                    <div className="flex flex-wrap gap-2">
+                      <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
+                      <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
+                    </div>
                   ) : null}
 
-                  <ul className="space-y-1.5 pt-2 text-sm">
+                  <ul className="space-y-1.5 text-sm">
                     {setsForExercise.map((set, index) => (
                       <li key={set.id}>
                         {isEditing ? (
