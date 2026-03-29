@@ -1,13 +1,28 @@
 "use client";
 
-import { useActionState, useMemo } from "react";
+import { type FormEvent, useCallback, useMemo, useState, useTransition } from "react";
 import { updateAccountEmailAction, type EmailUpdateState } from "@/app/settings/actions";
 import { GlassButton } from "@/components/ui/GlassButton";
 
 const INITIAL_EMAIL_STATE: EmailUpdateState = { status: "idle" };
 
 export function AccountSettingsForm({ email }: { email: string }) {
-  const [emailState, emailAction, emailPending] = useActionState(updateAccountEmailAction, INITIAL_EMAIL_STATE);
+  const [emailState, setEmailState] = useState<EmailUpdateState>(INITIAL_EMAIL_STATE);
+  const [emailPending, startEmailTransition] = useTransition();
+
+  const submitEmailUpdate = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+
+      startEmailTransition(async () => {
+        const result = await updateAccountEmailAction(formData);
+        setEmailState(result);
+      });
+    },
+    [startEmailTransition],
+  );
 
   const emailMessageTone = useMemo(() => {
     if (emailState.status === "error") return "text-red-200";
@@ -16,7 +31,7 @@ export function AccountSettingsForm({ email }: { email: string }) {
   }, [emailState.status]);
 
   return (
-    <form action={emailAction} className="space-y-2.5">
+    <form onSubmit={submitEmailUpdate} className="space-y-2.5">
       <div className="space-y-1.5">
         <label htmlFor="settings-email" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Email</label>
         <input
