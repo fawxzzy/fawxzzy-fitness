@@ -89,11 +89,13 @@ export function HistoryControlPanel({ children, className }: { children: ReactNo
 }
 
 export function HistoryTitleControlShell({
+  label,
   viewMode,
   onViewModeChange,
   children,
   className,
 }: {
+  label?: string;
   viewMode: "compact" | "detailed";
   onViewModeChange: (nextMode: "compact" | "detailed") => void;
   children?: ReactNode;
@@ -102,6 +104,7 @@ export function HistoryTitleControlShell({
   return (
     <HistoryControlPanel className={cn("space-y-2", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
+        {label ? <p className="text-sm font-semibold text-slate-100">{label}</p> : null}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"

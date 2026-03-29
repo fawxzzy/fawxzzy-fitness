@@ -150,8 +150,7 @@ export function RoutinesPageClient({
     >
       {isRoutineListOpen ? (
         <RoutinesSectionCard
-          title="Routines"
-          meta={String(routines.length)}
+          title={<>Routines <span className="text-[rgb(var(--text)/0.72)]">{routines.length}</span></>}
         >
           <div id="routines-switch-list" aria-label="Routines">
             <RoutinesCardList>
@@ -175,7 +174,7 @@ export function RoutinesPageClient({
         </RoutinesSectionCard>
       ) : null}
       {!isRoutineListOpen ? (
-        <SharedDayListSection meta={String(days.length)}>
+        <SharedDayListSection title={<>Days <span className="text-[rgb(var(--text)/0.72)]">{days.length}</span></>}>
           {days.length > 0 ? (
             <DayList>
               {days.map((day) => {
