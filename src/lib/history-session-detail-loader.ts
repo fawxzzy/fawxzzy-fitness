@@ -1,15 +1,16 @@
 import type { SessionExerciseRow, SetRow } from "@/types/db";
 
-type SessionExerciseWithExercise = SessionExerciseRow & {
-  exercise?: {
-    name?: string | null;
-    slug?: string | null;
-    image_path?: string | null;
-    image_icon_path?: string | null;
-    image_howto_path?: string | null;
-    measurement_type?: "reps" | "time" | "distance" | "time_distance";
-    default_unit?: string | null;
-  } | null;
+type SessionExerciseWithExercise = SessionExerciseRow;
+
+export type ExerciseMetadata = {
+  id: string;
+  name: string | null;
+  slug: string | null;
+  image_path: string | null;
+  image_icon_path: string | null;
+  image_howto_path: string | null;
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
+  default_unit: string | null;
 };
 
 type LoaderSummary = {
@@ -36,7 +37,7 @@ export async function loadHistoryDetailRows({
   userId: string;
   sessionFound: boolean;
 }) {
-  const baseSessionExerciseSelect = "id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit, exercise:exercises(id, name, slug, image_path, image_icon_path, image_howto_path, measurement_type, default_unit)";
+  const baseSessionExerciseSelect = "id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit";
 
   const strictSessionExerciseQuery = await supabase
     .from("session_exercises")
@@ -71,6 +72,18 @@ export async function loadHistoryDetailRows({
   })();
 
   const sessionExerciseIds = orderedSessionExercises.map((row) => row.id);
+  const exerciseIds = Array.from(new Set(orderedSessionExercises.map((row) => row.exercise_id).filter(Boolean)));
+  let exerciseMetadataById = new Map<string, ExerciseMetadata>();
+
+  if (exerciseIds.length) {
+    const exerciseQuery = await supabase
+      .from("exercises")
+      .select("id, name, slug, image_path, image_icon_path, image_howto_path, measurement_type, default_unit")
+      .in("id", exerciseIds);
+    const exerciseRows = (exerciseQuery.data ?? []) as ExerciseMetadata[];
+    exerciseMetadataById = new Map(exerciseRows.map((row) => [row.id, row]));
+  }
+
   let sets = [] as SetRow[];
   let strictSetsCount = 0;
   let relaxedSetsCount = 0;
@@ -117,6 +130,7 @@ export async function loadHistoryDetailRows({
 
   return {
     orderedSessionExercises,
+    exerciseMetadataById,
     sessionExerciseIds,
     sets,
     summary,
