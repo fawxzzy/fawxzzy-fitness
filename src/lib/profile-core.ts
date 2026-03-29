@@ -25,10 +25,17 @@ export type ProfileSupabaseClient = {
 
 function isMissingProfilePreferenceColumnError(error: ProfileQueryError) {
   const message = error?.message?.toLowerCase() ?? "";
+  const referencesPreferenceColumn =
+    message.includes("preferred_weight_unit") || message.includes("preferred_distance_unit");
+  const referencesProfilesTable = message.includes("profiles");
+  const schemaCacheMissingColumn = message.includes("schema cache");
+  const postgresMissingColumn =
+    message.includes("column") && message.includes("does not exist") && referencesProfilesTable;
+
   return (
-    message.includes("schema cache") &&
-    message.includes("profiles") &&
-    (message.includes("preferred_weight_unit") || message.includes("preferred_distance_unit"))
+    referencesPreferenceColumn &&
+    referencesProfilesTable &&
+    (schemaCacheMissingColumn || postgresMissingColumn)
   );
 }
 

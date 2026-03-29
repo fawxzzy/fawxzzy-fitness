@@ -102,6 +102,68 @@ test("ensureProfile falls back to legacy select and hydrates defaults when prefe
   ]);
 });
 
+test("ensureProfile falls back when provider reports preferred_weight_unit as a missing column", async () => {
+  const fake = createFakeSupabase({
+    maybeSingle: [
+      {
+        data: null,
+        error: {
+          message: "column profiles.preferred_weight_unit does not exist",
+        },
+      },
+      {
+        data: {
+          id: "user-2b",
+          timezone: "America/Denver",
+          active_routine_id: null,
+        },
+        error: null,
+      },
+    ],
+    single: [],
+  });
+
+  const profile = await ensureProfileWithClient("user-2b", fake.client as never);
+
+  assert.equal(profile.preferred_weight_unit, "lbs");
+  assert.equal(profile.preferred_distance_unit, "mi");
+  assert.deepEqual(fake.tracker.selects, [
+    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
+    "id, timezone, active_routine_id",
+  ]);
+});
+
+test("ensureProfile falls back when provider reports preferred_distance_unit as a missing column", async () => {
+  const fake = createFakeSupabase({
+    maybeSingle: [
+      {
+        data: null,
+        error: {
+          message: "column profiles.preferred_distance_unit does not exist",
+        },
+      },
+      {
+        data: {
+          id: "user-2c",
+          timezone: "America/Denver",
+          active_routine_id: null,
+        },
+        error: null,
+      },
+    ],
+    single: [],
+  });
+
+  const profile = await ensureProfileWithClient("user-2c", fake.client as never);
+
+  assert.equal(profile.preferred_weight_unit, "lbs");
+  assert.equal(profile.preferred_distance_unit, "mi");
+  assert.deepEqual(fake.tracker.selects, [
+    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
+    "id, timezone, active_routine_id",
+  ]);
+});
+
 test("ensureProfile creates a profile in legacy mode without preference columns and returns default units", async () => {
   const fake = createFakeSupabase({
     maybeSingle: [

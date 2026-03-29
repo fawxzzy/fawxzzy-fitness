@@ -15,8 +15,12 @@ type SessionExerciseWithExercise = SessionExerciseRow & {
 type LoaderSummary = {
   sessionId: string;
   sessionFound: boolean;
+  strictSessionExercisesCount: number;
+  relaxedSessionExercisesCount: number;
   sessionExercisesCount: number;
   sessionExerciseIdsCount: number;
+  strictSetsCount: number;
+  relaxedSetsCount: number;
   setsCount: number;
   fallbackPathUsed: boolean;
 };
@@ -41,7 +45,9 @@ export async function loadHistoryDetailRows({
     .eq("user_id", userId)
     .order("position", { ascending: true });
 
-  let sessionExercises = (strictSessionExerciseQuery.data ?? []) as SessionExerciseWithExercise[];
+  const strictSessionExercises = (strictSessionExerciseQuery.data ?? []) as SessionExerciseWithExercise[];
+  let sessionExercises = strictSessionExercises;
+  let relaxedSessionExercisesCount = 0;
   let fallbackPathUsed = false;
 
   if (sessionExercises.length === 0) {
@@ -52,6 +58,7 @@ export async function loadHistoryDetailRows({
       .order("position", { ascending: true });
 
     sessionExercises = (relaxedSessionExerciseQuery.data ?? []) as SessionExerciseWithExercise[];
+    relaxedSessionExercisesCount = sessionExercises.length;
     fallbackPathUsed = sessionExercises.length > 0;
   }
 
@@ -65,6 +72,8 @@ export async function loadHistoryDetailRows({
 
   const sessionExerciseIds = orderedSessionExercises.map((row) => row.id);
   let sets = [] as SetRow[];
+  let strictSetsCount = 0;
+  let relaxedSetsCount = 0;
 
   if (sessionExerciseIds.length) {
     const strictSetsQuery = await supabase
@@ -75,6 +84,7 @@ export async function loadHistoryDetailRows({
       .order("set_index", { ascending: true });
 
     sets = (strictSetsQuery.data ?? []) as SetRow[];
+    strictSetsCount = sets.length;
 
     if (sets.length === 0) {
       const relaxedSetsQuery = await supabase
@@ -84,6 +94,7 @@ export async function loadHistoryDetailRows({
         .order("set_index", { ascending: true });
 
       const relaxedSets = (relaxedSetsQuery.data ?? []) as SetRow[];
+      relaxedSetsCount = relaxedSets.length;
       if (relaxedSets.length > 0) {
         sets = relaxedSets;
         fallbackPathUsed = true;
@@ -94,8 +105,12 @@ export async function loadHistoryDetailRows({
   const summary: LoaderSummary = {
     sessionId,
     sessionFound,
+    strictSessionExercisesCount: strictSessionExercises.length,
+    relaxedSessionExercisesCount,
     sessionExercisesCount: orderedSessionExercises.length,
     sessionExerciseIdsCount: sessionExerciseIds.length,
+    strictSetsCount,
+    relaxedSetsCount,
     setsCount: sets.length,
     fallbackPathUsed,
   };
