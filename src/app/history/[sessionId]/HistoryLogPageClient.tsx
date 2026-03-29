@@ -18,6 +18,11 @@ type AuditSet = {
 type AuditExercise = {
   id: string;
   exercise_id: string;
+  exercise_name?: string | null;
+  exercise_slug?: string | null;
+  exercise_image_path?: string | null;
+  exercise_image_icon_path?: string | null;
+  exercise_image_howto_path?: string | null;
   notes: string | null;
   measurement_type: "reps" | "time" | "distance" | "time_distance";
   default_unit: string | null;
@@ -31,7 +36,6 @@ export function HistoryLogPageClient(props: {
   unitLabel: "lbs" | "kg";
   exerciseNameMap: Record<string, string>;
   exercises: AuditExercise[];
-  exerciseOptions: Array<{ id: string; name: string; user_id: string | null; is_global: boolean }>;
   sessionSummary: SessionSummary;
   backHref: string;
 }) {

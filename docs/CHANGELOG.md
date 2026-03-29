@@ -5088,6 +5088,10 @@ WHY:
 - Removed cardio-driven `Interval` wording from add/configure-goal set targeting so set language defaults to `Set` unless an explicit interval mode is ever provided.
 - Flattened the Edit Day Planned Workout utility area by reducing top-of-section chrome to a small Reorder action and removing the extra reorder helper callout.
 - Hardened Edit Day inline row-editor exit behavior so the top-right back control flushes pending debounced autosave before closing.
+- Aligned Today in-progress resume state to the same anchored header panel shell used by the normal Today day-picker state so both states now share one outer highlight/border treatment.
+- Reworked History log-detail exercise rows onto the same detailed ExerciseCard shell used in History Exercises (image-left, shared spacing/border/highlight, chevron affordance), while switching row summaries to session-scoped metrics (`Latest` set summary + set count).
+- Flattened log-detail expanded content into an inline extension of the same card rhythm (no extra framed panel layer), while preserving per-exercise collapse/expand behavior.
+- Removed log-detail “Add Exercise” editing affordances and made session detail fields always visible during edit mode (no collapsible details toggles).
 
 ### Why
 - Today day-list breakdowns were still lagging behind Routines because their summary path was rebuilding labels from route-local exercise payloads instead of reusing the normalized canonical exercise metadata contract.
@@ -5098,3 +5102,6 @@ WHY:
 - The inline Edit Day row editor still felt denser and more helper-copy heavy than newer workout-entry surfaces, and its trailing Edit/Delete rail looked visually under-filled relative to the Current Session action rail.
 - CTA label ownership had drifted during refactors, which made add-entry language inconsistent between Current Session and goal-configuration flows.
 - The Planned Workout section still read like a nested utility card stack instead of a flatter editor list with lightweight section-level actions.
+- Today had drifted into two near-identical shells where resume state missed the canonical outer highlight panel, making state transitions feel structurally inconsistent.
+- Log-detail rows looked and behaved like a separate card family from History exercise detailed cards, and also emphasized non-session context instead of metrics from the selected completed session.
+- Collapsible edit wrappers in session details introduced unnecessary hidden controls for high-frequency metadata edits and slowed review/update flow.
