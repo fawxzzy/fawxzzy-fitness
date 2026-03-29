@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadHistoryDetailRows } from "./history-session-detail-loader.ts";
+import { loadHistoryDetailRows, resolveHistoryExerciseName } from "./history-session-detail-loader.ts";
 
 type SessionExerciseSeed = {
   id: string;
@@ -260,4 +260,76 @@ test("does not zero out exercises when only some exercise metadata resolves", as
   assert.equal(result.summary.sessionExercisesCount, 2);
   assert.equal(result.exerciseMetadataById.size, 1);
   assert.equal(result.exerciseMetadataById.has("exercise-missing"), false);
+});
+
+test("resolves history exercise name from metadata first", () => {
+  assert.equal(resolveHistoryExerciseName({
+    metadataName: "Bench Press",
+    rowExerciseName: "Legacy Bench",
+    rowName: "Bench",
+    mapExerciseName: "Bench Alt",
+  }), "Bench Press");
+});
+
+test("resolves history exercise name from fallback row label when metadata is missing", () => {
+  assert.equal(resolveHistoryExerciseName({
+    metadataName: null,
+    rowExerciseName: "Legacy Incline Press",
+    rowName: "Incline Press",
+    mapExerciseName: "Incline Press Map",
+  }), "Legacy Incline Press");
+});
+
+test("resolves history exercise name to safe fallback when no labels exist", () => {
+  assert.equal(resolveHistoryExerciseName({
+    metadataName: null,
+    rowExerciseName: null,
+    rowName: null,
+    mapExerciseName: null,
+  }), "Exercise");
+});
+
+test("normalizes exercise metadata map keys and preserves full row count with missing metadata", async () => {
+  const supabase = createSupabaseStub({
+    sessionExercises: [
+      {
+        id: "se-1",
+        session_id: "session-key-normalization",
+        user_id: "user-1",
+        exercise_id: "101",
+        position: 1,
+        performed_index: 0,
+        notes: null,
+        is_skipped: false,
+      },
+      {
+        id: "se-2",
+        session_id: "session-key-normalization",
+        user_id: "user-1",
+        exercise_id: "102",
+        position: 2,
+        performed_index: 1,
+        notes: null,
+        is_skipped: false,
+      },
+    ],
+    sets: [],
+    exercises: [{
+      id: "101",
+      name: "Resolved Name",
+      slug: "resolved-name",
+      image_path: null,
+      image_icon_path: null,
+      image_howto_path: null,
+      measurement_type: "reps",
+      default_unit: null,
+    }],
+  });
+
+  const result = await loadHistoryDetailRows({ supabase, sessionId: "session-key-normalization", userId: "user-1", sessionFound: true });
+
+  assert.equal(result.orderedSessionExercises.length, 2);
+  assert.equal(result.summary.sessionExercisesCount, 2);
+  assert.equal(result.exerciseMetadataById.get("101")?.name, "Resolved Name");
+  assert.equal(result.exerciseMetadataById.has("102"), false);
 });
