@@ -216,9 +216,7 @@ export function ExerciseInfoSheet({
           <div className="flex-1 overflow-y-auto overscroll-contain">
             <ScreenScaffold className="mx-auto w-full max-w-xl space-y-4 px-4 pb-[calc(var(--app-safe-bottom)+1rem)]">
               <DetailHeader
-                eyebrow="Exercise"
                 title={exercise.name}
-                subtitle={stats ? `${stats.kind === "cardio" ? "Cardio" : "Strength"} details` : "Exercise details"}
                 action={(
                   <TopRightBackButton
                     onClick={(event) => {
@@ -240,11 +238,11 @@ export function ExerciseInfoSheet({
                   </DetailMetaRow>
                 ) : undefined}
               >
-                {exercise.how_to_short ? <p className="text-sm text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
+                {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
               </DetailHeader>
 
-              <DetailSection title="How to" description="Reference visual for movement setup and execution.">
-                <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.2)] p-1.5">
+              <DetailSection title="How to">
+                <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
                   <ExerciseAssetImage
                     key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
                     src={resolvedHowToSrc}
@@ -256,7 +254,7 @@ export function ExerciseInfoSheet({
                 </div>
               </DetailSection>
 
-              <DetailSection title="Stats" description="Recent activity and lifetime progress for this exercise.">
+              <DetailSection title="Stats">
                 <div
                   id={statsPanelId}
                   data-testid="exercise-info-stats-box"

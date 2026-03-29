@@ -84,7 +84,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const strengthPrSummary = typeof row.pr_est_1rm === "number" && Number.isFinite(row.pr_est_1rm) && row.pr_est_1rm > 0
     ? `${row.pr_est_1rm.toFixed(0)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
     : null;
-  const hasSignal = Boolean(row.bestSummary || row.prLabel || strengthPrSummary);
+  const hasSignal = Boolean(row.lastSummary || row.bestSummary || row.prLabel || strengthPrSummary || row.last_performed_at);
   const primaryLine = row.kind === "strength"
     ? [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" • ")
     : [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" • ");
@@ -102,11 +102,11 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         onOpen(row.exerciseId);
       }}
       className="block w-full rounded-[1.25rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
-    >
+      >
       <AppPanel
         className={cn(
           "space-y-1.5 p-3.5 transition-colors hover:border-border/85 hover:bg-[rgb(var(--surface-rgb)/0.48)]",
-          hasSignal ? "border-emerald-400/30 bg-[rgb(var(--surface-rgb)/0.56)]" : undefined,
+          hasSignal ? "border-emerald-400/35 bg-emerald-500/10 hover:border-emerald-300/45 hover:bg-emerald-500/14" : undefined,
         )}
       >
         <div className="flex items-start justify-between gap-2">
