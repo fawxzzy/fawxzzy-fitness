@@ -21,7 +21,7 @@ export function SignOutButton() {
       className={getAppButtonClassName({
         variant: "destructive",
         fullWidth: true,
-        className: "bg-red-500/10 text-red-200 border-red-400/35 shadow-none hover:bg-red-500/16",
+        className: "bg-red-500/7 text-red-200 border-red-400/28 shadow-none hover:bg-red-500/12",
       })}
     >
       Sign out
