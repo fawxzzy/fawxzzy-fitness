@@ -7,6 +7,20 @@ import {
   type IncomingHistoryAuditExercise,
 } from "@/lib/history-log-normalization";
 
+
+function pickPreferredArray<T>(candidates: Array<T[] | null | undefined>): T[] {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length > 0) return candidate;
+  }
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+
+  return [];
+}
+
+
 export function HistoryLogPageClient(props: {
   logId: string;
   initialDayName: string;
@@ -20,6 +34,13 @@ export function HistoryLogPageClient(props: {
   sessionSummary: SessionSummary;
   backHref: string;
 }) {
+  const incomingExercises = pickPreferredArray([
+    props.exercises,
+    props.sessionExercises,
+    props.logExercises,
+    props.workoutExercises,
+  ]);
+
   const normalizedExercises = normalizeHistoryLogExercises({
     exercises: props.exercises,
     sessionExercises: props.sessionExercises,
@@ -29,6 +50,13 @@ export function HistoryLogPageClient(props: {
 
   if (props.sessionSummary.exerciseCount > 0 && normalizedExercises.length === 0) {
     console.warn("Normalization mismatch: upstream data present but normalized empty");
+  }
+
+  if (normalizedExercises.length !== incomingExercises.length) {
+    console.warn("Normalization mismatch: normalized length differs from incoming length", {
+      incomingLength: incomingExercises.length,
+      normalizedLength: normalizedExercises.length,
+    });
   }
 
   return <LogAuditClient {...props} exercises={normalizedExercises} />;

@@ -93,7 +93,7 @@ export function normalizeHistoryAuditExercise(exercise: IncomingHistoryAuditExer
   return {
     id: exercise.id ?? exercise.exercise_id ?? exercise.exerciseId ?? `exercise-${index}`,
     exercise_id: exercise.exercise_id ?? exercise.exerciseId ?? exercise.id ?? `exercise-${index}`,
-    exercise_name: exercise.exercise_name ?? exercise.exerciseName ?? exercise.name ?? null,
+    exercise_name: exercise.exercise_name ?? exercise.exerciseName ?? exercise.name ?? "Exercise",
     exercise_slug: exercise.exercise_slug ?? exercise.slug ?? null,
     exercise_image_path: exercise.exercise_image_path ?? exercise.image_path ?? exercise.image ?? exercise.media?.image_path ?? null,
     exercise_image_icon_path: exercise.exercise_image_icon_path ?? exercise.image_icon_path ?? exercise.media?.image_icon_path ?? null,
@@ -120,7 +120,5 @@ export function normalizeHistoryLogExercises(options: {
     options.workoutExercises,
   ]);
 
-  return rawExercises
-    .filter((exercise): exercise is IncomingHistoryAuditExercise => isRecord(exercise))
-    .map((exercise, index) => normalizeHistoryAuditExercise(exercise, index));
+  return rawExercises.map((exercise, index) => normalizeHistoryAuditExercise(isRecord(exercise) ? exercise : {}, index));
 }

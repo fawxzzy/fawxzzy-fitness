@@ -133,11 +133,13 @@ test("keeps valid exercises when neighboring records are partial or malformed", 
     ],
   });
 
-  assert.equal(result.length, 2);
-  assert.equal(result[0].exercise_id, "ex-valid");
-  assert.equal(result[1].id, "exercise-1");
-  assert.equal(result[1].exercise_id, "exercise-1");
-  assert.equal(result[1].exercise_name, "Partial");
+  assert.equal(result.length, 4);
+  assert.equal(result[0].exercise_name, "Exercise");
+  assert.equal(result[1].exercise_id, "ex-valid");
+  assert.equal(result[2].id, "exercise-2");
+  assert.equal(result[2].exercise_id, "exercise-2");
+  assert.equal(result[2].exercise_name, "Partial");
+  assert.equal(result[3].exercise_name, "Exercise");
 });
 
 test("prefers first non-empty inbound collection alias over key order", () => {
@@ -172,4 +174,19 @@ test("selects populated collection even when it appears later in alias order", (
 
   assert.equal(result.length, 1);
   assert.equal(result[0].id, "workout-ex");
+});
+
+
+test("retains all exercises when metadata is missing and sets are empty", () => {
+  const input = [
+    { id: "se-1", exercise_id: "ex-1", sets: [] },
+    { id: "se-2", exercise_id: "ex-2", sets: [], measurement_type: undefined, default_unit: undefined },
+    { id: "se-3", exercise_id: "ex-3", exercise_name: null, sets: [] },
+  ];
+
+  const result = normalizeHistoryLogExercises({ exercises: input });
+
+  assert.equal(result.length, input.length);
+  assert.equal(result[2].exercise_name, "Exercise");
+  assert.deepEqual(result.map((exercise) => exercise.sets), [[], [], []]);
 });
