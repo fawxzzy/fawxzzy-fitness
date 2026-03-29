@@ -2,8 +2,8 @@
 
 import { memo, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
-import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { Input } from "@/components/ui/Input";
@@ -93,40 +93,47 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     : row.bestSummary ? `Best ${row.bestSummary}` : null;
 
   return (
-    <ExerciseCard
-      title={displayName}
-      subtitle={primaryLine || (row.kind === "strength" ? "Strength history" : "Cardio history")}
-      variant="summary"
-      state={hasSignal ? "completed" : "default"}
-      badgeText={row.prLabel ? `PR ${row.prLabel}` : row.bestSummary ? "Completed" : lastDate ? `Last ${lastDate}` : undefined}
-      leadingVisual={(
-        <ExerciseAssetImage
-          src={iconSrc}
-          alt={displayName}
-          className="h-[4.5rem] w-[4.5rem] rounded-xl border border-border/25 bg-black/10"
-          imageClassName="object-cover object-center"
-          sizes="72px"
-        />
-      )}
-      onPress={() => {
+    <button
+      type="button"
+      onClick={() => {
         if (process.env.NODE_ENV === "development") {
           console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
         }
         onOpen(row.exerciseId);
       }}
-      trailingClassName="self-start pt-1 text-muted"
-      rightIcon={<ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text)/0.6)]" />}
-      className="overflow-hidden"
+      className="block w-full rounded-[1.25rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      {viewMode === "detailed" ? (
-        <>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.5)]">
-            {row.kind === "strength" ? "Strength history" : "Cardio history"}
-          </p>
-          {secondaryLine ? <p className="line-clamp-2 text-xs leading-4 text-[rgb(var(--text)/0.62)]">{secondaryLine}</p> : null}
-        </>
-      ) : null}
-    </ExerciseCard>
+      <AppPanel
+        className={cn(
+          "p-3 transition-colors hover:border-border/85 hover:bg-[rgb(var(--surface-rgb)/0.48)]",
+          hasSignal ? "border-emerald-400/30 bg-[rgb(var(--surface-rgb)/0.56)]" : undefined,
+        )}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            {viewMode === "compact" ? null : (
+              <div className="mb-1">
+                <ExerciseAssetImage
+                  src={iconSrc}
+                  alt={displayName}
+                  className="h-11 w-11 rounded-lg border border-border/25 bg-black/10"
+                  imageClassName="object-cover object-center"
+                  sizes="44px"
+                />
+              </div>
+            )}
+            <p className="line-clamp-1 text-sm font-semibold text-slate-50">{displayName}</p>
+            <p className="line-clamp-1 text-xs text-slate-300">
+              {primaryLine || (row.kind === "strength" ? "Strength history" : "Cardio history")}
+            </p>
+            {viewMode === "detailed" && secondaryLine ? (
+              <p className="line-clamp-1 text-xs text-[rgb(var(--text)/0.62)]">{secondaryLine}</p>
+            ) : null}
+          </div>
+          <ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
+        </div>
+      </AppPanel>
+    </button>
   );
 });
 
@@ -198,7 +205,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <HistoryTitleControlShell title="Exercises" viewMode={viewMode} onViewModeChange={setViewMode}>
+      <HistoryTitleControlShell viewMode={viewMode} onViewModeChange={setViewMode}>
         <HistoryControlGroup label="Search" summary={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"}`}>
           <Input
             type="search"
@@ -220,7 +227,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
       </HistoryTitleControlShell>
 
       <div className="relative min-h-0">
-        <ul className="space-y-2.5 scroll-py-2 pb-8">
+        <ul className="space-y-1.5 scroll-py-2 pb-24">
           {filteredRows.map((row) => (
             <li key={row.exerciseId}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />

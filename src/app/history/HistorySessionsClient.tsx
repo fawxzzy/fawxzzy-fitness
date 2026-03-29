@@ -43,18 +43,24 @@ function HistorySessionCard({
     >
       <AppPanel
         className={cn(
-          "space-y-1.5 p-3.5 transition-colors",
+          "space-y-1 p-3 transition-colors",
           "hover:border-border/85 hover:bg-[rgb(var(--surface-rgb)/0.48)]",
           selected
             ? "border-[rgb(var(--accent-rgb)/0.78)] bg-[rgb(var(--accent-rgb)/0.2)] ring-1 ring-[rgb(var(--accent-rgb)/0.38)] shadow-[0_16px_30px_-24px_rgba(16,185,129,0.62)]"
             : undefined,
         )}
       >
-        <div className="flex items-start justify-between gap-2">
-          <p className="line-clamp-1 text-base font-semibold text-slate-50">{session.routineTitle || "Unknown routine"}</p>
-          <ChevronRightIcon className="h-5 w-5 shrink-0 text-[rgb(var(--text)/0.6)]" />
+        <div className="flex items-center justify-between gap-2">
+          {viewMode === "compact" ? (
+            <p className="line-clamp-1 text-sm font-semibold text-slate-50">
+              {(session.routineTitle || "Unknown routine")} {"|"} {formatSubtitle(session)}
+            </p>
+          ) : (
+            <p className="line-clamp-1 text-base font-semibold text-slate-50">{session.routineTitle || "Unknown routine"}</p>
+          )}
+          <ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
         </div>
-        <p className="text-xs text-slate-300">{formatSubtitle(session)}</p>
+        {viewMode === "compact" ? null : <p className="text-xs text-slate-300">{formatSubtitle(session)}</p>}
         {viewMode === "compact" ? null : (
           <p className="text-xs text-[rgb(var(--text)/0.82)]">{formatSummaryLine(session)}</p>
         )}
@@ -80,10 +86,10 @@ export function HistorySessionsClient({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <HistoryTitleControlShell title="Sessions" viewMode={viewMode} onViewModeChange={setViewMode} />
+      <HistoryTitleControlShell viewMode={viewMode} onViewModeChange={setViewMode} />
 
       {sessions.length > 0 ? (
-        <ul className="space-y-2 pb-8">
+        <ul className="space-y-1.5 pb-24">
           {sessions.map((session) => (
             <li key={session.id}>
               <HistorySessionCard session={session} selected={session.id === selectedSessionId} viewMode={viewMode} />

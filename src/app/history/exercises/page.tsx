@@ -4,7 +4,6 @@ import { AppNav } from "@/components/AppNav";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { HistoryPageHeader } from "@/components/history/HistoryShared";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
 
@@ -29,7 +28,6 @@ export default async function HistoryExercisesPage() {
 
         <ScrollScreenWithBottomActions className="px-1">
           <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-            <HistoryPageHeader title="EXERCISES" />
             <ExerciseBrowserClient rows={rows} />
           </div>
         </ScrollScreenWithBottomActions>
