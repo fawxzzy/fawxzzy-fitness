@@ -237,11 +237,10 @@ export function ExerciseInfoSheet({
                     ))}
                   </DetailMetaRow>
                 ) : undefined}
-              >
-                {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
-              </DetailHeader>
+              />
 
               <DetailSection title="How to">
+                {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
                 <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
                   <ExerciseAssetImage
                     key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}

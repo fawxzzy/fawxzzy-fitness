@@ -1,3 +1,22 @@
+## [v0.4.25] – UI: unify history cards and log-detail exercise expansion shell
+
+### WHAT
+
+* Moved Exercise Info instruction text into the `How to` section so the section order is now `How to` title, instruction sentence, then the large how-to image.
+* Removed redundant log-detail copy and headings from the session log screen by deleting route-local helper text and duplicate section titling.
+* Converted log-detail exercises to a shared-card, inline expand/collapse pattern so each exercise starts collapsed and reveals logged sets/details in-place when tapped.
+* Consolidated session list cards onto the same shared card shell used by exercise history cards, while preserving variant rules (session cards remain image-free; exercise detailed cards keep image-left; compact exercise cards remain image-free).
+* Added/kept explicit history-surface guidance in this pass:
+  * Rule: Shared surface families should differ by content rules, not by unrelated shell structure.
+  * Pattern: One shared history card shell with session/exercise variants reduces UI drift while preserving screen-specific information.
+  * Failure Mode: Separate route-local card systems for related history surfaces cause visual drift, duplicate maintenance, and inconsistent interaction behavior.
+
+### WHY
+
+* Exercise Info previously split instructional context between header and section body, which weakened hierarchy clarity.
+* Log detail retained template/helper copy that no longer added navigation value and distracted from the actual logged content.
+* Route-local history card shells had drifted, making Sessions/Exercises/log-detail rows feel related in concept but inconsistent in interaction and emphasis behavior.
+
 ## [v0.4.24] – UI: polish history metadata clarity and quick-log preview consistency
 
 ### WHAT
