@@ -7,9 +7,10 @@ import { getExerciseNameMap } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
-import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
+import type { SessionRow, SetRow } from "@/types/db";
 import { HistoryLogPageClient } from "./HistoryLogPageClient";
 import { buildSessionSummary } from "../session-summary";
+import { loadHistoryDetailRows } from "@/lib/history-session-detail-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -33,43 +34,22 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     notFound();
   }
 
-  const { data: sessionExercisesData } = await supabase
-    .from("session_exercises")
-    .select("id, session_id, user_id, exercise_id, position, performed_index, notes, is_skipped, measurement_type, default_unit, exercise:exercises(id, name, slug, image_path, image_icon_path, image_howto_path, measurement_type, default_unit)")
-    .eq("session_id", params.sessionId)
-    .eq("user_id", user.id)
-    .order("position", { ascending: true });
+  const {
+    orderedSessionExercises,
+    sessionExerciseIds,
+    sets,
+    summary: loaderSummary,
+  } = await loadHistoryDetailRows({
+    supabase,
+    sessionId: session.id,
+    userId: user.id,
+    sessionFound: Boolean(session),
+  });
 
-  const sessionExercises = (sessionExercisesData ?? []) as Array<SessionExerciseRow & {
-    exercise?: {
-      name?: string | null;
-      slug?: string | null;
-      image_path?: string | null;
-      image_icon_path?: string | null;
-      image_howto_path?: string | null;
-      measurement_type?: "reps" | "time" | "distance" | "time_distance";
-      default_unit?: string | null;
-    } | null;
-  }>;
-  const orderedSessionExercises = (() => {
-    const performed = sessionExercises
-      .filter((exercise) => typeof exercise.performed_index === "number")
-      .sort((a, b) => (a.performed_index ?? 0) - (b.performed_index ?? 0));
-    const untouched = sessionExercises.filter((exercise) => typeof exercise.performed_index !== "number");
-    return [...performed, ...untouched];
-  })();
-  const sessionExerciseIds = orderedSessionExercises.map((row) => row.id);
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[history-detail-loader]", loaderSummary);
+  }
 
-  const { data: setsData } = sessionExerciseIds.length
-    ? await supabase
-      .from("sets")
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
-      .in("session_exercise_id", sessionExerciseIds)
-      .eq("user_id", user.id)
-      .order("set_index", { ascending: true })
-    : { data: [] };
-
-  const sets = (setsData ?? []) as SetRow[];
   const setsByExercise = new Map<string, SetRow[]>();
 
   for (const set of sets) {
@@ -103,7 +83,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     ?? routineDay?.name
     ?? sessionRow.routine_day_name
     ?? (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
-  const backHref = `/history?tab=sessions&selected=${params.sessionId}`;
+  const backHref = `/history?tab=sessions&selected=${sessionRow.id}`;
 
   const exerciseIds = orderedSessionExercises.map((exercise) => exercise.exercise_id);
   const { data: historicalSetRows } = exerciseIds.length
