@@ -6,15 +6,24 @@ import { cn } from "@/lib/cn";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
 
-export function HistoryPageHeader({ title, subtitle }: { title: string; subtitle: string }) {
+export function HistoryPageHeader({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children?: ReactNode;
+}) {
   return (
     <SharedScreenHeader
       recipe="historyDetail"
       className="p-4 pt-[1.2rem]"
-      eyebrow="History"
       title={title}
       subtitle={subtitle}
-    />
+    >
+      {children}
+    </SharedScreenHeader>
   );
 }
 

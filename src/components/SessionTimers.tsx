@@ -113,8 +113,8 @@ export function SetLoggerCard({
   planTargetsHash,
   deleteSetAction,
   resetSignal,
-  skipLabel,
-  onSkip,
+  secondaryActionLabel,
+  onSecondaryAction,
   warmupValue,
   onWarmupValueChange,
 }: {
@@ -147,8 +147,8 @@ export function SetLoggerCard({
   planTargetsHash?: string | null;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
   resetSignal?: number;
-  skipLabel?: string;
-  onSkip?: () => Promise<void> | void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => Promise<void> | void;
   warmupValue?: boolean;
   onWarmupValueChange?: (value: boolean) => void;
 }) {
@@ -179,7 +179,7 @@ export function SetLoggerCard({
   }, [onWarmupValueChange]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSkipPending, setIsSkipPending] = useState(false);
+  const [isSecondaryPending, setIsSecondaryPending] = useState(false);
   const [sets, setSets] = useState<DisplaySet[]>(initialSets);
   const [activeMetrics, setActiveMetrics] = useState(initialEnabledMetrics);
   const [hasUserModifiedMetrics, setHasUserModifiedMetrics] = useState(false);
@@ -701,21 +701,21 @@ export function SetLoggerCard({
   const saveSetActions = useMemo(
     () => (
       <BottomActionDock
-        left={onSkip ? (
+        left={onSecondaryAction ? (
           <DockButton
             type="button"
             variant="secondary"
-            disabled={isSkipPending}
+            disabled={isSecondaryPending}
             onClick={async () => {
-              setIsSkipPending(true);
+              setIsSecondaryPending(true);
               try {
-                await onSkip();
+                await onSecondaryAction();
               } finally {
-                setIsSkipPending(false);
+                setIsSecondaryPending(false);
               }
             }}
           >
-            {isSkipPending ? "Saving…" : (skipLabel ?? "Skip")}
+            {isSecondaryPending ? "Opening…" : (secondaryActionLabel ?? "View Exercise")}
           </DockButton>
         ) : <div aria-hidden="true" />}
         right={(
@@ -725,7 +725,7 @@ export function SetLoggerCard({
         )}
       />
     ),
-    [handleLogSet, isSaveDisabled, isSkipPending, onSkip, skipLabel],
+    [handleLogSet, isSaveDisabled, isSecondaryPending, onSecondaryAction, secondaryActionLabel],
   );
 
   const liveSummaryText = useMemo(() => {

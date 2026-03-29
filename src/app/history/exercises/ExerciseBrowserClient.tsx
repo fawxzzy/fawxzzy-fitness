@@ -1,13 +1,17 @@
 "use client";
 
 import { memo, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { Input } from "@/components/ui/Input";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { HistoryControlGroup, HistoryControlPanel, HistoryTabs } from "@/components/history/HistoryShared";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
+import { HistoryControlGroup, HistoryControlPanel } from "@/components/history/HistoryShared";
+import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
@@ -61,9 +65,11 @@ function formatTagLabel(tag: string) {
 const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   row,
   onOpen,
+  viewMode,
 }: {
   row: ExerciseBrowserRow;
   onOpen: (exerciseId: string) => void;
+  viewMode: "compact" | "detailed";
 }) {
   const displayName = getExerciseDisplayName(row);
   const iconSrc = getExerciseIconSrc({
@@ -114,7 +120,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.5)]">
         {row.kind === "strength" ? "Strength history" : "Cardio history"}
       </p>
-      {secondaryLine ? <p className="line-clamp-2 text-xs leading-4 text-[rgb(var(--text)/0.62)]">{secondaryLine}</p> : null}
+      {viewMode === "detailed" && secondaryLine ? <p className="line-clamp-2 text-xs leading-4 text-[rgb(var(--text)/0.62)]">{secondaryLine}</p> : null}
     </ExerciseCard>
   );
 });
@@ -123,6 +129,8 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
+  const router = useRouter();
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -186,7 +194,34 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <HistoryControlPanel>
-        <HistoryTabs value="exercises" sessionsHref="/history" exercisesHref="/history/exercises" />
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode("compact")}
+            aria-pressed={viewMode === "compact"}
+            className={cn(
+              "inline-flex min-h-9 min-w-[6.2rem] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+              viewMode === "compact"
+                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
+                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
+            )}
+          >
+            Compact
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("detailed")}
+            aria-pressed={viewMode === "detailed"}
+            className={cn(
+              "inline-flex min-h-9 min-w-[6.2rem] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
+              viewMode === "detailed"
+                ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
+                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
+            )}
+          >
+            Detailed
+          </button>
+        </div>
 
         <HistoryControlGroup label="Search" summary={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"}`}>
           <Input
@@ -212,7 +247,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         <ul className="space-y-2.5 scroll-py-2 pb-8">
           {filteredRows.map((row) => (
             <li key={row.exerciseId}>
-              <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} />
+              <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
             </li>
           ))}
         </ul>
@@ -232,6 +267,16 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         }}
         sourceContext="ExerciseBrowserClient"
       />
+      <PublishBottomActions>
+        <BottomActionDock
+          left={<div aria-hidden="true" />}
+          right={(
+            <DockButton type="button" variant="secondary" onClick={() => router.push("/history")}>
+              View Sessions
+            </DockButton>
+          )}
+        />
+      </PublishBottomActions>
     </div>
   );
 }

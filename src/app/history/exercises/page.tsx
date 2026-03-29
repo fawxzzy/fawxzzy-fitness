@@ -29,7 +29,7 @@ export default async function HistoryExercisesPage() {
 
         <ScrollContainer className="px-1">
           <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-            <HistoryPageHeader title="Exercise history" subtitle="Browse exercise-level performance without leaving the same history page family." />
+            <HistoryPageHeader title="EXERCISES" />
             <ExerciseBrowserClient rows={rows} />
           </div>
         </ScrollContainer>
