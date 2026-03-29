@@ -20,39 +20,32 @@ export default async function SettingsPage() {
       <ScrollContainer className="px-1">
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <DetailHeader
-            eyebrow="Settings"
-            title="Preferences"
-            subtitle="Manage app appearance, account context, and sign-out actions using the shared detail surface structure."
+            eyebrow="Account"
+            title="Account"
+            subtitle="Manage profile context and app appearance."
             meta={(
               <DetailMetaRow>
-                <DetailMetaChip label="Account" value={user.email ?? "Unknown email"} emphasized />
+                <DetailMetaChip label="Signed in" value={user.email ?? "Unknown email"} emphasized />
               </DetailMetaRow>
             )}
           />
 
-          <DetailSection
-            title="Appearance"
-            description="Choose how strong translucent glass surfaces should appear across the app."
-          >
-            <GlassEffectsSettings />
-          </DetailSection>
-
-          <DetailSection
-            title="Account"
-            description="Keep your signed-in account context visible without introducing a route-local summary card."
-          >
+          <DetailSection title="Account" description="Your active sign-in identity for this device.">
             <div className="space-y-1 rounded-[1rem] border border-white/8 bg-black/10 px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Signed in as</p>
-              <p className="break-all text-sm font-medium text-[rgb(var(--text)/0.96)]">{user.email}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Email</p>
+              <p className="break-all text-sm font-medium text-[rgb(var(--text)/0.96)]">{user.email ?? "Unknown email"}</p>
             </div>
           </DetailSection>
 
-          <DetailSection
-            title="Danger zone"
-            description="Sign out of this device while leaving the rest of your settings structure unchanged."
-            className="border-red-400/20"
-          >
-            <SignOutButton />
+          <DetailSection title="Appearance" description="Control shared glass and translucency effects.">
+            <GlassEffectsSettings />
+          </DetailSection>
+
+          <DetailSection title="Sign out" description="End this device session." className="border-red-400/20">
+            <div className="space-y-2">
+              <SignOutButton />
+              <p className="text-xs text-[rgb(var(--text-muted)/0.78)]">You can sign back in anytime.</p>
+            </div>
           </DetailSection>
         </div>
       </ScrollContainer>

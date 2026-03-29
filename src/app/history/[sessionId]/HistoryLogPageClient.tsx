@@ -6,8 +6,8 @@ import type { SessionSummary } from "../session-summary";
 type AuditSet = {
   id: string;
   set_index: number;
-  weight: number;
-  reps: number;
+  weight: number | null;
+  reps: number | null;
   duration_seconds: number | null;
   distance: number | null;
   distance_unit: "mi" | "km" | "m" | null;

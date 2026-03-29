@@ -1,3 +1,22 @@
+## [v0.4.26] – Fix/UI: recover history log-detail rendering and normalize Settings into Account
+
+### WHAT
+
+* Repaired the history log-detail data boundary so log exercises always hydrate with null-safe media, null-safe set values, and stable fallbacks instead of route-level blank failures when optional exercise/set fields are missing.
+* Preserved the shared detailed ExerciseCard log shell and per-exercise collapse/expand behavior while adding a clear expanded empty-state message for exercises that currently have no logged sets.
+* Refined the `/settings` tab UI into an Account surface using the shared header + section-card language: page-level naming now reads `Account`, account identity and appearance controls are grouped into normalized sections, and sign-out remains intact in a cleaner destructive area.
+* Updated tab chrome copy from `Settings` to `Account` without changing routing behavior (`/settings` remains the tab href).
+* Captured recovery guidance in this pass:
+  * Rule: Recovery fixes should preserve the intended shared pattern, not revert to route-local one-offs.
+  * Pattern: Repair the data boundary, then keep the normalized shared shell.
+  * Failure Mode: Reverting to emergency local UI after a shared-component regression recreates drift and leaves root-cause instability in place.
+
+### WHY
+
+* The shared-card/media refactor introduced stricter assumptions about optional payload fields that could break log-detail rendering when data arrived incomplete or null-heavy.
+* Preserving shared shells while hardening null/empty-state handling restores stability without reintroducing visual drift.
+* Settings remained a weaker outlier relative to stronger shared screen language; normalizing it as Account improves consistency without changing existing behavior.
+
 ## [v0.4.25] – UI: unify history cards and log-detail exercise expansion shell
 
 ### WHAT
