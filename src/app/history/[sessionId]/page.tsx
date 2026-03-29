@@ -36,6 +36,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
   const {
     orderedSessionExercises,
+    exerciseMetadataById,
     sessionExerciseIds,
     sets,
     summary: loaderSummary,
@@ -160,29 +161,32 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             exerciseNameMap={exerciseNameRecord}
             sessionSummary={sessionSummary}
             backHref={backHref}
-            exercises={orderedSessionExercises.map((exercise) => ({
-              id: exercise.id,
-              exercise_id: exercise.exercise_id,
-              exercise_name: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.name ?? null : exercise.exercise?.name ?? null,
-              exercise_slug: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.slug ?? null : exercise.exercise?.slug ?? null,
-              exercise_image_path: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.image_path ?? null : exercise.exercise?.image_path ?? null,
-              exercise_image_icon_path: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.image_icon_path ?? null : exercise.exercise?.image_icon_path ?? null,
-              exercise_image_howto_path: Array.isArray(exercise.exercise) ? exercise.exercise[0]?.image_howto_path ?? null : exercise.exercise?.image_howto_path ?? null,
-              notes: exercise.notes,
-              measurement_type: exercise.measurement_type ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.measurement_type : exercise.exercise?.measurement_type) ?? "reps",
-              default_unit: exercise.default_unit ?? (Array.isArray(exercise.exercise) ? exercise.exercise[0]?.default_unit : exercise.exercise?.default_unit) ?? null,
-              sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
-                id: set.id,
-                set_index: set.set_index,
-                weight: set.weight,
-                reps: set.reps,
-                duration_seconds: set.duration_seconds,
-                distance: set.distance,
-                distance_unit: set.distance_unit,
-                calories: set.calories,
-                weight_unit: set.weight_unit,
-              })),
-            }))}
+            exercises={orderedSessionExercises.map((exercise) => {
+              const metadata = exerciseMetadataById.get(exercise.exercise_id);
+              return ({
+                id: exercise.id,
+                exercise_id: exercise.exercise_id,
+                exercise_name: metadata?.name ?? null,
+                exercise_slug: metadata?.slug ?? null,
+                exercise_image_path: metadata?.image_path ?? null,
+                exercise_image_icon_path: metadata?.image_icon_path ?? null,
+                exercise_image_howto_path: metadata?.image_howto_path ?? null,
+                notes: exercise.notes,
+                measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
+                default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
+                sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
+                  id: set.id,
+                  set_index: set.set_index,
+                  weight: set.weight,
+                  reps: set.reps,
+                  duration_seconds: set.duration_seconds,
+                  distance: set.distance,
+                  distance_unit: set.distance_unit,
+                  calories: set.calories,
+                  weight_unit: set.weight_unit,
+                })),
+              });
+            })}
           />
         </ScreenScaffold>
       </ScrollScreenWithBottomActions>
