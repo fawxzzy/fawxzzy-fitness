@@ -2,7 +2,6 @@ import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { HistoryPageHeader } from "@/components/history/HistoryShared";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
@@ -223,7 +222,6 @@ export default async function HistoryPage({
 
       <ScrollScreenWithBottomActions className="px-1">
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <HistoryPageHeader title="SESSIONS" />
           <HistorySessionsClient sessions={sessionItems} selectedSessionId={searchParams?.selected} />
 
           {nextCursor ? (
