@@ -1,3 +1,24 @@
+## [v0.4.30] – Fix: harden profile preference schema-drift compatibility at boot boundary
+
+### WHAT
+
+* Hardened `ensureProfile` so profile hydration no longer hard-fails when local/dev databases are behind the `preferred_weight_unit` / `preferred_distance_unit` migration: it now retries with a legacy-safe profile select and hydrates compatibility defaults.
+* Preserved one canonical profile output contract by always returning both preference fields (`preferred_weight_unit`, `preferred_distance_unit`) with deterministic defaults (`lbs`, `mi`) when columns are unavailable.
+* Kept preference persistence behavior explicit by returning a migration guidance error from settings writes when preference columns are missing, rather than failing with a low-level schema-cache message.
+* Added targeted regression coverage for:
+  * migrated schemas where persisted units exist,
+  * legacy schemas where preference-column select fails and fallback defaults are hydrated,
+  * legacy profile creation flows where inserts run without preference columns and still return canonical defaults.
+* Captured boundary guidance in this pass:
+  * Rule: New DB-backed preferences must not hard-break app boot when local/dev schema is behind.
+  * Pattern: Pair additive migrations with compatibility-safe boundary hydration defaults.
+  * Failure Mode: Selecting newly added columns unguarded in boot paths can crash full-app render from schema drift.
+
+### WHY
+
+* `Today`/boot paths call `ensureProfile` during first render, so column-level schema drift surfaced as an app-blocking crash instead of a recoverable compatibility gap.
+* Boundary-level fallback + canonical hydration preserves the new preferences feature while keeping behind-schema environments safe until migrations are applied.
+
 ## [v0.4.29] – Fix: prioritize non-empty history alias payloads at normalization boundary
 
 ### WHAT
