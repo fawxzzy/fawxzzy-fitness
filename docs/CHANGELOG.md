@@ -1,3 +1,20 @@
+## [v0.4.29] – Fix: prioritize non-empty history alias payloads at normalization boundary
+
+### WHAT
+
+* Replaced nullish-coalescing alias selection in history log-detail normalization with deterministic candidate-quality selection (`non-empty array > empty array > undefined`) for both exercise collections and set collections.
+* Added a log-detail guard warning when a session summary reports exercises but normalization resolves to an empty list: `Normalization mismatch: upstream data present but normalized empty`.
+* Expanded normalization regression coverage to lock alias-quality behavior across mixed payloads (empty + populated aliases, later populated aliases, and set alias mismatch cases).
+* Captured boundary guidance in this pass:
+  * Rule: When multiple payload aliases exist, selection must prefer non-empty sources over positional precedence.
+  * Pattern: Normalize by evaluating candidate quality (`non-empty > empty > undefined`), not by key order.
+  * Failure Mode: Nullish-coalescing alias resolution can select empty data over valid data, causing silent UI data loss.
+
+### WHY
+
+* Alias payloads can legitimately include both empty and populated sources in one response; choosing by key order alone can hide valid exercises/sets.
+* Deterministic quality-first selection protects the data boundary while preserving existing shared UI rendering contracts.
+
 ## [v0.4.28] – Stabilization: lock history log-detail normalization seam with deterministic coverage
 
 ### WHAT

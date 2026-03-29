@@ -54,6 +54,22 @@ type IncomingHistoryExerciseCollection = IncomingHistoryAuditExercise[] | null |
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 
+function pickPreferredArray<T>(candidates: Array<T[] | null | undefined>): T[] {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length > 0) {
+      return candidate;
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
 export function normalizeHistoryAuditSet(set: IncomingHistoryAuditSet, index: number): HistoryAuditSet {
   return {
     id: set.id ?? set.setId ?? `set-${index}`,
@@ -69,8 +85,10 @@ export function normalizeHistoryAuditSet(set: IncomingHistoryAuditSet, index: nu
 }
 
 export function normalizeHistoryAuditExercise(exercise: IncomingHistoryAuditExercise, index: number): HistoryAuditExercise {
-  const fallbackSets = Array.isArray(exercise.logged_sets) ? exercise.logged_sets : [];
-  const rawSets = Array.isArray(exercise.sets) ? exercise.sets : fallbackSets;
+  const rawSets = pickPreferredArray([
+    exercise.sets,
+    exercise.logged_sets,
+  ]);
 
   return {
     id: exercise.id ?? exercise.exercise_id ?? exercise.exerciseId ?? `exercise-${index}`,
@@ -95,11 +113,12 @@ export function normalizeHistoryLogExercises(options: {
   logExercises?: IncomingHistoryExerciseCollection;
   workoutExercises?: IncomingHistoryExerciseCollection;
 }): HistoryAuditExercise[] {
-  const rawExercises = options.exercises
-    ?? options.sessionExercises
-    ?? options.logExercises
-    ?? options.workoutExercises
-    ?? [];
+  const rawExercises = pickPreferredArray([
+    options.exercises,
+    options.sessionExercises,
+    options.logExercises,
+    options.workoutExercises,
+  ]);
 
   return rawExercises
     .filter((exercise): exercise is IncomingHistoryAuditExercise => isRecord(exercise))

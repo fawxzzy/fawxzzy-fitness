@@ -27,5 +27,9 @@ export function HistoryLogPageClient(props: {
     workoutExercises: props.workoutExercises,
   });
 
+  if (props.sessionSummary.exerciseCount > 0 && normalizedExercises.length === 0) {
+    console.warn("Normalization mismatch: upstream data present but normalized empty");
+  }
+
   return <LogAuditClient {...props} exercises={normalizedExercises} />;
 }
