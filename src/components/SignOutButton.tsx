@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
+const AUTH_ENTRY_PATH = "/login";
+
 export function SignOutButton() {
   const router = useRouter();
   const supabase = createBrowserSupabase();
@@ -11,8 +13,8 @@ export function SignOutButton() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     document.cookie = "sb-access-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    router.push("/login");
-    router.refresh();
+    router.replace(AUTH_ENTRY_PATH);
+    window.location.assign(AUTH_ENTRY_PATH);
   };
 
   return (
