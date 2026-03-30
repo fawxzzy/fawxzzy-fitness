@@ -129,7 +129,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     };
   });
   const activeExerciseCountSummary = getRestDayExerciseCountSummaryFromInputs(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest);
-  const headerMetaSummary = activeExerciseCountSummary.label;
+  const headerMetaSummary = day.is_rest ? undefined : activeExerciseCountSummary.label;
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
