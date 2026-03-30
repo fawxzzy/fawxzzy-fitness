@@ -21,6 +21,10 @@ const DISTANCE_OPTIONS: Array<{ value: "mi" | "km"; label: string }> = [
   { value: "km", label: "km" },
 ];
 
+const ACTIVE_SETTING_OPTION_CLASS =
+  "border-emerald-300/70 bg-emerald-500/24 text-emerald-50 shadow-[0_0_0_1px_rgba(52,211,153,0.4),0_0_16px_rgba(16,185,129,0.25)]";
+const INACTIVE_SETTING_OPTION_CLASS = "border-white/10 bg-white/5 text-[rgb(var(--text)/0.82)]";
+
 function UnitChoiceButton({
   active,
   label,
@@ -36,7 +40,7 @@ function UnitChoiceButton({
       role="radio"
       aria-checked={active}
       onClick={onClick}
-      className={`justify-center px-2 py-2 text-sm ${active ? "border-accent/60 bg-accent/14 text-accent" : "border-white/10 bg-white/5 text-[rgb(var(--text)/0.82)]"}`}
+      className={`justify-center px-2 py-2 text-sm ${active ? ACTIVE_SETTING_OPTION_CLASS : INACTIVE_SETTING_OPTION_CLASS}`}
     >
       <span className="font-semibold">{label}</span>
     </GlassButton>
@@ -90,7 +94,7 @@ export function GlassEffectsSettings({
                 role="radio"
                 aria-checked={isActive}
                 onClick={() => setMode(option.value)}
-                className={`flex-col gap-0.5 px-2 py-2 text-center text-xs ${isActive ? "border-accent/60 bg-accent/14 text-accent" : "border-white/10 bg-white/5 text-[rgb(var(--text)/0.82)]"}`}
+                className={`flex-col gap-0.5 px-2 py-2 text-center text-xs ${isActive ? ACTIVE_SETTING_OPTION_CLASS : INACTIVE_SETTING_OPTION_CLASS}`}
               >
                 <span className="font-semibold">{option.label}</span>
                 <span className="text-[10px] opacity-80">{option.description}</span>
