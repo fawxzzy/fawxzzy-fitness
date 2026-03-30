@@ -45,7 +45,7 @@ export function AccountSettingsForm({ email }: { email: string }) {
         />
       </div>
       <div className="flex items-center gap-2">
-        <GlassButton type="submit" disabled={emailPending} className="px-3 py-2 text-sm font-semibold">
+        <GlassButton type="submit" disabled={emailPending} className="px-2.5 py-2 text-xs font-medium text-[rgb(var(--text)/0.88)]">
           {emailPending ? "Saving…" : "Update Email"}
         </GlassButton>
         <p className={`text-xs ${emailMessageTone}`}>{emailState.message ?? "Email changes may require confirmation."}</p>

@@ -119,8 +119,8 @@ export function GlassEffectsSettings({
           ))}
         </div>
 
-        <div className="flex items-center gap-2 pt-1">
-          <GlassButton type="button" disabled={!isDirty || isSaving} onClick={saveUnits} className="px-3 py-2 text-sm font-semibold">
+        <div className="space-y-2 pt-1">
+          <GlassButton type="button" disabled={!isDirty || isSaving} onClick={saveUnits} className="w-full px-3 py-2 text-sm font-semibold">
             {isSaving ? "Saving…" : "Save Preferences"}
           </GlassButton>
           <p className={`text-xs ${message?.tone === "error" ? "text-red-200" : "text-[rgb(var(--text-muted)/0.78)]"}`}>
