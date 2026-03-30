@@ -122,10 +122,10 @@ export function resolveScreenContract(name: ScreenContractName): ScreenContract 
 export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   currentSession: {
     ...screenContracts.currentSession,
-    scaffoldClassName: "space-y-3",
-    headerPanelClassName: "p-4 pt-[1.2rem]",
-    sectionClassName: "space-y-3",
-    sectionShellClassName: "space-y-3 p-4",
+    scaffoldClassName: "space-y-4",
+    headerPanelClassName: "space-y-4 p-4 pt-[1.2rem]",
+    sectionClassName: "space-y-3 p-4",
+    sectionShellClassName: "space-y-4 p-4",
     sectionBodyClassName: "space-y-3",
   },
   exerciseLog: {

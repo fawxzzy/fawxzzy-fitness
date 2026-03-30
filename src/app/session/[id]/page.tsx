@@ -5,7 +5,7 @@ import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
-import { formatRoutineHeaderMeta } from "@/lib/header-meta";
+import { formatExerciseCountMetaLabel } from "@/lib/header-meta";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
@@ -146,10 +146,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
   const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
-  const sessionSummary = formatRoutineHeaderMeta({
-    routineName: routine?.name ?? (sessionRow.name || "Routine"),
-    totalExercises: sessionExercises.length,
-  });
+  const sessionSummary = formatExerciseCountMetaLabel(sessionExercises.length);
 
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
 

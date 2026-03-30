@@ -17,7 +17,7 @@ export function SessionHeaderControls({
     <SharedScreenHeader
       recipe="currentSession"
       className="space-y-0"
-      eyebrow="Current Session"
+      eyebrow="Today"
       title={sessionTitle}
       subtitle={sessionSummary}
       action={(
