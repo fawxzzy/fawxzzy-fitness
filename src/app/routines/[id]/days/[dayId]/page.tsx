@@ -101,13 +101,13 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             ) : null}
 
             {canonicalDay && !isRunnableDayState(canonicalDay.state) ? (
-              <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
-                {canonicalDay.state === "rest"
-                  ? "Recovery and mobility only."
-                  : canonicalDay.invalidExercises.length > 0
+              canonicalDay.state === "rest" ? null : (
+                <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
+                  {canonicalDay.invalidExercises.length > 0
                     ? "This day has invalid exercises. Edit the day before starting a workout."
                     : "No runnable exercises planned for this day."}
-              </p>
+                </p>
+              )
             ) : (
               <RoutineDayExerciseList
                 exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({

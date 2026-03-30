@@ -14,7 +14,7 @@ import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
 
 type Props = {
   routineId: string;
-  daySummary: string;
+  daySummary?: string;
   routineDayId: string;
   backHref: string;
   dayIndex: number;

@@ -9,8 +9,10 @@ import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -401,26 +403,22 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             <div className="space-y-4 px-1">
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
-                <div className="space-y-4">
-                  <AnchoredSelectorPanel
+                <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md pb-4">
+                  <SharedScreenHeader
+                    recipe="viewDay"
+                    eyebrow="Today"
                     title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
-                    subtitleRight={inProgressHeaderSummary}
-                    action={todayPayload.inProgressSessionId
-                      ? <AppBadge tone="success">In Session</AppBadge>
-                      : todayPayload.completedTodayCount > 0
-                        ? <AppBadge tone="success">Completed</AppBadge>
-                        : undefined}
-                    revealOpen={false}
-                    revealId="today-day-selector-list"
-                    revealLabel="Routine days"
-                    bodyClassName="space-y-0"
+                    subtitle={inProgressHeaderSummary}
+                    action={<AppBadge tone="success">In Session</AppBadge>}
                   />
 
-                  <TodayExerciseRows
-                    exercises={todayPayload.exercises}
-                    emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
-                  />
-                </div>
+                  <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
+                    <TodayExerciseRows
+                      exercises={todayPayload.exercises}
+                      emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
+                    />
+                  </SharedSectionShell>
+                </ScreenScaffold>
               ) : (
                 <TodayDayPicker
                   routineName={todayPayload.routine.name}
