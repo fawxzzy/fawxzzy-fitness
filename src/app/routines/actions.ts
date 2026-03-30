@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/action-result";
 import { revalidateRoutinesViews, getRoutineEditPath } from "@/lib/revalidation";
 import { supabaseServer } from "@/lib/supabase/server";
+import { resolveReplacementActiveRoutineId } from "@/lib/active-routine-fallback";
 import { ROUTINE_START_WEEKDAYS, createRoutineDaySeedsFromStartDate, getRoutineStartDateForWeekday, getTodayDateInTimeZone } from "@/lib/routines";
 import { toCanonicalRoutineTimezone } from "@/lib/timezones";
 
@@ -176,6 +177,18 @@ export async function deleteRoutineAction(payload: { routineId: string }): Promi
     return { ok: false, error: "Missing routine ID." };
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("active_routine_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    return { ok: false, error: profileError.message || "Failed to resolve active routine." };
+  }
+
+  const deletingActiveRoutine = profile?.active_routine_id === routineId;
+
   const { error } = await supabase
     .from("routines")
     .delete()
@@ -184,6 +197,30 @@ export async function deleteRoutineAction(payload: { routineId: string }): Promi
 
   if (error) {
     return { ok: false, error: error.message || "Failed to delete routine." };
+  }
+
+  if (deletingActiveRoutine) {
+    const { data: remainingRoutines, error: remainingRoutinesError } = await supabase
+      .from("routines")
+      .select("id")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .limit(1);
+
+    if (remainingRoutinesError) {
+      return { ok: false, error: remainingRoutinesError.message || "Failed to resolve replacement routine." };
+    }
+
+    const replacementRoutineId = resolveReplacementActiveRoutineId(remainingRoutines ?? []);
+    const { error: profileUpdateError } = await supabase
+      .from("profiles")
+      .update({ active_routine_id: replacementRoutineId })
+      .eq("id", user.id);
+
+    if (profileUpdateError) {
+      return { ok: false, error: profileUpdateError.message || "Failed to update active routine." };
+    }
   }
 
   revalidateRoutinesViews();

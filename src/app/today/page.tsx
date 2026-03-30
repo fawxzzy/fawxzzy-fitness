@@ -23,8 +23,7 @@ import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "@/lib/today-
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
-import { getExerciseCountSummaryFromCanonicalExercises, toExerciseCountSummaryInput } from "@/lib/day-summary";
-import { formatRoutineHeaderMeta } from "@/lib/header-meta";
+import { getRestDayExerciseCountSummaryFromCanonicalExercises, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
 import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
@@ -371,6 +370,12 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     hasInProgressSession: Boolean(todayPayload.inProgressSessionId),
     fetchFailed,
   });
+  const inProgressHeaderSummary = todayPayload.routine
+    ? getRestDayExerciseCountSummaryFromCanonicalExercises(
+      effectiveDaySummary?.runnableExercises ?? [],
+      todayPayload.routine.isRest,
+    ).label
+    : null;
 
   const todaySnapshot: TodayCacheSnapshot | null =
     todayPayload.routine === null
@@ -399,12 +404,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 <div className="space-y-4">
                   <AnchoredSelectorPanel
                     title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
-                    subtitleRight={todayPayload.routine.state === "rest"
-                      ? "Rest Day"
-                      : formatRoutineHeaderMeta({
-                        routineName: todayPayload.routine.name,
-                        totalExercises: getExerciseCountSummaryFromCanonicalExercises(effectiveDaySummary?.runnableExercises ?? []).total,
-                      })}
+                    subtitleRight={inProgressHeaderSummary}
                     action={todayPayload.inProgressSessionId
                       ? <AppBadge tone="success">In Session</AppBadge>
                       : todayPayload.completedTodayCount > 0

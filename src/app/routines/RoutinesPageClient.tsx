@@ -6,7 +6,6 @@ import { useCallback, useMemo, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import {
-  ActiveRoutineStatusBadge,
   ActiveRoutineSummaryCard,
   RoutinesCardList,
   RoutinesListEmpty,
@@ -146,7 +145,6 @@ export function RoutinesPageClient({
         <ActiveRoutineSummaryCard
           title={activeRoutineName}
           subtitle={activeRoutineSummary}
-          status={<ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
         />
       )}
     >

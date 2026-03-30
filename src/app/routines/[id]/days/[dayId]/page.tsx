@@ -14,8 +14,7 @@ import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
-import { formatRoutineHeaderMeta } from "@/lib/header-meta";
+import { getRestDayExerciseCountSummaryFromCanonicalDay } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -75,13 +74,9 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   });
   const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : `Day ${dayRow.day_index}`);
-  const dayExerciseSummary = getExerciseCountSummaryFromCanonicalExercises(canonicalDay?.runnableExercises ?? []);
-  const daySummary = dayRow.is_rest
-    ? "Rest Day"
-    : formatRoutineHeaderMeta({
-      routineName: routineRow.name,
-      totalExercises: dayExerciseSummary.total,
-    });
+  const daySummary = canonicalDay
+    ? getRestDayExerciseCountSummaryFromCanonicalDay(canonicalDay).label
+    : (dayRow.is_rest ? "Rest day" : "0 exercises");
   const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
   const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
   const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
@@ -98,12 +93,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
           />
 
-          <SharedSectionShell
-            recipe="viewDay"
-            label="Planned Workout"
-            context={dayRow.is_rest ? "Rest Day" : `${dayExerciseSummary.total} planned`}
-            bodyClassName="space-y-3"
-          >
+          <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
             {canonicalDay?.state === "partial" ? (
               <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
                 Some exercises could not be loaded and will be skipped when you start this workout.
