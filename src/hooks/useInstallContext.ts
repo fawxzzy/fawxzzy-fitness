@@ -10,6 +10,7 @@ export type InstallContext = {
 };
 
 const DISMISS_KEY = "install-guidance-dismissed";
+const DISMISS_EVENT = "install-guidance-dismissed-change";
 
 function getStandaloneState() {
   if (typeof window === "undefined") {
@@ -50,6 +51,7 @@ export function useInstallContext(): InstallContext {
 
     window.addEventListener("appinstalled", handleChange);
     window.addEventListener("storage", syncDismissed);
+    window.addEventListener(DISMISS_EVENT, syncDismissed);
 
     return () => {
       if (mediaQuery) {
@@ -62,6 +64,7 @@ export function useInstallContext(): InstallContext {
 
       window.removeEventListener("appinstalled", handleChange);
       window.removeEventListener("storage", syncDismissed);
+      window.removeEventListener(DISMISS_EVENT, syncDismissed);
     };
   }, []);
 
@@ -72,6 +75,7 @@ export function useInstallContext(): InstallContext {
     dismiss: () => {
       window.localStorage.setItem(DISMISS_KEY, "1");
       setIsDismissed(true);
+      window.dispatchEvent(new Event(DISMISS_EVENT));
     },
   };
 }
