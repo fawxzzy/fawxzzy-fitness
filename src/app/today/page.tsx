@@ -403,16 +403,16 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             <div className="space-y-4 px-1">
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
-                <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md pb-4">
+                <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md pb-4">
                   <SharedScreenHeader
-                    recipe="viewDay"
+                    recipe="todayOverview"
                     eyebrow="Today"
                     title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
                     subtitle={inProgressHeaderSummary}
                     action={<AppBadge tone="success">In Session</AppBadge>}
                   />
 
-                  <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
+                  <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-3">
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}
                       emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
