@@ -1,3 +1,25 @@
+## [v0.4.31] – Fix/UI: active-routine delete fallback and day-header/meta normalization
+
+### WHAT
+
+* Fixed active-routine deletion so removing the current active routine now deterministically picks the next valid routine using the existing canonical routines ordering (`updated_at desc`, `id asc`) and persists `profiles.active_routine_id` to that replacement.
+* Added empty-state-safe fallback behavior for active-routine deletion when no routines remain by explicitly persisting `profiles.active_routine_id = null` instead of leaving a stale deleted id.
+* Added targeted regression coverage for active-routine replacement resolution:
+  * deleting the active routine with another routine still available resolves to the first remaining routine id,
+  * deleting the last routine resolves to `null`.
+* Removed the redundant `Active` badge from the already-active routines summary header card while keeping `Active` badges in routine selector list cards where selection context still adds value.
+* Normalized View Day + Edit Day header/meta copy onto canonical strength/cardio summary helpers and removed redundant planned-workout chrome copy (`PLANNED WORKOUT`, `X planned`) from those sibling routes.
+* Cleaned Today in-progress header duplication by keeping routine/day identity in the title and using one non-duplicative summary line (rest/exercise summary) instead of repeating routine name in header metadata.
+* Captured header-contract guidance in this pass:
+  * Rule: shared header contracts should express one screen identity line and one summary line, never duplicate the same domain label across both.
+  * Pattern: remove redundant route-local meta copy by reusing canonical summary helpers and screen-owned identity rules.
+  * Failure Mode: shared header shells still drift when sibling routes feed inconsistent identity/meta strings.
+
+### WHY
+
+* Leaving a deleted routine id in `profiles.active_routine_id` could strand Today in a broken in-between state where no routine rendered even though routines still existed.
+* Header/meta strings had drifted across sibling screens (`Today`, `View Day`, `Edit Day`, `Routines`), creating duplicate routine labels and lower-signal generic planned/exercise copy.
+
 ## [v0.4.30] – Fix: harden profile preference schema-drift compatibility at boot boundary
 
 ### WHAT

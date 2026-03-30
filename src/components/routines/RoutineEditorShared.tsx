@@ -77,7 +77,7 @@ export function RoutineEditorSection({
   children,
   className,
 }: {
-  title: string;
+  title?: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
