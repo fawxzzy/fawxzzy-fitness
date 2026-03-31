@@ -220,7 +220,7 @@ export function SessionExerciseFocus({
   return (
     <div className="flex min-h-full flex-col space-y-2.5" data-row-interaction={contract.rowInteraction}>
       {selectedExerciseId === null ? (
-        <ul className="space-y-2">
+        <ul className="space-y-2 pb-[calc(var(--app-bottom-action-bar-height,120px)+var(--app-safe-bottom)+1rem)]">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
