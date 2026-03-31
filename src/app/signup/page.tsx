@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signup } from "@/app/auth/actions";
+import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { Input } from "@/components/ui/Input";
@@ -14,13 +15,11 @@ type SignupPageProps = {
 };
 
 export default function SignupPage({ searchParams }: SignupPageProps) {
+  const copy = AUTH_MODE_COPY["create-account"];
+
   return (
     <AuthShell>
-      <AuthIntro
-        eyebrow="Get started"
-        title="Create your account"
-        subtitle="Set up your account in the browser when needed, then jump back into the installed app shell for the best day-to-day experience."
-      />
+      <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
 
       <AuthCard>
         <form action={signup} className="space-y-5">

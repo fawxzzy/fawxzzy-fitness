@@ -1,3 +1,17 @@
+## [v0.4.32] – UI/Auth: mode-specific auth helper copy contract
+
+### WHAT
+
+* Added a shared auth-mode copy map (`password-login`, `magic-link`, `reset-password`, `create-account`) so each auth surface reads from one mode-specific content source.
+* Updated login, signup, forgot-password, and reset-password screens to use the shared mode copy definitions.
+* Removed magic-link inbox helper text from password-login surfaces and kept forgot-password affordances explicit on login.
+* Added `docs/auth-mode-copy-contract.md` defining copy ownership and exclusions per auth mode.
+
+### WHY
+
+* Helper text had started to drift across auth surfaces, causing email-link and password-reset guidance to appear on unrelated screens.
+* A mode contract keeps auth copy deterministic and prevents cross-flow leakage as auth UX evolves.
+
 ## [v0.4.31] – Fix/UI: active-routine delete fallback and day-header/meta normalization
 
 ### WHAT
