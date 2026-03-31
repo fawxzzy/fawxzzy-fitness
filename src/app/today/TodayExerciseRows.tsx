@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { Pill } from "@/components/ui/Pill";
-import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
+import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
 
 type TodayExerciseRow = {
   id: string;
@@ -34,7 +34,7 @@ export function TodayExerciseRows({
     <>
       <ul className="space-y-2">
         {exercises.map((exercise) => {
-          const progressState = deriveSessionExerciseProgressState({
+          const cardVariantState = deriveWorkoutExerciseCardVariant({
             loggedSetCount: exercise.loggedSetCount ?? 0,
             isSkipped: exercise.isSkipped === true,
             targetSetsMin: exercise.targetSetsMin,
@@ -46,8 +46,8 @@ export function TodayExerciseRows({
               <StandardExerciseRow
                 exercise={exercise}
                 summary={exercise.targets}
-                state={progressState.cardState}
-                badgeText={progressState.badgeText}
+                state={cardVariantState.cardState}
+                badgeText={cardVariantState.badgeText}
                 onPress={() => {
                   if (process.env.NODE_ENV === "development") {
                     console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });
@@ -55,7 +55,7 @@ export function TodayExerciseRows({
                   setSelectedExerciseId(exercise.exerciseId);
                 }}
               >
-                {exercise.isSkipped ? (
+                {cardVariantState.showSkippedChip ? (
                   <div className="pt-0.5">
                     <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill>
                   </div>

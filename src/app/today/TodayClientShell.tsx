@@ -13,7 +13,7 @@ import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/tex
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
+import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
 
 type TodayPayload = {
   routine: {
@@ -158,7 +158,7 @@ export function TodayClientShell({
 
       <ul className="space-y-2">
         {display.exercises.map((exercise) => {
-          const progressState = deriveSessionExerciseProgressState({
+          const cardVariantState = deriveWorkoutExerciseCardVariant({
             loggedSetCount: exercise.loggedSetCount ?? 0,
             isSkipped: exercise.isSkipped === true,
             targetSetsMin: exercise.targetSetsMin,
@@ -170,8 +170,8 @@ export function TodayClientShell({
               <StandardExerciseRow
                 exercise={exercise}
                 summary={exercise.targets}
-                state={progressState.cardState}
-                badgeText={progressState.badgeText}
+                state={cardVariantState.cardState}
+                badgeText={cardVariantState.badgeText}
                 onPress={() => {
                   const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
                   if (process.env.NODE_ENV === "development") {
@@ -180,7 +180,7 @@ export function TodayClientShell({
                   setSelectedExerciseId(canonicalExerciseId);
                 }}
               >
-                {exercise.isSkipped ? (
+                {cardVariantState.showSkippedChip ? (
                   <div className="pt-0.5">
                     <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill>
                   </div>
