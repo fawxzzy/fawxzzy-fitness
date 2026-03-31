@@ -9,7 +9,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
@@ -106,6 +106,7 @@ export function SessionPageClient({
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
+  const sessionRecipe = resolveScreenRecipe("currentSession");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const router = useRouter();
   const baseDurationSeconds = initialDurationSeconds ?? 0;
@@ -134,6 +135,13 @@ export function SessionPageClient({
 
   const isExerciseOpen = selectedExerciseId !== null;
   const hasExercises = exercises.length > 0;
+  const topChrome = !isExerciseOpen ? (
+    <SessionHeaderControls
+      sessionTitle={sessionTitle}
+      sessionSummary={sessionSummary}
+      backHref={fallbackReturnHref ?? "/today"}
+    />
+  ) : null;
 
   const emptyState = useMemo(
     () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises yet.</p>),
@@ -191,20 +199,18 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip px-1">
+    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip px-1" topChrome={topChrome}>
       {!isExerciseOpen ? (
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
 
-      <ScreenScaffold recipe="currentSession" className="flex min-h-full flex-col pb-[max(0.25rem,var(--app-safe-bottom))]">
-        {!isExerciseOpen ? (
-          <SessionHeaderControls
-            sessionTitle={sessionTitle}
-            sessionSummary={sessionSummary}
-            backHref={fallbackReturnHref ?? "/today"}
-          />
-        ) : null}
-
+      <section
+        data-screen-scaffold={sessionRecipe.scaffold}
+        data-section-chrome={sessionRecipe.sectionChrome}
+        data-footer-dock={sessionRecipe.footerDock}
+        data-row-interaction={sessionRecipe.rowInteraction}
+        className="flex min-h-full flex-col space-y-4 bg-[rgb(var(--bg))] pt-2 pb-[max(0.25rem,var(--app-safe-bottom))]"
+      >
         {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
         <ActionFeedbackToasts />
 
@@ -224,7 +230,7 @@ export function SessionPageClient({
         ) : null}
 
         {emptyState}
-      </ScreenScaffold>
+      </section>
     </ScrollScreenWithBottomActions>
   );
 }
