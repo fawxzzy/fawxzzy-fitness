@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { requestPasswordReset } from "@/app/auth/actions";
+import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { PrimaryButton } from "@/components/ui/AppButton";
@@ -37,6 +38,7 @@ export default function ForgotPasswordFormClient({
   shouldStartCooldown,
 }: ForgotPasswordFormClientProps) {
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const copy = AUTH_MODE_COPY["reset-password"];
 
   const message = useMemo(() => {
     if (errorMessage) {
@@ -80,11 +82,7 @@ export default function ForgotPasswordFormClient({
 
   return (
     <AuthShell>
-      <AuthIntro
-        eyebrow="Password recovery"
-        title="Reset your password"
-        subtitle="Recovery still works in the browser, so you can request a new link without being forced into an install-only dead end."
-      />
+      <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
 
       <AuthCard>
         <form action={requestPasswordReset} className="space-y-5">
@@ -96,7 +94,7 @@ export default function ForgotPasswordFormClient({
           </div>
           {message}
           <SubmitButton cooldownRemaining={cooldownRemaining} />
-          <p className="text-xs leading-5 text-slate-500">For security, you can request a new link once per minute.</p>
+          {copy.helper ? <p className="text-xs leading-5 text-slate-500">{copy.helper}</p> : null}
         </form>
 
         <AuthFooter>

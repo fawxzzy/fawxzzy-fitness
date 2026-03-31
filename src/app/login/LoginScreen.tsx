@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { login } from "@/app/auth/actions";
 import { InstallGuidance } from "@/components/auth/InstallGuidance";
+import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { Input } from "@/components/ui/Input";
@@ -11,14 +12,11 @@ import { useInstallContext } from "@/hooks/useInstallContext";
 export function LoginScreen({ error, info }: { error?: string; info?: string }) {
   const { isBrowserMode, isDismissed } = useInstallContext();
   const showInstallGate = isBrowserMode && !isDismissed;
+  const copy = AUTH_MODE_COPY["password-login"];
 
   return (
     <AuthShell>
-      <AuthIntro
-        eyebrow="Welcome back"
-        title="Log in to your training app"
-        subtitle="Pick up your routine, recovery, and email-link flows without losing the install-first experience on mobile."
-      />
+      <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
 
       {showInstallGate ? (
         <InstallGuidance mode="gate" />
@@ -52,7 +50,7 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
               <Link className="font-medium text-accent underline-offset-4 hover:underline" href="/forgot-password">
                 Forgot password?
               </Link>
-              <p className="text-xs leading-5 text-slate-500">Didn’t get the email? Check spam, promotions, or junk.</p>
+              {copy.helper ? <p className="text-xs leading-5 text-slate-500">{copy.helper}</p> : null}
             </div>
           </AuthFooter>
         </AuthCard>
