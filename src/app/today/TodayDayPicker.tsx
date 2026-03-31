@@ -22,6 +22,12 @@ import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { formatExerciseCountMetaLabel } from "@/lib/header-meta";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
+import {
+  deriveTodayScreenMode,
+  getTodayDaySummary,
+  getTodayDaySummaryTone,
+  type TodayPickerDayState,
+} from "@/lib/today-page-state";
 
 type TodayExercise = {
   id: string;
@@ -43,49 +49,15 @@ type TodayExercise = {
   how_to_short: string | null;
 };
 
-type TodayDayState = "rest" | "empty" | "partial" | "runnable";
-
 type TodayDay = {
   id: string;
   dayIndex: number;
   name: string;
   isRest: boolean;
-  state: TodayDayState;
+  state: TodayPickerDayState;
   invalidExerciseCount: number;
   exercises: TodayExercise[];
 };
-
-function getDaySummary(day: TodayDay) {
-  if (day.state === "rest") {
-    return REST_DAY_CARD_COPY;
-  }
-
-  if (day.state === "empty" && day.invalidExerciseCount > 0) {
-    return "This day has invalid exercises. Edit the day before starting a workout.";
-  }
-
-  if (day.state === "empty") {
-    return "No exercises yet.";
-  }
-
-  if (day.state === "partial") {
-    return "Some exercises could not be loaded and will be skipped when you start this workout.";
-  }
-
-  return null;
-}
-
-function getDaySummaryTone(day: TodayDay): "blocking" | "warning" | null {
-  if (day.state === "empty" && day.invalidExerciseCount > 0) {
-    return "blocking";
-  }
-
-  if (day.state === "partial") {
-    return "warning";
-  }
-
-  return null;
-}
 
 
 export function TodayDayPicker({
@@ -131,20 +103,23 @@ export function TodayDayPicker({
     };
   }, [inProgressSessionId, router]);
 
-  const selectedDay = useMemo(
-    () => days.find((day) => day.dayIndex === selectedDayIndex) ?? days.find((day) => day.dayIndex === currentDayIndex) ?? null,
-    [currentDayIndex, days, selectedDayIndex],
-  );
+  const mode = useMemo(() => deriveTodayScreenMode({
+    days,
+    selectedDayIndex,
+    currentDayIndex,
+    dayPickerOpen: isPickerOpen,
+    inProgressSessionId,
+  }), [currentDayIndex, days, inProgressSessionId, isPickerOpen, selectedDayIndex]);
 
   const togglePicker = useCallback(() => {
     setIsPickerOpen((previous) => !previous);
   }, []);
 
-  const isRunnableDay = selectedDay?.state === "runnable" || selectedDay?.state === "partial";
-  const daySummary = selectedDay ? getDaySummary(selectedDay) : null;
-  const daySummaryTone = selectedDay ? getDaySummaryTone(selectedDay) : null;
-  const isRestDaySelected = selectedDay?.state === "rest";
-  const hasInProgressSession = Boolean(inProgressSessionId);
+  const selectedDay = mode.selectedDay;
+  const daySummary = selectedDay
+    ? (selectedDay.state === "rest" ? REST_DAY_CARD_COPY : getTodayDaySummary(selectedDay))
+    : null;
+  const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
 
   const actionsNode = useMemo(() => {
@@ -154,21 +129,21 @@ export function TodayDayPicker({
         type="button"
         className="w-full justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
         onClick={togglePicker}
-        aria-expanded={isPickerOpen}
+        aria-expanded={mode.dayPickerOpen}
         aria-controls="today-day-selector-list"
       >
-        <span>{isPickerOpen ? "Hide Days" : "Select Day"}</span>
+        <span>{mode.cta.secondaryLabel}</span>
       </SecondaryButton>
     );
 
-    if (!hasInProgressSession && !isRunnableDay) {
+    if (!mode.cta.showPrimary) {
       return <BottomActionSingle>{selectDayButton}</BottomActionSingle>;
     }
 
     return (
       <BottomActionSplit
         secondary={selectDayButton}
-        primary={hasInProgressSession ? (
+        primary={mode.cta.primaryLabel === "Resume Session" ? (
           <TodayStartButton
             sessionId={inProgressSessionId ?? undefined}
             returnTo="/today"
@@ -186,13 +161,13 @@ export function TodayDayPicker({
         )}
       />
     );
-  }, [hasInProgressSession, inProgressSessionId, isPickerOpen, isRunnableDay, selectedDayIndex, togglePicker]);
+  }, [inProgressSessionId, mode.cta.primaryLabel, mode.cta.secondaryLabel, mode.cta.showPrimary, mode.dayPickerOpen, selectedDayIndex, togglePicker]);
 
   usePublishBottomActions(actionsNode);
 
   return (
     <div className="flex min-h-0 flex-col gap-3">
-      {selectedDay ? (
+      {!mode.noRoutine && selectedDay ? (
         <AnchoredSelectorPanel
           title={`${routineName} | ${selectedDay.name}`}
           subtitleRight={selectedDay.state === "rest"
@@ -203,7 +178,7 @@ export function TodayDayPicker({
             : completedDayIndexSet.has(selectedDay.dayIndex)
               ? <AppBadge tone="success">Completed</AppBadge>
               : undefined}
-          revealOpen={isPickerOpen}
+          revealOpen={mode.dayPickerOpen}
           revealId="today-day-selector-list"
           revealLabel="Routine days"
           revealContent={(
@@ -214,7 +189,7 @@ export function TodayDayPicker({
                   <DayCard
                     key={day.id}
                     title={`Day ${day.dayIndex} | ${day.name}`}
-                    subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : getDaySummary(day) ?? undefined}
+                    subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : (day.state === "rest" ? REST_DAY_CARD_COPY : getTodayDaySummary(day)) ?? undefined}
                     onPress={() => {
                       setSelectedDayIndex(day.dayIndex);
                       setIsPickerOpen(false);
@@ -240,7 +215,7 @@ export function TodayDayPicker({
             </DayList>
           )}
         >
-          {!isPickerOpen && !isRestDaySelected && daySummary ? (
+          {mode.summaryVisible && daySummary ? (
             <div
               className={[
                 "rounded-md px-3 py-2",
@@ -257,7 +232,7 @@ export function TodayDayPicker({
             </div>
           ) : null}
 
-          {!isPickerOpen && !isRestDaySelected ? <ul className="space-y-2">
+          {mode.dayRowsVisible ? <ul className="space-y-2">
             {selectedDay.exercises.map((exercise) => (
               <li key={exercise.id}>
                 <StandardExerciseRow
