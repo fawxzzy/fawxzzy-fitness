@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { Pill } from "@/components/ui/Pill";
+import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
 import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
 
 type TodayExerciseRow = {
@@ -55,11 +55,7 @@ export function TodayExerciseRows({
                   setSelectedExerciseId(exercise.exerciseId);
                 }}
               >
-                {cardVariantState.showSkippedChip ? (
-                  <div className="pt-0.5">
-                    <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill>
-                  </div>
-                ) : null}
+                <WorkoutExerciseRowChips chips={cardVariantState.chips} />
               </StandardExerciseRow>
             </li>
           );

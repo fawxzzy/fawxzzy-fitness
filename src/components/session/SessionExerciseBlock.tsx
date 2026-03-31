@@ -13,8 +13,9 @@ export function SessionExerciseCard({ children }: { children: ReactNode }) {
 export function AttachedQuickActionStrip({
   label = "Quick Log: Set",
   skipLabel = "Skip",
-  quickLogLabelClassName,
-  layoutClassName,
+  quickLogActionClassName,
+  skipActionClassName,
+  actionRowClassName,
   onPress,
   onSkip,
   isSkipPending,
@@ -23,8 +24,9 @@ export function AttachedQuickActionStrip({
 }: {
   label?: string;
   skipLabel?: string;
-  quickLogLabelClassName?: string;
-  layoutClassName?: string;
+  quickLogActionClassName?: string;
+  skipActionClassName?: string;
+  actionRowClassName?: string;
   onPress: () => Promise<void> | void;
   onSkip?: () => Promise<void> | void;
   isSkipPending?: boolean;
@@ -38,14 +40,17 @@ export function AttachedQuickActionStrip({
         className,
       )}
     >
-      <div className={cn("flex items-center gap-2", layoutClassName)}>
+      <div className={cn("grid grid-cols-3 items-center gap-2", actionRowClassName)}>
         <AppButton
           type="button"
           variant="secondary"
           size="sm"
           onClick={onSkip}
           disabled={isSkipPending || !onSkip}
-          className="min-h-[38px] w-1/3 border-white/8 bg-transparent text-[12px] font-medium text-[rgb(var(--text)/0.74)] shadow-none hover:bg-white/[0.05]"
+          className={cn(
+            "col-span-1 min-h-[38px] border-white/8 bg-transparent text-[12px] font-medium shadow-none hover:bg-white/[0.05]",
+            skipActionClassName,
+          )}
         >
           {isSkipPending ? "Saving…" : skipLabel}
         </AppButton>
@@ -55,10 +60,7 @@ export function AttachedQuickActionStrip({
           size="sm"
           onClick={onPress}
           disabled={isPending}
-          className={cn(
-            "min-h-[38px] w-2/3 border-white/8 bg-transparent text-[12px] font-medium shadow-none hover:bg-white/[0.05]",
-            quickLogLabelClassName,
-          )}
+          className={cn("col-span-2 min-h-[38px] border-white/8 bg-transparent text-[12px] font-medium shadow-none hover:bg-white/[0.05]", quickLogActionClassName)}
         >
           {isPending ? "Adding…" : label}
         </AppButton>

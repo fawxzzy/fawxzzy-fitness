@@ -8,7 +8,7 @@ import { readTodayCache } from "@/lib/offline/today-cache";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { Pill } from "@/components/ui/Pill";
+import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
 import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
@@ -180,11 +180,7 @@ export function TodayClientShell({
                   setSelectedExerciseId(canonicalExerciseId);
                 }}
               >
-                {cardVariantState.showSkippedChip ? (
-                  <div className="pt-0.5">
-                    <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill>
-                  </div>
-                ) : null}
+                <WorkoutExerciseRowChips chips={cardVariantState.chips} />
               </StandardExerciseRow>
             </li>
           );

@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } from "@/components/session/SessionExerciseBlock";
+import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { WorkoutEntryIdentity } from "@/components/ui/workout-entry/EntrySection";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
@@ -254,12 +255,9 @@ export function SessionExerciseFocus({
                       rightIcon={<ChevronRightIcon className="h-5 w-5" />}
                       badgeText={cardVariantState.badgeText}
                     >
-                      {(exercise.routineDayExerciseId === null || cardVariantState.showSkippedChip) ? (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          {exercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
-                          {cardVariantState.showSkippedChip ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
-                        </div>
-                      ) : null}
+                      <WorkoutExerciseRowChips
+                        chips={exercise.routineDayExerciseId === null ? ["addedToday", ...cardVariantState.chips] : cardVariantState.chips}
+                      />
                       {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No {exercise.useIntervalLanguage ? "intervals" : "sets"} yet.</p> : null}
                     </StandardExerciseRow>
                   </SessionExerciseCard>
@@ -272,8 +270,9 @@ export function SessionExerciseFocus({
                       fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
                     })}`}
                     skipLabel={cardVariantState.skipActionLabel}
-                    quickLogLabelClassName={cardVariantState.quickLogLabelClassName}
-                    layoutClassName={cardVariantState.actionLayoutClassName}
+                    quickLogActionClassName={cardVariantState.quickLogActionClassName}
+                    skipActionClassName={cardVariantState.skipActionClassName}
+                    actionRowClassName={cardVariantState.actionRowClassName}
                     isSkipPending={skipPendingId === exercise.id}
                     onSkip={async () => {
                       setSkipPendingId(exercise.id);
