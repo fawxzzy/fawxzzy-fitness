@@ -61,14 +61,14 @@ export type TodayPickerExercise = {
   name: string;
 };
 
-export type TodayPickerDay = {
+export type TodayPickerDay<TExercise = TodayPickerExercise> = {
   id: string;
   dayIndex: number;
   name: string;
   isRest: boolean;
   state: TodayPickerDayState;
   invalidExerciseCount: number;
-  exercises: TodayPickerExercise[];
+  exercises: TExercise[];
 };
 
 export type TodaySummaryTone = "blocking" | "warning" | null;
@@ -105,8 +105,8 @@ export function getTodayDaySummaryTone(day: TodayPickerDay): TodaySummaryTone {
   return null;
 }
 
-export type TodayScreenMode = {
-  selectedDay: TodayPickerDay | null;
+export type TodayScreenMode<TDay extends TodayPickerDay = TodayPickerDay> = {
+  selectedDay: TDay | null;
   selectedDayIndex: number | null;
   dayPickerOpen: boolean;
   restDay: boolean;
@@ -125,13 +125,13 @@ export type TodayScreenMode = {
   };
 };
 
-export function deriveTodayScreenMode(args: {
-  days: TodayPickerDay[];
+export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
+  days: TDay[];
   selectedDayIndex: number;
   currentDayIndex: number;
   dayPickerOpen: boolean;
   inProgressSessionId?: string | null;
-}): TodayScreenMode {
+}): TodayScreenMode<TDay> {
   const selectedDay = args.days.find((day) => day.dayIndex === args.selectedDayIndex)
     ?? args.days.find((day) => day.dayIndex === args.currentDayIndex)
     ?? null;

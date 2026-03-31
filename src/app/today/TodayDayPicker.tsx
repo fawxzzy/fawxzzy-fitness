@@ -172,7 +172,7 @@ export function TodayDayPicker({
           title={`${routineName} | ${selectedDay.name}`}
           subtitleRight={selectedDay.state === "rest"
             ? "Rest Day"
-            : formatExerciseCountMetaLabel(getExerciseCountSummaryFromInputs(selectedDay.exercises).total)}
+            : formatExerciseCountMetaLabel(selectedDay.exercises.length)}
           action={inSessionDayIndex === selectedDay.dayIndex
             ? <AppBadge tone="success">In Session</AppBadge>
             : completedDayIndexSet.has(selectedDay.dayIndex)
