@@ -1,4 +1,4 @@
-import { deriveSessionExerciseProgressState } from "./session-exercise-progress.ts";
+import { deriveSessionExerciseProgressState } from "./session-exercise-progress";
 
 export type WorkoutExerciseCardVariant = "pending" | "logged" | "skipped";
 
