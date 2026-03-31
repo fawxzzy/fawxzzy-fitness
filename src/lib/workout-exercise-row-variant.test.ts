@@ -23,8 +23,9 @@ test("deriveWorkoutExerciseCardVariant returns skipped semantics with recoverabi
   });
 
   assert.equal(state.variant, "skipped");
-  assert.equal(state.showSkippedChip, true);
+  assert.deepEqual(state.chips, ["skipped"]);
   assert.equal(state.skipActionLabel, "Unskip");
+  assert.equal(state.skipActionClassName, "text-amber-100");
 });
 
 test("deriveWorkoutExerciseCardVariant preserves logged completion badge behavior", () => {

@@ -21,13 +21,14 @@ This contract canonicalizes workout exercise rows and attached quick actions aro
 - `variant`: `pending | logged | skipped`
 - `cardState`: `default | completed` (derived from set progress)
 - `badgeText`: stable top-right badge text
-- `showSkippedChip`: whether the skipped chip is rendered in row metadata
+- `chips`: row metadata chips (`skipped`, optional `addedToday` when provided by consumer)
 - `skipActionLabel`: `Skip` or `Unskip` for the secondary action
-- `actionLayoutClassName`: action-row emphasis modifier
-- `quickLogLabelClassName`: quick-log button text emphasis modifier
+- `actionRowClassName`: action-row emphasis modifier
+- `quickLogActionClassName`: quick-log button text emphasis modifier
+- `skipActionClassName`: skip/unskip button text emphasis modifier (uses warning tone for `skipped`)
 
 ## Usage notes
 
-- Session and Today exercise rows should consume this contract instead of inlining skipped/logged conditionals.
-- Quick-action rows should derive skip/unskip labels and action emphasis from the variant contract.
+- Session and Today exercise rows should render metadata chips through one shared placement component so badge/chip positions stay stable across variants and wrapped titles.
+- Quick-action rows should derive skip/unskip labels and action emphasis from the variant contract without route-local styling branches.
 - Scaffold and dock layout concerns are intentionally out of scope for this contract.
