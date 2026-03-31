@@ -12,6 +12,10 @@ type NavLink = {
   Icon: (props: SVGProps<SVGSVGElement>) => JSX.Element;
 };
 
+type AppNavProps = {
+  mode?: "fixed" | "topChrome";
+};
+
 const links: NavLink[] = [
   {
     href: "/today",
@@ -64,7 +68,7 @@ const links: NavLink[] = [
   },
 ];
 
-export function AppNav() {
+export function AppNav({ mode = "fixed" }: AppNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const activeLink = links.find((link) => pathname === link.href || pathname.startsWith(`${link.href}/`));
@@ -80,7 +84,13 @@ export function AppNav() {
   }, [pathname, router]);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-[var(--header-offset)] z-[60] flex justify-center px-4">
+    <div
+      className={`pointer-events-none inset-x-0 flex justify-center px-4 ${
+        mode === "fixed"
+          ? "fixed top-[var(--header-offset)] z-[60]"
+          : "relative z-30 pt-[var(--header-offset)]"
+      }`}
+    >
       <div className="pointer-events-auto w-full max-w-md">
         <Glass
           variant="raised"

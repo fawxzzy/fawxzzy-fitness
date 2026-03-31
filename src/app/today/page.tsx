@@ -14,6 +14,7 @@ import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { BottomActionsSlot } from "@/components/layout/bottom-actions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -395,9 +396,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         };
 
   return (
-    <MainTabScreen>
-      <AppNav />
-      <ScrollScreenWithBottomActions>
+    <MainTabScreen topNavMode="none">
+      <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} bottomDock={<BottomActionsSlot />}>
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
             <div className="space-y-4 px-1">
