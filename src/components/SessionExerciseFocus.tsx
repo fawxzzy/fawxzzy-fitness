@@ -19,7 +19,7 @@ import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
 import { formatQuickLogPreviewLabel, resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
-import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
+import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
 
 type AddSetPayload = {
   sessionId: string;
@@ -224,9 +224,11 @@ export function SessionExerciseFocus({
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
             const hasGoalSummary = hasMeaningfulExerciseGoalSummary(exercise.goalLabel);
-            const progressState = deriveSessionExerciseProgressState({
+            const isPending = quickAddPendingId === exercise.id || skipPendingId === exercise.id;
+            const cardVariantState = deriveWorkoutExerciseCardVariant({
               loggedSetCount: setCount,
               isSkipped: exercise.isSkipped,
+              isPending,
               targetSetsMin: exercise.targetSetsMin,
               targetSetsMax: exercise.targetSetsMax,
             });
@@ -245,17 +247,17 @@ export function SessionExerciseFocus({
                       exercise={exercise}
                       summary={exercise.goalLabel}
                       variant="expanded"
-                      state={progressState.cardState}
+                      state={cardVariantState.cardState}
                       onPress={() => onSelectedExerciseIdChange(exercise.id)}
                       className="shadow-none"
                       trailingClassName="self-center text-muted"
                       rightIcon={<ChevronRightIcon className="h-5 w-5" />}
-                      badgeText={progressState.badgeText}
+                      badgeText={cardVariantState.badgeText}
                     >
-                      {(exercise.routineDayExerciseId === null || exercise.isSkipped) ? (
+                      {(exercise.routineDayExerciseId === null || cardVariantState.showSkippedChip) ? (
                         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                           {exercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
-                          {exercise.isSkipped ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
+                          {cardVariantState.showSkippedChip ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
                         </div>
                       ) : null}
                       {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No {exercise.useIntervalLanguage ? "intervals" : "sets"} yet.</p> : null}
@@ -269,7 +271,9 @@ export function SessionExerciseFocus({
                       targetSetsMax: exercise.targetSetsMax,
                       fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
                     })}`}
-                    skipLabel={exercise.isSkipped ? "Unskip" : "Skip"}
+                    skipLabel={cardVariantState.skipActionLabel}
+                    quickLogLabelClassName={cardVariantState.quickLogLabelClassName}
+                    layoutClassName={cardVariantState.actionLayoutClassName}
                     isSkipPending={skipPendingId === exercise.id}
                     onSkip={async () => {
                       setSkipPendingId(exercise.id);

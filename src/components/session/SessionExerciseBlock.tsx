@@ -13,6 +13,8 @@ export function SessionExerciseCard({ children }: { children: ReactNode }) {
 export function AttachedQuickActionStrip({
   label = "Quick Log: Set",
   skipLabel = "Skip",
+  quickLogLabelClassName,
+  layoutClassName,
   onPress,
   onSkip,
   isSkipPending,
@@ -21,6 +23,8 @@ export function AttachedQuickActionStrip({
 }: {
   label?: string;
   skipLabel?: string;
+  quickLogLabelClassName?: string;
+  layoutClassName?: string;
   onPress: () => Promise<void> | void;
   onSkip?: () => Promise<void> | void;
   isSkipPending?: boolean;
@@ -34,7 +38,7 @@ export function AttachedQuickActionStrip({
         className,
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className={cn("flex items-center gap-2", layoutClassName)}>
         <AppButton
           type="button"
           variant="secondary"
@@ -51,7 +55,10 @@ export function AttachedQuickActionStrip({
           size="sm"
           onClick={onPress}
           disabled={isPending}
-          className="min-h-[38px] w-2/3 border-white/8 bg-transparent text-[12px] font-medium text-[rgb(var(--text)/0.74)] shadow-none hover:bg-white/[0.05]"
+          className={cn(
+            "min-h-[38px] w-2/3 border-white/8 bg-transparent text-[12px] font-medium shadow-none hover:bg-white/[0.05]",
+            quickLogLabelClassName,
+          )}
         >
           {isPending ? "Adding…" : label}
         </AppButton>
