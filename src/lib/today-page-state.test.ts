@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "./today-page-state.ts";
+import {
+  deriveTodayScreenMode,
+  getTodayGlobalErrorMessage,
+  getTodayDaySummary,
+  getTodayDaySummaryTone,
+  resolveTodayDisplayDay,
+} from "./today-page-state.ts";
 
 test("getTodayGlobalErrorMessage hides stale redirect errors during normal browsing", () => {
   assert.equal(
@@ -73,4 +79,71 @@ test("resolveTodayDisplayDay keeps the session snapshot label even if the routin
     dayName: "Travel Day",
     source: "session",
   });
+});
+
+test("deriveTodayScreenMode returns start-workout dock for runnable day", () => {
+  const mode = deriveTodayScreenMode({
+    days: [{
+      id: "day-1",
+      dayIndex: 1,
+      name: "Push",
+      isRest: false,
+      state: "runnable",
+      invalidExerciseCount: 0,
+      exercises: [{ id: "ex-1", name: "Bench" }],
+    }],
+    selectedDayIndex: 1,
+    currentDayIndex: 1,
+    dayPickerOpen: false,
+  });
+
+  assert.equal(mode.runnableSelection, true);
+  assert.equal(mode.dayRowsVisible, true);
+  assert.equal(mode.cta.primaryLabel, "Start Workout");
+  assert.equal(mode.cta.secondaryLabel, "Select Day");
+});
+
+test("deriveTodayScreenMode hides rows and switches secondary CTA when picker is open", () => {
+  const mode = deriveTodayScreenMode({
+    days: [{
+      id: "day-1",
+      dayIndex: 1,
+      name: "Push",
+      isRest: false,
+      state: "runnable",
+      invalidExerciseCount: 0,
+      exercises: [{ id: "ex-1", name: "Bench" }],
+    }],
+    selectedDayIndex: 1,
+    currentDayIndex: 1,
+    dayPickerOpen: true,
+  });
+
+  assert.equal(mode.dayListVisible, true);
+  assert.equal(mode.dayRowsVisible, false);
+  assert.equal(mode.cta.secondaryLabel, "Hide Days");
+});
+
+test("rest and invalid-empty summaries resolve from pure summary selectors", () => {
+  const restSummary = getTodayDaySummary({
+    id: "day-1",
+    dayIndex: 1,
+    name: "Recovery",
+    isRest: true,
+    state: "rest",
+    invalidExerciseCount: 0,
+    exercises: [],
+  });
+  const invalidEmptyTone = getTodayDaySummaryTone({
+    id: "day-2",
+    dayIndex: 2,
+    name: "Broken day",
+    isRest: false,
+    state: "empty",
+    invalidExerciseCount: 2,
+    exercises: [],
+  });
+
+  assert.equal(restSummary, "Rest and recover.");
+  assert.equal(invalidEmptyTone, "blocking");
 });
