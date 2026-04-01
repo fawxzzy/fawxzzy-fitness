@@ -7,6 +7,7 @@ import { AppButton } from "@/components/ui/AppButton";
 export function ConfirmDestructiveModal({
   open,
   title,
+  consequenceText,
   description,
   confirmLabel,
   contextLines,
@@ -18,7 +19,8 @@ export function ConfirmDestructiveModal({
 }: {
   open: boolean;
   title: string;
-  description: string;
+  consequenceText?: string;
+  description?: string;
   confirmLabel: string;
   contextLines?: string[];
   details?: string;
@@ -27,6 +29,7 @@ export function ConfirmDestructiveModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const resolvedConsequenceText = consequenceText ?? description ?? "";
   const titleId = useId();
   const modalRef = useRef<HTMLDivElement | null>(null);
 
@@ -76,7 +79,7 @@ export function ConfirmDestructiveModal({
         aria-labelledby={titleId}
       >
         <h2 id={titleId} className="text-lg font-semibold text-text">{title}</h2>
-        <p className="text-sm text-muted">{description}</p>
+        <p className="text-sm text-muted">{resolvedConsequenceText}</p>
         {(contextLines?.length || details) ? (
           <div className="space-y-1 rounded-xl bg-black/15 px-3 py-2 text-xs text-muted">
             {contextLines?.map((line) => (

@@ -626,7 +626,7 @@ export function EditableRoutineDayExerciseList({
       <ConfirmDestructiveModal
         open={deleteConfirmOpen}
         title="Delete routine day exercise?"
-        description="This will remove this exercise from the routine day."
+        consequenceText="This will remove this exercise from the routine day."
         confirmLabel="Delete"
         details={activeExercise ? `Exercise: ${activeExercise.name}` : undefined}
         onCancel={() => setDeleteConfirmOpen(false)}

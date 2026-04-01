@@ -492,7 +492,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     triggerClassName="h-full w-full"
                     size="md"
                     modalTitle="Discard workout?"
-                    modalDescription="This will delete your in-progress workout, including exercises and sets."
+                    modalConsequenceText="This will delete your in-progress workout, including exercises and sets."
                     confirmLabel="Discard"
                   />
                 )}
