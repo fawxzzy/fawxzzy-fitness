@@ -91,7 +91,7 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
   return { ok: true, routineId: routine.id, firstDayId: insertedDays?.[0]?.id };
 }
 
-export async function autosaveRoutineAction(formData: FormData): Promise<ActionResult> {
+export async function updateRoutineAction(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const supabase = supabaseServer();
   const routineId = String(formData.get("routineId") ?? "");

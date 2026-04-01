@@ -11,7 +11,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
-import { normalizeRoutineDetailsDraft, validateRoutineDetailsDraft, type RoutineDetailsDraft } from "@/lib/routine-details-form";
+import { buildRoutineDetailsSnapshot, normalizeRoutineDetailsDraft, validateRoutineDetailsDraft, type RoutineDetailsDraft } from "@/lib/routine-details-form";
 
 const STORAGE_KEY = "routine-new-draft-v1";
 
@@ -22,7 +22,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   const [loadedDraft, setLoadedDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [, startTransition] = useTransition();
+  const [isSaving, startTransition] = useTransition();
 
   useEffect(() => {
     try {
@@ -55,6 +55,22 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   }, [draft, loadedDraft]);
 
   const validation = validateRoutineDetailsDraft(draft);
+  const initialSnapshot = buildRoutineDetailsSnapshot(defaults);
+  const currentSnapshot = buildRoutineDetailsSnapshot(draft);
+  const isDirty = currentSnapshot !== initialSnapshot;
+  const canCreate = validation.valid && isDirty && !isSaving;
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+    };
+  }, [isDirty]);
 
   return (
     <>
@@ -62,7 +78,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
         <RoutineEditorPageHeader
           eyebrow="New Routine"
           title="Routine Details"
-          action={<RoutineBackButton href="/routines" hasUnsavedChanges={false} />}
+          action={<RoutineBackButton href="/routines" hasUnsavedChanges={isDirty} />}
           className="space-y-5"
         >
           <RoutineEditorFormFields
@@ -81,6 +97,11 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
           />
         </RoutineEditorPageHeader>
         {error ? <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{error}</AccentSubtitleText> : null}
+        {!error ? (
+          <AccentSubtitleText className="text-[rgb(var(--text)/0.7)]">
+            {isSaving ? "Saving changes…" : (isDirty ? "Unsaved changes" : "All changes saved")}
+          </AccentSubtitleText>
+        ) : null}
       </div>
 
       <PublishBottomActions>
@@ -89,7 +110,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
             type="button"
             variant="primary"
             fullWidth
-            disabled={!validation.valid}
+            disabled={!canCreate}
             onClick={() => {
               setError(null);
               startTransition(async () => {
