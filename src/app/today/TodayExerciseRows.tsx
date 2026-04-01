@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
-import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
+import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
 
 type TodayExerciseRow = {
   id: string;
@@ -34,12 +34,11 @@ export function TodayExerciseRows({
     <>
       <ul className="space-y-2">
         {exercises.map((exercise) => {
-          const cardVariantState = deriveWorkoutExerciseCardVariant({
+          const cardVariantState = deriveReadOnlyExercisePresentation({
             loggedSetCount: exercise.loggedSetCount ?? 0,
             isSkipped: exercise.isSkipped === true,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
-            surface: "summary",
           });
 
           return (

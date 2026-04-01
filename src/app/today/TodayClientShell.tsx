@@ -13,7 +13,7 @@ import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/tex
 import { getExerciseCountSummaryFromInputs, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
+import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
 
 type TodayPayload = {
   routine: {
@@ -158,12 +158,11 @@ export function TodayClientShell({
 
       <ul className="space-y-2">
         {display.exercises.map((exercise) => {
-          const cardVariantState = deriveWorkoutExerciseCardVariant({
+          const cardVariantState = deriveReadOnlyExercisePresentation({
             loggedSetCount: exercise.loggedSetCount ?? 0,
             isSkipped: exercise.isSkipped === true,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
-            surface: "summary",
           });
 
           return (
