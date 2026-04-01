@@ -7,6 +7,7 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import {
   ActiveRoutineSummaryCard,
+  ActiveRoutineStatusBadge,
   RoutinesCardList,
   RoutinesListEmpty,
   RoutinesListItem,
@@ -98,7 +99,7 @@ export function RoutinesPageClient({
         aria-expanded={isRoutineListOpen}
         aria-controls="routines-switch-list"
       >
-        <span>{isRoutineListOpen ? "Hide Routines" : "Select Routine"}</span>
+        <span>{isRoutineListOpen ? "Hide All Routines" : "View All Routines"}</span>
       </SecondaryButton>
     );
 
@@ -143,14 +144,18 @@ export function RoutinesPageClient({
     <RoutinesPageScaffold
       summary={(
         <ActiveRoutineSummaryCard
-          title={activeRoutineName}
+          title="Current Routine"
           subtitle={activeRoutineSummary}
-        />
+          status={<ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
+        >
+          <p className="text-sm font-medium text-[rgb(var(--text)/0.92)]">{activeRoutineName}</p>
+        </ActiveRoutineSummaryCard>
       )}
     >
       {isRoutineListOpen ? (
         <RoutinesSectionCard
-          title={<>Routines <span className="text-[rgb(var(--text)/0.72)]">{routines.length}</span></>}
+          title="All routines"
+          meta={`${routines.length} total`}
         >
           <div id="routines-switch-list" aria-label="Routines">
             <RoutinesCardList>
@@ -163,7 +168,7 @@ export function RoutinesPageClient({
                       subtitle={routine.summary}
                       onPress={() => handleSwitchRoutine(routine.id)}
                       state={isCurrent ? "selected" : "default"}
-                      badgeText={isCurrent ? "Active" : undefined}
+                      badgeText={isCurrent ? "ACTIVE" : undefined}
                       rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating…</span> : undefined}
                     />
                   </RoutinesListItem>
@@ -174,7 +179,7 @@ export function RoutinesPageClient({
         </RoutinesSectionCard>
       ) : null}
       {!isRoutineListOpen ? (
-        <SharedDayListSection title={<>Days <span className="text-[rgb(var(--text)/0.72)]">{days.length}</span></>}>
+        <SharedDayListSection title="Current routine schedule" meta={`${days.length} days`}>
           {days.length > 0 ? (
             <DayList>
               {days.map((day) => {

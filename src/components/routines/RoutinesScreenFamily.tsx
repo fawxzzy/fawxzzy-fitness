@@ -35,14 +35,14 @@ export function ActiveRoutineSummaryCard({
       data-footer-dock={recipe.footerDock}
       className={recipe.headerPanelClassName}
     >
-      <SharedScreenHeader recipe="routinesOverview" title={title} subtitleRight={subtitle} action={status} className="rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-0 shadow-none" />
+      <SharedScreenHeader recipe="routinesOverview" title={title} subtitleRight={subtitle} action={status} className="rounded-[1.25rem] bg-[rgb(var(--bg)/0.18)] p-0 shadow-none" />
       {children ? <div className="space-y-3">{children}</div> : null}
     </AppPanel>
   );
 }
 
 export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {
-  return active ? <AppBadge tone="success">Active</AppBadge> : null;
+  return active ? <AppBadge tone="success">ACTIVE</AppBadge> : null;
 }
 
 export function RoutinesSectionCard({
