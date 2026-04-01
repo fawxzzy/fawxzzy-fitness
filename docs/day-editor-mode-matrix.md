@@ -23,9 +23,11 @@ This matrix defines the canonical UI contract for Edit Day modes. The screen sho
 ## Determinism rules
 
 1. `rest_day` has top priority; it suppresses reorder, inline-edit, and add-CTA behaviors.
-2. `adding_exercise` suppresses CTA repetition while the route transition to Add Exercise is in-flight.
-3. `editing_exercise` and `reorder` are mutually exclusive.
-4. Header actions and bottom dock variants are mode-owned selectors and must not be computed with route-local boolean chains.
+2. Rest toggle behavior is non-destructive: enabling rest hides planned exercises but preserves stored rows.
+3. Rest-day state UI must be explicit (never blank/dead space): show a rest editor card with preservation guidance.
+4. `adding_exercise` suppresses CTA repetition while the route transition to Add Exercise is in-flight.
+5. `editing_exercise` and `reorder` are mutually exclusive.
+6. Header actions and bottom dock variants are mode-owned selectors and must not be computed with route-local boolean chains.
 
 ## Reorder row mobile layout contract
 

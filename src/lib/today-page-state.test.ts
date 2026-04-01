@@ -144,6 +144,6 @@ test("rest and invalid-empty summaries resolve from pure summary selectors", () 
     exercises: [],
   });
 
-  assert.equal(restSummary, "Rest and recover.");
+  assert.equal(restSummary, "Rest day.");
   assert.equal(invalidEmptyTone, "blocking");
 });

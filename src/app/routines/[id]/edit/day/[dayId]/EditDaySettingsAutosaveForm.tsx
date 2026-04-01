@@ -61,12 +61,19 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
 
     if (snapshot === lastSubmittedRef.current) return;
 
-    toast.info("Saving...", { id: "day-autosave-status", durationMs: 2000 });
     startTransition(async () => {
       const result = await updateRoutineDaySettingsAction(formData);
       if (result.ok) {
+        const previousSnapshot = JSON.parse(lastSubmittedRef.current) as { name: string; isRest: boolean };
         lastSubmittedRef.current = snapshot;
-        toast.success("Saved", { id: "day-autosave-status", durationMs: 2200 });
+        if (previousSnapshot.isRest !== nextSnapshot.isRest) {
+          toast.info(
+            nextSnapshot.isRest
+              ? "Rest day enabled. Existing exercises are preserved and hidden."
+              : "Rest day disabled. Preserved exercises are visible again.",
+            { id: "day-rest-toggle-status", durationMs: 2600 },
+          );
+        }
         router.refresh();
         return;
       }
@@ -122,6 +129,9 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
             <span>Rest</span>
             <span>{draft.isRest ? "On" : "Off"}</span>
           </button>
+          <p className="mt-2 text-xs text-[rgb(var(--text)/0.65)]">
+            Turning on rest hides planned exercises without deleting them.
+          </p>
         </div>
       </RoutineEditorPageHeader>
     </form>

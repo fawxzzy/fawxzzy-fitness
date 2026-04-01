@@ -10,7 +10,7 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
 import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
-import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getExerciseCountSummaryFromInputs, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
@@ -141,7 +141,7 @@ export function TodayClientShell({
           </TitleText>
           <SubtitleText>
             {display.routine.isRest
-              ? "Recovery focus."
+              ? getRestDayExerciseCountSummaryFromInputs([], true).label
               : getExerciseCountSummaryFromInputs(display.exercises).label}
           </SubtitleText>
         </div>
@@ -187,7 +187,7 @@ export function TodayClientShell({
           );
         })}
         {display.exercises.length === 0 ? (
-          <li className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] px-3 py-3"><SubtitleText>{display.routine.isRest ? "Take the day to recover, move lightly, and come back ready." : "No exercises today."}</SubtitleText></li>
+          <li className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] px-3 py-3"><SubtitleText>{display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}</SubtitleText></li>
         ) : null}
       </ul>
 

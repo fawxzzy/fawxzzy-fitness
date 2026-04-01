@@ -388,8 +388,13 @@ export function EditableRoutineDayExerciseList({
   };
 
   const emptyState = modeViewModel.shouldShowRestState ? (
-    <div className="rounded-[1.2rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
-      Rest day active. Exercise editing is hidden until rest mode is turned off.
+    <div className="space-y-1 rounded-[1.2rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
+      <p className="font-medium text-[rgb(var(--text)/0.86)]">Rest day active</p>
+      <p>
+        {items.length > 0
+          ? `${items.length} ${items.length === 1 ? "exercise is" : "exercises are"} preserved and hidden. Turn rest off to edit this day again.`
+          : "Exercises are hidden while rest mode is on. Turn rest off to edit this day."}
+      </p>
     </div>
   ) : (
     <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">

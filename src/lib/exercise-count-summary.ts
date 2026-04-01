@@ -40,7 +40,7 @@ export function formatExerciseCountSummary(exercises: readonly ExerciseCountSumm
   const parts = [`${total} total`];
   if (strength > 0) parts.push(`${strength} strength`);
   if (cardio > 0) parts.push(`${cardio} cardio`);
-  if (unknown > 0) parts.push(`${unknown} other`);
+  if (unknown > 0) parts.push(`${unknown} unknown`);
 
   return { total, strength, cardio, unknown, label: parts.join(" • ") };
 }
