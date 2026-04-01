@@ -20,6 +20,32 @@ export type GoalValidationResult = {
   message: string;
 };
 
+export const GOAL_SCHEMA_MATRIX: Record<GoalModality, {
+  requiredFields: GoalValidationResult["requiredFields"];
+  optionalFields: MeasurementSelection[];
+}> = {
+  strength: {
+    requiredFields: ["sets", "repsMin"],
+    optionalFields: ["weight", "time", "calories"],
+  },
+  bodyweight: {
+    requiredFields: ["sets", "repsMin"],
+    optionalFields: ["time", "calories"],
+  },
+  cardio_time: {
+    requiredFields: ["sets", "duration"],
+    optionalFields: ["calories"],
+  },
+  cardio_distance: {
+    requiredFields: ["sets", "distance"],
+    optionalFields: ["calories"],
+  },
+  cardio_time_distance: {
+    requiredFields: ["sets", "duration", "distance"],
+    optionalFields: ["calories"],
+  },
+};
+
 function parseInteger(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return null;

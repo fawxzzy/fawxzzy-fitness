@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateGoalConfiguration } from "./exercise-goal-validation.ts";
+import { GOAL_SCHEMA_MATRIX, validateGoalConfiguration } from "./exercise-goal-validation.ts";
 
 test("strength prescription requires reps and sets", () => {
   const result = validateGoalConfiguration({
@@ -66,4 +66,24 @@ test("distance-based cardio requires distance", () => {
   });
 
   assert.equal(result.isValid, true);
+});
+
+test("time + distance cardio accepts time-only mode", () => {
+  const result = validateGoalConfiguration({
+    modality: "cardio_time",
+    sets: "1",
+    repsMin: "",
+    repsMax: "",
+    weight: "",
+    duration: "8:00",
+    distance: "",
+    calories: "",
+    measurementSelections: new Set(["time"]),
+  });
+
+  assert.equal(result.isValid, true);
+});
+
+test("goal schema matrix keeps strength minimum requirements stable", () => {
+  assert.deepEqual(GOAL_SCHEMA_MATRIX.strength.requiredFields, ["sets", "repsMin"]);
 });
