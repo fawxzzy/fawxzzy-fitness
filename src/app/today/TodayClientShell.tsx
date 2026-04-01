@@ -163,6 +163,7 @@ export function TodayClientShell({
             isSkipped: exercise.isSkipped === true,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
+            surface: "summary",
           });
 
           return (
@@ -180,7 +181,7 @@ export function TodayClientShell({
                   setSelectedExerciseId(canonicalExerciseId);
                 }}
               >
-                <WorkoutExerciseRowChips chips={cardVariantState.chips} />
+                <WorkoutExerciseRowChips chips={cardVariantState.chips} progressLabel={cardVariantState.progressLabel} />
               </StandardExerciseRow>
             </li>
           );
