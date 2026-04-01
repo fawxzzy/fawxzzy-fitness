@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 
 type BottomActionRegistration = symbol;
 
@@ -170,41 +170,17 @@ export function BottomActionsSlot() {
   const published = usePublishedBottomActions();
   const slotRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (process.env.NODE_ENV === "production") {
-      return;
-    }
-
-    const slotElement = slotRef.current;
-    if (!slotElement) {
-      return;
-    }
-
-    let current: HTMLElement | null = slotElement.parentElement;
-    let hasScrollableAncestor = false;
-
-    while (current) {
-      const style = window.getComputedStyle(current);
-      const overflowY = style.overflowY;
-      if (overflowY === "auto" || overflowY === "scroll") {
-        hasScrollableAncestor = true;
-        break;
-      }
-      current = current.parentElement;
-    }
-
-    if (!hasScrollableAncestor) {
-      console.warn("[bottom-actions] BottomActionsSlot should be rendered inside a scroll owner (overflow-y-auto/scroll ancestor not found).");
-    }
-  }, [published?.node]);
-
   if (!published?.node) {
     return null;
   }
 
   return (
-    <div ref={slotRef}>
-      <BottomActionBar variant="sticky">{published.node}</BottomActionBar>
+    <div ref={slotRef} className="pointer-events-none">
+      <div className="pointer-events-auto mx-auto w-full max-w-md">
+        <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
+          {published.node}
+        </div>
+      </div>
     </div>
   );
 }

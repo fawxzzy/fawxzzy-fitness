@@ -1,6 +1,5 @@
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { getRoutineStartWeekdayFromDate, getTodayDateInTimeZone } from "@/lib/routines";
@@ -18,7 +17,7 @@ export default async function NewRoutinePage() {
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
+      <ScrollScreenWithBottomActions>
         <NewRoutineDraftForm
           defaults={{
             name: "",
