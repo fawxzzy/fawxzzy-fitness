@@ -1,4 +1,5 @@
 import { isCardioExercise, type ExerciseMetadataInput } from "./exercise-metadata";
+import { formatDaySummaryRestLabel } from "@/features/day-summary/taxonomy";
 
 export type ExerciseCountKind = "strength" | "cardio" | "unknown";
 
@@ -47,7 +48,7 @@ export function formatExerciseCountSummary(exercises: readonly ExerciseCountSumm
 
 export function formatRestDayExerciseCountSummary(exercises: readonly ExerciseCountSummaryInput[], isRest: boolean): ExerciseCountSummary {
   if (isRest) {
-    return { total: exercises.length, strength: 0, cardio: 0, unknown: 0, label: "Rest day" };
+    return { total: exercises.length, strength: 0, cardio: 0, unknown: 0, label: formatDaySummaryRestLabel() };
   }
 
   return formatExerciseCountSummary(exercises);

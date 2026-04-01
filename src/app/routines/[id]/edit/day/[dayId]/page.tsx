@@ -16,6 +16,7 @@ import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { resolveDayHeaderSummary } from "@/shared/day-header/dayHeaderSummary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -131,7 +132,10 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     };
   });
   const activeExerciseCountSummary = getRestDayExerciseCountSummaryFromInputs(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest);
-  const headerMetaSummary = day.is_rest ? undefined : activeExerciseCountSummary.label;
+  const headerMetaSummary = resolveDayHeaderSummary({
+    isRestDay: day.is_rest,
+    exerciseSummaryLabel: activeExerciseCountSummary.label,
+  });
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">

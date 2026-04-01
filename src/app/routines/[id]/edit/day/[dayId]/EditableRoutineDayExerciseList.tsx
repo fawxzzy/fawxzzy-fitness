@@ -20,6 +20,8 @@ import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
+import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
+import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
@@ -334,6 +336,7 @@ export function EditableRoutineDayExerciseList({
     hasExpandedExercise: editModeActive,
     isAddingExercise,
   });
+  const ctaDockState = getDayCtaDockState(modeViewModel.mode);
   const activeExercise = useMemo(
     () => items.find((exercise) => exercise.id === expandedId) ?? null,
     [expandedId, items],
@@ -350,7 +353,7 @@ export function EditableRoutineDayExerciseList({
     setHeaderActionTarget(document.getElementById(headerActionSlotId));
   }, [headerActionSlotId]);
 
-  const headerAction = modeViewModel.shouldShowHeaderCloseEditorAction ? (
+  const headerAction = modeViewModel.headerAction === "close_editor" ? (
     <TopRightBackButton
       ariaLabel="Close exercise editor"
       historyBehavior="fallback-only"
@@ -359,7 +362,7 @@ export function EditableRoutineDayExerciseList({
         handleCloseInlineEditor();
       }}
     />
-  ) : modeViewModel.shouldShowHeaderReorderAction ? (
+  ) : modeViewModel.headerAction === "reorder_toggle" ? (
     <button
       type="button"
       onClick={handleToggleReorderMode}
@@ -383,13 +386,13 @@ export function EditableRoutineDayExerciseList({
     router.push(addExerciseHref);
   };
 
-  const emptyState = modeViewModel.shouldShowRestState ? (
+  const emptyState = modeViewModel.sections.restDayCardVisible ? (
     <div className="space-y-1 rounded-[1.2rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
       <p className="font-medium text-[rgb(var(--text)/0.86)]">Rest day active</p>
       <p>
         {items.length > 0
           ? `${items.length} ${items.length === 1 ? "exercise is" : "exercises are"} preserved and hidden. Turn rest off to edit this day again.`
-          : "Exercises are hidden while rest mode is on. Turn rest off to edit this day."}
+          : REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
       </p>
     </div>
   ) : (
@@ -398,12 +401,12 @@ export function EditableRoutineDayExerciseList({
     </div>
   );
 
-  if (items.length === 0 || modeViewModel.shouldShowRestState) {
+  if (items.length === 0 || modeViewModel.sections.restDayCardVisible) {
     return (
       <>
         {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
         <PublishBottomActions>
-          {modeViewModel.shouldShowBottomEditDock && activeExercise ? (
+          {ctaDockState.variant === "edit_exercise" && activeExercise ? (
             <BottomActionDock
               left={(
                 <DockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
@@ -416,7 +419,7 @@ export function EditableRoutineDayExerciseList({
                 </DockButton>
               )}
             />
-          ) : modeViewModel.shouldShowBottomAddCta ? (
+          ) : ctaDockState.variant === "add_exercise" ? (
             <BottomActionSingle>
               <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
                 Add Exercise
@@ -433,7 +436,7 @@ export function EditableRoutineDayExerciseList({
     <>
       {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
       <PublishBottomActions>
-        {modeViewModel.shouldShowBottomEditDock && activeExercise ? (
+        {ctaDockState.variant === "edit_exercise" && activeExercise ? (
           <BottomActionDock
             left={(
               <DockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
@@ -446,7 +449,7 @@ export function EditableRoutineDayExerciseList({
               </DockButton>
               )}
             />
-        ) : modeViewModel.shouldShowBottomAddCta ? (
+        ) : ctaDockState.variant === "add_exercise" ? (
           <BottomActionSingle>
             <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
               Add Exercise
@@ -473,7 +476,7 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
 
-      {modeViewModel.shouldShowExerciseList ? (
+      {modeViewModel.sections.exerciseListVisible ? (
         reorderMode ? (
           <ul className="space-y-2 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
             {visibleItems.map((exercise, index) => {
@@ -507,7 +510,7 @@ export function EditableRoutineDayExerciseList({
               iconSrc: getExerciseIconSrc(exercise),
             }))}
             activeItemId={expandedId}
-            onSelectItem={!modeViewModel.isExerciseListInteractive ? undefined : (item) => {
+            onSelectItem={!modeViewModel.exerciseListInteractive ? undefined : (item) => {
               setExpandedId((current) => current === item.id ? null : item.id);
             }}
             renderExpandedContent={(item) => {

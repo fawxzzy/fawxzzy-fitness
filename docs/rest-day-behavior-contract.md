@@ -2,6 +2,10 @@
 
 ## Rule: rest toggle is non-destructive
 
+Canonical implementation contract lives in `src/features/day-state/restDayBehavior.ts` with:
+- `togglePolicy: preserve_hidden`
+- `requiresConfirmation: false`
+
 When a routine day is toggled to **Rest**:
 
 - Existing planned exercises are **preserved** in `routine_day_exercises`.

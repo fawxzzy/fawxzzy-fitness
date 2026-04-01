@@ -1,3 +1,20 @@
+## [v0.4.33] – Refactor: explicit day-editor mode model + rest-toggle domain contract
+
+### WHAT
+
+* Promoted Edit Day mode handling into a canonical mode model (`default`, `reorder`, `editing_exercise`, `adding_exercise`, `rest_day`) with mode-owned selectors in `src/features/day-editor/mode.ts`.
+* Moved CTA dock state selection to a shared resolver (`src/shared/day-cta-dock/dayCtaDockState.ts`) so bottom action behavior is derived from mode rather than route-local booleans.
+* Added an explicit rest-day domain contract in `src/features/day-state/restDayBehavior.ts` and reused that copy/behavior in Edit Day settings + rest-day empty state.
+* Added shared day-header summary resolution (`src/shared/day-header/dayHeaderSummary.ts`) to keep rest-day header metadata behavior explicit and deterministic.
+* Centralized the rest-day label via day-summary taxonomy helper (`src/features/day-summary/taxonomy.ts`) and wired summary formatting through that canonical label source.
+* Updated day-editor/rest-day docs and added a dedicated day-summary taxonomy glossary.
+
+### WHY
+
+* Edit Day behavior had begun to spread across local booleans, increasing drift risk between section visibility, header actions, and bottom CTA states.
+* Rest-day toggle behavior needed a domain-level contract so product behavior is explicit (`preserve_hidden`, no destructive confirmation) instead of implied by incidental UI implementation.
+* A single vocabulary source for day-summary labels helps keep Today/View Day/Edit Day consistent and avoids taxonomy drift.
+
 ## [v0.4.32] – UI/Auth: mode-specific auth helper copy contract
 
 ### WHAT
