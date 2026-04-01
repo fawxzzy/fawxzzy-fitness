@@ -9,6 +9,7 @@ export type ExerciseExecutionState =
 export type SessionExerciseProgressKind = "untouched" | "partial" | "partialSkipped" | "skipped" | "completed";
 export type SessionExercisePresentationSurface = "active" | "summary";
 export type SessionExerciseProgressChip = "skipped" | "endedEarly" | "loggedProgress";
+export type ReadOnlyExercisePresentationState = "not_started" | "completed" | "skipped" | "partial" | "partial_with_remaining_skipped";
 
 export type SessionExerciseProgressInput = {
   loggedSetCount: number;
@@ -30,6 +31,14 @@ export type SessionExerciseProgressState = {
   progressLabel?: string;
   skipActionLabel: "Skip" | "Unskip";
   allowQuickLog: boolean;
+};
+
+export type ReadOnlyExercisePresentation = {
+  state: ReadOnlyExercisePresentationState;
+  cardState: "default" | "completed";
+  badgeText?: string;
+  chips: SessionExerciseProgressChip[];
+  progressLabel?: string;
 };
 
 function resolveGoalSetTarget(input: SessionExerciseProgressInput): number | null {
@@ -145,6 +154,61 @@ export function deriveSessionExerciseProgressState(input: SessionExerciseProgres
         progressLabel: formatLoggedProgress(loggedSetCount, goalSetTarget),
         skipActionLabel: "Unskip",
         allowQuickLog: false,
+      };
+  }
+}
+
+export function deriveReadOnlyExercisePresentation(input: SessionExerciseProgressInput): ReadOnlyExercisePresentation {
+  const state = deriveSessionExerciseProgressState({ ...input, surface: "summary" });
+
+  switch (state.executionState) {
+    case "not_started":
+      return {
+        state: "not_started",
+        cardState: state.cardState,
+        badgeText: state.badgeText,
+        chips: state.chips,
+        progressLabel: state.progressLabel,
+      };
+    case "in_progress":
+      return {
+        state: "partial",
+        cardState: state.cardState,
+        badgeText: state.badgeText,
+        chips: state.chips,
+        progressLabel: state.progressLabel,
+      };
+    case "completed":
+      return {
+        state: "completed",
+        cardState: state.cardState,
+        badgeText: state.badgeText,
+        chips: state.chips,
+        progressLabel: state.progressLabel,
+      };
+    case "skipped_before_start":
+      return {
+        state: "skipped",
+        cardState: state.cardState,
+        badgeText: state.badgeText,
+        chips: state.chips,
+        progressLabel: state.progressLabel,
+      };
+    case "partially_completed":
+      return {
+        state: "partial",
+        cardState: state.cardState,
+        badgeText: state.badgeText,
+        chips: state.chips,
+        progressLabel: state.progressLabel,
+      };
+    case "completed_then_remaining_skipped":
+      return {
+        state: "partial_with_remaining_skipped",
+        cardState: state.cardState,
+        badgeText: state.badgeText,
+        chips: state.chips,
+        progressLabel: state.progressLabel,
       };
   }
 }

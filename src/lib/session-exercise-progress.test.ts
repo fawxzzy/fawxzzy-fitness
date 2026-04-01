@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { deriveSessionExerciseProgressState } from "./session-exercise-progress.ts";
+import { deriveReadOnlyExercisePresentation, deriveSessionExerciseProgressState } from "./session-exercise-progress.ts";
 
 test("deriveSessionExerciseProgressState returns untouched for no logs and not skipped", () => {
   const state = deriveSessionExerciseProgressState({
@@ -68,4 +68,28 @@ test("deriveSessionExerciseProgressState returns read-only skipped badge for sum
   assert.equal(state.executionState, "skipped_before_start");
   assert.equal(state.badgeText, "Skipped");
   assert.deepEqual(state.chips, []);
+});
+
+test("deriveReadOnlyExercisePresentation maps skipped-after-logging into explicit partial state", () => {
+  const presentation = deriveReadOnlyExercisePresentation({
+    loggedSetCount: 2,
+    isSkipped: true,
+    targetSetsMin: 4,
+  });
+
+  assert.equal(presentation.state, "partial");
+  assert.equal(presentation.badgeText, "Partial");
+  assert.deepEqual(presentation.chips, ["loggedProgress", "endedEarly"]);
+});
+
+test("deriveReadOnlyExercisePresentation maps completed-then-skipped into explicit mixed state", () => {
+  const presentation = deriveReadOnlyExercisePresentation({
+    loggedSetCount: 3,
+    isSkipped: true,
+    targetSetsMin: 3,
+  });
+
+  assert.equal(presentation.state, "partial_with_remaining_skipped");
+  assert.equal(presentation.badgeText, "Completed");
+  assert.deepEqual(presentation.chips, ["loggedProgress", "endedEarly"]);
 });

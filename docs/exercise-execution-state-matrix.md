@@ -32,6 +32,16 @@ This matrix is the canonical mapping for session exercise presentation. It is de
 
 ## Presentation rules (read-only summary/resume cards)
 
+Canonical read-only presentation states:
+
+| Read-only state | Meaning |
+| --- | --- |
+| `not_started` | Exercise was untouched in this session. |
+| `completed` | Goal threshold reached and not skipped. |
+| `skipped` | Skipped before any logging. |
+| `partial` | Logged progress exists but exercise was not fully completed (including ended-early cases). |
+| `partial_with_remaining_skipped` | Goal threshold reached, then exercise was skipped for remaining work in-session. |
+
 | Domain state | Badge copy | Chips |
 | --- | --- | --- |
 | `not_started` | none | none |
@@ -55,4 +65,5 @@ This matrix is the canonical mapping for session exercise presentation. It is de
 
 - The UI must never present plain `logged` and plain `skipped` simultaneously.
 - Any skipped exercise with logged sets must be rendered using explicit partial copy (`Partial`, `N of T logged`, `Ended early`).
+- Read-only/resume surfaces must use the shared read-only presentation mapper and must not compose independent logged/skipped copy.
 - Quick log is disabled when skipped (`skipped` or `partialSkipped`) so actions cannot drift from derived state.
