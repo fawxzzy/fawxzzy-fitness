@@ -59,6 +59,7 @@ const ROUTINES_IA_COPY = {
     title: "All routines",
     listAriaLabel: "All routines list",
     duplicateRuleHint: "Includes your current routine for quick switching.",
+    collapsedHint: "Use the footer action to open and switch routines.",
   },
 } as const;
 
@@ -175,11 +176,11 @@ export function RoutinesPageClient({
         </ActiveRoutineSummaryCard>
       )}
     >
-      {isRoutineListOpen ? (
-        <RoutinesSectionCard
-          title={ROUTINES_IA_COPY.allRoutines.title}
-          meta={`${formatRoutineCount(routines.length)} • ${ROUTINES_IA_COPY.allRoutines.duplicateRuleHint}`}
-        >
+      <RoutinesSectionCard
+        title={ROUTINES_IA_COPY.allRoutines.title}
+        meta={`${formatRoutineCount(routines.length)} • ${ROUTINES_IA_COPY.allRoutines.duplicateRuleHint}`}
+      >
+        {isRoutineListOpen ? (
           <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel}>
             <RoutinesCardList>
               {routines.map((routine) => {
@@ -199,8 +200,10 @@ export function RoutinesPageClient({
               })}
             </RoutinesCardList>
           </div>
-        </RoutinesSectionCard>
-      ) : null}
+        ) : (
+          <RoutinesListEmpty>{ROUTINES_IA_COPY.allRoutines.collapsedHint}</RoutinesListEmpty>
+        )}
+      </RoutinesSectionCard>
       <SharedDayListSection title={ROUTINES_IA_COPY.routineDays.title} meta={formatRoutineDayCount(days.length)}>
           {days.length > 0 ? (
             <DayList>
