@@ -41,6 +41,7 @@ export function MeasurementPanelV2({
   footerContent,
   showInnerHeader = false,
   topField,
+  visibleMetrics,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -66,6 +67,7 @@ export function MeasurementPanelV2({
     suffix?: string;
     input: ReactNode;
   };
+  visibleMetrics?: Array<keyof MeasurementMetrics>;
 }) {
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
   const resolvedDistanceUnit = values.distanceUnit === "km" ? "km" : "mi";
@@ -84,6 +86,7 @@ export function MeasurementPanelV2({
 
   const hasRpeInput = typeof onRpeChange === "function";
   const contract = resolveScreenContract("exerciseLog");
+  const allowedMetrics = new Set<keyof MeasurementMetrics>(visibleMetrics ?? ["reps", "weight", "time", "distance", "calories"]);
 
   return (
     <section className={cn("space-y-2.5", className)} data-field-label-style={contract.fieldLabelStyle}>
@@ -106,13 +109,14 @@ export function MeasurementPanelV2({
             </div>
           ) : null}
 
-          <div
+          {allowedMetrics.has("reps") ? (
+            <div
             className={cn(metricCardClassName, activeMetrics.reps ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
             onClick={handleMetricCardClick("reps")}
           >
             <MetricHeader title={METRICS[0].title} suffix={METRICS[0].suffix(values)} />
             {"repsMax" in values ? (
-              <div className="mt-1 grid grid-cols-2 gap-2">
+              <div className="mt-1 space-y-2">
                 <input
                   name={names?.reps}
                   type="number"
@@ -123,7 +127,7 @@ export function MeasurementPanelV2({
                     onChange({ reps: event.target.value });
                   }}
                   className={valueInputClassName}
-                  placeholder="min"
+                  placeholder="Min reps"
                 />
                 <input
                   name={names?.repsMax}
@@ -135,7 +139,7 @@ export function MeasurementPanelV2({
                     onChange({ repsMax: event.target.value });
                   }}
                   className={valueInputClassName}
-                  placeholder="max"
+                  placeholder="Max reps (optional)"
                 />
               </div>
             ) : (
@@ -152,9 +156,11 @@ export function MeasurementPanelV2({
                 placeholder="-"
               />
             )}
-          </div>
+            </div>
+          ) : null}
 
-          <div
+          {allowedMetrics.has("weight") ? (
+            <div
             className={cn(metricCardClassName, activeMetrics.weight ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
             onClick={handleMetricCardClick("weight")}
           >
@@ -173,9 +179,11 @@ export function MeasurementPanelV2({
               placeholder="-"
             />
             {names?.weightUnit ? <input type="hidden" name={names.weightUnit} value={values.weightUnit} /> : null}
-          </div>
+            </div>
+          ) : null}
 
-          <div
+          {allowedMetrics.has("time") ? (
+            <div
             className={cn(metricCardClassName, activeMetrics.time ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
             onClick={handleMetricCardClick("time")}
           >
@@ -192,9 +200,11 @@ export function MeasurementPanelV2({
               className={valueInputClassName}
               placeholder="-"
             />
-          </div>
+            </div>
+          ) : null}
 
-          <div
+          {allowedMetrics.has("distance") ? (
+            <div
             className={cn(metricCardClassName, activeMetrics.distance ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
             onClick={handleMetricCardClick("distance")}
           >
@@ -213,9 +223,11 @@ export function MeasurementPanelV2({
               placeholder="-"
             />
             {names?.distanceUnit ? <input type="hidden" name={names.distanceUnit} value={resolvedDistanceUnit} /> : null}
-          </div>
+            </div>
+          ) : null}
 
-          <div
+          {allowedMetrics.has("calories") ? (
+            <div
             className={cn(metricCardClassName, "col-span-2", activeMetrics.calories ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
             onClick={handleMetricCardClick("calories")}
           >
@@ -233,7 +245,8 @@ export function MeasurementPanelV2({
               className={valueInputClassName}
               placeholder="-"
             />
-          </div>
+            </div>
+          ) : null}
 
           {hasRpeInput ? (
             <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>

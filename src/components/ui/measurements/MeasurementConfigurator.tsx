@@ -21,6 +21,7 @@ export function MeasurementConfigurator({
   leadingContent,
   trailingContent,
   topField,
+  visibleMetrics,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -42,6 +43,7 @@ export function MeasurementConfigurator({
     suffix?: string;
     input: ReactNode;
   };
+  visibleMetrics?: Array<keyof MeasurementMetrics>;
 }) {
   return (
     <MeasurementPanelV2
@@ -61,6 +63,7 @@ export function MeasurementConfigurator({
       leadingContent={leadingContent}
       trailingContent={trailingContent}
       topField={topField}
+      visibleMetrics={visibleMetrics}
     />
   );
 }

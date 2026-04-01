@@ -67,11 +67,12 @@ export function SessionAddExerciseForm({
           initialSelectedId={initialSelectedId}
           routineTargetConfig={{ weightUnit }}
           exerciseStats={exerciseStats}
-          footerSlot={(
-            <div className="rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
-              <AppButton type="submit" variant="primary" fullWidth>
+          renderFooter={({ goalValidation }) => (
+            <div className="space-y-2 rounded-[1.1rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-3">
+              <AppButton type="submit" variant="primary" fullWidth disabled={!goalValidation.isValid}>
                 Add Exercise
               </AppButton>
+              {!goalValidation.isValid ? <p className="text-xs text-amber-200/95">{goalValidation.message}</p> : null}
             </div>
           )}
         />

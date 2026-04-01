@@ -15,6 +15,7 @@ import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { getVisibleMetricsForModality, resolveGoalModality, validateGoalConfiguration, type GoalModality } from "@/lib/exercise-goal-validation";
 
 type ExerciseOption = {
   id: string;
@@ -56,6 +57,7 @@ type ExercisePickerProps = {
     selectedCanonicalExerciseId: string | null;
     filteredExercises: ExerciseOption[];
     openExerciseInfo: () => void;
+    goalValidation: { isValid: boolean; message: string };
   }) => ReactNode;
 };
 
@@ -360,6 +362,25 @@ export function ExercisePicker({
   }, [resetMeasurementFields, routineTargetConfig, selectedExercise]);
 
   const isCardio = selectedExercise ? normalizeExerciseTags(selectedExercise).has("cardio") : false;
+  const selectedTagSet = useMemo(() => (selectedExercise ? new Set(normalizeExerciseTags(selectedExercise).keys()) : new Set<string>()), [selectedExercise]);
+  const goalModality: GoalModality = selectedExercise
+    ? resolveGoalModality({
+      measurementType: selectedExercise.measurement_type,
+      equipment: selectedExercise.equipment,
+      tags: selectedTagSet,
+    })
+    : "strength";
+  const visibleMetrics = getVisibleMetricsForModality(goalModality);
+  const goalModeChoices: Array<{ value: GoalModality; label: string }> = useMemo(() => {
+    if (goalModality === "cardio_time_distance") {
+      return [
+        { value: "cardio_time", label: "Time" },
+        { value: "cardio_distance", label: "Distance" },
+        { value: "cardio_time_distance", label: "Time + Distance" },
+      ];
+    }
+    return [];
+  }, [goalModality]);
 
   const handleExercisePress = useCallback((exerciseId: string, isSelected: boolean) => {
     if (isSelected) {
@@ -373,6 +394,39 @@ export function ExercisePicker({
     if (!selectedCanonicalExerciseId) return;
     setIsExerciseInfoOpen(true);
   }, [selectedCanonicalExerciseId]);
+
+  const goalValidation = useMemo(() => validateGoalConfiguration({
+    modality: goalModality,
+    sets: targetSets,
+    repsMin: targetRepsMin,
+    repsMax: targetRepsMax,
+    weight: targetWeight,
+    duration: targetDuration,
+    distance: targetDistance,
+    calories: targetCalories,
+    measurementSelections: new Set(selectedMeasurements),
+  }), [goalModality, selectedMeasurements, targetCalories, targetDistance, targetDuration, targetRepsMax, targetRepsMin, targetSets, targetWeight]);
+
+  useEffect(() => {
+    const allowedMetrics = new Set(getVisibleMetricsForModality(goalModality));
+    setSelectedMeasurements((current) => {
+      const next = current.filter((metric) => allowedMetrics.has(metric));
+      if (next.length) return next;
+      switch (goalModality) {
+        case "bodyweight":
+          return ["reps"];
+        case "cardio_time":
+          return ["time"];
+        case "cardio_distance":
+          return ["distance"];
+        case "cardio_time_distance":
+          return ["time"];
+        case "strength":
+        default:
+          return ["reps", "weight"];
+      }
+    });
+  }, [goalModality]);
 
   return (
     <div className="space-y-4 pb-2">
@@ -470,6 +524,40 @@ export function ExercisePicker({
             </div>
           ) : null}
 
+          {goalModeChoices.length ? (
+            <div className="space-y-1">
+              <p className="px-0.5 text-xs text-muted">Goal mode</p>
+              <div className="flex flex-wrap gap-2">
+                {goalModeChoices.map((choice) => {
+                  const active = goalModality === choice.value;
+                  return (
+                    <button
+                      key={choice.value}
+                      type="button"
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                        active
+                          ? "border-emerald-300/45 bg-emerald-400/16 text-text"
+                          : "border-border/40 bg-[rgb(var(--bg)/0.35)] text-muted hover:text-text",
+                      )}
+                      onClick={() => {
+                        if (choice.value === "cardio_time") {
+                          setSelectedMeasurements(["time"]);
+                        } else if (choice.value === "cardio_distance") {
+                          setSelectedMeasurements(["distance"]);
+                        } else {
+                          setSelectedMeasurements(["time", "distance"]);
+                        }
+                      }}
+                    >
+                      {choice.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           <MeasurementConfigurator
             values={{ reps: targetRepsMin, repsMax: targetRepsMax, weight: targetWeight, duration: targetDuration, distance: targetDistance, calories: targetCalories, weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
             activeMetrics={{ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }}
@@ -510,6 +598,7 @@ export function ExercisePicker({
             }}
             names={{ reps: "targetRepsMin", repsMax: "targetRepsMax", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
             showHeader={false}
+            visibleMetrics={visibleMetrics}
             description={undefined}
             topField={{
               title: "Sets",
@@ -555,6 +644,9 @@ export function ExercisePicker({
               emptyLabel: "Goal missing",
             }}
           />
+          <p className={cn("text-xs", goalValidation.isValid ? "text-emerald-200/90" : "text-amber-200/95")}>
+            {goalValidation.isValid ? "Goal valid. You can add this exercise." : goalValidation.message}
+          </p>
           <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
         </section>
       ) : null}
@@ -564,6 +656,10 @@ export function ExercisePicker({
         selectedCanonicalExerciseId,
         filteredExercises,
         openExerciseInfo,
+        goalValidation: {
+          isValid: goalValidation.isValid,
+          message: goalValidation.message,
+        },
       }) : footerSlot}
 
       <ExerciseInfo
