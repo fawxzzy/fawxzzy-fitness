@@ -47,6 +47,29 @@ export type RoutineDayCardItem = {
   loggedSetCount: number;
 };
 
+const ROUTINES_IA_COPY = {
+  currentRoutine: {
+    title: "Current routine",
+  },
+  routineDays: {
+    title: "Routine days",
+    empty: "No routine days yet.",
+  },
+  allRoutines: {
+    title: "All routines",
+    listAriaLabel: "All routines list",
+    duplicateRuleHint: "Includes your current routine for quick switching.",
+  },
+} as const;
+
+function formatRoutineCount(count: number) {
+  return `${count} ${count === 1 ? "routine" : "routines"} total`;
+}
+
+function formatRoutineDayCount(count: number) {
+  return `${count} ${count === 1 ? "day" : "days"}`;
+}
+
 export function RoutinesPageClient({
   activeRoutineId,
   activeRoutineName,
@@ -144,7 +167,7 @@ export function RoutinesPageClient({
     <RoutinesPageScaffold
       summary={(
         <ActiveRoutineSummaryCard
-          title="Current Routine"
+          title={ROUTINES_IA_COPY.currentRoutine.title}
           subtitle={activeRoutineSummary}
           status={<ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
         >
@@ -154,10 +177,10 @@ export function RoutinesPageClient({
     >
       {isRoutineListOpen ? (
         <RoutinesSectionCard
-          title="All routines"
-          meta={`${routines.length} total`}
+          title={ROUTINES_IA_COPY.allRoutines.title}
+          meta={`${formatRoutineCount(routines.length)} • ${ROUTINES_IA_COPY.allRoutines.duplicateRuleHint}`}
         >
-          <div id="routines-switch-list" aria-label="Routines">
+          <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel}>
             <RoutinesCardList>
               {routines.map((routine) => {
                 const isCurrent = routine.id === activeRoutineId;
@@ -178,8 +201,7 @@ export function RoutinesPageClient({
           </div>
         </RoutinesSectionCard>
       ) : null}
-      {!isRoutineListOpen ? (
-        <SharedDayListSection title="Current routine schedule" meta={`${days.length} days`}>
+      <SharedDayListSection title={ROUTINES_IA_COPY.routineDays.title} meta={formatRoutineDayCount(days.length)}>
           {days.length > 0 ? (
             <DayList>
               {days.map((day) => {
@@ -214,10 +236,9 @@ export function RoutinesPageClient({
               })}
             </DayList>
           ) : (
-            <RoutinesListEmpty>No days yet.</RoutinesListEmpty>
+            <RoutinesListEmpty>{ROUTINES_IA_COPY.routineDays.empty}</RoutinesListEmpty>
           )}
         </SharedDayListSection>
-      ) : null}
     </RoutinesPageScaffold>
   );
 }
