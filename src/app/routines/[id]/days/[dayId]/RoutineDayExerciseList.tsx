@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
+import { getExerciseIconSrc } from "@/lib/exerciseImages";
 
 type RoutineDayExerciseItem = {
   id: string;
@@ -20,22 +21,23 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
 
   return (
     <>
-      <ul className="space-y-2">
-        {exercises.map((exercise) => (
-          <li key={exercise.id}>
-            <StandardExerciseRow
-              exercise={exercise}
-              summary={exercise.goalLine}
-              onPress={() => {
-                if (process.env.NODE_ENV === "development") {
-                  console.debug("[ExerciseInfo:open] RoutineDayExerciseList", { exerciseId: exercise.exerciseId, exercise });
-                }
-                setSelectedExerciseId(exercise.exerciseId);
-              }}
-            />
-          </li>
-        ))}
-      </ul>
+      <DayDetailExerciseList
+        mode="read_only"
+        items={exercises.map((exercise) => ({
+          id: exercise.id,
+          name: exercise.name,
+          summary: exercise.goalLine,
+          iconSrc: getExerciseIconSrc(exercise),
+        }))}
+        onSelectItem={(item) => {
+          const exercise = exercises.find((entry) => entry.id === item.id);
+          if (!exercise) return;
+          if (process.env.NODE_ENV === "development") {
+            console.debug("[ExerciseInfo:open] RoutineDayExerciseList", { exerciseId: exercise.exerciseId, exercise });
+          }
+          setSelectedExerciseId(exercise.exerciseId);
+        }}
+      />
 
       <ExerciseInfo
         exerciseId={selectedExerciseId}

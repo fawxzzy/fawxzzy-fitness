@@ -3,18 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { ExerciseCard } from "@/components/ExerciseCard";
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { listShellClasses } from "@/components/ui/listShellClasses";
 import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
@@ -345,8 +343,6 @@ export function EditableRoutineDayExerciseList({
     return items.filter((exercise) => exercise.id === expandedId);
   }, [editModeActive, expandedId, items]);
 
-
-  const isMissingGoalSummary = (summary: string) => summary === "Goal missing";
   const [headerActionTarget, setHeaderActionTarget] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -478,13 +474,12 @@ export function EditableRoutineDayExerciseList({
       </form>
 
       {modeViewModel.shouldShowExerciseList ? (
-      <ul className="space-y-2 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
-        {visibleItems.map((exercise, index) => {
-          const isExpanded = expandedId === exercise.id;
-          const isDragging = activeDragId === exercise.id;
-          return (
-            <li key={exercise.id} className="rounded-[1.3rem] transition-all">
-                {reorderMode ? (
+        reorderMode ? (
+          <ul className="space-y-2 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
+            {visibleItems.map((exercise, index) => {
+              const isDragging = activeDragId === exercise.id;
+              return (
+                <li key={exercise.id} className="rounded-[1.3rem] transition-all">
                   <ReorderExerciseRow
                     exerciseId={exercise.id}
                     exerciseName={exercise.name}
@@ -497,47 +492,35 @@ export function EditableRoutineDayExerciseList({
                     onHandlePointerUp={handleHandlePointerUp}
                     onHandlePointerCancel={() => finishReorder()}
                   />
-                ) : (
-                <div
-                  className={cn(
-                    "overflow-hidden rounded-[1.25rem] border transition-colors",
-                    isExpanded
-                      ? "border-emerald-400/40 bg-[linear-gradient(180deg,rgba(96,200,130,0.08),rgba(var(--surface-2-soft)/0.78))] shadow-[0_18px_38px_-28px_rgba(96,200,130,0.55)]"
-                      : "border-border/45 bg-[rgb(var(--surface-2-soft)/0.28)]",
-                  )}
-                >
-                  <ExerciseCard
-                    title={exercise.name}
-                    subtitle={exercise.targetSummary}
-                    variant="interactive"
-                    state={isExpanded ? "selected" : isMissingGoalSummary(exercise.targetSummary) ? "empty" : "default"}
-                    onPress={!modeViewModel.isExerciseListInteractive ? undefined : () => setExpandedId((current) => current === exercise.id ? null : exercise.id)}
-                    badgeText={isExpanded ? "Editing" : isMissingGoalSummary(exercise.targetSummary) ? undefined : `#${index + 1}`}
-                    leadingVisual={(
-                      <ExerciseAssetImage
-                        src={getExerciseIconSrc(exercise)}
-                        alt={`${exercise.name} icon`}
-                        className="h-11 w-11 rounded-xl border border-border/35"
-                        imageClassName="object-cover object-center"
-                        sizes="44px"
-                      />
-                    )}
-                    trailingClassName="self-start pt-0.5"
-                    className={cn(
-                      listShellClasses.card,
-                      "w-full rounded-[1.25rem] border-0 bg-transparent px-3.5 py-3.5 shadow-none",
-                      isExpanded ? "rounded-b-none pb-2" : undefined,
-                    )}
-                    rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
-                  />
-
-                  {isExpanded ? (
-                    <div className="border-t border-border/30 px-3.5 pb-3.5 pt-2 sm:px-4">
-                      <form
-                        ref={(node) => {
-                          if (isExpanded) activeEditFormRef.current = node;
-                        }}
-                        action={async (formData) => {
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <DayDetailExerciseList
+            mode="editable"
+            className="pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]"
+            items={visibleItems.map((exercise) => ({
+              id: exercise.id,
+              name: exercise.name,
+              summary: exercise.targetSummary,
+              iconSrc: getExerciseIconSrc(exercise),
+            }))}
+            activeItemId={expandedId}
+            onSelectItem={!modeViewModel.isExerciseListInteractive ? undefined : (item) => {
+              setExpandedId((current) => current === item.id ? null : item.id);
+            }}
+            renderExpandedContent={(item) => {
+              const exercise = items.find((entry) => entry.id === item.id);
+              if (!exercise) return null;
+              const isExpanded = expandedId === exercise.id;
+              if (!isExpanded) return null;
+              return (
+                <form
+                  ref={(node) => {
+                    if (isExpanded) activeEditFormRef.current = node;
+                  }}
+                  action={async (formData) => {
                           const result = await updateAction(formData);
                           if (!result.ok) {
                             const nextError = result.error ?? "Could not update exercise.";
@@ -597,30 +580,26 @@ export function EditableRoutineDayExerciseList({
                             router.refresh();
                           }
                         }}
-                        className="space-y-3"
-                        onChangeCapture={scheduleAutosave}
-                        onBlurCapture={flushAutosave}
-                      >
-                        <input type="hidden" name="routineId" value={routineId} />
-                        <input type="hidden" name="routineDayId" value={routineDayId} />
-                        <input type="hidden" name="exerciseRowId" value={exercise.id} />
-                        <RoutineTargetInputs
-                          weightUnit={weightUnit}
-                          distanceUnit={exercise.defaultDistanceUnit}
-                          defaultSets={exercise.defaults.targetSets ?? 1}
-                          defaults={exercise.defaults}
-                          modality={resolveInlineModality(exercise.measurementType, exercise.equipment)}
-                        />
-                        {autosaveError ? <p className="text-xs text-rose-300">{autosaveError}</p> : null}
-                      </form>
-                    </div>
-                  ) : null}
-                </div>
-                )}
-            </li>
-          );
-        })}
-      </ul>
+                  className="space-y-3"
+                  onChangeCapture={scheduleAutosave}
+                  onBlurCapture={flushAutosave}
+                >
+                  <input type="hidden" name="routineId" value={routineId} />
+                  <input type="hidden" name="routineDayId" value={routineDayId} />
+                  <input type="hidden" name="exerciseRowId" value={exercise.id} />
+                  <RoutineTargetInputs
+                    weightUnit={weightUnit}
+                    distanceUnit={exercise.defaultDistanceUnit}
+                    defaultSets={exercise.defaults.targetSets ?? 1}
+                    defaults={exercise.defaults}
+                    modality={resolveInlineModality(exercise.measurementType, exercise.equipment)}
+                  />
+                  {autosaveError ? <p className="text-xs text-rose-300">{autosaveError}</p> : null}
+                </form>
+              );
+            }}
+          />
+        )
       ) : null}
 
       <ConfirmDestructiveModal
