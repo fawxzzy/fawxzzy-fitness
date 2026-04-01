@@ -1,4 +1,4 @@
-import { deriveSessionExerciseProgressState, type SessionExercisePresentationSurface, type SessionExerciseProgressChip } from "./session-exercise-progress.ts";
+import { deriveSessionExerciseProgressState, type SessionExercisePresentationSurface, type SessionExerciseProgressChip } from "./session-exercise-progress";
 
 export type WorkoutExerciseCardVariant = "pending" | "active";
 
