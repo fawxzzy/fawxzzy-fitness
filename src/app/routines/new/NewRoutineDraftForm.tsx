@@ -11,21 +11,14 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
+import { normalizeRoutineDetailsDraft, validateRoutineDetailsDraft, type RoutineDetailsDraft } from "@/lib/routine-details-form";
 
 const STORAGE_KEY = "routine-new-draft-v1";
 
-type Draft = {
-  name: string;
-  cycleLengthDays: number;
-  startWeekday: string;
-  timezone: string;
-  weightUnit: string;
-};
-
-export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
+export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraft }) {
   const toast = useToast();
   const router = useRouter();
-  const [draft, setDraft] = useState<Draft>(defaults);
+  const [draft, setDraft] = useState<RoutineDetailsDraft>(defaults);
   const [loadedDraft, setLoadedDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,12 +28,8 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Partial<Draft>;
-        setDraft((current) => ({
-          ...current,
-          ...parsed,
-          cycleLengthDays: typeof parsed.cycleLengthDays === "number" ? parsed.cycleLengthDays : current.cycleLengthDays,
-        }));
+        const parsed = JSON.parse(raw) as Partial<RoutineDetailsDraft>;
+        setDraft((current) => normalizeRoutineDetailsDraft(parsed, current));
       }
     } catch {
       // ignore malformed local drafts
@@ -64,6 +53,8 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [draft, loadedDraft]);
+
+  const validation = validateRoutineDetailsDraft(draft);
 
   return (
     <>
@@ -98,11 +89,20 @@ export function NewRoutineDraftForm({ defaults }: { defaults: Draft }) {
             type="button"
             variant="primary"
             fullWidth
+            disabled={!validation.valid}
             onClick={() => {
               setError(null);
               startTransition(async () => {
+                const nextValidation = validateRoutineDetailsDraft(draft);
+                if (!nextValidation.valid) {
+                  const nextError = nextValidation.error ?? "Please complete all required routine fields.";
+                  setError(nextError);
+                  toast.error(nextError);
+                  return;
+                }
+
                 const formData = new FormData();
-                formData.set("name", draft.name);
+                formData.set("name", draft.name.trim());
                 formData.set("cycleLengthDays", String(draft.cycleLengthDays));
                 formData.set("startWeekday", draft.startWeekday);
                 formData.set("timezone", draft.timezone);

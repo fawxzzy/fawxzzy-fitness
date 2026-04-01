@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { EditRoutineAutosaveForm } from "@/app/routines/[id]/edit/EditRoutineAutosaveForm";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -16,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: { id: string };
-  searchParams?: { error?: string; success?: string };
+  searchParams?: { error?: string };
 };
 
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
@@ -48,15 +46,9 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
           startWeekday={startWeekdayDefault}
           timezone={routineTimezoneDefault}
           weightUnit={(routine as RoutineRow).weight_unit ?? "lbs"}
-          success={searchParams?.success}
           error={searchParams?.error}
+          deleteAction={<DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />}
         />
-
-        <PublishBottomActions>
-          <BottomActionSingle>
-            <DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />
-          </BottomActionSingle>
-        </PublishBottomActions>
       </ScrollScreenWithBottomActions>
     </AppShell>
   );

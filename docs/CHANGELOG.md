@@ -4376,6 +4376,7 @@ WHY:
 - Forgot-password now enforces a one-minute client cooldown after successful reset requests, keeps the timer active across refresh, and uses clearer delivery/rate-limit guidance while preserving enumeration-safe messaging.
 
 ### Why
+- Routine details save behavior had drifted between create (explicit submit) and edit (autosave), making save expectations ambiguous and weakening unsaved-change UX.
 - Add Exercise on narrow mobile widths could over-constrain title/action columns and clip filter chips, which reduced readability and made edge rows feel unstable near the bottom dock.
 - Improve CTA readability/clarity on mobile while reducing active-workout UI clutter, so lifters can focus on logging with a clear path back to Today when needed.
 - Restore visual consistency on Today by returning the main card and key status/action affordances to the dark graphite + phthalo palette instead of bright/light surfaces.
@@ -5202,6 +5203,8 @@ WHY:
 ## Unreleased
 
 ### Changed
+- Unified routine details create/edit save behavior onto one explicit manual-save contract: edit no longer autosaves, now uses a primary `Save Changes` CTA that enables only when valid + dirty, with unsaved-change guardrails and separate destructive delete action.
+- Added a shared routine-details draft/validation module and documented the save contract in `docs/routine-details-save-contract.md`.
 - Normalized the app’s header family rhythm across main-tab, detail, editor, and current-session surfaces by tightening shared title sizing, standardizing subtitle spacing, and applying a consistent top breathing inset on header cards.
 - Unified top-right back-button alignment across standalone detail/editor/session headers by removing route-local offset hacks and relying on one shared header action position.
 - Aligned header eyebrow usage/casing in editor and current-session add flows so context labels read consistently without shouting or per-screen variants.
@@ -5224,6 +5227,7 @@ WHY:
 - Removed log-detail “Add Exercise” editing affordances and made session detail fields always visible during edit mode (no collapsible details toggles).
 
 ### Why
+- Routine details save behavior had drifted between create (explicit submit) and edit (autosave), making save expectations ambiguous and weakening unsaved-change UX.
 - Today day-list breakdowns were still lagging behind Routines because their summary path was rebuilding labels from route-local exercise payloads instead of reusing the normalized canonical exercise metadata contract.
 - View Day was the last remaining route still capable of falling back to generic `N exercises` labels because it was not loading the same fallback exercise metadata and was still routing header summary generation through a route-specific wrapper instead of the shared canonical path.
 - Cardio-classified exercises that relied on metadata beyond `measurement_type`/`equipment`/`movement_pattern` were still degrading to generic `N exercises` copy whenever those richer fields were dropped before the shared formatter.
