@@ -2,7 +2,6 @@ import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { Glass } from "@/components/ui/Glass";
-import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
@@ -250,7 +249,7 @@ export default async function RoutinesPage({
   return (
     <MainTabScreen>
       <AppNav />
-      <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
+      <ScrollScreenWithBottomActions>
         <Glass variant="base" className="space-y-3 p-3" interactive={false}>
           {routines.length === 0 ? (
             <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">

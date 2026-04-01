@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { EditRoutineAutosaveForm } from "@/app/routines/[id]/edit/EditRoutineAutosaveForm";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { ROUTINE_START_WEEKDAYS, getRoutineStartWeekdayFromDate } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -36,7 +35,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions className={FIXED_CTA_RESERVE_CLASS}>
+      <ScrollScreenWithBottomActions>
         <EditRoutineAutosaveForm
           routineId={routine.id}
           existingStartDate={(routine as RoutineRow).start_date}
