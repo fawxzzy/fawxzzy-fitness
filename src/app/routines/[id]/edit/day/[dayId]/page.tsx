@@ -93,6 +93,8 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       id: exercise.id,
       exerciseId: matchingExercise?.id ?? exercise.exercise_id,
       name,
+      measurementType,
+      equipment: matchingExercise?.equipment ?? null,
       targetSummary: formatGoalSummaryText({
         sets: exercise.target_sets,
         reps: exercise.target_reps_min ?? exercise.target_reps,

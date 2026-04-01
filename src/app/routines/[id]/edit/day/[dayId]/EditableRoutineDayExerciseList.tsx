@@ -15,19 +15,20 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { listShellClasses } from "@/components/ui/listShellClasses";
-import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
-import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
+import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
-import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
   exerciseId: string;
   name: string;
+  measurementType: "reps" | "time" | "distance" | "time_distance";
+  equipment: string | null;
   targetSummary: string;
   isCardio: boolean;
   defaultDistanceUnit: "mi" | "km" | "m";
@@ -75,23 +76,26 @@ function formatDuration(seconds: number | null | undefined) {
   return `${minutes}:${String(remainder).padStart(2, "0")}`;
 }
 
+function resolveInlineModality(measurementType: "reps" | "time" | "distance" | "time_distance", equipment: string | null): GoalModality {
+  return resolveGoalModality({ measurementType, equipment, tags: undefined });
+}
+
 function RoutineTargetInputs({
   weightUnit,
   distanceUnit,
   defaultSets,
   defaults,
-  isCardio,
+  modality,
 }: {
   weightUnit: "lbs" | "kg";
   distanceUnit: "mi" | "km" | "m";
   defaultSets: number;
   defaults: EditableRoutineDayExerciseItem["defaults"];
-  isCardio: boolean;
+  modality: GoalModality;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const [sets, setSets] = useState(String(defaultSets));
-  const [values, setValues] = useState({
-    reps: String(defaults.targetRepsMin ?? defaults.targetReps ?? ""),
+  const [state, setState] = useState<ExerciseGoalFormState>({
+    sets: String(defaultSets),
+    repsMin: String(defaults.targetRepsMin ?? defaults.targetReps ?? ""),
     repsMax: String(defaults.targetRepsMax ?? ""),
     weight: String(defaults.targetWeight ?? ""),
     duration: formatDuration(defaults.targetDurationSeconds),
@@ -99,62 +103,24 @@ function RoutineTargetInputs({
     calories: String(defaults.targetCalories ?? ""),
     weightUnit: defaults.targetWeightUnit ?? weightUnit,
     distanceUnit: defaults.targetDistanceUnit ?? distanceUnit,
-  });
-  const [activeMetrics, setActiveMetrics] = useState({
-    reps: defaults.targetRepsMin != null || defaults.targetRepsMax != null || defaults.targetReps != null,
-    weight: defaults.targetWeight != null,
-    time: defaults.targetDurationSeconds != null,
-    distance: defaults.targetDistance != null,
-    calories: defaults.targetCalories != null,
-  });
-  const summaryValues = sanitizeEnabledMeasurementValues(activeMetrics, {
-    reps: values.reps ? Number(values.reps) : null,
-    weight: values.weight ? Number(values.weight) : null,
-    durationSeconds: values.duration ? (values.duration.includes(":") ? Number(values.duration.split(":")[0]) * 60 + Number(values.duration.split(":")[1]) : Number(values.duration)) : null,
-    distance: values.distance ? Number(values.distance) : null,
-    calories: values.calories ? Number(values.calories) : null,
+    measurements: [
+      ...(defaults.targetRepsMin != null || defaults.targetRepsMax != null || defaults.targetReps != null ? ["reps" as const] : []),
+      ...(defaults.targetWeight != null ? ["weight" as const] : []),
+      ...(defaults.targetDurationSeconds != null ? ["time" as const] : []),
+      ...(defaults.targetDistance != null ? ["distance" as const] : []),
+      ...(defaults.targetCalories != null ? ["calories" as const] : []),
+    ],
   });
 
   return (
     <div className="space-y-3">
-      {Object.entries(activeMetrics).map(([metric, enabled]) => enabled ? <input key={metric} type="hidden" name="measurementSelections" value={metric} /> : null)}
-      <MeasurementConfigurator
-        values={{
-          reps: values.reps,
-          repsMax: values.repsMax,
-          weight: values.weight,
-          duration: values.duration,
-          distance: values.distance,
-          calories: values.calories,
-          weightUnit: values.weightUnit,
-          distanceUnit: values.distanceUnit,
-        }}
-        activeMetrics={activeMetrics}
-        isExpanded={expanded}
-        onExpandedChange={setExpanded}
-        onMetricToggle={(metric) => setActiveMetrics((current) => {
-          const nextMetrics = { ...current, [metric]: !current[metric] };
-          const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
-            reps: values.reps,
-            weight: values.weight,
-            duration: values.duration,
-            distance: values.distance,
-            calories: values.calories,
-          });
-          setValues((existing) => ({
-            ...existing,
-            reps: sanitizedValues.reps,
-            repsMax: nextMetrics.reps ? existing.repsMax : "",
-            weight: sanitizedValues.weight,
-            duration: sanitizedValues.duration,
-            distance: sanitizedValues.distance,
-            calories: sanitizedValues.calories,
-          }));
-          return nextMetrics;
-        })}
-        onChange={(patch) => setValues((current) => ({ ...current, ...patch }))}
+      <ExerciseGoalForm
+        modality={modality}
+        state={state}
+        onStateChange={setState}
         names={{
-          reps: "targetRepsMin",
+          sets: "targetSets",
+          repsMin: "targetRepsMin",
           repsMax: "targetRepsMax",
           weight: "targetWeight",
           duration: "targetDuration",
@@ -163,36 +129,9 @@ function RoutineTargetInputs({
           weightUnit: "targetWeightUnit",
           distanceUnit: "targetDistanceUnit",
         }}
-        showHeader={false}
-        description={undefined}
-        topField={{
-          title: "Sets",
-          suffix: "target",
-          input: (
-            <input
-              type="number"
-              min={1}
-              name="targetSets"
-              value={sets}
-              onChange={(event) => setSets(event.target.value)}
-              placeholder="Sets"
-              required
-              className="input-no-spinner h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
-            />
-          ),
-        }}
+        emptySummaryLabel="Goal missing"
       />
-      <GoalSummaryInline
-        values={{
-          ...summaryValues,
-          sets: sets ? Number(sets) : null,
-          repsMax: activeMetrics.reps && values.repsMax ? Number(values.repsMax) : null,
-          weightUnit: values.weightUnit,
-          distanceUnit: values.distanceUnit,
-          emptyLabel: "Goal missing",
-        }}
-      />
-      <input type="hidden" name="defaultUnit" value={activeMetrics.distance ? values.distanceUnit : "mi"} />
+      <input type="hidden" name="defaultUnit" value={state.measurements.includes("distance") ? state.distanceUnit : "mi"} />
     </div>
   );
 }
@@ -534,7 +473,7 @@ export function EditableRoutineDayExerciseList({
       </form>
 
       {modeViewModel.shouldShowExerciseList ? (
-      <ul className="space-y-2">
+      <ul className="space-y-2 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
         {visibleItems.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
           const isDragging = activeDragId === exercise.id;
@@ -665,7 +604,7 @@ export function EditableRoutineDayExerciseList({
                           distanceUnit={exercise.defaultDistanceUnit}
                           defaultSets={exercise.defaults.targetSets ?? 1}
                           defaults={exercise.defaults}
-                          isCardio={exercise.isCardio}
+                          modality={resolveInlineModality(exercise.measurementType, exercise.equipment)}
                         />
                         {autosaveError ? <p className="text-xs text-rose-300">{autosaveError}</p> : null}
                       </form>
