@@ -204,10 +204,9 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
         leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
         className={cn(
           listShellClasses.card,
-          "items-center",
           hasStats ? "border-emerald-400/35 bg-emerald-500/10 hover:bg-emerald-500/14" : undefined,
         )}
-        trailingClassName={cn("self-center", isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted")}
+        trailingClassName={cn(isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted")}
         rightIcon={(
           <span
             aria-hidden="true"
@@ -376,7 +375,7 @@ export function ExercisePicker({
   }, [selectedCanonicalExerciseId]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-2">
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
       <section className="space-y-3.5 rounded-[1.35rem] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-3.5 shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] sm:p-4">
@@ -400,8 +399,8 @@ export function ExercisePicker({
               variant="compact"
               state="selected"
               leadingVisual={<ExerciseThumbnail exercise={selectedExercise} iconSrc={exerciseIconSrcById.get(selectedExercise.id) ?? getExerciseIconSrc(selectedExercise)} />}
-              className={cn(listShellClasses.card, "items-center py-2.5")}
-              trailingClassName="self-center text-[rgb(var(--text)/0.98)]"
+              className={cn(listShellClasses.card, "py-2.5")}
+              trailingClassName="text-[rgb(var(--text)/0.98)]"
               rightIcon={<AppBadge tone="success" className="min-h-6 min-w-[3.25rem]">Selected</AppBadge>}
             />
           ) : (

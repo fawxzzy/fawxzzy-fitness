@@ -85,30 +85,32 @@ export function ExerciseCard({
   state?: ExerciseCardState;
 }) {
   const bodyContent = (
-    <>
-      {leadingVisual ? <div className={cn("shrink-0 self-start rounded-[1rem] border bg-[rgb(var(--bg)/0.08)] p-0.5 pt-0.5 transition-colors [&_img]:transition [&_img]:duration-150", leadingVisualStateClassNames[state])}>{leadingVisual}</div> : null}
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-snug [overflow-wrap:anywhere]", titleStateClassNames[state])}>
-              {title}
-            </p>
-            {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal break-words", subtitleStateClassNames[state])}>{subtitle}</p> : null}
-          </div>
+    <div className="grid min-w-0 flex-1 grid-cols-[auto,minmax(0,1fr),auto] items-start gap-3">
+      {leadingVisual ? <div className={cn("col-start-1 row-span-2 shrink-0 self-start rounded-[1rem] border bg-[rgb(var(--bg)/0.08)] p-0.5 pt-0.5 transition-colors [&_img]:transition [&_img]:duration-150", leadingVisualStateClassNames[state])}>{leadingVisual}</div> : null}
+      <div className="col-start-2 min-w-0 space-y-1.5">
+        <div className="min-w-0 space-y-1">
+          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-snug break-words", titleStateClassNames[state])}>
+            {title}
+          </p>
+          {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal break-words", subtitleStateClassNames[state])}>{subtitle}</p> : null}
+        </div>
+        {children}
+      </div>
+      <div className={cn("col-start-3 row-span-2 flex min-h-full min-w-[4.75rem] shrink-0 items-center justify-end self-stretch text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", trailingClassName)}>
+        <div className="flex flex-col items-end gap-2">
           {badgeText ? (
             <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none", badgeStateClassNames[state])}>
               {badgeText}
             </span>
           ) : null}
+          {rightIcon}
         </div>
-        {children}
       </div>
-      {rightIcon ? <div className={cn("shrink-0 self-center text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", trailingClassName)}>{rightIcon}</div> : null}
-    </>
+    </div>
   );
 
   const baseClassName = cn(
-    "flex w-full items-start justify-between gap-3 rounded-[1.25rem] border text-left",
+    "flex w-full items-start rounded-[1.25rem] border text-left",
     variantClassNames[variant],
     stateClassNames[state],
     onPress ? appTokens.rowInteractive : undefined,

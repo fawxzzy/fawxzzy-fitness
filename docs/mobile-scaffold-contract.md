@@ -22,3 +22,13 @@ This contract defines the canonical mobile page structure for screens with persi
 - Wrap screen body in `MobileScreenScaffold` (or `ScrollScreenWithBottomActions` convenience wrapper).
 - Publish bottom actions with `PublishBottomActions`/`usePublishBottomActions`.
 - Keep route-level shells (`AppShell`, `MainTabScreen`) focused on page frame and navigation offsets only.
+
+## Responsive card and chip contract (mobile add-exercise flows)
+
+- Result cards must keep a stable three-zone layout at narrow widths:
+  1. **fixed media/thumb column** (non-shrinking),
+  2. **flexible text column** (`minmax(0, 1fr)` + `break-words`),
+  3. **reserved action/badge column** with minimum width so title/subtitle never collide with actions.
+- Metadata/subtitle content should wrap naturally (no forced mid-word fragmenting) and remain readable under long exercise names or dense equipment/muscle/pattern combinations.
+- Taxonomy/filter chips must either fully wrap within their container or intentionally scroll with visible affordance. Do not use hidden horizontal clipping that cuts chips at the right edge.
+- Add-exercise screens must rely on scaffold bottom inset reservation so selected cards and first/last library rows remain visible above dock actions.
