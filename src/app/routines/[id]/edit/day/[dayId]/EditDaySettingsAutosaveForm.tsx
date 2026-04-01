@@ -11,6 +11,7 @@ import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
+import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 
 type Props = {
   routineId: string;
@@ -69,8 +70,8 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
         if (previousSnapshot.isRest !== nextSnapshot.isRest) {
           toast.info(
             nextSnapshot.isRest
-              ? "Rest day enabled. Existing exercises are preserved and hidden."
-              : "Rest day disabled. Preserved exercises are visible again.",
+              ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled
+              : REST_DAY_BEHAVIOR_CONTRACT.copy.disabled,
             { id: "day-rest-toggle-status", durationMs: 2600 },
           );
         }
@@ -130,7 +131,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
             <span>{draft.isRest ? "On" : "Off"}</span>
           </button>
           <p className="mt-2 text-xs text-[rgb(var(--text)/0.65)]">
-            Turning on rest hides planned exercises without deleting them.
+            {REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
           </p>
         </div>
       </RoutineEditorPageHeader>

@@ -2,6 +2,11 @@
 
 This matrix defines the canonical UI contract for Edit Day modes. The screen should derive behavior from one explicit mode value, not from ad hoc boolean combinations.
 
+Implementation ownership:
+- mode resolver + selectors: `src/features/day-editor/mode.ts`
+- CTA dock variant resolver: `src/shared/day-cta-dock/dayCtaDockState.ts`
+- header meta resolver: `src/shared/day-header/dayHeaderSummary.ts`
+
 ## Canonical modes
 
 - `default`
