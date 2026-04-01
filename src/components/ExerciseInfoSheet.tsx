@@ -214,7 +214,7 @@ export function ExerciseInfoSheet({
       <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
         <section className="flex h-full w-full flex-col">
           <div className="flex-1 overflow-y-auto overscroll-contain">
-            <ScreenScaffold className="mx-auto w-full max-w-xl space-y-4 px-4 pb-[calc(var(--app-safe-bottom)+1rem)]">
+            <ScreenScaffold recipe="exerciseDetail" className="mx-auto w-full max-w-md px-4 pb-[calc(var(--app-safe-bottom)+1rem)]">
               <DetailHeader
                 title={exercise.name}
                 action={(
