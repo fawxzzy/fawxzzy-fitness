@@ -8,7 +8,7 @@ The `/routines` screen is organized into three user-facing sections:
 
 1. `Current routine`
 2. `Routine days`
-3. `All routines` (when expanded via the bottom dock control)
+3. `All routines` (always rendered; expands to list mode via the bottom dock control)
 
 The screen shell, spacing rhythm, and bottom dock behavior should remain consistent with existing routines page-family conventions.
 
@@ -27,9 +27,10 @@ The screen shell, spacing rhythm, and bottom dock behavior should remain consist
 
 ## All routines section
 
-- Routine switching belongs to an explicit `All routines` section.
+- Routine switching belongs to an explicit `All routines` section that remains visible in both collapsed and expanded states.
 - Section metadata should communicate count in natural language (for example, `4 routines total`) rather than internal label formats.
 - Metadata should explicitly state duplication behavior: the current routine appears in both `Current routine` and `All routines`.
+- When collapsed, the section should provide human-facing helper copy that clarifies how to open the switcher.
 - The selected routine in the list should use the `ACTIVE` label.
 
 ## Label semantics

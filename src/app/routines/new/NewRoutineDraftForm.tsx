@@ -8,10 +8,10 @@ import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppButton } from "@/components/ui/AppButton";
-import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
 import { buildRoutineDetailsSnapshot, normalizeRoutineDetailsDraft, validateRoutineDetailsDraft, type RoutineDetailsDraft } from "@/lib/routine-details-form";
+import { RoutineDetailsSaveState } from "@/components/routines/RoutineDetailsFormState";
 
 const STORAGE_KEY = "routine-new-draft-v1";
 
@@ -96,12 +96,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
             }}
           />
         </RoutineEditorPageHeader>
-        {error ? <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{error}</AccentSubtitleText> : null}
-        {!error ? (
-          <AccentSubtitleText className="text-[rgb(var(--text)/0.7)]">
-            {isSaving ? "Saving changes…" : (isDirty ? "Unsaved changes" : "All changes saved")}
-          </AccentSubtitleText>
-        ) : null}
+        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} />
       </div>
 
       <PublishBottomActions>

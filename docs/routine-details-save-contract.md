@@ -27,6 +27,13 @@ Routine details uses **manual save** as the explicit save contract.
   - in-app back prompts for discard via the existing routine editor confirm sheet
   - browser/tab unload prompts when edits are unsaved
 
+### Shared Save-State Feedback
+- Create and edit render the same save-state copy contract through a shared form-state component.
+- Feedback states are:
+  - `Saving changes…` while a save action is pending
+  - `Unsaved changes` when local edits are dirty
+  - `All changes saved` when local state matches saved/baseline state
+
 ### Destructive Action Separation
 - **Delete Routine** remains a destructive action and is kept separate from the primary save action.
 - Delete never shares the primary CTA role or label.
