@@ -20,6 +20,7 @@ export function AttachedQuickActionStrip({
   onSkip,
   isSkipPending,
   isPending,
+  isQuickLogDisabled,
   className,
 }: {
   label?: string;
@@ -31,6 +32,7 @@ export function AttachedQuickActionStrip({
   onSkip?: () => Promise<void> | void;
   isSkipPending?: boolean;
   isPending?: boolean;
+  isQuickLogDisabled?: boolean;
   className?: string;
 }) {
   return (
@@ -59,10 +61,10 @@ export function AttachedQuickActionStrip({
           variant="secondary"
           size="sm"
           onClick={onPress}
-          disabled={isPending}
+          disabled={isPending || isQuickLogDisabled}
           className={cn("col-span-2 min-h-[38px] border-white/8 bg-transparent text-[12px] font-medium shadow-none hover:bg-white/[0.05]", quickLogActionClassName)}
         >
-          {isPending ? "Adding…" : label}
+          {isQuickLogDisabled ? "Unavailable while skipped" : isPending ? "Adding…" : label}
         </AppButton>
       </div>
     </div>

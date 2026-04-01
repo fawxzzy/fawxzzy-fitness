@@ -1,6 +1,6 @@
 import { deriveSessionExerciseProgressState } from "./session-exercise-progress";
 
-export type WorkoutExerciseCardVariant = "pending" | "logged" | "skipped";
+export type WorkoutExerciseCardVariant = "pending" | "active";
 
 export type DeriveWorkoutExerciseCardVariantInput = {
   loggedSetCount: number;
@@ -14,38 +14,27 @@ export type WorkoutExerciseCardVariantState = {
   variant: WorkoutExerciseCardVariant;
   cardState: "default" | "completed";
   badgeText?: string;
-  chips: Array<"skipped" | "addedToday">;
+  chips: Array<"skipped" | "partialSkipped" | "addedToday">;
   skipActionLabel: "Skip" | "Unskip";
   actionRowClassName: string;
   quickLogActionClassName: string;
   skipActionClassName: string;
+  isQuickLogDisabled: boolean;
 };
 
 export function deriveWorkoutExerciseCardVariant(input: DeriveWorkoutExerciseCardVariantInput): WorkoutExerciseCardVariantState {
   const progressState = deriveSessionExerciseProgressState(input);
-  const variant: WorkoutExerciseCardVariant = input.isPending
-    ? "pending"
-    : input.isSkipped
-      ? "skipped"
-      : "logged";
-  const variantStyles: Record<WorkoutExerciseCardVariant, Pick<WorkoutExerciseCardVariantState, "skipActionLabel" | "actionRowClassName" | "quickLogActionClassName" | "skipActionClassName">> = {
+  const variant: WorkoutExerciseCardVariant = input.isPending ? "pending" : "active";
+  const variantStyles: Record<WorkoutExerciseCardVariant, Pick<WorkoutExerciseCardVariantState, "actionRowClassName" | "quickLogActionClassName" | "skipActionClassName">> = {
     pending: {
-      skipActionLabel: "Skip",
       actionRowClassName: "opacity-85",
       quickLogActionClassName: "text-[rgb(var(--text)/0.62)]",
       skipActionClassName: "text-[rgb(var(--text)/0.62)]",
     },
-    logged: {
-      skipActionLabel: "Skip",
+    active: {
       actionRowClassName: "opacity-100",
       quickLogActionClassName: "text-[rgb(var(--text)/0.74)]",
-      skipActionClassName: "text-[rgb(var(--text)/0.74)]",
-    },
-    skipped: {
-      skipActionLabel: "Unskip",
-      actionRowClassName: "opacity-100",
-      quickLogActionClassName: "text-[rgb(var(--text)/0.74)]",
-      skipActionClassName: "text-amber-100",
+      skipActionClassName: progressState.skipActionLabel === "Unskip" ? "text-amber-100" : "text-[rgb(var(--text)/0.74)]",
     },
   };
 
@@ -53,7 +42,9 @@ export function deriveWorkoutExerciseCardVariant(input: DeriveWorkoutExerciseCar
     variant,
     cardState: progressState.cardState,
     badgeText: progressState.badgeText,
-    chips: variant === "skipped" ? ["skipped"] : [],
+    chips: progressState.chips,
+    skipActionLabel: progressState.skipActionLabel,
+    isQuickLogDisabled: !progressState.allowQuickLog,
     ...variantStyles[variant],
   };
 }

@@ -22,20 +22,33 @@ test("deriveWorkoutExerciseCardVariant returns skipped semantics with recoverabi
     targetSetsMin: 3,
   });
 
-  assert.equal(state.variant, "skipped");
+  assert.equal(state.variant, "active");
   assert.deepEqual(state.chips, ["skipped"]);
   assert.equal(state.skipActionLabel, "Unskip");
   assert.equal(state.skipActionClassName, "text-amber-100");
+  assert.equal(state.isQuickLogDisabled, true);
 });
 
-test("deriveWorkoutExerciseCardVariant preserves logged completion badge behavior", () => {
+test("deriveWorkoutExerciseCardVariant renders partially logged then skipped distinctly", () => {
+  const state = deriveWorkoutExerciseCardVariant({
+    loggedSetCount: 2,
+    isSkipped: true,
+    targetSetsMin: 4,
+  });
+
+  assert.deepEqual(state.chips, ["partialSkipped"]);
+  assert.equal(state.badgeText, "2 logged");
+  assert.equal(state.isQuickLogDisabled, true);
+});
+
+test("deriveWorkoutExerciseCardVariant preserves completion badge behavior", () => {
   const state = deriveWorkoutExerciseCardVariant({
     loggedSetCount: 3,
     isSkipped: false,
     targetSetsMin: 3,
   });
 
-  assert.equal(state.variant, "logged");
+  assert.equal(state.variant, "active");
   assert.equal(state.cardState, "completed");
   assert.equal(state.badgeText, "3 logged");
 });

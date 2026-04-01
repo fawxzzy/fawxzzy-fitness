@@ -21,6 +21,7 @@ import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
 import { formatQuickLogPreviewLabel, resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
 import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
+import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 
 type AddSetPayload = {
   sessionId: string;
@@ -135,6 +136,15 @@ export function SessionExerciseFocus({
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
     [exercises, selectedExerciseId],
   );
+  const selectedExerciseSetCount = selectedExercise ? (loggedSetCounts[selectedExercise.id] ?? selectedExercise.loggedSetCount) : 0;
+  const selectedExerciseProgress = selectedExercise
+    ? deriveSessionExerciseProgressState({
+      loggedSetCount: selectedExerciseSetCount,
+      isSkipped: selectedExercise.isSkipped,
+      targetSetsMin: selectedExercise.targetSetsMin,
+      targetSetsMax: selectedExercise.targetSetsMax,
+    })
+    : null;
   const toast = useToast();
   const router = useRouter();
   const queueUndo = useUndoAction(6000);
@@ -273,6 +283,7 @@ export function SessionExerciseFocus({
                     quickLogActionClassName={cardVariantState.quickLogActionClassName}
                     skipActionClassName={cardVariantState.skipActionClassName}
                     actionRowClassName={cardVariantState.actionRowClassName}
+                    isQuickLogDisabled={cardVariantState.isQuickLogDisabled}
                     isSkipPending={skipPendingId === exercise.id}
                     onSkip={async () => {
                       setSkipPendingId(exercise.id);
@@ -339,10 +350,11 @@ export function SessionExerciseFocus({
             eyebrow="Exercise Log"
             title={selectedExercise?.name ?? "Exercise"}
             description={selectedExercise?.goalLabel || undefined}
-            meta={selectedExercise?.routineDayExerciseId === null || selectedExercise?.isSkipped ? (
+            meta={selectedExercise && (selectedExercise.routineDayExerciseId === null || (selectedExerciseProgress?.chips.length ?? 0) > 0) ? (
               <div className="flex flex-wrap items-center gap-2">
-                {selectedExercise?.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
-                {selectedExercise?.isSkipped ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
+                {selectedExercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
+                {selectedExerciseProgress?.chips.includes("partialSkipped") ? <Pill tone="warning" className="normal-case tracking-normal">Partially logged, then skipped</Pill> : null}
+                {selectedExerciseProgress?.chips.includes("skipped") ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
               </div>
             ) : undefined}
             actions={(
@@ -360,9 +372,9 @@ export function SessionExerciseFocus({
           <div ref={focusedRef} />
 
 
-          {selectedExercise!.isSkipped ? (
+          {selectedExerciseProgress?.kind === "skipped" || selectedExerciseProgress?.kind === "partialSkipped" ? (
             <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
-              Skipped for this session. Unskip to keep logging.
+              {selectedExerciseProgress?.kind === "partialSkipped" ? "Partially logged, then skipped for this session. Unskip to keep logging." : "Skipped for this session. Unskip to keep logging."}
             </div>
           ) : null}
 
