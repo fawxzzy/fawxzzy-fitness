@@ -56,19 +56,19 @@ export function resolveDayCardState(status: DayCardStatus): DayListState {
 
 export function resolveDayCardBadgeText(status: DayCardStatus): string | undefined {
   if (status.isInSession) {
-    return "In Session";
+    return "ACTIVE";
   }
 
   if (status.isCompleted) {
-    return "Completed";
+    return "COMPLETED";
   }
 
   if (status.isToday) {
-    return "Today";
+    return "TODAY";
   }
 
   if (status.isRest) {
-    return "Rest Day";
+    return "REST DAY";
   }
 
   return undefined;
