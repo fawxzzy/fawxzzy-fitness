@@ -97,8 +97,8 @@ export function ExerciseTagFilterControl({
             <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
               <p className={compact ? "text-[10px] font-medium uppercase tracking-[0.14em] text-muted/80" : "text-[11px] font-medium uppercase tracking-wide text-muted"}>{group.label}</p>
               <div className={compact
-                ? "flex gap-1.5 overflow-x-auto px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap"
-                : "flex gap-1 overflow-x-auto px-0.5 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap"}
+                ? "flex flex-wrap gap-1.5 px-0.5 py-0.5"
+                : "flex flex-wrap gap-1 px-0.5 py-0.5"}
               >
                 {group.tags.map((tag) => {
                   const isSelected = selectedTags.includes(tag.value);

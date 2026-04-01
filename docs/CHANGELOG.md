@@ -2721,6 +2721,7 @@ WHY:
 ## 0.3.0 — 2026-03-03
 
 ### Changed
+- Hardened Add Exercise mobile responsiveness with a fixed-thumb/flexible-text/reserved-action card contract, wrapped filter chips, and safer scaffold inset usage so dock actions do not occlude selected or library content.
 WHAT:
 - Prepared a minor production release by bumping the app version from 0.2.0 to 0.3.0.
 WHY:
@@ -4375,6 +4376,7 @@ WHY:
 - Forgot-password now enforces a one-minute client cooldown after successful reset requests, keeps the timer active across refresh, and uses clearer delivery/rate-limit guidance while preserving enumeration-safe messaging.
 
 ### Why
+- Add Exercise on narrow mobile widths could over-constrain title/action columns and clip filter chips, which reduced readability and made edge rows feel unstable near the bottom dock.
 - Improve CTA readability/clarity on mobile while reducing active-workout UI clutter, so lifters can focus on logging with a clear path back to Today when needed.
 - Restore visual consistency on Today by returning the main card and key status/action affordances to the dark graphite + phthalo palette instead of bright/light surfaces.
 - Reduces palette drift on the most-used Today flow, improving visual consistency and readability by keeping actions/status cues inside the app's graphite + phthalo system.
