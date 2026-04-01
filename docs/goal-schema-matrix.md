@@ -16,3 +16,4 @@ This matrix defines the **minimum valid goal state** required before the Add Exe
 - Validation state is communicated in text directly under goal fields and under the CTA.
 - Goal mode only renders relevant metric cards for the chosen modality mode to improve mobile readability.
 - Empty goal previews use explicit guidance text instead of a visual-only "Goal missing" badge.
+- Add and inline Edit flows both mount the same shared `SharedExerciseGoalForm` wrapper so modality logic does not drift.
