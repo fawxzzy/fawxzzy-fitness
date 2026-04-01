@@ -111,7 +111,7 @@ export function MeasurementPanelV2({
 
           {allowedMetrics.has("reps") ? (
             <div
-            className={cn(metricCardClassName, activeMetrics.reps ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
+            className={cn(metricCardClassName, "col-span-2", activeMetrics.reps ? "border-emerald-300/26 bg-[rgb(var(--bg)/0.34)]" : "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
             onClick={handleMetricCardClick("reps")}
           >
             <MetricHeader title={METRICS[0].title} suffix={METRICS[0].suffix(values)} />
@@ -127,7 +127,7 @@ export function MeasurementPanelV2({
                     onChange({ reps: event.target.value });
                   }}
                   className={valueInputClassName}
-                  placeholder="Min reps"
+                  placeholder="Min reps (required)"
                 />
                 <input
                   name={names?.repsMax}
@@ -139,7 +139,7 @@ export function MeasurementPanelV2({
                     onChange({ repsMax: event.target.value });
                   }}
                   className={valueInputClassName}
-                  placeholder="Max reps (optional)"
+                  placeholder="Max reps (optional range)"
                 />
               </div>
             ) : (

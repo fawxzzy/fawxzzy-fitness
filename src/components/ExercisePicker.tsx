@@ -256,6 +256,7 @@ export function ExercisePicker({
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
   const [selectedMeasurements, setSelectedMeasurements] = useState<Array<"reps" | "weight" | "time" | "distance" | "calories">>([]);
+  const [selectedGoalMode, setSelectedGoalMode] = useState<GoalModality | null>(null);
   const [targetRepsMin, setTargetRepsMin] = useState("");
   const [targetRepsMax, setTargetRepsMax] = useState("");
   const [targetSets, setTargetSets] = useState("3");
@@ -370,7 +371,10 @@ export function ExercisePicker({
       tags: selectedTagSet,
     })
     : "strength";
-  const visibleMetrics = getVisibleMetricsForModality(goalModality);
+  const effectiveGoalModality: GoalModality = goalModality === "cardio_time_distance"
+    ? (selectedGoalMode ?? "cardio_time")
+    : goalModality;
+  const visibleMetrics = getVisibleMetricsForModality(effectiveGoalModality);
   const goalModeChoices: Array<{ value: GoalModality; label: string }> = useMemo(() => {
     if (goalModality === "cardio_time_distance") {
       return [
@@ -396,7 +400,7 @@ export function ExercisePicker({
   }, [selectedCanonicalExerciseId]);
 
   const goalValidation = useMemo(() => validateGoalConfiguration({
-    modality: goalModality,
+    modality: effectiveGoalModality,
     sets: targetSets,
     repsMin: targetRepsMin,
     repsMax: targetRepsMax,
@@ -405,14 +409,14 @@ export function ExercisePicker({
     distance: targetDistance,
     calories: targetCalories,
     measurementSelections: new Set(selectedMeasurements),
-  }), [goalModality, selectedMeasurements, targetCalories, targetDistance, targetDuration, targetRepsMax, targetRepsMin, targetSets, targetWeight]);
+  }), [effectiveGoalModality, selectedMeasurements, targetCalories, targetDistance, targetDuration, targetRepsMax, targetRepsMin, targetSets, targetWeight]);
 
   useEffect(() => {
-    const allowedMetrics = new Set(getVisibleMetricsForModality(goalModality));
+    const allowedMetrics = new Set(getVisibleMetricsForModality(effectiveGoalModality));
     setSelectedMeasurements((current) => {
       const next = current.filter((metric) => allowedMetrics.has(metric));
       if (next.length) return next;
-      switch (goalModality) {
+      switch (effectiveGoalModality) {
         case "bodyweight":
           return ["reps"];
         case "cardio_time":
@@ -426,6 +430,14 @@ export function ExercisePicker({
           return ["reps", "weight"];
       }
     });
+  }, [effectiveGoalModality]);
+
+  useEffect(() => {
+    if (goalModality === "cardio_time_distance") {
+      setSelectedGoalMode((current) => current ?? "cardio_time");
+      return;
+    }
+    setSelectedGoalMode(null);
   }, [goalModality]);
 
   return (
@@ -529,7 +541,7 @@ export function ExercisePicker({
               <p className="px-0.5 text-xs text-muted">Goal mode</p>
               <div className="flex flex-wrap gap-2">
                 {goalModeChoices.map((choice) => {
-                  const active = goalModality === choice.value;
+                  const active = effectiveGoalModality === choice.value;
                   return (
                     <button
                       key={choice.value}
@@ -541,6 +553,7 @@ export function ExercisePicker({
                           : "border-border/40 bg-[rgb(var(--bg)/0.35)] text-muted hover:text-text",
                       )}
                       onClick={() => {
+                        setSelectedGoalMode(choice.value);
                         if (choice.value === "cardio_time") {
                           setSelectedMeasurements(["time"]);
                         } else if (choice.value === "cardio_distance") {
@@ -641,7 +654,7 @@ export function ExercisePicker({
               repsMax: selectedMeasurements.includes("reps") && targetRepsMax ? Number(targetRepsMax) : null,
               weightUnit: targetWeightUnit,
               distanceUnit: selectedDefaultUnit,
-              emptyLabel: "Goal missing",
+              emptyLabel: "Add required goal fields to preview summary.",
             }}
           />
           <p className={cn("text-xs", goalValidation.isValid ? "text-emerald-200/90" : "text-amber-200/95")}>
