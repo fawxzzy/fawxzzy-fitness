@@ -26,3 +26,22 @@ This matrix defines the canonical UI contract for Edit Day modes. The screen sho
 2. `adding_exercise` suppresses CTA repetition while the route transition to Add Exercise is in-flight.
 3. `editing_exercise` and `reorder` are mutually exclusive.
 4. Header actions and bottom dock variants are mode-owned selectors and must not be computed with route-local boolean chains.
+
+## Reorder row mobile layout contract
+
+In `reorder` mode, Edit Day rows should switch to a dedicated compact reorder layout instead of the normal interactive exercise card.
+
+- **Column contract (left → right):**
+  1. fixed 44px thumbnail column
+  2. flexible text column (exercise name + goal metadata)
+  3. compact circular order badge
+  4. dedicated drag handle column
+- **Interaction contract:**
+  - normal row tap/disclosure behavior is disabled while reorder mode is active
+  - drag handle is the only reorder affordance
+- **Text contract:**
+  - exercise names and metadata must wrap to additional lines instead of clipping
+  - avoid aggressive word fragmentation; preserve readable word boundaries whenever possible
+- **Order badge contract:**
+  - use stable, high-contrast compact numbering
+  - keep badge legible during drag transitions (tabular numerals + fixed badge box)
