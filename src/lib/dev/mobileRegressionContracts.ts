@@ -1,6 +1,7 @@
 import type { MobileFixtureScenario } from "./mobileRegressionFixtures";
 
 const MIN_METADATA_COLUMN_WIDTH = 120;
+const MAX_GOAL_FORM_LABEL_LENGTH = 36;
 
 export function finalRowVisibleAboveDock(scenario: MobileFixtureScenario) {
   return scenario.geometry.lastInteractiveRowBottom <= scenario.geometry.dockTop;
@@ -27,6 +28,38 @@ export function noImpossibleLoggedSkippedMix(scenario: MobileFixtureScenario) {
   return Boolean(scenario.allowLoggedAndSkipped);
 }
 
+export function cardStateCorrectness(scenario: MobileFixtureScenario) {
+  if (!scenario.cardStates || scenario.cardStates.length === 0) return true;
+
+  const selectedCount = scenario.cardStates.filter((card) => card.state === "selected").length;
+  const activeCount = scenario.cardStates.filter((card) => card.state === "active").length;
+  if (selectedCount > 1 || activeCount > 1) {
+    return false;
+  }
+
+  return scenario.cardStates.every((card) => {
+    if (card.state === "empty") {
+      return card.badgeText === undefined || card.badgeText === "Rest";
+    }
+    return true;
+  });
+}
+
+export function reorderTextStable(scenario: MobileFixtureScenario) {
+  if (!scenario.reorderText) return true;
+  return scenario.reorderText.items.every((item, index) => item.startsWith(`${index + 1}. `))
+    && scenario.reorderText.dragHandleLabel.length > 0;
+}
+
+export function goalFormReadable(scenario: MobileFixtureScenario) {
+  if (!scenario.goalForm) return true;
+
+  const hasLabelOverflow = scenario.goalForm.fieldLabels.some((label) => label.length > MAX_GOAL_FORM_LABEL_LENGTH);
+  const hasAnyHelperText = scenario.goalForm.helperCopy.length > 0;
+
+  return !hasLabelOverflow && hasAnyHelperText;
+}
+
 export function validateMobileScenarioContracts(scenario: MobileFixtureScenario) {
   return {
     finalRowVisibleAboveDock: finalRowVisibleAboveDock(scenario),
@@ -34,5 +67,8 @@ export function validateMobileScenarioContracts(scenario: MobileFixtureScenario)
     chipsStayWithinViewport: chipsStayWithinViewport(scenario),
     longTextLayoutStable: longTextLayoutStable(scenario),
     noImpossibleLoggedSkippedMix: noImpossibleLoggedSkippedMix(scenario),
+    cardStateCorrectness: cardStateCorrectness(scenario),
+    reorderTextStable: reorderTextStable(scenario),
+    goalFormReadable: goalFormReadable(scenario),
   };
 }
