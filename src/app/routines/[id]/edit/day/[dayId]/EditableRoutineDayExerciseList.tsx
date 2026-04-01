@@ -21,6 +21,7 @@ import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
@@ -219,6 +220,7 @@ export function EditableRoutineDayExerciseList({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [autosaveError, setAutosaveError] = useState<string | null>(null);
+  const [isAddingExercise, setIsAddingExercise] = useState(false);
   const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeEditFormRef = useRef<HTMLFormElement | null>(null);
   const pendingSnapshotRef = useRef<string | null>(null);
@@ -318,6 +320,10 @@ export function EditableRoutineDayExerciseList({
     }
   }, [expandedId]);
 
+  useEffect(() => {
+    setIsAddingExercise(false);
+  }, [addExerciseHref, items.length, isRestDay]);
+
   const handleToggleReorderMode = () => {
     if (isRestDay) return;
     setExpandedId(null);
@@ -384,6 +390,12 @@ export function EditableRoutineDayExerciseList({
   };
 
   const editModeActive = expandedId !== null;
+  const modeViewModel = getDayEditorModeViewModel({
+    isRestDay,
+    isReorderMode: reorderMode,
+    hasExpandedExercise: editModeActive,
+    isAddingExercise,
+  });
   const activeExercise = useMemo(
     () => items.find((exercise) => exercise.id === expandedId) ?? null,
     [expandedId, items],
@@ -394,7 +406,6 @@ export function EditableRoutineDayExerciseList({
   }, [editModeActive, expandedId, items]);
 
 
-  const shouldShowAddExerciseAction = !isRestDay && !reorderMode && !editModeActive;
   const isMissingGoalSummary = (summary: string) => summary === "Goal missing";
   const [headerActionTarget, setHeaderActionTarget] = useState<HTMLElement | null>(null);
 
@@ -403,7 +414,7 @@ export function EditableRoutineDayExerciseList({
     setHeaderActionTarget(document.getElementById(headerActionSlotId));
   }, [headerActionSlotId]);
 
-  const headerAction = editModeActive ? (
+  const headerAction = modeViewModel.shouldShowHeaderCloseEditorAction ? (
     <TopRightBackButton
       ariaLabel="Close exercise editor"
       historyBehavior="fallback-only"
@@ -412,7 +423,7 @@ export function EditableRoutineDayExerciseList({
         handleCloseInlineEditor();
       }}
     />
-  ) : (
+  ) : modeViewModel.shouldShowHeaderReorderAction ? (
     <button
       type="button"
       onClick={handleToggleReorderMode}
@@ -428,14 +439,30 @@ export function EditableRoutineDayExerciseList({
     >
       {reorderMode ? "Done" : "Reorder"}
     </button>
+  ) : null;
+
+  const handleAddExercisePress = () => {
+    if (isAddingExercise) return;
+    setIsAddingExercise(true);
+    router.push(addExerciseHref);
+  };
+
+  const emptyState = modeViewModel.shouldShowRestState ? (
+    <div className="rounded-[1.2rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
+      Rest day active. Exercise editing is hidden until rest mode is turned off.
+    </div>
+  ) : (
+    <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
+      No exercises yet. Add one below when you are ready.
+    </div>
   );
 
-  if (items.length === 0) {
+  if (items.length === 0 || modeViewModel.shouldShowRestState) {
     return (
       <>
         {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
         <PublishBottomActions>
-          {editModeActive && activeExercise ? (
+          {modeViewModel.shouldShowBottomEditDock && activeExercise ? (
             <BottomActionDock
               left={(
                 <DockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
@@ -448,17 +475,15 @@ export function EditableRoutineDayExerciseList({
                 </DockButton>
               )}
             />
-          ) : shouldShowAddExerciseAction ? (
+          ) : modeViewModel.shouldShowBottomAddCta ? (
             <BottomActionSingle>
-              <BottomDockButton type="button" variant="primary" onClick={() => router.push(addExerciseHref)}>
+              <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
                 Add Exercise
               </BottomDockButton>
             </BottomActionSingle>
           ) : null}
         </PublishBottomActions>
-        <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
-          No exercises yet. Add one below when you are ready.
-        </div>
+        {emptyState}
       </>
     );
   }
@@ -467,7 +492,7 @@ export function EditableRoutineDayExerciseList({
     <>
       {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
       <PublishBottomActions>
-        {editModeActive && activeExercise ? (
+        {modeViewModel.shouldShowBottomEditDock && activeExercise ? (
           <BottomActionDock
             left={(
               <DockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
@@ -478,11 +503,11 @@ export function EditableRoutineDayExerciseList({
               <DockButton type="button" variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
                 Delete Exercise
               </DockButton>
-            )}
-          />
-        ) : shouldShowAddExerciseAction ? (
+              )}
+            />
+        ) : modeViewModel.shouldShowBottomAddCta ? (
           <BottomActionSingle>
-            <BottomDockButton type="button" variant="primary" onClick={() => router.push(addExerciseHref)}>
+            <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
               Add Exercise
             </BottomDockButton>
           </BottomActionSingle>
@@ -507,7 +532,7 @@ export function EditableRoutineDayExerciseList({
         <input type="hidden" name="orderedExerciseRowIds" value={orderedIds.join(",")} />
       </form>
 
-      {isRestDay ? null : (
+      {modeViewModel.shouldShowExerciseList ? (
       <ul className="space-y-2">
         {visibleItems.map((exercise, index) => {
           const isExpanded = expandedId === exercise.id;
@@ -531,7 +556,7 @@ export function EditableRoutineDayExerciseList({
                     subtitle={exercise.targetSummary}
                     variant="interactive"
                     state={isExpanded ? "selected" : isMissingGoalSummary(exercise.targetSummary) ? "empty" : "default"}
-                    onPress={reorderMode ? undefined : () => setExpandedId((current) => current === exercise.id ? null : exercise.id)}
+                    onPress={!modeViewModel.isExerciseListInteractive || reorderMode ? undefined : () => setExpandedId((current) => current === exercise.id ? null : exercise.id)}
                     badgeText={isExpanded ? "Editing" : isMissingGoalSummary(exercise.targetSummary) ? undefined : `#${index + 1}`}
                     leadingVisual={(
                       <ExerciseAssetImage
@@ -653,7 +678,7 @@ export function EditableRoutineDayExerciseList({
           );
         })}
       </ul>
-      )}
+      ) : null}
 
       <ConfirmDestructiveModal
         open={deleteConfirmOpen}
