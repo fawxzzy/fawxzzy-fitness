@@ -266,6 +266,7 @@ export function SessionExerciseFocus({
                       badgeText={cardVariantState.badgeText}
                     >
                       <WorkoutExerciseRowChips
+                        progressLabel={cardVariantState.progressLabel}
                         chips={exercise.routineDayExerciseId === null ? ["addedToday", ...cardVariantState.chips] : cardVariantState.chips}
                       />
                       {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No {exercise.useIntervalLanguage ? "intervals" : "sets"} yet.</p> : null}
@@ -353,7 +354,8 @@ export function SessionExerciseFocus({
             meta={selectedExercise && (selectedExercise.routineDayExerciseId === null || (selectedExerciseProgress?.chips.length ?? 0) > 0) ? (
               <div className="flex flex-wrap items-center gap-2">
                 {selectedExercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
-                {selectedExerciseProgress?.chips.includes("partialSkipped") ? <Pill tone="warning" className="normal-case tracking-normal">Partially logged, then skipped</Pill> : null}
+                {selectedExerciseProgress?.chips.includes("loggedProgress") ? <Pill tone="default" className="normal-case tracking-normal">{selectedExerciseProgress.progressLabel ?? "Logged"}</Pill> : null}
+                {selectedExerciseProgress?.chips.includes("endedEarly") ? <Pill tone="warning" className="normal-case tracking-normal">Ended early</Pill> : null}
                 {selectedExerciseProgress?.chips.includes("skipped") ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
               </div>
             ) : undefined}
@@ -374,7 +376,9 @@ export function SessionExerciseFocus({
 
           {selectedExerciseProgress?.kind === "skipped" || selectedExerciseProgress?.kind === "partialSkipped" ? (
             <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
-              {selectedExerciseProgress?.kind === "partialSkipped" ? "Partially logged, then skipped for this session. Unskip to keep logging." : "Skipped for this session. Unskip to keep logging."}
+              {selectedExerciseProgress?.kind === "partialSkipped"
+                ? `${selectedExerciseProgress.progressLabel ?? "Partial"} • Ended early for this session. Unskip to keep logging.`
+                : "Skipped for this session. Unskip to keep logging."}
             </div>
           ) : null}
 

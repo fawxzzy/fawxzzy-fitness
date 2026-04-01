@@ -22,6 +22,7 @@ test("deriveSessionExerciseProgressState returns skipped before any logging", ()
     targetSetsMin: 3,
   });
 
+  assert.equal(state.executionState, "skipped_before_start");
   assert.equal(state.kind, "skipped");
   assert.deepEqual(state.chips, ["skipped"]);
   assert.equal(state.badgeText, undefined);
@@ -35,9 +36,11 @@ test("deriveSessionExerciseProgressState returns partialSkipped for abandoned lo
     targetSetsMin: 3,
   });
 
+  assert.equal(state.executionState, "partially_completed");
   assert.equal(state.kind, "partialSkipped");
-  assert.deepEqual(state.chips, ["partialSkipped"]);
-  assert.equal(state.badgeText, "1 logged");
+  assert.deepEqual(state.chips, ["loggedProgress", "endedEarly"]);
+  assert.equal(state.progressLabel, "1 of 3 logged");
+  assert.equal(state.badgeText, "Partial");
   assert.equal(state.skipActionLabel, "Unskip");
 });
 
@@ -48,7 +51,21 @@ test("deriveSessionExerciseProgressState returns completed for goal completion",
     targetSetsMin: 3,
   });
 
+  assert.equal(state.executionState, "completed");
   assert.equal(state.kind, "completed");
   assert.equal(state.cardState, "completed");
-  assert.equal(state.badgeText, "3 logged");
+  assert.equal(state.badgeText, "Completed");
+});
+
+test("deriveSessionExerciseProgressState returns read-only skipped badge for summary surface", () => {
+  const state = deriveSessionExerciseProgressState({
+    loggedSetCount: 0,
+    isSkipped: true,
+    targetSetsMin: 3,
+    surface: "summary",
+  });
+
+  assert.equal(state.executionState, "skipped_before_start");
+  assert.equal(state.badgeText, "Skipped");
+  assert.deepEqual(state.chips, []);
 });

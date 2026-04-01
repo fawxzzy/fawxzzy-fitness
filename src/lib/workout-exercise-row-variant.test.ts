@@ -36,8 +36,9 @@ test("deriveWorkoutExerciseCardVariant renders partially logged then skipped dis
     targetSetsMin: 4,
   });
 
-  assert.deepEqual(state.chips, ["partialSkipped"]);
-  assert.equal(state.badgeText, "2 logged");
+  assert.deepEqual(state.chips, ["loggedProgress", "endedEarly"]);
+  assert.equal(state.progressLabel, "2 of 4 logged");
+  assert.equal(state.badgeText, "Partial");
   assert.equal(state.isQuickLogDisabled, true);
 });
 
@@ -50,5 +51,5 @@ test("deriveWorkoutExerciseCardVariant preserves completion badge behavior", () 
 
   assert.equal(state.variant, "active");
   assert.equal(state.cardState, "completed");
-  assert.equal(state.badgeText, "3 logged");
+  assert.equal(state.badgeText, "Completed");
 });

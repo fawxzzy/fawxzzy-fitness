@@ -1,4 +1,4 @@
-import { deriveSessionExerciseProgressState } from "./session-exercise-progress";
+import { deriveSessionExerciseProgressState, type SessionExercisePresentationSurface, type SessionExerciseProgressChip } from "./session-exercise-progress.ts";
 
 export type WorkoutExerciseCardVariant = "pending" | "active";
 
@@ -8,13 +8,15 @@ export type DeriveWorkoutExerciseCardVariantInput = {
   isPending?: boolean;
   targetSetsMin?: number | null;
   targetSetsMax?: number | null;
+  surface?: SessionExercisePresentationSurface;
 };
 
 export type WorkoutExerciseCardVariantState = {
   variant: WorkoutExerciseCardVariant;
   cardState: "default" | "completed";
   badgeText?: string;
-  chips: Array<"skipped" | "partialSkipped" | "addedToday">;
+  progressLabel?: string;
+  chips: Array<SessionExerciseProgressChip | "addedToday">;
   skipActionLabel: "Skip" | "Unskip";
   actionRowClassName: string;
   quickLogActionClassName: string;
@@ -42,6 +44,7 @@ export function deriveWorkoutExerciseCardVariant(input: DeriveWorkoutExerciseCar
     variant,
     cardState: progressState.cardState,
     badgeText: progressState.badgeText,
+    progressLabel: progressState.progressLabel,
     chips: progressState.chips,
     skipActionLabel: progressState.skipActionLabel,
     isQuickLogDisabled: !progressState.allowQuickLog,

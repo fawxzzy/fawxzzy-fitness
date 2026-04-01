@@ -39,6 +39,7 @@ export function TodayExerciseRows({
             isSkipped: exercise.isSkipped === true,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
+            surface: "summary",
           });
 
           return (
@@ -55,7 +56,7 @@ export function TodayExerciseRows({
                   setSelectedExerciseId(exercise.exerciseId);
                 }}
               >
-                <WorkoutExerciseRowChips chips={cardVariantState.chips} />
+                <WorkoutExerciseRowChips chips={cardVariantState.chips} progressLabel={cardVariantState.progressLabel} />
               </StandardExerciseRow>
             </li>
           );
