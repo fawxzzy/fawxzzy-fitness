@@ -152,6 +152,16 @@ npm run lint
 npm run build
 ```
 
+## Routine Details save contract
+
+Create Routine and Edit Routine both follow an explicit manual-save contract:
+
+- Shared fields + validation: routine name, cycle length, start weekday, timezone, and weight unit are validated through the same routine-details draft helpers.
+- Dirty-state behavior: Save/Create calls-to-action are disabled until the form is both valid and dirty.
+- Save feedback states: routine details shows one of `Unsaved changes`, `Saving changes…`, or `All changes saved`.
+- Navigation safety: when the form is dirty, leaving the page via browser navigation is guarded (`beforeunload`) and in-app back navigation prompts to discard changes.
+- Destructive separation: Delete Routine remains a distinct destructive action and is not coupled to Save Changes.
+
 ## Fitness governed ecosystem contract
 
 Fitness now ships an in-repo deterministic integration contract and fixtures for the governed ecosystem loop.

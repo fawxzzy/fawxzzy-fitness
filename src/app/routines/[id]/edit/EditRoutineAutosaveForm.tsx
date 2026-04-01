@@ -10,7 +10,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { useToast } from "@/components/ui/ToastProvider";
-import { autosaveRoutineAction } from "@/app/routines/actions";
+import { updateRoutineAction } from "@/app/routines/actions";
 import { buildRoutineDetailsSnapshot, type RoutineDetailsDraft, validateRoutineDetailsDraft } from "@/lib/routine-details-form";
 
 type Props = {
@@ -29,6 +29,7 @@ type Props = {
 export function EditRoutineAutosaveForm(props: Props) {
   const toast = useToast();
   const [error, setError] = useState<string | null>(props.error ?? null);
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState("");
   const [draft, setDraft] = useState<RoutineDetailsDraft>({
     name: props.name,
     cycleLengthDays: props.cycleLengthDays,
@@ -36,7 +37,7 @@ export function EditRoutineAutosaveForm(props: Props) {
     timezone: props.timezone,
     weightUnit: props.weightUnit,
   });
-  const [, startTransition] = useTransition();
+  const [isSaving, startTransition] = useTransition();
 
   const initialSnapshot = useMemo(
     () =>
@@ -49,10 +50,16 @@ export function EditRoutineAutosaveForm(props: Props) {
       }),
     [props.cycleLengthDays, props.name, props.startWeekday, props.timezone, props.weightUnit],
   );
+
+  useEffect(() => {
+    setLastSavedSnapshot(initialSnapshot);
+  }, [initialSnapshot]);
+
   const currentSnapshot = useMemo(() => buildRoutineDetailsSnapshot(draft), [draft]);
-  const isDirty = currentSnapshot !== initialSnapshot;
+  const baselineSnapshot = lastSavedSnapshot || initialSnapshot;
+  const isDirty = currentSnapshot !== baselineSnapshot;
   const validation = validateRoutineDetailsDraft(draft);
-  const canSave = validation.valid && isDirty;
+  const canSave = validation.valid && isDirty && !isSaving;
 
   useEffect(() => {
     if (!isDirty) return;
@@ -91,7 +98,7 @@ export function EditRoutineAutosaveForm(props: Props) {
       formData.set("weightUnit", draft.weightUnit);
       formData.set("returnTo", props.returnHref);
 
-      const result = await autosaveRoutineAction(formData);
+      const result = await updateRoutineAction(formData);
       if (!result.ok) {
         const nextError = result.error ?? "Could not save routine.";
         setError(nextError);
@@ -99,8 +106,8 @@ export function EditRoutineAutosaveForm(props: Props) {
         return;
       }
 
+      setLastSavedSnapshot(buildRoutineDetailsSnapshot(draft));
       toast.success("Routine changes saved");
-      window.location.assign(props.returnHref);
     });
   };
 
@@ -135,7 +142,7 @@ export function EditRoutineAutosaveForm(props: Props) {
         {error ? <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{error}</AccentSubtitleText> : null}
         {!error ? (
           <AccentSubtitleText className="text-[rgb(var(--text)/0.7)]">
-            {isDirty ? "Unsaved changes" : "All changes saved"}
+            {isSaving ? "Saving changes…" : (isDirty ? "Unsaved changes" : "All changes saved")}
           </AccentSubtitleText>
         ) : null}
       </form>
