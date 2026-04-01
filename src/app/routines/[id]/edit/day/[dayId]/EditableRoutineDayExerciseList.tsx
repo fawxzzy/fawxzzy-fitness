@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { ExerciseCard } from "@/components/ExerciseCard";
+import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -538,11 +539,21 @@ export function EditableRoutineDayExerciseList({
           const isExpanded = expandedId === exercise.id;
           const isDragging = activeDragId === exercise.id;
           return (
-            <li
-              key={exercise.id}
-              data-exercise-row-id={exercise.id}
-              className={cn("rounded-[1.3rem] transition-all", isDragging ? "scale-[0.99] opacity-80" : undefined)}
-            >
+            <li key={exercise.id} className="rounded-[1.3rem] transition-all">
+                {reorderMode ? (
+                  <ReorderExerciseRow
+                    exerciseId={exercise.id}
+                    exerciseName={exercise.name}
+                    metadata={exercise.targetSummary}
+                    iconSrc={getExerciseIconSrc(exercise)}
+                    orderNumber={index + 1}
+                    isDragging={isDragging}
+                    onHandlePointerDown={(event) => handleHandlePointerDown(exercise.id, event)}
+                    onHandlePointerMove={handleHandlePointerMove}
+                    onHandlePointerUp={handleHandlePointerUp}
+                    onHandlePointerCancel={() => finishReorder()}
+                  />
+                ) : (
                 <div
                   className={cn(
                     "overflow-hidden rounded-[1.25rem] border transition-colors",
@@ -556,7 +567,7 @@ export function EditableRoutineDayExerciseList({
                     subtitle={exercise.targetSummary}
                     variant="interactive"
                     state={isExpanded ? "selected" : isMissingGoalSummary(exercise.targetSummary) ? "empty" : "default"}
-                    onPress={!modeViewModel.isExerciseListInteractive || reorderMode ? undefined : () => setExpandedId((current) => current === exercise.id ? null : exercise.id)}
+                    onPress={!modeViewModel.isExerciseListInteractive ? undefined : () => setExpandedId((current) => current === exercise.id ? null : exercise.id)}
                     badgeText={isExpanded ? "Editing" : isMissingGoalSummary(exercise.targetSummary) ? undefined : `#${index + 1}`}
                     leadingVisual={(
                       <ExerciseAssetImage
@@ -573,20 +584,7 @@ export function EditableRoutineDayExerciseList({
                       "w-full rounded-[1.25rem] border-0 bg-transparent px-3.5 py-3.5 shadow-none",
                       isExpanded ? "rounded-b-none pb-2" : undefined,
                     )}
-                    rightIcon={reorderMode ? (
-                      <button
-                        type="button"
-                        aria-label={`Reorder ${exercise.name}`}
-                        title="Drag to reorder"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.3)] text-muted hover:bg-[rgb(var(--bg)/0.46)] touch-none"
-                        onPointerDown={(event) => handleHandlePointerDown(exercise.id, event)}
-                        onPointerMove={handleHandlePointerMove}
-                        onPointerUp={handleHandlePointerUp}
-                        onPointerCancel={() => finishReorder()}
-                      >
-                        ⋮⋮
-                      </button>
-                    ) : <span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
+                    rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
                   />
 
                   {isExpanded ? (
@@ -674,6 +672,7 @@ export function EditableRoutineDayExerciseList({
                     </div>
                   ) : null}
                 </div>
+                )}
             </li>
           );
         })}
