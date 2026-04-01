@@ -2,13 +2,13 @@
 
 This matrix defines the **minimum valid goal state** required before the Add Exercise CTA can be enabled.
 
-| Modality | Required fields | Optional fields | Notes |
+| Modality | Required fields | Optional fields | Rendered in form (Add + inline Edit) | Notes |
 | --- | --- | --- | --- |
-| Strength | `sets` (>=1), `repsMin` (>=1) | `repsMax`, `weight`, `time`, `calories` | If weight is enabled, weight must be >= 0. |
-| Bodyweight | `sets` (>=1), `repsMin` (>=1) | `repsMax`, `time`, `calories` | Weight target is hidden because bodyweight prescriptions are rep-driven. |
-| Cardio (time) | `sets` (>=1), `duration` (>0 sec) | `calories` | Duration accepts seconds or `mm:ss`. |
-| Cardio (distance) | `sets` (>=1), `distance` (>0) | `calories` | Distance uses selected distance unit. |
-| Cardio (time + distance) | `sets` (>=1), at least one of `duration` or `distance` | `calories` | UI exposes explicit goal mode choices: Time, Distance, or Time + Distance. |
+| Strength | `sets` (>=1), `repsMin` (>=1) | `repsMax`, `weight`, `time`, `calories` | Sets + reps (with optional min/max range), weight, time, calories | If weight is enabled, weight must be >= 0. |
+| Bodyweight | `sets` (>=1), `repsMin` (>=1) | `repsMax`, `time`, `calories` | Sets + reps (with optional min/max range), time, calories | Weight target is hidden because bodyweight prescriptions are rep-driven. |
+| Cardio (time) | `sets` (>=1), `duration` (>0 sec) | `calories` | Sets + time, calories | Duration accepts seconds or `mm:ss`. |
+| Cardio (distance) | `sets` (>=1), `distance` (>0) | `calories` | Sets + distance, calories | Distance uses selected distance unit. |
+| Cardio (time + distance) | `sets` (>=1), at least one of `duration` or `distance` | `calories` | Goal mode switcher controls Time / Distance / Time + Distance cards | UI exposes explicit goal mode choices: Time, Distance, or Time + Distance. |
 
 ## Validation UX contract
 

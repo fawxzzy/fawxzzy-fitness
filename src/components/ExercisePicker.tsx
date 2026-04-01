@@ -8,14 +8,12 @@ import { AppButton } from "@/components/ui/AppButton";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
-import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
+import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
-import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
-import { getVisibleMetricsForModality, resolveGoalModality, validateGoalConfiguration, type GoalModality } from "@/lib/exercise-goal-validation";
+import { resolveGoalModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 
 type ExerciseOption = {
   id: string;
@@ -173,13 +171,20 @@ function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
   );
 }
 
-function parseDurationInput(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (/^\d+$/.test(trimmed)) return Number(trimmed);
-  const match = trimmed.match(/^(\d+):(\d{1,2})$/);
-  if (!match) return null;
-  return Number(match[1]) * 60 + Number(match[2]);
+function getDefaultMeasurements(modality: GoalModality): MeasurementSelection[] {
+  switch (modality) {
+    case "bodyweight":
+      return ["reps"];
+    case "cardio_time":
+      return ["time"];
+    case "cardio_distance":
+      return ["distance"];
+    case "cardio_time_distance":
+      return ["time"];
+    case "strength":
+    default:
+      return ["reps", "weight"];
+  }
 }
 
 function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; iconSrc: string }) {
@@ -239,7 +244,6 @@ export function ExercisePicker({
 }: ExercisePickerProps) {
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(true);
   const [isExerciseInfoOpen, setIsExerciseInfoOpen] = useState(false);
 
   const uniqueExercises = useMemo(() => {
@@ -255,16 +259,19 @@ export function ExercisePicker({
   const statsByExerciseId = useMemo(() => new Map(exerciseStats.map((row) => [row.exerciseId, row])), [exerciseStats]);
   const [selectedId, setSelectedId] = useState(initialSelectedId ?? uniqueExercises[0]?.id ?? "");
   const [selectedDefaultUnit, setSelectedDefaultUnit] = useState<"mi" | "km" | "m">("mi");
-  const [selectedMeasurements, setSelectedMeasurements] = useState<Array<"reps" | "weight" | "time" | "distance" | "calories">>([]);
   const [selectedGoalMode, setSelectedGoalMode] = useState<GoalModality | null>(null);
-  const [targetRepsMin, setTargetRepsMin] = useState("");
-  const [targetRepsMax, setTargetRepsMax] = useState("");
-  const [targetSets, setTargetSets] = useState("3");
-  const [targetWeight, setTargetWeight] = useState("");
-  const [targetWeightUnit, setTargetWeightUnit] = useState<"lbs" | "kg">(routineTargetConfig?.weightUnit ?? "lbs");
-  const [targetDuration, setTargetDuration] = useState("");
-  const [targetDistance, setTargetDistance] = useState("");
-  const [targetCalories, setTargetCalories] = useState("");
+  const [goalState, setGoalState] = useState<ExerciseGoalFormState>({
+    sets: "3",
+    repsMin: "",
+    repsMax: "",
+    weight: "",
+    duration: "",
+    distance: "",
+    calories: "",
+    weightUnit: routineTargetConfig?.weightUnit ?? "lbs",
+    distanceUnit: "mi",
+    measurements: [],
+  });
   const [didApplyLast, setDidApplyLast] = useState(false);
   const previousExerciseIdRef = useRef(selectedId);
 
@@ -335,14 +342,17 @@ export function ExercisePicker({
   const hasPR = selectedStats ? ((selectedStats.prWeight != null && selectedStats.prReps != null) || selectedStats.prEst1rm != null) : false;
 
   const resetMeasurementFields = useCallback(() => {
-    setTargetSets("3");
-    setTargetRepsMin("");
-    setTargetRepsMax("");
-    setTargetWeight("");
-    setTargetWeightUnit(routineTargetConfig?.weightUnit ?? "lbs");
-    setTargetDuration("");
-    setTargetDistance("");
-    setTargetCalories("");
+    setGoalState((current) => ({
+      ...current,
+      sets: "3",
+      repsMin: "",
+      repsMax: "",
+      weight: "",
+      duration: "",
+      distance: "",
+      calories: "",
+      weightUnit: routineTargetConfig?.weightUnit ?? "lbs",
+    }));
   }, [routineTargetConfig?.weightUnit]);
 
   useEffect(() => {
@@ -355,7 +365,12 @@ export function ExercisePicker({
       ? selectedExercise.default_unit
       : "mi";
 
-    setSelectedMeasurements(nextMeasurementType === "time" ? ["time"] : ["reps", "weight"]);
+    const defaultModality = nextMeasurementType === "time" ? "cardio_time" : "strength";
+    setGoalState((current) => ({
+      ...current,
+      measurements: getDefaultMeasurements(defaultModality),
+      distanceUnit: nextDefaultUnit,
+    }));
     setSelectedDefaultUnit(nextDefaultUnit);
     resetMeasurementFields();
     setDidApplyLast(false);
@@ -374,7 +389,6 @@ export function ExercisePicker({
   const effectiveGoalModality: GoalModality = goalModality === "cardio_time_distance"
     ? (selectedGoalMode ?? "cardio_time")
     : goalModality;
-  const visibleMetrics = getVisibleMetricsForModality(effectiveGoalModality);
   const goalModeChoices: Array<{ value: GoalModality; label: string }> = useMemo(() => {
     if (goalModality === "cardio_time_distance") {
       return [
@@ -401,36 +415,15 @@ export function ExercisePicker({
 
   const goalValidation = useMemo(() => validateGoalConfiguration({
     modality: effectiveGoalModality,
-    sets: targetSets,
-    repsMin: targetRepsMin,
-    repsMax: targetRepsMax,
-    weight: targetWeight,
-    duration: targetDuration,
-    distance: targetDistance,
-    calories: targetCalories,
-    measurementSelections: new Set(selectedMeasurements),
-  }), [effectiveGoalModality, selectedMeasurements, targetCalories, targetDistance, targetDuration, targetRepsMax, targetRepsMin, targetSets, targetWeight]);
-
-  useEffect(() => {
-    const allowedMetrics = new Set(getVisibleMetricsForModality(effectiveGoalModality));
-    setSelectedMeasurements((current) => {
-      const next = current.filter((metric) => allowedMetrics.has(metric));
-      if (next.length) return next;
-      switch (effectiveGoalModality) {
-        case "bodyweight":
-          return ["reps"];
-        case "cardio_time":
-          return ["time"];
-        case "cardio_distance":
-          return ["distance"];
-        case "cardio_time_distance":
-          return ["time"];
-        case "strength":
-        default:
-          return ["reps", "weight"];
-      }
-    });
-  }, [effectiveGoalModality]);
+    sets: goalState.sets,
+    repsMin: goalState.repsMin,
+    repsMax: goalState.repsMax,
+    weight: goalState.weight,
+    duration: goalState.duration,
+    distance: goalState.distance,
+    calories: goalState.calories,
+    measurementSelections: new Set(goalState.measurements),
+  }), [effectiveGoalModality, goalState]);
 
   useEffect(() => {
     if (goalModality === "cardio_time_distance") {
@@ -439,6 +432,11 @@ export function ExercisePicker({
     }
     setSelectedGoalMode(null);
   }, [goalModality]);
+
+  useEffect(() => {
+    if (goalState.measurements.length > 0) return;
+    setGoalState((current) => ({ ...current, measurements: getDefaultMeasurements(effectiveGoalModality) }));
+  }, [effectiveGoalModality, goalState.measurements.length]);
 
   return (
     <div className="space-y-4 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
@@ -507,8 +505,6 @@ export function ExercisePicker({
       {routineTargetConfig && selectedExercise ? (
         <section className="space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.46)] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
-          {selectedMeasurements.map((metric) => <input key={`selected-measurement-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
-
           {selectedStats && (hasLast || hasPR) ? (
             <div className={cn("space-y-1 px-0.5 text-xs text-muted", didApplyLast ? "text-[rgb(var(--text)/0.9)]" : undefined)}>
               {hasLast ? <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
@@ -520,11 +516,14 @@ export function ExercisePicker({
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setTargetWeight(String(selectedStats.lastWeight));
-                      setTargetRepsMin(String(selectedStats.lastReps));
-                      setTargetRepsMax(String(selectedStats.lastReps));
-                      if (selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs") setTargetWeightUnit(selectedStats.lastUnit);
-                      setSelectedMeasurements((current) => Array.from(new Set([...current, "weight", "reps"])));
+                      setGoalState((current) => ({
+                        ...current,
+                        weight: String(selectedStats.lastWeight),
+                        repsMin: String(selectedStats.lastReps),
+                        repsMax: String(selectedStats.lastReps),
+                        weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
+                        measurements: Array.from(new Set([...current.measurements, "weight", "reps"])),
+                      }));
                       setDidApplyLast(true);
                       setTimeout(() => setDidApplyLast(false), 1200);
                     }}
@@ -554,13 +553,7 @@ export function ExercisePicker({
                       )}
                       onClick={() => {
                         setSelectedGoalMode(choice.value);
-                        if (choice.value === "cardio_time") {
-                          setSelectedMeasurements(["time"]);
-                        } else if (choice.value === "cardio_distance") {
-                          setSelectedMeasurements(["distance"]);
-                        } else {
-                          setSelectedMeasurements(["time", "distance"]);
-                        }
+                        setGoalState((current) => ({ ...current, measurements: getDefaultMeasurements(choice.value) }));
                       }}
                     >
                       {choice.label}
@@ -571,96 +564,29 @@ export function ExercisePicker({
             </div>
           ) : null}
 
-          <MeasurementConfigurator
-            values={{ reps: targetRepsMin, repsMax: targetRepsMax, weight: targetWeight, duration: targetDuration, distance: targetDistance, calories: targetCalories, weightUnit: targetWeightUnit, distanceUnit: selectedDefaultUnit }}
-            activeMetrics={{ reps: selectedMeasurements.includes("reps"), weight: selectedMeasurements.includes("weight"), time: selectedMeasurements.includes("time"), distance: selectedMeasurements.includes("distance"), calories: selectedMeasurements.includes("calories") }}
-            isExpanded={isMeasurementsOpen}
-            onExpandedChange={setIsMeasurementsOpen}
-            onMetricToggle={(metric) => setSelectedMeasurements((current) => {
-              const nextMeasurements = current.includes(metric) ? current.filter((value) => value !== metric) : [...current, metric];
-              const sanitizedValues = sanitizeEnabledMeasurementValues({
-                reps: nextMeasurements.includes("reps"),
-                weight: nextMeasurements.includes("weight"),
-                time: nextMeasurements.includes("time"),
-                distance: nextMeasurements.includes("distance"),
-                calories: nextMeasurements.includes("calories"),
-              }, {
-                reps: targetRepsMin,
-                weight: targetWeight,
-                duration: targetDuration,
-                distance: targetDistance,
-                calories: targetCalories,
-              });
-              setTargetRepsMin(sanitizedValues.reps);
-              setTargetRepsMax(nextMeasurements.includes("reps") ? targetRepsMax : "");
-              setTargetWeight(sanitizedValues.weight);
-              setTargetDuration(sanitizedValues.duration);
-              setTargetDistance(sanitizedValues.distance);
-              setTargetCalories(sanitizedValues.calories);
-              return nextMeasurements;
-            })}
-            onChange={(patch) => {
-              if (patch.reps !== undefined) setTargetRepsMin(patch.reps);
-              if (patch.repsMax !== undefined) setTargetRepsMax(patch.repsMax);
-              if (patch.weight !== undefined) setTargetWeight(patch.weight);
-              if (patch.duration !== undefined) setTargetDuration(patch.duration);
-              if (patch.distance !== undefined) setTargetDistance(patch.distance);
-              if (patch.calories !== undefined) setTargetCalories(patch.calories);
-              if (patch.weightUnit !== undefined) setTargetWeightUnit(patch.weightUnit);
-              if (patch.distanceUnit !== undefined) setSelectedDefaultUnit(patch.distanceUnit);
+          <ExerciseGoalForm
+            modality={effectiveGoalModality}
+            state={goalState}
+            onStateChange={(next) => {
+              setGoalState(next);
+              setSelectedDefaultUnit(next.distanceUnit);
             }}
-            names={{ reps: "targetRepsMin", repsMax: "targetRepsMax", weight: "targetWeight", duration: "targetDuration", distance: "targetDistance", calories: "targetCalories", weightUnit: "targetWeightUnit", distanceUnit: "targetDistanceUnit" }}
-            showHeader={false}
-            visibleMetrics={visibleMetrics}
-            description={undefined}
-            topField={{
-              title: "Sets",
-              suffix: "target",
-              input: (
-                <input
-                  type="number"
-                  min={1}
-                  name="targetSets"
-                  value={targetSets}
-                  onChange={(event) => setTargetSets(event.target.value)}
-                  placeholder="Sets"
-                  required
-                  className="input-no-spinner h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
-                />
-              ),
+            names={{
+              sets: "targetSets",
+              repsMin: "targetRepsMin",
+              repsMax: "targetRepsMax",
+              weight: "targetWeight",
+              duration: "targetDuration",
+              distance: "targetDistance",
+              calories: "targetCalories",
+              weightUnit: "targetWeightUnit",
+              distanceUnit: "targetDistanceUnit",
             }}
+            includeSetsInSummary={false}
+            emptySummaryLabel="Add required goal fields to preview summary."
+            showValidationMessage
           />
-
-          <GoalSummaryInline
-            includeSets={false}
-            values={{
-              ...sanitizeEnabledMeasurementValues(
-                {
-                  reps: selectedMeasurements.includes("reps"),
-                  weight: selectedMeasurements.includes("weight"),
-                  time: selectedMeasurements.includes("time"),
-                  distance: selectedMeasurements.includes("distance"),
-                  calories: selectedMeasurements.includes("calories"),
-                },
-                {
-                  reps: targetRepsMin ? Number(targetRepsMin) : null,
-                  weight: targetWeight ? Number(targetWeight) : null,
-                  durationSeconds: parseDurationInput(targetDuration),
-                  distance: targetDistance ? Number(targetDistance) : null,
-                  calories: targetCalories ? Number(targetCalories) : null,
-                },
-              ),
-              sets: targetSets ? Number(targetSets) : null,
-              repsMax: selectedMeasurements.includes("reps") && targetRepsMax ? Number(targetRepsMax) : null,
-              weightUnit: targetWeightUnit,
-              distanceUnit: selectedDefaultUnit,
-              emptyLabel: "Add required goal fields to preview summary.",
-            }}
-          />
-          <p className={cn("text-xs", goalValidation.isValid ? "text-emerald-200/90" : "text-amber-200/95")}>
-            {goalValidation.isValid ? "Goal valid. You can add this exercise." : goalValidation.message}
-          </p>
-          <input type="hidden" name="defaultUnit" value={selectedMeasurements.includes("distance") ? selectedDefaultUnit : "mi"} />
+          <input type="hidden" name="defaultUnit" value={goalState.measurements.includes("distance") ? selectedDefaultUnit : "mi"} />
         </section>
       ) : null}
 
