@@ -1,4 +1,4 @@
-import type { MobileFixtureScenario } from "./mobileRegressionFixtures.ts";
+import type { MobileFixtureScenario } from "./mobileRegressionFixtures";
 
 const MIN_METADATA_COLUMN_WIDTH = 120;
 
