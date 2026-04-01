@@ -1,13 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
-import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
+import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { AppButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
+import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { useToast } from "@/components/ui/ToastProvider";
 import { autosaveRoutineAction } from "@/app/routines/actions";
+import { buildRoutineDetailsSnapshot, type RoutineDetailsDraft, validateRoutineDetailsDraft } from "@/lib/routine-details-form";
 
 type Props = {
   routineId: string;
@@ -18,99 +22,134 @@ type Props = {
   startWeekday: string;
   timezone: string;
   weightUnit: string;
-  success?: string;
   error?: string;
+  deleteAction?: ReactNode;
 };
 
 export function EditRoutineAutosaveForm(props: Props) {
   const toast = useToast();
-  const router = useRouter();
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialSnapshot = useMemo(() => JSON.stringify({
+  const [error, setError] = useState<string | null>(props.error ?? null);
+  const [draft, setDraft] = useState<RoutineDetailsDraft>({
     name: props.name,
-    cycleLengthDays: String(props.cycleLengthDays),
+    cycleLengthDays: props.cycleLengthDays,
     startWeekday: props.startWeekday,
     timezone: props.timezone,
     weightUnit: props.weightUnit,
-  }), [props]);
-  const lastSubmittedRef = useRef(initialSnapshot);
+  });
   const [, startTransition] = useTransition();
 
+  const initialSnapshot = useMemo(
+    () =>
+      buildRoutineDetailsSnapshot({
+        name: props.name,
+        cycleLengthDays: props.cycleLengthDays,
+        startWeekday: props.startWeekday,
+        timezone: props.timezone,
+        weightUnit: props.weightUnit,
+      }),
+    [props.cycleLengthDays, props.name, props.startWeekday, props.timezone, props.weightUnit],
+  );
+  const currentSnapshot = useMemo(() => buildRoutineDetailsSnapshot(draft), [draft]);
+  const isDirty = currentSnapshot !== initialSnapshot;
+  const validation = validateRoutineDetailsDraft(draft);
+  const canSave = validation.valid && isDirty;
+
   useEffect(() => {
-    if (props.success) {
-      toast.success(props.success, { id: "routine-autosave-status" });
-    }
-    if (props.error) {
-      toast.error(props.error, { id: "routine-autosave-status", durationMs: 3200 });
-    }
-  }, [props.error, props.success, toast]);
+    if (!isDirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+    };
+  }, [isDirty]);
 
-  const submitAutosave = useCallback(() => {
-    const form = formRef.current;
-    if (!form) return;
-    const formData = new FormData(form);
-    const snapshot = JSON.stringify({
-      name: String(formData.get("name") ?? ""),
-      cycleLengthDays: String(formData.get("cycleLengthDays") ?? ""),
-      startWeekday: String(formData.get("startWeekday") ?? ""),
-      timezone: String(formData.get("timezone") ?? ""),
-      weightUnit: String(formData.get("weightUnit") ?? ""),
-    });
-
-    if (snapshot === lastSubmittedRef.current) return;
-
-    toast.info("Saving...", { id: "routine-autosave-status", durationMs: 2000 });
+  const saveChanges = () => {
+    setError(null);
     startTransition(async () => {
-      const result = await autosaveRoutineAction(formData);
-      if (result.ok) {
-        lastSubmittedRef.current = snapshot;
-        toast.success("Saved", { id: "routine-autosave-status", durationMs: 2200 });
-        router.refresh();
+      const nextValidation = validateRoutineDetailsDraft(draft);
+      if (!nextValidation.valid) {
+        const nextError = nextValidation.error ?? "Please complete all required routine fields.";
+        setError(nextError);
+        toast.error(nextError);
         return;
       }
-      const nextError = result.error ?? "Autosave failed";
-      toast.error(nextError, { id: "routine-autosave-status", durationMs: 3200 });
+      if (!isDirty) {
+        toast.info("No changes to save.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("routineId", props.routineId);
+      formData.set("existingStartDate", props.existingStartDate);
+      formData.set("name", draft.name.trim());
+      formData.set("cycleLengthDays", String(draft.cycleLengthDays));
+      formData.set("startWeekday", draft.startWeekday);
+      formData.set("timezone", draft.timezone);
+      formData.set("weightUnit", draft.weightUnit);
+      formData.set("returnTo", props.returnHref);
+
+      const result = await autosaveRoutineAction(formData);
+      if (!result.ok) {
+        const nextError = result.error ?? "Could not save routine.";
+        setError(nextError);
+        toast.error(nextError);
+        return;
+      }
+
+      toast.success("Routine changes saved");
+      window.location.assign(props.returnHref);
     });
-  }, [router, toast]);
-
-  useEffect(() => () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  }, []);
-
-  const scheduleAutosave = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      submitAutosave();
-    }, 500);
-  }, [submitAutosave]);
+  };
 
   return (
-    <form
-      ref={formRef}
-      onChange={scheduleAutosave}
-      id="routine-update-form"
-      className="space-y-4 px-1 pb-4"
-    >
-      <input type="hidden" name="routineId" value={props.routineId} />
-      <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
-      <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
-      <RoutineEditorPageHeader
-        eyebrow="Edit Routine"
-        title="Routine Details"
-        action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={false} />}
-        className="space-y-5"
-      >
-        <RoutineEditorFormFields
-          titleInput
-          nameDefaultValue={props.name}
-          cycleLengthDefaultValue={props.cycleLengthDays}
-          startWeekdayDefaultValue={props.startWeekday}
-          timezoneDefaultValue={props.timezone}
-          weightUnitDefaultValue={props.weightUnit}
-          onFieldChange={() => scheduleAutosave()}
+    <>
+      <form id="routine-update-form" className="space-y-4 px-1 pb-4">
+        <input type="hidden" name="routineId" value={props.routineId} />
+        <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
+        <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
+        <RoutineEditorPageHeader
+          eyebrow="Edit Routine"
+          title="Routine Details"
+          action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={isDirty} />}
+          className="space-y-5"
+        >
+          <RoutineEditorFormFields
+            titleInput
+            cycleLengthDefaultValue={draft.cycleLengthDays}
+            startWeekdayDefaultValue={draft.startWeekday}
+            timezoneDefaultValue={draft.timezone}
+            weightUnitDefaultValue={draft.weightUnit}
+            values={draft}
+            onFieldChange={(field, value) => {
+              setDraft((current) => ({
+                ...current,
+                [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
+              }));
+            }}
+          />
+        </RoutineEditorPageHeader>
+
+        {error ? <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{error}</AccentSubtitleText> : null}
+        {!error ? (
+          <AccentSubtitleText className="text-[rgb(var(--text)/0.7)]">
+            {isDirty ? "Unsaved changes" : "All changes saved"}
+          </AccentSubtitleText>
+        ) : null}
+      </form>
+
+      <PublishBottomActions>
+        <BottomActionStack
+          utility={props.deleteAction}
+          primary={(
+            <AppButton type="button" variant="primary" fullWidth disabled={!canSave} onClick={saveChanges}>
+              Save Changes
+            </AppButton>
+          )}
         />
-      </RoutineEditorPageHeader>
-    </form>
+      </PublishBottomActions>
+    </>
   );
 }
