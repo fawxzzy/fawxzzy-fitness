@@ -26,6 +26,13 @@ test("formatExerciseCountSummary degrades gracefully for unknown-only metadata",
   assert.equal(formatExerciseCountSummary([{ equipment: "sled" }, { movement_pattern: "carry" }]).label, "2 exercises");
 });
 
+test("formatExerciseCountSummary uses unknown taxonomy label in mixed summaries", () => {
+  assert.equal(
+    formatExerciseCountSummary([{ measurement_type: "reps" }, { equipment: "sled" }]).label,
+    "2 total • 1 strength • 1 unknown",
+  );
+});
+
 test("formatRestDayExerciseCountSummary keeps explicit rest-day copy", () => {
   assert.equal(formatRestDayExerciseCountSummary([{ measurement_type: "reps" }], true).label, "Rest day");
 });

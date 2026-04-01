@@ -75,7 +75,7 @@ export type TodaySummaryTone = "blocking" | "warning" | null;
 
 export function getTodayDaySummary(day: TodayPickerDay): string | null {
   if (day.state === "rest") {
-    return "Rest and recover.";
+    return "Rest day.";
   }
 
   if (day.state === "empty" && day.invalidExerciseCount > 0) {
