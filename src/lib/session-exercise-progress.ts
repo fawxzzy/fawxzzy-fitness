@@ -2,14 +2,14 @@ export type ExerciseExecutionState =
   | "not_started"
   | "in_progress"
   | "completed"
-  | "skipped_before_start"
-  | "partially_completed"
-  | "completed_then_remaining_skipped";
+  | "skipped"
+  | "partial"
+  | "partial_with_remaining_skipped";
 
 export type SessionExerciseProgressKind = "untouched" | "partial" | "partialSkipped" | "skipped" | "completed";
 export type SessionExercisePresentationSurface = "active" | "summary";
 export type SessionExerciseProgressChip = "skipped" | "endedEarly" | "loggedProgress";
-export type ReadOnlyExercisePresentationState = "not_started" | "completed" | "skipped" | "partial" | "partial_with_remaining_skipped";
+export type ReadOnlyExercisePresentationState = ExerciseExecutionState;
 
 export type SessionExerciseProgressInput = {
   loggedSetCount: number;
@@ -53,9 +53,9 @@ function resolveGoalSetTarget(input: SessionExerciseProgressInput): number | nul
   return null;
 }
 
-function getExecutionState(input: { loggedSetCount: number; isSkipped: boolean; isGoalCompleted: boolean }): ExerciseExecutionState {
-  if (input.isSkipped && input.loggedSetCount === 0) return "skipped_before_start";
-  if (input.isSkipped && input.loggedSetCount > 0) return input.isGoalCompleted ? "completed_then_remaining_skipped" : "partially_completed";
+function deriveExecutionState(input: { loggedSetCount: number; isSkipped: boolean; isGoalCompleted: boolean }): ExerciseExecutionState {
+  if (input.isSkipped && input.loggedSetCount === 0) return "skipped";
+  if (input.isSkipped && input.loggedSetCount > 0) return input.isGoalCompleted ? "partial_with_remaining_skipped" : "partial";
   if (input.loggedSetCount === 0) return "not_started";
   return input.isGoalCompleted ? "completed" : "in_progress";
 }
@@ -67,21 +67,21 @@ function formatLoggedProgress(loggedSetCount: number, goalSetTarget: number | nu
   return `${loggedSetCount} logged`;
 }
 
-export function deriveSessionExerciseProgressState(input: SessionExerciseProgressInput & { surface?: SessionExercisePresentationSurface }): SessionExerciseProgressState {
-  const loggedSetCount = Number.isFinite(input.loggedSetCount) ? Math.max(0, Math.floor(input.loggedSetCount)) : 0;
-  const goalSetTarget = resolveGoalSetTarget(input);
-  const isGoalCompleted = goalSetTarget !== null && loggedSetCount >= goalSetTarget;
-  const executionState = getExecutionState({ loggedSetCount, isSkipped: input.isSkipped, isGoalCompleted });
-  const surface = input.surface ?? "active";
-
+function derivePresentationFromExecutionState({
+  executionState,
+  surface,
+  loggedSetCount,
+  goalSetTarget,
+}: {
+  executionState: ExerciseExecutionState;
+  surface: SessionExercisePresentationSurface;
+  loggedSetCount: number;
+  goalSetTarget: number | null;
+}): Omit<SessionExerciseProgressState, "executionState" | "isGoalCompleted" | "loggedSetCount" | "goalSetTarget"> {
   switch (executionState) {
     case "not_started":
       return {
         kind: "untouched",
-        executionState,
-        isGoalCompleted: false,
-        loggedSetCount,
-        goalSetTarget,
         cardState: "default",
         chips: [],
         skipActionLabel: "Skip",
@@ -90,10 +90,6 @@ export function deriveSessionExerciseProgressState(input: SessionExerciseProgres
     case "in_progress":
       return {
         kind: "partial",
-        executionState,
-        isGoalCompleted: false,
-        loggedSetCount,
-        goalSetTarget,
         cardState: "default",
         badgeText: formatLoggedProgress(loggedSetCount, goalSetTarget),
         chips: [],
@@ -104,36 +100,24 @@ export function deriveSessionExerciseProgressState(input: SessionExerciseProgres
     case "completed":
       return {
         kind: "completed",
-        executionState,
-        isGoalCompleted: true,
-        loggedSetCount,
-        goalSetTarget,
         cardState: "completed",
         badgeText: "Completed",
         chips: [],
         skipActionLabel: "Skip",
         allowQuickLog: true,
       };
-    case "skipped_before_start":
+    case "skipped":
       return {
         kind: "skipped",
-        executionState,
-        isGoalCompleted: false,
-        loggedSetCount,
-        goalSetTarget,
         cardState: "default",
         badgeText: surface === "summary" ? "Skipped" : undefined,
         chips: surface === "summary" ? [] : ["skipped"],
         skipActionLabel: "Unskip",
         allowQuickLog: false,
       };
-    case "partially_completed":
+    case "partial":
       return {
         kind: "partialSkipped",
-        executionState,
-        isGoalCompleted: false,
-        loggedSetCount,
-        goalSetTarget,
         cardState: "default",
         badgeText: "Partial",
         chips: ["loggedProgress", "endedEarly"],
@@ -141,15 +125,11 @@ export function deriveSessionExerciseProgressState(input: SessionExerciseProgres
         skipActionLabel: "Unskip",
         allowQuickLog: false,
       };
-    case "completed_then_remaining_skipped":
+    case "partial_with_remaining_skipped":
       return {
         kind: "partialSkipped",
-        executionState,
-        isGoalCompleted: true,
-        loggedSetCount,
-        goalSetTarget,
-        cardState: "completed",
-        badgeText: "Completed",
+        cardState: "default",
+        badgeText: "Partial",
         chips: ["loggedProgress", "endedEarly"],
         progressLabel: formatLoggedProgress(loggedSetCount, goalSetTarget),
         skipActionLabel: "Unskip",
@@ -158,57 +138,35 @@ export function deriveSessionExerciseProgressState(input: SessionExerciseProgres
   }
 }
 
+export function deriveSessionExerciseProgressState(input: SessionExerciseProgressInput & { surface?: SessionExercisePresentationSurface }): SessionExerciseProgressState {
+  const loggedSetCount = Number.isFinite(input.loggedSetCount) ? Math.max(0, Math.floor(input.loggedSetCount)) : 0;
+  const goalSetTarget = resolveGoalSetTarget(input);
+  const isGoalCompleted = goalSetTarget !== null && loggedSetCount >= goalSetTarget;
+  const executionState = deriveExecutionState({ loggedSetCount, isSkipped: input.isSkipped, isGoalCompleted });
+  const surface = input.surface ?? "active";
+
+  return {
+    executionState,
+    isGoalCompleted,
+    loggedSetCount,
+    goalSetTarget,
+    ...derivePresentationFromExecutionState({
+      executionState,
+      surface,
+      loggedSetCount,
+      goalSetTarget,
+    }),
+  };
+}
+
 export function deriveReadOnlyExercisePresentation(input: SessionExerciseProgressInput): ReadOnlyExercisePresentation {
   const state = deriveSessionExerciseProgressState({ ...input, surface: "summary" });
 
-  switch (state.executionState) {
-    case "not_started":
-      return {
-        state: "not_started",
-        cardState: state.cardState,
-        badgeText: state.badgeText,
-        chips: state.chips,
-        progressLabel: state.progressLabel,
-      };
-    case "in_progress":
-      return {
-        state: "partial",
-        cardState: state.cardState,
-        badgeText: state.badgeText,
-        chips: state.chips,
-        progressLabel: state.progressLabel,
-      };
-    case "completed":
-      return {
-        state: "completed",
-        cardState: state.cardState,
-        badgeText: state.badgeText,
-        chips: state.chips,
-        progressLabel: state.progressLabel,
-      };
-    case "skipped_before_start":
-      return {
-        state: "skipped",
-        cardState: state.cardState,
-        badgeText: state.badgeText,
-        chips: state.chips,
-        progressLabel: state.progressLabel,
-      };
-    case "partially_completed":
-      return {
-        state: "partial",
-        cardState: state.cardState,
-        badgeText: state.badgeText,
-        chips: state.chips,
-        progressLabel: state.progressLabel,
-      };
-    case "completed_then_remaining_skipped":
-      return {
-        state: "partial_with_remaining_skipped",
-        cardState: state.cardState,
-        badgeText: state.badgeText,
-        chips: state.chips,
-        progressLabel: state.progressLabel,
-      };
-  }
+  return {
+    state: state.executionState,
+    cardState: state.cardState,
+    badgeText: state.badgeText,
+    chips: state.chips,
+    progressLabel: state.progressLabel,
+  };
 }
