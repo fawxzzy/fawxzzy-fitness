@@ -107,6 +107,10 @@ export function ExerciseTagFilterControl({
                       key={tag.value}
                       type="button"
                       active={isSelected}
+                      className={cn(
+                        "max-w-full justify-start whitespace-normal text-left leading-tight [word-break:normal]",
+                        compact ? "px-2 py-1 text-[10px]" : undefined,
+                      )}
                       onClick={() => {
                         if (isSelected) {
                           onChange(selectedTags.filter((value) => value !== tag.value));

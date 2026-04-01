@@ -32,3 +32,12 @@ This contract defines the canonical mobile page structure for screens with persi
 - Metadata/subtitle content should wrap naturally (no forced mid-word fragmenting) and remain readable under long exercise names or dense equipment/muscle/pattern combinations.
 - Taxonomy/filter chips must either fully wrap within their container or intentionally scroll with visible affordance. Do not use hidden horizontal clipping that cuts chips at the right edge.
 - Add-exercise screens must rely on scaffold bottom inset reservation so selected cards and first/last library rows remain visible above dock actions.
+
+### Implementation notes
+
+- Use a **three-column card grid** for result/selected cards on narrow widths:
+  - media column: fixed width (non-shrinking thumb/icon),
+  - content column: `minmax(0, 1fr)` with normal word breaks and multi-line wrapping,
+  - action column: fixed minimum width for badges/actions (for example, Select/Selected state).
+- Avoid aggressive break rules (for example `break-all`) on exercise names and metadata; long labels should wrap naturally and stay readable.
+- Chip rows should prefer `flex-wrap` with `max-w-full` chip buttons so long labels wrap inside the chip rather than clipping at the container edge.
