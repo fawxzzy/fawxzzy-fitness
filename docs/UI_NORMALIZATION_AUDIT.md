@@ -1,3 +1,11 @@
+## 2026-04-01 — Shared destructive-confirmation dialog contract
+
+- Formalized a shared destructive-confirmation content contract around `title`, `consequenceText`, `cancel`, and `destructive confirm` actions so destructive flows can reuse one modal language instead of route-local wording props.
+- Kept the existing modal hierarchy and spacing rhythm intact (title, consequence copy, optional context/details, right-aligned cancel/confirm row) to avoid visual drift while tightening semantics.
+- Adopted this contract for Today workout discard and other low-risk destructive confirmations that already matched the same interaction pattern.
+- Safe-area behavior remains owned by the shared modal container (`--app-safe-top` / `--app-safe-bottom`) so destructive dialogs continue to clear bottom action stacks on mobile.
+- Failure mode avoided: route-local destructive copy props (`description` variants) drift apart and weaken consistency between the trigger intent and the confirmation consequence text.
+
 ## 2026-03-21 — Today/Routines selector-detail normalization
 
 - Today and Routines now share the same selector/detail mode contract: default mode shows detail content, and selector-open mode replaces that detail region instead of stacking selector + detail together.

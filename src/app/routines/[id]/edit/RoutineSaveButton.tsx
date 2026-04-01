@@ -31,7 +31,7 @@ export function RoutineSaveButton({ formId, originalCycleLength }: { formId: str
       <ConfirmDestructiveModal
         open={open}
         title="Reduce cycle length?"
-        description="Reducing cycle length will delete days beyond the new length."
+        consequenceText="Reducing cycle length will delete days beyond the new length."
         confirmLabel="Save and remove extra days"
         onCancel={() => setOpen(false)}
         onConfirm={submitForm}

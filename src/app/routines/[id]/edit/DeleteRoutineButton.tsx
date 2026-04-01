@@ -37,7 +37,7 @@ export function DeleteRoutineButton({
       <ConfirmDestructiveModal
         open={isOpen}
         title="Delete routine?"
-        description="This will permanently delete this routine and all its days/exercises. This can’t be undone."
+        consequenceText="This will permanently delete this routine and all its days/exercises. This can’t be undone."
         confirmLabel="Delete Routine"
         contextLines={[`Routine: ${routineName}`]}
         isLoading={isPending}

@@ -5227,6 +5227,9 @@ WHY:
 - Removed log-detail “Add Exercise” editing affordances and made session detail fields always visible during edit mode (no collapsible details toggles).
 - Refactored Edit Day exercise management to use one canonical mode model (`default`, `reorder`, `rest_day`, `editing_exercise`, `adding_exercise`) so header actions, section visibility, bottom dock behavior, and list interactivity are all derived from explicit selectors.
 - Added `docs/day-editor-mode-matrix.md` documenting the Day Editor mode contract and per-mode UI behavior.
+- Formalized shared destructive-confirmation copy semantics around `title` + `consequenceText` in the reusable confirmation modal and wired the Today discard-workout flow onto that contract via `ConfirmedServerFormButton`.
+- Adopted the same low-risk destructive confirmation prop contract across existing delete/remove confirmations (routine delete, day exercise delete, history log delete, and history exercise delete) without changing behavior or modal layout.
+- Added a destructive-dialog pattern note to `docs/UI_NORMALIZATION_AUDIT.md` to document hierarchy, spacing, and safe-area ownership for this modal family.
 
 ### Why
 - Routine details save behavior had drifted between create (explicit submit) and edit (autosave), making save expectations ambiguous and weakening unsaved-change UX.
@@ -5242,3 +5245,5 @@ WHY:
 - Log-detail rows looked and behaved like a separate card family from History exercise detailed cards, and also emphasized non-session context instead of metrics from the selected completed session.
 - Collapsible edit wrappers in session details introduced unnecessary hidden controls for high-frequency metadata edits and slowed review/update flow.
 - Edit Day state behavior had been assembled from scattered booleans, which made mode interactions (rest day vs reorder vs inline edit vs add flow) harder to reason about and easier to regress.
+- Destructive confirmation wording had started to drift between screens (`description` copy variants), which weakened consistency for high-risk actions like discarding an in-progress workout.
+- Codifying one destructive-dialog contract keeps visual rhythm and safe-area behavior stable while reducing route-local confirmation drift.

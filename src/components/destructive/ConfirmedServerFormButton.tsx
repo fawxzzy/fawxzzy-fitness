@@ -12,6 +12,7 @@ export function ConfirmedServerFormButton({
   triggerAriaLabel,
   triggerClassName,
   modalTitle,
+  modalConsequenceText,
   modalDescription,
   confirmLabel,
   contextLines,
@@ -27,7 +28,9 @@ export function ConfirmedServerFormButton({
   triggerAriaLabel?: string;
   triggerClassName?: string;
   modalTitle: string;
-  modalDescription: string;
+  modalConsequenceText?: string;
+  /** @deprecated Use modalConsequenceText for destructive confirmation copy. */
+  modalDescription?: string;
   confirmLabel: string;
   contextLines?: string[];
   details?: string;
@@ -77,7 +80,7 @@ export function ConfirmedServerFormButton({
       <ConfirmDestructiveModal
         open={open}
         title={modalTitle}
-        description={modalDescription}
+        consequenceText={modalConsequenceText ?? modalDescription ?? ""}
         confirmLabel={confirmLabel}
         contextLines={contextLines}
         details={details}

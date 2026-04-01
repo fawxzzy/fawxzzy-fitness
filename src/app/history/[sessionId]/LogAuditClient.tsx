@@ -277,7 +277,7 @@ export function LogAuditClient({
             triggerAriaLabel="Delete log"
             triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "w-full justify-center text-center" })}
             modalTitle="Delete log?"
-            modalDescription="This will permanently delete this workout session and all logged sets."
+            modalConsequenceText="This will permanently delete this workout session and all logged sets."
             confirmLabel="Delete"
             contextLines={[`${sessionSummary.routineTitle}`, `${formatDateShort(sessionSummary.startedAt)}${sessionSummary.durationSec ? ` • ${formatDurationShort(sessionSummary.durationSec)}` : ""}`]}
           />
@@ -614,7 +614,7 @@ export function LogAuditClient({
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}
         title="Delete exercise from completed log?"
-        description="This will remove the exercise and all logged sets from this completed session."
+        consequenceText="This will remove the exercise and all logged sets from this completed session."
         confirmLabel="Delete"
         details={exerciseToDelete ? `Exercise: ${exerciseToDelete.name}` : undefined}
         onCancel={() => setExerciseToDelete(null)}
