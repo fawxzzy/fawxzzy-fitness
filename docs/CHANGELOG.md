@@ -5225,6 +5225,8 @@ WHY:
 - Reworked History log-detail exercise rows onto the same detailed ExerciseCard shell used in History Exercises (image-left, shared spacing/border/highlight, chevron affordance), while switching row summaries to session-scoped metrics (`Latest` set summary + set count).
 - Flattened log-detail expanded content into an inline extension of the same card rhythm (no extra framed panel layer), while preserving per-exercise collapse/expand behavior.
 - Removed log-detail “Add Exercise” editing affordances and made session detail fields always visible during edit mode (no collapsible details toggles).
+- Refactored Edit Day exercise management to use one canonical mode model (`default`, `reorder`, `rest_day`, `editing_exercise`, `adding_exercise`) so header actions, section visibility, bottom dock behavior, and list interactivity are all derived from explicit selectors.
+- Added `docs/day-editor-mode-matrix.md` documenting the Day Editor mode contract and per-mode UI behavior.
 
 ### Why
 - Routine details save behavior had drifted between create (explicit submit) and edit (autosave), making save expectations ambiguous and weakening unsaved-change UX.
@@ -5239,3 +5241,4 @@ WHY:
 - Today had drifted into two near-identical shells where resume state missed the canonical outer highlight panel, making state transitions feel structurally inconsistent.
 - Log-detail rows looked and behaved like a separate card family from History exercise detailed cards, and also emphasized non-session context instead of metrics from the selected completed session.
 - Collapsible edit wrappers in session details introduced unnecessary hidden controls for high-frequency metadata edits and slowed review/update flow.
+- Edit Day state behavior had been assembled from scattered booleans, which made mode interactions (rest day vs reorder vs inline edit vs add flow) harder to reason about and easier to regress.
