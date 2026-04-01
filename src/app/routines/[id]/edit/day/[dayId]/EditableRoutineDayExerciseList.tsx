@@ -13,7 +13,8 @@ import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDo
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
@@ -112,7 +113,7 @@ function RoutineTargetInputs({
 
   return (
     <div className="space-y-3">
-      <ExerciseGoalForm
+      <SharedExerciseGoalForm
         modality={modality}
         state={state}
         onStateChange={setState}
@@ -129,7 +130,6 @@ function RoutineTargetInputs({
         }}
         emptySummaryLabel="Goal missing"
       />
-      <input type="hidden" name="defaultUnit" value={state.measurements.includes("distance") ? state.distanceUnit : "mi"} />
     </div>
   );
 }

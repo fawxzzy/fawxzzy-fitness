@@ -116,7 +116,7 @@ export function MeasurementPanelV2({
           >
             <MetricHeader title={METRICS[0].title} suffix={METRICS[0].suffix(values)} />
             {"repsMax" in values ? (
-              <div className="mt-1 grid grid-cols-2 gap-2">
+              <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <label className="space-y-1 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
                   <span>Min</span>
                   <input
