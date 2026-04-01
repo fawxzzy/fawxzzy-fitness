@@ -429,7 +429,7 @@ export function ExercisePicker({
   }, [goalModality]);
 
   return (
-    <div className="space-y-4 pb-2">
+    <div className="space-y-4 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
       <section className="space-y-3.5 rounded-[1.35rem] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-3.5 shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] sm:p-4">
