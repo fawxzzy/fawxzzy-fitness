@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { PillButton } from "@/components/ui/Pill";
+import { cn } from "@/lib/cn";
 
 export type ExerciseTagGroup = {
   key: string;
