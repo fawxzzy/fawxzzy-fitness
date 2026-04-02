@@ -2,35 +2,38 @@
 
 This contract defines the user-facing information architecture for the `/routines` screen.
 
-## Section map
+## Screen modes
 
-The `/routines` screen is organized into three user-facing sections:
+The `/routines` screen is mode-driven and should render one clear content mode at a time:
 
-1. `Current routine`
-2. `Routine days`
-3. `All routines` (always rendered; expands to list mode via the bottom dock control)
+1. `summary` mode: current routine hero + `All routines` (collapsed, list hidden)
+2. `browse/switch routines` mode: current routine hero + expanded `All routines` list
+3. `selected routine days` mode: current routine hero + `Routine days` + `All routines` (collapsed)
 
-The screen shell, spacing rhythm, and bottom dock behavior should remain consistent with existing routines page-family conventions.
+`browse/switch routines` and `selected routine days` are mutually exclusive. When the `All routines` list is expanded, the full `Routine days` section must not render below it.
+
+The screen shell, spacing rhythm, and bottom dock behavior remain consistent with existing routines page-family conventions.
 
 ## Current routine section
 
-- The first section represents the currently selected routine.
+- The first section is always the `Current routine` hero.
 - Title copy: `Current routine`.
-- It should always present the selected routine name and a concise cycle summary (training/rest breakdown).
-- Active routine state should be explicitly labeled with `ACTIVE`.
+- Routine identity belongs in the hero content area (not helper/explanatory copy), including:
+  - routine name
+  - `ACTIVE` chip when a routine is selected
+  - concise summary stats (training/rest breakdown)
 
 ## Routine days section
 
 - Title copy: `Routine days`.
 - Section metadata should be human-facing count copy (`1 day`, `7 days`) rather than internal labels.
-- The section should remain visible even when the all-routines switcher is expanded.
+- The section renders only in `selected routine days` mode.
 
 ## All routines section
 
-- Routine switching belongs to an explicit `All routines` section that remains visible in both collapsed and expanded states.
-- Section metadata should communicate count in natural language (for example, `4 routines total`) rather than internal label formats.
-- Metadata should explicitly state duplication behavior: the current routine appears in both `Current routine` and `All routines`.
-- When collapsed, the section should provide human-facing helper copy that clarifies how to open the switcher.
+- Routine switching belongs to an explicit `All routines` section.
+- Section metadata should communicate count in natural language (for example, `4 routines`).
+- Remove explanatory helper paragraphs under the section; collapsed state should use either simple count-only metadata or no helper copy.
 - The selected routine in the list should use the `ACTIVE` label.
 
 ## Label semantics

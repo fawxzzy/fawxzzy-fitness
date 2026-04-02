@@ -58,8 +58,6 @@ const ROUTINES_IA_COPY = {
   allRoutines: {
     title: "All routines",
     listAriaLabel: "All routines list",
-    duplicateRuleHint: "Includes your current routine for quick switching.",
-    collapsedHint: "Use the footer action to open and switch routines.",
   },
 } as const;
 
@@ -113,6 +111,12 @@ export function RoutinesPageClient({
       setIsRoutineListOpen(false);
     });
   }, [activeRoutineId, isPending, setActiveRoutineAction]);
+
+  const screenMode = isRoutineListOpen
+    ? "browse-routines"
+    : activeRoutineId
+      ? "selected-routine-days"
+      : "summary";
 
   const actionsNode = useMemo(() => {
     const toggleButton = (
@@ -169,18 +173,22 @@ export function RoutinesPageClient({
       summary={(
         <ActiveRoutineSummaryCard
           title={ROUTINES_IA_COPY.currentRoutine.title}
-          subtitle={activeRoutineSummary}
-          status={<ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
         >
-          <p className="text-sm font-medium text-[rgb(var(--text)/0.92)]">{activeRoutineName}</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-[rgb(var(--text)/0.92)]">{activeRoutineName}</p>
+              <ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />
+            </div>
+            {activeRoutineSummary ? <p className="text-sm text-muted">{activeRoutineSummary}</p> : null}
+          </div>
         </ActiveRoutineSummaryCard>
       )}
     >
       <RoutinesSectionCard
         title={ROUTINES_IA_COPY.allRoutines.title}
-        meta={`${formatRoutineCount(routines.length)} • ${ROUTINES_IA_COPY.allRoutines.duplicateRuleHint}`}
+        meta={formatRoutineCount(routines.length)}
       >
-        {isRoutineListOpen ? (
+        {screenMode === "browse-routines" ? (
           <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel}>
             <RoutinesCardList>
               {routines.map((routine) => {
@@ -200,11 +208,10 @@ export function RoutinesPageClient({
               })}
             </RoutinesCardList>
           </div>
-        ) : (
-          <RoutinesListEmpty>{ROUTINES_IA_COPY.allRoutines.collapsedHint}</RoutinesListEmpty>
-        )}
+        ) : null}
       </RoutinesSectionCard>
-      <SharedDayListSection title={ROUTINES_IA_COPY.routineDays.title} meta={formatRoutineDayCount(days.length)}>
+      {screenMode === "selected-routine-days" ? (
+        <SharedDayListSection title={ROUTINES_IA_COPY.routineDays.title} meta={formatRoutineDayCount(days.length)}>
           {days.length > 0 ? (
             <DayList>
               {days.map((day) => {
@@ -242,6 +249,7 @@ export function RoutinesPageClient({
             <RoutinesListEmpty>{ROUTINES_IA_COPY.routineDays.empty}</RoutinesListEmpty>
           )}
         </SharedDayListSection>
+      ) : null}
     </RoutinesPageScaffold>
   );
 }
