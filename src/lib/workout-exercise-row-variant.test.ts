@@ -53,3 +53,17 @@ test("deriveWorkoutExerciseCardVariant preserves completion badge behavior", () 
   assert.equal(state.cardState, "completed");
   assert.equal(state.badgeText, "Completed");
 });
+
+test("deriveWorkoutExerciseCardVariant avoids partial copy when target was already completed before skip", () => {
+  const state = deriveWorkoutExerciseCardVariant({
+    loggedSetCount: 4,
+    isSkipped: true,
+    targetSetsMin: 4,
+  });
+
+  assert.equal(state.cardState, "completed");
+  assert.equal(state.badgeText, "Completed");
+  assert.deepEqual(state.chips, []);
+  assert.equal(state.skipActionLabel, "Unskip");
+  assert.equal(state.isQuickLogDisabled, true);
+});

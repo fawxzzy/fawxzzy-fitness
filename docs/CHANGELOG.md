@@ -1,3 +1,18 @@
+## [v0.4.34] – Contract: unify partial vs ended-early semantics across Today/session exercise surfaces
+
+### WHAT
+
+* Simplified the shared execution-state mapper by removing the contradictory `partial_with_remaining_skipped` presentation state and keeping `completed` as the primary semantic once set targets are met.
+* Updated active-workout and read-only summary mapping behavior so `Ended early` only appears for true under-target partials (`logged > 0`, `skipped = true`, target not reached).
+* Preserved skip recoverability controls for completed-then-skipped exercises (`Unskip`, quick-log disabled while skipped) without degrading the row status to `Partial`.
+* Added regression coverage for completed-then-skipped behavior in both shared mappers (`session-exercise-progress` and `workout-exercise-row-variant`).
+* Updated `docs/exercise-execution-state-matrix.md` with explicit partial/ended-early guardrails and transition rules that today summary, active session cards, and resume cards share.
+
+### WHY
+
+* The prior contract allowed contradictory combinations like `Partial` + `4 of 4 logged` + `Ended early`, which made one row read as multiple competing states.
+* Keeping one primary semantic state per row improves scanability and keeps Today in-session summaries aligned with active workout and resume session presentation.
+
 ## [v0.4.33] – Refactor: explicit day-editor mode model + rest-toggle domain contract
 
 ### WHAT

@@ -28,6 +28,7 @@ This contract canonicalizes workout exercise rows and attached quick actions aro
 
 - Active workout cards, resume summaries, and Today in-session summaries must all source status composition from `deriveSessionExerciseProgressState` / `deriveReadOnlyExercisePresentation`.
 - UI surfaces must not independently combine generic logged and skipped copy.
+- `Ended early` chip/copy is only valid for under-target partial state; once target sets are met, rows remain `Completed` even if skip is toggled.
 - Session and Today exercise rows should render metadata chips through one shared placement component so badge/chip positions stay stable across variants and wrapped titles.
 - Quick-action rows should derive skip/unskip labels and action emphasis from the variant contract without route-local styling branches.
 - Scaffold and dock layout concerns are intentionally out of scope for this contract.

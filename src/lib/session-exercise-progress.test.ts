@@ -82,14 +82,27 @@ test("deriveReadOnlyExercisePresentation maps skipped-after-logging into explici
   assert.deepEqual(presentation.chips, ["loggedProgress", "endedEarly"]);
 });
 
-test("deriveReadOnlyExercisePresentation maps completed-then-skipped into explicit partial-with-remaining-skipped state", () => {
+test("deriveReadOnlyExercisePresentation keeps completed semantic when target is met before skip", () => {
   const presentation = deriveReadOnlyExercisePresentation({
     loggedSetCount: 3,
     isSkipped: true,
     targetSetsMin: 3,
   });
 
-  assert.equal(presentation.state, "partial_with_remaining_skipped");
-  assert.equal(presentation.badgeText, "Partial");
-  assert.deepEqual(presentation.chips, ["loggedProgress", "endedEarly"]);
+  assert.equal(presentation.state, "completed");
+  assert.equal(presentation.badgeText, "Completed");
+  assert.deepEqual(presentation.chips, []);
+});
+
+test("deriveSessionExerciseProgressState keeps completed badge but exposes unskip controls when completed exercise is skipped", () => {
+  const state = deriveSessionExerciseProgressState({
+    loggedSetCount: 4,
+    isSkipped: true,
+    targetSetsMin: 4,
+  });
+
+  assert.equal(state.executionState, "completed");
+  assert.equal(state.badgeText, "Completed");
+  assert.equal(state.skipActionLabel, "Unskip");
+  assert.equal(state.allowQuickLog, false);
 });
