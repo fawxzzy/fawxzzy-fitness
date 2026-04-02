@@ -209,7 +209,7 @@ export function SessionPageClient({
         data-section-chrome={sessionRecipe.sectionChrome}
         data-footer-dock={sessionRecipe.footerDock}
         data-row-interaction={sessionRecipe.rowInteraction}
-        className="flex flex-col space-y-3 bg-[rgb(var(--bg))] pt-1.5 pb-1"
+        className="flex flex-col space-y-3 bg-[rgb(var(--bg))] pt-1.5 pb-0"
       >
         {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
         <ActionFeedbackToasts />
