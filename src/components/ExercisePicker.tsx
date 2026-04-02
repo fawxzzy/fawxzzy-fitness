@@ -438,7 +438,10 @@ export function ExercisePicker({
           </div>
         </section>
 
-        <PickerListViewport className={cn(listShellClasses.card, "border-white/10 bg-[rgb(var(--surface-rgb)/0.3)]")}>
+        <PickerListViewport
+          className={cn(listShellClasses.card, "border-white/10 bg-[rgb(var(--surface-rgb)/0.3)]")}
+          constrainOnDesktop
+        >
           <ul
             className={cn(listShellClasses.viewport, listShellClasses.list)}
           >
