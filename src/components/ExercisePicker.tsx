@@ -7,7 +7,6 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
@@ -301,9 +300,11 @@ export function ExercisePicker({
       .filter((group) => group.tags.length > 0);
   }, [uniqueExercises]);
 
+  const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
+
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return uniqueExercises.filter((exercise) => {
+    const matches = uniqueExercises.filter((exercise) => {
       const matchesQuery = !query || exercise.name.toLowerCase().includes(query);
       if (!matchesQuery) return false;
       if (!selectedTags.length) return true;
@@ -311,9 +312,12 @@ export function ExercisePicker({
       if (!tags || tags.size === 0) return false;
       return selectedTags.every((tag) => tags.has(tag));
     });
-  }, [exerciseTagsById, search, selectedTags, uniqueExercises]);
+    if (selectedExercise && !matches.some((exercise) => exercise.id === selectedExercise.id)) {
+      return [selectedExercise, ...matches];
+    }
+    return matches;
+  }, [exerciseTagsById, search, selectedExercise, selectedTags, uniqueExercises]);
 
-  const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
   useEffect(() => {
     onSelectedExerciseChange?.(selectedExercise ?? null);
   }, [onSelectedExerciseChange, selectedExercise]);
@@ -429,34 +433,10 @@ export function ExercisePicker({
 
         <section className="scroll-mb-24 space-y-2">
           <div className="flex items-center justify-between gap-2 px-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Selected exercise</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercise Library</p>
             <p className="text-xs text-muted">{filteredExercises.length} shown</p>
           </div>
-          {selectedExercise ? (
-            <ExerciseCard
-              title={selectedExercise.name}
-              subtitle={exerciseMetadataById.get(selectedExercise.id) || "No details"}
-              variant="compact"
-              state="selected"
-              leadingVisual={<ExerciseThumbnail exercise={selectedExercise} iconSrc={exerciseIconSrcById.get(selectedExercise.id) ?? getExerciseIconSrc(selectedExercise)} />}
-              className={cn(listShellClasses.card, "py-2.5")}
-              trailingClassName="text-[rgb(var(--text)/0.98)]"
-              rightIcon={<AppBadge tone="success" className="min-h-6 min-w-[3.25rem]">Selected</AppBadge>}
-            />
-          ) : (
-            <div className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.66)] px-4 py-3 text-sm text-muted">
-              Select an exercise to continue.
-            </div>
-          )}
         </section>
-
-        <div className="flex items-center justify-center px-1 pb-0.5 pt-1">
-          <div className="flex w-full items-center gap-2 rounded-full border border-white/10 bg-[rgb(var(--bg)/0.28)] px-3 py-1.5">
-            <span className="h-px flex-1 bg-white/15" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.72)]">Browse exercise library</span>
-            <span className="h-px flex-1 bg-white/15" />
-          </div>
-        </div>
 
         <PickerListViewport className={cn(listShellClasses.card, "border-white/10 bg-[rgb(var(--surface-rgb)/0.3)]")}>
           <ul

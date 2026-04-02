@@ -1,6 +1,6 @@
 # Mobile result-card layout contract
 
-Applies to Add Exercise search result rows and selected-result rows.
+Applies to Add Exercise search result rows.
 
 ## Structure
 
@@ -15,6 +15,10 @@ Applies to Add Exercise search result rows and selected-result rows.
    - Holds select/selected affordance without collapsing text.
 4. **Metadata wrapping**
    - Subtitle wraps to multiple lines instead of clipping or pushing action controls off-screen.
+5. **Selection representation**
+   - Selection is represented inline on the chosen result row (`Selected` trailing affordance + selected card state).
+   - Add Exercise must not render a duplicated standalone selected-summary card above the list.
+   - If search/filter criteria exclude the selected row, the selected row is still included in the visible result list to preserve clarity.
 
 ## Bottom dock safety
 
