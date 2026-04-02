@@ -78,7 +78,7 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 };
 
 const pickerRowMobileDensityClassNames = {
-  card: "max-md:min-h-[3.95rem] max-md:rounded-[0.76rem] max-md:border-border/35 max-md:bg-[rgb(var(--surface-2-soft)/0.5)] max-md:px-2.5 max-md:py-2 max-md:shadow-none",
+  card: "max-md:min-h-[3.8rem] max-md:rounded-[0.74rem] max-md:border-border/30 max-md:bg-[rgb(var(--surface-2-soft)/0.44)] max-md:px-2.5 max-md:py-1.75 max-md:shadow-none",
   body: "max-md:gap-2",
   title: "max-md:text-[0.9rem]",
   titleContainer: "max-md:space-y-0.5",
@@ -195,7 +195,7 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
     <ExerciseAssetImage
       src={iconSrc}
       alt={`${exercise.name} icon`}
-      className="h-10 w-10 rounded-[0.7rem] border border-border/35 max-md:h-9 max-md:w-9"
+      className="h-10 w-10 rounded-[0.7rem] border border-border/22 bg-[rgb(var(--surface-2-soft)/0.36)] max-md:h-9 max-md:w-9"
       imageClassName="object-cover object-center"
       sizes="40px"
       fallback={(
@@ -220,6 +220,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
         className={cn(
           "md:rounded-[1.05rem] md:border md:border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] md:bg-[rgb(var(--glass-tint-rgb)/0.74)] md:p-3.5 md:shadow-[0_10px_20px_-14px_rgba(0,0,0,0.88)]",
           pickerRowMobileDensityClassNames.card,
+          isSelected ? "max-md:border-emerald-300/28 max-md:bg-emerald-500/7" : undefined,
           hasStats
             ? "border-emerald-400/35 bg-emerald-500/10 hover:bg-emerald-500/14 max-md:border-emerald-400/24 max-md:bg-emerald-500/8 max-md:hover:bg-emerald-500/12"
             : undefined,
@@ -240,7 +241,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
               "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
               pickerRowMobileDensityClassNames.selectPill,
               isSelected
-                ? "border-emerald-400/40 bg-emerald-400/18 text-[rgb(var(--text)/0.98)] shadow-[0_6px_18px_-14px_rgba(96,200,130,0.95)]"
+                ? "border-emerald-400/35 bg-emerald-400/14 text-[rgb(var(--text)/0.98)] shadow-[0_5px_16px_-14px_rgba(96,200,130,0.88)]"
                 : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
             )}
           >
@@ -512,10 +513,10 @@ export function ExercisePicker({
       </section>
 
       {routineTargetConfig && selectedExercise ? (
-        <section className="scroll-mb-24 space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.46)] p-4">
+        <section className="scroll-mb-24 space-y-2.5 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.46)] p-4 max-md:space-y-2 max-md:px-3 max-md:py-3.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
           {selectedStats && (hasLast || hasPR) ? (
-            <div className={cn("space-y-1 px-0.5 text-xs text-muted", didApplyLast ? "text-[rgb(var(--text)/0.9)]" : undefined)}>
+            <div className={cn("space-y-1 px-0.5 text-xs text-muted max-md:space-y-0.75 max-md:text-[11px]", didApplyLast ? "text-[rgb(var(--text)/0.9)]" : undefined)}>
               {hasLast ? <p>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` · ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
               {hasPR ? <p>PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}{selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " · " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}</p> : null}
               {hasLast ? (
@@ -564,7 +565,7 @@ export function ExercisePicker({
             hideEmptySummary
           />
           {!goalValidation.isValid ? (
-            <p className="rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/95">
+            <p className="rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/95 max-md:min-h-8 max-md:px-2.5 max-md:py-1.5 max-md:text-[11px] max-md:leading-4">
               {goalValidation.message}
             </p>
           ) : null}
