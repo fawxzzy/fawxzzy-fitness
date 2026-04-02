@@ -19,6 +19,10 @@ Applies to Add Exercise search result rows.
    - Selection is represented inline on the chosen result row (`Selected` trailing affordance + selected card state).
    - Add Exercise must not render a duplicated standalone selected-summary card above the list.
    - If search/filter criteria exclude the selected row, the selected row is still included in the visible result list to preserve clarity.
+6. **Surface ownership split**
+   - Mobile (`< md`) and desktop (`md+`) use separate list rendering contracts.
+   - Mobile renders a plain list surface in normal page flow (no inner faux-viewport shell, no local overflow owner).
+   - Desktop keeps the constrained viewport treatment (`PickerListViewport`) with optional fade overlays to indicate scrollable depth.
 
 ## Bottom dock safety
 
