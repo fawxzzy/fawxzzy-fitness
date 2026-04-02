@@ -5220,6 +5220,7 @@ WHY:
 ## Unreleased
 
 ### Changed
+- Updated shared routine-details save-state messaging to keep new-routine forms neutral when clean while preserving `All changes saved` for clean edit-routine state.
 - Unified routine details create/edit save behavior onto one explicit manual-save contract: edit no longer autosaves, now uses a primary `Save Changes` CTA that enables only when valid + dirty, with unsaved-change guardrails and separate destructive delete action.
 - Added a shared routine-details draft/validation module and documented the save contract in `docs/routine-details-save-contract.md`.
 - Normalized the app’s header family rhythm across main-tab, detail, editor, and current-session surfaces by tightening shared title sizing, standardizing subtitle spacing, and applying a consistent top breathing inset on header cards.
