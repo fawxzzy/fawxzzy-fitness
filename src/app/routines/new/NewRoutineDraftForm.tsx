@@ -99,7 +99,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
             }}
           />
         </RoutineEditorPageHeader>
-        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={hasDirtyChanges} />
+        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={hasDirtyChanges} mode="create" />
       </div>
 
       <PublishBottomActions>

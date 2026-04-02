@@ -28,11 +28,13 @@ Routine details uses **manual save** as the explicit save contract.
   - browser/tab unload prompts when edits are unsaved
 
 ### Shared Save-State Feedback
-- Create and edit render the same save-state copy contract through a shared form-state component.
+- Create and edit render save feedback through the same shared form-state component.
+- The component is mode-aware so create and edit can share behavior without sharing the same initial copy.
 - Feedback states are:
   - `Saving changes…` while a save action is pending
   - `Unsaved changes` when local edits are dirty
-  - `All changes saved` when local state matches saved/baseline state
+  - `All changes saved` for clean **edit** state (baseline matches persisted routine)
+  - `Complete routine details to create a new routine` for clean **create** state (new form has no persisted routine yet)
 
 ### Destructive Action Separation
 - **Delete Routine** remains a destructive action and is kept separate from the primary save action.

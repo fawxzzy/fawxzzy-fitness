@@ -139,7 +139,7 @@ export function EditRoutineAutosaveForm(props: Props) {
           />
         </RoutineEditorPageHeader>
 
-        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} />
+        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} mode="edit" />
       </form>
 
       <PublishBottomActions>
