@@ -14,10 +14,9 @@ This matrix is the canonical mapping for session exercise presentation. It is de
 | --- | --- |
 | `not_started` | `loggedSetCount = 0` and `isSkipped = false` |
 | `in_progress` | `loggedSetCount > 0` and `isSkipped = false` and target not reached |
-| `completed` | `loggedSetCount >= goalSetTarget` and `isSkipped = false` |
+| `completed` | `loggedSetCount >= goalSetTarget` (skip flag does not override completed semantic) |
 | `skipped` | `loggedSetCount = 0` and `isSkipped = true` |
 | `partial` | `loggedSetCount > 0` and `isSkipped = true` and target not reached |
-| `partial_with_remaining_skipped` | `loggedSetCount >= goalSetTarget` and `isSkipped = true` |
 
 ## Presentation rules (active workout cards)
 
@@ -25,10 +24,9 @@ This matrix is the canonical mapping for session exercise presentation. It is de
 | --- | --- | --- | --- |
 | `not_started` | none | none | `Skip`, quick log enabled |
 | `in_progress` | `N of T logged` (or `N logged`) | none | `Skip`, quick log enabled |
-| `completed` | `Completed` | none | `Skip`, quick log enabled |
+| `completed` | `Completed` | none | `Skip` when not skipped, `Unskip` when skipped after completion; quick log disabled while skipped |
 | `skipped` | none | `Skipped` | `Unskip`, quick log disabled |
 | `partial` | `Partial` | `N of T logged` + `Ended early` | `Unskip`, quick log disabled |
-| `partial_with_remaining_skipped` | `Partial` | `N of T logged` + `Ended early` | `Unskip`, quick log disabled |
 
 ## Presentation rules (read-only summary/resume cards)
 
@@ -38,10 +36,9 @@ Canonical read-only presentation states:
 | --- | --- |
 | `not_started` | Exercise was untouched in this session. |
 | `in_progress` | Exercise has logged sets and remains active. |
-| `completed` | Goal threshold reached and not skipped. |
+| `completed` | Goal threshold reached; this stays the primary semantic state even if the row was later marked skipped. |
 | `skipped` | Skipped before any logging. |
 | `partial` | Logged progress exists and exercise was ended early in-session. |
-| `partial_with_remaining_skipped` | Goal threshold was reached, then exercise was ended early for remaining work. |
 
 | Domain state | Badge copy | Chips |
 | --- | --- | --- |
@@ -50,7 +47,6 @@ Canonical read-only presentation states:
 | `completed` | `Completed` | none |
 | `skipped` | `Skipped` | none |
 | `partial` | `Partial` | `N of T logged` + `Ended early` |
-| `partial_with_remaining_skipped` | `Partial` | `N of T logged` + `Ended early` |
 
 ## Transition rules
 
@@ -58,14 +54,14 @@ Canonical read-only presentation states:
 - `not_started -> in_progress`: User logs first set.
 - `in_progress -> completed`: Logged set count reaches derived goal target.
 - `in_progress -> partial`: User taps **Skip** after logging one or more sets.
-- `completed -> partial_with_remaining_skipped`: User can still skip after reaching the set target.
+- `completed -> completed` (with skipped flag): User can still tap **Skip** after reaching target; copy remains `Completed`.
 - `skipped -> not_started`: User taps **Unskip** with zero logged sets.
 - `partial -> in_progress` or `completed`: User taps **Unskip**. Result depends on whether logged count already satisfies the completion threshold.
-- `partial_with_remaining_skipped -> completed`: User taps **Unskip** after hitting target while skipped.
+- `completed` with skipped flag -> `completed` without skipped flag: User taps **Unskip** after hitting target while skipped.
 
 ## Guardrails
 
-- The UI must never present contradictory status composition such as `Completed` with `Skipped`, or `Logged` with `Skipped`.
-- Any skipped exercise with logged sets must be rendered using explicit partial copy (`Partial`, `N of T logged`, `Ended early`).
+- The UI must never present contradictory status composition such as `Partial` + `N of N logged` + `Ended early`.
+- `Ended early` is reserved for true under-target partials (`loggedSetCount > 0`, `isSkipped = true`, target not reached).
 - Read-only/resume surfaces must use the shared mapper and must not compose independent logged/skipped copy.
-- Quick log is disabled when skipped (`skipped`, `partial`, `partial_with_remaining_skipped`) so actions cannot drift from derived state.
+- Quick log is disabled whenever the skip flag is on (`skipped`, `partial`, or `completed` with skipped flag) so actions cannot drift from derived state.

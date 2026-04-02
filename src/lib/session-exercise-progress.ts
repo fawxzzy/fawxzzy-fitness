@@ -3,8 +3,7 @@ export type ExerciseExecutionState =
   | "in_progress"
   | "completed"
   | "skipped"
-  | "partial"
-  | "partial_with_remaining_skipped";
+  | "partial";
 
 export type SessionExerciseProgressKind = "untouched" | "partial" | "partialSkipped" | "skipped" | "completed";
 export type SessionExercisePresentationSurface = "active" | "summary";
@@ -54,10 +53,11 @@ function resolveGoalSetTarget(input: SessionExerciseProgressInput): number | nul
 }
 
 function deriveExecutionState(input: { loggedSetCount: number; isSkipped: boolean; isGoalCompleted: boolean }): ExerciseExecutionState {
+  if (input.loggedSetCount > 0 && input.isGoalCompleted) return "completed";
   if (input.isSkipped && input.loggedSetCount === 0) return "skipped";
-  if (input.isSkipped && input.loggedSetCount > 0) return input.isGoalCompleted ? "partial_with_remaining_skipped" : "partial";
+  if (input.isSkipped && input.loggedSetCount > 0) return "partial";
   if (input.loggedSetCount === 0) return "not_started";
-  return input.isGoalCompleted ? "completed" : "in_progress";
+  return "in_progress";
 }
 
 function formatLoggedProgress(loggedSetCount: number, goalSetTarget: number | null) {
@@ -72,11 +72,13 @@ function derivePresentationFromExecutionState({
   surface,
   loggedSetCount,
   goalSetTarget,
+  isSkipped,
 }: {
   executionState: ExerciseExecutionState;
   surface: SessionExercisePresentationSurface;
   loggedSetCount: number;
   goalSetTarget: number | null;
+  isSkipped: boolean;
 }): Omit<SessionExerciseProgressState, "executionState" | "isGoalCompleted" | "loggedSetCount" | "goalSetTarget"> {
   switch (executionState) {
     case "not_started":
@@ -103,8 +105,8 @@ function derivePresentationFromExecutionState({
         cardState: "completed",
         badgeText: "Completed",
         chips: [],
-        skipActionLabel: "Skip",
-        allowQuickLog: true,
+        skipActionLabel: isSkipped ? "Unskip" : "Skip",
+        allowQuickLog: !isSkipped,
       };
     case "skipped":
       return {
@@ -116,16 +118,6 @@ function derivePresentationFromExecutionState({
         allowQuickLog: false,
       };
     case "partial":
-      return {
-        kind: "partialSkipped",
-        cardState: "default",
-        badgeText: "Partial",
-        chips: ["loggedProgress", "endedEarly"],
-        progressLabel: formatLoggedProgress(loggedSetCount, goalSetTarget),
-        skipActionLabel: "Unskip",
-        allowQuickLog: false,
-      };
-    case "partial_with_remaining_skipped":
       return {
         kind: "partialSkipped",
         cardState: "default",
@@ -155,6 +147,7 @@ export function deriveSessionExerciseProgressState(input: SessionExerciseProgres
       surface,
       loggedSetCount,
       goalSetTarget,
+      isSkipped: input.isSkipped,
     }),
   };
 }
