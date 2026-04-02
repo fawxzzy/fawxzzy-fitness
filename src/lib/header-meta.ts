@@ -14,3 +14,7 @@ export function formatRoutineHeaderMeta({
 }) {
   return `${routineName} • ${formatExerciseCountMetaLabel(totalExercises)}`;
 }
+
+export function formatAddExerciseHeaderSubtitle(routineName: string) {
+  return routineName;
+}

@@ -16,7 +16,7 @@ test("strength prescription requires reps and sets", () => {
   });
 
   assert.equal(result.isValid, false);
-  assert.match(result.message, /require a rep target/i);
+  assert.match(result.message, /add a rep target/i);
 });
 
 test("bodyweight prescription is valid with sets + reps", () => {

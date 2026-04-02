@@ -152,6 +152,7 @@ export function ExerciseGoalForm({
       />
 
       <GoalSummaryInline
+        hideWhenEmpty={showValidationMessage}
         includeSets={includeSetsInSummary}
         values={{
           ...summaryValues,
@@ -164,9 +165,11 @@ export function ExerciseGoalForm({
       />
 
       {showValidationMessage ? (
-        <p className={`text-xs ${goalValidation.isValid ? "text-emerald-200/90" : "text-amber-200/95"}`}>
-          {validationOverride ?? (goalValidation.isValid ? "Goal valid. You can add this exercise." : goalValidation.message)}
-        </p>
+        goalValidation.isValid ? null : (
+          <p className="rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/95">
+            {validationOverride ?? goalValidation.message}
+          </p>
+        )
       ) : null}
     </div>
   );

@@ -29,3 +29,9 @@ Applies to Add Exercise search result rows.
 
 - Add Exercise and inline Edit must use the shared modality-aware goal form wrapper.
 - Time-distance prescriptions expose explicit mode choices (`Time`, `Distance`, `Time + Distance`) and render only relevant fields.
+- Configure Goal helper guidance renders as one modality-aware message block (single style) driven by the same modality/validation rules that control visible fields and save eligibility.
+
+## Add Exercise header metadata
+
+- Header metadata on Add Exercise must be authoritative and live with the same source of truth as the owning day/session store.
+- If authoritative metadata cannot be guaranteed (for example, potentially stale exercise counts), omit it instead of rendering drift-prone values.

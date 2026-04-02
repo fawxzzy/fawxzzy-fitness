@@ -5,6 +5,7 @@ export function GoalSummaryInline({
   values,
   className,
   includeSets = true,
+  hideWhenEmpty = false,
 }: {
   values: {
     sets?: number | null;
@@ -20,9 +21,11 @@ export function GoalSummaryInline({
   };
   className?: string;
   includeSets?: boolean;
+  hideWhenEmpty?: boolean;
 }) {
   const summary = formatGoalInlineSummaryText(includeSets ? values : { ...values, sets: null });
   const isMissing = summary === (values.emptyLabel ?? "Goal missing");
+  if (hideWhenEmpty && isMissing) return null;
 
   return (
     <div className={cn("px-0.5 py-1", className)}>
