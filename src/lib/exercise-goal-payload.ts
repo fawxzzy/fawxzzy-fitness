@@ -1,6 +1,7 @@
 import "server-only";
 
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { getVisibleMetricsForModality, type GoalModality } from "@/lib/exercise-goal-validation";
 
 export type MeasurementSelection = "reps" | "weight" | "time" | "distance" | "calories";
 
@@ -120,6 +121,20 @@ function deriveMeasurementType(selections: Set<MeasurementSelection>) {
   return "reps" as const;
 }
 
+function parseGoalModality(value: FormDataEntryValue | null): GoalModality | null {
+  const normalized = String(value ?? "").trim();
+  if (
+    normalized === "strength"
+    || normalized === "bodyweight"
+    || normalized === "cardio_time"
+    || normalized === "cardio_distance"
+    || normalized === "cardio_time_distance"
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
 
 export function mapExerciseGoalPayloadToRoutineDayColumns(payload: ParsedGoalPayload) {
   return {
@@ -205,6 +220,8 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   const targetCaloriesRaw = String(formData.get("targetCalories") ?? "").trim();
   const defaultUnit = parseDistanceUnit(formData.get("defaultUnit"));
   const explicitSelections = parseMeasurementSelections(formData);
+  const modality = parseGoalModality(formData.get("goalModality"));
+  const modalityVisibleMetrics = modality ? new Set<MeasurementSelection>(getVisibleMetricsForModality(modality)) : null;
   const valueSelections = deriveMeasurementSelectionsFromFields({
     reps: targetRepsMinRaw,
     weight: targetWeightRaw,
@@ -212,7 +229,10 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
     distance: targetDistanceRaw,
     calories: targetCaloriesRaw,
   });
-  const selections = new Set<MeasurementSelection>([...explicitSelections, ...valueSelections]);
+  const rawSelections = new Set<MeasurementSelection>([...explicitSelections, ...valueSelections]);
+  const selections = modalityVisibleMetrics
+    ? new Set<MeasurementSelection>([...rawSelections].filter((selection) => modalityVisibleMetrics.has(selection)))
+    : rawSelections;
   const measurementType = deriveMeasurementType(selections);
 
   const sanitizedTargets = sanitizeEnabledMeasurementValues({

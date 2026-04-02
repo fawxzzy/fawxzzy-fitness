@@ -38,7 +38,7 @@ export const GOAL_SCHEMA_MATRIX: Record<GoalModality, {
   },
   bodyweight: {
     requiredFields: ["sets", "repsMin"],
-    optionalFields: ["time"],
+    optionalFields: [],
   },
   cardio_time: {
     requiredFields: ["sets", "duration"],
@@ -53,6 +53,10 @@ export const GOAL_SCHEMA_MATRIX: Record<GoalModality, {
     optionalFields: [],
   },
 };
+
+function getAllowedMetricSetForModality(modality: GoalModality) {
+  return new Set<MeasurementSelection>(getVisibleMetricsForModality(modality));
+}
 
 function parseInteger(value: string) {
   const trimmed = value.trim();
@@ -106,7 +110,7 @@ export function resolveGoalModality({
 export function getVisibleMetricsForModality(modality: GoalModality): MeasurementSelection[] {
   switch (modality) {
     case "bodyweight":
-      return ["reps", "time"];
+      return ["reps"];
     case "cardio_time":
       return ["time"];
     case "cardio_distance":
@@ -123,12 +127,13 @@ export function deriveGoalMeasurementSelections(
   modality: GoalModality,
   values: GoalMeasurementValueInputs,
 ): MeasurementSelection[] {
+  const allowedMetrics = getAllowedMetricSetForModality(modality);
   const present = new Set<MeasurementSelection>();
-  if (hasNonEmptyValue(values.repsMin)) present.add("reps");
-  if (hasNonEmptyValue(values.weight)) present.add("weight");
-  if (hasNonEmptyValue(values.duration)) present.add("time");
-  if (hasNonEmptyValue(values.distance)) present.add("distance");
-  if (hasNonEmptyValue(values.calories)) present.add("calories");
+  if (allowedMetrics.has("reps") && hasNonEmptyValue(values.repsMin)) present.add("reps");
+  if (allowedMetrics.has("weight") && hasNonEmptyValue(values.weight)) present.add("weight");
+  if (allowedMetrics.has("time") && hasNonEmptyValue(values.duration)) present.add("time");
+  if (allowedMetrics.has("distance") && hasNonEmptyValue(values.distance)) present.add("distance");
+  if (allowedMetrics.has("calories") && hasNonEmptyValue(values.calories)) present.add("calories");
 
   if (modality === "strength" || modality === "bodyweight") {
     present.add("reps");

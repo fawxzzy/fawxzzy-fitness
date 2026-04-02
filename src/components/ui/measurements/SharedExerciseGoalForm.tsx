@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { cn } from "@/lib/cn";
-import { deriveGoalMeasurementSelections, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, getVisibleMetricsForModality, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 
 function getDefaultMeasurements(modality: GoalModality): MeasurementSelection[] {
   switch (modality) {
@@ -53,19 +53,9 @@ export function SharedExerciseGoalForm({
   emptySummaryLabel?: string;
   showValidationMessage?: boolean;
 }) {
-  const [selectedGoalMode, setSelectedGoalMode] = useState<GoalModality | null>(null);
-
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
-    ? (selectedGoalMode ?? inferGoalModeFromState(state))
+    ? inferGoalModeFromState(state)
     : modality;
-
-  useEffect(() => {
-    if (modality !== "cardio_time_distance") {
-      setSelectedGoalMode(null);
-      return;
-    }
-    setSelectedGoalMode((current) => current ?? inferGoalModeFromState(state));
-  }, [modality, state]);
 
   const goalModeChoices = useMemo(() => {
     if (modality !== "cardio_time_distance") return [];
@@ -95,8 +85,12 @@ export function SharedExerciseGoalForm({
                       : "border-border/40 bg-[rgb(var(--bg)/0.35)] text-muted hover:text-text",
                   )}
                   onClick={() => {
-                    setSelectedGoalMode(choice.value);
-                    onStateChange({ ...state, measurements: getDefaultMeasurements(choice.value) });
+                    onStateChange({
+                      ...state,
+                      measurements: getDefaultMeasurements(choice.value),
+                      duration: choice.value === "cardio_distance" ? "" : state.duration,
+                      distance: choice.value === "cardio_time" ? "" : state.distance,
+                    });
                   }}
                 >
                   {choice.label}
@@ -116,7 +110,8 @@ export function SharedExerciseGoalForm({
         emptySummaryLabel={emptySummaryLabel}
         showValidationMessage={showValidationMessage}
       />
-      <input type="hidden" name="defaultUnit" value={state.measurements.includes("distance") ? state.distanceUnit : "mi"} />
+      <input type="hidden" name="goalModality" value={effectiveGoalModality} />
+      <input type="hidden" name="defaultUnit" value={getVisibleMetricsForModality(effectiveGoalModality).includes("distance") ? state.distanceUnit : "mi"} />
     </div>
   );
 }
