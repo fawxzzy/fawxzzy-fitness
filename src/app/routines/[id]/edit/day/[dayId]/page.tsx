@@ -131,7 +131,13 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       },
     };
   });
-  const activeExerciseCountSummary = getRestDayExerciseCountSummaryFromInputs(editableExercises.map((exercise) => ({ isCardio: exercise.isCardio })), day.is_rest);
+  const activeExerciseCountSummary = getRestDayExerciseCountSummaryFromInputs(
+    editableExercises.map((exercise) => ({
+      measurement_type: exercise.measurementType,
+      isCardio: exercise.isCardio,
+    })),
+    day.is_rest,
+  );
   const headerMetaSummary = resolveDayHeaderSummary({
     isRestDay: day.is_rest,
     exerciseSummaryLabel: activeExerciseCountSummary.label,

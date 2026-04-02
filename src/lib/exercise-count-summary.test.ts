@@ -22,6 +22,10 @@ test("formatExerciseCountSummary honors normalized isCardio metadata over fallba
   assert.equal(formatExerciseCountSummary([{ measurement_type: "reps", isCardio: true }]).label, "1 cardio");
 });
 
+test("formatExerciseCountSummary treats normalized non-cardio rows as strength when metadata is otherwise sparse", () => {
+  assert.equal(formatExerciseCountSummary([{ isCardio: false }]).label, "1 strength");
+});
+
 test("formatExerciseCountSummary degrades gracefully for unknown-only metadata", () => {
   assert.equal(formatExerciseCountSummary([{ equipment: "sled" }, { movement_pattern: "carry" }]).label, "2 exercises");
 });

@@ -1,5 +1,9 @@
 import { isCardioExercise, type ExerciseMetadataInput } from "./exercise-metadata";
-import { formatDaySummaryRestLabel } from "@/features/day-summary/taxonomy";
+import {
+  formatDaySummaryRestLabel,
+  formatDaySummaryTaxonomyLabel,
+  formatDaySummaryTotalLabel,
+} from "@/features/day-summary/taxonomy";
 
 export type ExerciseCountKind = "strength" | "cardio" | "unknown";
 
@@ -15,6 +19,7 @@ export type ExerciseCountSummary = {
 
 export function resolveExerciseCountKind(exercise: ExerciseCountSummaryInput | null | undefined): ExerciseCountKind {
   if (!exercise) return "unknown";
+  if (exercise.isCardio === false && exercise.measurement_type == null) return "strength";
   if (isCardioExercise(exercise)) return "cardio";
   if (exercise.measurement_type === "reps") return "strength";
   return "unknown";
@@ -34,14 +39,18 @@ export function formatExerciseCountSummary(exercises: readonly ExerciseCountSumm
 
   const total = exercises.length;
   if (total === 0) return { total, strength, cardio, unknown, label: "0 exercises" };
-  if (cardio === 0 && strength > 0 && unknown === 0) return { total, strength, cardio, unknown, label: `${strength} strength` };
-  if (strength === 0 && cardio > 0 && unknown === 0) return { total, strength, cardio, unknown, label: `${cardio} cardio` };
+  if (cardio === 0 && strength > 0 && unknown === 0) {
+    return { total, strength, cardio, unknown, label: formatDaySummaryTaxonomyLabel("strength", strength) };
+  }
+  if (strength === 0 && cardio > 0 && unknown === 0) {
+    return { total, strength, cardio, unknown, label: formatDaySummaryTaxonomyLabel("cardio", cardio) };
+  }
   if (strength === 0 && cardio === 0) return { total, strength, cardio, unknown, label: `${total} exercises` };
 
-  const parts = [`${total} total`];
-  if (strength > 0) parts.push(`${strength} strength`);
-  if (cardio > 0) parts.push(`${cardio} cardio`);
-  if (unknown > 0) parts.push(`${unknown} unknown`);
+  const parts = [formatDaySummaryTotalLabel(total)];
+  if (strength > 0) parts.push(formatDaySummaryTaxonomyLabel("strength", strength));
+  if (cardio > 0) parts.push(formatDaySummaryTaxonomyLabel("cardio", cardio));
+  if (unknown > 0) parts.push(formatDaySummaryTaxonomyLabel("unknown", unknown));
 
   return { total, strength, cardio, unknown, label: parts.join(" • ") };
 }
