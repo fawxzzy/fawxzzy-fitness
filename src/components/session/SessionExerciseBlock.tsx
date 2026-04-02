@@ -38,7 +38,7 @@ export function AttachedQuickActionStrip({
   return (
     <div
       className={cn(
-        "mt-1 rounded-[1.05rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] px-2 pb-1.5 pt-1",
+        "mt-0.5 rounded-[1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] px-2 py-1",
         className,
       )}
     >

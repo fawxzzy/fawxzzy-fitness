@@ -228,9 +228,9 @@ export function SessionExerciseFocus({
   }, [onSelectedExerciseIdChange, selectedExerciseId]);
 
   return (
-    <div className="flex min-h-full flex-col space-y-2.5" data-row-interaction={contract.rowInteraction}>
+    <div className="flex flex-col space-y-2" data-row-interaction={contract.rowInteraction}>
       {selectedExerciseId === null ? (
-        <ul className="space-y-2 pb-[calc(var(--app-bottom-action-bar-height,120px)+var(--app-safe-bottom)+1rem)]">
+        <ul className="space-y-1.5 pb-[calc(var(--app-mobile-bottom-dock-height,0px)+0.75rem)]">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
@@ -346,7 +346,7 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="flex min-h-full flex-col space-y-3">
+        <div className="flex flex-col space-y-2.5">
           <WorkoutEntryIdentity
             eyebrow="Exercise Log"
             title={selectedExercise?.name ?? "Exercise"}
