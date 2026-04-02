@@ -16,11 +16,13 @@ export function PickerListViewport({
   constrainOnDesktop?: boolean;
   plainOnMobile?: boolean;
 }) {
+  const shouldShowDesktopFade = showFade && constrainOnDesktop;
+
   return (
     <div
       className={cn(
         plainOnMobile
-          ? "relative md:overflow-hidden md:rounded-[1.35rem] md:border md:border-border/45 md:bg-[rgb(var(--surface-2-soft)/0.42)] md:p-2"
+          ? "relative overflow-visible md:overflow-hidden md:rounded-[1.35rem] md:border md:border-border/45 md:bg-[rgb(var(--surface-2-soft)/0.42)] md:p-2"
           : "relative overflow-hidden rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2",
         className,
       )}
@@ -28,14 +30,14 @@ export function PickerListViewport({
       <div
         className={cn(
           "picker-scroll-viewport",
-          plainOnMobile ? "pr-0 md:pr-1" : "pr-1",
+          plainOnMobile ? "overflow-visible pr-0 md:overflow-y-auto md:overscroll-contain md:pr-1" : "pr-1",
           constrainOnDesktop ? "md:max-h-[19rem] md:overflow-y-auto md:overscroll-contain" : undefined,
           viewportClassName,
         )}
       >
         {children}
       </div>
-      {showFade && constrainOnDesktop ? (
+      {shouldShowDesktopFade ? (
         <>
           <div
             aria-hidden="true"

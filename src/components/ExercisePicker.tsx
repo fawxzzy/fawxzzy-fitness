@@ -421,25 +421,8 @@ export function ExercisePicker({
     setGoalState((current) => ({ ...current, measurements: defaults }));
   }, [goalModality, goalState.measurements.length]);
 
-  const mobileExerciseListContent = (
-    <ul className="space-y-2.5">
-      {filteredExercises.map((exercise) => (
-        <ExerciseRow
-          key={exercise.id}
-          exercise={exercise}
-          isSelected={exercise.id === selectedId}
-          hasStats={hasExerciseStatsSignal(statsByExerciseId.get(resolveCanonicalExerciseId(exercise)))}
-          metadata={exerciseMetadataById.get(exercise.id) ?? ""}
-          iconSrc={exerciseIconSrcById.get(exercise.id) ?? getExerciseIconSrc(exercise)}
-          onPress={handleExercisePress}
-        />
-      ))}
-      {filteredExercises.length === 0 ? <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">No exercises match your filters.</li> : null}
-    </ul>
-  );
-
-  const desktopExerciseListContent = (
-    <ul className={cn(listShellClasses.viewport, listShellClasses.list)}>
+  const exerciseListContent = (
+    <ul className={cn("space-y-2.5 md:space-y-0", listShellClasses.viewport, listShellClasses.list)}>
       {filteredExercises.map((exercise) => (
         <ExerciseRow
           key={exercise.id}
@@ -475,17 +458,14 @@ export function ExercisePicker({
           </div>
         </section>
 
-        <div className="md:hidden">
-          {mobileExerciseListContent}
-        </div>
-
         <PickerListViewport
-          className="hidden border-white/10 bg-[rgb(var(--surface-rgb)/0.3)] md:block"
-          viewportClassName="pr-1"
+          className="border-white/10 bg-transparent p-0 md:bg-[rgb(var(--surface-rgb)/0.3)]"
+          viewportClassName="md:pr-1"
+          showFade
           plainOnMobile
           constrainOnDesktop
         >
-          {desktopExerciseListContent}
+          {exerciseListContent}
         </PickerListViewport>
       </section>
 
