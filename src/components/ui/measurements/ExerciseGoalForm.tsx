@@ -36,6 +36,7 @@ export function ExerciseGoalForm({
   includeSetsInSummary = true,
   emptySummaryLabel = "Goal missing",
   showValidationMessage = false,
+  hideEmptySummary,
   validationOverride,
 }: {
   modality: GoalModality;
@@ -45,6 +46,7 @@ export function ExerciseGoalForm({
   includeSetsInSummary?: boolean;
   emptySummaryLabel?: string;
   showValidationMessage?: boolean;
+  hideEmptySummary?: boolean;
   validationOverride?: string;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -91,6 +93,7 @@ export function ExerciseGoalForm({
     distance: state.distance ? Number(state.distance) : null,
     calories: state.calories ? Number(state.calories) : null,
   });
+  const shouldHideEmptySummary = hideEmptySummary ?? showValidationMessage;
 
   return (
     <div className="space-y-3">
@@ -152,7 +155,7 @@ export function ExerciseGoalForm({
       />
 
       <GoalSummaryInline
-        hideWhenEmpty={showValidationMessage}
+        hideWhenEmpty={shouldHideEmptySummary}
         includeSets={includeSetsInSummary}
         values={{
           ...summaryValues,

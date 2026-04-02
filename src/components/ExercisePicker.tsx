@@ -514,6 +514,7 @@ export function ExercisePicker({
             }}
             includeSetsInSummary={false}
             showValidationMessage={false}
+            hideEmptySummary
           />
           {!goalValidation.isValid ? (
             <p className="rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/95">

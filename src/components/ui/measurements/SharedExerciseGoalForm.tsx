@@ -44,6 +44,7 @@ export function SharedExerciseGoalForm({
   includeSetsInSummary,
   emptySummaryLabel,
   showValidationMessage,
+  hideEmptySummary,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -52,6 +53,7 @@ export function SharedExerciseGoalForm({
   includeSetsInSummary?: boolean;
   emptySummaryLabel?: string;
   showValidationMessage?: boolean;
+  hideEmptySummary?: boolean;
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
@@ -109,6 +111,7 @@ export function SharedExerciseGoalForm({
         includeSetsInSummary={includeSetsInSummary}
         emptySummaryLabel={emptySummaryLabel}
         showValidationMessage={showValidationMessage}
+        hideEmptySummary={hideEmptySummary}
       />
       <input type="hidden" name="goalModality" value={effectiveGoalModality} />
       <input type="hidden" name="defaultUnit" value={getVisibleMetricsForModality(effectiveGoalModality).includes("distance") ? state.distanceUnit : "mi"} />
