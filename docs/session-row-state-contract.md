@@ -1,28 +1,23 @@
-# Session Row-State Contract
+# Session row-state contract
 
-## Purpose
+## Objective
 
-Active-session exercise rows must render from one canonical row-state mapper so card visuals and attached action rows cannot drift.
+Active session list rows must derive visual card state and action-row state from one canonical row view model keyed by stable `session_exercise.id`.
 
-## Canonical mapper
+## Contract rules
 
-- Use `deriveSessionRowState` (`src/lib/session-row-state.ts`) as the single row-state source for active session rows.
-- The row state must own all of the following for each visible row:
-  - card visual state (`cardState`, `badgeText`)
-  - chip/progress copy (`chips`, `progressLabel`)
-  - quick-log copy + availability (`quickLogLabel`, `isQuickLogDisabled`, `quickLogDisabledMessage`)
-  - skip/unskip action state (`skipActionLabel`)
-  - action strip styling (`actionRowClassName`, `quickLogActionClassName`, `skipActionClassName`)
+- Each row maps from one stable identity (`session_exercise.id`), never from list index.
+- The following state must be derived together from one view model:
+  - card state/badge/chips
+  - action-row state
+  - quick-log availability and label
+  - skip/unskip availability and label
+  - disabled-copy messaging
+- Optimistic quick-log and skip/unskip updates must patch the full row view model atomically.
+- Expanded or selected row identity must stay keyed by stable exercise id so controls do not migrate to neighboring rows during rerenders.
 
-## Rendering rules
+## Guardrails
 
-- Session list renderers must not derive card badges/chips separately from action-row labels or quick-log disabled messaging.
-- `AttachedQuickActionStrip` props should be forwarded from the same `SessionRowState` object used for the card and chips.
-- Optimistic skip/unskip and quick-log updates must update row-state inputs (`isSkipped`, `loggedSetCount`) before refresh so the whole row contract updates together.
-
-## State guardrails
-
-- Completed cards never show skipped-only chip/action semantics.
-- Skipped cards never show completed-only semantics.
-- Partial skipped rows show partial badge and ended-early progress semantics.
-- Added-today chip remains a consumer-level extension and must append to canonical chips without changing core semantics.
+- Completed rows keep completed semantics even when skipped controls are recoverable.
+- Skipped-only controls/copy do not render on non-skipped completed rows.
+- Partial rows preserve partial/ended-early chips and disabled copy semantics from the shared execution-state mapper.
