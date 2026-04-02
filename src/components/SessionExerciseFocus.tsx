@@ -18,6 +18,11 @@ import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
+import {
+  buildInitialSessionRowClientState,
+  reconcileSessionRowClientState,
+  type SessionRowClientState,
+} from "@/components/session/sessionRowClientState";
 import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
 import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
@@ -66,13 +71,6 @@ type SessionExercisePrefill = {
   reps?: number;
   durationSeconds?: number;
   weightUnit?: "lbs" | "kg";
-};
-
-type SessionExerciseRowClientState = {
-  loggedSetCount: number;
-  isSkipped: boolean;
-  isQuickLogPending: boolean;
-  isSkipPending: boolean;
 };
 
 export type SessionExerciseFocusItem = {
@@ -131,18 +129,8 @@ export function SessionExerciseFocus({
   const contract = resolveScreenContract("exerciseLog");
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
   const [setLoggerResetSignal, setSetLoggerResetSignal] = useState(0);
-  const [rowClientStateByExerciseId, setRowClientStateByExerciseId] = useState<Record<string, SessionExerciseRowClientState>>(() =>
-    Object.fromEntries(
-      exercises.map((exercise) => [
-        exercise.id,
-        {
-          loggedSetCount: exercise.loggedSetCount,
-          isSkipped: exercise.isSkipped,
-          isQuickLogPending: false,
-          isSkipPending: false,
-        },
-      ]),
-    ),
+  const [rowClientStateBySessionExerciseId, setRowClientStateBySessionExerciseId] = useState<Record<string, SessionRowClientState>>(() =>
+    buildInitialSessionRowClientState(exercises),
   );
   const [warmupDraft, setWarmupDraft] = useState(false);
   const [exerciseInfoExerciseId, setExerciseInfoExerciseId] = useState<string | null>(null);
@@ -151,11 +139,11 @@ export function SessionExerciseFocus({
     () => exercises.find((exercise) => exercise.id === selectedExerciseId) ?? null,
     [exercises, selectedExerciseId],
   );
-  const rowViewModelByExerciseId = useMemo(() => {
+  const rowViewModelBySessionExerciseId = useMemo(() => {
     const fallbackWeightUnit = unitLabel === "lbs" ? "lbs" : "kg";
     return new Map(
       exercises.map((exercise) => {
-        const rowClientState = rowClientStateByExerciseId[exercise.id] ?? {
+        const rowClientState = rowClientStateBySessionExerciseId[exercise.id] ?? {
           loggedSetCount: exercise.loggedSetCount,
           isSkipped: exercise.isSkipped,
           isQuickLogPending: false,
@@ -176,12 +164,12 @@ export function SessionExerciseFocus({
         return [exercise.id, rowViewModel] as const;
       }),
     );
-  }, [exercises, rowClientStateByExerciseId, unitLabel]);
-  const selectedExerciseSetCount = selectedExercise ? (rowViewModelByExerciseId.get(selectedExercise.id)?.loggedSetCount ?? selectedExercise.loggedSetCount) : 0;
+  }, [exercises, rowClientStateBySessionExerciseId, unitLabel]);
+  const selectedExerciseSetCount = selectedExercise ? (rowViewModelBySessionExerciseId.get(selectedExercise.id)?.loggedSetCount ?? selectedExercise.loggedSetCount) : 0;
   const selectedExerciseProgress = selectedExercise
     ? deriveSessionExerciseProgressState({
       loggedSetCount: selectedExerciseSetCount,
-      isSkipped: rowViewModelByExerciseId.get(selectedExercise.id)?.isSkipped ?? selectedExercise.isSkipped,
+      isSkipped: rowViewModelBySessionExerciseId.get(selectedExercise.id)?.isSkipped ?? selectedExercise.isSkipped,
       targetSetsMin: selectedExercise.targetSetsMin,
       targetSetsMax: selectedExercise.targetSetsMax,
     })
@@ -227,45 +215,50 @@ export function SessionExerciseFocus({
     });
   };
 
+  const patchRowState = useCallback((
+    sessionExerciseId: string,
+    patch: (previous: SessionRowClientState) => SessionRowClientState,
+  ) => {
+    setRowClientStateBySessionExerciseId((current) => {
+      const exercise = exercises.find((item) => item.id === sessionExerciseId);
+      if (!exercise) {
+        return current;
+      }
+      const previous = current[sessionExerciseId] ?? {
+        loggedSetCount: exercise.loggedSetCount,
+        isSkipped: exercise.isSkipped,
+        isQuickLogPending: false,
+        isSkipPending: false,
+      };
+      return {
+        ...current,
+        [sessionExerciseId]: patch(previous),
+      };
+    });
+  }, [exercises]);
+
   useEffect(() => {
-    setRowClientStateByExerciseId((current) => {
+    setRowClientStateBySessionExerciseId((current) => {
       const mergedCountState = mergeLoggedSetCountState(
         Object.fromEntries(
           Object.entries(current).map(([exerciseId, rowState]) => [exerciseId, rowState.loggedSetCount]),
         ),
         exercises,
       );
-      const next = { ...current };
-      for (const exercise of exercises) {
-        const previous = current[exercise.id];
-        next[exercise.id] = {
-          loggedSetCount: mergedCountState[exercise.id] ?? exercise.loggedSetCount,
-          isSkipped: exercise.isSkipped,
-          isQuickLogPending: previous?.isQuickLogPending ?? false,
-          isSkipPending: previous?.isSkipPending ?? false,
-        };
-      }
-      return next;
+      return reconcileSessionRowClientState({
+        current,
+        rows: exercises,
+        mergedLoggedSetCount: mergedCountState,
+      });
     });
   }, [exercises]);
 
   const handleSetCountChange = useCallback((exerciseId: string, count: number) => {
-    setRowClientStateByExerciseId((current) => {
-      const existing = current[exerciseId];
-      if (existing && existing.loggedSetCount === count) {
-        return current;
-      }
-      return {
-        ...current,
-        [exerciseId]: {
-          loggedSetCount: count,
-          isSkipped: existing?.isSkipped ?? false,
-          isQuickLogPending: existing?.isQuickLogPending ?? false,
-          isSkipPending: existing?.isSkipPending ?? false,
-        },
-      };
+    patchRowState(exerciseId, (existing) => existing.loggedSetCount === count ? existing : {
+      ...existing,
+      loggedSetCount: count,
     });
-  }, []);
+  }, [patchRowState]);
 
   useEffect(() => {
     if (!selectedExerciseId) {
@@ -300,7 +293,7 @@ export function SessionExerciseFocus({
         <ul className="space-y-1.5 pb-3">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
-            const rowViewModel = rowViewModelByExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({
+            const rowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({
               exerciseId: exercise.id,
               loggedSetCount: exercise.loggedSetCount,
               isSkipped: exercise.isSkipped,
@@ -344,25 +337,24 @@ export function SessionExerciseFocus({
                     </StandardExerciseRow>
                   </SessionExerciseCard>
                   <AttachedQuickActionStrip
-                    label={rowState.quickLogLabel}
-                    skipLabel={rowState.skipActionLabel}
-                    quickLogActionClassName={rowState.quickLogActionClassName}
-                    skipActionClassName={rowState.skipActionClassName}
-                    actionRowClassName={rowState.actionRowClassName}
-                    isQuickLogDisabled={rowState.isQuickLogDisabled}
-                    quickLogDisabledMessage={rowState.quickLogDisabledMessage}
-                    isSkipPending={rowViewModel.isSkipPending}
+                    rowContract={{
+                      label: rowState.quickLogLabel,
+                      skipLabel: rowState.skipActionLabel,
+                      quickLogActionClassName: rowState.quickLogActionClassName,
+                      skipActionClassName: rowState.skipActionClassName,
+                      actionRowClassName: rowState.actionRowClassName,
+                      isQuickLogDisabled: rowState.isQuickLogDisabled,
+                      quickLogDisabledMessage: rowState.quickLogDisabledMessage,
+                      isSkipPending: rowViewModel.isSkipPending,
+                      isQuickLogPending: rowViewModel.isQuickLogPending,
+                    }}
                     onSkip={async () => {
                       const previousSkipped = rowViewModel.isSkipped;
                       const nextSkipped = !previousSkipped;
-                      setRowClientStateByExerciseId((current) => ({
+                      patchRowState(exercise.id, (current) => ({
                         ...current,
-                        [exercise.id]: {
-                          loggedSetCount: current[exercise.id]?.loggedSetCount ?? exercise.loggedSetCount,
-                          isSkipped: nextSkipped,
-                          isQuickLogPending: current[exercise.id]?.isQuickLogPending ?? false,
-                          isSkipPending: true,
-                        },
+                        isSkipped: nextSkipped,
+                        isSkipPending: true,
                       }));
                       try {
                         const formData = new FormData();
@@ -378,38 +370,23 @@ export function SessionExerciseFocus({
                         if (result.ok) {
                           router.refresh();
                         } else {
-                          setRowClientStateByExerciseId((current) => ({
+                          patchRowState(exercise.id, (current) => ({
                             ...current,
-                            [exercise.id]: {
-                              loggedSetCount: current[exercise.id]?.loggedSetCount ?? exercise.loggedSetCount,
-                              isSkipped: previousSkipped,
-                              isQuickLogPending: current[exercise.id]?.isQuickLogPending ?? false,
-                              isSkipPending: false,
-                            },
+                            isSkipped: previousSkipped,
+                            isSkipPending: false,
                           }));
                         }
                       } finally {
-                        setRowClientStateByExerciseId((current) => ({
+                        patchRowState(exercise.id, (current) => ({
                           ...current,
-                          [exercise.id]: {
-                            loggedSetCount: current[exercise.id]?.loggedSetCount ?? exercise.loggedSetCount,
-                            isSkipped: current[exercise.id]?.isSkipped ?? exercise.isSkipped,
-                            isQuickLogPending: current[exercise.id]?.isQuickLogPending ?? false,
-                            isSkipPending: false,
-                          },
+                          isSkipPending: false,
                         }));
                       }
                     }}
-                    isPending={rowViewModel.isQuickLogPending}
                     onPress={async () => {
-                      setRowClientStateByExerciseId((current) => ({
+                      patchRowState(exercise.id, (current) => ({
                         ...current,
-                        [exercise.id]: {
-                          loggedSetCount: current[exercise.id]?.loggedSetCount ?? exercise.loggedSetCount,
-                          isSkipped: current[exercise.id]?.isSkipped ?? exercise.isSkipped,
-                          isQuickLogPending: true,
-                          isSkipPending: current[exercise.id]?.isSkipPending ?? false,
-                        },
+                        isQuickLogPending: true,
                       }));
                       try {
                         const quickLogResolution = resolveQuickLogFromTarget(exercise.quickLogTarget, unitLabel === "lbs" ? "lbs" : "kg");
@@ -438,14 +415,9 @@ export function SessionExerciseFocus({
                           router.refresh();
                         }
                       } finally {
-                        setRowClientStateByExerciseId((current) => ({
+                        patchRowState(exercise.id, (current) => ({
                           ...current,
-                          [exercise.id]: {
-                            loggedSetCount: current[exercise.id]?.loggedSetCount ?? exercise.loggedSetCount,
-                            isSkipped: current[exercise.id]?.isSkipped ?? exercise.isSkipped,
-                            isQuickLogPending: false,
-                            isSkipPending: current[exercise.id]?.isSkipPending ?? false,
-                          },
+                          isQuickLogPending: false,
                         }));
                       }
                     }}

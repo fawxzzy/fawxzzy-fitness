@@ -11,32 +11,30 @@ export function SessionExerciseCard({ children }: { children: ReactNode }) {
 }
 
 export function AttachedQuickActionStrip({
-  label = "Quick Log: Set",
-  skipLabel = "Skip",
-  quickLogActionClassName,
-  skipActionClassName,
-  actionRowClassName,
+  rowContract,
   onPress,
   onSkip,
-  isSkipPending,
-  isPending,
-  isQuickLogDisabled,
-  quickLogDisabledMessage,
   className,
 }: {
-  label?: string;
-  skipLabel?: string;
-  quickLogActionClassName?: string;
-  skipActionClassName?: string;
-  actionRowClassName?: string;
+  rowContract: {
+    label: string;
+    skipLabel: "Skip" | "Unskip";
+    quickLogActionClassName?: string;
+    skipActionClassName?: string;
+    actionRowClassName?: string;
+    isSkipPending: boolean;
+    isQuickLogPending: boolean;
+    isQuickLogDisabled: boolean;
+    quickLogDisabledMessage: string;
+  };
   onPress: () => Promise<void> | void;
   onSkip?: () => Promise<void> | void;
-  isSkipPending?: boolean;
-  isPending?: boolean;
-  isQuickLogDisabled?: boolean;
-  quickLogDisabledMessage?: string;
   className?: string;
 }) {
+  const actionRowClassName = rowContract.actionRowClassName;
+  const skipActionClassName = rowContract.skipActionClassName;
+  const quickLogActionClassName = rowContract.quickLogActionClassName;
+
   return (
     <div
       className={cn(
@@ -50,23 +48,23 @@ export function AttachedQuickActionStrip({
           variant="secondary"
           size="sm"
           onClick={onSkip}
-          disabled={isSkipPending || !onSkip}
+          disabled={rowContract.isSkipPending || !onSkip}
           className={cn(
             "col-span-1 min-h-[38px] border-white/8 bg-transparent px-2 text-[12px] font-medium shadow-none hover:bg-white/[0.05]",
             skipActionClassName,
           )}
         >
-          {isSkipPending ? "Saving…" : skipLabel}
+          {rowContract.isSkipPending ? "Saving…" : rowContract.skipLabel}
         </AppButton>
         <AppButton
           type="button"
           variant="secondary"
           size="sm"
           onClick={onPress}
-          disabled={isPending || isQuickLogDisabled}
+          disabled={rowContract.isQuickLogPending || rowContract.isQuickLogDisabled}
           className={cn("col-span-2 min-h-[38px] border-white/8 bg-transparent px-2 text-[12px] font-medium shadow-none hover:bg-white/[0.05]", quickLogActionClassName)}
         >
-          {isQuickLogDisabled ? (quickLogDisabledMessage ?? "Unavailable while skipped") : isPending ? "Adding…" : label}
+          {rowContract.isQuickLogDisabled ? rowContract.quickLogDisabledMessage : rowContract.isQuickLogPending ? "Adding…" : rowContract.label}
         </AppButton>
       </div>
     </div>
