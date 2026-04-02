@@ -17,15 +17,15 @@ export function RoutinesPageScaffold({ summary, children }: RoutinesPageScaffold
 }
 
 export function ActiveRoutineSummaryCard({
+  sectionLabel,
   title,
-  subtitle,
+  metadata,
   status,
-  children,
 }: {
+  sectionLabel: ReactNode;
   title: ReactNode;
-  subtitle?: ReactNode;
+  metadata?: ReactNode;
   status?: ReactNode;
-  children?: ReactNode;
 }) {
   const recipe = resolveScreenRecipe("routinesOverview");
   return (
@@ -35,8 +35,14 @@ export function ActiveRoutineSummaryCard({
       data-footer-dock={recipe.footerDock}
       className={recipe.headerPanelClassName}
     >
-      <SharedScreenHeader recipe="routinesOverview" title={title} subtitleRight={subtitle} action={status} className="rounded-[1.25rem] bg-[rgb(var(--bg)/0.18)] p-0 shadow-none" />
-      {children ? <div className="space-y-3">{children}</div> : null}
+      <SharedScreenHeader
+        recipe="routinesOverview"
+        eyebrow={sectionLabel}
+        title={title}
+        subtitle={metadata}
+        action={status}
+        className="rounded-[1.25rem] bg-[rgb(var(--bg)/0.18)] p-0 shadow-none"
+      />
     </AppPanel>
   );
 }
