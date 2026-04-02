@@ -6,7 +6,7 @@ export type EnabledMeasurements = {
   calories: boolean;
 };
 
-type SanitizableMeasurementValues = {
+export type MeasurementValueInput = {
   reps?: string | number | null;
   weight?: string | number | null;
   duration?: string | null;
@@ -15,9 +15,27 @@ type SanitizableMeasurementValues = {
   calories?: string | number | null;
 };
 
+type SanitizableMeasurementValues = MeasurementValueInput;
+
 function emptyDisabledValue<T>(value: T): T {
   if (typeof value === "string") return "" as T;
   return null as T;
+}
+
+function hasInputValue(value: unknown) {
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return Number.isFinite(value);
+  return value !== null && value !== undefined;
+}
+
+export function deriveMeasurementPresenceFromValues(values: MeasurementValueInput): EnabledMeasurements {
+  return {
+    reps: hasInputValue(values.reps),
+    weight: hasInputValue(values.weight),
+    time: hasInputValue(values.duration) || hasInputValue(values.durationSeconds),
+    distance: hasInputValue(values.distance),
+    calories: hasInputValue(values.calories),
+  };
 }
 
 export function sanitizeEnabledMeasurementValues<T extends SanitizableMeasurementValues>(

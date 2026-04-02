@@ -19,7 +19,7 @@ import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
 import { formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
-import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
 import { cn } from "@/lib/cn";
@@ -181,8 +181,7 @@ export function SetLoggerCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSecondaryPending, setIsSecondaryPending] = useState(false);
   const [sets, setSets] = useState<DisplaySet[]>(initialSets);
-  const [activeMetrics, setActiveMetrics] = useState(initialEnabledMetrics);
-  const [hasUserModifiedMetrics, setHasUserModifiedMetrics] = useState(false);
+  const [visibleMetrics, setVisibleMetrics] = useState(initialEnabledMetrics);
   const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
@@ -194,16 +193,8 @@ export function SetLoggerCard({
   const planContractSignature = `${sessionExerciseId}:${routineDayExerciseId ?? ""}:${planTargetsHash ?? ""}`;
 
   useEffect(() => {
-    if (hasUserModifiedMetrics) {
-      return;
-    }
-
-    setActiveMetrics(initialEnabledMetrics);
-  }, [hasUserModifiedMetrics, initialEnabledMetrics, planContractSignature]);
-
-  useEffect(() => {
-    setHasUserModifiedMetrics(false);
-  }, [planContractSignature]);
+    setVisibleMetrics(initialEnabledMetrics);
+  }, [initialEnabledMetrics, planContractSignature]);
 
   useEffect(() => {
     setIsMetricsExpanded(false);
@@ -257,7 +248,13 @@ export function SetLoggerCard({
       }
 
       if (parsed.form) {
-        const sanitizedForm = sanitizeEnabledMeasurementValues(activeMetrics, {
+        const sanitizedForm = sanitizeEnabledMeasurementValues(deriveMeasurementPresenceFromValues({
+          reps: parsed.form.reps,
+          weight: parsed.form.weight,
+          duration: parsed.form.durationSeconds,
+          distance: parsed.form.distance,
+          calories: parsed.form.calories,
+        }), {
           weight: parsed.form.weight,
           reps: parsed.form.reps,
           duration: parsed.form.durationSeconds,
@@ -280,11 +277,17 @@ export function SetLoggerCard({
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [activeMetrics, initialSets, sessionExerciseId, sessionId, setWarmupValue]);
+  }, [initialSets, sessionExerciseId, sessionId, setWarmupValue]);
 
   useEffect(() => {
     const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
-    const sanitizedForm = sanitizeEnabledMeasurementValues(activeMetrics, {
+    const sanitizedForm = sanitizeEnabledMeasurementValues(deriveMeasurementPresenceFromValues({
+      reps,
+      weight,
+      duration: durationInput,
+      distance,
+      calories,
+    }), {
       weight,
       reps,
       duration: durationInput,
@@ -308,7 +311,7 @@ export function SetLoggerCard({
     });
 
     window.localStorage.setItem(storageKey, payload);
-  }, [activeMetrics, calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -430,10 +433,10 @@ export function SetLoggerCard({
 
   const resetLoggerState = useCallback(() => {
     setDurationInput("");
-    if (activeMetrics.reps) {
+    if (visibleMetrics.reps) {
       setReps("");
     }
-  }, [activeMetrics.reps]);
+  }, [visibleMetrics.reps]);
 
   useEffect(() => {
     if (!resetSignal) {
@@ -444,7 +447,14 @@ export function SetLoggerCard({
   }, [resetLoggerState, resetSignal]);
 
   const handleLogSet = useCallback(async () => {
-    const sanitizedValues = sanitizeEnabledMeasurementValues(activeMetrics, {
+    const presentMetrics = deriveMeasurementPresenceFromValues({
+      reps,
+      weight,
+      duration: durationInput,
+      distance,
+      calories,
+    });
+    const sanitizedValues = sanitizeEnabledMeasurementValues(presentMetrics, {
       weight,
       reps,
       duration: durationInput,
@@ -458,14 +468,14 @@ export function SetLoggerCard({
     const parsedCalories = sanitizedValues.calories.trim() ? Number(sanitizedValues.calories) : null;
     const parsedRpe = rpe.trim() ? Number(rpe) : null;
 
-    if (activeMetrics.weight && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
+    if (presentMetrics.weight && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
       const message = "Weight must be 0 or greater.";
       setError(message);
       toast.error(message);
       return;
     }
 
-    if (activeMetrics.reps && (!Number.isFinite(parsedReps) || parsedReps < 0)) {
+    if (presentMetrics.reps && (!Number.isFinite(parsedReps) || parsedReps < 0)) {
       const message = "Reps must be 0 or greater.";
       setError(message);
       toast.error(message);
@@ -670,16 +680,15 @@ export function SetLoggerCard({
       return;
     }
 
-    setDurationInput(activeMetrics.time ? formatDurationInput(parsedDuration) : sanitizedValues.duration);
-    setDistance(activeMetrics.distance ? (parsedDistance === null ? "" : String(parsedDistance)) : sanitizedValues.distance);
-    setCalories(activeMetrics.calories ? (parsedCalories === null ? "" : String(parsedCalories)) : sanitizedValues.calories);
-    setWeight(activeMetrics.weight ? String(parsedWeight) : sanitizedValues.weight);
-    setReps(activeMetrics.reps ? String(parsedReps) : sanitizedValues.reps);
+    setDurationInput(presentMetrics.time ? formatDurationInput(parsedDuration) : sanitizedValues.duration);
+    setDistance(presentMetrics.distance ? (parsedDistance === null ? "" : String(parsedDistance)) : sanitizedValues.distance);
+    setCalories(presentMetrics.calories ? (parsedCalories === null ? "" : String(parsedCalories)) : sanitizedValues.calories);
+    setWeight(presentMetrics.weight ? String(parsedWeight) : sanitizedValues.weight);
+    setReps(presentMetrics.reps ? String(parsedReps) : sanitizedValues.reps);
     setRpe(parsedRpe === null ? "" : String(parsedRpe));
     setWarmupValue(resolvedIsWarmup);
     setIsSubmitting(false);
   }, [
-    activeMetrics,
     calories,
     distance,
     distanceUnit,
@@ -811,28 +820,16 @@ export function SetLoggerCard({
             weightUnit: selectedWeightUnit,
             distanceUnit,
           }}
-          activeMetrics={activeMetrics}
+          activeMetrics={deriveMeasurementPresenceFromValues({
+            reps,
+            weight,
+            duration: durationInput,
+            distance,
+            calories,
+          })}
           isExpanded={isMetricsExpanded}
           onExpandedChange={setIsMetricsExpanded}
-          onMetricToggle={(metric) => {
-            setHasUserModifiedMetrics(true);
-            setActiveMetrics((current) => {
-              const nextMetrics = { ...current, [metric]: !current[metric] };
-              const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
-                reps,
-                weight,
-                duration: durationInput,
-                distance,
-                calories,
-              });
-              setReps(sanitizedValues.reps);
-              setWeight(sanitizedValues.weight);
-              setDurationInput(sanitizedValues.duration);
-              setDistance(sanitizedValues.distance);
-              setCalories(sanitizedValues.calories);
-              return nextMetrics;
-            });
-          }}
+          onMetricToggle={undefined}
           onChange={(patch) => {
             if (patch.reps !== undefined) setReps(patch.reps);
             if (patch.weight !== undefined) setWeight(patch.weight);
@@ -844,6 +841,7 @@ export function SetLoggerCard({
           }}
           className={tapFeedbackClass}
           showInnerHeader={false}
+          visibleMetrics={(Object.entries(visibleMetrics) as Array<[keyof typeof visibleMetrics, boolean]>).filter(([, enabled]) => enabled).map(([metric]) => metric)}
           leadingContent={(
             <div className="flex items-start justify-between gap-2 rounded-xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.3)] px-3 py-2">
               <div className="min-w-0">

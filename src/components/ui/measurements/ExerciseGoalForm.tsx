@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MeasurementConfigurator } from "@/components/ui/measurements/MeasurementConfigurator";
 import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
-import { getVisibleMetricsForModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, getVisibleMetricsForModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 
 export type ExerciseGoalFormState = {
   sets: string;
@@ -49,20 +49,27 @@ export function ExerciseGoalForm({
 }) {
   const [expanded, setExpanded] = useState(true);
   const visibleMetrics = useMemo(() => getVisibleMetricsForModality(modality), [modality]);
+  const derivedSelections = useMemo(() => deriveGoalMeasurementSelections(modality, {
+    repsMin: state.repsMin,
+    weight: state.weight,
+    duration: state.duration,
+    distance: state.distance,
+    calories: state.calories,
+  }), [modality, state.calories, state.distance, state.duration, state.repsMin, state.weight]);
 
   useEffect(() => {
-    const allowed = new Set(visibleMetrics);
-    const filtered = state.measurements.filter((metric) => allowed.has(metric));
-    if (filtered.length === state.measurements.length) return;
-    onStateChange({ ...state, measurements: filtered });
-  }, [onStateChange, state, visibleMetrics]);
+    const current = [...state.measurements].sort().join("|");
+    const derived = [...derivedSelections].sort().join("|");
+    if (current === derived) return;
+    onStateChange({ ...state, measurements: derivedSelections });
+  }, [derivedSelections, onStateChange, state]);
 
   const activeMetrics = {
-    reps: state.measurements.includes("reps"),
-    weight: state.measurements.includes("weight"),
-    time: state.measurements.includes("time"),
-    distance: state.measurements.includes("distance"),
-    calories: state.measurements.includes("calories"),
+    reps: derivedSelections.includes("reps"),
+    weight: derivedSelections.includes("weight"),
+    time: derivedSelections.includes("time"),
+    distance: derivedSelections.includes("distance"),
+    calories: derivedSelections.includes("calories"),
   };
 
   const goalValidation = useMemo(() => validateGoalConfiguration({
@@ -74,8 +81,8 @@ export function ExerciseGoalForm({
     duration: state.duration,
     distance: state.distance,
     calories: state.calories,
-    measurementSelections: new Set(state.measurements),
-  }), [modality, state]);
+    measurementSelections: new Set(derivedSelections),
+  }), [derivedSelections, modality, state.calories, state.distance, state.duration, state.repsMax, state.repsMin, state.sets, state.weight]);
 
   const summaryValues = sanitizeEnabledMeasurementValues(activeMetrics, {
     reps: state.repsMin ? Number(state.repsMin) : null,
@@ -87,7 +94,7 @@ export function ExerciseGoalForm({
 
   return (
     <div className="space-y-3">
-      {state.measurements.map((metric) => <input key={`selected-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
+      {derivedSelections.map((metric) => <input key={`selected-${metric}`} type="hidden" name="measurementSelections" value={metric} />)}
       <MeasurementConfigurator
         values={{
           reps: state.repsMin,
@@ -102,34 +109,7 @@ export function ExerciseGoalForm({
         activeMetrics={activeMetrics}
         isExpanded={expanded}
         onExpandedChange={setExpanded}
-        onMetricToggle={(metric) => {
-          const nextMeasurements = state.measurements.includes(metric)
-            ? state.measurements.filter((value) => value !== metric)
-            : [...state.measurements, metric];
-          const sanitizedValues = sanitizeEnabledMeasurementValues({
-            reps: nextMeasurements.includes("reps"),
-            weight: nextMeasurements.includes("weight"),
-            time: nextMeasurements.includes("time"),
-            distance: nextMeasurements.includes("distance"),
-            calories: nextMeasurements.includes("calories"),
-          }, {
-            reps: state.repsMin,
-            weight: state.weight,
-            duration: state.duration,
-            distance: state.distance,
-            calories: state.calories,
-          });
-          onStateChange({
-            ...state,
-            measurements: nextMeasurements,
-            repsMin: sanitizedValues.reps,
-            repsMax: nextMeasurements.includes("reps") ? state.repsMax : "",
-            weight: sanitizedValues.weight,
-            duration: sanitizedValues.duration,
-            distance: sanitizedValues.distance,
-            calories: sanitizedValues.calories,
-          });
-        }}
+        onMetricToggle={undefined}
         onChange={(patch) => onStateChange({
           ...state,
           repsMin: patch.reps ?? state.repsMin,

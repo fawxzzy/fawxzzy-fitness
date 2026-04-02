@@ -14,7 +14,7 @@ import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilt
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
-import { resolveGoalModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, resolveGoalModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 
 type ExerciseOption = {
   id: string;
@@ -391,7 +391,13 @@ export function ExercisePicker({
     duration: goalState.duration,
     distance: goalState.distance,
     calories: goalState.calories,
-    measurementSelections: new Set(goalState.measurements),
+    measurementSelections: new Set(deriveGoalMeasurementSelections(goalModality, {
+      repsMin: goalState.repsMin,
+      weight: goalState.weight,
+      duration: goalState.duration,
+      distance: goalState.distance,
+      calories: goalState.calories,
+    })),
   }), [goalModality, goalState]);
 
   useEffect(() => {
