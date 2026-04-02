@@ -42,7 +42,7 @@ export function AttachedQuickActionStrip({
         className,
       )}
     >
-      <div className={cn("grid grid-cols-3 items-center gap-2", actionRowClassName)}>
+      <div className={cn("grid grid-cols-3 items-stretch gap-2", actionRowClassName)}>
         <AppButton
           type="button"
           variant="secondary"
@@ -50,7 +50,7 @@ export function AttachedQuickActionStrip({
           onClick={onSkip}
           disabled={isSkipPending || !onSkip}
           className={cn(
-            "col-span-1 min-h-[38px] border-white/8 bg-transparent text-[12px] font-medium shadow-none hover:bg-white/[0.05]",
+            "col-span-1 min-h-[38px] border-white/8 bg-transparent px-2 text-[12px] font-medium shadow-none hover:bg-white/[0.05]",
             skipActionClassName,
           )}
         >
@@ -62,7 +62,7 @@ export function AttachedQuickActionStrip({
           size="sm"
           onClick={onPress}
           disabled={isPending || isQuickLogDisabled}
-          className={cn("col-span-2 min-h-[38px] border-white/8 bg-transparent text-[12px] font-medium shadow-none hover:bg-white/[0.05]", quickLogActionClassName)}
+          className={cn("col-span-2 min-h-[38px] border-white/8 bg-transparent px-2 text-[12px] font-medium shadow-none hover:bg-white/[0.05]", quickLogActionClassName)}
         >
           {isQuickLogDisabled ? "Unavailable while skipped" : isPending ? "Adding…" : label}
         </AppButton>
