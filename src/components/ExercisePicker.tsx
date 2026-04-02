@@ -442,7 +442,7 @@ export function ExercisePicker({
     <div className="space-y-4 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+1.5rem)]">
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
-      <section className="space-y-3.5 rounded-[1.35rem] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-3.5 shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] sm:p-4">
+      <section className="space-y-3.5 rounded-none border-0 bg-transparent p-0 shadow-none md:rounded-[1.35rem] md:border md:border-white/14 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] md:p-3.5 md:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] lg:p-4">
         <ExerciseSearchFilters
           query={search}
           onQueryChange={setSearch}
@@ -451,7 +451,7 @@ export function ExercisePicker({
           groups={availableTagGroups}
         />
 
-        <section className="scroll-mb-24 space-y-2">
+        <section className="scroll-mb-24 space-y-2 px-1 md:px-0">
           <div className="flex items-center justify-between gap-2 px-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercise Library</p>
             <p className="text-xs text-muted">{filteredExercises.length} shown</p>
@@ -459,8 +459,8 @@ export function ExercisePicker({
         </section>
 
         <PickerListViewport
-          className="border-white/10 bg-transparent p-0 md:bg-[rgb(var(--surface-rgb)/0.3)]"
-          viewportClassName="md:pr-1"
+          className="border-0 bg-transparent p-0 md:border-white/10 md:bg-[rgb(var(--surface-rgb)/0.3)]"
+          viewportClassName="pr-0 md:pr-1"
           showFade
           plainOnMobile
           constrainOnDesktop

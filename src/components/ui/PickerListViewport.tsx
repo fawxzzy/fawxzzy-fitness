@@ -17,13 +17,14 @@ export function PickerListViewport({
   plainOnMobile?: boolean;
 }) {
   const shouldShowDesktopFade = showFade && constrainOnDesktop;
+  const shellClassName = plainOnMobile
+    ? "overflow-visible rounded-none border-0 bg-transparent p-0 md:relative md:overflow-hidden md:rounded-[1.35rem] md:border md:border-border/45 md:bg-[rgb(var(--surface-2-soft)/0.42)] md:p-2"
+    : "relative overflow-hidden rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2";
 
   return (
     <div
       className={cn(
-        plainOnMobile
-          ? "relative overflow-visible md:overflow-hidden md:rounded-[1.35rem] md:border md:border-border/45 md:bg-[rgb(var(--surface-2-soft)/0.42)] md:p-2"
-          : "relative overflow-hidden rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2",
+        shellClassName,
         className,
       )}
     >
