@@ -8,7 +8,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
-import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
+import { SharedExerciseGoalForm, inferGoalModeFromState } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
@@ -372,6 +372,9 @@ export function ExercisePicker({
       tags: selectedTagSet,
     })
     : "strength";
+  const effectiveGoalModality: GoalModality = goalModality === "cardio_time_distance"
+    ? inferGoalModeFromState(goalState)
+    : goalModality;
 
   const handleExercisePress = useCallback((exerciseId: string, isSelected: boolean) => {
     if (isSelected) {
@@ -387,7 +390,7 @@ export function ExercisePicker({
   }, [selectedCanonicalExerciseId]);
 
   const goalValidation = useMemo(() => validateGoalConfiguration({
-    modality: goalModality,
+    modality: effectiveGoalModality,
     sets: goalState.sets,
     repsMin: goalState.repsMin,
     repsMax: goalState.repsMax,
@@ -395,14 +398,14 @@ export function ExercisePicker({
     duration: goalState.duration,
     distance: goalState.distance,
     calories: goalState.calories,
-    measurementSelections: new Set(deriveGoalMeasurementSelections(goalModality, {
+    measurementSelections: new Set(deriveGoalMeasurementSelections(effectiveGoalModality, {
       repsMin: goalState.repsMin,
       weight: goalState.weight,
       duration: goalState.duration,
       distance: goalState.distance,
       calories: goalState.calories,
     })),
-  }), [goalModality, goalState]);
+  }), [effectiveGoalModality, goalState]);
 
   useEffect(() => {
     if (goalState.measurements.length > 0) return;
@@ -510,8 +513,13 @@ export function ExercisePicker({
               distanceUnit: "targetDistanceUnit",
             }}
             includeSetsInSummary={false}
-            showValidationMessage
+            showValidationMessage={false}
           />
+          {!goalValidation.isValid ? (
+            <p className="rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/95">
+              {goalValidation.message}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
