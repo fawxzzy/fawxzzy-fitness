@@ -128,14 +128,14 @@ export function ExerciseCard({
     className,
   );
 
-  const bodyClassName = "min-w-0 flex-1 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
+  const pressableBodyClassName = "min-w-0 flex-1 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
 
   if (onPress && actions) {
     return (
       <article className={cn(baseClassName, "items-stretch gap-2") }>
         <button
           type="button"
-          className={cn(bodyClassName, "min-w-0 flex-1")}
+          className={cn(pressableBodyClassName, "min-w-0 flex-1")}
           onClick={onPress}
           disabled={disabled}
         >
@@ -150,7 +150,7 @@ export function ExerciseCard({
     return (
       <button
         type="button"
-        className={cn(baseClassName, bodyClassName)}
+        className={cn(baseClassName, pressableBodyClassName)}
         onClick={onPress}
         disabled={disabled}
       >
