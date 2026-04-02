@@ -77,6 +77,17 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
   other: "Other",
 };
 
+const pickerRowMobileDensityClassNames = {
+  card: "max-md:min-h-[3.95rem] max-md:rounded-[0.76rem] max-md:border-border/35 max-md:bg-[rgb(var(--surface-2-soft)/0.5)] max-md:px-2.5 max-md:py-2 max-md:shadow-none",
+  body: "max-md:gap-2",
+  title: "max-md:text-[0.9rem]",
+  titleContainer: "max-md:space-y-0.5",
+  subtitle: "max-md:text-[10px] max-md:leading-snug",
+  content: "max-md:space-y-0.5",
+  trailing: "max-md:min-w-[3.05rem]",
+  selectPill: "max-md:min-h-5.5 max-md:min-w-[2.95rem] max-md:px-1.5 max-md:text-[10px]",
+} as const;
+
 function toTagArray(value: string[] | string | null | undefined) {
   if (!value) return [];
   if (Array.isArray(value)) {
@@ -208,25 +219,26 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
         leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
         className={cn(
           "md:rounded-[1.05rem] md:border md:border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] md:bg-[rgb(var(--glass-tint-rgb)/0.74)] md:p-3.5 md:shadow-[0_10px_20px_-14px_rgba(0,0,0,0.88)]",
-          "max-md:min-h-[4.2rem] max-md:rounded-[0.82rem] max-md:border-border/35 max-md:bg-[rgb(var(--surface-2-soft)/0.5)] max-md:px-3 max-md:py-2.5 max-md:shadow-none",
+          pickerRowMobileDensityClassNames.card,
           hasStats
             ? "border-emerald-400/35 bg-emerald-500/10 hover:bg-emerald-500/14 max-md:border-emerald-400/24 max-md:bg-emerald-500/8 max-md:hover:bg-emerald-500/12"
             : undefined,
         )}
         trailingClassName={cn(
-          "max-md:min-w-[3.35rem]",
+          pickerRowMobileDensityClassNames.trailing,
           isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
         )}
-        bodyClassName="max-md:gap-2.5"
-        titleClassName="max-md:text-[0.93rem]"
-        titleContainerClassName="max-md:space-y-0.5"
-        subtitleClassName="max-md:text-[11px]"
-        contentClassName="max-md:space-y-1"
+        bodyClassName={pickerRowMobileDensityClassNames.body}
+        titleClassName={pickerRowMobileDensityClassNames.title}
+        titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}
+        subtitleClassName={pickerRowMobileDensityClassNames.subtitle}
+        contentClassName={pickerRowMobileDensityClassNames.content}
         rightIcon={(
           <span
             aria-hidden="true"
             className={cn(
-              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none max-md:min-h-6 max-md:min-w-[3.2rem] max-md:px-2 max-md:text-[10px]",
+              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
+              pickerRowMobileDensityClassNames.selectPill,
               isSelected
                 ? "border-emerald-400/40 bg-emerald-400/18 text-[rgb(var(--text)/0.98)] shadow-[0_6px_18px_-14px_rgba(96,200,130,0.95)]"
                 : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
@@ -448,7 +460,7 @@ export function ExercisePicker({
   const exerciseListContent = (
     <ul
       className={cn(
-        "space-y-1.75 md:space-y-0",
+        "space-y-1.25 md:space-y-0",
         listShellClasses.viewport,
         "max-md:pr-0.5 md:snap-y md:snap-mandatory md:scroll-py-2",
       )}

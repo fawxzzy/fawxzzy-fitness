@@ -24,6 +24,16 @@ Applies to Add Exercise search result rows.
    - Mobile renders a plain list surface in normal page flow (no inner faux-viewport shell, no local overflow owner).
    - Desktop keeps the constrained viewport treatment (`PickerListViewport`) with optional fade overlays to indicate scrollable depth.
 
+## ExercisePicker mobile density contract
+
+- ExercisePicker result rows on mobile intentionally use a denser card treatment than desktop/tablet.
+- Keep this scope local to picker rows (do not globally tighten list/card tokens):
+  - tighter vertical row padding
+  - tighter title/metadata stack spacing
+  - compact inter-row gap
+  - compact trailing Select/Selected pill spacing
+- Desktop/tablet (`md+`) continues to use the richer card treatment.
+
 ## Bottom dock safety
 
 - Add Exercise content reserves bottom space: `--app-bottom-action-bar-height + --app-safe-bottom + 1.5rem`.
