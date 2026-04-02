@@ -171,14 +171,27 @@ function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
   );
 }
 
+function getExerciseFallbackLabel(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+}
+
 function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; iconSrc: string }) {
+  const fallbackLabel = getExerciseFallbackLabel(exercise.name);
   return (
     <ExerciseAssetImage
       src={iconSrc}
       alt={`${exercise.name} icon`}
-      className="h-10 w-10 rounded-md border border-border/40"
+      className="h-10 w-10 rounded-[0.7rem] border border-border/35 max-md:h-9 max-md:w-9"
       imageClassName="object-cover object-center"
       sizes="40px"
+      fallback={(
+        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(160deg,rgba(16,185,129,0.2),rgba(15,23,42,0.22))] text-[10px] font-semibold tracking-[0.08em] text-[rgb(var(--text)/0.9)]">
+          {fallbackLabel}
+        </div>
+      )}
     />
   );
 }
@@ -194,15 +207,26 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
         onPress={() => onPress(exercise.id, isSelected)}
         leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
         className={cn(
-          listShellClasses.card,
-          hasStats ? "border-emerald-400/35 bg-emerald-500/10 hover:bg-emerald-500/14" : undefined,
+          "md:rounded-[1.05rem] md:border md:border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] md:bg-[rgb(var(--glass-tint-rgb)/0.74)] md:p-3.5 md:shadow-[0_10px_20px_-14px_rgba(0,0,0,0.88)]",
+          "max-md:min-h-[4.2rem] max-md:rounded-[0.82rem] max-md:border-border/35 max-md:bg-[rgb(var(--surface-2-soft)/0.5)] max-md:px-3 max-md:py-2.5 max-md:shadow-none",
+          hasStats
+            ? "border-emerald-400/35 bg-emerald-500/10 hover:bg-emerald-500/14 max-md:border-emerald-400/24 max-md:bg-emerald-500/8 max-md:hover:bg-emerald-500/12"
+            : undefined,
         )}
-        trailingClassName={cn(isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted")}
+        trailingClassName={cn(
+          "max-md:min-w-[3.35rem]",
+          isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
+        )}
+        bodyClassName="max-md:gap-2.5"
+        titleClassName="max-md:text-[0.93rem]"
+        titleContainerClassName="max-md:space-y-0.5"
+        subtitleClassName="max-md:text-[11px]"
+        contentClassName="max-md:space-y-1"
         rightIcon={(
           <span
             aria-hidden="true"
             className={cn(
-              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
+              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none max-md:min-h-6 max-md:min-w-[3.2rem] max-md:px-2 max-md:text-[10px]",
               isSelected
                 ? "border-emerald-400/40 bg-emerald-400/18 text-[rgb(var(--text)/0.98)] shadow-[0_6px_18px_-14px_rgba(96,200,130,0.95)]"
                 : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
@@ -422,7 +446,13 @@ export function ExercisePicker({
   }, [goalModality, goalState.measurements.length]);
 
   const exerciseListContent = (
-    <ul className={cn("space-y-2.5 md:space-y-0", listShellClasses.viewport, listShellClasses.list)}>
+    <ul
+      className={cn(
+        "space-y-1.75 md:space-y-0",
+        listShellClasses.viewport,
+        "max-md:pr-0.5 md:snap-y md:snap-mandatory md:scroll-py-2",
+      )}
+    >
       {filteredExercises.map((exercise) => (
         <ExerciseRow
           key={exercise.id}

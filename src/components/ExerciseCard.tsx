@@ -67,6 +67,11 @@ export function ExerciseCard({
   disabled = false,
   className,
   trailingClassName,
+  bodyClassName,
+  contentClassName,
+  titleContainerClassName,
+  titleClassName,
+  subtitleClassName,
   variant = "interactive",
   state = "default",
 }: {
@@ -81,19 +86,23 @@ export function ExerciseCard({
   disabled?: boolean;
   className?: string;
   trailingClassName?: string;
+  bodyClassName?: string;
+  contentClassName?: string;
+  titleContainerClassName?: string;
+  titleClassName?: string;
+  subtitleClassName?: string;
   variant?: ExerciseCardVariant;
   state?: ExerciseCardState;
 }) {
-  const hasLeadingVisual = Boolean(leadingVisual);
   const bodyContent = (
-    <div className="flex min-w-0 flex-1 items-start gap-3">
+    <div className={cn("flex min-w-0 flex-1 items-start gap-3", bodyClassName)}>
       {leadingVisual ? <div className={cn("h-11 w-11 shrink-0 self-start rounded-[1rem] border bg-[rgb(var(--bg)/0.08)] p-0.5 pt-0.5 transition-colors [&_img]:transition [&_img]:duration-150", leadingVisualStateClassNames[state])}>{leadingVisual}</div> : null}
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <div className="min-w-0 space-y-1">
-          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-snug whitespace-normal [word-break:normal]", titleStateClassNames[state])}>
+      <div className={cn("min-w-0 flex-1 space-y-1.5", contentClassName)}>
+        <div className={cn("min-w-0 space-y-1", titleContainerClassName)}>
+          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-snug whitespace-normal [word-break:normal]", titleStateClassNames[state], titleClassName)}>
             {title}
           </p>
-          {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal [word-break:normal]", subtitleStateClassNames[state])}>{subtitle}</p> : null}
+          {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal [word-break:normal]", subtitleStateClassNames[state], subtitleClassName)}>{subtitle}</p> : null}
         </div>
         {children}
       </div>
@@ -119,14 +128,14 @@ export function ExerciseCard({
     className,
   );
 
-  const bodyClassName = "min-w-0 flex-1 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
+  const pressableBodyClassName = "min-w-0 flex-1 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
 
   if (onPress && actions) {
     return (
       <article className={cn(baseClassName, "items-stretch gap-2") }>
         <button
           type="button"
-          className={cn(bodyClassName, "min-w-0 flex-1")}
+          className={cn(pressableBodyClassName, "min-w-0 flex-1")}
           onClick={onPress}
           disabled={disabled}
         >
@@ -141,7 +150,7 @@ export function ExerciseCard({
     return (
       <button
         type="button"
-        className={cn(baseClassName, bodyClassName)}
+        className={cn(baseClassName, pressableBodyClassName)}
         onClick={onPress}
         disabled={disabled}
       >

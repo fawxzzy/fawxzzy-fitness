@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -11,6 +11,7 @@ type ExerciseAssetImageProps = {
   className?: string;
   imageClassName?: string;
   fallbackSrc?: string;
+  fallback?: ReactNode;
   sizes?: string;
   loading?: "eager" | "lazy";
 };
@@ -26,14 +27,21 @@ export function ExerciseAssetImage({
   className,
   imageClassName,
   fallbackSrc = DEFAULT_FALLBACK_SRC,
+  fallback,
   sizes = DEFAULT_SIZES,
   loading = "lazy",
 }: ExerciseAssetImageProps) {
   const [renderSrc, setRenderSrc] = useState(() => (missingSrcCache.has(src) && src !== fallbackSrc ? fallbackSrc : src));
+  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
     setRenderSrc(missingSrcCache.has(src) && src !== fallbackSrc ? fallbackSrc : src);
+    setShowFallback(false);
   }, [src, fallbackSrc]);
+
+  if (showFallback && fallback) {
+    return <div className={cn("relative block shrink-0 overflow-hidden bg-transparent", className)}>{fallback}</div>;
+  }
 
   return (
     <div className={cn("relative block shrink-0 overflow-hidden bg-transparent", className)}>
@@ -49,7 +57,9 @@ export function ExerciseAssetImage({
           if (renderSrc !== fallbackSrc && src !== fallbackSrc) {
             missingSrcCache.add(src);
             setRenderSrc(fallbackSrc);
+            return;
           }
+          setShowFallback(true);
         }}
       />
     </div>
