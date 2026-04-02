@@ -49,7 +49,7 @@ export type RoutineDayCardItem = {
 
 const ROUTINES_IA_COPY = {
   currentRoutine: {
-    title: "Current routine",
+    sectionLabel: "Current routine",
   },
   routineDays: {
     title: "Routine days",
@@ -172,16 +172,11 @@ export function RoutinesPageClient({
     <RoutinesPageScaffold
       summary={(
         <ActiveRoutineSummaryCard
-          title={ROUTINES_IA_COPY.currentRoutine.title}
-        >
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-[rgb(var(--text)/0.92)]">{activeRoutineName}</p>
-              <ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />
-            </div>
-            {activeRoutineSummary ? <p className="text-sm text-muted">{activeRoutineSummary}</p> : null}
-          </div>
-        </ActiveRoutineSummaryCard>
+          sectionLabel={ROUTINES_IA_COPY.currentRoutine.sectionLabel}
+          title={activeRoutineName}
+          metadata={activeRoutineSummary}
+          status={<ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
+        />
       )}
     >
       <RoutinesSectionCard
