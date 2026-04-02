@@ -19,6 +19,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   const toast = useToast();
   const router = useRouter();
   const [draft, setDraft] = useState<RoutineDetailsDraft>(defaults);
+  const [hasUserEdited, setHasUserEdited] = useState(false);
   const [loadedDraft, setLoadedDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,10 +59,11 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   const initialSnapshot = buildRoutineDetailsSnapshot(defaults);
   const currentSnapshot = buildRoutineDetailsSnapshot(draft);
   const isDirty = currentSnapshot !== initialSnapshot;
+  const hasDirtyChanges = hasUserEdited && isDirty;
   const canCreate = validation.valid && isDirty && !isSaving;
 
   useEffect(() => {
-    if (!isDirty) return;
+    if (!hasDirtyChanges) return;
     const beforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
@@ -70,7 +72,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
     };
-  }, [isDirty]);
+  }, [hasDirtyChanges]);
 
   return (
     <>
@@ -78,7 +80,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
         <RoutineEditorPageHeader
           eyebrow="New Routine"
           title="Routine Details"
-          action={<RoutineBackButton href="/routines" hasUnsavedChanges={isDirty} />}
+          action={<RoutineBackButton href="/routines" hasUnsavedChanges={hasDirtyChanges} />}
           className="space-y-5"
         >
           <RoutineEditorFormFields
@@ -89,6 +91,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
             weightUnitDefaultValue={draft.weightUnit}
             values={draft}
             onFieldChange={(field, value) => {
+              setHasUserEdited(true);
               setDraft((current) => ({
                 ...current,
                 [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
@@ -96,7 +99,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
             }}
           />
         </RoutineEditorPageHeader>
-        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} />
+        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={hasDirtyChanges} />
       </div>
 
       <PublishBottomActions>

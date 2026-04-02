@@ -11,5 +11,6 @@ Canonical day-summary vocabulary across Edit Day, View Day, Today, and routine c
 ## Guardrails
 
 - Do not introduce `other` in day-summary labels.
+- Do not surface fallback labels like `unknown` for normal, classified strength/cardio rows; reserve `unknown` for genuinely unresolved metadata only.
 - Keep aggregate order deterministic: `total`, `strength`, `cardio`, then `unknown`.
 - Rest-day label is canonical and route-agnostic: `Rest day`.
