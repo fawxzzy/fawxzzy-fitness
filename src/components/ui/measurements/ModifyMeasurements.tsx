@@ -35,7 +35,7 @@ export function ModifyMeasurements({
   activeMetrics: MeasurementMetrics;
   isExpanded: boolean;
   onExpandedChange: (nextValue: boolean) => void;
-  onMetricToggle: (metric: keyof MeasurementMetrics) => void;
+  onMetricToggle?: (metric: keyof MeasurementMetrics) => void;
   onChange: (patch: Partial<MeasurementValues>) => void;
   tapFeedbackClass?: string;
   showHeader?: boolean;

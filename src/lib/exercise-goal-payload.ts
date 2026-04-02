@@ -1,6 +1,6 @@
 import "server-only";
 
-import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
+import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 
 export type MeasurementSelection = "reps" | "weight" | "time" | "distance" | "calories";
 
@@ -81,6 +81,35 @@ function parseMeasurementSelections(formData: FormData) {
     }
   }
 
+  return selections;
+}
+
+function deriveMeasurementSelectionsFromFields({
+  reps,
+  weight,
+  duration,
+  distance,
+  calories,
+}: {
+  reps: string;
+  weight: string;
+  duration: string;
+  distance: string;
+  calories: string;
+}) {
+  const presence = deriveMeasurementPresenceFromValues({
+    reps,
+    weight,
+    duration,
+    distance,
+    calories,
+  });
+  const selections = new Set<MeasurementSelection>();
+  if (presence.reps) selections.add("reps");
+  if (presence.weight) selections.add("weight");
+  if (presence.time) selections.add("time");
+  if (presence.distance) selections.add("distance");
+  if (presence.calories) selections.add("calories");
   return selections;
 }
 
@@ -175,7 +204,15 @@ export function parseExerciseGoalPayload(formData: FormData, options: ParseOptio
   const targetDistanceUnit = String(formData.get("targetDistanceUnit") ?? "").trim();
   const targetCaloriesRaw = String(formData.get("targetCalories") ?? "").trim();
   const defaultUnit = parseDistanceUnit(formData.get("defaultUnit"));
-  const selections = parseMeasurementSelections(formData);
+  const explicitSelections = parseMeasurementSelections(formData);
+  const valueSelections = deriveMeasurementSelectionsFromFields({
+    reps: targetRepsMinRaw,
+    weight: targetWeightRaw,
+    duration: targetDurationRaw,
+    distance: targetDistanceRaw,
+    calories: targetCaloriesRaw,
+  });
+  const selections = new Set<MeasurementSelection>([...explicitSelections, ...valueSelections]);
   const measurementType = deriveMeasurementType(selections);
 
   const sanitizedTargets = sanitizeEnabledMeasurementValues({

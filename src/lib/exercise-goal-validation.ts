@@ -14,6 +14,14 @@ export type GoalValidationInput = {
   measurementSelections: Set<MeasurementSelection>;
 };
 
+type GoalMeasurementValueInputs = {
+  repsMin: string;
+  weight: string;
+  duration: string;
+  distance: string;
+  calories: string;
+};
+
 export type GoalValidationResult = {
   isValid: boolean;
   requiredFields: Array<"sets" | "repsMin" | "weight" | "duration" | "distance">;
@@ -26,23 +34,23 @@ export const GOAL_SCHEMA_MATRIX: Record<GoalModality, {
 }> = {
   strength: {
     requiredFields: ["sets", "repsMin"],
-    optionalFields: ["weight", "time", "calories"],
+    optionalFields: ["weight"],
   },
   bodyweight: {
     requiredFields: ["sets", "repsMin"],
-    optionalFields: ["time", "calories"],
+    optionalFields: ["time"],
   },
   cardio_time: {
     requiredFields: ["sets", "duration"],
-    optionalFields: ["calories"],
+    optionalFields: [],
   },
   cardio_distance: {
     requiredFields: ["sets", "distance"],
-    optionalFields: ["calories"],
+    optionalFields: [],
   },
   cardio_time_distance: {
     requiredFields: ["sets", "duration", "distance"],
-    optionalFields: ["calories"],
+    optionalFields: [],
   },
 };
 
@@ -51,6 +59,10 @@ function parseInteger(value: string) {
   if (!trimmed) return null;
   if (!/^\d+$/.test(trimmed)) return Number.NaN;
   return Number(trimmed);
+}
+
+function hasNonEmptyValue(value: string) {
+  return value.trim().length > 0;
 }
 
 function parsePositiveNumber(value: string) {
@@ -94,17 +106,41 @@ export function resolveGoalModality({
 export function getVisibleMetricsForModality(modality: GoalModality): MeasurementSelection[] {
   switch (modality) {
     case "bodyweight":
-      return ["reps", "time", "calories"];
+      return ["reps", "time"];
     case "cardio_time":
-      return ["time", "calories"];
+      return ["time"];
     case "cardio_distance":
-      return ["distance", "calories"];
+      return ["distance"];
     case "cardio_time_distance":
-      return ["time", "distance", "calories"];
+      return ["time", "distance"];
     case "strength":
     default:
-      return ["reps", "weight", "time", "calories"];
+      return ["reps", "weight"];
   }
+}
+
+export function deriveGoalMeasurementSelections(
+  modality: GoalModality,
+  values: GoalMeasurementValueInputs,
+): MeasurementSelection[] {
+  const present = new Set<MeasurementSelection>();
+  if (hasNonEmptyValue(values.repsMin)) present.add("reps");
+  if (hasNonEmptyValue(values.weight)) present.add("weight");
+  if (hasNonEmptyValue(values.duration)) present.add("time");
+  if (hasNonEmptyValue(values.distance)) present.add("distance");
+  if (hasNonEmptyValue(values.calories)) present.add("calories");
+
+  if (modality === "strength" || modality === "bodyweight") {
+    present.add("reps");
+  }
+  if (modality === "cardio_time") {
+    present.add("time");
+  }
+  if (modality === "cardio_distance") {
+    present.add("distance");
+  }
+
+  return Array.from(present);
 }
 
 export function validateGoalConfiguration(input: GoalValidationInput): GoalValidationResult {

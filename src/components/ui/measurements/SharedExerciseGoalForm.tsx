@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { cn } from "@/lib/cn";
-import type { GoalModality, MeasurementSelection } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 
 function getDefaultMeasurements(modality: GoalModality): MeasurementSelection[] {
   switch (modality) {
@@ -22,8 +22,15 @@ function getDefaultMeasurements(modality: GoalModality): MeasurementSelection[] 
 }
 
 export function inferGoalModeFromState(state: ExerciseGoalFormState): GoalModality {
-  const hasTime = state.measurements.includes("time") || Boolean(state.duration.trim());
-  const hasDistance = state.measurements.includes("distance") || Boolean(state.distance.trim());
+  const selections = deriveGoalMeasurementSelections("cardio_time_distance", {
+    repsMin: state.repsMin,
+    weight: state.weight,
+    duration: state.duration,
+    distance: state.distance,
+    calories: state.calories,
+  });
+  const hasTime = selections.includes("time");
+  const hasDistance = selections.includes("distance");
   if (hasTime && hasDistance) return "cardio_time_distance";
   if (hasDistance) return "cardio_distance";
   return "cardio_time";

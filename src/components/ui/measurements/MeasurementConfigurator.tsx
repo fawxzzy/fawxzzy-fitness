@@ -27,7 +27,7 @@ export function MeasurementConfigurator({
   activeMetrics: MeasurementMetrics;
   isExpanded: boolean;
   onExpandedChange: (nextValue: boolean) => void;
-  onMetricToggle: (metric: keyof MeasurementMetrics) => void;
+  onMetricToggle?: (metric: keyof MeasurementMetrics) => void;
   onChange: (patch: Partial<MeasurementValues>) => void;
   names?: Partial<Record<"reps" | "repsMax" | "weight" | "duration" | "distance" | "calories" | "weightUnit" | "distanceUnit", string>>;
   className?: string;
