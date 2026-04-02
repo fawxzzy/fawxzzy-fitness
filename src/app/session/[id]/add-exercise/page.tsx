@@ -37,7 +37,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
         <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md pb-4">
           <RoutineEditorPageHeader
             recipe="sessionAddExercise"
-            eyebrow="Current Session"
+            eyebrow={<span className="hidden md:inline">Current Session</span>}
             title="Add Exercise"
             subtitle={formatAddExerciseHeaderSubtitle(routine?.name ?? (sessionRow.name || "Workout"))}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
