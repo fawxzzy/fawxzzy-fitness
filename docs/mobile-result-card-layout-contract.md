@@ -39,3 +39,4 @@ Applies to Add Exercise search result rows.
 
 - Header metadata on Add Exercise must be authoritative and live with the same source of truth as the owning day/session store.
 - If authoritative metadata cannot be guaranteed (for example, potentially stale exercise counts), omit it instead of rendering drift-prone values.
+- Add Exercise uses a compact mobile hero contract: on `< md`, remove the eyebrow row, keep `Add Exercise` + routine subtitle, and tighten header top/bottom spacing while keeping the back-button hit area unchanged.

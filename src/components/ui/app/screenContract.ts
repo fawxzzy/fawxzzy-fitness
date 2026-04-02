@@ -139,7 +139,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   sessionAddExercise: {
     ...screenContracts.sessionAddExercise,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "p-4 pt-[1.2rem]",
+    headerPanelClassName: "px-4 pb-3 pt-3 md:p-4 md:pt-[1.2rem]",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
