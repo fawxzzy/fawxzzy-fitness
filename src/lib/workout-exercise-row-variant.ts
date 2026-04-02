@@ -1,4 +1,5 @@
-import { deriveSessionExerciseProgressState, type SessionExercisePresentationSurface, type SessionExerciseProgressChip } from "./session-exercise-progress";
+import { deriveSessionRowState } from "./session-row-state";
+import type { SessionExercisePresentationSurface, SessionExerciseProgressChip } from "./session-exercise-progress";
 
 export type WorkoutExerciseCardVariant = "pending" | "active";
 
@@ -25,29 +26,21 @@ export type WorkoutExerciseCardVariantState = {
 };
 
 export function deriveWorkoutExerciseCardVariant(input: DeriveWorkoutExerciseCardVariantInput): WorkoutExerciseCardVariantState {
-  const progressState = deriveSessionExerciseProgressState(input);
-  const variant: WorkoutExerciseCardVariant = input.isPending ? "pending" : "active";
-  const variantStyles: Record<WorkoutExerciseCardVariant, Pick<WorkoutExerciseCardVariantState, "actionRowClassName" | "quickLogActionClassName" | "skipActionClassName">> = {
-    pending: {
-      actionRowClassName: "opacity-85",
-      quickLogActionClassName: "text-[rgb(var(--text)/0.62)]",
-      skipActionClassName: "text-[rgb(var(--text)/0.62)]",
-    },
-    active: {
-      actionRowClassName: "opacity-100",
-      quickLogActionClassName: "text-[rgb(var(--text)/0.74)]",
-      skipActionClassName: progressState.skipActionLabel === "Unskip" ? "text-amber-100" : "text-[rgb(var(--text)/0.74)]",
-    },
-  };
+  const rowState = deriveSessionRowState({
+    ...input,
+    fallbackWeightUnit: "lbs",
+  });
 
   return {
-    variant,
-    cardState: progressState.cardState,
-    badgeText: progressState.badgeText,
-    progressLabel: progressState.progressLabel,
-    chips: progressState.chips,
-    skipActionLabel: progressState.skipActionLabel,
-    isQuickLogDisabled: !progressState.allowQuickLog,
-    ...variantStyles[variant],
+    variant: rowState.variant,
+    cardState: rowState.cardState,
+    badgeText: rowState.badgeText,
+    progressLabel: rowState.progressLabel,
+    chips: rowState.chips,
+    skipActionLabel: rowState.skipActionLabel,
+    actionRowClassName: rowState.actionRowClassName,
+    quickLogActionClassName: rowState.quickLogActionClassName,
+    skipActionClassName: rowState.skipActionClassName,
+    isQuickLogDisabled: rowState.isQuickLogDisabled,
   };
 }

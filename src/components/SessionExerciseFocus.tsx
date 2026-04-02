@@ -19,8 +19,8 @@ import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
-import { formatQuickLogPreviewLabel, resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
-import { deriveWorkoutExerciseCardVariant } from "@/lib/workout-exercise-row-variant";
+import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
+import { deriveSessionRowState } from "@/lib/session-row-state";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 
 type AddSetPayload = {
@@ -127,6 +127,9 @@ export function SessionExerciseFocus({
   const [loggedSetCounts, setLoggedSetCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.loggedSetCount])),
   );
+  const [skippedStates, setSkippedStates] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.isSkipped])),
+  );
   const [warmupDraft, setWarmupDraft] = useState(false);
   const [quickAddPendingId, setQuickAddPendingId] = useState<string | null>(null);
   const [skipPendingId, setSkipPendingId] = useState<string | null>(null);
@@ -140,7 +143,7 @@ export function SessionExerciseFocus({
   const selectedExerciseProgress = selectedExercise
     ? deriveSessionExerciseProgressState({
       loggedSetCount: selectedExerciseSetCount,
-      isSkipped: selectedExercise.isSkipped,
+      isSkipped: skippedStates[selectedExercise.id] ?? selectedExercise.isSkipped,
       targetSetsMin: selectedExercise.targetSetsMin,
       targetSetsMax: selectedExercise.targetSetsMax,
     })
@@ -190,6 +193,16 @@ export function SessionExerciseFocus({
     setLoggedSetCounts((current) => mergeLoggedSetCountState(current, exercises));
   }, [exercises]);
 
+  useEffect(() => {
+    setSkippedStates((current) => {
+      const next = { ...current };
+      for (const exercise of exercises) {
+        next[exercise.id] = exercise.isSkipped;
+      }
+      return next;
+    });
+  }, [exercises]);
+
   const handleSetCountChange = useCallback((exerciseId: string, count: number) => {
     setLoggedSetCounts((current) => {
       if (current[exerciseId] === count) {
@@ -236,12 +249,15 @@ export function SessionExerciseFocus({
             const setCount = loggedSetCounts[exercise.id] ?? exercise.loggedSetCount;
             const hasGoalSummary = hasMeaningfulExerciseGoalSummary(exercise.goalLabel);
             const isPending = quickAddPendingId === exercise.id || skipPendingId === exercise.id;
-            const cardVariantState = deriveWorkoutExerciseCardVariant({
+            const isSkipped = skippedStates[exercise.id] ?? exercise.isSkipped;
+            const rowState = deriveSessionRowState({
               loggedSetCount: setCount,
-              isSkipped: exercise.isSkipped,
+              isSkipped,
               isPending,
               targetSetsMin: exercise.targetSetsMin,
               targetSetsMax: exercise.targetSetsMax,
+              quickLogTarget: exercise.quickLogTarget,
+              fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
             });
 
             return (
@@ -258,49 +274,49 @@ export function SessionExerciseFocus({
                       exercise={exercise}
                       summary={exercise.goalLabel}
                       variant="expanded"
-                      state={cardVariantState.cardState}
+                      state={rowState.cardState}
                       onPress={() => onSelectedExerciseIdChange(exercise.id)}
                       className="shadow-none"
                       trailingClassName="self-center text-muted"
                       rightIcon={<ChevronRightIcon className="h-5 w-5" />}
-                      badgeText={cardVariantState.badgeText}
+                      badgeText={rowState.badgeText}
                     >
                       <WorkoutExerciseRowChips
-                        progressLabel={cardVariantState.progressLabel}
-                        chips={exercise.routineDayExerciseId === null ? ["addedToday", ...cardVariantState.chips] : cardVariantState.chips}
+                        progressLabel={rowState.progressLabel}
+                        chips={exercise.routineDayExerciseId === null ? ["addedToday", ...rowState.chips] : rowState.chips}
                       />
                       {setCount === 0 && !hasGoalSummary ? <p className="text-xs text-amber-100/90">No {exercise.useIntervalLanguage ? "intervals" : "sets"} yet.</p> : null}
                     </StandardExerciseRow>
                   </SessionExerciseCard>
                   <AttachedQuickActionStrip
-                    label={`Quick Log: ${formatQuickLogPreviewLabel({
-                      target: exercise.quickLogTarget,
-                      loggedSetCount: setCount,
-                      targetSetsMin: exercise.targetSetsMin,
-                      targetSetsMax: exercise.targetSetsMax,
-                      fallbackWeightUnit: unitLabel === "lbs" ? "lbs" : "kg",
-                    })}`}
-                    skipLabel={cardVariantState.skipActionLabel}
-                    quickLogActionClassName={cardVariantState.quickLogActionClassName}
-                    skipActionClassName={cardVariantState.skipActionClassName}
-                    actionRowClassName={cardVariantState.actionRowClassName}
-                    isQuickLogDisabled={cardVariantState.isQuickLogDisabled}
+                    label={rowState.quickLogLabel}
+                    skipLabel={rowState.skipActionLabel}
+                    quickLogActionClassName={rowState.quickLogActionClassName}
+                    skipActionClassName={rowState.skipActionClassName}
+                    actionRowClassName={rowState.actionRowClassName}
+                    isQuickLogDisabled={rowState.isQuickLogDisabled}
+                    quickLogDisabledMessage={rowState.quickLogDisabledMessage}
                     isSkipPending={skipPendingId === exercise.id}
                     onSkip={async () => {
                       setSkipPendingId(exercise.id);
+                      const previousSkipped = skippedStates[exercise.id] ?? exercise.isSkipped;
+                      const nextSkipped = !previousSkipped;
                       try {
                         const formData = new FormData();
                         formData.set("sessionId", sessionId);
                         formData.set("sessionExerciseId", exercise.id);
-                        formData.set("nextSkipped", String(!exercise.isSkipped));
+                        setSkippedStates((current) => ({ ...current, [exercise.id]: nextSkipped }));
+                        formData.set("nextSkipped", String(nextSkipped));
                         const result = await toggleSkipAction(formData);
                         toastActionResult(toast, result, {
-                          success: exercise.isSkipped ? "Exercise unskipped." : "Exercise skipped.",
+                          success: previousSkipped ? "Exercise unskipped." : "Exercise skipped.",
                           error: "Could not update skip state.",
                         });
 
                         if (result.ok) {
                           router.refresh();
+                        } else {
+                          setSkippedStates((current) => ({ ...current, [exercise.id]: previousSkipped }));
                         }
                       } finally {
                         setSkipPendingId((current) => (current === exercise.id ? null : current));
