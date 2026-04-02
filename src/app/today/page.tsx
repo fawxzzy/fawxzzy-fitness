@@ -407,8 +407,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   <SharedScreenHeader
                     recipe="todayOverview"
                     eyebrow="Today"
-                    title={`${todayPayload.routine.name} | ${todayPayload.routine.dayName}`}
-                    subtitle={inProgressHeaderSummary}
+                    title={todayPayload.routine.name}
+                    subtitle={todayPayload.routine.dayName}
+                    meta={inProgressHeaderSummary ? <span className="whitespace-nowrap">{inProgressHeaderSummary}</span> : undefined}
                     action={<AppBadge tone="success">In Session</AppBadge>}
                   />
 

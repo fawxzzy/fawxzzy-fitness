@@ -5,8 +5,11 @@ import { resolveScreenRecipe, type ScreenContractName } from "@/components/ui/ap
 import { cn } from "@/lib/cn";
 
 type AnchoredSelectorPanelProps = {
+  eyebrow?: ReactNode;
   title: ReactNode;
+  subtitle?: ReactNode;
   subtitleRight?: ReactNode;
+  meta?: ReactNode;
   action?: ReactNode;
   summaryLabel?: ReactNode;
   summaryHint?: ReactNode;
@@ -21,8 +24,11 @@ type AnchoredSelectorPanelProps = {
 };
 
 export function AnchoredSelectorPanel({
+  eyebrow,
   title,
+  subtitle,
   subtitleRight,
+  meta,
   action,
   summaryLabel,
   summaryHint,
@@ -46,7 +52,16 @@ export function AnchoredSelectorPanel({
       className={cn(screenRecipe.headerPanelClassName, className)}
     >
       <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3.5">
-        <SharedScreenHeader recipe={recipe} title={title} subtitleRight={subtitleRight} action={action} className="rounded-none border-0 bg-transparent p-0 shadow-none" />
+        <SharedScreenHeader
+          recipe={recipe}
+          eyebrow={eyebrow}
+          title={title}
+          subtitle={subtitle}
+          subtitleRight={subtitleRight}
+          meta={meta}
+          action={action}
+          className="rounded-none border-0 bg-transparent p-0 shadow-none"
+        />
 
         {hasSummary ? (
           <div className="min-w-0 space-y-1 border-t border-white/8 pt-3">

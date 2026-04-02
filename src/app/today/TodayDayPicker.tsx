@@ -169,10 +169,16 @@ export function TodayDayPicker({
     <div className="flex min-h-0 flex-col gap-3">
       {!mode.noRoutine && selectedDay ? (
         <AnchoredSelectorPanel
-          title={`${routineName} | ${selectedDay.name}`}
-          subtitleRight={selectedDay.state === "rest"
-            ? "Rest Day"
-            : formatExerciseCountMetaLabel(selectedDay.exercises.length)}
+          eyebrow="Today"
+          title={routineName}
+          subtitle={selectedDay.name}
+          meta={(
+            <span className="whitespace-nowrap">
+              {selectedDay.state === "rest"
+                ? "Rest Day"
+                : formatExerciseCountMetaLabel(selectedDay.exercises.length)}
+            </span>
+          )}
           action={inSessionDayIndex === selectedDay.dayIndex
             ? <AppBadge tone="success">In Session</AppBadge>
             : completedDayIndexSet.has(selectedDay.dayIndex)
