@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { GOAL_SCHEMA_MATRIX, validateGoalConfiguration } from "./exercise-goal-validation.ts";
+import { GOAL_SCHEMA_MATRIX, deriveGoalMeasurementSelections, getVisibleMetricsForModality, validateGoalConfiguration } from "./exercise-goal-validation.ts";
 
 test("strength prescription requires reps and sets", () => {
   const result = validateGoalConfiguration({
@@ -86,4 +86,19 @@ test("time + distance cardio accepts time-only mode", () => {
 
 test("goal schema matrix keeps strength minimum requirements stable", () => {
   assert.deepEqual(GOAL_SCHEMA_MATRIX.strength.requiredFields, ["sets", "repsMin"]);
+});
+
+test("bodyweight modality renders rep-driven metrics only", () => {
+  assert.deepEqual(getVisibleMetricsForModality("bodyweight"), ["reps"]);
+});
+
+test("hidden bodyweight time values do not influence derived selections", () => {
+  const selections = deriveGoalMeasurementSelections("bodyweight", {
+    repsMin: "12",
+    weight: "",
+    duration: "8:00",
+    distance: "",
+    calories: "",
+  });
+  assert.deepEqual(selections.sort(), ["reps"]);
 });
