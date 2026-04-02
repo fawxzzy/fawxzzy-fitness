@@ -16,5 +16,7 @@ export function formatRoutineHeaderMeta({
 }
 
 export function formatAddExerciseHeaderSubtitle(routineName: string) {
-  return routineName;
+  return routineName
+    .replace(/\s*•\s*\d+\s+exercises?$/i, "")
+    .trim();
 }

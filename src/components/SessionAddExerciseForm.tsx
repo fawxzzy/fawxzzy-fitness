@@ -72,7 +72,6 @@ export function SessionAddExerciseForm({
               <AppButton type="submit" variant="primary" fullWidth disabled={!goalValidation.isValid}>
                 Add Exercise
               </AppButton>
-              {!goalValidation.isValid ? <p className="text-xs text-amber-200/95">{goalValidation.message}</p> : null}
             </div>
           )}
         />
