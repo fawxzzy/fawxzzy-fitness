@@ -191,17 +191,17 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
   switch (input.modality) {
     case "bodyweight":
       if (!input.measurementSelections.has("reps") || repsMin === null) {
-        return { isValid: false, requiredFields: ["repsMin"], message: "Bodyweight goals require a rep target." };
+        return { isValid: false, requiredFields: ["repsMin"], message: "Add a rep target to preview and save this bodyweight goal." };
       }
       break;
     case "cardio_time":
       if (!input.measurementSelections.has("time") || duration === null || duration <= 0) {
-        return { isValid: false, requiredFields: ["duration"], message: "Time-based cardio goals require a time target." };
+        return { isValid: false, requiredFields: ["duration"], message: "Add a time target to preview and save this cardio goal." };
       }
       break;
     case "cardio_distance":
       if (!input.measurementSelections.has("distance") || distance === null || distance <= 0) {
-        return { isValid: false, requiredFields: ["distance"], message: "Distance-based cardio goals require a distance target." };
+        return { isValid: false, requiredFields: ["distance"], message: "Add a distance target to preview and save this cardio goal." };
       }
       break;
     case "cardio_time_distance": {
@@ -211,7 +211,7 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
         return {
           isValid: false,
           requiredFields: ["duration", "distance"],
-          message: "Set a time or distance target for this cardio goal.",
+          message: "Add a time or distance target to preview and save this cardio goal.",
         };
       }
       break;
@@ -219,7 +219,7 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
     case "strength":
     default:
       if (!input.measurementSelections.has("reps") || repsMin === null) {
-        return { isValid: false, requiredFields: ["repsMin"], message: "Strength goals require a rep target." };
+        return { isValid: false, requiredFields: ["repsMin"], message: "Add a rep target to preview and save this strength goal." };
       }
       if (input.measurementSelections.has("weight") && weight === null) {
         return { isValid: false, requiredFields: ["weight"], message: "Add a weight target or turn off weight for rep-only programming." };

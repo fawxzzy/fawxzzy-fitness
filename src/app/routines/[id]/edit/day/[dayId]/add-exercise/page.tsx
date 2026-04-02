@@ -10,7 +10,7 @@ import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
-import { formatRoutineHeaderMeta } from "@/lib/header-meta";
+import { formatAddExerciseHeaderSubtitle } from "@/lib/header-meta";
 import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -44,12 +44,6 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
     .single();
   if (!day) notFound();
 
-  const { count: dayExerciseCount } = await supabase
-    .from("routine_day_exercises")
-    .select("id", { head: true, count: "exact" })
-    .eq("routine_day_id", day.id)
-    .eq("user_id", user.id);
-
   const exerciseOptions = await listExercises();
   const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
   const backHref = getRoutineDayEditHref(params.id, params.dayId);
@@ -61,10 +55,7 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
           <RoutineEditorPageHeader
             eyebrow="Edit Day"
             title="Add Exercise"
-            subtitle={formatRoutineHeaderMeta({
-              routineName: routine.name,
-              totalExercises: dayExerciseCount ?? 0,
-            })}
+            subtitle={formatAddExerciseHeaderSubtitle(routine.name)}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
           />
 

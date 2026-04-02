@@ -7,7 +7,7 @@ import { quickAddExerciseAction } from "@/app/session/[id]/actions";
 import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
 import { getSessionPageData } from "@/app/session/[id]/queries";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
-import { formatRoutineHeaderMeta } from "@/lib/header-meta";
+import { formatAddExerciseHeaderSubtitle } from "@/lib/header-meta";
 import { isSafeAppPath } from "@/lib/navigation-return";
 
 type PageProps = {
@@ -23,7 +23,6 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
   const {
     sessionRow,
     routine,
-    sessionExercises,
     exerciseOptions,
     exerciseStatsByExerciseId,
   } = await getSessionPageData(params.id);
@@ -40,10 +39,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
             recipe="sessionAddExercise"
             eyebrow="Current Session"
             title="Add Exercise"
-            subtitle={formatRoutineHeaderMeta({
-              routineName: routine?.name ?? (sessionRow.name || "Workout"),
-              totalExercises: sessionExercises.length,
-            })}
+            subtitle={formatAddExerciseHeaderSubtitle(routine?.name ?? (sessionRow.name || "Workout"))}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
           />
 

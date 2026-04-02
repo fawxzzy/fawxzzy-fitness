@@ -507,7 +507,6 @@ export function ExercisePicker({
               distanceUnit: "targetDistanceUnit",
             }}
             includeSetsInSummary={false}
-            emptySummaryLabel="Add required goal fields to preview summary."
             showValidationMessage
           />
         </section>
