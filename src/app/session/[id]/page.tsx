@@ -154,10 +154,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         equipment: canonicalExercise?.equipment ?? null,
         movement_pattern: canonicalExercise?.movement_pattern ?? null,
         primary_muscle: canonicalExercise?.primary_muscle ?? null,
-        kind: canonicalExercise?.kind ?? null,
-        type: canonicalExercise?.type ?? null,
-        tags: canonicalExercise?.tags ?? null,
-        categories: canonicalExercise?.categories ?? null,
         isCardio: canonicalExercise ? isCardioExercise(canonicalExercise) : null,
       };
     }),
