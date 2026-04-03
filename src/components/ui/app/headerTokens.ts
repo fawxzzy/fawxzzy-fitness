@@ -1,5 +1,4 @@
 export const headerTokens = {
-  topGap: "pt-1.5",
   horizontalPadding: "px-4 sm:px-5",
   primaryRowGap: "gap-2.5",
   actionRailGap: "gap-2",

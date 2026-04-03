@@ -20,7 +20,7 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
-import { getExerciseCountSummaryFromInputs, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import {
   deriveTodayScreenMode,
@@ -122,6 +122,9 @@ export function TodayDayPicker({
   const selectedDaySummary = selectedDay
     ? getDayExerciseSummaryLabel(selectedDay)
     : null;
+  const resolveDayCardSubtitle = useCallback((day: TodayDay) => (
+    getDayExerciseSummaryLabel(day) || getTodayDaySummary(day) || undefined
+  ), [getDayExerciseSummaryLabel]);
   const daySummary = selectedDay
     ? getTodayDaySummary(selectedDay)
     : null;
@@ -197,11 +200,7 @@ export function TodayDayPicker({
                     <DayCard
                       key={day.id}
                       title={`Day ${day.dayIndex} | ${day.name}`}
-                      subtitle={day.state === "runnable" || day.state === "partial"
-                        ? getExerciseCountSummaryFromInputs(day.exercises).label
-                        : day.state === "rest"
-                          ? getDayExerciseSummaryLabel(day)
-                          : getTodayDaySummary(day) ?? undefined}
+                      subtitle={resolveDayCardSubtitle(day)}
                       onPress={() => {
                         setSelectedDayIndex(day.dayIndex);
                         setIsPickerOpen(false);
