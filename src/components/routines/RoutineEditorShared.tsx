@@ -37,6 +37,7 @@ export function RoutineEditorPageHeader({
   eyebrow,
   title,
   subtitle,
+  meta,
   subtitleRight,
   action,
   actionClassName,
@@ -47,6 +48,7 @@ export function RoutineEditorPageHeader({
   eyebrow?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
+  meta?: ReactNode;
   subtitleRight?: ReactNode;
   action?: ReactNode;
   actionClassName?: string;
@@ -60,6 +62,7 @@ export function RoutineEditorPageHeader({
       eyebrow={eyebrow}
       title={title}
       subtitle={subtitle}
+      meta={meta}
       subtitleRight={subtitleRight}
       action={action}
       className={className}
