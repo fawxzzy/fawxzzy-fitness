@@ -16,6 +16,7 @@ export function SharedScreenHeader({
   children,
   className,
   actionClassName,
+  withPanel = true,
 }: {
   recipe: ScreenContractName;
   eyebrow?: ReactNode;
@@ -27,16 +28,11 @@ export function SharedScreenHeader({
   children?: ReactNode;
   className?: string;
   actionClassName?: string;
+  withPanel?: boolean;
 }) {
   const screenRecipe = resolveScreenRecipe(recipe);
-
-  return (
-    <AppPanel
-      data-screen-scaffold={screenRecipe.scaffold}
-      data-section-chrome={screenRecipe.sectionChrome}
-      data-footer-dock={screenRecipe.footerDock}
-      className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}
-    >
+  const headerNode = (
+    <>
       <AppHeader
         eyebrow={eyebrow}
         title={title}
@@ -49,6 +45,21 @@ export function SharedScreenHeader({
         titleClassName={standaloneHeaderFamily.titleClassName}
       />
       {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
+    </>
+  );
+
+  if (!withPanel) {
+    return headerNode;
+  }
+
+  return (
+    <AppPanel
+      data-screen-scaffold={screenRecipe.scaffold}
+      data-section-chrome={screenRecipe.sectionChrome}
+      data-footer-dock={screenRecipe.footerDock}
+      className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}
+    >
+      {headerNode}
     </AppPanel>
   );
 }

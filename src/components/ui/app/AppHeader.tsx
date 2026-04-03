@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { EyebrowText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 import { headerTokens } from "@/components/ui/app/headerTokens";
 
@@ -32,7 +32,8 @@ export function AppHeader({
   titleClassName?: string;
   titleAs?: "h1" | "h2" | "h3";
 }) {
-  const hasSecondary = Boolean(subtitle || subtitleLeft || subtitleRight || meta);
+  const secondaryItems = [subtitle, subtitleLeft, subtitleRight, meta].filter(Boolean);
+  const hasSecondary = secondaryItems.length > 0;
   const actionNode = action ?? leading;
 
   return (
@@ -43,14 +44,14 @@ export function AppHeader({
           <TitleText as={titleAs} className={cn("block text-left", headerTokens.titleClassName, titleClassName)}>{title}</TitleText>
           {hasSecondary ? (
             <div className={cn(headerTokens.titleToSecondaryGap, headerTokens.secondaryBlockGap)}>
-              {subtitle ? <SubtitleText className="block text-left">{subtitle}</SubtitleText> : null}
-              {(subtitleLeft || subtitleRight) ? (
-                <div className="flex flex-wrap items-center gap-1 text-sm">
-                  {subtitleLeft ? <SubtitleText className="inline-flex text-left">{subtitleLeft}</SubtitleText> : null}
-                  {subtitleRight ? <SubtitleText className="inline-flex text-left text-[rgb(var(--text)/0.54)]">{subtitleRight}</SubtitleText> : null}
-                </div>
-              ) : null}
-              {meta ? <div>{meta}</div> : null}
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                {secondaryItems.map((item, index) => (
+                  <div key={`secondary-${index}`} className="inline-flex items-center gap-1">
+                    {index > 0 ? <span className="text-[rgb(var(--text)/0.42)]">•</span> : null}
+                    <div className={cn("inline-flex text-left text-sm text-[rgb(var(--text)/0.72)]", index > 1 ? "text-[rgb(var(--text)/0.6)]" : undefined)}>{item}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
         </div>
