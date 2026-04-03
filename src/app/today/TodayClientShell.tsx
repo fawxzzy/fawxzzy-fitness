@@ -9,8 +9,12 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
-import { AccentSubtitleText, SubtitleText, TitleText } from "@/components/ui/text-roles";
-import { getExerciseCountSummaryFromInputs, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
@@ -122,87 +126,90 @@ export function TodayClientShell({
 
   if (!display) {
     return (
-      <div className="space-y-3 px-1 py-2">
-        <p className="text-sm text-muted">No active routine selected.</p>
-        <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">
-          Go to Routines
-        </Link>
-      </div>
+      <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+        <SharedScreenHeader
+          recipe="todayOverview"
+          eyebrow="Today"
+          title="No active routine"
+          subtitle="Select a routine to plan your session."
+        />
+        <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+          <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">
+            Go to Routines
+          </Link>
+        </SharedSectionShell>
+      </ScreenScaffold>
     );
   }
 
+  const headerSummary = getRestDayExerciseCountSummaryFromInputs(display.exercises, display.routine.isRest).label;
+
   return (
-    <div className="space-y-3 px-1 py-2">
-      <OfflineSyncBadge />
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 space-y-1">
-          <TitleText as="h2" className="text-lg">
-            {display.routine.name}: {display.routine.dayName}
-          </TitleText>
-          <SubtitleText>
-            {display.routine.isRest
-              ? getRestDayExerciseCountSummaryFromInputs([], true).label
-              : getExerciseCountSummaryFromInputs(display.exercises).label}
+    <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+      <SharedScreenHeader
+        recipe="todayOverview"
+        eyebrow="Today"
+        title={display.routine.name}
+        subtitle={display.routine.dayName}
+        meta={<span className="whitespace-nowrap">{headerSummary}</span>}
+        action={display.completedTodayCount > 0 ? <AppBadge tone="success">Completed</AppBadge> : <OfflineSyncBadge />}
+      />
+
+      <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+        {display.staleAt ? (
+          <AccentSubtitleText className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            Offline snapshot · stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+          </AccentSubtitleText>
+        ) : null}
+
+        <ul className="space-y-2">
+          {display.exercises.map((exercise) => {
+            const cardVariantState = deriveReadOnlyExercisePresentation({
+              loggedSetCount: exercise.loggedSetCount ?? 0,
+              isSkipped: exercise.isSkipped === true,
+              targetSetsMin: exercise.targetSetsMin,
+              targetSetsMax: exercise.targetSetsMax,
+            });
+
+            return (
+              <li key={exercise.id}>
+                <StandardExerciseRow
+                  exercise={exercise}
+                  summary={exercise.targets}
+                  state={cardVariantState.cardState}
+                  badgeText={cardVariantState.badgeText}
+                  onPress={() => {
+                    const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
+                    if (process.env.NODE_ENV === "development") {
+                      console.debug("[ExerciseInfo:open] TodayClientShell", { exerciseId: canonicalExerciseId, exercise: { id: exercise.id, exerciseId: "exerciseId" in exercise ? exercise.exerciseId : undefined, name: exercise.name } });
+                    }
+                    setSelectedExerciseId(canonicalExerciseId);
+                  }}
+                >
+                  <WorkoutExerciseRowChips chips={cardVariantState.chips} progressLabel={cardVariantState.progressLabel} />
+                </StandardExerciseRow>
+              </li>
+            );
+          })}
+          {display.exercises.length === 0 ? (
+            <li className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] px-3 py-3"><SubtitleText>{display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}</SubtitleText></li>
+          ) : null}
+        </ul>
+
+        {display.inProgressSessionId ? (
+          <TodayStartButton
+            sessionId={display.inProgressSessionId}
+            returnTo="/today"
+            fullWidth
+            className="w-full"
+            label="Resume Session"
+          />
+        ) : (
+          <SubtitleText className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center">
+            Start session requires a live connection.
           </SubtitleText>
-        </div>
-        {display.completedTodayCount > 0 ? (
-          <AccentSubtitleText className="inline-flex rounded-full border border-emerald-400/35 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">Completed</AccentSubtitleText>
-        ) : null}
-      </div>
-
-      {display.staleAt ? (
-        <AccentSubtitleText className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          Offline snapshot · stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-        </AccentSubtitleText>
-      ) : null}
-
-      <ul className="space-y-2">
-        {display.exercises.map((exercise) => {
-          const cardVariantState = deriveReadOnlyExercisePresentation({
-            loggedSetCount: exercise.loggedSetCount ?? 0,
-            isSkipped: exercise.isSkipped === true,
-            targetSetsMin: exercise.targetSetsMin,
-            targetSetsMax: exercise.targetSetsMax,
-          });
-
-          return (
-            <li key={exercise.id}>
-              <StandardExerciseRow
-                exercise={exercise}
-                summary={exercise.targets}
-                state={cardVariantState.cardState}
-                badgeText={cardVariantState.badgeText}
-                onPress={() => {
-                  const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
-                  if (process.env.NODE_ENV === "development") {
-                    console.debug("[ExerciseInfo:open] TodayClientShell", { exerciseId: canonicalExerciseId, exercise: { id: exercise.id, exerciseId: "exerciseId" in exercise ? exercise.exerciseId : undefined, name: exercise.name } });
-                  }
-                  setSelectedExerciseId(canonicalExerciseId);
-                }}
-              >
-                <WorkoutExerciseRowChips chips={cardVariantState.chips} progressLabel={cardVariantState.progressLabel} />
-              </StandardExerciseRow>
-            </li>
-          );
-        })}
-        {display.exercises.length === 0 ? (
-          <li className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] px-3 py-3"><SubtitleText>{display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}</SubtitleText></li>
-        ) : null}
-      </ul>
-
-      {display.inProgressSessionId ? (
-        <TodayStartButton
-          sessionId={display.inProgressSessionId}
-          returnTo="/today"
-          fullWidth
-          className="w-full"
-          label="Resume Session"
-        />
-      ) : (
-        <SubtitleText className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center">
-          Start session requires a live connection.
-        </SubtitleText>
-      )}
+        )}
+      </SharedSectionShell>
 
       <ExerciseInfo
         exerciseId={selectedExerciseId}
@@ -217,6 +224,6 @@ export function TodayClientShell({
         }}
         sourceContext="TodayClientShell"
       />
-    </div>
+    </ScreenScaffold>
   );
 }

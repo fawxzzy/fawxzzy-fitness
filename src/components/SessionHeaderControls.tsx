@@ -18,7 +18,6 @@ export function SessionHeaderControls({
   return (
     <SharedScreenHeader
       recipe="currentSession"
-      className="space-y-0"
       eyebrow="Today"
       title={routineName}
       subtitle={sessionDayName}

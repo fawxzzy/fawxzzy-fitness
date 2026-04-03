@@ -397,7 +397,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} bottomDock={<BottomActionsSlot />}>
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
-            <div className="space-y-3 px-1">
+            <div className="space-y-3">
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
                 <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
