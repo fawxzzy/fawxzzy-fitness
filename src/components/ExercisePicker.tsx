@@ -78,12 +78,12 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 };
 
 const pickerRowMobileDensityClassNames = {
-  card: "max-md:min-h-[3.8rem] max-md:rounded-[0.74rem] max-md:border-border/30 max-md:bg-[rgb(var(--surface-2-soft)/0.44)] max-md:px-2.5 max-md:py-1.75 max-md:shadow-none",
+  card: "max-md:min-h-[3.45rem] max-md:rounded-[0.74rem] max-md:border-border/30 max-md:bg-[rgb(var(--surface-2-soft)/0.44)] max-md:px-2.25 max-md:py-1.5 max-md:shadow-none",
   body: "max-md:gap-2",
-  title: "max-md:text-[0.9rem]",
-  titleContainer: "max-md:space-y-0.5",
-  subtitle: "max-md:text-[10px] max-md:leading-snug",
-  content: "max-md:space-y-0.5",
+  title: "max-md:text-[0.89rem] max-md:leading-[1.2] max-md:whitespace-nowrap max-md:overflow-hidden max-md:text-ellipsis",
+  titleContainer: "max-md:space-y-0.25",
+  subtitle: "max-md:text-[10px] max-md:leading-[1.15] max-md:line-clamp-1",
+  content: "max-md:space-y-0.35",
   trailing: "max-md:min-w-[3.05rem]",
   selectPill: "max-md:min-h-5.5 max-md:min-w-[2.95rem] max-md:px-1.5 max-md:text-[10px]",
 } as const;
@@ -461,7 +461,7 @@ export function ExercisePicker({
   const exerciseListContent = (
     <ul
       className={cn(
-        "space-y-1.25 md:space-y-0",
+        "space-y-1 md:space-y-0",
         listShellClasses.viewport,
         "max-md:pr-0.5 md:snap-y md:snap-mandatory md:scroll-py-2",
       )}
@@ -506,6 +506,7 @@ export function ExercisePicker({
           viewportClassName="pr-0 md:pr-1"
           showFade
           plainOnMobile
+          mobileTray
           constrainOnDesktop
         >
           {exerciseListContent}
