@@ -51,39 +51,39 @@ export function AnchoredSelectorPanel({
       data-footer-dock={screenRecipe.footerDock}
       className={cn(screenRecipe.headerPanelClassName, className)}
     >
-      <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-[rgb(var(--bg)/0.18)] p-3.5">
-        <SharedScreenHeader
-          recipe={recipe}
-          eyebrow={eyebrow}
-          title={title}
-          subtitle={subtitle}
-          subtitleRight={subtitleRight}
-          meta={meta}
-          action={action}
-          className="rounded-none border-0 bg-transparent p-0 shadow-none"
-        />
+      <SharedScreenHeader
+        recipe={recipe}
+        eyebrow={eyebrow}
+        title={title}
+        subtitle={subtitle}
+        subtitleRight={subtitleRight}
+        meta={meta}
+        action={action}
+        withPanel={false}
+      >
+        <div className="space-y-2">
+          {hasSummary ? (
+            <div className="min-w-0 space-y-1 border-t border-white/8 pt-2.5">
+              {summaryLabel ? (
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.5)]">
+                  {summaryLabel}
+                </p>
+              ) : null}
+              {summaryHint ? <p className="text-sm leading-snug text-[rgb(var(--text)/0.72)]">{summaryHint}</p> : null}
+            </div>
+          ) : null}
 
-        {hasSummary ? (
-          <div className="min-w-0 space-y-1 border-t border-white/8 pt-3">
-            {summaryLabel ? (
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text)/0.52)]">
-                {summaryLabel}
-              </p>
-            ) : null}
-            {summaryHint ? <p className="text-sm leading-snug text-[rgb(var(--text)/0.72)]">{summaryHint}</p> : null}
-          </div>
-        ) : null}
-
-        {revealOpen && revealContent ? (
-          <div
-            id={revealId}
-            aria-label={revealLabel}
-            className="space-y-2 border-t border-white/10 pt-3"
-          >
-            {revealContent}
-          </div>
-        ) : null}
-      </div>
+          {revealOpen && revealContent ? (
+            <div
+              id={revealId}
+              aria-label={revealLabel}
+              className="space-y-2 border-t border-white/10 pt-2.5"
+            >
+              {revealContent}
+            </div>
+          ) : null}
+        </div>
+      </SharedScreenHeader>
 
       {children ? <div className={cn("space-y-3", bodyClassName)}>{children}</div> : null}
     </AppPanel>
