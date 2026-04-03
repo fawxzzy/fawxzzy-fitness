@@ -34,11 +34,14 @@ export function AttachedQuickActionStrip({
   const actionRowClassName = rowContract.actionRowClassName;
   const skipActionClassName = rowContract.skipActionClassName;
   const quickLogActionClassName = rowContract.quickLogActionClassName;
+  const isBusy = rowContract.isSkipPending || rowContract.isQuickLogPending;
+  const isSkipDisabled = isBusy || !onSkip;
+  const isQuickLogDisabled = isBusy || rowContract.isQuickLogDisabled;
 
   return (
     <div
       className={cn(
-        "mt-0.5 rounded-[1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] px-2 py-1",
+        "mt-0.5 rounded-[1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] px-1.5 py-1",
         className,
       )}
     >
@@ -48,9 +51,9 @@ export function AttachedQuickActionStrip({
           variant="secondary"
           size="sm"
           onClick={onSkip}
-          disabled={rowContract.isSkipPending || !onSkip}
+          disabled={isSkipDisabled}
           className={cn(
-            "col-span-1 min-h-[38px] border-white/8 bg-transparent px-2 text-[12px] font-medium shadow-none hover:bg-white/[0.05]",
+            "col-span-1 min-h-[34px] border-white/8 bg-transparent px-1.5 text-[11px] font-medium shadow-none hover:bg-white/[0.05] sm:min-h-[38px] sm:px-2 sm:text-[12px]",
             skipActionClassName,
           )}
         >
@@ -61,10 +64,12 @@ export function AttachedQuickActionStrip({
           variant="secondary"
           size="sm"
           onClick={onPress}
-          disabled={rowContract.isQuickLogPending || rowContract.isQuickLogDisabled}
-          className={cn("col-span-2 min-h-[38px] border-white/8 bg-transparent px-2 text-[12px] font-medium shadow-none hover:bg-white/[0.05]", quickLogActionClassName)}
+          disabled={isQuickLogDisabled}
+          className={cn("col-span-2 min-h-[34px] border-white/8 bg-transparent px-1.5 text-[11px] font-medium shadow-none hover:bg-white/[0.05] sm:min-h-[38px] sm:px-2 sm:text-[12px]", quickLogActionClassName)}
         >
-          {rowContract.isQuickLogDisabled ? rowContract.quickLogDisabledMessage : rowContract.isQuickLogPending ? "Adding…" : rowContract.label}
+          <span className="block truncate">
+            {rowContract.isQuickLogDisabled ? rowContract.quickLogDisabledMessage : rowContract.isQuickLogPending ? "Adding…" : rowContract.label}
+          </span>
         </AppButton>
       </div>
     </div>
