@@ -53,7 +53,7 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
       <ScrollScreenWithBottomActions className="px-4 pb-0">
         <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md pb-4">
           <RoutineEditorPageHeader
-            eyebrow={<span className="hidden md:inline">Edit Day</span>}
+            eyebrow="Edit Day"
             title="Add Exercise"
             subtitle={formatAddExerciseHeaderSubtitle(routine.name)}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}

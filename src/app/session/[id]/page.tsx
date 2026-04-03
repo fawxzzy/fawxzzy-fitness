@@ -6,6 +6,7 @@ import { isCardioExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { splitSessionHeaderTitle } from "@/lib/header-meta";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
   addSetAction,
@@ -144,8 +145,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const unitLabel = routine?.weight_unit ?? "kg";
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
-  const routineName = routine?.name ?? sessionRow.name ?? "Routine";
-  const sessionDayName = sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
+  const mergedSessionLabel = splitSessionHeaderTitle(sessionRow.name);
+  const routineName = routine?.name
+    ?? mergedSessionLabel?.title
+    ?? "Routine";
+  const sessionDayName = mergedSessionLabel?.subtitle
+    ?? (sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day"));
   const sessionSummary = getExerciseCountSummaryFromInputs(
     sessionExercises.map((exercise) => {
       const canonicalExercise = exerciseById.get(exercise.exercise_id);
