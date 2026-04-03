@@ -290,7 +290,7 @@ export function SessionExerciseFocus({
   return (
     <div className="flex flex-col space-y-2" data-row-interaction={contract.rowInteraction}>
       {selectedExerciseId === null ? (
-        <ul className="space-y-1.5 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
+        <ul className="space-y-1.5">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const rowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({

@@ -396,7 +396,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         };
 
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="main">
       <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} bottomDock={<BottomActionsSlot />}>
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (

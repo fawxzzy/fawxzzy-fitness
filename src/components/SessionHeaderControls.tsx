@@ -5,11 +5,13 @@ import { SessionBackButton } from "@/components/SessionBackButton";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 
 export function SessionHeaderControls({
-  sessionTitle,
+  routineName,
+  sessionDayName,
   sessionSummary,
   backHref,
 }: {
-  sessionTitle: string;
+  routineName: string;
+  sessionDayName: string;
   sessionSummary?: string;
   backHref?: string;
 }) {
@@ -18,8 +20,9 @@ export function SessionHeaderControls({
       recipe="currentSession"
       className="space-y-0"
       eyebrow="Today"
-      title={sessionTitle}
-      subtitle={sessionSummary}
+      title={routineName}
+      subtitle={sessionDayName}
+      meta={sessionSummary}
       action={(
         <div className="flex items-center gap-2">
           <OfflineSyncBadge />
