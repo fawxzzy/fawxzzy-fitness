@@ -290,7 +290,7 @@ export function SessionExerciseFocus({
   return (
     <div className="flex flex-col space-y-2" data-row-interaction={contract.rowInteraction}>
       {selectedExerciseId === null ? (
-        <ul className="space-y-1.5 pb-3">
+        <ul className="space-y-1.5 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
           {exercises.map((exercise) => {
             const isRemoving = removingExerciseIds.includes(exercise.id);
             const rowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({
@@ -312,8 +312,8 @@ export function SessionExerciseFocus({
               <li
                 key={exercise.id}
                 className={[
-                  "origin-top transition-all duration-150 motion-reduce:transition-none",
-                  isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-40 scale-100 opacity-100",
+                  "origin-top overflow-hidden transition-all duration-150 motion-reduce:transition-none",
+                  isRemoving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-56 scale-100 opacity-100",
                 ].join(" ")}
               >
                 <SessionExerciseBlock>
@@ -349,6 +349,9 @@ export function SessionExerciseFocus({
                       isQuickLogPending: rowViewModel.isQuickLogPending,
                     }}
                     onSkip={async () => {
+                      if (rowViewModel.isQuickLogPending || rowViewModel.isSkipPending) {
+                        return;
+                      }
                       const previousSkipped = rowViewModel.isSkipped;
                       const nextSkipped = !previousSkipped;
                       patchRowState(exercise.id, (current) => ({
@@ -384,6 +387,9 @@ export function SessionExerciseFocus({
                       }
                     }}
                     onPress={async () => {
+                      if (rowViewModel.isQuickLogPending || rowViewModel.isSkipPending || rowState.isQuickLogDisabled) {
+                        return;
+                      }
                       patchRowState(exercise.id, (current) => ({
                         ...current,
                         isQuickLogPending: true,

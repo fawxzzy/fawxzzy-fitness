@@ -53,8 +53,8 @@ export function deriveSessionRowState(input: DeriveSessionRowStateInput): Sessio
     chips: progressState.chips,
     skipActionLabel: progressState.skipActionLabel,
     isQuickLogDisabled: !progressState.allowQuickLog,
-    quickLogDisabledMessage: "Unavailable while skipped",
-    quickLogLabel: `Quick Log: ${formatQuickLogPreviewLabel({
+    quickLogDisabledMessage: "Unskip to log",
+    quickLogLabel: `Log: ${formatQuickLogPreviewLabel({
       target: input.quickLogTarget,
       loggedSetCount: progressState.loggedSetCount,
       targetSetsMin: input.targetSetsMin,
