@@ -122,6 +122,9 @@ export function TodayDayPicker({
   const selectedDaySummary = selectedDay
     ? getDayExerciseSummaryLabel(selectedDay)
     : null;
+  const resolveDayCardSubtitle = useCallback((day: TodayDay) => (
+    getDayExerciseSummaryLabel(day) || getTodayDaySummary(day) || undefined
+  ), [getDayExerciseSummaryLabel]);
   const daySummary = selectedDay
     ? getTodayDaySummary(selectedDay)
     : null;
@@ -197,7 +200,7 @@ export function TodayDayPicker({
                     <DayCard
                       key={day.id}
                       title={`Day ${day.dayIndex} | ${day.name}`}
-                      subtitle={day.state === "invalid" ? getTodayDaySummary(day) ?? undefined : getDayExerciseSummaryLabel(day)}
+                      subtitle={resolveDayCardSubtitle(day)}
                       onPress={() => {
                         setSelectedDayIndex(day.dayIndex);
                         setIsPickerOpen(false);
