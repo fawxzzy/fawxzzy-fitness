@@ -15,6 +15,8 @@ export type ScreenGeometry = {
   dockTop: number;
   lastInteractiveRowBottom: number;
   titleTop: number;
+  topSpacingOwners: number;
+  bottomDockSpacingOwners: number;
 };
 
 export type FilterChipFrame = {
@@ -81,6 +83,8 @@ function withBaseGeometry(overrides: Partial<ScreenGeometry>): ScreenGeometry {
     dockTop: 744,
     lastInteractiveRowBottom: 710,
     titleTop: 74,
+    topSpacingOwners: 1,
+    bottomDockSpacingOwners: 1,
     ...overrides,
   };
 }

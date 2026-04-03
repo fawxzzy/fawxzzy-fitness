@@ -5,6 +5,7 @@
 - Prevent stretched blank regions in both collapsed list mode and expanded exercise-log mode.
 
 ## Contract
+- Active session identity header follows explicit grammar: `title` (exercise/session name), `subtitle` (set/day context), optional `meta` badge; do not merge these into one title string.
 - The active session screen content column must not use `min-h-full` on list wrappers.
 - Timer dock clearance is owned by the mobile shell wrapper (`--app-mobile-bottom-dock-height`) and applies once per screen.
 - The collapsed exercise list keeps only intrinsic row spacing; it must not add dock-height padding.

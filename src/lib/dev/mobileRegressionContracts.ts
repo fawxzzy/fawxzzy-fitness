@@ -11,6 +11,14 @@ export function titleRespectsSafeArea(scenario: MobileFixtureScenario) {
   return scenario.geometry.titleTop >= scenario.geometry.safeAreaTop;
 }
 
+export function hasSingleTopSpacingOwner(scenario: MobileFixtureScenario) {
+  return scenario.geometry.topSpacingOwners === 1;
+}
+
+export function hasSingleBottomDockSpacingOwner(scenario: MobileFixtureScenario) {
+  return scenario.geometry.bottomDockSpacingOwners === 1;
+}
+
 export function chipsStayWithinViewport(scenario: MobileFixtureScenario) {
   return (scenario.filterChipFrames ?? []).every((chip) => chip.left >= 0 && chip.right <= scenario.geometry.viewportWidth);
 }
@@ -64,6 +72,8 @@ export function validateMobileScenarioContracts(scenario: MobileFixtureScenario)
   return {
     finalRowVisibleAboveDock: finalRowVisibleAboveDock(scenario),
     titleRespectsSafeArea: titleRespectsSafeArea(scenario),
+    hasSingleTopSpacingOwner: hasSingleTopSpacingOwner(scenario),
+    hasSingleBottomDockSpacingOwner: hasSingleBottomDockSpacingOwner(scenario),
     chipsStayWithinViewport: chipsStayWithinViewport(scenario),
     longTextLayoutStable: longTextLayoutStable(scenario),
     noImpossibleLoggedSkippedMix: noImpossibleLoggedSkippedMix(scenario),

@@ -34,6 +34,7 @@ Implementation ownership:
 4. `adding_exercise` suppresses CTA repetition while the route transition to Add Exercise is in-flight.
 5. `editing_exercise` and `reorder` are mutually exclusive.
 6. Header actions and bottom dock variants are mode-owned selectors and must not be computed with route-local boolean chains.
+7. Header metadata remains taxonomy-aware (`N strength`, `N cardio`, mixed total summary), not generic `N exercises` when taxonomy is known.
 
 ## Reorder row mobile layout contract
 
