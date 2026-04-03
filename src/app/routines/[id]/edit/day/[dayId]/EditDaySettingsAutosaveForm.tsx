@@ -108,7 +108,8 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
             ariaLabel="Day Name"
           />
         )}
-        subtitle={daySummary}
+        subtitle={`Day ${dayIndex}`}
+        meta={daySummary}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
       >
         <div className="px-1 pt-1">

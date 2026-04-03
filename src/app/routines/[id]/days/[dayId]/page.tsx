@@ -88,8 +88,9 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
           <SharedScreenHeader
             recipe="viewDay"
             eyebrow="View Day"
-            title={dayLabel}
-            subtitle={daySummary}
+            title={routineRow.name}
+            subtitle={dayLabel}
+            meta={daySummary}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
           />
 

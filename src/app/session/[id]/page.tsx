@@ -144,7 +144,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const unitLabel = routine?.weight_unit ?? "kg";
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
-  const routineName = sessionRow.name || "Routine";
+  const routineName = routine?.name ?? sessionRow.name ?? "Routine";
   const sessionDayName = sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
   const sessionSummary = getExerciseCountSummaryFromInputs(
     sessionExercises.map((exercise) => {
@@ -154,6 +154,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         equipment: canonicalExercise?.equipment ?? null,
         movement_pattern: canonicalExercise?.movement_pattern ?? null,
         primary_muscle: canonicalExercise?.primary_muscle ?? null,
+        isCardio: canonicalExercise ? isCardioExercise(canonicalExercise) : null,
       };
     }),
   ).label;

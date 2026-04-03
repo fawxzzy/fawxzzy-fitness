@@ -122,8 +122,8 @@ export function resolveScreenContract(name: ScreenContractName): ScreenContract 
 export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   currentSession: {
     ...screenContracts.currentSession,
-    scaffoldClassName: "space-y-4",
-    headerPanelClassName: "space-y-4 p-4 pt-[1.2rem]",
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "space-y-3 p-4 pt-4",
     sectionClassName: "space-y-3 p-4",
     sectionShellClassName: "space-y-4 p-4",
     sectionBodyClassName: "space-y-3",
@@ -139,7 +139,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   sessionAddExercise: {
     ...screenContracts.sessionAddExercise,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "px-4 pb-3 pt-3 md:p-4 md:pt-[1.2rem]",
+    headerPanelClassName: "space-y-3 p-4 pt-4",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
@@ -147,7 +147,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   editDay: {
     ...screenContracts.editDay,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "p-4 pt-[1.2rem]",
+    headerPanelClassName: "space-y-3 p-4 pt-4",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
@@ -155,7 +155,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   viewDay: {
     ...screenContracts.viewDay,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "p-4 pt-[1.2rem]",
+    headerPanelClassName: "space-y-3 p-4 pt-4",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
