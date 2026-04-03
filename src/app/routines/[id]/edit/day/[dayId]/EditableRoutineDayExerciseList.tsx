@@ -478,7 +478,7 @@ export function EditableRoutineDayExerciseList({
 
       {modeViewModel.sections.exerciseListVisible ? (
         reorderMode ? (
-          <ul className="space-y-2 pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]">
+          <ul className="space-y-2">
             {visibleItems.map((exercise, index) => {
               const isDragging = activeDragId === exercise.id;
               return (
@@ -502,7 +502,6 @@ export function EditableRoutineDayExerciseList({
         ) : (
           <DayDetailExerciseList
             mode="editable"
-            className="pb-[calc(var(--app-bottom-action-bar-height,0px)+var(--app-safe-bottom)+0.75rem)]"
             items={visibleItems.map((exercise) => ({
               id: exercise.id,
               name: exercise.name,

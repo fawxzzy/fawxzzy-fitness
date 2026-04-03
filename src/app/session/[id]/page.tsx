@@ -4,8 +4,8 @@ import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
-import { formatExerciseCountMetaLabel } from "@/lib/header-meta";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
+import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
   addSetAction,
@@ -144,8 +144,19 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const unitLabel = routine?.weight_unit ?? "kg";
   const exerciseById = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise]));
 
-  const sessionTitle = `${sessionRow.name || "Routine"}: ${sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day")}`;
-  const sessionSummary = formatExerciseCountMetaLabel(sessionExercises.length);
+  const routineName = sessionRow.name || "Routine";
+  const sessionDayName = sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day");
+  const sessionSummary = getExerciseCountSummaryFromInputs(
+    sessionExercises.map((exercise) => {
+      const canonicalExercise = exerciseById.get(exercise.exercise_id);
+      return {
+        measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
+        equipment: canonicalExercise?.equipment ?? null,
+        movement_pattern: canonicalExercise?.movement_pattern ?? null,
+        primary_muscle: canonicalExercise?.primary_muscle ?? null,
+      };
+    }),
+  ).label;
 
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
 
@@ -155,7 +166,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           sessionId={params.id}
           initialDurationSeconds={sessionRow.duration_seconds}
           performedAt={sessionRow.performed_at}
-          sessionTitle={sessionTitle}
+          routineName={routineName}
+          sessionDayName={sessionDayName}
           sessionSummary={sessionSummary}
           searchError={searchParams?.error}
           unitLabel={unitLabel}

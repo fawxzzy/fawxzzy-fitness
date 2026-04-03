@@ -7,8 +7,7 @@
 ## Contract
 - The active session screen content column must not use `min-h-full` on list wrappers.
 - Timer dock clearance is owned by the mobile shell wrapper (`--app-mobile-bottom-dock-height`) and applies once per screen.
-- The collapsed exercise list owns dock clearance with:
-  - compact tail spacing only (`padding-bottom: 0.75rem`) so rows stay continuous into the shell-managed dock inset.
+- The collapsed exercise list keeps only intrinsic row spacing; it must not add dock-height padding.
 - The session shell keeps dock-height reservation globally; inner list components should not stack a second legacy bottom-action inset.
 - Exercise card + quick-log strip spacing stays compact:
   - list row gap: `space-y-1.5`

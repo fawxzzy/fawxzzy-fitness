@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AnchoredSelectorPanel } from "@/components/ui/app/AnchoredSelectorPanel";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import {
   DayCard,
@@ -19,8 +21,7 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
-import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
-import { formatExerciseCountMetaLabel } from "@/lib/header-meta";
+import { getExerciseCountSummaryFromInputs, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import {
   deriveTodayScreenMode,
@@ -116,6 +117,9 @@ export function TodayDayPicker({
   }, []);
 
   const selectedDay = mode.selectedDay;
+  const selectedDaySummary = selectedDay
+    ? getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.state === "rest").label
+    : null;
   const daySummary = selectedDay
     ? (selectedDay.state === "rest" ? REST_DAY_CARD_COPY : getTodayDaySummary(selectedDay))
     : null;
@@ -166,100 +170,97 @@ export function TodayDayPicker({
   usePublishBottomActions(actionsNode);
 
   return (
-    <div className="flex min-h-0 flex-col gap-2.5">
+    <div className="flex min-h-0 flex-col">
       {!mode.noRoutine && selectedDay ? (
-        <AnchoredSelectorPanel
-          eyebrow="Today"
-          title={routineName}
-          subtitle={selectedDay.name}
-          meta={(
-            <span className="whitespace-nowrap">
-              {selectedDay.state === "rest"
-                ? "Rest Day"
-                : formatExerciseCountMetaLabel(selectedDay.exercises.length)}
-            </span>
-          )}
-          action={inSessionDayIndex === selectedDay.dayIndex
-            ? <AppBadge tone="success">In Session</AppBadge>
-            : completedDayIndexSet.has(selectedDay.dayIndex)
-              ? <AppBadge tone="success">Completed</AppBadge>
-              : undefined}
-          revealOpen={mode.dayPickerOpen}
-          revealId="today-day-selector-list"
-          revealLabel="Routine days"
-          revealContent={(
-            <DayList>
-              {days.map((day) => {
-                const isSelected = selectedDayIndex === day.dayIndex;
-                return (
-                  <DayCard
-                    key={day.id}
-                    title={`Day ${day.dayIndex} | ${day.name}`}
-                    subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : (day.state === "rest" ? REST_DAY_CARD_COPY : getTodayDaySummary(day)) ?? undefined}
-                    onPress={() => {
-                      setSelectedDayIndex(day.dayIndex);
-                      setIsPickerOpen(false);
-                    }}
-                    state={resolveDayCardState({
-                      isSelected,
-                      isToday: day.dayIndex === currentDayIndex,
-                      isRest: day.isRest,
-                      isCompleted: completedDayIndexSet.has(day.dayIndex),
-                      isInSession: inSessionDayIndex === day.dayIndex,
-                    })}
-                    badgeText={resolveDayCardBadgeText({
-                      isToday: day.dayIndex === currentDayIndex,
-                      isRest: day.isRest,
-                      isCompleted: completedDayIndexSet.has(day.dayIndex),
-                      isInSession: inSessionDayIndex === day.dayIndex,
-                    })}
-                    metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
-                    rightIcon={null}
-                  />
-                );
-              })}
-            </DayList>
-          )}
-        >
-          {mode.summaryVisible && daySummary ? (
-            <div
-              className={[
-                "rounded-md px-3 py-1.5",
-                daySummaryTone === "blocking"
-                  ? "border border-red-400/30 bg-red-500/10 text-red-100"
-                  : daySummaryTone === "warning"
-                    ? "border border-amber-400/20 bg-amber-500/10 text-amber-100"
-                    : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
-              ].join(" ")}
-            >
-              {daySummaryTone
-                ? <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-red-100" : "text-amber-100"}>{daySummary}</AccentSubtitleText>
-                : <SubtitleText>{daySummary}</SubtitleText>}
-            </div>
-          ) : null}
+        <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md pb-3">
+          <SharedScreenHeader
+            recipe="todayOverview"
+            eyebrow="Today"
+            title={routineName}
+            subtitle={selectedDay.name}
+            meta={selectedDaySummary ? <span className="whitespace-nowrap">{selectedDaySummary}</span> : undefined}
+            action={inSessionDayIndex === selectedDay.dayIndex
+              ? <AppBadge tone="success">In Session</AppBadge>
+              : completedDayIndexSet.has(selectedDay.dayIndex)
+                ? <AppBadge tone="success">Completed</AppBadge>
+                : undefined}
+          />
 
-          {mode.dayRowsVisible ? <ul className="space-y-1.5">
-            {selectedDay.exercises.map((exercise) => (
-              <li key={exercise.id}>
-                <StandardExerciseRow
-                  exercise={exercise}
-                  summary={exercise.targets}
-                  onPress={() => {
-                    if (process.env.NODE_ENV === "development") {
-                      console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
-                    }
-                    setSelectedExerciseId(exercise.exerciseId);
-                  }}
-                />
-              </li>
-            ))}
-            {selectedDay.exercises.length === 0 ? (
-              <li className="px-3 py-3">
-                <SubtitleText>No exercises yet.</SubtitleText>
-              </li>
+          <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+            {mode.dayPickerOpen ? (
+              <DayList>
+                {days.map((day) => {
+                  const isSelected = selectedDayIndex === day.dayIndex;
+                  return (
+                    <DayCard
+                      key={day.id}
+                      title={`Day ${day.dayIndex} | ${day.name}`}
+                      subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : (day.state === "rest" ? REST_DAY_CARD_COPY : getTodayDaySummary(day)) ?? undefined}
+                      onPress={() => {
+                        setSelectedDayIndex(day.dayIndex);
+                        setIsPickerOpen(false);
+                      }}
+                      state={resolveDayCardState({
+                        isSelected,
+                        isToday: day.dayIndex === currentDayIndex,
+                        isRest: day.isRest,
+                        isCompleted: completedDayIndexSet.has(day.dayIndex),
+                        isInSession: inSessionDayIndex === day.dayIndex,
+                      })}
+                      badgeText={resolveDayCardBadgeText({
+                        isToday: day.dayIndex === currentDayIndex,
+                        isRest: day.isRest,
+                        isCompleted: completedDayIndexSet.has(day.dayIndex),
+                        isInSession: inSessionDayIndex === day.dayIndex,
+                      })}
+                      metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
+                      rightIcon={null}
+                    />
+                  );
+                })}
+              </DayList>
             ) : null}
-          </ul> : null}
-        </AnchoredSelectorPanel>
+
+            {mode.summaryVisible && daySummary ? (
+              <div
+                className={[
+                  "rounded-md px-3 py-1.5",
+                  daySummaryTone === "blocking"
+                    ? "border border-red-400/30 bg-red-500/10 text-red-100"
+                    : daySummaryTone === "warning"
+                      ? "border border-amber-400/20 bg-amber-500/10 text-amber-100"
+                      : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
+                ].join(" ")}
+              >
+                {daySummaryTone
+                  ? <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-red-100" : "text-amber-100"}>{daySummary}</AccentSubtitleText>
+                  : <SubtitleText>{daySummary}</SubtitleText>}
+              </div>
+            ) : null}
+
+            {mode.dayRowsVisible ? <ul className="space-y-1.5">
+              {selectedDay.exercises.map((exercise) => (
+                <li key={exercise.id}>
+                  <StandardExerciseRow
+                    exercise={exercise}
+                    summary={exercise.targets}
+                    onPress={() => {
+                      if (process.env.NODE_ENV === "development") {
+                        console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
+                      }
+                      setSelectedExerciseId(exercise.exerciseId);
+                    }}
+                  />
+                </li>
+              ))}
+              {selectedDay.exercises.length === 0 ? (
+                <li className="px-3 py-3">
+                  <SubtitleText>No exercises yet.</SubtitleText>
+                </li>
+              ) : null}
+            </ul> : null}
+          </SharedSectionShell>
+        </ScreenScaffold>
       ) : null}
 
       <ExerciseInfo

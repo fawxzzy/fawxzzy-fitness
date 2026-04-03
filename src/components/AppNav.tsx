@@ -88,7 +88,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
       className={`pointer-events-none inset-x-0 flex justify-center px-4 ${
         mode === "fixed"
           ? "fixed top-[var(--header-offset)] z-[60]"
-          : "relative z-30 pt-[var(--header-offset)]"
+          : "relative z-30"
       }`}
     >
       <div className="pointer-events-auto w-full max-w-md">
