@@ -26,7 +26,7 @@ import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "@/lib/today-
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
-import { getRestDayExerciseCountSummaryFromCanonicalExercises, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
 import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
@@ -374,10 +374,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     fetchFailed,
   });
   const inProgressHeaderSummary = todayPayload.routine
-    ? getRestDayExerciseCountSummaryFromCanonicalExercises(
-      effectiveDaySummary?.runnableExercises ?? [],
-      todayPayload.routine.isRest,
-    ).label
+    ? getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest).label
     : null;
 
   const todaySnapshot: TodayCacheSnapshot | null =
