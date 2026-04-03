@@ -186,11 +186,11 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   },
   todayOverview: {
     ...screenContracts.todayOverview,
-    scaffoldClassName: "space-y-4",
-    headerPanelClassName: "space-y-4 p-4 pt-[1.2rem]",
-    sectionClassName: "space-y-3 p-4",
-    sectionShellClassName: "space-y-4 p-4",
-    sectionBodyClassName: "space-y-3",
+    scaffoldClassName: "space-y-3",
+    headerPanelClassName: "space-y-3 p-4 pt-4",
+    sectionClassName: "space-y-2.5 p-4",
+    sectionShellClassName: "space-y-3 p-4",
+    sectionBodyClassName: "space-y-2.5",
   },
 };
 

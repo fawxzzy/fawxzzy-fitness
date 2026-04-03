@@ -61,9 +61,9 @@ export function AnchoredSelectorPanel({
         action={action}
         withPanel={false}
       >
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {hasSummary ? (
-            <div className="min-w-0 space-y-1 border-t border-white/8 pt-2.5">
+            <div className="min-w-0 space-y-1 border-t border-white/8 pt-2">
               {summaryLabel ? (
                 <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.5)]">
                   {summaryLabel}
@@ -77,7 +77,7 @@ export function AnchoredSelectorPanel({
             <div
               id={revealId}
               aria-label={revealLabel}
-              className="space-y-2 border-t border-white/10 pt-2.5"
+              className="space-y-1.5 border-t border-white/10 pt-2"
             >
               {revealContent}
             </div>
@@ -85,7 +85,7 @@ export function AnchoredSelectorPanel({
         </div>
       </SharedScreenHeader>
 
-      {children ? <div className={cn("space-y-3", bodyClassName)}>{children}</div> : null}
+      {children ? <div className={cn("space-y-2.5", bodyClassName)}>{children}</div> : null}
     </AppPanel>
   );
 }
