@@ -155,14 +155,13 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     sessionExercises.map((exercise) => {
       const canonicalExercise = exerciseById.get(exercise.exercise_id);
       return {
+        // Keep this aligned with the shared ExerciseRow contract returned by listExercises().
+        // Taxonomy-aware summary helpers should consume canonical contract fields first,
+        // rather than screen-local assumptions about extra exercise columns.
         measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
         equipment: canonicalExercise?.equipment ?? null,
         movement_pattern: canonicalExercise?.movement_pattern ?? null,
         primary_muscle: canonicalExercise?.primary_muscle ?? null,
-        kind: canonicalExercise?.kind ?? null,
-        type: canonicalExercise?.type ?? null,
-        tags: canonicalExercise?.tags ?? null,
-        categories: canonicalExercise?.categories ?? null,
         isCardio: canonicalExercise ? isCardioExercise(canonicalExercise) : null,
       };
     }),
