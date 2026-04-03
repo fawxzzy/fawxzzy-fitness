@@ -15,7 +15,6 @@ import {
   formatLoggedSetCount,
   resolveDayCardBadgeText,
   resolveDayCardState,
-  REST_DAY_CARD_COPY,
 } from "@/components/day-list/DayList";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -117,11 +116,14 @@ export function TodayDayPicker({
   }, []);
 
   const selectedDay = mode.selectedDay;
+  const getDayExerciseSummaryLabel = useCallback((day: TodayDay) => (
+    getRestDayExerciseCountSummaryFromInputs(day.exercises, day.state === "rest").label
+  ), []);
   const selectedDaySummary = selectedDay
-    ? getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.state === "rest").label
+    ? getDayExerciseSummaryLabel(selectedDay)
     : null;
   const daySummary = selectedDay
-    ? (selectedDay.state === "rest" ? REST_DAY_CARD_COPY : getTodayDaySummary(selectedDay))
+    ? getTodayDaySummary(selectedDay)
     : null;
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
@@ -195,7 +197,11 @@ export function TodayDayPicker({
                     <DayCard
                       key={day.id}
                       title={`Day ${day.dayIndex} | ${day.name}`}
-                      subtitle={day.state === "runnable" || day.state === "partial" ? getExerciseCountSummaryFromInputs(day.exercises).label : (day.state === "rest" ? REST_DAY_CARD_COPY : getTodayDaySummary(day)) ?? undefined}
+                      subtitle={day.state === "runnable" || day.state === "partial"
+                        ? getExerciseCountSummaryFromInputs(day.exercises).label
+                        : day.state === "rest"
+                          ? getDayExerciseSummaryLabel(day)
+                          : getTodayDaySummary(day) ?? undefined}
                       onPress={() => {
                         setSelectedDayIndex(day.dayIndex);
                         setIsPickerOpen(false);
@@ -221,7 +227,7 @@ export function TodayDayPicker({
               </DayList>
             ) : null}
 
-            {mode.summaryVisible && daySummary ? (
+            {!mode.dayPickerOpen && !mode.noRoutine && daySummary ? (
               <div
                 className={[
                   "rounded-md px-3 py-1.5",
