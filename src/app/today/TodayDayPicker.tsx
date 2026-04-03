@@ -166,7 +166,7 @@ export function TodayDayPicker({
   usePublishBottomActions(actionsNode);
 
   return (
-    <div className="flex min-h-0 flex-col gap-3">
+    <div className="flex min-h-0 flex-col gap-2.5">
       {!mode.noRoutine && selectedDay ? (
         <AnchoredSelectorPanel
           eyebrow="Today"
@@ -224,7 +224,7 @@ export function TodayDayPicker({
           {mode.summaryVisible && daySummary ? (
             <div
               className={[
-                "rounded-md px-3 py-2",
+                "rounded-md px-3 py-1.5",
                 daySummaryTone === "blocking"
                   ? "border border-red-400/30 bg-red-500/10 text-red-100"
                   : daySummaryTone === "warning"
@@ -238,7 +238,7 @@ export function TodayDayPicker({
             </div>
           ) : null}
 
-          {mode.dayRowsVisible ? <ul className="space-y-2">
+          {mode.dayRowsVisible ? <ul className="space-y-1.5">
             {selectedDay.exercises.map((exercise) => (
               <li key={exercise.id}>
                 <StandardExerciseRow

@@ -400,10 +400,10 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} bottomDock={<BottomActionsSlot />}>
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
-            <div className="space-y-4 px-1">
+            <div className="space-y-3 px-1">
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
-                <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md pb-4">
+                <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md pb-3">
                   <SharedScreenHeader
                     recipe="todayOverview"
                     eyebrow="Today"
@@ -413,7 +413,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     action={<AppBadge tone="success">In Session</AppBadge>}
                   />
 
-                  <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-3">
+                  <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}
                       emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}

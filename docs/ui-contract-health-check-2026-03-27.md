@@ -52,3 +52,11 @@
 - **Rule**: repeated screen families must render through shared contracts, not ad hoc local assembly.
 - **Pattern**: headers and section shells are contract-owned primitives (`SharedScreenHeader`, `SharedSectionShell`), not screen-owned inventions.
 - **Failure mode**: metadata-only contracts that do not own rendering allow visual drift to survive because local wrappers can silently diverge while still claiming the same contract family.
+
+## Today vertical rhythm note (2026-04-03)
+- `todayOverview` now intentionally runs a tighter vertical rhythm than sibling overview recipes to reduce dead zones while preserving readability and dock safety:
+  - Scaffold stack tightened from `space-y-4` to `space-y-3`.
+  - Header panel tightened to `space-y-3 p-4 pt-4`.
+  - Section shell/body spacing tightened to `space-y-3` / `space-y-2.5`.
+- `AnchoredSelectorPanel` reveal + body spacing was reduced (`space-y-2`/`pt-2.5` down to `space-y-1.5`/`pt-2`) so opening the day list keeps more workout content visible.
+- `/today` route wrappers were adjusted to match recipe intent (smaller inter-block spacing and slightly reduced tail padding) while preserving bottom action dock clearance.
