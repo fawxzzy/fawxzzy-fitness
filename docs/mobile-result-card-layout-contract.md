@@ -21,7 +21,7 @@ Applies to Add Exercise search result rows.
    - If search/filter criteria exclude the selected row, the selected row is still included in the visible result list to preserve clarity.
 6. **Surface ownership split**
    - Mobile (`< md`) and desktop (`md+`) use separate list rendering contracts.
-   - Mobile renders a plain list surface in normal page flow (no inner faux-viewport shell, no local overflow owner).
+   - Mobile uses a dedicated chooser tray contract (not the old heavy desktop shell): ~4–5 visible rows, internal lightweight scroll, and subtle top/bottom fades to hint continuation.
    - Desktop keeps the constrained viewport treatment (`PickerListViewport`) with optional fade overlays to indicate scrollable depth.
 
 ## ExercisePicker mobile density contract
@@ -32,6 +32,9 @@ Applies to Add Exercise search result rows.
   - tighter title/metadata stack spacing
   - compact inter-row gap
   - compact trailing Select/Selected pill spacing
+  - picker-specific text wrapping behavior:
+    - prefer a single-line title when space reasonably allows (truncate instead of early wrap)
+    - clamp metadata more aggressively (single-line clamp) inside picker rows
 - Desktop/tablet (`md+`) continues to use the richer card treatment.
 
 ## Bottom dock safety
