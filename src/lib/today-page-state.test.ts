@@ -124,6 +124,30 @@ test("deriveTodayScreenMode hides rows and switches secondary CTA when picker is
   assert.equal(mode.cta.secondaryLabel, "Hide Days");
 });
 
+test("deriveTodayScreenMode keeps resume CTA available for closed picker empty states", () => {
+  const mode = deriveTodayScreenMode({
+    days: [{
+      id: "day-3",
+      dayIndex: 3,
+      name: "Travel",
+      isRest: false,
+      state: "empty",
+      invalidExerciseCount: 0,
+      exercises: [],
+    }],
+    selectedDayIndex: 3,
+    currentDayIndex: 3,
+    dayPickerOpen: false,
+    inProgressSessionId: "session-1",
+  });
+
+  assert.equal(mode.dayPickerOpen, false);
+  assert.equal(mode.dayRowsVisible, true);
+  assert.equal(mode.cta.showPrimary, true);
+  assert.equal(mode.cta.primaryLabel, "Resume Session");
+  assert.equal(mode.cta.secondaryLabel, "Select Day");
+});
+
 test("rest and invalid-empty summaries resolve from pure summary selectors", () => {
   const restSummary = getTodayDaySummary({
     id: "day-1",

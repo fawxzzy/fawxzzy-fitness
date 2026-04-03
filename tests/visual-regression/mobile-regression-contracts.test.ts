@@ -25,6 +25,21 @@ test("dock and safe-area regressions are detected", () => {
   assert.equal(contracts.finalRowVisibleAboveDock, false);
 });
 
+test("single-owner spacing regressions are detected", () => {
+  const baseline = requireScenario("today-default");
+  const contracts = validateMobileScenarioContracts({
+    ...baseline,
+    geometry: {
+      ...baseline.geometry,
+      topSpacingOwners: 2,
+      bottomDockSpacingOwners: 2,
+    },
+  });
+
+  assert.equal(contracts.hasSingleTopSpacingOwner, false);
+  assert.equal(contracts.hasSingleBottomDockSpacingOwner, false);
+});
+
 test("card state correctness contract catches conflicting highlighted states", () => {
   const baseline = requireScenario("active-workout-session");
   const contracts = validateMobileScenarioContracts({

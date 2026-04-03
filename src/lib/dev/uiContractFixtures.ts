@@ -4,6 +4,7 @@ export type HeaderFixture = {
   eyebrow: string;
   title: string;
   subtitle: string;
+  meta?: string;
   winnerNote: string;
 };
 
@@ -28,20 +29,31 @@ export type PlannedWorkoutFixture = {
 export const uiContractFixtures = {
   headers: [
     {
-      id: "today",
+      id: "today-closed-picker",
       recipe: "todayOverview",
       eyebrow: "Shared Header",
       title: "Today",
       subtitle: "Current routine • Day 2",
-      winnerNote: "Winner: page-family spacing + title rhythm from one recipe.",
+      meta: "2 strength",
+      winnerNote: "Winner: closed-picker Today header stays in the shared Today family shell.",
+    },
+    {
+      id: "today-resume",
+      recipe: "todayOverview",
+      eyebrow: "Shared Header",
+      title: "Today",
+      subtitle: "Current routine • Day 2",
+      meta: "Resume Today",
+      winnerNote: "Winner: Resume Today uses the same recipe and spacing contract as closed-picker Today.",
     },
     {
       id: "exercise-log",
       recipe: "exerciseLog",
       eyebrow: "Shared Header",
-      title: "Exercise Log",
-      subtitle: "Paused Bench Press • Set 3",
-      winnerNote: "Winner: log identity stays aligned with session/editor siblings.",
+      title: "Paused Bench Press",
+      subtitle: "Set 3 of 5",
+      meta: "In Session",
+      winnerNote: "Winner: session headers keep title/subtitle/meta grammar instead of merged title text.",
     },
     {
       id: "editor",

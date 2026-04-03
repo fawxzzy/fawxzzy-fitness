@@ -37,6 +37,17 @@ test("formatExerciseCountSummary uses unknown taxonomy label in mixed summaries"
   );
 });
 
+test("formatExerciseCountSummary preserves taxonomy-aware mixed labels for restored metadata days", () => {
+  assert.equal(
+    formatExerciseCountSummary([
+      { measurement_type: "reps", isCardio: false },
+      { measurement_type: "time", isCardio: true },
+      { equipment: "bike", isCardio: true },
+    ]).label,
+    "3 total • 1 strength • 2 cardio",
+  );
+});
+
 test("formatRestDayExerciseCountSummary keeps explicit rest-day copy", () => {
   assert.equal(formatRestDayExerciseCountSummary([{ measurement_type: "reps" }], true).label, "Rest day");
 });

@@ -34,6 +34,8 @@ test("mobile regression fixture contracts pass for the full fixture suite", () =
     const contracts = validateMobileScenarioContracts(scenario);
     assert.equal(contracts.finalRowVisibleAboveDock, true, `${scenario.id}: final row clipped by bottom dock`);
     assert.equal(contracts.titleRespectsSafeArea, true, `${scenario.id}: title rendered under safe area`);
+    assert.equal(contracts.hasSingleTopSpacingOwner, true, `${scenario.id}: duplicate top safe-area spacing owners`);
+    assert.equal(contracts.hasSingleBottomDockSpacingOwner, true, `${scenario.id}: duplicate bottom dock spacing owners`);
     assert.equal(contracts.chipsStayWithinViewport, true, `${scenario.id}: filter chips clipped off screen`);
     assert.equal(contracts.longTextLayoutStable, true, `${scenario.id}: long title/metadata layout became unstable`);
     assert.equal(contracts.noImpossibleLoggedSkippedMix, true, `${scenario.id}: invalid logged+skipped mixed state`);

@@ -24,6 +24,12 @@ Derived UI selectors are emitted from `deriveTodayScreenMode`.
 | `emptyState = true` and picker closed | Shared header panel keeps title/subtitle/meta grammar; meta remains taxonomy-aware fallback (`0 exercises` only when taxonomy is unknown). | Separate section shell shows summary card (`No exercises yet.` or blocking invalid-exercise message). Empty exercise fallback row visible. | Secondary shown. Primary hidden unless `hasInProgressSession = true`. | Summary tone chip style derives from `getTodayDaySummaryTone` (`blocking` / `warning`). |
 | Runnable/partial day and picker closed | Shared header panel shows selected day + taxonomy-aware meta. | Separate section shell shows optional warning summary for partial day, plus exercise rows. | Split dock: `Start Workout` primary when no in-progress session; `Resume Session` when in progress. Secondary `Select Day`. | Header badge shows `In Session` or `Completed`; row and day-card contracts remain shared. |
 
+## Header-family lock-in
+
+- Closed-picker Today and Resume Today must use the same `todayOverview` shared header recipe.
+- Resume state changes CTA/dock behavior only; it must not switch to a route-local header family.
+- Today hero grammar stays `title` + `subtitle` + taxonomy-aware `meta` (never merged title strings).
+
 ## Source of truth
 
 - Mode and selectors: `src/lib/today-page-state.ts`

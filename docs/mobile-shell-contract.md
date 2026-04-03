@@ -11,6 +11,7 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
 2. **Safe-area ownership**
    - `AppShell` owns global safe-area tokens (`--app-safe-*`) and top offset contracts.
    - `ScreenScaffold`/header spacing tokens may add only rhythm spacing, never additional safe-area inset math.
+   - Top safe-area spacing must have one owner per screen; do not stack route-local `safe-area` padding over shell-provided offset.
    - Dock chrome uses shell-safe-area spacing through shared bottom action surface tokens.
 
 3. **Top chrome slot**
@@ -22,6 +23,7 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
    - Shell measures dock height and writes `--app-mobile-bottom-dock-height`.
    - Scroll content automatically receives bottom inset (`dock height + 12px`) so final interactive rows remain fully reachable above the dock.
    - Child lists/editors must not stack legacy `--app-bottom-action-bar-height` padding when rendered inside this shell.
+   - Bottom dock spacing must have one owner per screen; inner sections/lists must not add a second dock-height reservation layer.
 
 5. **Bottom actions publishing**
    - Use `PublishBottomActions` / `usePublishBottomActions` for screen-specific actions.
