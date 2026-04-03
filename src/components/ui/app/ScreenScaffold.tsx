@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { headerTokens } from "@/components/ui/app/headerTokens";
 import { resolveScreenRecipe, type ScreenContractName } from "@/components/ui/app/screenContract";
 
 export function ScreenScaffold({
@@ -20,7 +19,7 @@ export function ScreenScaffold({
       data-section-chrome={resolvedRecipe?.sectionChrome}
       data-footer-dock={resolvedRecipe?.footerDock}
       data-row-interaction={resolvedRecipe?.rowInteraction}
-      className={cn("bg-[rgb(var(--bg))]", headerTokens.topGap, resolvedRecipe?.scaffoldClassName, className)}
+      className={cn("bg-[rgb(var(--bg))]", resolvedRecipe?.scaffoldClassName, className)}
     >
       {children}
     </section>

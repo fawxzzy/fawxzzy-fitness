@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { FIXED_CTA_RESERVE_CLASS } from "@/components/ui/BottomActionBar";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { getExerciseNameMap } from "@/lib/exercises";
@@ -151,7 +150,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
 
   return (
     <AppShell className="gap-4" topNavMode="none">
-      <ScrollScreenWithBottomActions className={`flex flex-col gap-3 px-1 ${FIXED_CTA_RESERVE_CLASS}`}>
+      <ScrollScreenWithBottomActions className="flex flex-col gap-3 px-1">
         <ScreenScaffold className="space-y-2">
           <HistoryLogPageClient
             logId={sessionRow.id}
