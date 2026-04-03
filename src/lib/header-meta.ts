@@ -20,3 +20,21 @@ export function formatAddExerciseHeaderSubtitle(routineName: string) {
     .replace(/\s*•\s*\d+\s+exercises?$/i, "")
     .trim();
 }
+
+export function splitSessionHeaderTitle(input: string | null | undefined): { title: string; subtitle?: string } | null {
+  const value = String(input ?? "").trim();
+  if (!value) return null;
+
+  const dividerMatch = value.match(/^(.+?)\s*[:\-–—|]\s*(.+)$/);
+  if (!dividerMatch) {
+    return { title: value };
+  }
+
+  const maybeTitle = dividerMatch[1]?.trim();
+  const maybeSubtitle = dividerMatch[2]?.trim();
+  if (!maybeTitle || !maybeSubtitle) {
+    return { title: value };
+  }
+
+  return { title: maybeTitle, subtitle: maybeSubtitle };
+}
