@@ -85,13 +85,13 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
 
   return (
     <div
-      className={`pointer-events-none inset-x-0 flex justify-center px-4 ${
+      className={`pointer-events-none inset-x-0 flex max-w-full justify-center overflow-x-clip px-4 ${
         mode === "fixed"
           ? "fixed top-[var(--header-offset)] z-[60]"
           : "relative z-30"
       }`}
     >
-      <div className="pointer-events-auto w-full max-w-md">
+      <div className="pointer-events-auto w-full max-w-md min-w-0">
         <Glass
           variant="raised"
           className="relative isolate min-h-[var(--header-h)] rounded-xl border border-white/15 bg-[rgb(var(--glass-tint-rgb)/0.9)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] [--glass-current-border-alpha:0.3] [--glass-current-tint-alpha:0.88] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.72)]"

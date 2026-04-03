@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
+import { cn } from "@/lib/cn";
 
 type ScrollScreenWithBottomActionsProps = {
   children: ReactNode;
@@ -12,7 +13,11 @@ type ScrollScreenWithBottomActionsProps = {
 
 export function ScrollScreenWithBottomActions({ children, className, topChrome, bottomDock }: ScrollScreenWithBottomActionsProps) {
   return (
-    <MobileScreenScaffold scrollClassName={className} topChrome={topChrome} bottomDock={bottomDock}>
+    <MobileScreenScaffold
+      scrollClassName={cn("min-w-0 max-w-full overflow-x-hidden touch-pan-y", className)}
+      topChrome={topChrome}
+      bottomDock={bottomDock}
+    >
       {children}
     </MobileScreenScaffold>
   );
