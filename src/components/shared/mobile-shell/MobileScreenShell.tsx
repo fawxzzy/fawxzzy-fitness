@@ -49,14 +49,14 @@ export function MobileScreenShell({
 
   return (
     <BottomActionsProvider>
-      <section className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
+      <section className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-clip", className)}>
         {topChrome ? <div className="z-30 flex-none">{topChrome}</div> : null}
 
         <ScrollContainer
           className={cn("min-h-0 flex-1", scrollClassName)}
           style={{ "--app-mobile-bottom-dock-height": `${dockHeight}px` } as CSSProperties}
         >
-          <div className="pb-[calc(var(--app-mobile-bottom-dock-height,0px)+12px)]">
+          <div className="min-w-0 max-w-full overflow-x-clip pb-[calc(var(--app-mobile-bottom-dock-height,0px)+12px)]">
             {children}
           </div>
         </ScrollContainer>
