@@ -34,7 +34,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions className="px-4 pb-0">
-        <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md pb-4">
+        <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md">
           <RoutineEditorPageHeader
             recipe="sessionAddExercise"
             eyebrow="Current Session"

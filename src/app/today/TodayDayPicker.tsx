@@ -174,7 +174,7 @@ export function TodayDayPicker({
   return (
     <div className="flex min-h-0 flex-col">
       {!mode.noRoutine && selectedDay ? (
-        <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md pb-3">
+        <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
           <SharedScreenHeader
             recipe="todayOverview"
             eyebrow="Today"

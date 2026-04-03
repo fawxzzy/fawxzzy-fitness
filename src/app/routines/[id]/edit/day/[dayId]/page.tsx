@@ -146,7 +146,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions className="px-4 pb-0">
-        <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md pb-4">
+        <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
           <EditDaySettingsAutosaveForm
             routineId={params.id}
             daySummary={headerMetaSummary}

@@ -51,7 +51,7 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions className="px-4 pb-0">
-        <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md pb-4">
+        <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
           <RoutineEditorPageHeader
             eyebrow="Edit Day"
             title="Add Exercise"

@@ -84,7 +84,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   return (
     <MainTabScreen topNavMode="none" className="space-y-0">
       <ScrollScreenWithBottomActions className="px-4 pb-0">
-        <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md pb-4">
+        <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md">
           <SharedScreenHeader
             recipe="viewDay"
             eyebrow="View Day"
