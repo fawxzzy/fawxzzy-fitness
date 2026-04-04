@@ -121,7 +121,6 @@ export function EditRoutineAutosaveForm(props: Props) {
           eyebrow="Edit Routine"
           title="Routine Details"
           action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={isDirty} />}
-          className="space-y-5"
         >
           <RoutineEditorFormFields
             titleInput

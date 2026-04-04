@@ -81,7 +81,6 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
           eyebrow="New Routine"
           title="Routine Details"
           action={<RoutineBackButton href="/routines" hasUnsavedChanges={hasDirtyChanges} />}
-          className="space-y-5"
         >
           <RoutineEditorFormFields
             titleInput
