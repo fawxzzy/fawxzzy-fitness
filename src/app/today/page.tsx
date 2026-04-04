@@ -26,7 +26,7 @@ import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "@/lib/today-
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
-import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { formatDayTaxonomyHeaderSummaryFromCounts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
 import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
@@ -373,10 +373,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
     hasInProgressSession: Boolean(todayPayload.inProgressSessionId),
     fetchFailed,
   });
-  const inProgressHeaderSummary = todayPayload.routine
-    ? getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest).label
-    : null;
-
   const todaySnapshot: TodayCacheSnapshot | null =
     todayPayload.routine === null
       ? null
@@ -403,10 +399,12 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
                   <SharedScreenHeader
                     recipe="todayOverview"
-                    eyebrow="Today"
-                    title={todayPayload.routine.name}
-                    subtitle={todayPayload.routine.dayName}
-                    meta={inProgressHeaderSummary || undefined}
+                    title={formatDayTaxonomyHeaderSummaryFromCounts({
+                      dayName: todayPayload.routine.dayName,
+                      summary: getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest),
+                      isRest: todayPayload.routine.isRest,
+                    })}
+                    subtitle={todayPayload.routine.name}
                     action={<AppBadge tone="success">In Session</AppBadge>}
                   />
 

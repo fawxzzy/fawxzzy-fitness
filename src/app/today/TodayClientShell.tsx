@@ -14,7 +14,7 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { formatDayTaxonomyHeaderSummaryFromCounts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
@@ -129,7 +129,6 @@ export function TodayClientShell({
       <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
         <SharedScreenHeader
           recipe="todayOverview"
-          eyebrow="Today"
           title="No active routine"
           subtitle="Select a routine to plan your session."
         />
@@ -142,16 +141,17 @@ export function TodayClientShell({
     );
   }
 
-  const headerSummary = getRestDayExerciseCountSummaryFromInputs(display.exercises, display.routine.isRest).label;
 
   return (
     <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
       <SharedScreenHeader
         recipe="todayOverview"
-        eyebrow="Today"
-        title={display.routine.name}
-        subtitle={display.routine.dayName}
-        meta={headerSummary}
+        title={formatDayTaxonomyHeaderSummaryFromCounts({
+          dayName: display.routine.dayName,
+          summary: getRestDayExerciseCountSummaryFromInputs(display.exercises, display.routine.isRest),
+          isRest: display.routine.isRest,
+        })}
+        subtitle={display.routine.name}
         action={display.completedTodayCount > 0 ? <AppBadge tone="success">Completed</AppBadge> : <OfflineSyncBadge />}
       />
 

@@ -7,7 +7,6 @@ import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -420,11 +419,14 @@ export function EditableRoutineDayExerciseList({
               )}
             />
           ) : ctaDockState.variant === "add_exercise" ? (
-            <BottomActionSingle>
-              <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
-                Add Exercise
-              </BottomDockButton>
-            </BottomActionSingle>
+            <BottomActionDock
+              left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
+              right={(
+                <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
+                  Add Exercise
+                </BottomDockButton>
+              )}
+            />
           ) : null}
         </PublishBottomActions>
         {emptyState}
@@ -450,11 +452,14 @@ export function EditableRoutineDayExerciseList({
               )}
             />
         ) : ctaDockState.variant === "add_exercise" ? (
-          <BottomActionSingle>
-            <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
-              Add Exercise
-            </BottomDockButton>
-          </BottomActionSingle>
+          <BottomActionDock
+            left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
+            right={(
+              <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
+                Add Exercise
+              </BottomDockButton>
+            )}
+          />
         ) : null}
       </PublishBottomActions>
       <form

@@ -436,7 +436,6 @@ export function SessionExerciseFocus({
       ) : (
         <div className="flex flex-col space-y-2.5">
           <WorkoutEntryIdentity
-            eyebrow="Exercise Log"
             title={selectedExercise?.name ?? "Exercise"}
             description={selectedExercise?.goalLabel || undefined}
             meta={selectedExercise && (selectedExercise.routineDayExerciseId === null || (selectedExerciseProgress?.chips.length ?? 0) > 0) ? (

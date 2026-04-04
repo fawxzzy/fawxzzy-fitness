@@ -1,21 +1,28 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   RoutineEditorPageHeader,
   RoutineEditorTitleInput,
 } from "@/components/routines/RoutineEditorShared";
+import { DockButton } from "@/components/layout/BottomActionDock";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
+import { formatDayTaxonomyHeaderSummaryFromCounts } from "@/lib/day-summary";
 import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 
 type Props = {
   routineId: string;
-  daySummary?: string;
+  daySummaryCounts: {
+    strength: number;
+    cardio: number;
+    unknown: number;
+  };
   routineDayId: string;
   backHref: string;
   dayIndex: number;
@@ -23,7 +30,9 @@ type Props = {
   isRest: boolean;
 };
 
-export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayId, backHref, dayIndex, name, isRest }: Props) {
+const REST_TOGGLE_SLOT_ID = "edit-day-rest-toggle-slot";
+
+export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routineDayId, backHref, dayIndex, name, isRest }: Props) {
   const toast = useToast();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -32,6 +41,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
   const pendingSnapshotRef = useRef<{ name: string; isRest: boolean } | null>(null);
   const lastSubmittedRef = useRef(initialSnapshot);
   const [draft, setDraft] = useState({ name: name ?? "", isRest });
+  const [restToggleSlot, setRestToggleSlot] = useState<HTMLElement | null>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => () => {
@@ -44,6 +54,16 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
     pendingSnapshotRef.current = nextDraft;
     lastSubmittedRef.current = JSON.stringify(nextDraft);
   }, [isRest, name]);
+
+  useEffect(() => {
+    const syncSlot = () => {
+      setRestToggleSlot(document.getElementById(REST_TOGGLE_SLOT_ID));
+    };
+
+    syncSlot();
+    window.addEventListener("resize", syncSlot);
+    return () => window.removeEventListener("resize", syncSlot);
+  }, []);
 
   const submitAutosave = useCallback(() => {
     const form = formRef.current;
@@ -88,13 +108,34 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
     timeoutRef.current = setTimeout(submitAutosave, 500);
   }, [submitAutosave]);
 
+  const previewDayName = draft.name.trim() || `Day ${dayIndex}`;
+  const previewSummary = formatDayTaxonomyHeaderSummaryFromCounts({
+    dayName: previewDayName,
+    summary: daySummaryCounts,
+    isRest: draft.isRest,
+  });
+
+  const restToggleButton = (
+    <DockButton
+      type="button"
+      variant="secondary"
+      aria-pressed={draft.isRest}
+      onClick={() => {
+        const nextSnapshot = { ...draft, isRest: !draft.isRest };
+        setDraft(nextSnapshot);
+        scheduleAutosave(nextSnapshot);
+      }}
+    >
+      {draft.isRest ? "Rest On" : "Rest Off"}
+    </DockButton>
+  );
+
   return (
     <form ref={formRef} id="routine-day-settings-form" className="space-y-3" onSubmit={(event) => event.preventDefault()}>
       <input type="hidden" name="routineId" value={routineId} />
       <input type="hidden" name="routineDayId" value={routineDayId} />
       <NavigationReturnInput fallbackHref={getRoutineDayViewHref(routineId, routineDayId)} value={backHref} />
       <RoutineEditorPageHeader
-        eyebrow="Edit Day"
         title={(
           <RoutineEditorTitleInput
             name="name"
@@ -108,34 +149,10 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummary, routineDayI
             ariaLabel="Day Name"
           />
         )}
-        subtitle={`Day ${dayIndex}`}
-        meta={daySummary}
+        subtitle={previewSummary}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
-      >
-        <div className="px-1 pt-1">
-          <button
-            type="button"
-            aria-pressed={draft.isRest}
-            onClick={() => {
-              const nextSnapshot = { ...draft, isRest: !draft.isRest };
-              setDraft(nextSnapshot);
-              scheduleAutosave(nextSnapshot);
-            }}
-            className={[
-              "inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-              draft.isRest
-                ? "border-emerald-400/35 bg-emerald-400/14 text-emerald-100"
-                : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-            ].join(" ")}
-          >
-            <span>Rest</span>
-            <span>{draft.isRest ? "On" : "Off"}</span>
-          </button>
-          <p className="mt-2 text-xs text-[rgb(var(--text)/0.65)]">
-            {REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
-          </p>
-        </div>
-      </RoutineEditorPageHeader>
+      />
+      {restToggleSlot ? createPortal(restToggleButton, restToggleSlot) : null}
     </form>
   );
 }

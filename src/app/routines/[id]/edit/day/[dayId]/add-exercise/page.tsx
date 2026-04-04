@@ -10,7 +10,6 @@ import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
-import { formatAddExerciseHeaderSubtitle } from "@/lib/header-meta";
 import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -53,9 +52,7 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
       <ScrollScreenWithBottomActions className="px-4 pb-0">
         <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
           <RoutineEditorPageHeader
-            eyebrow="Edit Day"
             title="Add Exercise"
-            subtitle={formatAddExerciseHeaderSubtitle(routine.name)}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
           />
 
