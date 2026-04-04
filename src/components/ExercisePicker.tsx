@@ -195,9 +195,9 @@ function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; ic
     <ExerciseAssetImage
       src={iconSrc}
       alt={`${exercise.name} icon`}
-      className="h-10 w-10 rounded-[0.7rem] border border-border/22 bg-[rgb(var(--surface-2-soft)/0.36)] max-md:h-9 max-md:w-9"
+      className="h-full w-full"
       imageClassName="object-cover object-center"
-      sizes="40px"
+      sizes="44px"
       fallback={(
         <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(160deg,rgba(16,185,129,0.2),rgba(15,23,42,0.22))] text-[10px] font-semibold tracking-[0.08em] text-[rgb(var(--text)/0.9)]">
           {fallbackLabel}

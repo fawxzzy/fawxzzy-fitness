@@ -129,7 +129,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         <ExerciseAssetImage
           src={iconSrc}
           alt={displayName}
-          className="h-20 w-20 shrink-0 rounded-xl border border-border/25 bg-black/10"
+          className="h-full w-full"
           imageClassName="object-cover object-center"
           sizes="80px"
         />
