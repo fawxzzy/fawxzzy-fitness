@@ -102,7 +102,7 @@ export type DayCardProps = {
 };
 
 export function DayCard({ onPress, wrapper, state = "default", metaText, subtitle, ...cardProps }: DayCardProps) {
-  const resolvedSubtitle = [subtitle, metaText].filter(Boolean).join(" • ") || undefined;
+  const resolvedSubtitle = [subtitle, metaText].filter(Boolean).join(" · ") || undefined;
 
   const card = (
     <ExerciseCard
@@ -110,10 +110,10 @@ export function DayCard({ onPress, wrapper, state = "default", metaText, subtitl
       subtitle={resolvedSubtitle}
       onPress={onPress}
       state={toExerciseCardState(state)}
-      className={cn("min-h-[4.25rem] items-center px-3 py-2.5 sm:min-h-[4.5rem] sm:py-3")}
+      className={cn("min-h-[4.5rem] px-3.5 py-3")}
       contentClassName="space-y-0.5 sm:space-y-1"
-      titleClassName="truncate whitespace-nowrap"
-      subtitleClassName="truncate sm:[display:-webkit-box] sm:whitespace-normal sm:overflow-hidden sm:[-webkit-box-orient:vertical] sm:[-webkit-line-clamp:2]"
+      titleClassName="[text-wrap:pretty]"
+      subtitleClassName="[text-wrap:pretty] line-clamp-2"
       variant="interactive"
     />
   );

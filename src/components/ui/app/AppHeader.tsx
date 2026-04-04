@@ -43,19 +43,19 @@ export function AppHeader({
       <div className={cn("flex items-start justify-between", headerTokens.primaryRowGap)}>
         <div className="min-w-0 flex-1">
           {eyebrow ? <EyebrowText className="block text-left">{eyebrow}</EyebrowText> : null}
-          <TitleText as={titleAs} className={cn("block text-left", headerTokens.titleClassName, titleClassName)}>{title}</TitleText>
+          <TitleText as={titleAs} className={cn("block text-left [text-wrap:balance]", headerTokens.titleClassName, titleClassName)}>{title}</TitleText>
           {hasSubtitleRow || hasMeta ? (
             <div className={cn(headerTokens.titleToSecondaryGap, headerTokens.secondaryBlockGap)}>
               {hasSubtitleRow ? (
-                <div className={cn("flex gap-2", subtitleRight ? "items-start justify-between" : "items-center")}>
+                <div className={cn("flex min-w-0 gap-2", subtitleRight ? "items-start justify-between" : "items-center")}>
                   {shouldMergeSubtitleAndMeta ? (
-                    <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)]">
-                      <span>{resolvedSubtitle}</span>
-                      <span className="px-1 text-[rgb(var(--text)/0.5)]" aria-hidden="true">•</span>
-                      <span className="text-[rgb(var(--text)/0.6)]">{meta}</span>
+                    <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]">
+                      <span className="align-middle">{resolvedSubtitle}</span>
+                      <span className="px-1 align-middle text-[rgb(var(--text)/0.5)]" aria-hidden="true">•</span>
+                      <span className="align-middle text-[rgb(var(--text)/0.6)]">{meta}</span>
                     </div>
                   ) : resolvedSubtitle ? (
-                    <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)]">{resolvedSubtitle}</div>
+                    <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]">{resolvedSubtitle}</div>
                   ) : <span />}
                   {subtitleRight ? (
                     <div className="shrink-0 text-right text-sm text-[rgb(var(--text)/0.6)]">{subtitleRight}</div>

@@ -218,8 +218,8 @@ export function RoutinesPageClient({
                 return (
                   <DayCard
                     key={day.id}
-                    title={`Day ${day.dayIndex} | ${day.title}`}
-                    subtitle={(day.isRest ? [REST_DAY_CARD_COPY, day.notes?.trim() || null] : subtitleParts).filter(Boolean).join(" • ")}
+                    title={`Day ${day.dayIndex} · ${day.title}`}
+                    subtitle={(day.isRest ? [REST_DAY_CARD_COPY, day.notes?.trim() || null] : subtitleParts).filter(Boolean).join(" · ")}
                     badgeText={resolveDayCardBadgeText({
                       isToday: day.isToday,
                       isRest: day.isRest,

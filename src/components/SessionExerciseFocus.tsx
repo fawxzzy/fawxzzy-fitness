@@ -326,8 +326,7 @@ export function SessionExerciseFocus({
                       onPress={() => onSelectedExerciseIdChange(exercise.id)}
                       className="shadow-none"
                       rightRailClassName="min-w-[8.75rem]"
-                      trailingClassName="self-start pt-0.5 text-muted"
-                      trailingStackClassName="items-end gap-1.5"
+                      trailingClassName="text-muted"
                       rightIcon={<ChevronRightIcon className="h-5 w-5" />}
                       badgeText={rowState.badgeText}
                     >
