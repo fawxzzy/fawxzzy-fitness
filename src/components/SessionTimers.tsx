@@ -800,7 +800,7 @@ export function SetLoggerCard({
   }
 
   return (
-    <div className="flex min-h-0 flex-col space-y-3">
+    <div className="flex min-h-0 flex-col space-y-2.5">
       {/* Manual QA checklist:
           - Add/exercise metric hints are visible inside input boxes
           - No Set Timer UI remains; duration logging still works via mm:ss
@@ -843,26 +843,41 @@ export function SetLoggerCard({
           showInnerHeader={false}
           visibleMetrics={(Object.entries(visibleMetrics) as Array<[keyof typeof visibleMetrics, boolean]>).filter(([, enabled]) => enabled).map(([metric]) => metric)}
           leadingContent={(
-            <div className="flex items-start justify-between gap-2 rounded-xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.3)] px-3 py-2">
-              <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.3)] px-2.5 py-1.5">
+              <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</p>
-                <p className="mt-0.5 truncate text-sm text-text/90">{currentSetLabel} • {liveSummaryText}</p>
+                <p className="mt-0.5 text-[13px] leading-snug text-text/90 line-clamp-2">{currentSetLabel} • {liveSummaryText}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setWarmupValue(!resolvedIsWarmup)}
-                aria-pressed={resolvedIsWarmup}
-                className={[
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-                  resolvedIsWarmup
-                    ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                    : "border-white/12 bg-white/[0.04] text-muted hover:text-text",
-                  tapFeedbackClass,
-                ].join(" ")}
-              >
-                <span>Warm-Up</span>
-                <span className={resolvedIsWarmup ? "text-emerald-100" : "text-text/80"}>{resolvedIsWarmup ? "On" : "Off"}</span>
-              </button>
+              <div className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-[rgb(var(--surface-rgb)/0.52)] p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setWarmupValue(false)}
+                  aria-pressed={!resolvedIsWarmup}
+                  className={cn(
+                    "min-h-[34px] rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap transition",
+                    !resolvedIsWarmup
+                      ? "bg-white/[0.14] text-text"
+                      : "text-muted hover:text-text",
+                    tapFeedbackClass,
+                  )}
+                >
+                  Normal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWarmupValue(true)}
+                  aria-pressed={resolvedIsWarmup}
+                  className={cn(
+                    "min-h-[34px] rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap transition",
+                    resolvedIsWarmup
+                      ? "bg-emerald-400/20 text-emerald-100"
+                      : "text-muted hover:text-text",
+                    tapFeedbackClass,
+                  )}
+                >
+                  Warm-Up
+                </button>
+              </div>
             </div>
           )}
           rpe={rpe}

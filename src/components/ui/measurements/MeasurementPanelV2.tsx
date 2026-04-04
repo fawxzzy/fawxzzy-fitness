@@ -18,9 +18,9 @@ const METRICS: Array<{
   { key: "calories", title: "CALORIES", suffix: () => "cal" },
 ];
 
-const shellClassName = "space-y-2.5";
-const metricCardClassName = "min-h-[5.2rem] rounded-xl border px-3 py-2.5 transition-colors";
-const valueInputClassName = "input-no-spinner mt-1 h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
+const shellClassName = "space-y-2";
+const metricCardClassName = "min-h-[4.7rem] rounded-xl border px-2.5 py-2 transition-colors";
+const valueInputClassName = "input-no-spinner mt-1 h-9 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-2.5 text-[15px] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
 function MetricHeader({ title, suffix }: { title: string; suffix: string }) {
   return <StatFieldLabel title={title} suffix={suffix} emphasis="default" />;
 }

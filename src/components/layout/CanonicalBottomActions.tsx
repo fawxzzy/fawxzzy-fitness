@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3.5 pb-[var(--app-safe-bottom)]";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3 pb-[calc(var(--app-safe-bottom)+1px)]";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   "rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(var(--surface-rgb),0.985),rgba(var(--surface-rgb),0.955))]",
-  "px-2 py-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.15)] backdrop-blur-md",
+  "px-2 py-1.25 shadow-[0_6px_16px_rgba(0,0,0,0.14)] backdrop-blur-md",
 );
 
 const CONTROL_LABEL_CLASSNAME = cn(
