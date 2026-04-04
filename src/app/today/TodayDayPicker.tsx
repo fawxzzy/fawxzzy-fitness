@@ -20,7 +20,7 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
-import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { formatDayTaxonomyHeaderSummaryFromCounts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import {
   deriveTodayScreenMode,
@@ -119,9 +119,6 @@ export function TodayDayPicker({
   const getDayExerciseSummaryLabel = useCallback((day: TodayDay) => (
     getRestDayExerciseCountSummaryFromInputs(day.exercises, day.state === "rest").label
   ), []);
-  const selectedDaySummary = selectedDay
-    ? getDayExerciseSummaryLabel(selectedDay)
-    : null;
   const resolveDayCardSubtitle = useCallback((day: TodayDay) => (
     getDayExerciseSummaryLabel(day) || getTodayDaySummary(day) || undefined
   ), [getDayExerciseSummaryLabel]);
@@ -180,10 +177,12 @@ export function TodayDayPicker({
         <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
           <SharedScreenHeader
             recipe="todayOverview"
-            eyebrow="Today"
-            title={routineName}
-            subtitle={selectedDay.name}
-            meta={selectedDaySummary || undefined}
+            title={formatDayTaxonomyHeaderSummaryFromCounts({
+              dayName: selectedDay.name,
+              summary: getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.state === "rest"),
+              isRest: selectedDay.state === "rest",
+            })}
+            subtitle={routineName}
             action={inSessionDayIndex === selectedDay.dayIndex
               ? <AppBadge tone="success">In Session</AppBadge>
               : completedDayIndexSet.has(selectedDay.dayIndex)

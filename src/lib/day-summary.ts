@@ -73,3 +73,24 @@ export function getRestDayExerciseCountSummaryFromCanonicalDay(
 ): ExerciseCountSummary {
   return getRestDayExerciseCountSummaryFromCanonicalExercises(day.runnableExercises, day.day.is_rest);
 }
+
+function formatHeaderTaxonomyParts(summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "unknown">): string {
+  const parts: string[] = [];
+
+  if (summary.strength > 0) parts.push(`${summary.strength} strength`);
+  if (summary.cardio > 0) parts.push(`${summary.cardio} cardio`);
+  if (summary.unknown > 0) parts.push(`${summary.unknown} unknown`);
+
+  return parts.length > 0 ? parts.join(" • ") : "0 strength";
+}
+
+export function formatDayTaxonomyHeaderSummaryFromCounts(args: {
+  dayName: string;
+  summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "unknown">;
+  isRest: boolean;
+}): string {
+  const trimmedDayName = args.dayName.trim();
+  const safeDayName = trimmedDayName.length > 0 ? trimmedDayName : "Day";
+  const rightSide = args.isRest ? "Rest day" : formatHeaderTaxonomyParts(args.summary);
+  return `${safeDayName} | ${rightSide}`;
+}

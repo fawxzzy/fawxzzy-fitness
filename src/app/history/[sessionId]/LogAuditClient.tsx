@@ -400,7 +400,6 @@ export function LogAuditClient({
         subtitle={sessionMeta.dateLine}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
         className={isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : undefined}
-        meta={<p className="text-sm text-[rgb(var(--text)/0.82)]">{sessionMeta.summaryLine}</p>}
       >
         {isEditing ? (
           <div className="space-y-2">
@@ -421,6 +420,11 @@ export function LogAuditClient({
           </div>
         ) : null}
       </HistoryDetailHeader>
+
+      <div className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Session summary</p>
+        <p className="mt-1 text-sm text-[rgb(var(--text)/0.84)]">{sessionMeta.summaryLine}</p>
+      </div>
 
       {!isEditing && sessionNotes.trim().length > 0 ? (
         <HistorySection title="Session notes">

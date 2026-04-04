@@ -78,7 +78,6 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
     <>
       <div className="px-1">
         <RoutineEditorPageHeader
-          eyebrow="New Routine"
           title="Routine Details"
           action={<RoutineBackButton href="/routines" hasUnsavedChanges={hasDirtyChanges} />}
         />

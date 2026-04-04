@@ -5,7 +5,7 @@ import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
-import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { formatDayTaxonomyHeaderSummaryFromCounts, getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { splitSessionHeaderTitle } from "@/lib/header-meta";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
@@ -151,7 +151,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
     ?? "Routine";
   const sessionDayName = mergedSessionLabel?.subtitle
     ?? (sessionRow.routine_day_name || (sessionRow.routine_day_index ? `Day ${sessionRow.routine_day_index}` : "Day"));
-  const sessionSummary = getExerciseCountSummaryFromInputs(
+  const sessionSummaryCounts = getExerciseCountSummaryFromInputs(
     sessionExercises.map((exercise) => {
       const canonicalExercise = exerciseById.get(exercise.exercise_id);
       return {
@@ -165,7 +165,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         isCardio: canonicalExercise ? isCardioExercise(canonicalExercise) : null,
       };
     }),
-  ).label;
+  );
+  const sessionSummary = formatDayTaxonomyHeaderSummaryFromCounts({
+    dayName: sessionDayName,
+    summary: sessionSummaryCounts,
+    isRest: false,
+  });
 
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
 
@@ -176,7 +181,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           initialDurationSeconds={sessionRow.duration_seconds}
           performedAt={sessionRow.performed_at}
           routineName={routineName}
-          sessionDayName={sessionDayName}
           sessionSummary={sessionSummary}
           searchError={searchParams?.error}
           unitLabel={unitLabel}

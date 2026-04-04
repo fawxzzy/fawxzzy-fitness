@@ -119,7 +119,6 @@ export function EditRoutineAutosaveForm(props: Props) {
         <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
         <div className="px-1">
           <RoutineEditorPageHeader
-            eyebrow="Edit Routine"
             title="Routine Details"
             action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={isDirty} />}
           />

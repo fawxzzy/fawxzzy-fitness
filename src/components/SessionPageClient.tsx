@@ -76,7 +76,6 @@ export function SessionPageClient({
   initialDurationSeconds,
   performedAt,
   routineName,
-  sessionDayName,
   sessionSummary,
   searchError,
   unitLabel,
@@ -94,7 +93,6 @@ export function SessionPageClient({
   initialDurationSeconds: number | null;
   performedAt: string;
   routineName: string;
-  sessionDayName: string;
   sessionSummary?: string;
   searchError?: string;
   unitLabel: string;
@@ -140,7 +138,6 @@ export function SessionPageClient({
   const topChrome = !isExerciseOpen ? (
     <SessionHeaderControls
       routineName={routineName}
-      sessionDayName={sessionDayName}
       sessionSummary={sessionSummary}
       backHref={fallbackReturnHref ?? "/today"}
     />
