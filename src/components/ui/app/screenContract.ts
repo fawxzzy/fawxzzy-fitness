@@ -23,6 +23,7 @@ export type ScreenContract = {
 };
 
 export type ScreenRecipe = ScreenContract & {
+  headerInsetMode: "topChrome" | "standalone";
   scaffoldClassName: string;
   headerPanelClassName: string;
   sectionClassName: string;
@@ -30,9 +31,11 @@ export type ScreenRecipe = ScreenContract & {
   sectionBodyClassName: string;
 };
 
-const sharedHeaderPanelTopPadding = "pt-[calc(var(--app-standalone-safe-top,0px)+0.4rem)]";
-const sharedHeaderPanelClassName = `p-4 ${sharedHeaderPanelTopPadding}`;
-const sharedHeaderPanelClassNameWithSpacing = `space-y-2 ${sharedHeaderPanelClassName}`;
+const sharedHeaderPanelBaseClassName = "px-4 pb-4 pt-2.5";
+const topChromeHeaderPanelClassName = sharedHeaderPanelBaseClassName;
+const standaloneHeaderPanelClassName = sharedHeaderPanelBaseClassName;
+const topChromeHeaderPanelClassNameWithSpacing = `space-y-2 ${topChromeHeaderPanelClassName}`;
+const standaloneHeaderPanelClassNameWithSpacing = `space-y-2 ${standaloneHeaderPanelClassName}`;
 
 const sharedStatBaseContract = {
   header: "shared",
@@ -126,72 +129,81 @@ export function resolveScreenContract(name: ScreenContractName): ScreenContract 
 export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   currentSession: {
     ...screenContracts.currentSession,
+    headerInsetMode: "topChrome",
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: sharedHeaderPanelClassNameWithSpacing,
+    headerPanelClassName: topChromeHeaderPanelClassNameWithSpacing,
     sectionClassName: "space-y-3 p-4",
     sectionShellClassName: "space-y-4 p-4",
     sectionBodyClassName: "space-y-3",
   },
   exerciseLog: {
     ...screenContracts.exerciseLog,
+    headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: sharedHeaderPanelClassName,
+    headerPanelClassName: standaloneHeaderPanelClassName,
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
   },
   sessionAddExercise: {
     ...screenContracts.sessionAddExercise,
+    headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: sharedHeaderPanelClassNameWithSpacing,
+    headerPanelClassName: standaloneHeaderPanelClassNameWithSpacing,
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
   },
   editDay: {
     ...screenContracts.editDay,
+    headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: sharedHeaderPanelClassNameWithSpacing,
+    headerPanelClassName: standaloneHeaderPanelClassNameWithSpacing,
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
   },
   viewDay: {
     ...screenContracts.viewDay,
+    headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: sharedHeaderPanelClassNameWithSpacing,
+    headerPanelClassName: standaloneHeaderPanelClassNameWithSpacing,
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
   },
   historyDetail: {
     ...screenContracts.historyDetail,
+    headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: sharedHeaderPanelClassName,
+    headerPanelClassName: standaloneHeaderPanelClassName,
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
   },
   exerciseDetail: {
     ...screenContracts.exerciseDetail,
+    headerInsetMode: "standalone",
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: sharedHeaderPanelClassName,
+    headerPanelClassName: standaloneHeaderPanelClassName,
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
   },
   routinesOverview: {
     ...screenContracts.routinesOverview,
+    headerInsetMode: "topChrome",
     scaffoldClassName: "space-y-4",
-    headerPanelClassName: `space-y-2.5 ${sharedHeaderPanelClassName}`,
+    headerPanelClassName: `space-y-2.5 ${topChromeHeaderPanelClassName}`,
     sectionClassName: "space-y-3 p-4",
     sectionShellClassName: "space-y-4 p-4",
     sectionBodyClassName: "space-y-3",
   },
   todayOverview: {
     ...screenContracts.todayOverview,
+    headerInsetMode: "topChrome",
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: sharedHeaderPanelClassNameWithSpacing,
+    headerPanelClassName: topChromeHeaderPanelClassNameWithSpacing,
     sectionClassName: "space-y-2.5 p-4",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-2.5",

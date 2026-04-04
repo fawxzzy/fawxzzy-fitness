@@ -57,6 +57,7 @@ export function SharedScreenHeader({
       data-screen-scaffold={screenRecipe.scaffold}
       data-section-chrome={screenRecipe.sectionChrome}
       data-footer-dock={screenRecipe.footerDock}
+      data-header-inset-mode={screenRecipe.headerInsetMode}
       className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}
     >
       {headerNode}

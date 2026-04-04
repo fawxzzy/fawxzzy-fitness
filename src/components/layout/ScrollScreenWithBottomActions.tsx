@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
+import { StandaloneScreenSafeArea } from "@/components/ui/app/StandaloneScreenSafeArea";
 import { cn } from "@/lib/cn";
 
 type ScrollScreenWithBottomActionsProps = {
@@ -12,13 +13,15 @@ type ScrollScreenWithBottomActionsProps = {
 };
 
 export function ScrollScreenWithBottomActions({ children, className, topChrome, bottomDock }: ScrollScreenWithBottomActionsProps) {
+  const wrappedChildren = topChrome ? children : <StandaloneScreenSafeArea>{children}</StandaloneScreenSafeArea>;
+
   return (
     <MobileScreenScaffold
       scrollClassName={cn("min-w-0 max-w-full overflow-x-hidden touch-pan-y", className)}
       topChrome={topChrome}
       bottomDock={bottomDock}
     >
-      {children}
+      {wrappedChildren}
     </MobileScreenScaffold>
   );
 }

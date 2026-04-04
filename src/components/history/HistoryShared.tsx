@@ -18,7 +18,6 @@ export function HistoryPageHeader({
   return (
     <SharedScreenHeader
       recipe="historyDetail"
-      className="p-4 pt-[1.2rem]"
       title={title}
       subtitle={subtitle}
     >
