@@ -406,7 +406,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     eyebrow="Today"
                     title={todayPayload.routine.name}
                     subtitle={todayPayload.routine.dayName}
-                    meta={inProgressHeaderSummary ? <span className="whitespace-nowrap">{inProgressHeaderSummary}</span> : undefined}
+                    meta={inProgressHeaderSummary || undefined}
                     action={<AppBadge tone="success">In Session</AppBadge>}
                   />
 
