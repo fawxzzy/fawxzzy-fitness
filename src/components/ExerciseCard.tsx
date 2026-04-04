@@ -47,17 +47,17 @@ const variantClassNames: Record<ExerciseCardVariant, string> = {
 };
 
 const rightRailWidthByVariant: Record<ExerciseCardVariant, string> = {
-  compact: "w-[5.4rem] min-w-[5.4rem]",
-  interactive: "w-[5.25rem] min-w-[5.25rem]",
+  compact: "w-[5.5rem] min-w-[5.5rem]",
+  interactive: "w-[5.5rem] min-w-[5.5rem]",
   expanded: "w-[7rem] min-w-[7rem]",
-  summary: "w-[5.75rem] min-w-[5.75rem]",
+  summary: "w-[6rem] min-w-[6rem]",
 };
 
 const stateClassNames: Record<ExerciseCardState, string> = {
   default: "border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] hover:border-border/70 hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
-  selected: "border-emerald-400/36 bg-[linear-gradient(180deg,rgba(96,200,130,0.12),rgba(96,200,130,0.04))] shadow-[0_14px_30px_-24px_rgba(96,200,130,0.46)] ring-1 ring-emerald-300/16 hover:border-emerald-400/46 hover:bg-[linear-gradient(180deg,rgba(96,200,130,0.14),rgba(96,200,130,0.06))]",
-  active: "border-emerald-300/36 bg-[rgb(var(--surface-2-soft)/0.72)] shadow-[0_14px_32px_-26px_rgba(52,211,153,0.62)] ring-1 ring-emerald-300/20 hover:border-emerald-300/46 hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
-  completed: "border-emerald-400/42 bg-[linear-gradient(180deg,rgba(52,211,153,0.2),rgba(16,185,129,0.08))] shadow-[0_14px_30px_-24px_rgba(16,185,129,0.85)] hover:border-emerald-400/52 hover:bg-[linear-gradient(180deg,rgba(52,211,153,0.22),rgba(16,185,129,0.1))]",
+  selected: "border-emerald-400/36 bg-[linear-gradient(180deg,rgba(96,200,130,0.12),rgba(96,200,130,0.04))] shadow-[0_14px_30px_-24px_rgba(96,200,130,0.46)] ring-1 ring-emerald-300/18 hover:border-emerald-400/46 hover:bg-[linear-gradient(180deg,rgba(96,200,130,0.14),rgba(96,200,130,0.06))]",
+  active: "border-emerald-300/36 bg-[rgb(var(--surface-2-soft)/0.72)] shadow-[0_14px_32px_-26px_rgba(52,211,153,0.62)] ring-1 ring-emerald-300/18 hover:border-emerald-300/46 hover:bg-[rgb(var(--surface-2-soft)/0.82)]",
+  completed: "border-emerald-400/42 bg-[linear-gradient(180deg,rgba(52,211,153,0.2),rgba(16,185,129,0.08))] shadow-[0_14px_30px_-24px_rgba(16,185,129,0.85)] ring-1 ring-emerald-300/18 hover:border-emerald-400/52 hover:bg-[linear-gradient(180deg,rgba(52,211,153,0.22),rgba(16,185,129,0.1))]",
   empty: "border-dashed border-amber-300/28 bg-[linear-gradient(180deg,rgba(245,158,11,0.05),rgba(var(--surface-2-soft)/0.42))] hover:border-amber-300/38 hover:bg-[linear-gradient(180deg,rgba(245,158,11,0.07),rgba(var(--surface-2-soft)/0.5))]",
 };
 
@@ -115,11 +115,11 @@ export function ExerciseCard({
   state?: ExerciseCardState;
 }) {
   const bodyContent = (
-    <div className={cn("grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 overflow-hidden", bodyClassName)}>
+    <div className={cn("grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden", bodyClassName)}>
       {leadingVisual ? (
         <div
           className={cn(
-            "shrink-0 self-start overflow-hidden border bg-[rgb(var(--bg)/0.08)] transition-colors [&_img]:transition [&_img]:duration-150",
+            "shrink-0 self-center overflow-hidden border bg-[rgb(var(--bg)/0.08)] transition-colors [&_img]:transition [&_img]:duration-150",
             mediaShellSizeClassNames[variant],
             mediaShellStateClassNames[state],
             mediaClassName,
@@ -129,24 +129,24 @@ export function ExerciseCard({
         </div>
       ) : null}
 
-      <div className={cn("min-w-0 space-y-1.5", contentClassName)}>
+      <div className={cn("min-w-0 self-center space-y-1.5", contentClassName)}>
         <div className={cn("min-w-0 space-y-1", titleContainerClassName)}>
-          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-snug whitespace-normal [word-break:normal]", titleStateClassNames[state], titleClassName)}>
+          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-[1.25] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", titleStateClassNames[state], titleClassName)}>
             {title}
           </p>
-          {subtitle ? <p className={cn("min-w-0 text-xs leading-snug whitespace-normal [word-break:normal]", subtitleStateClassNames[state], subtitleClassName)}>{subtitle}</p> : null}
+          {subtitle ? <p className={cn("min-w-0 text-xs leading-[1.25] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", subtitleStateClassNames[state], subtitleClassName)}>{subtitle}</p> : null}
         </div>
         {children}
       </div>
 
       <div className={cn("flex min-h-full min-w-0 shrink-0 justify-end self-stretch overflow-hidden text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], rightRailClassName, trailingClassName)}>
-        <div className={cn("flex h-full w-full min-w-0 flex-col items-end justify-start gap-2 overflow-hidden", trailingStackClassName)}>
+        <div className={cn("grid h-full w-full min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] items-center justify-items-end gap-1.5 overflow-hidden", trailingStackClassName)}>
           {badgeText ? (
-            <span className={cn("max-w-full shrink-0 overflow-hidden text-ellipsis rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
+            <span className={cn("row-start-1 max-w-full shrink-0 overflow-hidden text-ellipsis rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
               {badgeText}
             </span>
           ) : null}
-          {rightIcon}
+          <span className="row-start-3 inline-flex h-6 min-w-6 items-center justify-center leading-none">{rightIcon}</span>
         </div>
       </div>
     </div>

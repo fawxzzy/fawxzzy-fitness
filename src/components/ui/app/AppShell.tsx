@@ -22,7 +22,7 @@ export function AppShell({ children, className, topNavMode = "main" }: AppShellP
     "--app-bottom-inset": "var(--app-safe-bottom)",
     "--app-bottom-gap": "3px",
     "--app-top-chrome-content-gap": "12px",
-    "--app-mobile-dock-clearance-gap": "2px",
+    "--app-mobile-dock-clearance-gap": "1px",
   } as CSSProperties);
 
   return (
