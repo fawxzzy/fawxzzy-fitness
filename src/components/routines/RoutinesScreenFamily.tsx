@@ -29,21 +29,19 @@ export function ActiveRoutineSummaryCard({
 }) {
   const recipe = resolveScreenRecipe("routinesOverview");
   return (
-    <AppPanel
-      data-screen-scaffold={recipe.scaffold}
-      data-section-chrome={recipe.sectionChrome}
-      data-footer-dock={recipe.footerDock}
-      className={recipe.headerPanelClassName}
-    >
+    <div className="space-y-0">
       <SharedScreenHeader
         recipe="routinesOverview"
         eyebrow={sectionLabel}
         title={title}
         subtitle={metadata}
         action={status}
-        className="rounded-[1.25rem] bg-[rgb(var(--bg)/0.18)] p-0 shadow-none"
+        className={cn(
+          recipe.headerPanelClassName,
+          "rounded-[1.25rem] bg-[rgb(var(--bg)/0.18)] p-0 shadow-none",
+        )}
       />
-    </AppPanel>
+    </div>
   );
 }
 
