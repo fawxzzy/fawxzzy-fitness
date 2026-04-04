@@ -1,3 +1,19 @@
+## [v0.4.35] – UI: finish shared header spacing ownership cleanup for selector wrappers
+
+### WHAT
+
+* Removed screen recipe scaffold/chrome/footer ownership from `AnchoredSelectorPanel`’s outer wrapper so the selector shell no longer participates in header-panel spacing rhythm.
+* Kept header spacing owned by `SharedScreenHeader` via recipe-driven `headerPanelClassName`, preserving the safe-top/header contract without route-local offsets.
+* Re-audited routines shared-family surfaces and kept `RoutinesScreenFamily` on the existing `SharedScreenHeader` path with no custom hero/header overrides.
+* Captured contract guidance in this pass:
+  * Pattern: shared header spacing belongs to the header surface, not the outer selector wrapper.
+  * Failure Mode: outer wrappers reusing `headerPanelClassName` can duplicate header rhythm and create false “roof space.”
+
+### WHY
+
+* Selector shells should remain layout containers, while header surfaces own top rhythm and inset behavior.
+* Keeping this ownership boundary explicit prevents regressions where top spacing appears twice despite safe-top contracts being correct.
+
 ## [v0.4.34] – Contract: unify partial vs ended-early semantics across Today/session exercise surfaces
 
 ### WHAT

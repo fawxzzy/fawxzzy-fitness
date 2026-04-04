@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { resolveScreenRecipe, type ScreenContractName } from "@/components/ui/app/screenContract";
+import { type ScreenContractName } from "@/components/ui/app/screenContract";
 import { cn } from "@/lib/cn";
 
 type AnchoredSelectorPanelProps = {
@@ -41,15 +41,9 @@ export function AnchoredSelectorPanel({
   recipe = "todayOverview",
 }: AnchoredSelectorPanelProps) {
   const hasSummary = Boolean(summaryLabel || summaryHint);
-  const screenRecipe = resolveScreenRecipe(recipe);
 
   return (
-    <section
-      data-screen-scaffold={screenRecipe.scaffold}
-      data-section-chrome={screenRecipe.sectionChrome}
-      data-footer-dock={screenRecipe.footerDock}
-      className={cn("space-y-2.5", className)}
-    >
+    <section className={cn("space-y-2.5", className)}>
       <SharedScreenHeader
         recipe={recipe}
         eyebrow={eyebrow}

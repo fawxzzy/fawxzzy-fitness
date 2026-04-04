@@ -7,6 +7,8 @@ import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { SubtitleText, TitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
+const ROUTINES_OVERVIEW_RECIPE = "routinesOverview" as const;
+
 type RoutinesPageScaffoldProps = {
   summary: ReactNode;
   children: ReactNode;
@@ -29,7 +31,7 @@ export function ActiveRoutineSummaryCard({
 }) {
   return (
     <SharedScreenHeader
-      recipe="routinesOverview"
+      recipe={ROUTINES_OVERVIEW_RECIPE}
       eyebrow={sectionLabel}
       title={title}
       meta={metadata}
@@ -53,7 +55,7 @@ export function RoutinesSectionCard({
   action?: ReactNode;
   children: ReactNode;
 }) {
-  const recipe = resolveScreenRecipe("routinesOverview");
+  const recipe = resolveScreenRecipe(ROUTINES_OVERVIEW_RECIPE);
   return (
     <AppPanel
       data-screen-scaffold={recipe.scaffold}
