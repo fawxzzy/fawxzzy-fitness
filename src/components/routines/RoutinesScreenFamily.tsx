@@ -32,7 +32,7 @@ export function ActiveRoutineSummaryCard({
       recipe="routinesOverview"
       eyebrow={sectionLabel}
       title={title}
-      subtitle={metadata}
+      meta={metadata}
       action={status}
     />
   );
