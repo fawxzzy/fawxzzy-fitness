@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
-import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -81,7 +81,8 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
           eyebrow="New Routine"
           title="Routine Details"
           action={<RoutineBackButton href="/routines" hasUnsavedChanges={hasDirtyChanges} />}
-        >
+        />
+        <RoutineEditorSection title="Details">
           <RoutineEditorFormFields
             titleInput
             cycleLengthDefaultValue={draft.cycleLengthDays}
@@ -97,7 +98,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
               }));
             }}
           />
-        </RoutineEditorPageHeader>
+        </RoutineEditorSection>
         <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={hasDirtyChanges} mode="create" />
       </div>
 
