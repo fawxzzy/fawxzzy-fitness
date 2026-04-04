@@ -7,6 +7,7 @@ import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { StandaloneScreenSafeArea } from "@/components/ui/app/StandaloneScreenSafeArea";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { formatCount, formatDateShort, formatWeight } from "@/lib/formatting";
 import { formatCalories, formatDistance, formatDurationShort, formatPace } from "@/lib/exercise-stats-formatting";
@@ -212,69 +213,71 @@ export function ExerciseInfoSheet({
       }}
     >
       <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
-        <section className="flex h-full w-full flex-col">
-          <div className="flex-1 overflow-y-auto overscroll-contain">
-            <ScreenScaffold recipe="exerciseDetail" className="mx-auto w-full max-w-md px-4 pb-[calc(var(--app-safe-bottom)+1rem)]">
-              <DetailHeader
-                title={exercise.name}
-                action={(
-                  <TopRightBackButton
-                    onClick={(event) => {
-                      event.preventDefault();
-                      if (onClose) {
-                        onClose();
-                        return;
-                      }
-                      router.back();
-                    }}
-                    ariaLabel="Back"
-                  />
-                )}
-                meta={metadata.length > 0 ? (
-                  <DetailMetaRow>
-                    {metadata.map((item) => (
-                      <DetailMetaChip key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
-                    ))}
-                  </DetailMetaRow>
-                ) : undefined}
-              />
-
-              <DetailSection title="How to">
-                {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
-                <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
-                  <ExerciseAssetImage
-                    key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
-                    src={resolvedHowToSrc}
-                    alt="How-to visual"
-                    className="h-full w-full"
-                    imageClassName="object-contain object-center"
-                    sizes="(max-width: 768px) 100vw, 480px"
-                  />
-                </div>
-              </DetailSection>
-
-              <DetailSection title="Stats">
-                <div
-                  id={statsPanelId}
-                  data-testid="exercise-info-stats-box"
-                  className="min-h-[94px] space-y-2.5 text-xs text-muted"
-                >
-                  {statsLoading ? (
-                    <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
-                      <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
-                      <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
-                      <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
-                    </div>
-                  ) : stats ? (
-                    statSections.map((section) => <ExerciseInfoStatGrid key={section.title} title={section.title} rows={section.rows} />)
-                  ) : (
-                    <p className="text-muted">No stats yet — log a set to generate stats.</p>
+        <StandaloneScreenSafeArea>
+          <section className="flex h-full w-full flex-col">
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              <ScreenScaffold recipe="exerciseDetail" className="mx-auto w-full max-w-md px-4 pb-[calc(var(--app-safe-bottom)+0.75rem)]">
+                <DetailHeader
+                  title={exercise.name}
+                  action={(
+                    <TopRightBackButton
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (onClose) {
+                          onClose();
+                          return;
+                        }
+                        router.back();
+                      }}
+                      ariaLabel="Back"
+                    />
                   )}
-                </div>
-              </DetailSection>
-            </ScreenScaffold>
-          </div>
-        </section>
+                  meta={metadata.length > 0 ? (
+                    <DetailMetaRow>
+                      {metadata.map((item) => (
+                        <DetailMetaChip key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
+                      ))}
+                    </DetailMetaRow>
+                  ) : undefined}
+                />
+
+                <DetailSection title="How to">
+                  {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
+                  <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
+                    <ExerciseAssetImage
+                      key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
+                      src={resolvedHowToSrc}
+                      alt="How-to visual"
+                      className="h-full w-full"
+                      imageClassName="object-contain object-center"
+                      sizes="(max-width: 768px) 100vw, 480px"
+                    />
+                  </div>
+                </DetailSection>
+
+                <DetailSection title="Stats">
+                  <div
+                    id={statsPanelId}
+                    data-testid="exercise-info-stats-box"
+                    className="min-h-[94px] space-y-2.5 text-xs text-muted"
+                  >
+                    {statsLoading ? (
+                      <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
+                        <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
+                        <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
+                        <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
+                      </div>
+                    ) : stats ? (
+                      statSections.map((section) => <ExerciseInfoStatGrid key={section.title} title={section.title} rows={section.rows} />)
+                    ) : (
+                      <p className="text-muted">No stats yet — log a set to generate stats.</p>
+                    )}
+                  </div>
+                </DetailSection>
+              </ScreenScaffold>
+            </div>
+          </section>
+        </StandaloneScreenSafeArea>
       </div>
     </div>,
     document.body,

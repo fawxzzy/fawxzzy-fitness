@@ -19,6 +19,14 @@ type StandardExerciseRowProps = {
   rightIcon?: ReactNode;
   className?: string;
   trailingClassName?: string;
+  rightRailClassName?: string;
+  trailingStackClassName?: string;
+  mediaClassName?: string;
+  bodyClassName?: string;
+  contentClassName?: string;
+  titleContainerClassName?: string;
+  titleClassName?: string;
+  subtitleClassName?: string;
   variant?: "compact" | "interactive" | "expanded" | "summary";
   state?: "default" | "selected" | "active" | "completed" | "empty";
   children?: ReactNode;
@@ -32,6 +40,14 @@ export function StandardExerciseRow({
   rightIcon,
   className,
   trailingClassName,
+  rightRailClassName,
+  trailingStackClassName,
+  mediaClassName,
+  bodyClassName,
+  contentClassName,
+  titleContainerClassName,
+  titleClassName,
+  subtitleClassName,
   variant = "interactive",
   state,
   children,
@@ -58,6 +74,14 @@ export function StandardExerciseRow({
       rightIcon={rightIcon}
       className={cn("shadow-none", className)}
       trailingClassName={trailingClassName}
+      rightRailClassName={rightRailClassName}
+      trailingStackClassName={trailingStackClassName}
+      mediaClassName={mediaClassName}
+      bodyClassName={bodyClassName}
+      contentClassName={contentClassName}
+      titleContainerClassName={titleContainerClassName}
+      titleClassName={titleClassName}
+      subtitleClassName={subtitleClassName}
     >
       {children}
     </ExerciseCard>

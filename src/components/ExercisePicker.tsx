@@ -1,9 +1,8 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ExerciseCard } from "@/components/ExerciseCard";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { AppButton } from "@/components/ui/AppButton";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
@@ -12,7 +11,6 @@ import { SharedExerciseGoalForm, inferGoalModeFromState } from "@/components/ui/
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { deriveGoalMeasurementSelections, resolveGoalModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 
 type ExerciseOption = {
@@ -66,7 +64,6 @@ type ExerciseRowProps = {
   isSelected: boolean;
   hasStats: boolean;
   metadata: string;
-  iconSrc: string;
   onPress: (exerciseId: string, isSelected: boolean) => void;
 };
 
@@ -182,41 +179,29 @@ function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
   );
 }
 
-function getExerciseFallbackLabel(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
-
-function ExerciseThumbnail({ exercise, iconSrc }: { exercise: ExerciseOption; iconSrc: string }) {
-  const fallbackLabel = getExerciseFallbackLabel(exercise.name);
-  return (
-    <ExerciseAssetImage
-      src={iconSrc}
-      alt={`${exercise.name} icon`}
-      className="h-full w-full"
-      imageClassName="object-cover object-center"
-      sizes="44px"
-      fallback={(
-        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(160deg,rgba(16,185,129,0.2),rgba(15,23,42,0.22))] text-[10px] font-semibold tracking-[0.08em] text-[rgb(var(--text)/0.9)]">
-          {fallbackLabel}
-        </div>
-      )}
-    />
-  );
-}
-
-const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, metadata, iconSrc, onPress }: ExerciseRowProps) {
+const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, metadata, onPress }: ExerciseRowProps) {
   return (
     <li>
-      <ExerciseCard
-        title={exercise.name}
-        subtitle={metadata || undefined}
+      <StandardExerciseRow
+        exercise={exercise}
+        summary={metadata || undefined}
         variant="compact"
         state={isSelected ? "selected" : "default"}
         onPress={() => onPress(exercise.id, isSelected)}
-        leadingVisual={<ExerciseThumbnail exercise={exercise} iconSrc={iconSrc} />}
+        rightIcon={(
+          <span
+            aria-hidden="true"
+            className={cn(
+              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
+              pickerRowMobileDensityClassNames.selectPill,
+              isSelected
+                ? "border-emerald-400/35 bg-emerald-400/14 text-[rgb(var(--text)/0.98)] shadow-[0_5px_16px_-14px_rgba(96,200,130,0.88)]"
+                : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
+            )}
+          >
+            {isSelected ? "Selected" : "Select"}
+          </span>
+        )}
         className={cn(
           "md:rounded-[1.05rem] md:border md:border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] md:bg-[rgb(var(--glass-tint-rgb)/0.74)] md:p-3.5 md:shadow-[0_10px_20px_-14px_rgba(0,0,0,0.88)]",
           pickerRowMobileDensityClassNames.card,
@@ -234,20 +219,6 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
         titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}
         subtitleClassName={pickerRowMobileDensityClassNames.subtitle}
         contentClassName={pickerRowMobileDensityClassNames.content}
-        rightIcon={(
-          <span
-            aria-hidden="true"
-            className={cn(
-              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
-              pickerRowMobileDensityClassNames.selectPill,
-              isSelected
-                ? "border-emerald-400/35 bg-emerald-400/14 text-[rgb(var(--text)/0.98)] shadow-[0_5px_16px_-14px_rgba(96,200,130,0.88)]"
-                : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
-            )}
-          >
-            {isSelected ? "Selected" : "Select"}
-          </span>
-        )}
       />
     </li>
   );
@@ -359,7 +330,6 @@ export function ExercisePicker({
     onSelectedExerciseChange?.(selectedExercise ?? null);
   }, [onSelectedExerciseChange, selectedExercise]);
   const exerciseMetadataById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean).join(" • ")])), [uniqueExercises]);
-  const exerciseIconSrcById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, getExerciseIconSrc(exercise)])), [uniqueExercises]);
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
   const selectedStats = selectedCanonicalExerciseId ? statsByExerciseId.get(selectedCanonicalExerciseId) : undefined;
   const hasLast = selectedStats ? (selectedStats.lastWeight != null && selectedStats.lastReps != null) : false;
@@ -473,7 +443,6 @@ export function ExercisePicker({
           isSelected={exercise.id === selectedId}
           hasStats={hasExerciseStatsSignal(statsByExerciseId.get(resolveCanonicalExerciseId(exercise)))}
           metadata={exerciseMetadataById.get(exercise.id) ?? ""}
-          iconSrc={exerciseIconSrcById.get(exercise.id) ?? getExerciseIconSrc(exercise)}
           onPress={handleExercisePress}
         />
       ))}
