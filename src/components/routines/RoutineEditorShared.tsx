@@ -100,6 +100,16 @@ export function RoutineEditorSection({
   );
 }
 
+export function RoutineEditorPageBody({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={cn("space-y-4 px-1 pb-4", className)}>{children}</div>;
+}
+
 export function RoutineEditorTitleInput({
   name,
   value,

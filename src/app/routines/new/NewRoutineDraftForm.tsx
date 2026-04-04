@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
-import { RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageBody, RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -76,12 +76,14 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
 
   return (
     <>
-      <div className="space-y-4 px-1 pb-4">
+      <div className="px-1">
         <RoutineEditorPageHeader
           eyebrow="New Routine"
           title="Routine Details"
           action={<RoutineBackButton href="/routines" hasUnsavedChanges={hasDirtyChanges} />}
         />
+      </div>
+      <RoutineEditorPageBody>
         <RoutineEditorSection title="Details">
           <RoutineEditorFormFields
             titleInput
@@ -100,7 +102,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
           />
         </RoutineEditorSection>
         <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={hasDirtyChanges} mode="create" />
-      </div>
+      </RoutineEditorPageBody>
 
       <PublishBottomActions>
         <BottomActionSingle>

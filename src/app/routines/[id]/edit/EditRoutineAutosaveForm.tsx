@@ -5,7 +5,7 @@ import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageBody, RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -113,33 +113,37 @@ export function EditRoutineAutosaveForm(props: Props) {
 
   return (
     <>
-      <form id="routine-update-form" className="space-y-4 px-1 pb-4">
+      <form id="routine-update-form" className="space-y-4">
         <input type="hidden" name="routineId" value={props.routineId} />
         <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
         <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
-        <RoutineEditorPageHeader
-          eyebrow="Edit Routine"
-          title="Routine Details"
-          action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={isDirty} />}
-        />
-        <RoutineEditorSection title="Details">
-          <RoutineEditorFormFields
-            titleInput
-            cycleLengthDefaultValue={draft.cycleLengthDays}
-            startWeekdayDefaultValue={draft.startWeekday}
-            timezoneDefaultValue={draft.timezone}
-            weightUnitDefaultValue={draft.weightUnit}
-            values={draft}
-            onFieldChange={(field, value) => {
-              setDraft((current) => ({
-                ...current,
-                [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
-              }));
-            }}
+        <div className="px-1">
+          <RoutineEditorPageHeader
+            eyebrow="Edit Routine"
+            title="Routine Details"
+            action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={isDirty} />}
           />
-        </RoutineEditorSection>
+        </div>
+        <RoutineEditorPageBody>
+          <RoutineEditorSection title="Details">
+            <RoutineEditorFormFields
+              titleInput
+              cycleLengthDefaultValue={draft.cycleLengthDays}
+              startWeekdayDefaultValue={draft.startWeekday}
+              timezoneDefaultValue={draft.timezone}
+              weightUnitDefaultValue={draft.weightUnit}
+              values={draft}
+              onFieldChange={(field, value) => {
+                setDraft((current) => ({
+                  ...current,
+                  [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
+                }));
+              }}
+            />
+          </RoutineEditorSection>
 
-        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} mode="edit" />
+          <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} mode="edit" />
+        </RoutineEditorPageBody>
       </form>
 
       <PublishBottomActions>

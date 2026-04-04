@@ -27,21 +27,15 @@ export function ActiveRoutineSummaryCard({
   metadata?: ReactNode;
   status?: ReactNode;
 }) {
-  const recipe = resolveScreenRecipe("routinesOverview");
   return (
-    <div className="space-y-0">
-      <SharedScreenHeader
-        recipe="routinesOverview"
-        eyebrow={sectionLabel}
-        title={title}
-        subtitle={metadata}
-        action={status}
-        className={cn(
-          recipe.headerPanelClassName,
-          "rounded-[1.25rem] bg-[rgb(var(--bg)/0.18)] p-0 shadow-none",
-        )}
-      />
-    </div>
+    <SharedScreenHeader
+      recipe="routinesOverview"
+      eyebrow={sectionLabel}
+      title={title}
+      subtitle={metadata}
+      action={status}
+      className="shadow-none"
+    />
   );
 }
 
