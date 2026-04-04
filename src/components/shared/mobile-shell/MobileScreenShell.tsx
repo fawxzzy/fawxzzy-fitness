@@ -50,7 +50,7 @@ export function MobileScreenShell({
   return (
     <BottomActionsProvider>
       <section className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden", className)}>
-        {topChrome ? <div className="z-30 flex-none">{topChrome}</div> : null}
+        {topChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
 
         <ScrollContainer
           className={cn("min-h-0 flex-1", scrollClassName)}
@@ -58,8 +58,8 @@ export function MobileScreenShell({
         >
           <div
             className={cn(
-              "min-w-0 max-w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-dock-height,0px)+var(--app-mobile-dock-clearance-gap,6px))]",
-              topChrome ? "pt-[var(--app-top-chrome-content-gap,10px)]" : "",
+              "min-w-0 max-w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-dock-height,0px)+var(--app-mobile-dock-clearance-gap,2px))]",
+              topChrome ? "pt-[var(--app-top-chrome-content-gap,8px)]" : "",
             )}
           >
             {children}

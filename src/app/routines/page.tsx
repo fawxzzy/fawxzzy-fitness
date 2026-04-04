@@ -246,9 +246,8 @@ export default async function RoutinesPage({
   }
 
   return (
-    <MainTabScreen>
-      <AppNav />
-      <ScrollScreenWithBottomActions>
+    <MainTabScreen topNavMode="none">
+      <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />}>
         <div className="space-y-3 px-1">
           {routines.length === 0 ? (
             <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">

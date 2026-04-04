@@ -8,7 +8,7 @@ export function StandaloneScreenSafeArea({ children }: { children: ReactNode }) 
         "--app-safe-bottom": "env(safe-area-inset-bottom, 0px)",
         "--app-safe-left": "env(safe-area-inset-left, 0px)",
         "--app-safe-right": "env(safe-area-inset-right, 0px)",
-        "--app-standalone-safe-top": "env(safe-area-inset-top, 0px)",
+        "--app-standalone-safe-top": "max(env(safe-area-inset-top, 0px), var(--vv-top, 0px))",
       } as CSSProperties}
       className="h-full w-full"
     >
