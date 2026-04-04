@@ -117,6 +117,7 @@ export function RoutinesPageClient({
     : activeRoutineId
       ? "selected-routine-days"
       : "summary";
+  const allRoutinesMeta = isRoutineListOpen ? undefined : formatRoutineCount(routines.length);
 
   const actionsNode = useMemo(() => {
     const toggleButton = (
@@ -181,7 +182,7 @@ export function RoutinesPageClient({
     >
       <RoutinesSectionCard
         title={ROUTINES_IA_COPY.allRoutines.title}
-        meta={formatRoutineCount(routines.length)}
+        meta={allRoutinesMeta}
       >
         {screenMode === "browse-routines" ? (
           <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel}>
