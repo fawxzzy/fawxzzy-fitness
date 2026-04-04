@@ -75,14 +75,14 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 };
 
 const pickerRowMobileDensityClassNames = {
-  card: "max-md:min-h-[3.45rem] max-md:rounded-[0.74rem] max-md:border-border/30 max-md:bg-[rgb(var(--surface-2-soft)/0.44)] max-md:px-2.25 max-md:py-1.5 max-md:shadow-none",
+  card: "max-md:min-h-[4.2rem] max-md:rounded-[1rem] max-md:border-border/38 max-md:bg-[rgb(var(--surface-2-soft)/0.62)] max-md:px-3 max-md:py-2.5 max-md:shadow-none",
   body: "max-md:gap-2",
-  title: "max-md:text-[0.89rem] max-md:leading-[1.2] max-md:whitespace-nowrap max-md:overflow-hidden max-md:text-ellipsis",
-  titleContainer: "max-md:space-y-0.25",
-  subtitle: "max-md:text-[10px] max-md:leading-[1.15] max-md:line-clamp-1",
-  content: "max-md:space-y-0.35",
-  trailing: "max-md:min-w-[3.05rem]",
-  selectPill: "max-md:min-h-5.5 max-md:min-w-[2.95rem] max-md:px-1.5 max-md:text-[10px]",
+  title: "max-md:text-[0.92rem] max-md:leading-[1.22] max-md:whitespace-nowrap max-md:overflow-hidden max-md:text-ellipsis",
+  titleContainer: "max-md:space-y-0.5",
+  subtitle: "max-md:text-[11px] max-md:leading-[1.15] max-md:line-clamp-1",
+  content: "max-md:space-y-0.5",
+  trailing: "max-md:min-w-[5.1rem]",
+  selectPill: "max-md:min-h-6 max-md:min-w-[3.6rem] max-md:px-2 max-md:text-[10px]",
 } as const;
 
 function toTagArray(value: string[] | string | null | undefined) {
@@ -203,7 +203,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           </span>
         )}
         className={cn(
-          "md:rounded-[1.05rem] md:border md:border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] md:bg-[rgb(var(--glass-tint-rgb)/0.74)] md:p-3.5 md:shadow-[0_10px_20px_-14px_rgba(0,0,0,0.88)]",
+          "md:rounded-[1.05rem] md:border md:border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] md:bg-[rgb(var(--glass-tint-rgb)/0.74)] md:p-3 md:shadow-[0_10px_20px_-14px_rgba(0,0,0,0.88)]",
           pickerRowMobileDensityClassNames.card,
           isSelected ? "max-md:border-emerald-300/28 max-md:bg-emerald-500/7" : undefined,
           hasStats
