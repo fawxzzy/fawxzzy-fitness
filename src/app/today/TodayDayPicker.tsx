@@ -183,7 +183,7 @@ export function TodayDayPicker({
             eyebrow="Today"
             title={routineName}
             subtitle={selectedDay.name}
-            meta={selectedDaySummary ? <span className="whitespace-nowrap">{selectedDaySummary}</span> : undefined}
+            meta={selectedDaySummary || undefined}
             action={inSessionDayIndex === selectedDay.dayIndex
               ? <AppBadge tone="success">In Session</AppBadge>
               : completedDayIndexSet.has(selectedDay.dayIndex)

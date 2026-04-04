@@ -151,7 +151,7 @@ export function TodayClientShell({
         eyebrow="Today"
         title={display.routine.name}
         subtitle={display.routine.dayName}
-        meta={<span className="whitespace-nowrap">{headerSummary}</span>}
+        meta={headerSummary}
         action={display.completedTodayCount > 0 ? <AppBadge tone="success">Completed</AppBadge> : <OfflineSyncBadge />}
       />
 
