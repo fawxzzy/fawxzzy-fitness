@@ -321,11 +321,10 @@ export function SessionExerciseFocus({
                     <StandardExerciseRow
                       exercise={exercise}
                       summary={exercise.goalLabel}
-                      variant="expanded"
+                      variant="compact"
                       state={rowState.cardState}
                       onPress={() => onSelectedExerciseIdChange(exercise.id)}
                       className="shadow-none"
-                      rightRailClassName="min-w-[8.75rem]"
                       trailingClassName="text-muted"
                       rightIcon={<ChevronRightIcon className="h-5 w-5" />}
                       badgeText={rowState.badgeText}

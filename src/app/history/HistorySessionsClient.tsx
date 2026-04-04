@@ -39,12 +39,14 @@ function HistorySessionCard({
       className="block rounded-[1.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
       <StandardExerciseRow
-        variant={viewMode === "compact" ? "compact" : "summary"}
+        variant="compact"
         state={selected ? "selected" : "default"}
         exercise={{ name: session.routineTitle || "Unknown routine" }}
         summary={formatSubtitle(session)}
+        className="shadow-none"
         titleClassName={viewMode === "compact" ? "line-clamp-1" : undefined}
         subtitleClassName="line-clamp-2"
+        contentClassName="space-y-0.75"
         rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
       >
         {viewMode === "compact" ? (

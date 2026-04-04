@@ -11,11 +11,11 @@ import {
   RoutinesCardList,
   RoutinesListEmpty,
   RoutinesListItem,
-  RoutinesListItemCard,
   RoutinesPageScaffold,
   RoutinesSectionCard,
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
+import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import {
   DayCard,
   DayList,
@@ -190,13 +190,15 @@ export function RoutinesPageClient({
                 const isCurrent = routine.id === activeRoutineId;
                 return (
                   <RoutinesListItem key={routine.id}>
-                    <RoutinesListItemCard
-                      title={routine.name}
-                      subtitle={routine.summary}
+                    <StandardExerciseRow
+                      exercise={{ name: routine.name }}
+                      summary={routine.summary}
+                      variant="compact"
                       onPress={() => handleSwitchRoutine(routine.id)}
                       state={isCurrent ? "selected" : "default"}
                       badgeText={isCurrent ? "ACTIVE" : undefined}
                       rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating…</span> : undefined}
+                      className="shadow-none"
                     />
                   </RoutinesListItem>
                 );
