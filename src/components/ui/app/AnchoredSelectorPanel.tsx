@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { resolveScreenRecipe, type ScreenContractName } from "@/components/ui/app/screenContract";
 import { cn } from "@/lib/cn";
@@ -45,7 +44,7 @@ export function AnchoredSelectorPanel({
   const screenRecipe = resolveScreenRecipe(recipe);
 
   return (
-    <AppPanel
+    <section
       data-screen-scaffold={screenRecipe.scaffold}
       data-section-chrome={screenRecipe.sectionChrome}
       data-footer-dock={screenRecipe.footerDock}
@@ -86,6 +85,6 @@ export function AnchoredSelectorPanel({
       </SharedScreenHeader>
 
       {children ? <div className={cn("space-y-2.5", bodyClassName)}>{children}</div> : null}
-    </AppPanel>
+    </section>
   );
 }
