@@ -24,7 +24,7 @@ const subtitleStateClassNames: Record<ExerciseCardState, string> = {
   empty: "text-[rgb(var(--text)/0.58)]",
 };
 
-const leadingVisualStateClassNames: Record<ExerciseCardState, string> = {
+const mediaShellStateClassNames: Record<ExerciseCardState, string> = {
   default: "border-border/35",
   selected: "border-emerald-400/34 bg-emerald-400/8 shadow-[0_0_0_1px_rgba(96,200,130,0.12)]",
   active: "border-emerald-300/26 bg-[rgb(var(--bg)/0.12)] shadow-[0_0_0_1px_rgba(52,211,153,0.12)]",
@@ -32,11 +32,25 @@ const leadingVisualStateClassNames: Record<ExerciseCardState, string> = {
   empty: "border-dashed border-border/26 saturate-[0.78] opacity-80",
 };
 
+const mediaShellSizeClassNames: Record<ExerciseCardVariant, string> = {
+  compact: "h-11 w-11 rounded-[1rem] p-0.5",
+  interactive: "h-11 w-11 rounded-[1rem] p-0.5",
+  expanded: "h-11 w-11 rounded-[1rem] p-0.5",
+  summary: "h-20 w-20 rounded-xl p-1",
+};
+
 const variantClassNames: Record<ExerciseCardVariant, string> = {
   compact: "min-h-[5rem] px-4 py-3.5",
   interactive: "min-h-[5rem] px-3.5 py-3.5",
   expanded: "min-h-[5.1rem] px-3.5 py-3.5",
   summary: "min-h-[6rem] px-3.5 py-3.5",
+};
+
+const rightRailWidthByVariant: Record<ExerciseCardVariant, string> = {
+  compact: "min-w-[6.4rem]",
+  interactive: "min-w-[6rem]",
+  expanded: "min-w-[7.8rem]",
+  summary: "min-w-[6.6rem]",
 };
 
 const stateClassNames: Record<ExerciseCardState, string> = {
@@ -95,9 +109,20 @@ export function ExerciseCard({
   state?: ExerciseCardState;
 }) {
   const bodyContent = (
-    <div className={cn("flex min-w-0 flex-1 items-start gap-3", bodyClassName)}>
-      {leadingVisual ? <div className={cn("h-11 w-11 shrink-0 self-start rounded-[1rem] border bg-[rgb(var(--bg)/0.08)] p-0.5 pt-0.5 transition-colors [&_img]:transition [&_img]:duration-150", leadingVisualStateClassNames[state])}>{leadingVisual}</div> : null}
-      <div className={cn("min-w-0 flex-1 space-y-1.5", contentClassName)}>
+    <div className={cn("grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3", bodyClassName)}>
+      {leadingVisual ? (
+        <div
+          className={cn(
+            "shrink-0 self-start overflow-hidden border bg-[rgb(var(--bg)/0.08)] transition-colors [&_img]:transition [&_img]:duration-150",
+            mediaShellSizeClassNames[variant],
+            mediaShellStateClassNames[state],
+          )}
+        >
+          {leadingVisual}
+        </div>
+      ) : null}
+
+      <div className={cn("min-w-0 space-y-1.5", contentClassName)}>
         <div className={cn("min-w-0 space-y-1", titleContainerClassName)}>
           <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-snug whitespace-normal [word-break:normal]", titleStateClassNames[state], titleClassName)}>
             {title}
@@ -106,10 +131,11 @@ export function ExerciseCard({
         </div>
         {children}
       </div>
-      <div className={cn("flex min-h-full min-w-[4.75rem] shrink-0 items-center justify-end self-stretch text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", trailingClassName)}>
-        <div className="flex flex-col items-end gap-2">
+
+      <div className={cn("flex min-h-full shrink-0 justify-end self-stretch text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], trailingClassName)}>
+        <div className="flex h-full w-full flex-col items-end justify-start gap-2">
           {badgeText ? (
-            <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none", badgeStateClassNames[state])}>
+            <span className={cn("max-w-full shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
               {badgeText}
             </span>
           ) : null}
@@ -132,7 +158,7 @@ export function ExerciseCard({
 
   if (onPress && actions) {
     return (
-      <article className={cn(baseClassName, "items-stretch gap-2") }>
+      <article className={cn(baseClassName, "items-stretch gap-2")}>
         <button
           type="button"
           className={cn(pressableBodyClassName, "min-w-0 flex-1")}

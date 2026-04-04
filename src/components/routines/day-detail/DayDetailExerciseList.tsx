@@ -56,7 +56,7 @@ export function DayDetailExerciseList({
                   <ExerciseAssetImage
                     src={item.iconSrc}
                     alt={`${item.name} icon`}
-                    className="h-11 w-11 rounded-xl border border-border/35"
+                    className="h-full w-full"
                     imageClassName="object-cover object-center"
                     sizes="44px"
                   />
