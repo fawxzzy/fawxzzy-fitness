@@ -5,7 +5,7 @@ import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -121,7 +121,8 @@ export function EditRoutineAutosaveForm(props: Props) {
           eyebrow="Edit Routine"
           title="Routine Details"
           action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={isDirty} />}
-        >
+        />
+        <RoutineEditorSection title="Details">
           <RoutineEditorFormFields
             titleInput
             cycleLengthDefaultValue={draft.cycleLengthDays}
@@ -136,7 +137,7 @@ export function EditRoutineAutosaveForm(props: Props) {
               }));
             }}
           />
-        </RoutineEditorPageHeader>
+        </RoutineEditorSection>
 
         <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} mode="edit" />
       </form>
