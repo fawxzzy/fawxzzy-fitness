@@ -8,6 +8,7 @@
 - Active session identity header follows explicit grammar: `title` (exercise/session name), `subtitle` (set/day context), optional `meta` badge; do not merge these into one title string.
 - The active session screen content column must not use `min-h-full` on list wrappers.
 - Timer dock clearance is owned by the mobile shell wrapper (`--app-mobile-bottom-dock-height`) and applies once per screen.
+- Dock tail clearance uses shared shell token `--app-mobile-dock-clearance-gap` (default `6px`); inner lists must not add extra static tail padding.
 - The collapsed exercise list keeps only intrinsic row spacing; it must not add dock-height padding.
 - The session shell keeps dock-height reservation globally; inner list components should not stack a second legacy bottom-action inset.
 - Exercise card + quick-log strip spacing stays compact:

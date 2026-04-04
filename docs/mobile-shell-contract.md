@@ -16,12 +16,13 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
 
 3. **Top chrome slot**
    - `topChrome` renders in a persistent non-scrolling slot above the scroll owner.
+   - Shell applies one shared top-chrome-to-content rhythm gap via `--app-top-chrome-content-gap` (default `10px`).
    - Screen content must not recreate route-level fixed headers when `topChrome` is provided.
 
 4. **Bottom dock slot + measured inset**
    - `bottomDock` renders in a persistent non-scrolling slot below the scroll owner.
    - Shell measures dock height and writes `--app-mobile-bottom-dock-height`.
-   - Scroll content automatically receives bottom inset (`dock height + 12px`) so final interactive rows remain fully reachable above the dock.
+   - Scroll content automatically receives bottom inset (`dock height + --app-mobile-dock-clearance-gap`, default `6px`) so final interactive rows remain fully reachable above the dock.
    - Child lists/editors must not stack legacy `--app-bottom-action-bar-height` padding when rendered inside this shell.
    - Bottom dock spacing must have one owner per screen; inner sections/lists must not add a second dock-height reservation layer.
 

@@ -129,6 +129,13 @@ body {
   color: rgb(var(--text));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+html {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 a {

@@ -221,7 +221,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
       </HistoryTitleControlShell>
 
       <div className="relative min-h-0">
-        <ul className="space-y-1.5 scroll-py-2 pb-24">
+        <ul className="space-y-1.5 scroll-py-2">
           {filteredRows.map((row) => (
             <li key={row.exerciseId}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
