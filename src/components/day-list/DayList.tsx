@@ -110,11 +110,11 @@ export function DayCard({ onPress, wrapper, state = "default", metaText, subtitl
       subtitle={resolvedSubtitle}
       onPress={onPress}
       state={toExerciseCardState(state)}
-      className={cn("min-h-[4.5rem] px-3.5 py-3")}
+      className={cn("shadow-none")}
       contentClassName="space-y-0.5 sm:space-y-1"
       titleClassName="[text-wrap:pretty]"
       subtitleClassName="[text-wrap:pretty] line-clamp-2"
-      variant="interactive"
+      variant="compact"
     />
   );
 

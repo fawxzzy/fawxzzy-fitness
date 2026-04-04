@@ -51,8 +51,10 @@ export function AppHeader({
                   {shouldMergeSubtitleAndMeta ? (
                     <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]">
                       <span className="align-middle">{resolvedSubtitle}</span>
-                      <span className="px-1 align-middle text-[rgb(var(--text)/0.5)]" aria-hidden="true">•</span>
-                      <span className="align-middle text-[rgb(var(--text)/0.6)]">{meta}</span>
+                      <span className="inline-flex items-center whitespace-nowrap">
+                        <span className="px-1 align-middle text-[rgb(var(--text)/0.5)]" aria-hidden="true">•</span>
+                        <span className="align-middle text-[rgb(var(--text)/0.6)]">{meta}</span>
+                      </span>
                     </div>
                   ) : resolvedSubtitle ? (
                     <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]">{resolvedSubtitle}</div>

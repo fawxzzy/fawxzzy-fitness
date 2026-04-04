@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { ExerciseCard } from "@/components/ExerciseCard";
+import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
@@ -38,11 +38,11 @@ function HistorySessionCard({
       aria-current={selected ? "page" : undefined}
       className="block rounded-[1.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      <ExerciseCard
+      <StandardExerciseRow
         variant={viewMode === "compact" ? "compact" : "summary"}
         state={selected ? "selected" : "default"}
-        title={session.routineTitle || "Unknown routine"}
-        subtitle={formatSubtitle(session)}
+        exercise={{ name: session.routineTitle || "Unknown routine" }}
+        summary={formatSubtitle(session)}
         titleClassName={viewMode === "compact" ? "line-clamp-1" : undefined}
         subtitleClassName="line-clamp-2"
         rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
@@ -52,8 +52,13 @@ function HistorySessionCard({
         ) : (
           <p className="text-xs text-[rgb(var(--text)/0.82)] [text-wrap:pretty]">{formatSummaryLine(session)}</p>
         )}
-        {viewMode === "detailed" ? <p className="text-xs text-[rgb(var(--text)/0.7)] [text-wrap:pretty]">Latest: {session.topSet ? `${session.topSet.exerciseName} · ${session.topSet.display}` : "No set data"}</p> : null}
-      </ExerciseCard>
+        {viewMode === "detailed" ? (
+          <p className="text-xs text-[rgb(var(--text)/0.7)] [text-wrap:pretty]">
+            <span className="font-medium text-[rgb(var(--text)/0.76)]">Latest:</span>{" "}
+            <span>{session.topSet ? `${session.topSet.exerciseName} · ${session.topSet.display}` : "No set data"}</span>
+          </p>
+        ) : null}
+      </StandardExerciseRow>
     </Link>
   );
 }

@@ -58,7 +58,7 @@ export function MobileScreenShell({
         >
           <div
             className={cn(
-              "min-w-0 max-w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-dock-height,0px)+var(--app-mobile-dock-clearance-gap,2px))]",
+              "min-w-0 max-w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-dock-height,0px)+var(--app-mobile-dock-clearance-gap,0px))]",
               topChrome ? "pt-[var(--app-top-chrome-content-gap,8px)]" : "",
             )}
           >

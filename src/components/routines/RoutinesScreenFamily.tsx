@@ -108,5 +108,5 @@ export function SharedDayListSection({
 
 
 export function RoutinesListItemCard(props: ComponentProps<typeof ExerciseCard>) {
-  return <ExerciseCard {...props} className={cn("shadow-none", props.className)} variant="interactive" />;
+  return <ExerciseCard {...props} className={cn("shadow-none", props.className)} variant="compact" />;
 }

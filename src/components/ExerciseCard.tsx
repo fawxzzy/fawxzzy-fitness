@@ -40,9 +40,9 @@ const mediaShellSizeClassNames: Record<ExerciseCardVariant, string> = {
 };
 
 const variantClassNames: Record<ExerciseCardVariant, string> = {
-  compact: "min-h-[5rem] px-4 py-3.5",
-  interactive: "min-h-[5rem] px-3.5 py-3.5",
-  expanded: "min-h-[5.1rem] px-3.5 py-3.5",
+  compact: "min-h-[4.85rem] px-4 py-3.25",
+  interactive: "min-h-[4.85rem] px-3.5 py-3.25",
+  expanded: "min-h-[5rem] px-3.5 py-3.25",
   summary: "min-h-[6rem] px-3.5 py-3.5",
 };
 
@@ -129,24 +129,24 @@ export function ExerciseCard({
         </div>
       ) : null}
 
-      <div className={cn("min-w-0 self-center space-y-1.5", contentClassName)}>
+      <div className={cn("min-w-0 self-center space-y-1.25", contentClassName)}>
         <div className={cn("min-w-0 space-y-1", titleContainerClassName)}>
-          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-[1.25] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", titleStateClassNames[state], titleClassName)}>
+          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-[1.24] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", titleStateClassNames[state], titleClassName)}>
             {title}
           </p>
-          {subtitle ? <p className={cn("min-w-0 text-xs leading-[1.25] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", subtitleStateClassNames[state], subtitleClassName)}>{subtitle}</p> : null}
+          {subtitle ? <p className={cn("min-w-0 text-xs leading-[1.22] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", subtitleStateClassNames[state], subtitleClassName)}>{subtitle}</p> : null}
         </div>
         {children}
       </div>
 
       <div className={cn("flex min-h-full min-w-0 shrink-0 justify-end self-stretch overflow-hidden text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], rightRailClassName, trailingClassName)}>
-        <div className={cn("grid h-full w-full min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] items-center justify-items-end gap-1.5 overflow-hidden", trailingStackClassName)}>
+        <div className={cn("flex h-full w-full min-w-0 flex-col items-end justify-between gap-1 overflow-hidden py-0.5", trailingStackClassName)}>
           {badgeText ? (
-            <span className={cn("row-start-1 max-w-full shrink-0 overflow-hidden text-ellipsis rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
+            <span className={cn("max-w-full shrink-0 overflow-hidden text-ellipsis rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
               {badgeText}
             </span>
           ) : null}
-          <span className="row-start-3 inline-flex h-6 min-w-6 items-center justify-center leading-none">{rightIcon}</span>
+          <span className="inline-flex h-7 min-w-7 items-center justify-center leading-none">{rightIcon}</span>
         </div>
       </div>
     </div>
