@@ -13,8 +13,8 @@ This contract defines the canonical mobile page structure for screens with persi
    - Bottom actions are viewport chrome, rendered through the bottom action slot/dock and not as list rows.
 
 3. **Measured inset behavior**
-   - The scaffold measures `topChrome` height and automatically offsets scroll content by that amount.
-   - Bottom inset is reserved from the measured bottom action bar height (`--app-bottom-action-bar-height`) plus safe-area bottom inset.
+   - `AppShell` owns persistent top-nav offset; scaffold applies a shared `topChrome` rhythm gap (`--app-top-chrome-content-gap`) when route chrome is present.
+   - Bottom inset is reserved from measured dock height (`--app-mobile-bottom-dock-height`) plus shared dock clearance (`--app-mobile-dock-clearance-gap`).
    - Final interactive rows must remain fully visible above dock chrome.
 
 ## Recommended composition

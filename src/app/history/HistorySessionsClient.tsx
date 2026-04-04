@@ -67,7 +67,7 @@ export function HistorySessionsClient({
       <HistoryTitleControlShell label="Sessions" viewMode={viewMode} onViewModeChange={setViewMode} />
 
       {sessions.length > 0 ? (
-        <ul className="space-y-1.5 pb-24">
+        <ul className="space-y-1.5">
           {sessions.map((session) => (
             <li key={session.id}>
               <HistorySessionCard session={session} selected={session.id === selectedSessionId} viewMode={viewMode} />

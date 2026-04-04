@@ -36,6 +36,7 @@ export function AppHeader({
   const hasSubtitleRow = Boolean(resolvedSubtitle || subtitleRight);
   const hasMeta = Boolean(meta);
   const actionNode = action ?? leading;
+  const shouldMergeSubtitleAndMeta = !subtitleRight && Boolean(resolvedSubtitle) && hasMeta;
 
   return (
     <header className={cn(headerTokens.horizontalPadding, headerTokens.contentBottomGap, "space-y-0", className)}>
@@ -46,8 +47,14 @@ export function AppHeader({
           {hasSubtitleRow || hasMeta ? (
             <div className={cn(headerTokens.titleToSecondaryGap, headerTokens.secondaryBlockGap)}>
               {hasSubtitleRow ? (
-                <div className="flex items-start justify-between gap-2">
-                  {resolvedSubtitle ? (
+                <div className={cn("flex gap-2", subtitleRight ? "items-start justify-between" : "items-center")}>
+                  {shouldMergeSubtitleAndMeta ? (
+                    <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)]">
+                      <span>{resolvedSubtitle}</span>
+                      <span className="px-1 text-[rgb(var(--text)/0.5)]" aria-hidden="true">•</span>
+                      <span className="text-[rgb(var(--text)/0.6)]">{meta}</span>
+                    </div>
+                  ) : resolvedSubtitle ? (
                     <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)]">{resolvedSubtitle}</div>
                   ) : <span />}
                   {subtitleRight ? (
@@ -55,7 +62,7 @@ export function AppHeader({
                   ) : null}
                 </div>
               ) : null}
-              {hasMeta ? (
+              {hasMeta && !shouldMergeSubtitleAndMeta ? (
                 <div className="text-left text-sm text-[rgb(var(--text)/0.6)]">{meta}</div>
               ) : null}
             </div>
