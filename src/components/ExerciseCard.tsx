@@ -49,7 +49,7 @@ const variantClassNames: Record<ExerciseCardVariant, string> = {
 const rightRailWidthByVariant: Record<ExerciseCardVariant, string> = {
   compact: "min-w-[6.4rem]",
   interactive: "min-w-[6rem]",
-  expanded: "min-w-[7.8rem]",
+  expanded: "min-w-[8.75rem]",
   summary: "min-w-[6.6rem]",
 };
 
@@ -81,6 +81,9 @@ export function ExerciseCard({
   disabled = false,
   className,
   trailingClassName,
+  rightRailClassName,
+  trailingStackClassName,
+  mediaClassName,
   bodyClassName,
   contentClassName,
   titleContainerClassName,
@@ -100,6 +103,9 @@ export function ExerciseCard({
   disabled?: boolean;
   className?: string;
   trailingClassName?: string;
+  rightRailClassName?: string;
+  trailingStackClassName?: string;
+  mediaClassName?: string;
   bodyClassName?: string;
   contentClassName?: string;
   titleContainerClassName?: string;
@@ -116,6 +122,7 @@ export function ExerciseCard({
             "shrink-0 self-start overflow-hidden border bg-[rgb(var(--bg)/0.08)] transition-colors [&_img]:transition [&_img]:duration-150",
             mediaShellSizeClassNames[variant],
             mediaShellStateClassNames[state],
+            mediaClassName,
           )}
         >
           {leadingVisual}
@@ -132,8 +139,8 @@ export function ExerciseCard({
         {children}
       </div>
 
-      <div className={cn("flex min-h-full shrink-0 justify-end self-stretch text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], trailingClassName)}>
-        <div className="flex h-full w-full flex-col items-end justify-start gap-2">
+      <div className={cn("flex min-h-full shrink-0 justify-end self-stretch text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], rightRailClassName, trailingClassName)}>
+        <div className={cn("flex h-full w-full flex-col items-end justify-start gap-2", trailingStackClassName)}>
           {badgeText ? (
             <span className={cn("max-w-full shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
               {badgeText}

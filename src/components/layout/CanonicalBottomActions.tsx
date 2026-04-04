@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3.5 pb-[calc(var(--app-safe-bottom)+0.125rem)]";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3.5 pb-[var(--app-safe-bottom)]";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   "rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(var(--surface-rgb),0.985),rgba(var(--surface-rgb),0.955))]",
   "px-2 py-2 shadow-[0_8px_20px_rgba(0,0,0,0.15)] backdrop-blur-md",
