@@ -123,7 +123,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   currentSession: {
     ...screenContracts.currentSession,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "space-y-2.5 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.72rem)]",
+    headerPanelClassName: "space-y-2 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.56rem)]",
     sectionClassName: "space-y-3 p-4",
     sectionShellClassName: "space-y-4 p-4",
     sectionBodyClassName: "space-y-3",
@@ -131,7 +131,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   exerciseLog: {
     ...screenContracts.exerciseLog,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.78rem)]",
+    headerPanelClassName: "p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.62rem)]",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
@@ -139,7 +139,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   sessionAddExercise: {
     ...screenContracts.sessionAddExercise,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "space-y-2.5 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.72rem)]",
+    headerPanelClassName: "space-y-2 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.56rem)]",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
@@ -147,7 +147,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   editDay: {
     ...screenContracts.editDay,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "space-y-2.5 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.72rem)]",
+    headerPanelClassName: "space-y-2 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.56rem)]",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
@@ -155,7 +155,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   viewDay: {
     ...screenContracts.viewDay,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "space-y-2.5 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.72rem)]",
+    headerPanelClassName: "space-y-2 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.56rem)]",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
@@ -163,7 +163,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   historyDetail: {
     ...screenContracts.historyDetail,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.78rem)]",
+    headerPanelClassName: "p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.62rem)]",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
@@ -171,7 +171,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   exerciseDetail: {
     ...screenContracts.exerciseDetail,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.78rem)]",
+    headerPanelClassName: "p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.62rem)]",
     sectionClassName: "space-y-3",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-3",
@@ -179,7 +179,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   routinesOverview: {
     ...screenContracts.routinesOverview,
     scaffoldClassName: "space-y-4",
-    headerPanelClassName: "space-y-3 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.78rem)]",
+    headerPanelClassName: "space-y-2.5 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.62rem)]",
     sectionClassName: "space-y-3 p-4",
     sectionShellClassName: "space-y-4 p-4",
     sectionBodyClassName: "space-y-3",
@@ -187,7 +187,7 @@ export const screenRecipes: Record<ScreenContractName, ScreenRecipe> = {
   todayOverview: {
     ...screenContracts.todayOverview,
     scaffoldClassName: "space-y-3",
-    headerPanelClassName: "space-y-2.5 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.72rem)]",
+    headerPanelClassName: "space-y-2 p-4 pt-[calc(var(--app-standalone-safe-top,0px)+0.56rem)]",
     sectionClassName: "space-y-2.5 p-4",
     sectionShellClassName: "space-y-3 p-4",
     sectionBodyClassName: "space-y-2.5",
