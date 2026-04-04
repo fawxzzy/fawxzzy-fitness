@@ -49,7 +49,7 @@ export function SharedScreenHeader({
   );
 
   if (!withPanel) {
-    return headerNode;
+    return <div className={className}>{headerNode}</div>;
   }
 
   return (

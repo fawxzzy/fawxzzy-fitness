@@ -31,9 +31,9 @@ export type ScreenRecipe = ScreenContract & {
   sectionBodyClassName: string;
 };
 
-const topChromeHeaderPanelClassName = "px-4 pb-3 pt-1.5";
-const standaloneHeaderPanelClassName = "px-4 pb-3.5 pt-2";
-const topChromeHeaderPanelClassNameWithSpacing = `space-y-2 ${topChromeHeaderPanelClassName}`;
+const topChromeHeaderPanelClassName = "px-4 pb-2 pt-1";
+const standaloneHeaderPanelClassName = "px-4 pb-3 pt-1.5";
+const topChromeHeaderPanelClassNameWithSpacing = `space-y-1.5 ${topChromeHeaderPanelClassName}`;
 const standaloneHeaderPanelClassNameWithSpacing = `space-y-2 ${standaloneHeaderPanelClassName}`;
 
 const sharedStatBaseContract = {

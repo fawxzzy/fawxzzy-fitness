@@ -49,7 +49,7 @@ export function AnchoredSelectorPanel({
       data-screen-scaffold={screenRecipe.scaffold}
       data-section-chrome={screenRecipe.sectionChrome}
       data-footer-dock={screenRecipe.footerDock}
-      className={cn(screenRecipe.headerPanelClassName, className)}
+      className={cn("space-y-2.5", className)}
     >
       <SharedScreenHeader
         recipe={recipe}
@@ -60,6 +60,7 @@ export function AnchoredSelectorPanel({
         meta={meta}
         action={action}
         withPanel={false}
+        className={screenRecipe.headerPanelClassName}
       >
         <div className="space-y-1.5">
           {hasSummary ? (
