@@ -49,7 +49,11 @@ export function SharedScreenHeader({
   );
 
   if (!withPanel) {
-    return <div className={className}>{headerNode}</div>;
+    return (
+      <div className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}>
+        {headerNode}
+      </div>
+    );
   }
 
   return (

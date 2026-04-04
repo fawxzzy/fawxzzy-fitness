@@ -34,7 +34,6 @@ export function ActiveRoutineSummaryCard({
       title={title}
       subtitle={metadata}
       action={status}
-      className="shadow-none"
     />
   );
 }

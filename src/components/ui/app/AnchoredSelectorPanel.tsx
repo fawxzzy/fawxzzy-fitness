@@ -60,7 +60,6 @@ export function AnchoredSelectorPanel({
         meta={meta}
         action={action}
         withPanel={false}
-        className={screenRecipe.headerPanelClassName}
       >
         <div className="space-y-1.5">
           {hasSummary ? (

@@ -49,13 +49,11 @@ export function AppHeader({
               {hasSubtitleRow ? (
                 <div className={cn("flex min-w-0 gap-2", subtitleRight ? "items-start justify-between" : "items-center")}>
                   {shouldMergeSubtitleAndMeta ? (
-                    <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]">
+                    <p className="min-w-0 text-left text-sm leading-snug text-[rgb(var(--text)/0.72)] [text-wrap:pretty]">
                       <span className="align-middle">{resolvedSubtitle}</span>
-                      <span className="inline align-middle whitespace-nowrap text-[rgb(var(--text)/0.5)]">&nbsp;•</span>
-                      <span className="inline align-middle text-[rgb(var(--text)/0.6)]">
-                        {meta}
-                      </span>
-                    </div>
+                      <span className="inline align-middle whitespace-nowrap text-[rgb(var(--text)/0.5)]">{` \u2022 `}</span>
+                      <span className="inline align-middle text-[rgb(var(--text)/0.6)]">{meta}</span>
+                    </p>
                   ) : resolvedSubtitle ? (
                     <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]">{resolvedSubtitle}</div>
                   ) : <span />}
