@@ -23,10 +23,8 @@ export default async function HistoryExercisesPage() {
     const rows = await getExercisesWithStatsForUser();
 
     return (
-      <MainTabScreen>
-        <AppNav />
-
-        <ScrollScreenWithBottomActions className="px-1">
+      <MainTabScreen topNavMode="none">
+        <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} className="px-1">
           <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
             <ExerciseBrowserClient rows={rows} />
           </div>
@@ -41,9 +39,8 @@ export default async function HistoryExercisesPage() {
     console.error("[history/exercises] failed to load exercise stats", error);
 
     return (
-      <MainTabScreen>
-        <AppNav />
-        <ScrollScreenWithBottomActions className="px-1">
+      <MainTabScreen topNavMode="none">
+        <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} className="px-1">
           <ExercisesBrowserError />
         </ScrollScreenWithBottomActions>
       </MainTabScreen>

@@ -217,10 +217,8 @@ export default async function HistoryPage({
   const sessionItems = sessions.map((session) => sessionSummaryById.get(session.id)).filter((item): item is SessionSummary => Boolean(item));
 
   return (
-    <MainTabScreen>
-      <AppNav />
-
-      <ScrollScreenWithBottomActions className="px-1">
+    <MainTabScreen topNavMode="none">
+      <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} className="px-1">
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient sessions={sessionItems} selectedSessionId={searchParams?.selected} />
 

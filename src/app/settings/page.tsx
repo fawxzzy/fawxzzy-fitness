@@ -15,10 +15,8 @@ export default async function SettingsPage() {
   const profile = await ensureProfile(user.id);
 
   return (
-    <MainTabScreen>
-      <AppNav />
-
-      <ScrollScreenWithBottomActions className="px-1">
+    <MainTabScreen topNavMode="none">
+      <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} className="px-1">
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <DetailMetaRow>
             <DetailMetaChip label="Signed in" value={user.email ?? "Unknown email"} emphasized />

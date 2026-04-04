@@ -87,7 +87,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
     <div
       className={`pointer-events-none inset-x-0 flex max-w-full justify-center overflow-x-clip px-4 ${
         mode === "fixed"
-          ? "fixed top-[var(--header-offset)] z-[60]"
+          ? "fixed top-[calc(var(--app-top-nav-safe-top,var(--app-safe-top))+var(--header-floating-gap))] z-[60]"
           : "relative z-30"
       }`}
     >

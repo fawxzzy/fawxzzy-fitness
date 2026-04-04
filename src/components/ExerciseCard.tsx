@@ -47,10 +47,10 @@ const variantClassNames: Record<ExerciseCardVariant, string> = {
 };
 
 const rightRailWidthByVariant: Record<ExerciseCardVariant, string> = {
-  compact: "min-w-[6.4rem]",
-  interactive: "min-w-[6rem]",
-  expanded: "min-w-[8.75rem]",
-  summary: "min-w-[6.6rem]",
+  compact: "w-[5.4rem] min-w-[5.4rem]",
+  interactive: "w-[5.25rem] min-w-[5.25rem]",
+  expanded: "w-[7rem] min-w-[7rem]",
+  summary: "w-[5.75rem] min-w-[5.75rem]",
 };
 
 const stateClassNames: Record<ExerciseCardState, string> = {
@@ -115,7 +115,7 @@ export function ExerciseCard({
   state?: ExerciseCardState;
 }) {
   const bodyContent = (
-    <div className={cn("grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3", bodyClassName)}>
+    <div className={cn("grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 overflow-hidden", bodyClassName)}>
       {leadingVisual ? (
         <div
           className={cn(
@@ -139,10 +139,10 @@ export function ExerciseCard({
         {children}
       </div>
 
-      <div className={cn("flex min-h-full shrink-0 justify-end self-stretch text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], rightRailClassName, trailingClassName)}>
-        <div className={cn("flex h-full w-full flex-col items-end justify-start gap-2", trailingStackClassName)}>
+      <div className={cn("flex min-h-full min-w-0 shrink-0 justify-end self-stretch overflow-hidden text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], rightRailClassName, trailingClassName)}>
+        <div className={cn("flex h-full w-full min-w-0 flex-col items-end justify-start gap-2 overflow-hidden", trailingStackClassName)}>
           {badgeText ? (
-            <span className={cn("max-w-full shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
+            <span className={cn("max-w-full shrink-0 overflow-hidden text-ellipsis rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
               {badgeText}
             </span>
           ) : null}
@@ -153,7 +153,7 @@ export function ExerciseCard({
   );
 
   const baseClassName = cn(
-    "flex w-full items-start rounded-[1.25rem] border text-left",
+    "flex w-full min-w-0 items-start overflow-hidden rounded-[1.25rem] border text-left",
     variantClassNames[variant],
     stateClassNames[state],
     onPress ? appTokens.rowInteractive : undefined,
