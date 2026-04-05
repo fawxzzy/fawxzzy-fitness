@@ -24,7 +24,11 @@ export default async function HistoryExercisesPage() {
 
     return (
       <MainTabScreen topNavMode="none">
-        <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} className="px-1">
+        <ScrollScreenWithBottomActions
+          topChrome={<AppNav mode="topChrome" />}
+          floatingHeader={<div id="history-exercises-floating-header" className="px-1 py-1" />}
+          className="px-1"
+        >
           <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
             <ExerciseBrowserClient rows={rows} />
           </div>
@@ -40,7 +44,11 @@ export default async function HistoryExercisesPage() {
 
     return (
       <MainTabScreen topNavMode="none">
-        <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} className="px-1">
+        <ScrollScreenWithBottomActions
+          topChrome={<AppNav mode="topChrome" />}
+          floatingHeader={<div id="history-exercises-floating-header" className="px-1 py-1" />}
+          className="px-1"
+        >
           <ExercisesBrowserError />
         </ScrollScreenWithBottomActions>
       </MainTabScreen>

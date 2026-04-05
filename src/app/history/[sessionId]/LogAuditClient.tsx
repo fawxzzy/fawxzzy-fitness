@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   addLogExerciseSetAction,
@@ -19,7 +20,6 @@ import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } f
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { HistoryDetailHeader, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
@@ -183,6 +183,11 @@ export function LogAuditClient({
   const [editableSets, setEditableSets] = useState<Record<string, EditableSet[]>>(
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel, exercise.measurement_type))])),
   );
+  const [floatingHeaderContainer, setFloatingHeaderContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setFloatingHeaderContainer(document.getElementById("history-log-floating-header"));
+  }, []);
 
   const handleCancel = useCallback(() => {
     setIsEditing(false);
@@ -394,32 +399,36 @@ export function LogAuditClient({
 
   return (
     <>
-      <HistoryDetailHeader
-        eyebrow={null}
-        title={sessionSummary.routineTitle}
-        subtitle={sessionMeta.dateLine}
-        action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
-        className={isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : undefined}
-      >
-        {isEditing ? (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Edit mode</p>
-            <div className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
-              <p className="text-sm font-semibold text-slate-100">Session details</p>
-              <div className="mt-3 space-y-3">
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
-                  Day Name
-                  <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
-                </label>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
-                  Session Notes
-                  <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
-                </label>
+      {floatingHeaderContainer
+        ? createPortal(
+          <HistoryDetailHeader
+            eyebrow={null}
+            title={sessionSummary.routineTitle}
+            subtitle={sessionMeta.dateLine}
+            className={isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : undefined}
+          >
+            {isEditing ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Edit mode</p>
+                <div className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
+                  <p className="text-sm font-semibold text-slate-100">Session details</p>
+                  <div className="mt-3 space-y-3">
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+                      Day Name
+                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
+                    </label>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+                      Session Notes
+                      <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
+                    </label>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        ) : null}
-      </HistoryDetailHeader>
+            ) : null}
+          </HistoryDetailHeader>,
+          floatingHeaderContainer,
+        )
+        : null}
 
       <div className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Session summary</p>
