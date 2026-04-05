@@ -4,6 +4,7 @@ import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
+import { ActiveRoutineStatusBadge, ActiveRoutineSummaryCard } from "@/components/routines/RoutinesScreenFamily";
 import { requireUser } from "@/lib/auth";
 import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { ensureProfile } from "@/lib/profile";
@@ -247,7 +248,18 @@ export default async function RoutinesPage({
 
   return (
     <MainTabScreen topNavMode="none">
-      <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />}>
+      <ScrollScreenWithBottomActions
+        topChrome={<AppNav mode="topChrome" />}
+        floatingHeader={(
+          <div className="mx-auto w-full max-w-md px-1">
+            <ActiveRoutineSummaryCard
+              title={activeRoutine?.name ?? "Select routine"}
+              metadata={cycleSummary}
+              status={<ActiveRoutineStatusBadge active={Boolean(activeRoutine?.id)} />}
+            />
+          </div>
+        )}
+      >
         <div className="space-y-3 px-1">
           {routines.length === 0 ? (
             <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
@@ -262,8 +274,6 @@ export default async function RoutinesPage({
           ) : (
             <RoutinesPageClient
               activeRoutineId={activeRoutine?.id ?? null}
-              activeRoutineName={activeRoutine?.name ?? "Select routine"}
-              activeRoutineSummary={cycleSummary}
               activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
               newRoutineHref="/routines/new"
               routines={routines.map((routine) => ({

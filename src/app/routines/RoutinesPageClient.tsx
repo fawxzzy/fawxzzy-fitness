@@ -6,8 +6,6 @@ import { useCallback, useMemo, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import {
-  ActiveRoutineSummaryCard,
-  ActiveRoutineStatusBadge,
   RoutinesCardList,
   RoutinesListEmpty,
   RoutinesListItem,
@@ -68,8 +66,6 @@ function formatRoutineDayCount(count: number) {
 
 export function RoutinesPageClient({
   activeRoutineId,
-  activeRoutineName,
-  activeRoutineSummary,
   activeRoutineEditHref,
   newRoutineHref,
   routines,
@@ -78,8 +74,6 @@ export function RoutinesPageClient({
   initialRoutineListOpen = false,
 }: {
   activeRoutineId: string | null;
-  activeRoutineName: string;
-  activeRoutineSummary?: string;
   activeRoutineEditHref: string | null;
   newRoutineHref: string;
   routines: RoutineSwitcherItem[];
@@ -167,15 +161,7 @@ export function RoutinesPageClient({
   usePublishBottomActions(actionsNode);
 
   return (
-    <RoutinesPageScaffold
-      summary={(
-        <ActiveRoutineSummaryCard
-          title={activeRoutineName}
-          metadata={activeRoutineSummary}
-          status={<ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
-        />
-      )}
-    >
+    <RoutinesPageScaffold>
       {screenMode === "browse-routines" ? (
         <RoutinesSectionCard
           title={ROUTINES_IA_COPY.allRoutines.title}
