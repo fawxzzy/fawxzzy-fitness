@@ -14,6 +14,8 @@ This contract defines the canonical mobile page structure for screens with persi
 
 3. **Measured inset behavior**
    - `AppShell` owns persistent top-nav offset; scaffold applies a shared `topChrome` rhythm gap (`--app-top-chrome-content-gap`) when route chrome is present.
+   - `topChrome`→content rhythm gap is applied only when `topChrome` is the only pinned header layer (to avoid double-spacing when `floatingHeader` is also pinned).
+   - On standalone screens (no `topChrome`), safe-top inset belongs to `floatingHeader` when present; otherwise it belongs to scroll content.
    - Bottom inset is reserved from measured dock height (`--app-mobile-bottom-dock-height`) plus shared dock clearance (`--app-mobile-dock-clearance-gap`).
    - Final interactive rows must remain fully visible above dock chrome.
 

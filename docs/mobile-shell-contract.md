@@ -24,6 +24,7 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
    - `floatingHeader` renders in a persistent non-scrolling slot between top chrome and scroll content.
    - Use this for screen-specific identity/header cards (e.g., Routine Details, Save Set, History control surfaces) that should remain pinned while content scrolls.
    - Do not keep these header cards inside the list/content scroll subtree.
+   - When a screen has **no** `topChrome`, standalone safe-top inset is owned by the floating-header slot; scroll content must not add a second standalone safe-top pad.
 
 5. **Bottom dock slot + measured inset**
    - `bottomDock` renders in a persistent non-scrolling slot below the scroll owner.
@@ -42,6 +43,7 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
 - Canonical layered mobile chrome order is: top nav (`topChrome`) → optional floating header (`floatingHeader`) → scroll layer (`ScrollContainer`) → bottom action dock (`bottomDock`/published actions).
 - No final interactive content is hidden under the bottom dock.
 - No top content overlaps safe areas/status chrome.
+- Standalone screens apply top safe-area exactly once: either on `floatingHeader` (if present) or on scroll content when no pinned header chrome exists.
 
 
 ## Adoption status
