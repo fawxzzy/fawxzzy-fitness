@@ -5,8 +5,9 @@ import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
+import { DayRestToggleAutosaveDock } from "@/components/day/DayRestToggleAutosaveDock";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
@@ -130,11 +131,21 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
         </ScreenScaffold>
 
         <PublishBottomActions>
-          <BottomActionSingle>
-            <BottomDockLink href={editDayHref} variant="primary">
-              Edit Day
-            </BottomDockLink>
-          </BottomActionSingle>
+          <BottomActionDock
+            left={(
+              <DayRestToggleAutosaveDock
+                routineId={routineRow.id}
+                routineDayId={dayRow.id}
+                initialIsRest={dayRow.is_rest}
+                name={dayRow.name?.trim() || `Day ${dayRow.day_index}`}
+              />
+            )}
+            right={(
+              <BottomDockLink href={editDayHref} variant="primary">
+                Edit Day
+              </BottomDockLink>
+            )}
+          />
         </PublishBottomActions>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>

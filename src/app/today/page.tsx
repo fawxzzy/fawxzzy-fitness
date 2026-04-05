@@ -395,24 +395,30 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         topChrome={<AppNav mode="topChrome" />}
         bottomDock={<BottomActionsSlot />}
         floatingHeader={todayPayload.routine ? (
-          <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-            <SharedScreenHeader
-              recipe="todayOverview"
-              title={todayPayload.routine.name}
-              subtitle={(
-                <DayTaxonomyHeaderSummary
-                  dayName={todayPayload.routine.dayName}
-                  summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
-                  isRest={todayPayload.routine.isRest}
-                />
-              )}
-              action={todayPayload.inProgressSessionId
-                ? <AppBadge tone="success">In Session</AppBadge>
-                : completedDayIndexes.includes(todayPayload.routine.dayIndex)
-                  ? <AppBadge tone="success">Completed</AppBadge>
-                  : undefined}
-            />
-          </ScreenScaffold>
+          todayPayload.inProgressSessionId ? (
+            <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+              <SharedScreenHeader
+                recipe="todayOverview"
+                title={todayPayload.routine.name}
+                subtitle={(
+                  <DayTaxonomyHeaderSummary
+                    dayName={todayPayload.routine.dayName}
+                    summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
+                    isRest={todayPayload.routine.isRest}
+                  />
+                )}
+                action={todayPayload.inProgressSessionId
+                  ? <AppBadge tone="success">In Session</AppBadge>
+                  : completedDayIndexes.includes(todayPayload.routine.dayIndex)
+                    ? <AppBadge tone="success">Completed</AppBadge>
+                    : undefined}
+              />
+            </ScreenScaffold>
+          ) : (
+            <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+              <div id="today-floating-header-slot" />
+            </ScreenScaffold>
+          )
         ) : !todayPayload.routine ? (
           <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
             <SharedScreenHeader
@@ -481,6 +487,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   loggedSetCountsByDayIndex={inProgressSession?.routine_day_index
                     ? { [inProgressSession.routine_day_index]: inProgressSessionLoggedSetCount }
                     : {}}
+                  routineName={todayPayload.routine.name}
+                  floatingHeaderSlotId="today-floating-header-slot"
                 />
               )}
             </div>

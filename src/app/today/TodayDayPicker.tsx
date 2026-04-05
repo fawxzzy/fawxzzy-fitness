@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
@@ -16,8 +17,11 @@ import {
 } from "@/components/day-list/DayList";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import {
@@ -65,6 +69,8 @@ export function TodayDayPicker({
   completedDayIndexes,
   inSessionDayIndex,
   loggedSetCountsByDayIndex,
+  routineName,
+  floatingHeaderSlotId,
 }: {
   days: TodayDay[];
   currentDayIndex: number;
@@ -72,6 +78,8 @@ export function TodayDayPicker({
   completedDayIndexes?: number[];
   inSessionDayIndex?: number | null;
   loggedSetCountsByDayIndex?: Record<number, number>;
+  routineName: string;
+  floatingHeaderSlotId?: string;
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -99,6 +107,22 @@ export function TodayDayPicker({
     };
   }, [inProgressSessionId, router]);
 
+
+  const [floatingHeaderTarget, setFloatingHeaderTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!floatingHeaderSlotId) return;
+    const syncSlot = () => setFloatingHeaderTarget(document.getElementById(floatingHeaderSlotId));
+    syncSlot();
+    const observer = new MutationObserver(syncSlot);
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("resize", syncSlot);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncSlot);
+    };
+  }, [floatingHeaderSlotId]);
+
   const mode = useMemo(() => deriveTodayScreenMode({
     days,
     selectedDayIndex,
@@ -123,6 +147,28 @@ export function TodayDayPicker({
     : null;
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
+
+
+  const headerNode = selectedDay ? (
+    <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+      <SharedScreenHeader
+        recipe="todayOverview"
+        title={routineName}
+        subtitle={(
+          <DayTaxonomyHeaderSummary
+            dayName={selectedDay.name}
+            summary={getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest)}
+            isRest={selectedDay.isRest}
+          />
+        )}
+        action={inProgressSessionId
+          ? <AppBadge tone="success">In Session</AppBadge>
+          : completedDayIndexSet.has(selectedDay.dayIndex)
+            ? <AppBadge tone="success">Completed</AppBadge>
+            : undefined}
+      />
+    </ScreenScaffold>
+  ) : null;
 
   const actionsNode = useMemo(() => {
     const selectDayButton = (
@@ -168,7 +214,9 @@ export function TodayDayPicker({
   usePublishBottomActions(actionsNode);
 
   return (
-    <div className="flex min-h-0 flex-col">
+    <>
+      {headerNode && floatingHeaderTarget ? createPortal(headerNode, floatingHeaderTarget) : null}
+      <div className="flex min-h-0 flex-col">
       {!mode.noRoutine && selectedDay ? (
         <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
           <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
@@ -261,6 +309,7 @@ export function TodayDayPicker({
         }}
         sourceContext="TodayDayPicker"
       />
-    </div>
+      </div>
+    </>
   );
 }
