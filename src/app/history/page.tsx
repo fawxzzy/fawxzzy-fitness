@@ -3,6 +3,7 @@ import { AppNav } from "@/components/AppNav";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { HistoryPageHeader } from "@/components/history/HistoryShared";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -215,10 +216,15 @@ export default async function HistoryPage({
   }
 
   const sessionItems = sessions.map((session) => sessionSummaryById.get(session.id)).filter((item): item is SessionSummary => Boolean(item));
+  const sessionCountLabel = `${sessionItems.length} ${sessionItems.length === 1 ? "session" : "sessions"}`;
 
   return (
     <MainTabScreen topNavMode="none">
-      <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} className="px-1">
+      <ScrollScreenWithBottomActions
+        topChrome={<AppNav mode="topChrome" />}
+        floatingHeader={<HistoryPageHeader title="History sessions" subtitle={sessionCountLabel} />}
+        className="px-1"
+      >
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient sessions={sessionItems} selectedSessionId={searchParams?.selected} />
 

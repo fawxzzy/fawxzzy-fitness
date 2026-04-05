@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
@@ -191,23 +192,33 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
     () => (selectedExerciseId ? rows.find((row) => row.exerciseId === selectedExerciseId) ?? null : null),
     [rows, selectedExerciseId],
   );
+  const [floatingHeaderContainer, setFloatingHeaderContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setFloatingHeaderContainer(document.getElementById("history-exercises-floating-header"));
+  }, []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <HistoryTitleControlShell
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        showViewModeToggle={false}
-      >
-        <ExerciseSearchFilters
-          query={query}
-          onQueryChange={setQuery}
-          selectedTags={selectedTags}
-          onTagsChange={setSelectedTags}
-          groups={availableTagGroups}
-        />
-        <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
-      </HistoryTitleControlShell>
+      {floatingHeaderContainer
+        ? createPortal(
+          <HistoryTitleControlShell
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            showViewModeToggle={false}
+          >
+            <ExerciseSearchFilters
+              query={query}
+              onQueryChange={setQuery}
+              selectedTags={selectedTags}
+              onTagsChange={setSelectedTags}
+              groups={availableTagGroups}
+            />
+            <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
+          </HistoryTitleControlShell>,
+          floatingHeaderContainer,
+        )
+        : null}
 
       <div className="relative min-h-0">
         <ul className="space-y-1.5 scroll-py-2">
