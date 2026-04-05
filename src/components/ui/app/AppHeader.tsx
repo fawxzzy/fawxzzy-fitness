@@ -35,12 +35,13 @@ export function AppHeader({
   const resolvedSubtitle = subtitle ?? subtitleLeft;
   const hasSubtitleRow = Boolean(resolvedSubtitle || subtitleRight);
   const hasMeta = Boolean(meta);
+  const isTitleOnlyHeader = !eyebrow && !hasSubtitleRow && !hasMeta;
   const actionNode = action ?? leading;
   const shouldMergeSubtitleAndMeta = !subtitleRight && Boolean(resolvedSubtitle) && hasMeta;
 
   return (
     <header className={cn(headerTokens.horizontalPadding, headerTokens.contentBottomGap, "space-y-0", className)}>
-      <div className={cn("flex items-start justify-between", headerTokens.primaryRowGap)}>
+      <div className={cn("flex justify-between", isTitleOnlyHeader ? "items-center" : "items-start", headerTokens.primaryRowGap)}>
         <div className="min-w-0 flex-1">
           {eyebrow ? <EyebrowText className="block text-left">{eyebrow}</EyebrowText> : null}
           <TitleText as={titleAs} className={cn("block text-left [text-wrap:balance]", headerTokens.titleClassName, titleClassName)}>{title}</TitleText>
