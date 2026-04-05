@@ -10,12 +10,11 @@ import { cn } from "@/lib/cn";
 const ROUTINES_OVERVIEW_RECIPE = "routinesOverview" as const;
 
 type RoutinesPageScaffoldProps = {
-  summary: ReactNode;
   children: ReactNode;
 };
 
-export function RoutinesPageScaffold({ summary, children }: RoutinesPageScaffoldProps) {
-  return <div className="space-y-4">{summary}<div className="space-y-4">{children}</div></div>;
+export function RoutinesPageScaffold({ children }: RoutinesPageScaffoldProps) {
+  return <div className="space-y-4">{children}</div>;
 }
 
 export function ActiveRoutineSummaryCard({

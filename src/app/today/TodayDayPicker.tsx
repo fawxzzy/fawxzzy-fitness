@@ -4,12 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import {
   DayCard,
   DayList,
@@ -62,7 +59,6 @@ type TodayDay = {
 
 
 export function TodayDayPicker({
-  routineName,
   days,
   currentDayIndex,
   inProgressSessionId,
@@ -70,7 +66,6 @@ export function TodayDayPicker({
   inSessionDayIndex,
   loggedSetCountsByDayIndex,
 }: {
-  routineName: string;
   days: TodayDay[];
   currentDayIndex: number;
   inProgressSessionId?: string | null;
@@ -176,23 +171,6 @@ export function TodayDayPicker({
     <div className="flex min-h-0 flex-col">
       {!mode.noRoutine && selectedDay ? (
         <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-          <SharedScreenHeader
-            recipe="todayOverview"
-            title={routineName}
-            subtitle={(
-              <DayTaxonomyHeaderSummary
-                dayName={selectedDay.name}
-                summary={getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.state === "rest")}
-                isRest={selectedDay.state === "rest"}
-              />
-            )}
-            action={inSessionDayIndex === selectedDay.dayIndex
-              ? <AppBadge tone="success">In Session</AppBadge>
-              : completedDayIndexSet.has(selectedDay.dayIndex)
-                ? <AppBadge tone="success">Completed</AppBadge>
-                : undefined}
-          />
-
           <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
             {mode.dayPickerOpen ? (
               <DayList>

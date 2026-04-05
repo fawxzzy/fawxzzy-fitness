@@ -9,13 +9,9 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
-import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
@@ -128,11 +124,6 @@ export function TodayClientShell({
   if (!display) {
     return (
       <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-        <SharedScreenHeader
-          recipe="todayOverview"
-          title="No active routine"
-          subtitle="Select a routine to plan your session."
-        />
         <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
           <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">
             Go to Routines
@@ -145,20 +136,10 @@ export function TodayClientShell({
 
   return (
     <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-      <SharedScreenHeader
-        recipe="todayOverview"
-        title={display.routine.name}
-        subtitle={(
-          <DayTaxonomyHeaderSummary
-            dayName={display.routine.dayName}
-            summary={getRestDayExerciseCountSummaryFromInputs(display.exercises, display.routine.isRest)}
-            isRest={display.routine.isRest}
-          />
-        )}
-        action={display.completedTodayCount > 0 ? <AppBadge tone="success">Completed</AppBadge> : <OfflineSyncBadge />}
-      />
-
       <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+        <div className="px-1">
+          <OfflineSyncBadge />
+        </div>
         {display.staleAt ? (
           <AccentSubtitleText className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
             Offline snapshot · stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}

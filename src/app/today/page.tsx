@@ -394,7 +394,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         bottomDock={<BottomActionsSlot />}
-        floatingHeader={todayPayload.routine && !fetchFailed && todayPayload.inProgressSessionId ? (
+        floatingHeader={todayPayload.routine ? (
           <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
             <SharedScreenHeader
               recipe="todayOverview"
@@ -406,7 +406,19 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   isRest={todayPayload.routine.isRest}
                 />
               )}
-              action={<AppBadge tone="success">In Session</AppBadge>}
+              action={todayPayload.inProgressSessionId
+                ? <AppBadge tone="success">In Session</AppBadge>
+                : completedDayIndexes.includes(todayPayload.routine.dayIndex)
+                  ? <AppBadge tone="success">Completed</AppBadge>
+                  : undefined}
+            />
+          </ScreenScaffold>
+        ) : !todayPayload.routine ? (
+          <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+            <SharedScreenHeader
+              recipe="todayOverview"
+              title="No active routine"
+              subtitle="Select a routine to plan your session."
             />
           </ScreenScaffold>
         ) : undefined}
@@ -426,7 +438,6 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 </ScreenScaffold>
               ) : (
                 <TodayDayPicker
-                  routineName={todayPayload.routine.name}
                   days={normalizedDaySummaries.map(({ day, state, runnableExercises, invalidExercises }) => ({
                     id: day.id,
                     dayIndex: day.day_index,
