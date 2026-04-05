@@ -5,7 +5,7 @@ import { formatExerciseGoal } from "@/lib/exercise-goal-format";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
-import { formatDayTaxonomyHeaderSummaryFromCounts, getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { splitSessionHeaderTitle } from "@/lib/header-meta";
 import type { DisplayTarget } from "@/lib/session-targets";
 import {
@@ -166,12 +166,6 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
       };
     }),
   );
-  const sessionSummary = formatDayTaxonomyHeaderSummaryFromCounts({
-    dayName: sessionDayName,
-    summary: sessionSummaryCounts,
-    isRest: false,
-  });
-
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
 
   return (
@@ -181,7 +175,8 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           initialDurationSeconds={sessionRow.duration_seconds}
           performedAt={sessionRow.performed_at}
           routineName={routineName}
-          sessionSummary={sessionSummary}
+          sessionDayName={sessionDayName}
+          sessionSummaryCounts={sessionSummaryCounts}
           searchError={searchParams?.error}
           unitLabel={unitLabel}
           exercises={sessionExercises.map((exercise) => {
