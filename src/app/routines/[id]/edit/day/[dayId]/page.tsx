@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
@@ -139,7 +138,14 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   );
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions className="px-4 pb-0">
+      <ScrollScreenWithBottomActions
+        className="px-4 pb-0"
+        floatingHeader={(
+          <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
+            <div id="edit-day-floating-header-slot" />
+          </ScreenScaffold>
+        )}
+      >
         <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
           <EditDaySettingsAutosaveForm
             routineId={params.id}
@@ -149,12 +155,11 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
             dayIndex={day.day_index}
             name={(day as RoutineDayRow).name}
             isRest={(day as RoutineDayRow).is_rest}
+            floatingHeaderSlotId="edit-day-floating-header-slot"
+            headerActionSlotId="planned-workout-header-action-slot"
           />
 
-          <RoutineEditorSection
-            action={<div id="planned-workout-header-action-slot" />}
-          >
-            <EditableRoutineDayExerciseList
+          <EditableRoutineDayExerciseList
               routineId={params.id}
               routineDayId={params.dayId}
               weightUnit={(routine as RoutineRow).weight_unit}
@@ -166,7 +171,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
               addExerciseHref={addExerciseHref}
               headerActionSlotId="planned-workout-header-action-slot"
             />
-          </RoutineEditorSection>
         </ScreenScaffold>
       </ScrollScreenWithBottomActions>
     </AppShell>
