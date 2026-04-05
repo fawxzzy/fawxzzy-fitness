@@ -391,26 +391,32 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
   return (
     <MainTabScreen topNavMode="none">
-      <ScrollScreenWithBottomActions topChrome={<AppNav mode="topChrome" />} bottomDock={<BottomActionsSlot />}>
+      <ScrollScreenWithBottomActions
+        topChrome={<AppNav mode="topChrome" />}
+        bottomDock={<BottomActionsSlot />}
+        floatingHeader={todayPayload.routine && !fetchFailed && todayPayload.inProgressSessionId ? (
+          <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+            <SharedScreenHeader
+              recipe="todayOverview"
+              title={todayPayload.routine.name}
+              subtitle={(
+                <DayTaxonomyHeaderSummary
+                  dayName={todayPayload.routine.dayName}
+                  summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
+                  isRest={todayPayload.routine.isRest}
+                />
+              )}
+              action={<AppBadge tone="success">In Session</AppBadge>}
+            />
+          </ScreenScaffold>
+        ) : undefined}
+      >
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
             <div className="space-y-3">
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
                 <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-                  <SharedScreenHeader
-                    recipe="todayOverview"
-                    title={todayPayload.routine.name}
-                    subtitle={(
-                      <DayTaxonomyHeaderSummary
-                        dayName={todayPayload.routine.dayName}
-                        summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
-                        isRest={todayPayload.routine.isRest}
-                      />
-                    )}
-                    action={<AppBadge tone="success">In Session</AppBadge>}
-                  />
-
                   <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}

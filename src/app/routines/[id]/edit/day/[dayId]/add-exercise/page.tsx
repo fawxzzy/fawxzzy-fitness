@@ -49,13 +49,18 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions className="px-4 pb-0">
+      <ScrollScreenWithBottomActions
+        className="px-4 pb-0"
+        floatingHeader={(
+          <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
+            <RoutineEditorPageHeader
+              title="Add Exercise"
+              action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
+            />
+          </ScreenScaffold>
+        )}
+      >
         <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
-          <RoutineEditorPageHeader
-            title="Add Exercise"
-            action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
-          />
-
           <EditDayAddExerciseScreen
             routineId={params.id}
             routineDayId={params.dayId}

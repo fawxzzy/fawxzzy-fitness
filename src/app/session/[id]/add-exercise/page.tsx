@@ -32,14 +32,19 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions className="px-4 pb-0">
+      <ScrollScreenWithBottomActions
+        className="px-4 pb-0"
+        floatingHeader={(
+          <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md">
+            <RoutineEditorPageHeader
+              recipe="sessionAddExercise"
+              title="Add Exercise"
+              action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
+            />
+          </ScreenScaffold>
+        )}
+      >
         <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md">
-          <RoutineEditorPageHeader
-            recipe="sessionAddExercise"
-            title="Add Exercise"
-            action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
-          />
-
           <SessionQuickAddExerciseForm
             sessionId={params.id}
             exercises={exerciseOptions}

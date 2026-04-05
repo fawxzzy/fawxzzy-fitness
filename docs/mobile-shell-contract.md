@@ -42,3 +42,8 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
 - Canonical layered mobile chrome order is: top nav (`topChrome`) → optional floating header (`floatingHeader`) → scroll layer (`ScrollContainer`) → bottom action dock (`bottomDock`/published actions).
 - No final interactive content is hidden under the bottom dock.
 - No top content overlaps safe areas/status chrome.
+
+
+## Adoption status
+- Shell adoption is **COMPLETE** across major mobile routes.
+- All headers must use `floatingHeader`; scroll headers are deprecated.
