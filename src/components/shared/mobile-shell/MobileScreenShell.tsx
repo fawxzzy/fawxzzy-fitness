@@ -24,6 +24,9 @@ export function MobileScreenShell({
 }: MobileScreenShellProps) {
   const dockRef = useRef<HTMLDivElement | null>(null);
   const [dockHeight, setDockHeight] = useState(0);
+  const hasTopChrome = Boolean(topChrome);
+  const hasFloatingHeader = Boolean(floatingHeader);
+  const shouldApplyTopChromeContentGap = hasTopChrome && !hasFloatingHeader;
 
   useEffect(() => {
     const node = dockRef.current;
@@ -52,8 +55,12 @@ export function MobileScreenShell({
   return (
     <BottomActionsProvider>
       <section className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden", className)}>
-        {topChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
-        {floatingHeader ? <div className="z-20 flex-none">{floatingHeader}</div> : null}
+        {hasTopChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
+        {hasFloatingHeader ? (
+          <div className={cn("z-20 flex-none", hasTopChrome ? "" : "pt-[var(--app-standalone-safe-top,max(var(--app-safe-top),var(--vv-top,0px)))]")}>
+            {floatingHeader}
+          </div>
+        ) : null}
 
         <ScrollContainer
           className={cn("min-h-0 flex-1", scrollClassName)}
@@ -62,7 +69,7 @@ export function MobileScreenShell({
           <div
             className={cn(
               "min-w-0 max-w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-dock-height,0px)+var(--app-mobile-dock-clearance-gap,0px))]",
-              topChrome ? "pt-[var(--app-top-chrome-content-gap,8px)]" : "",
+              shouldApplyTopChromeContentGap ? "pt-[var(--app-top-chrome-content-gap,8px)]" : "",
             )}
           >
             {children}

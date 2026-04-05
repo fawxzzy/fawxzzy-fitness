@@ -14,7 +14,9 @@ type ScrollScreenWithBottomActionsProps = {
 };
 
 export function ScrollScreenWithBottomActions({ children, className, topChrome, floatingHeader, bottomDock }: ScrollScreenWithBottomActionsProps) {
-  const wrappedChildren = topChrome ? children : <StandaloneScreenSafeArea>{children}</StandaloneScreenSafeArea>;
+  const wrappedChildren = topChrome || floatingHeader
+    ? children
+    : <StandaloneScreenSafeArea>{children}</StandaloneScreenSafeArea>;
 
   return (
     <MobileScreenScaffold
