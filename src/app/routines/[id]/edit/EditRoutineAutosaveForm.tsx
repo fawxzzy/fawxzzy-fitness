@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useMemo, useState, useTransition } from "rea
 import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { RoutineEditorPageBody, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -117,22 +117,20 @@ export function EditRoutineAutosaveForm(props: Props) {
         <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
         <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
         <RoutineEditorPageBody>
-          <RoutineEditorSection title="Details">
-            <RoutineEditorFormFields
-              titleInput
-              cycleLengthDefaultValue={draft.cycleLengthDays}
-              startWeekdayDefaultValue={draft.startWeekday}
-              timezoneDefaultValue={draft.timezone}
-              weightUnitDefaultValue={draft.weightUnit}
-              values={draft}
-              onFieldChange={(field, value) => {
-                setDraft((current) => ({
-                  ...current,
-                  [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
-                }));
-              }}
-            />
-          </RoutineEditorSection>
+          <RoutineEditorFormFields
+            titleInput
+            cycleLengthDefaultValue={draft.cycleLengthDays}
+            startWeekdayDefaultValue={draft.startWeekday}
+            timezoneDefaultValue={draft.timezone}
+            weightUnitDefaultValue={draft.weightUnit}
+            values={draft}
+            onFieldChange={(field, value) => {
+              setDraft((current) => ({
+                ...current,
+                [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
+              }));
+            }}
+          />
 
           <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} mode="edit" />
         </RoutineEditorPageBody>

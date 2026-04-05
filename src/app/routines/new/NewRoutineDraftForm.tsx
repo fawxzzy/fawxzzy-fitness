@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RoutineEditorPageBody, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -76,23 +76,21 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   return (
     <>
       <RoutineEditorPageBody>
-        <RoutineEditorSection title="Details">
-          <RoutineEditorFormFields
-            titleInput
-            cycleLengthDefaultValue={draft.cycleLengthDays}
-            startWeekdayDefaultValue={draft.startWeekday}
-            timezoneDefaultValue={draft.timezone}
-            weightUnitDefaultValue={draft.weightUnit}
-            values={draft}
-            onFieldChange={(field, value) => {
-              setHasUserEdited(true);
-              setDraft((current) => ({
-                ...current,
-                [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
-              }));
-            }}
-          />
-        </RoutineEditorSection>
+        <RoutineEditorFormFields
+          titleInput
+          cycleLengthDefaultValue={draft.cycleLengthDays}
+          startWeekdayDefaultValue={draft.startWeekday}
+          timezoneDefaultValue={draft.timezone}
+          weightUnitDefaultValue={draft.weightUnit}
+          values={draft}
+          onFieldChange={(field, value) => {
+            setHasUserEdited(true);
+            setDraft((current) => ({
+              ...current,
+              [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
+            }));
+          }}
+        />
         <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={hasDirtyChanges} mode="create" />
       </RoutineEditorPageBody>
 
