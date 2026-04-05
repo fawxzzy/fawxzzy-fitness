@@ -60,3 +60,12 @@
   - Section shell/body spacing tightened to `space-y-3` / `space-y-2.5`.
 - `AnchoredSelectorPanel` reveal + body spacing was reduced (`space-y-2`/`pt-2.5` down to `space-y-1.5`/`pt-2`) so opening the day list keeps more workout content visible.
 - `/today` route wrappers were adjusted to match recipe intent (smaller inter-block spacing and slightly reduced tail padding) while preserving bottom action dock clearance.
+
+## Mobile chrome normalization pass (2026-04-05)
+- Completed the cross-screen mobile chrome normalization pass using `MobileScreenShell` as the contract owner for layered mobile structure.
+- Canonical behavior is now documented and implemented as:
+  - pinned top nav layer (`topChrome`)
+  - optional pinned floating header layer (`floatingHeader`)
+  - single middle scroll owner (`ScrollContainer`) with content scrolling under chrome
+  - pinned bottom action layer (`bottomDock` / `PublishBottomActions`)
+- History mode controls were moved to the left side of the bottom action bar as inverse actions (`Detailed View` / `Compact View`), with tab switching retained on the right action.

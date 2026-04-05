@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
@@ -74,11 +73,10 @@ export function HistorySessionsClient({
 }) {
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
   const router = useRouter();
+  const inverseViewLabel = viewMode === "compact" ? "Detailed View" : "Compact View";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <HistoryTitleControlShell label="Sessions" viewMode={viewMode} onViewModeChange={setViewMode} />
-
       {sessions.length > 0 ? (
         <ul className="space-y-1.5">
           {sessions.map((session) => (
@@ -91,11 +89,22 @@ export function HistorySessionsClient({
         <AppPanel className="rounded-[1.5rem] border-dashed p-5 text-sm text-muted">No completed sessions yet.</AppPanel>
       )}
       <PublishBottomActions>
-        <BottomActionSingle>
-          <BottomDockButton type="button" variant="secondary" onClick={() => router.push("/history/exercises")}>
-            View Exercises
-          </BottomDockButton>
-        </BottomActionSingle>
+        <BottomActionSplit
+          secondary={(
+            <BottomDockButton
+              type="button"
+              variant="secondary"
+              onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
+            >
+              {inverseViewLabel}
+            </BottomDockButton>
+          )}
+          primary={(
+            <BottomDockButton type="button" variant="secondary" onClick={() => router.push("/history/exercises")}>
+              View Exercises
+            </BottomDockButton>
+          )}
+        />
       </PublishBottomActions>
     </div>
   );

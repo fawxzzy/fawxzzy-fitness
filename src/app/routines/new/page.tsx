@@ -1,5 +1,7 @@
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { RoutineBackButton } from "@/components/RoutineBackButton";
+import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { getRoutineStartWeekdayFromDate, getTodayDateInTimeZone } from "@/lib/routines";
@@ -17,7 +19,16 @@ export default async function NewRoutinePage() {
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions>
+      <ScrollScreenWithBottomActions
+        floatingHeader={(
+          <div className="px-1">
+            <RoutineEditorPageHeader
+              title="Routine Details"
+              action={<RoutineBackButton href="/routines" />}
+            />
+          </div>
+        )}
+      >
         <NewRoutineDraftForm
           defaults={{
             name: "",

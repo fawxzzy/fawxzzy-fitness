@@ -16,22 +16,29 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
 
 3. **Top chrome slot**
    - `topChrome` renders in a persistent non-scrolling slot above the scroll owner.
+   - Use this slot for global/top-level navigation chrome.
    - Shell applies one shared top-chrome-to-content rhythm gap via `--app-top-chrome-content-gap` (default `10px`).
    - Screen content must not recreate route-level fixed headers when `topChrome` is provided.
 
-4. **Bottom dock slot + measured inset**
+4. **Floating header slot (optional)**
+   - `floatingHeader` renders in a persistent non-scrolling slot between top chrome and scroll content.
+   - Use this for screen-specific identity/header cards (e.g., Routine Details, Save Set, History control surfaces) that should remain pinned while content scrolls.
+   - Do not keep these header cards inside the list/content scroll subtree.
+
+5. **Bottom dock slot + measured inset**
    - `bottomDock` renders in a persistent non-scrolling slot below the scroll owner.
    - Shell measures dock height and writes `--app-mobile-bottom-dock-height`.
    - Scroll content automatically receives bottom inset (`dock height + --app-mobile-dock-clearance-gap`, default `6px`) so final interactive rows remain fully reachable above the dock.
    - Child lists/editors must not stack legacy `--app-bottom-action-bar-height` padding when rendered inside this shell.
    - Bottom dock spacing must have one owner per screen; inner sections/lists must not add a second dock-height reservation layer.
 
-5. **Bottom actions publishing**
+6. **Bottom actions publishing**
    - Use `PublishBottomActions` / `usePublishBottomActions` for screen-specific actions.
    - `BottomActionsSlot` is shell-owned and should not be embedded in list rows.
 
 ## Validation checklist
 
 - Today, Routines, View Day, Edit Day, Add Exercise, and active workout screens keep a single scroll owner.
+- Canonical layered mobile chrome order is: top nav (`topChrome`) → optional floating header (`floatingHeader`) → scroll layer (`ScrollContainer`) → bottom action dock (`bottomDock`/published actions).
 - No final interactive content is hidden under the bottom dock.
 - No top content overlaps safe areas/status chrome.

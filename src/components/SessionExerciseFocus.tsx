@@ -438,6 +438,7 @@ export function SessionExerciseFocus({
           <WorkoutEntryIdentity
             title={selectedExercise?.name ?? "Exercise"}
             description={selectedExercise?.goalLabel || undefined}
+            descriptionClassName="truncate whitespace-nowrap text-ellipsis text-xs sm:text-sm"
             meta={selectedExercise && (selectedExercise.routineDayExerciseId === null || (selectedExerciseProgress?.chips.length ?? 0) > 0) ? (
               <div className="flex flex-wrap items-center gap-2">
                 {selectedExercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}

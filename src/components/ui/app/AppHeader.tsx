@@ -16,6 +16,7 @@ export function AppHeader({
   className,
   actionClassName,
   titleClassName,
+  subtitleClassName,
   titleAs = "h1",
 }: {
   eyebrow?: ReactNode;
@@ -30,6 +31,7 @@ export function AppHeader({
   className?: string;
   actionClassName?: string;
   titleClassName?: string;
+  subtitleClassName?: string;
   titleAs?: "h1" | "h2" | "h3";
 }) {
   const resolvedSubtitle = subtitle ?? subtitleLeft;
@@ -50,14 +52,14 @@ export function AppHeader({
               {hasSubtitleRow ? (
                 <div className={cn("flex min-w-0 gap-2", subtitleRight ? "items-start justify-between" : "items-center")}>
                   {shouldMergeSubtitleAndMeta ? (
-                    <p className="min-w-0 text-left text-sm leading-snug text-[rgb(var(--text)/0.72)] [text-wrap:pretty] [overflow-wrap:anywhere]">
+                    <p className={cn("min-w-0 text-left text-sm leading-snug text-[rgb(var(--text)/0.72)] [text-wrap:pretty] [overflow-wrap:anywhere]", subtitleClassName)}>
                       <span className="align-middle">{resolvedSubtitle}</span>
                       <span className="inline align-middle text-[rgb(var(--text)/0.6)] before:mx-1 before:inline-block before:text-[rgb(var(--text)/0.5)] before:content-['\2022']">
                         {meta}
                       </span>
                     </p>
                   ) : resolvedSubtitle ? (
-                    <div className="min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]">{resolvedSubtitle}</div>
+                    <div className={cn("min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]", subtitleClassName)}>{resolvedSubtitle}</div>
                   ) : <span />}
                   {subtitleRight ? (
                     <div className="shrink-0 text-right text-sm text-[rgb(var(--text)/0.6)]">{subtitleRight}</div>
