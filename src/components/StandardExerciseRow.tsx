@@ -27,7 +27,7 @@ type StandardExerciseRowProps = {
   titleContainerClassName?: string;
   titleClassName?: string;
   subtitleClassName?: string;
-  variant?: "compact" | "interactive" | "expanded" | "summary";
+  variant?: "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
   state?: "default" | "selected" | "active" | "completed" | "empty";
   children?: ReactNode;
 };
@@ -48,7 +48,7 @@ export function StandardExerciseRow({
   titleContainerClassName,
   titleClassName,
   subtitleClassName,
-  variant = "interactive",
+  variant = "standard",
   state,
   children,
 }: StandardExerciseRowProps) {

@@ -321,7 +321,7 @@ export function SessionExerciseFocus({
                     <StandardExerciseRow
                       exercise={exercise}
                       summary={exercise.goalLabel}
-                      variant="compact"
+                      variant="standard"
                       state={rowState.cardState}
                       onPress={() => onSelectedExerciseIdChange(exercise.id)}
                       className="shadow-none"

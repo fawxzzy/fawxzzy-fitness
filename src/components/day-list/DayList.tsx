@@ -114,7 +114,7 @@ export function DayCard({ onPress, wrapper, state = "default", metaText, subtitl
       contentClassName="space-y-0.5 sm:space-y-1"
       titleClassName="[text-wrap:pretty]"
       subtitleClassName="[text-wrap:pretty] line-clamp-2"
-      variant="compact"
+      variant="list"
     />
   );
 

@@ -46,7 +46,7 @@ export function TodayExerciseRows({
               <StandardExerciseRow
                 exercise={exercise}
                 summary={exercise.targets}
-                variant="compact"
+                variant="standard"
                 state={cardVariantState.cardState}
                 badgeText={cardVariantState.badgeText}
                 onPress={() => {

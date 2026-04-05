@@ -39,7 +39,7 @@ function HistorySessionCard({
       className="block rounded-[1.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
       <StandardExerciseRow
-        variant="compact"
+        variant="list"
         state={selected ? "selected" : "default"}
         exercise={{ name: session.routineTitle || "Unknown routine" }}
         summary={formatSubtitle(session)}

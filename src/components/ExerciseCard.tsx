@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
 import { textRoles } from "@/components/ui/text-roles";
 
-type ExerciseCardVariant = "compact" | "interactive" | "expanded" | "summary";
+type ExerciseCardVariant = "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
 type ExerciseCardState = "default" | "selected" | "active" | "completed" | "empty";
 
 const defaultChevron = <span aria-hidden="true" className="text-muted">›</span>;
@@ -33,24 +33,33 @@ const mediaShellStateClassNames: Record<ExerciseCardState, string> = {
 };
 
 const mediaShellSizeClassNames: Record<ExerciseCardVariant, string> = {
+  standard: "h-11 w-11 rounded-[0.95rem] p-0.5",
   compact: "h-11 w-11 rounded-[0.95rem] p-0.5",
+  list: "h-11 w-11 rounded-[0.95rem] p-0.5",
   interactive: "h-11 w-11 rounded-[0.95rem] p-0.5",
   expanded: "h-11 w-11 rounded-[0.95rem] p-0.5",
   summary: "h-11 w-11 rounded-[0.95rem] p-0.5",
+  reorder: "h-11 w-11 rounded-[0.95rem] p-0.5",
 };
 
 const variantClassNames: Record<ExerciseCardVariant, string> = {
+  standard: "min-h-[4.35rem] px-3.5 py-2.75",
   compact: "min-h-[4.35rem] px-3.5 py-2.75",
+  list: "min-h-[4.35rem] px-3.5 py-2.75",
   interactive: "min-h-[4.35rem] px-3.5 py-2.75",
-  expanded: "min-h-[4.5rem] px-3.5 py-2.75",
-  summary: "min-h-[4.5rem] px-3.5 py-2.75",
+  expanded: "min-h-[4.35rem] px-3.5 py-2.75",
+  summary: "min-h-[4.35rem] px-3.5 py-2.75",
+  reorder: "min-h-[4.35rem] px-3.5 py-2.75",
 };
 
 const rightRailWidthByVariant: Record<ExerciseCardVariant, string> = {
+  standard: "w-[5.2rem] min-w-[5.2rem]",
   compact: "w-[5.2rem] min-w-[5.2rem]",
+  list: "w-[5.2rem] min-w-[5.2rem]",
   interactive: "w-[5.2rem] min-w-[5.2rem]",
-  expanded: "w-[5.8rem] min-w-[5.8rem]",
-  summary: "w-[5.8rem] min-w-[5.8rem]",
+  expanded: "w-[5.2rem] min-w-[5.2rem]",
+  summary: "w-[5.2rem] min-w-[5.2rem]",
+  reorder: "w-[5.9rem] min-w-[5.9rem]",
 };
 
 const stateClassNames: Record<ExerciseCardState, string> = {
@@ -89,7 +98,7 @@ export function ExerciseCard({
   titleContainerClassName,
   titleClassName,
   subtitleClassName,
-  variant = "interactive",
+  variant = "standard",
   state = "default",
 }: {
   title: string;
@@ -131,10 +140,10 @@ export function ExerciseCard({
 
       <div className={cn("min-w-0 self-center space-y-1", contentClassName)}>
         <div className={cn("min-w-0 space-y-0.5", titleContainerClassName)}>
-          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-[1.24] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", titleStateClassNames[state], titleClassName)}>
+          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-[1.26] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", titleStateClassNames[state], titleClassName)}>
             {title}
           </p>
-          {subtitle ? <p className={cn("min-w-0 text-xs leading-[1.22] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", subtitleStateClassNames[state], subtitleClassName)}>{subtitle}</p> : null}
+          {subtitle ? <p className={cn("min-w-0 text-xs leading-[1.28] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", subtitleStateClassNames[state], subtitleClassName)}>{subtitle}</p> : null}
         </div>
         {children}
       </div>
