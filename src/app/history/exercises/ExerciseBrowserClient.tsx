@@ -2,9 +2,8 @@
 
 import { memo, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { ExerciseCard } from "@/components/ExerciseCard";
+import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import type { ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -13,7 +12,6 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { cn } from "@/lib/cn";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
 type ExerciseBrowserClientProps = {
@@ -73,13 +71,6 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   viewMode: "compact" | "detailed";
 }) {
   const displayName = getExerciseDisplayName(row);
-  const iconSrc = getExerciseIconSrc({
-    name: displayName,
-    slug: row.slug,
-    image_path: row.image_path,
-    image_icon_path: row.image_icon_path,
-    image_howto_path: row.image_howto_path,
-  });
   const lastDate = formatShortDate(row.last_performed_at);
   const strengthPrSummary = typeof row.pr_est_1rm === "number" && Number.isFinite(row.pr_est_1rm) && row.pr_est_1rm > 0
     ? `${row.pr_est_1rm.toFixed(0)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
@@ -96,8 +87,9 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
 
   if (viewMode === "compact") {
     return (
-      <ExerciseCard
-        title={`${displayName} | ${primaryLine || fallbackLine}`}
+      <StandardExerciseRow
+        exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
+        summary={primaryLine || fallbackLine}
         onPress={() => {
           if (process.env.NODE_ENV === "development") {
             console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
@@ -105,17 +97,18 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
           onOpen(row.exerciseId);
         }}
         rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-        variant="compact"
+        variant="list"
         state={hasSignal ? "selected" : "default"}
-        className="items-center"
+        className="shadow-none"
+        titleClassName="line-clamp-2"
       />
     );
   }
 
   return (
-    <ExerciseCard
-      title={displayName}
-      subtitle={primaryLine || fallbackLine}
+    <StandardExerciseRow
+      exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
+      summary={primaryLine || fallbackLine}
       onPress={() => {
         if (process.env.NODE_ENV === "development") {
           console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
@@ -123,21 +116,12 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         onOpen(row.exerciseId);
       }}
       rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-      variant="summary"
+      variant="list"
       state={hasSignal ? "selected" : "default"}
-      leadingVisual={(
-        <ExerciseAssetImage
-          src={iconSrc}
-          alt={displayName}
-          className="h-full w-full"
-          imageClassName="object-cover object-center"
-          sizes="80px"
-        />
-      )}
-      className="items-center"
+      className="shadow-none"
     >
       {secondaryLine ? <p className={cn("line-clamp-2 text-xs text-[rgb(var(--text)/0.62)]")}>{secondaryLine}</p> : null}
-    </ExerciseCard>
+    </StandardExerciseRow>
   );
 });
 

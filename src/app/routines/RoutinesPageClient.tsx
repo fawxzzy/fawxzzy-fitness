@@ -190,7 +190,7 @@ export function RoutinesPageClient({
                     <StandardExerciseRow
                       exercise={{ name: routine.name }}
                       summary={routine.summary}
-                      variant="compact"
+                      variant="standard"
                       onPress={() => handleSwitchRoutine(routine.id)}
                       state={isCurrent ? "selected" : "default"}
                       badgeText={isCurrent ? "ACTIVE" : undefined}

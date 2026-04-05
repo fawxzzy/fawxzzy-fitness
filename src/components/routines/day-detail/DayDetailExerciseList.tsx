@@ -43,14 +43,13 @@ export function DayDetailExerciseList({
                 variant="interactive"
                 state={isActive && mode === "editable" ? "selected" : "default"}
                 onPress={interactive ? () => onSelectItem?.(item) : undefined}
-                badgeText={mode === "editable" ? `#${index + 1}` : undefined}
-                trailingClassName="self-start pt-0.5"
+                badgeText={mode === "editable" ? `ORDER ${index + 1}` : undefined}
                 className={cn(
                   listShellClasses.card,
                   "w-full",
                   isActive && mode === "editable" ? "rounded-b-none" : undefined,
                 )}
-                rightIcon={<span aria-hidden="true" className="pt-0.5 text-muted">›</span>}
+                rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
               />
 
               {isActive && mode === "editable" && renderExpandedContent ? (

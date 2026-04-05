@@ -77,9 +77,9 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 const pickerRowMobileDensityClassNames = {
   card: "max-md:min-h-[4.2rem] max-md:rounded-[1rem] max-md:border-border/38 max-md:bg-[rgb(var(--surface-2-soft)/0.62)] max-md:px-3 max-md:py-2.5 max-md:shadow-none",
   body: "max-md:gap-2",
-  title: "max-md:text-[0.92rem] max-md:leading-[1.22] max-md:whitespace-nowrap max-md:overflow-hidden max-md:text-ellipsis",
+  title: "max-md:text-[0.92rem] max-md:leading-[1.24] max-md:line-clamp-2",
   titleContainer: "max-md:space-y-0.5",
-  subtitle: "max-md:text-[11px] max-md:leading-[1.15] max-md:line-clamp-1",
+  subtitle: "max-md:text-[11px] max-md:leading-[1.2] max-md:line-clamp-2",
   content: "max-md:space-y-0.5",
   trailing: "max-md:min-w-[5.1rem]",
   selectPill: "max-md:min-h-6 max-md:min-w-[3.6rem] max-md:px-2 max-md:text-[10px]",
