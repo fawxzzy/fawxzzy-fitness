@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 type MobileScreenShellProps = {
   children: ReactNode;
   topChrome?: ReactNode;
+  floatingHeader?: ReactNode;
   bottomDock?: ReactNode;
   className?: string;
   scrollClassName?: string;
@@ -16,6 +17,7 @@ type MobileScreenShellProps = {
 export function MobileScreenShell({
   children,
   topChrome,
+  floatingHeader,
   bottomDock,
   className,
   scrollClassName,
@@ -51,6 +53,7 @@ export function MobileScreenShell({
     <BottomActionsProvider>
       <section className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden", className)}>
         {topChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
+        {floatingHeader ? <div className="z-20 flex-none">{floatingHeader}</div> : null}
 
         <ScrollContainer
           className={cn("min-h-0 flex-1", scrollClassName)}

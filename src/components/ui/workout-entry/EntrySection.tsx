@@ -39,6 +39,7 @@ export function WorkoutEntryIdentity({
   eyebrow,
   title,
   description,
+  descriptionClassName,
   meta,
   actions,
   className,
@@ -46,6 +47,7 @@ export function WorkoutEntryIdentity({
   eyebrow?: string;
   title: string;
   description?: string;
+  descriptionClassName?: string;
   meta?: ReactNode;
   actions?: ReactNode;
   className?: string;
@@ -56,6 +58,7 @@ export function WorkoutEntryIdentity({
       eyebrow={eyebrow}
       title={title}
       subtitle={description}
+      subtitleClassName={descriptionClassName}
       meta={meta}
       action={actions}
       className={className}

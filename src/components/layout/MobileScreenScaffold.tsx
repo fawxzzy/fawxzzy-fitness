@@ -6,6 +6,7 @@ import { MobileScreenShell } from "@/components/shared/mobile-shell/MobileScreen
 type MobileScreenScaffoldProps = {
   children: ReactNode;
   topChrome?: ReactNode;
+  floatingHeader?: ReactNode;
   bottomDock?: ReactNode;
   className?: string;
   scrollClassName?: string;
@@ -14,6 +15,7 @@ type MobileScreenScaffoldProps = {
 export function MobileScreenScaffold({
   children,
   topChrome,
+  floatingHeader,
   bottomDock,
   className,
   scrollClassName,
@@ -23,6 +25,7 @@ export function MobileScreenScaffold({
       className={className}
       scrollClassName={scrollClassName}
       topChrome={topChrome}
+      floatingHeader={floatingHeader}
       bottomDock={bottomDock}
     >
       {children}

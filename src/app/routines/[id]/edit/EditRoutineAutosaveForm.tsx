@@ -1,11 +1,10 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
-import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { BottomActionStack } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { RoutineEditorPageBody, RoutineEditorPageHeader, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
+import { RoutineEditorPageBody, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -117,12 +116,6 @@ export function EditRoutineAutosaveForm(props: Props) {
         <input type="hidden" name="routineId" value={props.routineId} />
         <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
         <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
-        <div className="px-1">
-          <RoutineEditorPageHeader
-            title="Routine Details"
-            action={<RoutineBackButton href={props.returnHref} hasUnsavedChanges={isDirty} />}
-          />
-        </div>
         <RoutineEditorPageBody>
           <RoutineEditorSection title="Details">
             <RoutineEditorFormFields

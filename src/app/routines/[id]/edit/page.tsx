@@ -3,6 +3,8 @@ import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButto
 import { EditRoutineAutosaveForm } from "@/app/routines/[id]/edit/EditRoutineAutosaveForm";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { RoutineBackButton } from "@/components/RoutineBackButton";
+import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
 import { ROUTINE_START_WEEKDAYS, getRoutineStartWeekdayFromDate } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
@@ -35,7 +37,16 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
 
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions>
+      <ScrollScreenWithBottomActions
+        floatingHeader={(
+          <div className="px-1">
+            <RoutineEditorPageHeader
+              title="Routine Details"
+              action={<RoutineBackButton href={returnHref} />}
+            />
+          </div>
+        )}
+      >
         <EditRoutineAutosaveForm
           routineId={routine.id}
           existingStartDate={(routine as RoutineRow).start_date}

@@ -16,6 +16,7 @@ export function SharedScreenHeader({
   children,
   className,
   actionClassName,
+  subtitleClassName,
   withPanel = true,
 }: {
   recipe: ScreenContractName;
@@ -28,6 +29,7 @@ export function SharedScreenHeader({
   children?: ReactNode;
   className?: string;
   actionClassName?: string;
+  subtitleClassName?: string;
   withPanel?: boolean;
 }) {
   const screenRecipe = resolveScreenRecipe(recipe);
@@ -43,6 +45,7 @@ export function SharedScreenHeader({
         className={standaloneHeaderFamily.headerClassName}
         actionClassName={cn(standaloneHeaderFamily.actionClassName, actionClassName)}
         titleClassName={standaloneHeaderFamily.titleClassName}
+        subtitleClassName={subtitleClassName}
       />
       {children ? <div className={standaloneHeaderFamily.dividerClassName}>{children}</div> : null}
     </>

@@ -9,16 +9,18 @@ type ScrollScreenWithBottomActionsProps = {
   children: ReactNode;
   className?: string;
   topChrome?: ReactNode;
+  floatingHeader?: ReactNode;
   bottomDock?: ReactNode;
 };
 
-export function ScrollScreenWithBottomActions({ children, className, topChrome, bottomDock }: ScrollScreenWithBottomActionsProps) {
+export function ScrollScreenWithBottomActions({ children, className, topChrome, floatingHeader, bottomDock }: ScrollScreenWithBottomActionsProps) {
   const wrappedChildren = topChrome ? children : <StandaloneScreenSafeArea>{children}</StandaloneScreenSafeArea>;
 
   return (
     <MobileScreenScaffold
       scrollClassName={cn("min-w-0 max-w-full overflow-x-hidden touch-pan-y", className)}
       topChrome={topChrome}
+      floatingHeader={floatingHeader}
       bottomDock={bottomDock}
     >
       {wrappedChildren}

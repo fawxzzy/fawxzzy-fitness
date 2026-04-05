@@ -7,7 +7,7 @@ import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import type { ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
@@ -131,6 +131,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
   const router = useRouter();
+  const inverseViewLabel = viewMode === "compact" ? "Detailed View" : "Compact View";
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -193,7 +194,11 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <HistoryTitleControlShell label="Exercises" viewMode={viewMode} onViewModeChange={setViewMode}>
+      <HistoryTitleControlShell
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        showViewModeToggle={false}
+      >
         <ExerciseSearchFilters
           query={query}
           onQueryChange={setQuery}
@@ -229,11 +234,22 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
         sourceContext="ExerciseBrowserClient"
       />
       <PublishBottomActions>
-        <BottomActionSingle>
-          <BottomDockButton type="button" variant="secondary" onClick={() => router.push("/history")}>
-            View Sessions
-          </BottomDockButton>
-        </BottomActionSingle>
+        <BottomActionSplit
+          secondary={(
+            <BottomDockButton
+              type="button"
+              variant="secondary"
+              onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
+            >
+              {inverseViewLabel}
+            </BottomDockButton>
+          )}
+          primary={(
+            <BottomDockButton type="button" variant="secondary" onClick={() => router.push("/history")}>
+              View Sessions
+            </BottomDockButton>
+          )}
+        />
       </PublishBottomActions>
     </div>
   );
