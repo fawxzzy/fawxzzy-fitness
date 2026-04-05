@@ -84,15 +84,20 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
 
   return (
     <MainTabScreen topNavMode="none" className="space-y-0">
-      <ScrollScreenWithBottomActions className="px-4 pb-0">
+      <ScrollScreenWithBottomActions
+        className="px-4 pb-0"
+        floatingHeader={(
+          <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md">
+            <SharedScreenHeader
+              recipe="viewDay"
+              title={routineRow.name}
+              subtitle={<DayTaxonomyHeaderSummary dayName={dayLabel} summary={daySummary} isRest={dayRow.is_rest} />}
+              action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
+            />
+          </ScreenScaffold>
+        )}
+      >
         <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md">
-          <SharedScreenHeader
-            recipe="viewDay"
-            title={routineRow.name}
-            subtitle={<DayTaxonomyHeaderSummary dayName={dayLabel} summary={daySummary} isRest={dayRow.is_rest} />}
-            action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
-          />
-
           <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
             {canonicalDay?.state === "partial" ? (
               <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
