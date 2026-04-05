@@ -24,6 +24,7 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
    - `floatingHeader` renders in a persistent non-scrolling slot between top chrome and scroll content.
    - Use this for screen-specific identity/header cards (e.g., Routine Details, Save Set, History control surfaces) that should remain pinned while content scrolls.
    - Do not keep these header cards inside the list/content scroll subtree.
+   - `SharedScreenHeader` rendered inside scroll content is a deprecated pattern; `MobileScreenShell` emits a dev warning when it detects this placement.
    - When a screen has **no** `topChrome`, standalone safe-top inset is owned by the floating-header slot; scroll content must not add a second standalone safe-top pad.
 
 5. **Bottom dock slot + measured inset**
@@ -49,3 +50,4 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
 ## Adoption status
 - Shell adoption is **COMPLETE** across major mobile routes.
 - All headers must use `floatingHeader`; scroll headers are deprecated.
+- In development, `MobileScreenShell` warns when a `SharedScreenHeader` is rendered inside scroll content instead of `floatingHeader`.

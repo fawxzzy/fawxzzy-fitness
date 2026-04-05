@@ -20,6 +20,8 @@ export function MobileScreenScaffold({
   className,
   scrollClassName,
 }: MobileScreenScaffoldProps) {
+  // Mobile shell contract:
+  // All route headers must use `floatingHeader`; scroll headers are deprecated.
   return (
     <MobileScreenShell
       className={className}

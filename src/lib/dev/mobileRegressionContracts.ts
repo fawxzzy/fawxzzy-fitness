@@ -68,6 +68,10 @@ export function goalFormReadable(scenario: MobileFixtureScenario) {
   return !hasLabelOverflow && hasAnyHelperText;
 }
 
+export function routeUsesFloatingHeader(scenario: MobileFixtureScenario) {
+  return scenario.usesFloatingHeader;
+}
+
 export function validateMobileScenarioContracts(scenario: MobileFixtureScenario) {
   return {
     finalRowVisibleAboveDock: finalRowVisibleAboveDock(scenario),
@@ -80,5 +84,6 @@ export function validateMobileScenarioContracts(scenario: MobileFixtureScenario)
     cardStateCorrectness: cardStateCorrectness(scenario),
     reorderTextStable: reorderTextStable(scenario),
     goalFormReadable: goalFormReadable(scenario),
+    routeUsesFloatingHeader: routeUsesFloatingHeader(scenario),
   };
 }

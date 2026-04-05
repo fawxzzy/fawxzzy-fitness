@@ -18,3 +18,20 @@ test("fixture inventory covers all mobile screens from the pre-fix set", () => {
   assert.equal(byRoute.get("editRoutine"), 1);
   assert.equal(byRoute.get("addExercise"), 1);
 });
+
+test("major mobile routes declare floatingHeader usage", () => {
+  const byRoute = new Map<string, boolean[]>();
+  for (const scenario of mobileRegressionScenarios) {
+    const existing = byRoute.get(scenario.route) ?? [];
+    existing.push(scenario.usesFloatingHeader);
+    byRoute.set(scenario.route, existing);
+  }
+
+  for (const [route, usesFloatingHeaderValues] of byRoute.entries()) {
+    assert.equal(
+      usesFloatingHeaderValues.every(Boolean),
+      true,
+      `${route}: one or more scenarios do not use floatingHeader`,
+    );
+  }
+});
