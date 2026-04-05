@@ -30,6 +30,7 @@ export function MobileScreenShell({
   const [dockHeight, setDockHeight] = useState(0);
   const hasTopChrome = Boolean(topChrome);
   const hasFloatingHeader = Boolean(floatingHeader);
+  const shouldApplyTopChromeFloatingHeaderGap = hasTopChrome && hasFloatingHeader;
   const shouldApplyTopChromeContentGap = hasTopChrome && !hasFloatingHeader;
 
   useEffect(() => {
@@ -71,7 +72,13 @@ export function MobileScreenShell({
       <section className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden", className)}>
         {hasTopChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
         {hasFloatingHeader ? (
-          <div className={cn("z-20 flex-none", hasTopChrome ? "" : "pt-[var(--app-standalone-safe-top,max(var(--app-safe-top),var(--vv-top,0px)))]")}>
+          <div
+            className={cn(
+              "z-20 flex-none",
+              shouldApplyTopChromeFloatingHeaderGap ? "pt-[var(--app-top-chrome-floating-header-gap,8px)]" : "",
+              hasTopChrome ? "" : "pt-[var(--app-standalone-safe-top,max(var(--app-safe-top),var(--vv-top,0px)))]",
+            )}
+          >
             {floatingHeader}
           </div>
         ) : null}

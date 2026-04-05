@@ -25,6 +25,7 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
    - Use this for screen-specific identity/header cards (e.g., Routine Details, Save Set, History control surfaces) that should remain pinned while content scrolls.
    - Do not keep these header cards inside the list/content scroll subtree.
    - `SharedScreenHeader` rendered inside scroll content is a deprecated pattern; `MobileScreenShell` emits a dev warning when it detects this placement.
+   - When `topChrome` and `floatingHeader` both render, shell owns a single rhythm gap between them via `--app-top-chrome-floating-header-gap` (default `8px`).
    - When a screen has **no** `topChrome`, standalone safe-top inset is owned by the floating-header slot; scroll content must not add a second standalone safe-top pad.
 
 5. **Bottom dock slot + measured inset**

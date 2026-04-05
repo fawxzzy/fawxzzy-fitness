@@ -400,6 +400,24 @@ export function EditableRoutineDayExerciseList({
     </div>
   );
 
+  const dockWithRestToggleSlot = (
+    <BottomActionDock
+      left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
+      right={null}
+    />
+  );
+
+  const addExerciseDock = (
+    <BottomActionDock
+      left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
+      right={(
+        <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
+          Add Exercise
+        </BottomDockButton>
+      )}
+    />
+  );
+
   if (items.length === 0 || modeViewModel.sections.restDayCardVisible) {
     return (
       <>
@@ -419,14 +437,9 @@ export function EditableRoutineDayExerciseList({
               )}
             />
           ) : ctaDockState.variant === "add_exercise" ? (
-            <BottomActionDock
-              left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
-              right={(
-                <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
-                  Add Exercise
-                </BottomDockButton>
-              )}
-            />
+            addExerciseDock
+          ) : ctaDockState.variant === "rest_toggle_only" ? (
+            dockWithRestToggleSlot
           ) : null}
         </PublishBottomActions>
         {emptyState}
@@ -452,14 +465,9 @@ export function EditableRoutineDayExerciseList({
               )}
             />
         ) : ctaDockState.variant === "add_exercise" ? (
-          <BottomActionDock
-            left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
-            right={(
-              <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
-                Add Exercise
-              </BottomDockButton>
-            )}
-          />
+          addExerciseDock
+        ) : ctaDockState.variant === "rest_toggle_only" ? (
+          dockWithRestToggleSlot
         ) : null}
       </PublishBottomActions>
       <form
