@@ -216,13 +216,11 @@ export default async function HistoryPage({
   }
 
   const sessionItems = sessions.map((session) => sessionSummaryById.get(session.id)).filter((item): item is SessionSummary => Boolean(item));
-  const sessionCountLabel = `${sessionItems.length} ${sessionItems.length === 1 ? "session" : "sessions"}`;
-
   return (
     <MainTabScreen topNavMode="none">
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<HistoryPageHeader title="History sessions" subtitle={sessionCountLabel} />}
+        floatingHeader={<HistoryPageHeader title={`Logged Sessions: ${sessionItems.length}`} />}
         className="px-1"
       >
         <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
