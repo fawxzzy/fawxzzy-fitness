@@ -19,6 +19,7 @@ import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
@@ -405,6 +406,7 @@ export function LogAuditClient({
             eyebrow={null}
             title={sessionSummary.routineTitle}
             subtitle={sessionMeta.dateLine}
+            action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
             className={isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : undefined}
           >
             {isEditing ? (

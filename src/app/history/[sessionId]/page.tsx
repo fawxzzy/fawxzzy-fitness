@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { HistoryDetailHeader, buildHistorySessionMeta } from "@/components/history/HistoryShared";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
@@ -149,27 +147,11 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     exerciseNameById: exerciseNameMap,
     prCounts: sessionCountsById.get(sessionRow.id) ?? { ...EMPTY_PR_COUNTS },
   });
-  const sessionMeta = buildHistorySessionMeta({
-    startedAt: sessionSummary.startedAt,
-    durationSec: sessionSummary.durationSec,
-    exerciseCount: sessionSummary.exerciseCount,
-    setCount: sessionSummary.setCount,
-    prLabel: sessionSummary.prLabel,
-    dayTitle: sessionSummary.dayTitle,
-  });
-
   return (
     <AppShell className="gap-4" topNavMode="none">
       <ScrollScreenWithBottomActions
         floatingHeader={(
-          <div id="history-log-floating-header" className="px-1">
-            <HistoryDetailHeader
-              eyebrow={null}
-              title={sessionSummary.routineTitle}
-              subtitle={sessionMeta.dateLine}
-              action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
-            />
-          </div>
+          <div id="history-log-floating-header" className="px-1" />
         )}
         className="flex flex-col gap-3 px-1"
       >
