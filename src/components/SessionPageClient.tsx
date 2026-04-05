@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
+import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { AppButton } from "@/components/ui/AppButton";
@@ -218,6 +219,11 @@ export function SessionPageClient({
         data-row-interaction={sessionRecipe.rowInteraction}
         className="flex flex-col space-y-3 bg-[rgb(var(--bg))]"
       >
+        {!isExerciseOpen ? (
+          <div className="flex justify-end">
+            <OfflineSyncBadge />
+          </div>
+        ) : null}
         {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
         <ActionFeedbackToasts />
 

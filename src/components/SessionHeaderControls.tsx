@@ -1,7 +1,6 @@
 "use client";
 
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
-import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionBackButton } from "@/components/SessionBackButton";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 
@@ -27,12 +26,7 @@ export function SessionHeaderControls({
       recipe="currentSession"
       title={routineName}
       subtitle={<DayTaxonomyHeaderSummary dayName={sessionDayName} summary={sessionSummaryCounts} isRest={isRestDay} />}
-      action={(
-        <div className="flex items-center gap-2">
-          <OfflineSyncBadge />
-          <SessionBackButton href={backHref} />
-        </div>
-      )}
+      action={<SessionBackButton href={backHref} />}
     />
   );
 }

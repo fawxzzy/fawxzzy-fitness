@@ -47,11 +47,17 @@ export function DayTaxonomyHeaderSummary({ dayName, summary, isRest }: Props) {
         {compactSummary}
       </span>
       {compactFits ? (
-        <SubtitleText className="truncate whitespace-nowrap">{compactSummary}</SubtitleText>
+        <SubtitleText as="p" className="overflow-hidden text-ellipsis whitespace-nowrap">
+          {compactSummary}
+        </SubtitleText>
       ) : (
         <div className="space-y-0.5">
-          <SubtitleText className="truncate whitespace-nowrap">{safeDayName}</SubtitleText>
-          <SubtitleText className="truncate whitespace-nowrap">{countsSummary}</SubtitleText>
+          <SubtitleText as="p" className="overflow-hidden text-ellipsis whitespace-nowrap">
+            {safeDayName}
+          </SubtitleText>
+          <SubtitleText as="p" className="overflow-hidden text-ellipsis whitespace-nowrap">
+            {countsSummary}
+          </SubtitleText>
         </div>
       )}
     </div>
