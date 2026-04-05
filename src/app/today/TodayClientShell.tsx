@@ -9,12 +9,13 @@ import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
+import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { formatDayTaxonomyHeaderSummaryFromCounts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
@@ -146,12 +147,14 @@ export function TodayClientShell({
     <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
       <SharedScreenHeader
         recipe="todayOverview"
-        title={formatDayTaxonomyHeaderSummaryFromCounts({
-          dayName: display.routine.dayName,
-          summary: getRestDayExerciseCountSummaryFromInputs(display.exercises, display.routine.isRest),
-          isRest: display.routine.isRest,
-        })}
-        subtitle={display.routine.name}
+        title={display.routine.name}
+        subtitle={(
+          <DayTaxonomyHeaderSummary
+            dayName={display.routine.dayName}
+            summary={getRestDayExerciseCountSummaryFromInputs(display.exercises, display.routine.isRest)}
+            isRest={display.routine.isRest}
+          />
+        )}
         action={display.completedTodayCount > 0 ? <AppBadge tone="success">Completed</AppBadge> : <OfflineSyncBadge />}
       />
 

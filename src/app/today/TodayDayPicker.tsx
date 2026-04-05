@@ -9,6 +9,7 @@ import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import {
   DayCard,
   DayList,
@@ -20,7 +21,7 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
-import { formatDayTaxonomyHeaderSummaryFromCounts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import {
   deriveTodayScreenMode,
@@ -177,12 +178,14 @@ export function TodayDayPicker({
         <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
           <SharedScreenHeader
             recipe="todayOverview"
-            title={formatDayTaxonomyHeaderSummaryFromCounts({
-              dayName: selectedDay.name,
-              summary: getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.state === "rest"),
-              isRest: selectedDay.state === "rest",
-            })}
-            subtitle={routineName}
+            title={routineName}
+            subtitle={(
+              <DayTaxonomyHeaderSummary
+                dayName={selectedDay.name}
+                summary={getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.state === "rest")}
+                isRest={selectedDay.state === "rest"}
+              />
+            )}
             action={inSessionDayIndex === selectedDay.dayIndex
               ? <AppBadge tone="success">In Session</AppBadge>
               : completedDayIndexSet.has(selectedDay.dayIndex)

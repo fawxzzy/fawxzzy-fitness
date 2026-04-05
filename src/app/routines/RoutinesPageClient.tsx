@@ -48,9 +48,6 @@ export type RoutineDayCardItem = {
 };
 
 const ROUTINES_IA_COPY = {
-  currentRoutine: {
-    sectionLabel: "Current routine",
-  },
   routineDays: {
     title: "Routine days",
     empty: "No routine days yet.",
@@ -117,7 +114,7 @@ export function RoutinesPageClient({
     : activeRoutineId
       ? "selected-routine-days"
       : "summary";
-  const allRoutinesMeta = isRoutineListOpen ? undefined : formatRoutineCount(routines.length);
+  const allRoutinesMeta = !isRoutineListOpen && !activeRoutineId ? formatRoutineCount(routines.length) : undefined;
 
   const actionsNode = useMemo(() => {
     const toggleButton = (
@@ -173,18 +170,17 @@ export function RoutinesPageClient({
     <RoutinesPageScaffold
       summary={(
         <ActiveRoutineSummaryCard
-          sectionLabel={ROUTINES_IA_COPY.currentRoutine.sectionLabel}
           title={activeRoutineName}
           metadata={activeRoutineSummary}
           status={<ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
         />
       )}
     >
-      <RoutinesSectionCard
-        title={ROUTINES_IA_COPY.allRoutines.title}
-        meta={allRoutinesMeta}
-      >
-        {screenMode === "browse-routines" ? (
+      {screenMode === "browse-routines" ? (
+        <RoutinesSectionCard
+          title={ROUTINES_IA_COPY.allRoutines.title}
+          meta={allRoutinesMeta}
+        >
           <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel}>
             <RoutinesCardList>
               {routines.map((routine) => {
@@ -206,8 +202,15 @@ export function RoutinesPageClient({
               })}
             </RoutinesCardList>
           </div>
-        ) : null}
-      </RoutinesSectionCard>
+        </RoutinesSectionCard>
+      ) : allRoutinesMeta ? (
+        <RoutinesSectionCard
+          title={ROUTINES_IA_COPY.allRoutines.title}
+          meta={allRoutinesMeta}
+        >
+          <div />
+        </RoutinesSectionCard>
+      ) : null}
       {screenMode === "selected-routine-days" ? (
         <SharedDayListSection title={ROUTINES_IA_COPY.routineDays.title} meta={formatRoutineDayCount(days.length)}>
           {days.length > 0 ? (

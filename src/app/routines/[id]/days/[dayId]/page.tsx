@@ -9,12 +9,13 @@ import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
+import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { formatDayTaxonomyHeaderSummaryFromCounts, getRestDayExerciseCountSummaryFromCanonicalDay } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromCanonicalDay } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -87,8 +88,8 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
         <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md">
           <SharedScreenHeader
             recipe="viewDay"
-            title={formatDayTaxonomyHeaderSummaryFromCounts({ dayName: dayLabel, summary: daySummary, isRest: dayRow.is_rest })}
-            subtitle={routineRow.name}
+            title={routineRow.name}
+            subtitle={<DayTaxonomyHeaderSummary dayName={dayLabel} summary={daySummary} isRest={dayRow.is_rest} />}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
           />
 
