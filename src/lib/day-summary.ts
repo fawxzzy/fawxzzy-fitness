@@ -84,13 +84,29 @@ function formatHeaderTaxonomyParts(summary: Pick<ExerciseCountSummary, "strength
   return parts.length > 0 ? parts.join(" • ") : "0 strength";
 }
 
+export function getDayTaxonomyHeaderSummaryParts(args: {
+  dayName: string;
+  summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "unknown">;
+  isRest: boolean;
+}): {
+  dayName: string;
+  countsSummary: string;
+  compactSummary: string;
+} {
+  const trimmedDayName = args.dayName.trim();
+  const safeDayName = trimmedDayName.length > 0 ? trimmedDayName : "Day";
+  const countsSummary = args.isRest ? "Rest day" : formatHeaderTaxonomyParts(args.summary);
+  return {
+    dayName: safeDayName,
+    countsSummary,
+    compactSummary: `${safeDayName} | ${countsSummary}`,
+  };
+}
+
 export function formatDayTaxonomyHeaderSummaryFromCounts(args: {
   dayName: string;
   summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "unknown">;
   isRest: boolean;
 }): string {
-  const trimmedDayName = args.dayName.trim();
-  const safeDayName = trimmedDayName.length > 0 ? trimmedDayName : "Day";
-  const rightSide = args.isRest ? "Rest day" : formatHeaderTaxonomyParts(args.summary);
-  return `${safeDayName} | ${rightSide}`;
+  return getDayTaxonomyHeaderSummaryParts(args).compactSummary;
 }

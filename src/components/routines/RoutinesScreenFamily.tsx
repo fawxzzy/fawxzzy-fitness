@@ -19,12 +19,10 @@ export function RoutinesPageScaffold({ summary, children }: RoutinesPageScaffold
 }
 
 export function ActiveRoutineSummaryCard({
-  sectionLabel,
   title,
   metadata,
   status,
 }: {
-  sectionLabel: ReactNode;
   title: ReactNode;
   metadata?: ReactNode;
   status?: ReactNode;
@@ -32,7 +30,6 @@ export function ActiveRoutineSummaryCard({
   return (
     <SharedScreenHeader
       recipe={ROUTINES_OVERVIEW_RECIPE}
-      eyebrow={sectionLabel}
       title={title}
       meta={metadata}
       action={status}

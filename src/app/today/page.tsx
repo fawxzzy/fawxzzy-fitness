@@ -8,6 +8,7 @@ import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -26,7 +27,7 @@ import { getTodayGlobalErrorMessage, resolveTodayDisplayDay } from "@/lib/today-
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
-import { formatDayTaxonomyHeaderSummaryFromCounts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
 import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
@@ -399,12 +400,14 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
                   <SharedScreenHeader
                     recipe="todayOverview"
-                    title={formatDayTaxonomyHeaderSummaryFromCounts({
-                      dayName: todayPayload.routine.dayName,
-                      summary: getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest),
-                      isRest: todayPayload.routine.isRest,
-                    })}
-                    subtitle={todayPayload.routine.name}
+                    title={todayPayload.routine.name}
+                    subtitle={(
+                      <DayTaxonomyHeaderSummary
+                        dayName={todayPayload.routine.dayName}
+                        summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
+                        isRest={todayPayload.routine.isRest}
+                      />
+                    )}
                     action={<AppBadge tone="success">In Session</AppBadge>}
                   />
 

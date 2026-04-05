@@ -8,11 +8,11 @@ import {
   RoutineEditorTitleInput,
 } from "@/components/routines/RoutineEditorShared";
 import { DockButton } from "@/components/layout/BottomActionDock";
+import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
-import { formatDayTaxonomyHeaderSummaryFromCounts } from "@/lib/day-summary";
 import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 
@@ -56,13 +56,15 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
   }, [isRest, name]);
 
   useEffect(() => {
-    const syncSlot = () => {
-      setRestToggleSlot(document.getElementById(REST_TOGGLE_SLOT_ID));
-    };
-
+    const syncSlot = () => setRestToggleSlot(document.getElementById(REST_TOGGLE_SLOT_ID));
     syncSlot();
+    const observer = new MutationObserver(syncSlot);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
     window.addEventListener("resize", syncSlot);
-    return () => window.removeEventListener("resize", syncSlot);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncSlot);
+    };
   }, []);
 
   const submitAutosave = useCallback(() => {
@@ -109,12 +111,6 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
   }, [submitAutosave]);
 
   const previewDayName = draft.name.trim() || `Day ${dayIndex}`;
-  const previewSummary = formatDayTaxonomyHeaderSummaryFromCounts({
-    dayName: previewDayName,
-    summary: daySummaryCounts,
-    isRest: draft.isRest,
-  });
-
   const restToggleButton = (
     <DockButton
       type="button"
@@ -149,7 +145,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
             ariaLabel="Day Name"
           />
         )}
-        subtitle={previewSummary}
+        subtitle={<DayTaxonomyHeaderSummary dayName={previewDayName} summary={daySummaryCounts} isRest={draft.isRest} />}
         action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
       />
       {restToggleSlot ? createPortal(restToggleButton, restToggleSlot) : null}
