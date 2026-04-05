@@ -69,6 +69,7 @@ export type MobileFixtureScenario = {
   cardStates?: CardStateFixture[];
   reorderText?: ReorderTextFixture;
   goalForm?: GoalFormReadabilityFixture;
+  usesFloatingHeader: boolean;
 };
 
 const MOBILE_VIEWPORT = {
@@ -108,6 +109,7 @@ function buildWorkoutFixture(args: {
     activeSession: args.activeSession,
     statusChips: args.statusChips,
     cardStates: args.cardStates,
+    usesFloatingHeader: true,
   } satisfies MobileFixtureScenario;
 }
 
@@ -126,6 +128,7 @@ function buildRoutinesFixture(args: {
     geometry: withBaseGeometry({ lastInteractiveRowBottom: args.lastInteractiveRowBottom ?? 700 }),
     currentView: args.currentView,
     cardStates: [{ cardId: "routine-card-primary", state: "selected", badgeText: "Current" }],
+    usesFloatingHeader: true,
   } satisfies MobileFixtureScenario;
 }
 
@@ -149,6 +152,7 @@ function buildDayFixture(args: {
     reorderText: args.reorderText,
     goalForm: args.goalForm,
     cardStates: args.cardStates,
+    usesFloatingHeader: true,
   } satisfies MobileFixtureScenario;
 }
 
@@ -168,6 +172,7 @@ function buildAddExerciseFixture(args: {
     filterChipFrames: args.filterChipFrames,
     goalForm: args.goalForm,
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 172 },
+    usesFloatingHeader: true,
   } satisfies MobileFixtureScenario;
 }
 
@@ -272,6 +277,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
       helperCopy: ["Routine name appears in Today.", "Notes are optional."],
     },
     cardStates: [{ cardId: "new-routine-card", state: "selected", badgeText: "Draft" }],
+    usesFloatingHeader: true,
   },
   {
     id: "edit-routine",
@@ -280,6 +286,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "edit-routine-v1",
     geometry: withBaseGeometry({ lastInteractiveRowBottom: 698 }),
     cardStates: [{ cardId: "edit-routine-card", state: "selected", badgeText: "Current" }],
+    usesFloatingHeader: true,
   },
   buildAddExerciseFixture({
     id: "add-exercise-default",

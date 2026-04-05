@@ -22,11 +22,25 @@ export function MobileScreenShell({
   className,
   scrollClassName,
 }: MobileScreenShellProps) {
+  // Mobile shell contract:
+  // All route headers must render via `floatingHeader`.
+  // Rendering `SharedScreenHeader` inside scroll content is deprecated and emits a dev warning.
   const dockRef = useRef<HTMLDivElement | null>(null);
+  const scrollContentRef = useRef<HTMLDivElement | null>(null);
   const [dockHeight, setDockHeight] = useState(0);
   const hasTopChrome = Boolean(topChrome);
   const hasFloatingHeader = Boolean(floatingHeader);
   const shouldApplyTopChromeContentGap = hasTopChrome && !hasFloatingHeader;
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const hasDeprecatedScrollHeader = Boolean(scrollContentRef.current?.querySelector("[data-shared-screen-header='true']"));
+    if (!hasDeprecatedScrollHeader) return;
+
+    console.warn(
+      "[MobileScreenShell] Detected SharedScreenHeader inside scroll content. Route headers must use the floatingHeader slot; scroll headers are deprecated.",
+    );
+  }, [children]);
 
   useEffect(() => {
     const node = dockRef.current;
@@ -67,6 +81,7 @@ export function MobileScreenShell({
           style={{ "--app-mobile-bottom-dock-height": `${dockHeight}px` } as CSSProperties}
         >
           <div
+            ref={scrollContentRef}
             className={cn(
               "min-w-0 max-w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-dock-height,0px)+var(--app-mobile-dock-clearance-gap,0px))]",
               shouldApplyTopChromeContentGap ? "pt-[var(--app-top-chrome-content-gap,8px)]" : "",

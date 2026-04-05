@@ -53,7 +53,10 @@ export function SharedScreenHeader({
 
   if (!withPanel) {
     return (
-      <div className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}>
+      <div
+        data-shared-screen-header="true"
+        className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}
+      >
         {headerNode}
       </div>
     );
@@ -61,6 +64,7 @@ export function SharedScreenHeader({
 
   return (
     <AppPanel
+      data-shared-screen-header="true"
       data-screen-scaffold={screenRecipe.scaffold}
       data-section-chrome={screenRecipe.sectionChrome}
       data-footer-dock={screenRecipe.footerDock}

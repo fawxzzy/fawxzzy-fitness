@@ -42,5 +42,6 @@ test("mobile regression fixture contracts pass for the full fixture suite", () =
     assert.equal(contracts.cardStateCorrectness, true, `${scenario.id}: invalid card state mapping`);
     assert.equal(contracts.reorderTextStable, true, `${scenario.id}: reorder text drifted`);
     assert.equal(contracts.goalFormReadable, true, `${scenario.id}: goal form readability regressed`);
+    assert.equal(contracts.routeUsesFloatingHeader, true, `${scenario.id}: route header is not using floatingHeader`);
   }
 });
