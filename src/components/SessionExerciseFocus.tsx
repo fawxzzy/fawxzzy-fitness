@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
@@ -114,6 +115,7 @@ export function SessionExerciseFocus({
   toggleSkipAction,
   removeExerciseAction,
   deleteSetAction,
+  floatingHeaderContainer,
 }: {
   sessionId: string;
   unitLabel: string;
@@ -125,6 +127,7 @@ export function SessionExerciseFocus({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
+  floatingHeaderContainer?: HTMLElement | null;
 }) {
   const contract = resolveScreenContract("exerciseLog");
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
@@ -287,6 +290,32 @@ export function SessionExerciseFocus({
     };
   }, [onSelectedExerciseIdChange, selectedExerciseId]);
 
+  const selectedExerciseIdentityHeader = selectedExercise ? (
+    <WorkoutEntryIdentity
+      title={selectedExercise.name}
+      description={selectedExercise.goalLabel || undefined}
+      descriptionClassName="truncate whitespace-nowrap text-ellipsis text-xs sm:text-sm"
+      meta={selectedExercise.routineDayExerciseId === null || (selectedExerciseProgress?.chips.length ?? 0) > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedExercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
+          {selectedExerciseProgress?.chips.includes("loggedProgress") ? <Pill tone="default" className="normal-case tracking-normal">{selectedExerciseProgress.progressLabel ?? "Logged"}</Pill> : null}
+          {selectedExerciseProgress?.chips.includes("endedEarly") ? <Pill tone="warning" className="normal-case tracking-normal">Ended early</Pill> : null}
+          {selectedExerciseProgress?.chips.includes("skipped") ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
+        </div>
+      ) : undefined}
+      actions={(
+        <TopRightBackButton
+          ariaLabel="Collapse exercise"
+          onClick={(event) => {
+            event.preventDefault();
+            onSelectedExerciseIdChange(null);
+          }}
+        />
+      )}
+      className="mt-1"
+    />
+  ) : null;
+
   return (
     <div className="flex flex-col space-y-2" data-row-interaction={contract.rowInteraction}>
       {selectedExerciseId === null ? (
@@ -435,29 +464,9 @@ export function SessionExerciseFocus({
         </ul>
       ) : (
         <div className="flex flex-col space-y-2.5">
-          <WorkoutEntryIdentity
-            title={selectedExercise?.name ?? "Exercise"}
-            description={selectedExercise?.goalLabel || undefined}
-            descriptionClassName="truncate whitespace-nowrap text-ellipsis text-xs sm:text-sm"
-            meta={selectedExercise && (selectedExercise.routineDayExerciseId === null || (selectedExerciseProgress?.chips.length ?? 0) > 0) ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {selectedExercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
-                {selectedExerciseProgress?.chips.includes("loggedProgress") ? <Pill tone="default" className="normal-case tracking-normal">{selectedExerciseProgress.progressLabel ?? "Logged"}</Pill> : null}
-                {selectedExerciseProgress?.chips.includes("endedEarly") ? <Pill tone="warning" className="normal-case tracking-normal">Ended early</Pill> : null}
-                {selectedExerciseProgress?.chips.includes("skipped") ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
-              </div>
-            ) : undefined}
-            actions={(
-              <TopRightBackButton
-                ariaLabel="Collapse exercise"
-                onClick={(event) => {
-                  event.preventDefault();
-                  onSelectedExerciseIdChange(null);
-                }}
-              />
-            )}
-            className="mt-1 scroll-mt-24"
-          />
+          {selectedExerciseIdentityHeader
+            ? (floatingHeaderContainer ? createPortal(selectedExerciseIdentityHeader, floatingHeaderContainer) : selectedExerciseIdentityHeader)
+            : null}
 
           <div ref={focusedRef} />
 

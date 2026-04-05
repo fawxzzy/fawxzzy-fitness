@@ -115,6 +115,7 @@ export function SessionPageClient({
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [selectedExerciseFloatingHeaderContainer, setSelectedExerciseFloatingHeaderContainer] = useState<HTMLDivElement | null>(null);
   const router = useRouter();
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
@@ -150,6 +151,7 @@ export function SessionPageClient({
       backHref={fallbackReturnHref ?? "/today"}
     />
   ) : null;
+  const floatingHeader = isExerciseOpen ? <div ref={setSelectedExerciseFloatingHeaderContainer} className="px-1" /> : null;
 
   const emptyState = useMemo(
     () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises yet.</p>),
@@ -207,7 +209,7 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip px-1" topChrome={topChrome}>
+    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip px-1" topChrome={topChrome} floatingHeader={floatingHeader}>
       {!isExerciseOpen ? (
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
@@ -239,6 +241,7 @@ export function SessionPageClient({
             toggleSkipAction={toggleSkipAction}
             removeExerciseAction={removeExerciseAction}
             deleteSetAction={deleteSetAction}
+            floatingHeaderContainer={selectedExerciseFloatingHeaderContainer}
           />
         ) : null}
 
