@@ -219,8 +219,9 @@ export function TodayDayPicker({
       <div className="flex min-h-0 flex-col">
       {!mode.noRoutine && selectedDay ? (
         <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-          <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
-            {mode.dayPickerOpen ? (
+          {mode.dayPickerOpen || selectedDay.state !== "rest" ? (
+            <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+              {mode.dayPickerOpen ? (
               <DayList>
                 {days.map((day) => {
                   const isSelected = selectedDayIndex === day.dayIndex;
@@ -252,47 +253,48 @@ export function TodayDayPicker({
                   );
                 })}
               </DayList>
-            ) : null}
-
-            {!mode.dayPickerOpen && !mode.noRoutine && selectedDay.state !== "rest" && daySummary ? (
-              <div
-                className={[
-                  "rounded-md px-3 py-1.5",
-                  daySummaryTone === "blocking"
-                    ? "border border-red-400/30 bg-red-500/10 text-red-100"
-                    : daySummaryTone === "warning"
-                      ? "border border-amber-400/20 bg-amber-500/10 text-amber-100"
-                      : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
-                ].join(" ")}
-              >
-                {daySummaryTone
-                  ? <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-red-100" : "text-amber-100"}>{daySummary}</AccentSubtitleText>
-                  : <SubtitleText>{daySummary}</SubtitleText>}
-              </div>
-            ) : null}
-
-            {mode.dayRowsVisible ? <ul className="space-y-1.5">
-              {selectedDay.exercises.map((exercise) => (
-                <li key={exercise.id}>
-                  <StandardExerciseRow
-                    exercise={exercise}
-                    summary={exercise.targets}
-                    onPress={() => {
-                      if (process.env.NODE_ENV === "development") {
-                        console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
-                      }
-                      setSelectedExerciseId(exercise.exerciseId);
-                    }}
-                  />
-                </li>
-              ))}
-              {selectedDay.exercises.length === 0 ? (
-                <li className="px-3 py-3">
-                  <SubtitleText>No exercises yet.</SubtitleText>
-                </li>
               ) : null}
-            </ul> : null}
-          </SharedSectionShell>
+
+              {!mode.dayPickerOpen && !mode.noRoutine && selectedDay.state !== "rest" && daySummary ? (
+                <div
+                  className={[
+                    "rounded-md px-3 py-1.5",
+                    daySummaryTone === "blocking"
+                      ? "border border-red-400/30 bg-red-500/10 text-red-100"
+                      : daySummaryTone === "warning"
+                        ? "border border-amber-400/20 bg-amber-500/10 text-amber-100"
+                        : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
+                  ].join(" ")}
+                >
+                  {daySummaryTone
+                    ? <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-red-100" : "text-amber-100"}>{daySummary}</AccentSubtitleText>
+                    : <SubtitleText>{daySummary}</SubtitleText>}
+                </div>
+              ) : null}
+
+              {mode.dayRowsVisible ? <ul className="space-y-1.5">
+                {selectedDay.exercises.map((exercise) => (
+                  <li key={exercise.id}>
+                    <StandardExerciseRow
+                      exercise={exercise}
+                      summary={exercise.targets}
+                      onPress={() => {
+                        if (process.env.NODE_ENV === "development") {
+                          console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
+                        }
+                        setSelectedExerciseId(exercise.exerciseId);
+                      }}
+                    />
+                  </li>
+                ))}
+                {selectedDay.exercises.length === 0 ? (
+                  <li className="px-3 py-3">
+                    <SubtitleText>No exercises yet.</SubtitleText>
+                  </li>
+                ) : null}
+              </ul> : null}
+            </SharedSectionShell>
+          ) : null}
         </ScreenScaffold>
       ) : null}
 
