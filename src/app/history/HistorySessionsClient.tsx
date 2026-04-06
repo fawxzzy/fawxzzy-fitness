@@ -73,7 +73,7 @@ export function HistorySessionsClient({
 }) {
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
   const router = useRouter();
-  const inverseViewLabel = viewMode === "compact" ? "Detailed View" : "Compact View";
+  const inverseViewLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -93,15 +93,15 @@ export function HistorySessionsClient({
           secondary={(
             <BottomDockButton
               type="button"
-              variant="secondary"
+              intent="info"
               onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
             >
               {inverseViewLabel}
             </BottomDockButton>
           )}
           primary={(
-            <BottomDockButton type="button" variant="secondary" onClick={() => router.push("/history/exercises")}>
-              View Exercises
+            <BottomDockButton type="button" intent="positive" onClick={() => router.push("/history/exercises")}>
+              Exercises
             </BottomDockButton>
           )}
         />
