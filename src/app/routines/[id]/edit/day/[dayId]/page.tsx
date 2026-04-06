@@ -70,6 +70,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
   const backHref = resolveRoutineDayEditBackHref(params.id, params.dayId, searchParams?.returnTo);
   const addExerciseHref = `${getRoutineDayEditHref(params.id, params.dayId)}/add-exercise`;
+  // NOTE: Edit Day rows own a stable `orderNumber` so ORDER badges remain canonical even when the list is filtered.
   const editableExercises = dayExercises.map((exercise) => {
     const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
     const matchingExercise = exerciseOptions.find((option) => option.id === exercise.exercise_id);
@@ -91,6 +92,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     return {
       id: exercise.id,
       exerciseId: matchingExercise?.id ?? exercise.exercise_id,
+      orderNumber: exercise.position,
       name,
       measurementType,
       equipment: matchingExercise?.equipment ?? null,

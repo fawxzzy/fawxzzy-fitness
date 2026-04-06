@@ -9,6 +9,7 @@ export type DayDetailExerciseListItem = {
   name: string;
   summary: string | null;
   iconSrc: string;
+  orderNumber?: number;
 };
 
 type Props = {
@@ -34,6 +35,7 @@ export function DayDetailExerciseList({
     <ul className={cn("space-y-2", className)}>
       {items.map((item, index) => {
         const isActive = activeItemId === item.id;
+        const badgeOrderNumber = item.orderNumber ?? index + 1;
         return (
           <li key={item.id} className="rounded-[1.3rem] transition-all">
             <div className="overflow-hidden rounded-[1.25rem]">
@@ -43,7 +45,7 @@ export function DayDetailExerciseList({
                 variant="interactive"
                 state={isActive && mode === "editable" ? "selected" : "default"}
                 onPress={interactive ? () => onSelectItem?.(item) : undefined}
-                badgeText={mode === "editable" ? `ORDER ${index + 1}` : undefined}
+                badgeText={mode === "editable" ? `ORDER ${badgeOrderNumber}` : undefined}
                 className={cn(
                   listShellClasses.card,
                   "w-full",
