@@ -60,16 +60,16 @@ export function SessionQuickAddExerciseForm({
               secondary={(
                 <BottomDockButton
                   type="button"
-                  variant="secondary"
+                  intent="info"
                   onClick={openExerciseInfo}
                   disabled={!selectedCanonicalExerciseId}
                 >
-                  View Exercise
+                  View
                 </BottomDockButton>
               )}
               primary={(
-                <BottomDockButton type="submit" form="session-quick-add-exercise-form" variant="primary">
-                  Add Exercise
+                <BottomDockButton type="submit" form="session-quick-add-exercise-form" intent="positive">
+                  Add
                 </BottomDockButton>
               )}
             />

@@ -59,16 +59,16 @@ export function EditDayAddExerciseScreen({
             secondary={(
               <BottomDockButton
                 type="button"
-                variant="secondary"
+                intent="info"
                 onClick={openExerciseInfo}
                 disabled={!selectedCanonicalExerciseId}
               >
-                View Exercise
+                View
               </BottomDockButton>
             )}
             primary={(
-              <BottomDockButton type="submit" form="routine-day-add-exercise-form" variant="primary">
-                Add Exercise
+              <BottomDockButton type="submit" form="routine-day-add-exercise-form" intent="positive">
+                Add
               </BottomDockButton>
             )}
           />

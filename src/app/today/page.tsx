@@ -18,7 +18,6 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { BottomActionsSlot } from "@/components/layout/bottom-actions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import { TODAY_CACHE_SCHEMA_VERSION, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ensureProfile } from "@/lib/profile";
@@ -504,7 +503,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     sessionId={todayPayload.inProgressSessionId}
                     returnTo="/today"
                     fullWidth
-                    className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true, className: "border-emerald-300/60 bg-emerald-500/28 text-emerald-50 shadow-[0_0_12px_rgba(16,185,129,0.2)] transition-transform hover:bg-emerald-500/34 active:scale-[0.98] active:bg-emerald-500/38" })}
+                    className="w-full"
                     label="Resume Session"
                   />
                 )}

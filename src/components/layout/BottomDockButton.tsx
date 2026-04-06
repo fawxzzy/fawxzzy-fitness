@@ -19,6 +19,8 @@ type BottomDockButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "chil
   children: ReactNode;
   intent?: BottomActionIntent;
   variant?: BottomDockButtonVariant;
+  loading?: boolean;
+  fullWidth?: boolean;
 };
 
 export function BottomDockButton({ children, intent, variant, className, ...props }: BottomDockButtonProps) {
