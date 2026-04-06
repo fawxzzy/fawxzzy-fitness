@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RoutineDetailsBottomActionPublisher, RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
+import { DockButton } from "@/components/layout/BottomActionDock";
+import {
+  RoutineDetailsBackSecondaryAction,
+  RoutineDetailsBottomActionPublisher,
+  RoutineEditorPageBody,
+} from "@/components/routines/RoutineEditorShared";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
 import { buildRoutineDetailsSnapshot, normalizeRoutineDetailsDraft, validateRoutineDetailsDraft, type RoutineDetailsDraft } from "@/lib/routine-details-form";
@@ -93,11 +97,11 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
       </RoutineEditorPageBody>
 
       <RoutineDetailsBottomActionPublisher
+        secondary={<RoutineDetailsBackSecondaryAction href="/routines" label="Cancel" />}
         primary={(
-          <AppButton
+          <DockButton
             type="button"
-            variant="primary"
-            fullWidth
+            intent="positive"
             disabled={!canCreate}
             onClick={() => {
               setError(null);
@@ -135,8 +139,8 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
               });
             }}
           >
-            Create Routine
-          </AppButton>
+            Create
+          </DockButton>
         )}
       />
     </>

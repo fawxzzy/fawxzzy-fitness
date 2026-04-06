@@ -2,8 +2,10 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppButton } from "@/components/ui/AppButton";
@@ -141,35 +143,31 @@ export function RoutineEditorPageBody({
 
 export function RoutineDetailsBottomActionDock({
   primary,
-  utility,
+  secondary,
   className,
 }: {
   primary: ReactNode;
-  utility?: ReactNode;
+  secondary: ReactNode;
   className?: string;
 }) {
-  // Shared canonical bottom dock rhythm for Routine Details routes.
+  // Shared canonical split dock rhythm for Routine Details routes.
   return (
-    <BottomActionStackedPrimary
-      className={className}
-      utility={utility}
-      primary={primary}
-    />
+    <BottomActionDock left={secondary} right={primary} className={className} />
   );
 }
 
 export function RoutineDetailsBottomActionPublisher({
   primary,
-  utility,
+  secondary,
   className,
 }: {
   primary: ReactNode;
-  utility?: ReactNode;
+  secondary: ReactNode;
   className?: string;
 }) {
   return (
     <PublishBottomActions>
-      <RoutineDetailsBottomActionDock primary={primary} utility={utility} className={className} />
+      <RoutineDetailsBottomActionDock primary={primary} secondary={secondary} className={className} />
     </PublishBottomActions>
   );
 }
@@ -457,5 +455,13 @@ export function RoutineEditorStickyActions({
         primary={<div className="space-y-2">{primary}</div>}
       />
     </PublishBottomActions>
+  );
+}
+
+export function RoutineDetailsBackSecondaryAction({ href, label = "Back" }: { href: string; label?: string }) {
+  return (
+    <BottomDockLink href={href} intent="toggleInactive">
+      {label}
+    </BottomDockLink>
   );
 }

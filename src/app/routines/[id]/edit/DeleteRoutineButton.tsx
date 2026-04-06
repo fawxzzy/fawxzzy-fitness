@@ -3,18 +3,16 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
-import { AppButton } from "@/components/ui/AppButton";
+import { DockButton } from "@/components/layout/BottomActionDock";
 import { useToast } from "@/components/ui/ToastProvider";
 import { deleteRoutineAction } from "@/app/routines/actions";
 
 export function DeleteRoutineButton({
   routineId,
   routineName,
-  className = "w-full",
 }: {
   routineId: string;
   routineName: string;
-  className?: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -23,16 +21,14 @@ export function DeleteRoutineButton({
 
   return (
     <>
-      <AppButton
+      <DockButton
         type="button"
-        variant="destructive"
-        size="md"
+        intent="danger"
         onClick={() => setIsOpen(true)}
         disabled={isPending}
-        className={className}
       >
         {isPending ? "Deleting..." : "Delete Routine"}
-      </AppButton>
+      </DockButton>
 
       <ConfirmDestructiveModal
         open={isOpen}

@@ -22,8 +22,7 @@ import {
   resolveDayCardState,
   REST_DAY_CARD_COPY,
 } from "@/components/day-list/DayList";
-import { SecondaryButton } from "@/components/ui/AppButton";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 
 export type RoutineSwitcherItem = {
   id: string;
@@ -112,24 +111,24 @@ export function RoutinesPageClient({
 
   const actionsNode = useMemo(() => {
     const toggleButton = (
-      <SecondaryButton
+      <BottomDockButton
         type="button"
-        className="w-full min-h-[44px] justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+        intent={isRoutineListOpen ? "toggleActive" : "toggleInactive"}
         onClick={handleToggleRoutineList}
         aria-expanded={isRoutineListOpen}
         aria-controls="routines-switch-list"
       >
-        <span>{isRoutineListOpen ? "Hide All Routines" : "View All Routines"}</span>
-      </SecondaryButton>
+        <span>{isRoutineListOpen ? "Hide" : "Routines"}</span>
+      </BottomDockButton>
     );
 
     const editRoutineAction = activeRoutineEditHref ? (
-      <Link
+      <BottomDockLink
         href={activeRoutineEditHref}
-        className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
+        intent="positive"
       >
-        Edit Routine
-      </Link>
+        Edit
+      </BottomDockLink>
     ) : (
       <div aria-hidden="true" />
     );
@@ -139,12 +138,12 @@ export function RoutinesPageClient({
         <BottomActionSplit
           secondary={toggleButton}
           primary={(
-            <Link
+            <BottomDockLink
               href={newRoutineHref}
-              className={getAppButtonClassName({ variant: "primary", size: "md", fullWidth: true })}
+              intent="positive"
             >
-              New Routine
-            </Link>
+              New
+            </BottomDockLink>
           )}
         />
       );

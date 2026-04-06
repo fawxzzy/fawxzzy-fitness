@@ -17,7 +17,7 @@ export function DayRestToggleDockControl({ isRest, onToggle, disabled }: Props) 
       onClick={onToggle}
       disabled={disabled}
     >
-      {isRest ? "Rest On" : "Rest Off"}
+      {isRest ? "Active" : "Inactive"}
     </DockButton>
   );
 }
