@@ -172,10 +172,15 @@ export function EditableRoutineDayExerciseList({
   const activeEditFormRef = useRef<HTMLFormElement | null>(null);
   const pendingSnapshotRef = useRef<string | null>(null);
   const lastSavedSnapshotRef = useRef<Record<string, string>>({});
+  const itemsRef = useRef(exercises);
 
   useEffect(() => {
     setItems(exercises);
   }, [exercises]);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   useEffect(() => {
     setIsRestDay(initialIsRest);
@@ -193,6 +198,7 @@ export function EditableRoutineDayExerciseList({
   );
 
   const persistOrder = (nextItems: EditableRoutineDayExerciseItem[]) => {
+    itemsRef.current = nextItems;
     setItems(nextItems);
     requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
   };
@@ -229,16 +235,15 @@ export function EditableRoutineDayExerciseList({
   };
 
   const applyManualOrderValue = (exerciseId: string, rawOrderValue: number) => {
-    let didChangeOrder = false;
-    setItems((current) => {
-      if (current.length === 0) return current;
-      const fromIndex = current.findIndex((item) => item.id === exerciseId);
-      if (fromIndex === -1) return current;
-      const clampedOrder = clampOrderValue(rawOrderValue, current.length);
-      const next = moveItemWithinList(current, fromIndex, clampedOrder - 1);
-      didChangeOrder = next !== current;
-      return next;
-    });
+    const current = itemsRef.current;
+    if (current.length === 0) return;
+    const fromIndex = current.findIndex((item) => item.id === exerciseId);
+    if (fromIndex === -1) return;
+    const clampedOrder = clampOrderValue(rawOrderValue, current.length);
+    const next = moveItemWithinList(current, fromIndex, clampedOrder - 1);
+    const didChangeOrder = next !== current;
+    setItems(next);
+    itemsRef.current = next;
     if (didChangeOrder) {
       requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
     }
@@ -247,8 +252,10 @@ export function EditableRoutineDayExerciseList({
   const finishReorder = () => {
     setActiveDragId(null);
     dragStateRef.current = null;
-    if (orderedIds.join(",") !== initialOrder.join(",")) {
-      persistOrder(items);
+    const latestItems = itemsRef.current;
+    const latestOrder = latestItems.map((exercise) => exercise.id);
+    if (latestOrder.join(",") !== initialOrder.join(",")) {
+      persistOrder(latestItems);
     }
   };
 
@@ -650,7 +657,7 @@ export function EditableRoutineDayExerciseList({
                   <input type="hidden" name="exerciseRowId" value={exercise.id} />
                   <div className="space-y-1">
                     <label htmlFor={`exercise-order-${exercise.id}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                      Position
+                      Order
                     </label>
                     <input
                       id={`exercise-order-${exercise.id}`}
