@@ -24,3 +24,4 @@ Contracts asserted by visual-regression tests:
 - card state correctness
 - reorder text stability
 - goal form readability
+- mobile chrome/day-editing invariants (rest filler removal, pinned headers, manual reorder clamping, routine dock parity, single history header)

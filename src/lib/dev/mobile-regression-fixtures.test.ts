@@ -43,5 +43,26 @@ test("mobile regression fixture contracts pass for the full fixture suite", () =
     assert.equal(contracts.reorderTextStable, true, `${scenario.id}: reorder text drifted`);
     assert.equal(contracts.goalFormReadable, true, `${scenario.id}: goal form readability regressed`);
     assert.equal(contracts.routeUsesFloatingHeader, true, `${scenario.id}: route header is not using floatingHeader`);
+    assert.equal(contracts.todayHeaderMatchesSelectedDay, true, `${scenario.id}: Today header drifted from selected day`);
+    assert.equal(contracts.restDayHasNoExtraLowerFillerBox, true, `${scenario.id}: rest day introduced lower filler box`);
+    assert.equal(contracts.editDayHeaderPinned, true, `${scenario.id}: Edit Day header is not pinned`);
+    assert.equal(contracts.editDayReorderActionVisible, true, `${scenario.id}: Edit Day reorder action is hidden`);
+    assert.equal(contracts.editDayManualOrderEditClamps, true, `${scenario.id}: Edit Day manual order editing no longer clamps`);
+    assert.equal(
+      contracts.routineDetailsBottomDockLayoutConsistent,
+      true,
+      `${scenario.id}: Routine Details dock layout diverged between new/edit`,
+    );
+    assert.equal(contracts.historyLogViewHasOneHeader, true, `${scenario.id}: History Log view header count regressed`);
+    assert.equal(
+      contracts.exerciseInfoUsesPinnedFloatingHeader,
+      true,
+      `${scenario.id}: Exercise Info lost pinned floating header`,
+    );
+    assert.equal(
+      contracts.currentSessionSaveSetUsesPinnedFloatingHeader,
+      true,
+      `${scenario.id}: Current Session Save Set lost pinned floating header`,
+    );
   }
 });

@@ -80,3 +80,54 @@ test("goal form readability catches unreadable labels and missing helper copy", 
 
   assert.equal(contracts.goalFormReadable, false);
 });
+
+test("mobile chrome/day editing contract regressions are detected", () => {
+  const todayBaseline = requireScenario("today-default");
+  const todayContracts = validateMobileScenarioContracts({
+    ...todayBaseline,
+    todayHeaderMatchesSelectedDay: false,
+    exerciseInfoHeaderPinned: false,
+  });
+  assert.equal(todayContracts.todayHeaderMatchesSelectedDay, false);
+  assert.equal(todayContracts.exerciseInfoUsesPinnedFloatingHeader, false);
+
+  const viewDayBaseline = requireScenario("view-day");
+  const viewDayContracts = validateMobileScenarioContracts({
+    ...viewDayBaseline,
+    restDay: true,
+    hasExtraLowerFillerBox: true,
+  });
+  assert.equal(viewDayContracts.restDayHasNoExtraLowerFillerBox, false);
+
+  const editDayBaseline = requireScenario("edit-day-reorder");
+  const editDayContracts = validateMobileScenarioContracts({
+    ...editDayBaseline,
+    headerPinned: false,
+    reorderActionVisible: false,
+    manualOrderEdit: { listSize: 3, attemptedOrders: [0, 99], normalizedOrders: [2, 3], surroundingItemsShifted: false },
+  });
+  assert.equal(editDayContracts.editDayHeaderPinned, false);
+  assert.equal(editDayContracts.editDayReorderActionVisible, false);
+  assert.equal(editDayContracts.editDayManualOrderEditClamps, false);
+
+  const createRoutineBaseline = requireScenario("create-routine");
+  const createRoutineContracts = validateMobileScenarioContracts({
+    ...createRoutineBaseline,
+    bottomDockLayout: "stacked",
+  });
+  assert.equal(createRoutineContracts.routineDetailsBottomDockLayoutConsistent, false);
+
+  const historyLogBaseline = requireScenario("routines-list-view");
+  const historyLogContracts = validateMobileScenarioContracts({
+    ...historyLogBaseline,
+    historyLogHeaderCount: 2,
+  });
+  assert.equal(historyLogContracts.historyLogViewHasOneHeader, false);
+
+  const sessionBaseline = requireScenario("active-workout-session");
+  const sessionContracts = validateMobileScenarioContracts({
+    ...sessionBaseline,
+    currentSessionSaveSetHeaderPinned: false,
+  });
+  assert.equal(sessionContracts.currentSessionSaveSetUsesPinnedFloatingHeader, false);
+});

@@ -72,6 +72,62 @@ export function routeUsesFloatingHeader(scenario: MobileFixtureScenario) {
   return scenario.usesFloatingHeader;
 }
 
+export function todayHeaderMatchesSelectedDay(scenario: MobileFixtureScenario) {
+  if (scenario.route !== "today") return true;
+  return scenario.todayHeaderMatchesSelectedDay ?? true;
+}
+
+export function restDayHasNoExtraLowerFillerBox(scenario: MobileFixtureScenario) {
+  if (!scenario.restDay && scenario.route !== "today" && scenario.route !== "viewDay") return true;
+  if (scenario.route === "editDay" || scenario.route === "viewDay" || scenario.route === "today") {
+    return scenario.hasExtraLowerFillerBox !== true;
+  }
+  return true;
+}
+
+export function editDayHeaderPinned(scenario: MobileFixtureScenario) {
+  if (scenario.route !== "editDay") return true;
+  return scenario.headerPinned === true;
+}
+
+export function editDayReorderActionVisible(scenario: MobileFixtureScenario) {
+  if (scenario.id !== "edit-day-reorder") return true;
+  return scenario.reorderActionVisible === true;
+}
+
+export function editDayManualOrderEditClamps(scenario: MobileFixtureScenario) {
+  if (!scenario.manualOrderEdit) return true;
+  const { listSize, attemptedOrders, normalizedOrders, surroundingItemsShifted } = scenario.manualOrderEdit;
+  if (attemptedOrders.length !== normalizedOrders.length || attemptedOrders.length === 0) return false;
+
+  const valuesClampCorrectly = attemptedOrders.every((value, index) => {
+    const expected = Math.min(Math.max(value, 1), listSize);
+    return normalizedOrders[index] === expected;
+  });
+
+  return valuesClampCorrectly && surroundingItemsShifted;
+}
+
+export function routineDetailsBottomDockLayoutConsistent(scenario: MobileFixtureScenario) {
+  if (scenario.route !== "createRoutine" && scenario.route !== "editRoutine") return true;
+  return scenario.bottomDockLayout === "split";
+}
+
+export function historyLogViewHasOneHeader(scenario: MobileFixtureScenario) {
+  if (scenario.id !== "routines-list-view") return true;
+  return scenario.historyLogHeaderCount === 1;
+}
+
+export function exerciseInfoUsesPinnedFloatingHeader(scenario: MobileFixtureScenario) {
+  if (scenario.route !== "today") return true;
+  return scenario.exerciseInfoHeaderPinned ?? true;
+}
+
+export function currentSessionSaveSetUsesPinnedFloatingHeader(scenario: MobileFixtureScenario) {
+  if (scenario.route !== "session") return true;
+  return scenario.currentSessionSaveSetHeaderPinned ?? true;
+}
+
 export function validateMobileScenarioContracts(scenario: MobileFixtureScenario) {
   return {
     finalRowVisibleAboveDock: finalRowVisibleAboveDock(scenario),
@@ -85,5 +141,14 @@ export function validateMobileScenarioContracts(scenario: MobileFixtureScenario)
     reorderTextStable: reorderTextStable(scenario),
     goalFormReadable: goalFormReadable(scenario),
     routeUsesFloatingHeader: routeUsesFloatingHeader(scenario),
+    todayHeaderMatchesSelectedDay: todayHeaderMatchesSelectedDay(scenario),
+    restDayHasNoExtraLowerFillerBox: restDayHasNoExtraLowerFillerBox(scenario),
+    editDayHeaderPinned: editDayHeaderPinned(scenario),
+    editDayReorderActionVisible: editDayReorderActionVisible(scenario),
+    editDayManualOrderEditClamps: editDayManualOrderEditClamps(scenario),
+    routineDetailsBottomDockLayoutConsistent: routineDetailsBottomDockLayoutConsistent(scenario),
+    historyLogViewHasOneHeader: historyLogViewHasOneHeader(scenario),
+    exerciseInfoUsesPinnedFloatingHeader: exerciseInfoUsesPinnedFloatingHeader(scenario),
+    currentSessionSaveSetUsesPinnedFloatingHeader: currentSessionSaveSetUsesPinnedFloatingHeader(scenario),
   };
 }
