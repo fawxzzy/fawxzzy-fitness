@@ -81,7 +81,7 @@ test("resolveTodayDisplayDay keeps the session snapshot label even if the routin
   });
 });
 
-test("deriveTodayScreenMode returns start-workout dock for runnable day", () => {
+test("deriveTodayScreenMode returns begin dock for runnable day", () => {
   const mode = deriveTodayScreenMode({
     days: [{
       id: "day-1",
@@ -99,8 +99,8 @@ test("deriveTodayScreenMode returns start-workout dock for runnable day", () => 
 
   assert.equal(mode.runnableSelection, true);
   assert.equal(mode.dayRowsVisible, true);
-  assert.equal(mode.cta.primaryLabel, "Start Workout");
-  assert.equal(mode.cta.secondaryLabel, "Select Day");
+  assert.equal(mode.cta.primaryLabel, "Begin");
+  assert.equal(mode.cta.secondaryLabel, "Days");
 });
 
 test("deriveTodayScreenMode hides rows and switches secondary CTA when picker is open", () => {
@@ -121,7 +121,7 @@ test("deriveTodayScreenMode hides rows and switches secondary CTA when picker is
 
   assert.equal(mode.dayListVisible, true);
   assert.equal(mode.dayRowsVisible, false);
-  assert.equal(mode.cta.secondaryLabel, "Hide Days");
+  assert.equal(mode.cta.secondaryLabel, "Hide");
 });
 
 test("deriveTodayScreenMode keeps resume CTA available for closed picker empty states", () => {
@@ -145,7 +145,7 @@ test("deriveTodayScreenMode keeps resume CTA available for closed picker empty s
   assert.equal(mode.dayRowsVisible, true);
   assert.equal(mode.cta.showPrimary, true);
   assert.equal(mode.cta.primaryLabel, "Resume Session");
-  assert.equal(mode.cta.secondaryLabel, "Select Day");
+  assert.equal(mode.cta.secondaryLabel, "Days");
 });
 
 test("rest and invalid-empty summaries resolve from pure summary selectors", () => {

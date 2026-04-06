@@ -16,10 +16,10 @@ import {
   resolveDayCardState,
 } from "@/components/day-list/DayList";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { SecondaryButton } from "@/components/ui/AppButton";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
@@ -172,16 +172,16 @@ export function TodayDayPicker({
 
   const actionsNode = useMemo(() => {
     const selectDayButton = (
-      <SecondaryButton
+      <BottomDockButton
         id="today-day-picker"
         type="button"
-        className="w-full justify-center border-white/14 bg-transparent text-center text-[rgb(var(--text)/0.78)] shadow-none hover:bg-white/[0.05]"
+        intent={mode.dayPickerOpen ? "toggleActive" : "toggleInactive"}
         onClick={togglePicker}
         aria-expanded={mode.dayPickerOpen}
         aria-controls="today-day-selector-list"
       >
         <span>{mode.cta.secondaryLabel}</span>
-      </SecondaryButton>
+      </BottomDockButton>
     );
 
     if (!mode.cta.showPrimary) {

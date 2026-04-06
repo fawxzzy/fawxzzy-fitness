@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { BottomDockLink } from "@/components/layout/BottomDockButton";
 
 export function QuickAddExerciseSheet({
   sessionId,
@@ -7,11 +6,11 @@ export function QuickAddExerciseSheet({
   sessionId: string;
 }) {
   return (
-    <Link
+    <BottomDockLink
       href={`/session/${sessionId}/add-exercise?returnTo=${encodeURIComponent(`/session/${sessionId}`)}`}
-      className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}
+      intent="positive"
     >
-      <span>+ Exercise</span>
-    </Link>
+      Add
+    </BottomDockLink>
   );
 }

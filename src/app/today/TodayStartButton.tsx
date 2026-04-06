@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/action-result";
 import { useToast } from "@/components/ui/ToastProvider";
-import { PrimaryButton } from "@/components/ui/AppButton";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 
 async function requestSessionStart(payload: { selectedDayIndex?: number; routineId?: string; dayId?: string }) {
@@ -42,7 +42,7 @@ export function TodayStartButton({
   returnTo,
   fullWidth = true,
   className,
-  label = "Start Workout",
+  label = "Begin",
   sessionId,
 }: {
   selectedDayIndex?: number;
@@ -59,11 +59,12 @@ export function TodayStartButton({
   const toast = useToast();
 
   return (
-    <PrimaryButton
+    <BottomDockButton
       type="button"
+      intent="positive"
       loading={isPending}
       fullWidth={fullWidth}
-      className={`min-h-[44px] border-emerald-400/45 bg-emerald-500/20 text-emerald-50 transition-transform hover:bg-emerald-500/26 active:scale-[0.98] active:bg-emerald-500/32 ${className ?? ""}`}
+      className={className}
       onClick={() => {
         startTransition(async () => {
           if (sessionId) {
@@ -94,6 +95,6 @@ export function TodayStartButton({
       }}
     >
       {isPending ? (sessionId ? "Opening…" : "Starting…") : label}
-    </PrimaryButton>
+    </BottomDockButton>
   );
 }

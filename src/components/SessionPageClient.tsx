@@ -6,7 +6,7 @@ import { ActionFeedbackToasts } from "@/components/ActionFeedbackToasts";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/components/SessionExerciseFocus";
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
-import { AppButton } from "@/components/ui/AppButton";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -190,15 +190,12 @@ export function SessionPageClient({
             </div>
           )}
           primary={(
-            <AppButton
+            <BottomDockButton
               type="submit"
-              variant="primary"
-              size="md"
-              fullWidth
-              className="min-h-12 font-semibold shadow-[0_10px_24px_rgba(16,185,129,0.18)] transition hover:bg-[rgb(var(--accent-strong-rgb,16_185_129))] hover:brightness-105 active:brightness-95"
+              intent="positive"
             >
-              Complete
-            </AppButton>
+              Finish
+            </BottomDockButton>
           )}
           className="w-full"
           tertiaryClassName="px-1"

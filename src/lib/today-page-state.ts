@@ -119,9 +119,9 @@ export type TodayScreenMode<TDay extends TodayPickerDay = TodayPickerDay> = {
   summaryVisible: boolean;
   cta: {
     showPrimary: boolean;
-    primaryLabel: "Resume Session" | "Start Workout" | null;
+    primaryLabel: "Resume Session" | "Begin" | null;
     showSecondarySelectDay: boolean;
-    secondaryLabel: "Select Day" | "Hide Days";
+    secondaryLabel: "Days" | "Hide";
   };
 };
 
@@ -155,9 +155,9 @@ export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
     summaryVisible: !args.dayPickerOpen && !restDay && !noRoutine && Boolean(getTodayDaySummary(selectedDay)),
     cta: {
       showPrimary: hasInProgressSession || Boolean(runnableSelection),
-      primaryLabel: hasInProgressSession ? "Resume Session" : runnableSelection ? "Start Workout" : null,
+      primaryLabel: hasInProgressSession ? "Resume Session" : runnableSelection ? "Begin" : null,
       showSecondarySelectDay: true,
-      secondaryLabel: args.dayPickerOpen ? "Hide Days" : "Select Day",
+      secondaryLabel: args.dayPickerOpen ? "Hide" : "Days",
     },
   };
 }

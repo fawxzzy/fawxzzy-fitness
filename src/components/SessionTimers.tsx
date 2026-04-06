@@ -713,7 +713,7 @@ export function SetLoggerCard({
         left={onSecondaryAction ? (
           <DockButton
             type="button"
-            variant="secondary"
+            intent="info"
             disabled={isSecondaryPending}
             onClick={async () => {
               setIsSecondaryPending(true);
@@ -724,12 +724,12 @@ export function SetLoggerCard({
               }
             }}
           >
-            {isSecondaryPending ? "Opening…" : (secondaryActionLabel ?? "View Exercise")}
+            {isSecondaryPending ? "Opening…" : (secondaryActionLabel ?? "View")}
           </DockButton>
         ) : <div aria-hidden="true" />}
         right={(
-          <DockButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} variant="primary">
-            Save Set
+          <DockButton type="button" onClick={handleLogSet} disabled={isSaveDisabled} intent="positive">
+            Log
           </DockButton>
         )}
       />
