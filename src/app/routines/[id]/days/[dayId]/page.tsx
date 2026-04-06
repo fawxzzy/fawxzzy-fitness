@@ -98,37 +98,37 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
           </ScreenScaffold>
         )}
       >
-        <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md">
-          <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
-            {canonicalDay?.state === "partial" ? (
-              <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-                Some exercises could not be loaded and will be skipped when you start this workout.
-              </p>
-            ) : null}
+        {canonicalDay?.state === "rest" ? null : (
+          <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md">
+            <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
+              {canonicalDay?.state === "partial" ? (
+                <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                  Some exercises could not be loaded and will be skipped when you start this workout.
+                </p>
+              ) : null}
 
-            {canonicalDay && !isRunnableDayState(canonicalDay.state) ? (
-              canonicalDay.state === "rest" ? null : (
+              {canonicalDay && !isRunnableDayState(canonicalDay.state) ? (
                 <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
                   {canonicalDay.invalidExercises.length > 0
                     ? "This day has invalid exercises. Edit the day before starting a workout."
                     : "No runnable exercises planned for this day."}
                 </p>
-              )
-            ) : (
-              <RoutineDayExerciseList
-                exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
-                  id: exercise.id,
-                  name: exercise.displayName,
-                  goalLine: exercise.goalLine,
-                  exerciseId: exercise.details?.id ?? exercise.exercise_id,
-                  image_icon_path: exercise.details?.image_icon_path ?? null,
-                  image_howto_path: exercise.details?.image_howto_path ?? null,
-                  slug: exercise.details?.slug ?? null,
-                }))}
-              />
-            )}
-          </SharedSectionShell>
-        </ScreenScaffold>
+              ) : (
+                <RoutineDayExerciseList
+                  exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
+                    id: exercise.id,
+                    name: exercise.displayName,
+                    goalLine: exercise.goalLine,
+                    exerciseId: exercise.details?.id ?? exercise.exercise_id,
+                    image_icon_path: exercise.details?.image_icon_path ?? null,
+                    image_howto_path: exercise.details?.image_howto_path ?? null,
+                    slug: exercise.details?.slug ?? null,
+                  }))}
+                />
+              )}
+            </SharedSectionShell>
+          </ScreenScaffold>
+        )}
 
         <PublishBottomActions>
           <BottomActionDock
