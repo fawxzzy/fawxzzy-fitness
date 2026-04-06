@@ -79,6 +79,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   const daySummary = canonicalDay
     ? getRestDayExerciseCountSummaryFromCanonicalDay(canonicalDay)
     : { strength: 0, cardio: 0, unknown: 0 };
+  const isRestState = dayRow.is_rest || canonicalDay?.state === "rest";
   const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
   const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
   const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
@@ -98,7 +99,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
           </ScreenScaffold>
         )}
       >
-        {canonicalDay?.state === "rest" ? null : (
+        {isRestState ? null : (
           <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md">
             <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
               {canonicalDay?.state === "partial" ? (
