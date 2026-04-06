@@ -420,21 +420,19 @@ export function EditableRoutineDayExerciseList({
       }}
     />
   ) : modeViewModel.headerAction === "reorder_toggle" ? (
-    <button
+    <BottomDockButton
       type="button"
+      intent={reorderMode ? "toggleActive" : "toggleInactive"}
       onClick={handleToggleReorderMode}
       aria-pressed={reorderMode}
       disabled={isRestDay}
       className={cn(
-        "inline-flex min-h-8 items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-        reorderMode
-          ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-          : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
+        "w-full",
         isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
       )}
     >
       {reorderMode ? "Done" : "Reorder"}
-    </button>
+    </BottomDockButton>
   ) : null;
 
   const handleAddExercisePress = () => {

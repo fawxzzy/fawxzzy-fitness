@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { RoutineDetailsBottomActionPublisher, RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
-import { AppButton } from "@/components/ui/AppButton";
+import { DockButton } from "@/components/layout/BottomActionDock";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineAction } from "@/app/routines/actions";
@@ -135,11 +135,11 @@ export function EditRoutineAutosaveForm(props: Props) {
       </form>
 
       <RoutineDetailsBottomActionPublisher
-        utility={props.deleteAction}
+        secondary={props.deleteAction ?? <div aria-hidden="true" />}
         primary={(
-          <AppButton type="button" variant="primary" fullWidth disabled={!canSave} onClick={saveChanges}>
-            Save Changes
-          </AppButton>
+          <DockButton type="button" intent="positive" disabled={!canSave} onClick={saveChanges}>
+            Save
+          </DockButton>
         )}
       />
     </>

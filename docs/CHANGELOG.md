@@ -1,3 +1,17 @@
+## [v0.4.36] – UI: normalize routine/day toggles + routine-details split dock intents
+
+### WHAT
+
+* Renamed routine/day toggle labels onto the shared intent language (`Inactive` / `Active`, `Routines` / `Hide`) and wired these controls to yellow `toggleInactive` / `toggleActive` dock intents.
+* Moved Edit Day reorder control out of the crowded header action cluster onto its own full-width utility row below the title/subtitle inside the floating header.
+* Reworked Routine Details bottom actions (New/Edit Routine) onto the canonical split dock path so both screens use side-by-side shared dock buttons with explicit intents.
+* Updated Edit Routine dock semantics to `Delete` (red danger) + `Save` (green positive), and New Routine to `Cancel` + `Create` (green positive).
+
+### WHY
+
+* These sibling routine/day surfaces had started to drift in label language, button intent styling, and dock layout ownership.
+* Keeping all of them on one shared split-dock contract removes clipping/stacking drift and preserves deterministic action hierarchy across the editor family.
+
 ## [v0.4.35] – UI: finish shared header spacing ownership cleanup for selector wrappers
 
 ### WHAT
