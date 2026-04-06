@@ -23,11 +23,12 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
     <>
       <DayDetailExerciseList
         mode="read_only"
-        items={exercises.map((exercise) => ({
+        items={exercises.map((exercise, index) => ({
           id: exercise.id,
           name: exercise.name,
           summary: exercise.goalLine,
           iconSrc: getExerciseIconSrc(exercise),
+          orderNumber: index + 1,
         }))}
         onSelectItem={(item) => {
           const exercise = exercises.find((entry) => entry.id === item.id);
