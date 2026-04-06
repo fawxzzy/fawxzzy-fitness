@@ -12,7 +12,7 @@ export function DayRestToggleDockControl({ isRest, onToggle, disabled }: Props) 
   return (
     <DockButton
       type="button"
-      variant="secondary"
+      intent={isRest ? "toggleActive" : "toggleInactive"}
       aria-pressed={isRest}
       onClick={onToggle}
       disabled={disabled}
