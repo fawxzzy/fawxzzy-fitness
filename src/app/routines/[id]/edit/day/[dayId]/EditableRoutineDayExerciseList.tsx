@@ -21,11 +21,11 @@ import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
-import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
   exerciseId: string;
+  orderNumber: number;
   name: string;
   measurementType: "reps" | "time" | "distance" | "time_distance";
   equipment: string | null;
@@ -67,6 +67,14 @@ type DragState = {
   id: string;
   pointerId: number;
 };
+
+function clampOrderValue(rawValue: number, listLength: number) {
+  if (!Number.isFinite(rawValue)) return 1;
+  const normalized = Math.trunc(rawValue);
+  if (normalized < 1) return 1;
+  if (normalized > listLength) return listLength;
+  return normalized;
+}
 
 function formatDuration(seconds: number | null | undefined) {
   if (seconds === null || seconds === undefined) return "";
@@ -179,6 +187,10 @@ export function EditableRoutineDayExerciseList({
 
   const orderedIds = useMemo(() => items.map((exercise) => exercise.id), [items]);
   const initialOrder = useMemo(() => exercises.map((exercise) => exercise.id), [exercises]);
+  const canonicalOrderById = useMemo(
+    () => new Map(items.map((exercise, index) => [exercise.id, index + 1])),
+    [items],
+  );
 
   const persistOrder = (nextItems: EditableRoutineDayExerciseItem[]) => {
     setItems(nextItems);
@@ -189,17 +201,47 @@ export function EditableRoutineDayExerciseList({
     setItems((current) => current.map((item) => item.id === exerciseId ? updater(item) : item));
   };
 
+  const moveItemWithinList = (
+    currentItems: EditableRoutineDayExerciseItem[],
+    fromIndex: number,
+    toIndex: number,
+  ) => {
+    if (
+      fromIndex < 0
+      || fromIndex >= currentItems.length
+      || toIndex < 0
+      || toIndex >= currentItems.length
+      || fromIndex === toIndex
+    ) return currentItems;
+    const next = [...currentItems];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    return next;
+  };
+
   const moveItem = (draggedId: string, targetId: string) => {
     if (draggedId === targetId) return;
     setItems((current) => {
       const fromIndex = current.findIndex((item) => item.id === draggedId);
       const toIndex = current.findIndex((item) => item.id === targetId);
-      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return current;
-      const next = [...current];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
+      return moveItemWithinList(current, fromIndex, toIndex);
+    });
+  };
+
+  const applyManualOrderValue = (exerciseId: string, rawOrderValue: number) => {
+    let didChangeOrder = false;
+    setItems((current) => {
+      if (current.length === 0) return current;
+      const fromIndex = current.findIndex((item) => item.id === exerciseId);
+      if (fromIndex === -1) return current;
+      const clampedOrder = clampOrderValue(rawOrderValue, current.length);
+      const next = moveItemWithinList(current, fromIndex, clampedOrder - 1);
+      didChangeOrder = next !== current;
       return next;
     });
+    if (didChangeOrder) {
+      requestAnimationFrame(() => reorderFormRef.current?.requestSubmit());
+    }
   };
 
   const finishReorder = () => {
@@ -281,6 +323,7 @@ export function EditableRoutineDayExerciseList({
       "targetCalories",
       "targetWeightUnit",
       "targetDistanceUnit",
+      "manualOrder",
     ];
     const snapshotPayload = {
       fields: Object.fromEntries(trackedKeys.map((key) => [key, String(formData.get(key) ?? "").trim()])),
@@ -349,7 +392,15 @@ export function EditableRoutineDayExerciseList({
 
   useEffect(() => {
     if (!headerActionSlotId) return;
-    setHeaderActionTarget(document.getElementById(headerActionSlotId));
+    const syncSlot = () => setHeaderActionTarget(document.getElementById(headerActionSlotId));
+    syncSlot();
+    const observer = new MutationObserver(syncSlot);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    window.addEventListener("resize", syncSlot);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncSlot);
+    };
   }, [headerActionSlotId]);
 
   const headerAction = modeViewModel.headerAction === "close_editor" ? (
@@ -385,16 +436,7 @@ export function EditableRoutineDayExerciseList({
     router.push(addExerciseHref);
   };
 
-  const emptyState = modeViewModel.sections.restDayCardVisible ? (
-    <div className="space-y-1 rounded-[1.2rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
-      <p className="font-medium text-[rgb(var(--text)/0.86)]">Rest day active</p>
-      <p>
-        {items.length > 0
-          ? `${items.length} ${items.length === 1 ? "exercise is" : "exercises are"} preserved and hidden. Turn rest off to edit this day again.`
-          : REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
-      </p>
-    </div>
-  ) : (
+  const emptyState = modeViewModel.sections.restDayCardVisible ? null : (
     <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
       No exercises yet. Add one below when you are ready.
     </div>
@@ -501,7 +543,7 @@ export function EditableRoutineDayExerciseList({
                     exerciseName={exercise.name}
                     metadata={exercise.targetSummary}
                     iconSrc={getExerciseIconSrc(exercise)}
-                    orderNumber={index + 1}
+                    orderNumber={canonicalOrderById.get(exercise.id) ?? index + 1}
                     isDragging={isDragging}
                     onHandlePointerDown={(event) => handleHandlePointerDown(exercise.id, event)}
                     onHandlePointerMove={handleHandlePointerMove}
@@ -520,6 +562,7 @@ export function EditableRoutineDayExerciseList({
               name: exercise.name,
               summary: exercise.targetSummary,
               iconSrc: getExerciseIconSrc(exercise),
+              orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
             }))}
             activeItemId={expandedId}
             onSelectItem={!modeViewModel.exerciseListInteractive ? undefined : (item) => {
@@ -592,6 +635,9 @@ export function EditableRoutineDayExerciseList({
                                 targetSets,
                               },
                             }));
+                            const manualOrderValue = Number(formData.get("manualOrder") ?? canonicalOrderById.get(exercise.id) ?? 1);
+                            const clampedManualOrder = clampOrderValue(manualOrderValue, items.length);
+                            applyManualOrderValue(exercise.id, clampedManualOrder);
                             router.refresh();
                           }
                         }}
@@ -602,6 +648,21 @@ export function EditableRoutineDayExerciseList({
                   <input type="hidden" name="routineId" value={routineId} />
                   <input type="hidden" name="routineDayId" value={routineDayId} />
                   <input type="hidden" name="exerciseRowId" value={exercise.id} />
+                  <div className="space-y-1">
+                    <label htmlFor={`exercise-order-${exercise.id}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                      Position
+                    </label>
+                    <input
+                      id={`exercise-order-${exercise.id}`}
+                      name="manualOrder"
+                      type="number"
+                      min={1}
+                      max={items.length}
+                      inputMode="numeric"
+                      defaultValue={canonicalOrderById.get(exercise.id) ?? 1}
+                      className="h-10 w-full rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3 text-sm text-text outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20"
+                    />
+                  </div>
                   <RoutineTargetInputs
                     weightUnit={weightUnit}
                     distanceUnit={exercise.defaultDistanceUnit}
