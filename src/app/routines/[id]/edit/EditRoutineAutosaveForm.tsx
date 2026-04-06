@@ -1,9 +1,8 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { RoutineDetailsBottomActionDock, RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
+import { RoutineDetailsBottomActionPublisher, RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -135,16 +134,14 @@ export function EditRoutineAutosaveForm(props: Props) {
         </RoutineEditorPageBody>
       </form>
 
-      <PublishBottomActions>
-        <RoutineDetailsBottomActionDock
-          utility={props.deleteAction}
-          primary={(
-            <AppButton type="button" variant="primary" fullWidth disabled={!canSave} onClick={saveChanges}>
-              Save Changes
-            </AppButton>
-          )}
-        />
-      </PublishBottomActions>
+      <RoutineDetailsBottomActionPublisher
+        utility={props.deleteAction}
+        primary={(
+          <AppButton type="button" variant="primary" fullWidth disabled={!canSave} onClick={saveChanges}>
+            Save Changes
+          </AppButton>
+        )}
+      />
     </>
   );
 }
