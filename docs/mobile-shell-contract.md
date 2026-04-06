@@ -39,6 +39,12 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
    - Use `PublishBottomActions` / `usePublishBottomActions` for screen-specific actions.
    - `BottomActionsSlot` is shell-owned and should not be embedded in list rows.
 
+
+7. **Bottom-action semantic intents**
+   - Bottom dock actions must use shared semantic intents through `BottomDockButton` / `DockButton` (`intent` prop), not route-local color classes.
+   - Intent map: `positive` (green), `info` (blue), `toggleInactive` (faded yellow), `toggleActive` (strong yellow), `danger` (red).
+   - Pattern: `intent -> shared primitive -> surface label mapping`.
+
 ## Validation checklist
 
 - Today, Routines, View Day, Edit Day, Add Exercise, and active workout screens keep a single scroll owner.
