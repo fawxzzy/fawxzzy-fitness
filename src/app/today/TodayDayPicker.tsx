@@ -254,7 +254,7 @@ export function TodayDayPicker({
               </DayList>
             ) : null}
 
-            {!mode.dayPickerOpen && !mode.noRoutine && daySummary ? (
+            {!mode.dayPickerOpen && !mode.noRoutine && selectedDay.state !== "rest" && daySummary ? (
               <div
                 className={[
                   "rounded-md px-3 py-1.5",
