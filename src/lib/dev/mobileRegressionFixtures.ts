@@ -70,6 +70,20 @@ export type MobileFixtureScenario = {
   reorderText?: ReorderTextFixture;
   goalForm?: GoalFormReadabilityFixture;
   usesFloatingHeader: boolean;
+  todayHeaderMatchesSelectedDay?: boolean;
+  hasExtraLowerFillerBox?: boolean;
+  headerPinned?: boolean;
+  reorderActionVisible?: boolean;
+  manualOrderEdit?: {
+    listSize: number;
+    attemptedOrders: number[];
+    normalizedOrders: number[];
+    surroundingItemsShifted: boolean;
+  };
+  bottomDockLayout?: "split" | "stacked";
+  historyLogHeaderCount?: number;
+  exerciseInfoHeaderPinned?: boolean;
+  currentSessionSaveSetHeaderPinned?: boolean;
 };
 
 const MOBILE_VIEWPORT = {
@@ -98,6 +112,10 @@ function buildWorkoutFixture(args: {
   activeSession?: boolean;
   statusChips?: SessionStatusChip[];
   cardStates?: CardStateFixture[];
+  currentSessionSaveSetHeaderPinned?: boolean;
+  todayHeaderMatchesSelectedDay?: boolean;
+  hasExtraLowerFillerBox?: boolean;
+  exerciseInfoHeaderPinned?: boolean;
 }) {
   return {
     id: args.id,
@@ -110,6 +128,10 @@ function buildWorkoutFixture(args: {
     statusChips: args.statusChips,
     cardStates: args.cardStates,
     usesFloatingHeader: true,
+    currentSessionSaveSetHeaderPinned: args.currentSessionSaveSetHeaderPinned,
+    todayHeaderMatchesSelectedDay: args.todayHeaderMatchesSelectedDay,
+    hasExtraLowerFillerBox: args.hasExtraLowerFillerBox,
+    exerciseInfoHeaderPinned: args.exerciseInfoHeaderPinned,
   } satisfies MobileFixtureScenario;
 }
 
@@ -119,6 +141,7 @@ function buildRoutinesFixture(args: {
   fixtureState: string;
   currentView: "current" | "list";
   lastInteractiveRowBottom?: number;
+  historyLogHeaderCount?: number;
 }) {
   return {
     id: args.id,
@@ -127,6 +150,7 @@ function buildRoutinesFixture(args: {
     fixtureState: args.fixtureState,
     geometry: withBaseGeometry({ lastInteractiveRowBottom: args.lastInteractiveRowBottom ?? 700 }),
     currentView: args.currentView,
+    historyLogHeaderCount: args.historyLogHeaderCount,
     cardStates: [{ cardId: "routine-card-primary", state: "selected", badgeText: "Current" }],
     usesFloatingHeader: true,
   } satisfies MobileFixtureScenario;
@@ -141,6 +165,10 @@ function buildDayFixture(args: {
   reorderText?: ReorderTextFixture;
   goalForm?: GoalFormReadabilityFixture;
   cardStates?: CardStateFixture[];
+  headerPinned?: boolean;
+  reorderActionVisible?: boolean;
+  manualOrderEdit?: MobileFixtureScenario["manualOrderEdit"];
+  hasExtraLowerFillerBox?: boolean;
 }) {
   return {
     id: args.id,
@@ -153,6 +181,10 @@ function buildDayFixture(args: {
     goalForm: args.goalForm,
     cardStates: args.cardStates,
     usesFloatingHeader: true,
+    headerPinned: args.headerPinned,
+    reorderActionVisible: args.reorderActionVisible,
+    manualOrderEdit: args.manualOrderEdit,
+    hasExtraLowerFillerBox: args.hasExtraLowerFillerBox,
   } satisfies MobileFixtureScenario;
 }
 
@@ -183,6 +215,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "today-default-v1",
     statusChips: ["in-progress"],
     cardStates: [{ cardId: "today-overview", state: "selected", badgeText: "Today" }],
+    todayHeaderMatchesSelectedDay: true,
+    exerciseInfoHeaderPinned: true,
   }),
   buildWorkoutFixture({
     id: "today-in-session-summary",
@@ -191,6 +225,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     inSessionSummary: true,
     statusChips: ["logged"],
     cardStates: [{ cardId: "session-summary", state: "completed", badgeText: "Logged" }],
+    todayHeaderMatchesSelectedDay: true,
+    hasExtraLowerFillerBox: false,
   }),
   buildWorkoutFixture({
     id: "active-workout-session",
@@ -199,6 +235,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     activeSession: true,
     statusChips: ["in-progress"],
     cardStates: [{ cardId: "exercise-row-primary", state: "active", badgeText: "In Session" }],
+    currentSessionSaveSetHeaderPinned: true,
   }),
   buildRoutinesFixture({
     id: "routines-current-view",
@@ -211,12 +248,14 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     name: "Routines: list view",
     fixtureState: "routines-list-v1",
     currentView: "list",
+    historyLogHeaderCount: 1,
   }),
   buildDayFixture({
     id: "view-day",
     route: "viewDay",
     name: "View Day",
     fixtureState: "view-day-v1",
+    hasExtraLowerFillerBox: false,
     cardStates: [{ cardId: "planned-row-1", state: "default" }],
   }),
   buildDayFixture({
@@ -224,6 +263,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     route: "editDay",
     name: "Edit Day: default",
     fixtureState: "edit-day-default-v1",
+    headerPinned: true,
     cardStates: [{ cardId: "editable-row-1", state: "selected", badgeText: "Editing" }],
   }),
   buildDayFixture({
@@ -231,11 +271,14 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     route: "editDay",
     name: "Edit Day: reorder",
     fixtureState: "edit-day-reorder-v1",
+    headerPinned: true,
+    reorderActionVisible: true,
     reorderText: {
       heading: "Reorder exercises",
       dragHandleLabel: "Drag handle",
       items: ["1. Back Squat", "2. Romanian Deadlift", "3. Walking Lunge"],
     },
+    manualOrderEdit: { listSize: 3, attemptedOrders: [0, 99], normalizedOrders: [1, 3], surroundingItemsShifted: true },
     cardStates: [{ cardId: "editable-row-reorder", state: "active", badgeText: "Reordering" }],
   }),
   buildDayFixture({
@@ -244,6 +287,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     name: "Edit Day: rest",
     fixtureState: "edit-day-rest-v1",
     restDay: true,
+    headerPinned: true,
+    hasExtraLowerFillerBox: false,
     cardStates: [{ cardId: "rest-day-card", state: "empty", badgeText: "Rest" }],
   }),
   buildDayFixture({
@@ -251,6 +296,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     route: "editDay",
     name: "Edit Day: edit exercise",
     fixtureState: "edit-day-edit-exercise-v1",
+    headerPinned: true,
     goalForm: {
       heading: "Edit exercise goal",
       fieldLabels: ["Target reps", "Target weight", "Weight unit"],
@@ -263,6 +309,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     route: "editDay",
     name: "Edit Day: add exercise",
     fixtureState: "edit-day-add-exercise-v1",
+    headerPinned: true,
     cardStates: [{ cardId: "add-exercise-entry", state: "default" }],
   }),
   {
@@ -271,6 +318,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     name: "Create Routine",
     fixtureState: "create-routine-v1",
     geometry: withBaseGeometry({ lastInteractiveRowBottom: 698 }),
+    bottomDockLayout: "split",
     goalForm: {
       heading: "Create routine",
       fieldLabels: ["Routine name", "Days per week", "Notes"],
@@ -285,6 +333,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     name: "Edit Routine",
     fixtureState: "edit-routine-v1",
     geometry: withBaseGeometry({ lastInteractiveRowBottom: 698 }),
+    bottomDockLayout: "split",
     cardStates: [{ cardId: "edit-routine-card", state: "selected", badgeText: "Current" }],
     usesFloatingHeader: true,
   },
