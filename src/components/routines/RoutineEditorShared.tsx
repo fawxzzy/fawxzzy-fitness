@@ -152,9 +152,25 @@ export function RoutineDetailsBottomActionDock({
   return (
     <BottomActionStackedPrimary
       className={className}
-      utility={utility ? <div className="grid grid-cols-1">{utility}</div> : undefined}
+      utility={utility}
       primary={primary}
     />
+  );
+}
+
+export function RoutineDetailsBottomActionPublisher({
+  primary,
+  utility,
+  className,
+}: {
+  primary: ReactNode;
+  utility?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <PublishBottomActions>
+      <RoutineDetailsBottomActionDock primary={primary} utility={utility} className={className} />
+    </PublishBottomActions>
   );
 }
 
