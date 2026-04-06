@@ -13,9 +13,11 @@ import {
   updateLogMetaAction,
 } from "@/app/actions/history";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
+import { BOTTOM_ACTION_INTENT_CLASS_NAMES } from "@/components/layout/bottomActionIntents";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { DestructiveButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
+import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
@@ -267,8 +269,8 @@ export function LogAuditClient({
     if (isEditing) {
       return (
         <BottomActionSplit
-          secondary={<SecondaryButton type="button" size="md" className="w-full" onClick={handleCancel} disabled={isPending}>Cancel</SecondaryButton>}
-          primary={<PrimaryButton type="button" size="md" className="w-full" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</PrimaryButton>}
+          secondary={<BottomDockButton type="button" intent="danger" onClick={handleCancel} disabled={isPending}>Cancel</BottomDockButton>}
+          primary={<BottomDockButton type="button" intent="positive" onClick={handleSave} disabled={isPending}>{isPending ? "Saving..." : "Save"}</BottomDockButton>}
         />
       );
     }
@@ -281,7 +283,11 @@ export function LogAuditClient({
             hiddenFields={{ sessionId: logId }}
             triggerLabel="Delete"
             triggerAriaLabel="Delete log"
-            triggerClassName={getAppButtonClassName({ variant: "destructive", size: "md", className: "w-full justify-center text-center" })}
+            triggerClassName={getAppButtonClassName({
+              variant: "destructive",
+              size: "md",
+              className: `min-h-[3.1rem] w-full justify-center rounded-[1.08rem] px-4 text-center text-sm font-semibold tracking-[0.01em] ${BOTTOM_ACTION_INTENT_CLASS_NAMES.danger}`,
+            })}
             modalTitle="Delete log?"
             modalConsequenceText="This will permanently delete this workout session and all logged sets."
             confirmLabel="Delete"
@@ -289,14 +295,13 @@ export function LogAuditClient({
           />
         )}
         primary={(
-          <SecondaryButton
+          <BottomDockButton
             type="button"
-            size="md"
-            className="w-full justify-center text-center"
+            intent="info"
             onClick={handleStartEditing}
           >
             Edit
-          </SecondaryButton>
+          </BottomDockButton>
         )}
       />
     );

@@ -132,7 +132,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
   const router = useRouter();
-  const inverseViewLabel = viewMode === "compact" ? "Detailed View" : "Compact View";
+  const inverseViewLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -249,15 +249,15 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
           secondary={(
             <BottomDockButton
               type="button"
-              variant="secondary"
+              intent="info"
               onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
             >
               {inverseViewLabel}
             </BottomDockButton>
           )}
           primary={(
-            <BottomDockButton type="button" variant="secondary" onClick={() => router.push("/history")}>
-              View Sessions
+            <BottomDockButton type="button" intent="positive" onClick={() => router.push("/history")}>
+              Sessions
             </BottomDockButton>
           )}
         />
