@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
 import { DeleteRoutineButton } from "@/app/routines/[id]/edit/DeleteRoutineButton";
 import { EditRoutineAutosaveForm } from "@/app/routines/[id]/edit/EditRoutineAutosaveForm";
-import { AppShell } from "@/components/ui/app/AppShell";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { RoutineBackButton } from "@/components/RoutineBackButton";
-import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
 import { ROUTINE_START_WEEKDAYS, getRoutineStartWeekdayFromDate } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
@@ -36,30 +33,19 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const startWeekdayDefault = getRoutineStartWeekdayFromDate((routine as RoutineRow).start_date) ?? ROUTINE_START_WEEKDAYS[0];
 
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions
-        floatingHeader={(
-          <div className="px-1">
-            <RoutineEditorPageHeader
-              title="Routine Details"
-              action={<RoutineBackButton href={returnHref} />}
-            />
-          </div>
-        )}
-      >
-        <EditRoutineAutosaveForm
-          routineId={routine.id}
-          existingStartDate={(routine as RoutineRow).start_date}
-          returnHref={returnHref}
-          name={(routine as RoutineRow).name}
-          cycleLengthDays={(routine as RoutineRow).cycle_length_days}
-          startWeekday={startWeekdayDefault}
-          timezone={routineTimezoneDefault}
-          weightUnit={(routine as RoutineRow).weight_unit ?? "lbs"}
-          error={searchParams?.error}
-          deleteAction={<DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />}
-        />
-      </ScrollScreenWithBottomActions>
-    </AppShell>
+    <RoutineDetailsScreenShell backHref={returnHref}>
+      <EditRoutineAutosaveForm
+        routineId={routine.id}
+        existingStartDate={(routine as RoutineRow).start_date}
+        returnHref={returnHref}
+        name={(routine as RoutineRow).name}
+        cycleLengthDays={(routine as RoutineRow).cycle_length_days}
+        startWeekday={startWeekdayDefault}
+        timezone={routineTimezoneDefault}
+        weightUnit={(routine as RoutineRow).weight_unit ?? "lbs"}
+        error={searchParams?.error}
+        deleteAction={<DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />}
+      />
+    </RoutineDetailsScreenShell>
   );
 }

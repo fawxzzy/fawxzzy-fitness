@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
+import { RoutineDetailsBottomActionDock, RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppButton } from "@/components/ui/AppButton";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -95,7 +94,8 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
       </RoutineEditorPageBody>
 
       <PublishBottomActions>
-        <BottomActionSingle>
+        <RoutineDetailsBottomActionDock
+          primary={(
           <AppButton
             type="button"
             variant="primary"
@@ -139,7 +139,8 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
           >
             Create Routine
           </AppButton>
-        </BottomActionSingle>
+          )}
+        />
       </PublishBottomActions>
     </>
   );

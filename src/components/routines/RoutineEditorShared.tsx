@@ -3,8 +3,11 @@ import type { ComponentProps, ReactNode } from "react";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppButton } from "@/components/ui/AppButton";
+import { AppShell } from "@/components/ui/app/AppShell";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import type { ScreenContractName } from "@/components/ui/app/screenContract";
@@ -73,6 +76,32 @@ export function RoutineEditorPageHeader({
   );
 }
 
+export function RoutineDetailsScreenShell({
+  children,
+  backHref,
+  title = "Routine Details",
+}: {
+  children: ReactNode;
+  backHref: string;
+  title?: ReactNode;
+}) {
+  // Shared contract for Routine Details routes (new/edit):
+  // keeps pinned header, scroll container, and bottom dock behavior aligned.
+  return (
+    <AppShell topNavMode="none" className="h-[100dvh]">
+      <ScrollScreenWithBottomActions
+        floatingHeader={(
+          <div className="px-1">
+            <RoutineEditorPageHeader title={title} action={<RoutineBackButton href={backHref} />} />
+          </div>
+        )}
+      >
+        {children}
+      </ScrollScreenWithBottomActions>
+    </AppShell>
+  );
+}
+
 export function RoutineEditorSection({
   title,
   description,
@@ -108,6 +137,25 @@ export function RoutineEditorPageBody({
   className?: string;
 }) {
   return <div className={cn("space-y-4 px-1 pb-4", className)}>{children}</div>;
+}
+
+export function RoutineDetailsBottomActionDock({
+  primary,
+  utility,
+  className,
+}: {
+  primary: ReactNode;
+  utility?: ReactNode;
+  className?: string;
+}) {
+  // Shared canonical bottom dock rhythm for Routine Details routes.
+  return (
+    <BottomActionStackedPrimary
+      className={className}
+      utility={utility ? <div className="grid grid-cols-1">{utility}</div> : undefined}
+      primary={primary}
+    />
+  );
 }
 
 export function RoutineEditorTitleInput({
