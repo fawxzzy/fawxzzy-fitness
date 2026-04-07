@@ -17,3 +17,5 @@ public/splash/*.png
 
 # Playbook runtime state
 .playbook/
+.vercel
+.env*.local
