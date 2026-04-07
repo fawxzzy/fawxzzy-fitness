@@ -455,10 +455,10 @@ export function EditableRoutineDayExerciseList({
   );
 
   const addExerciseDock = (
-    <BottomActionDock
-      left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
-      right={(
-        <BottomDockButton type="button" variant="primary" onClick={handleAddExercisePress} disabled={isAddingExercise}>
+        <BottomActionDock
+          left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
+          right={(
+        <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress} disabled={isAddingExercise}>
           Add Exercise
         </BottomDockButton>
       )}
@@ -473,12 +473,12 @@ export function EditableRoutineDayExerciseList({
           {ctaDockState.variant === "edit_exercise" && activeExercise ? (
             <BottomActionDock
               left={(
-                <DockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
+                <DockButton type="button" intent="info" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
                   View Exercise
                 </DockButton>
               )}
               right={(
-                <DockButton type="button" variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
+                <DockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
                   Delete Exercise
                 </DockButton>
               )}
@@ -501,12 +501,12 @@ export function EditableRoutineDayExerciseList({
         {ctaDockState.variant === "edit_exercise" && activeExercise ? (
           <BottomActionDock
             left={(
-              <DockButton type="button" variant="secondary" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
+              <DockButton type="button" intent="info" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
                 View Exercise
               </DockButton>
             )}
             right={(
-              <DockButton type="button" variant="destructive" onClick={() => setDeleteConfirmOpen(true)}>
+              <DockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
                 Delete Exercise
               </DockButton>
               )}

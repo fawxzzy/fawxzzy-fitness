@@ -73,13 +73,13 @@ function SegmentedRow({ children, className }: { children: ReactNode; className?
 }
 
 const dominantPrimaryClassName = cn(
-  "[&_.app-button]:min-h-[3.25rem] [&_.app-button]:rounded-[1.08rem] [&_.app-button]:border-transparent [&_.app-button]:shadow-[0_10px_26px_rgba(16,185,129,0.18)]",
+  "[&_.app-button]:min-h-[3.25rem] [&_.app-button]:rounded-[1.08rem] [&_.app-button]:border-transparent",
   "[&_.app-button]:focus-visible:ring-offset-0",
-  "[&>a]:min-h-[3.25rem] [&>a]:rounded-[1.08rem] [&>a]:border-transparent [&>a]:shadow-[0_10px_26px_rgba(16,185,129,0.18)]",
+  "[&>a]:min-h-[3.25rem] [&>a]:rounded-[1.08rem] [&>a]:border-transparent",
   "[&>a]:focus-visible:ring-2 [&>a]:focus-visible:ring-[var(--button-focus-ring)] [&>a]:focus-visible:ring-offset-0",
-  "[&>button]:min-h-[3.25rem] [&>button]:rounded-[1.08rem] [&>button]:border-transparent [&>button]:shadow-[0_10px_26px_rgba(16,185,129,0.18)]",
+  "[&>button]:min-h-[3.25rem] [&>button]:rounded-[1.08rem] [&>button]:border-transparent",
   "[&>button]:focus-visible:ring-2 [&>button]:focus-visible:ring-[var(--button-focus-ring)] [&>button]:focus-visible:ring-offset-0",
-  "[&>form_.app-button]:min-h-[3.25rem] [&>form_.app-button]:rounded-[1.08rem] [&>form_.app-button]:border-transparent [&>form_.app-button]:shadow-[0_10px_26px_rgba(16,185,129,0.18)]",
+  "[&>form_.app-button]:min-h-[3.25rem] [&>form_.app-button]:rounded-[1.08rem] [&>form_.app-button]:border-transparent",
   "[&>form_.app-button]:focus-visible:ring-offset-0",
 );
 

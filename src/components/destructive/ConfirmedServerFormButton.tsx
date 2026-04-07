@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { getBottomActionButtonClassName, type BottomActionIntent } from "@/components/layout/bottomActionIntents";
 import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 
@@ -10,6 +11,7 @@ export function ConfirmedServerFormButton({
   hiddenFields,
   triggerLabel,
   triggerAriaLabel,
+  triggerIntent,
   triggerClassName,
   modalTitle,
   modalConsequenceText,
@@ -26,6 +28,7 @@ export function ConfirmedServerFormButton({
   hiddenFields: Record<string, string>;
   triggerLabel: string;
   triggerAriaLabel?: string;
+  triggerIntent?: BottomActionIntent;
   triggerClassName?: string;
   modalTitle: string;
   modalConsequenceText?: string;
@@ -71,7 +74,14 @@ export function ConfirmedServerFormButton({
         variant="destructive"
         size={size}
         aria-label={triggerAriaLabel}
-        className={[triggerClassName, open ? "pointer-events-none opacity-0" : null].filter(Boolean).join(" ")}
+        className={(triggerIntent
+          ? getBottomActionButtonClassName({
+            intent: triggerIntent,
+            size,
+            className: triggerClassName,
+          })
+          : [triggerClassName].filter(Boolean).join(" "))
+          .concat(open ? " pointer-events-none opacity-0" : "")}
         disabled={isLoading || disabled}
         onClick={() => setOpen(true)}
       >

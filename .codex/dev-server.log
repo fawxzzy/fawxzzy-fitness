@@ -1,0 +1,14 @@
+
+> fawxzzyfitness@0.3.88 dev
+> next dev
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1967ms
+ ○ Compiling /dev/mobile-scaffold ...
+ ✓ Compiled /dev/mobile-scaffold in 5.1s (591 modules)
+ GET /dev/ui-contract 200 in 5355ms
+ GET /dev/mobile-scaffold 200 in 5358ms

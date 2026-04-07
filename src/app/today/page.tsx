@@ -512,6 +512,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     action={discardInProgressSessionAction}
                     hiddenFields={{ sessionId: todayPayload.inProgressSessionId }}
                     triggerLabel="Discard Session"
+                    triggerIntent="danger"
                     triggerClassName="h-full w-full"
                     size="md"
                     modalTitle="Discard workout?"

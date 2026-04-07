@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { MobileScreenScaffold } from "@/components/layout/MobileScreenScaffold";
-import { AppButton } from "@/components/ui/AppButton";
 
 export function MobileScaffoldDemo() {
   const [longList, setLongList] = useState(true);
@@ -25,8 +24,8 @@ export function MobileScaffoldDemo() {
         )}
         bottomDock={(
           <BottomActionDock
-            left={<DockButton variant="secondary" type="button" onClick={() => setLongList((current) => !current)}>{longList ? "Short content" : "Long content"}</DockButton>}
-            right={<AppButton type="button" variant="primary" size="md" fullWidth>Primary Action</AppButton>}
+            left={<DockButton intent="info" type="button" onClick={() => setLongList((current) => !current)}>{longList ? "Short content" : "Long content"}</DockButton>}
+            right={<DockButton intent="positive" type="button">Primary Action</DockButton>}
           />
         )}
       >
