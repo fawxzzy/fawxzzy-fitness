@@ -44,6 +44,7 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
    - Bottom dock actions must use shared semantic intents through `BottomDockButton` / `DockButton` (`intent` prop), not route-local color classes.
    - Intent map: `positive` (green), `info` (blue), `toggleInactive` (faded yellow), `toggleActive` (strong yellow), `danger` (red).
    - Pattern: `intent -> shared primitive -> surface label mapping`.
+   - Usage note: color follows `intent`; label follows the owning surface/workflow copy.
 
 ## Validation checklist
 

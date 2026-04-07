@@ -15,7 +15,6 @@ import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import type { ScreenContractName } from "@/components/ui/app/screenContract";
 import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { controlClassName } from "@/components/ui/formClasses";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
@@ -446,9 +445,9 @@ export function RoutineEditorStickyActions({
       <BottomActionStackedPrimary
         utility={(
           <>
-            <Link href={cancelHref} className={getAppButtonClassName({ variant: "secondary", size: "md", fullWidth: true })}>
+            <BottomDockLink href={cancelHref} intent="info">
               Cancel
-            </Link>
+            </BottomDockLink>
             {secondary ?? <div aria-hidden="true" />}
           </>
         )}

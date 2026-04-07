@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const AUTH_ENTRY_PATH = "/login";
@@ -20,11 +20,7 @@ export function SignOutButton() {
   return (
     <button
       onClick={handleSignOut}
-      className={getAppButtonClassName({
-        variant: "destructive",
-        fullWidth: true,
-        className: "bg-red-500/7 text-red-200 border-red-400/28 shadow-none hover:bg-red-500/12",
-      })}
+      className={getBottomActionButtonClassName({ intent: "danger" })}
     >
       Sign out
     </button>

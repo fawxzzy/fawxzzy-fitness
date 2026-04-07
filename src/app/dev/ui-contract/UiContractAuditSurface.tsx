@@ -85,7 +85,7 @@ export function UiContractAuditSurface() {
         </div>
         <SessionStickyFooter className="relative bottom-auto mt-3">
           <BottomActionDock
-            left={<DockButton variant="secondary" type="button">Discard</DockButton>}
+            left={<DockButton intent="info" type="button">Discard</DockButton>}
             right={<DockButton intent="positive" type="button">Log</DockButton>}
           />
         </SessionStickyFooter>

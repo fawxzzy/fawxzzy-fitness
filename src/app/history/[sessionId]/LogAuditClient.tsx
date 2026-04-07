@@ -15,7 +15,6 @@ import {
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
-import { BOTTOM_ACTION_INTENT_CLASS_NAMES } from "@/components/layout/bottomActionIntents";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
@@ -28,7 +27,6 @@ import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { HistoryDetailHeader, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
@@ -283,11 +281,7 @@ export function LogAuditClient({
             hiddenFields={{ sessionId: logId }}
             triggerLabel="Delete"
             triggerAriaLabel="Delete log"
-            triggerClassName={getAppButtonClassName({
-              variant: "destructive",
-              size: "md",
-              className: `min-h-[3.1rem] w-full justify-center rounded-[1.08rem] px-4 text-center text-sm font-semibold tracking-[0.01em] ${BOTTOM_ACTION_INTENT_CLASS_NAMES.danger}`,
-            })}
+            triggerIntent="danger"
             modalTitle="Delete log?"
             modalConsequenceText="This will permanently delete this workout session and all logged sets."
             confirmLabel="Delete"
