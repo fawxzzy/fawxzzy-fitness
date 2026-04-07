@@ -1,8 +1,7 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { ExercisePicker } from "@/components/ExercisePicker";
-import { BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
-import { BottomActionDock } from "@/components/layout/BottomActionDock";
+import { BottomActionSplit, BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
@@ -151,7 +150,7 @@ export function RoutineDetailsBottomActionDock({
 }) {
   // Shared canonical split dock rhythm for Routine Details routes.
   return (
-    <BottomActionDock left={secondary} right={primary} className={className} />
+    <BottomActionSplit secondary={secondary} primary={primary} className={className} />
   );
 }
 
@@ -459,7 +458,7 @@ export function RoutineEditorStickyActions({
 
 export function RoutineDetailsBackSecondaryAction({ href, label = "Back" }: { href: string; label?: string }) {
   return (
-    <BottomDockLink href={href} intent="toggleInactive">
+    <BottomDockLink href={href} intent="danger">
       {label}
     </BottomDockLink>
   );

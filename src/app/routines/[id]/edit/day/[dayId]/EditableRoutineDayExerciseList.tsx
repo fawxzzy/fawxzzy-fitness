@@ -9,6 +9,7 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
+import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -411,28 +412,32 @@ export function EditableRoutineDayExerciseList({
   }, [headerActionSlotId]);
 
   const headerAction = modeViewModel.headerAction === "close_editor" ? (
-    <TopRightBackButton
-      ariaLabel="Close exercise editor"
-      historyBehavior="fallback-only"
-      onClick={(event) => {
-        event.preventDefault();
-        handleCloseInlineEditor();
-      }}
-    />
+    <div className="flex justify-end px-0.5">
+      <TopRightBackButton
+        ariaLabel="Close exercise editor"
+        historyBehavior="fallback-only"
+        onClick={(event) => {
+          event.preventDefault();
+          handleCloseInlineEditor();
+        }}
+      />
+    </div>
   ) : modeViewModel.headerAction === "reorder_toggle" ? (
-    <BottomDockButton
-      type="button"
-      intent={reorderMode ? "toggleActive" : "toggleInactive"}
-      onClick={handleToggleReorderMode}
-      aria-pressed={reorderMode}
-      disabled={isRestDay}
-      className={cn(
-        "w-full",
-        isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
-      )}
-    >
-      {reorderMode ? "Done" : "Reorder"}
-    </BottomDockButton>
+    <BottomActionUtilityCluster className="mx-0.5">
+      <BottomDockButton
+        type="button"
+        intent={reorderMode ? "toggleActive" : "toggleInactive"}
+        onClick={handleToggleReorderMode}
+        aria-pressed={reorderMode}
+        disabled={isRestDay}
+        className={cn(
+          "w-full",
+          isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
+        )}
+      >
+        {reorderMode ? "Done" : "Reorder"}
+      </BottomDockButton>
+    </BottomActionUtilityCluster>
   ) : null;
 
   const handleAddExercisePress = () => {

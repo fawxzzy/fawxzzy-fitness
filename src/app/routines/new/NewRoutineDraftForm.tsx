@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { DockButton } from "@/components/layout/BottomActionDock";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   RoutineDetailsBackSecondaryAction,
   RoutineDetailsBottomActionPublisher,
@@ -99,7 +99,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
       <RoutineDetailsBottomActionPublisher
         secondary={<RoutineDetailsBackSecondaryAction href="/routines" label="Cancel" />}
         primary={(
-          <DockButton
+          <BottomDockButton
             type="button"
             intent="positive"
             disabled={!canCreate}
@@ -140,7 +140,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
             }}
           >
             Create
-          </DockButton>
+          </BottomDockButton>
         )}
       />
     </>

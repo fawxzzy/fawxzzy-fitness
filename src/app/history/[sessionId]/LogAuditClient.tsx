@@ -279,6 +279,7 @@ export function LogAuditClient({
           <ConfirmedServerFormButton
             action={deleteCompletedSessionAction}
             hiddenFields={{ sessionId: logId }}
+            size="md"
             triggerLabel="Delete"
             triggerAriaLabel="Delete log"
             triggerIntent="danger"

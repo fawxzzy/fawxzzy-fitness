@@ -74,6 +74,7 @@ export function ConfirmedServerFormButton({
         variant="destructive"
         size={size}
         aria-label={triggerAriaLabel}
+        data-bottom-action-intent={triggerIntent}
         className={(triggerIntent
           ? getBottomActionButtonClassName({
             intent: triggerIntent,
