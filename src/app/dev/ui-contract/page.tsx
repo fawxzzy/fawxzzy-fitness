@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { UiContractAuditSurface } from "@/app/dev/ui-contract/UiContractAuditSurface";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export default function DevUiContractPage() {
   if (process.env.NODE_ENV === "production") {
