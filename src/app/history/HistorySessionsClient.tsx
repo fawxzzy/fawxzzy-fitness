@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
@@ -72,8 +71,7 @@ export function HistorySessionsClient({
   selectedSessionId?: string;
 }) {
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
-  const router = useRouter();
-  const inverseViewLabel = viewMode === "compact" ? "Detailed" : "Compact";
+  const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -96,13 +94,13 @@ export function HistorySessionsClient({
               intent="info"
               onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
             >
-              {inverseViewLabel}
+              {nextViewModeLabel}
             </BottomDockButton>
           )}
           primary={(
-            <BottomDockButton type="button" intent="positive" onClick={() => router.push("/history/exercises")}>
+            <BottomDockLink href="/history/exercises" intent="positive">
               Exercises
-            </BottomDockButton>
+            </BottomDockLink>
           )}
         />
       </PublishBottomActions>

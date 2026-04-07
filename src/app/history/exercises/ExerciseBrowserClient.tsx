@@ -2,14 +2,13 @@
 
 import { memo, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import type { ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { cn } from "@/lib/cn";
@@ -131,8 +130,7 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
-  const router = useRouter();
-  const inverseViewLabel = viewMode === "compact" ? "Detailed" : "Compact";
+  const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -252,13 +250,13 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
               intent="info"
               onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
             >
-              {inverseViewLabel}
+              {nextViewModeLabel}
             </BottomDockButton>
           )}
           primary={(
-            <BottomDockButton type="button" intent="positive" onClick={() => router.push("/history")}>
+            <BottomDockLink href="/history" intent="positive">
               Sessions
-            </BottomDockButton>
+            </BottomDockLink>
           )}
         />
       </PublishBottomActions>
