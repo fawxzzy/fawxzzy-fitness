@@ -1,0 +1,17 @@
+export const NORMALIZED_ACTION_LABELS = {
+  add: "Add",
+  begin: "Begin",
+  compact: "Compact",
+  days: "Days",
+  detailed: "Detailed",
+  edit: "Edit",
+  exercises: "Exercises",
+  finish: "Finish",
+  hide: "Hide",
+  new: "New",
+  routines: "Routines",
+  sessions: "Sessions",
+  training: "Training",
+  resting: "Resting",
+  view: "View",
+} as const;
