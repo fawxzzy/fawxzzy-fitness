@@ -52,6 +52,15 @@
   --button-transition: 140ms ease;
   --button-press-scale: 0.98;
 
+  --action-chrome-shell-radius: 1.32rem;
+  --action-chrome-segment-radius: 1.08rem;
+  --action-chrome-segment-radius-compact: 0.92rem;
+  --action-chrome-shell-padding: 0.24rem;
+  --action-chrome-shell-gap: 0.24rem;
+  --action-chrome-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  --action-chrome-shell-border: rgb(255 255 255 / 0.1);
+  --action-chrome-shell-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+
   --radius-sm: 0.625rem;
   --radius-md: 0.875rem;
   --radius-lg: 1.125rem;
@@ -206,10 +215,8 @@ button,
 }
 
 .app-button {
-  border-radius: var(--button-radius);
   font-weight: var(--button-font-weight);
   letter-spacing: var(--button-letter-spacing);
-  transition: transform var(--button-transition), background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);
 }
 
 .app-button-md {
@@ -225,21 +232,252 @@ button,
 }
 
 .app-button:active {
-  transform: scale(var(--button-press-scale));
-}
-
-.app-button:focus-visible {
-  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-button {
-    transition: background-color var(--button-transition), border-color var(--button-transition), opacity var(--button-transition);
-  }
-
   .app-button:active {
     transform: none;
   }
+}
+
+.action-chrome-rail {
+  position: relative;
+  border-radius: var(--action-chrome-shell-radius);
+  border: 1px solid var(--action-chrome-shell-border);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.03), rgb(255 255 255 / 0.01)),
+    linear-gradient(180deg, rgb(var(--surface) / 0.985), rgb(var(--surface) / 0.955));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    inset 0 -1px 0 rgb(0 0 0 / 0.08),
+    var(--action-chrome-shell-shadow);
+  padding: var(--action-chrome-shell-padding);
+}
+
+.action-chrome {
+  --action-chrome-border-color: rgb(255 255 255 / 0.14);
+  --action-chrome-border-color-hover: rgb(255 255 255 / 0.2);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.06);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.018);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.08);
+  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.03);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.1);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.04);
+  --action-chrome-text-color: rgb(var(--text) / 0.92);
+  --action-chrome-shadow:
+    0 10px 24px rgb(0 0 0 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --action-chrome-shadow-hover:
+    0 12px 28px rgb(0 0 0 / 0.16),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-active:
+    0 7px 18px rgb(0 0 0 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.03);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--action-chrome-segment-radius);
+  border-color: var(--action-chrome-border-color);
+  background: transparent;
+  color: var(--action-chrome-text-color);
+  box-shadow: var(--action-chrome-shadow);
+  transition:
+    border-color var(--action-chrome-transition),
+    color var(--action-chrome-transition),
+    box-shadow var(--action-chrome-transition),
+    transform 120ms ease;
+}
+
+.action-chrome::before,
+.action-chrome::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transition: opacity var(--action-chrome-transition), background var(--action-chrome-transition);
+}
+
+.action-chrome::before {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.085), rgb(255 255 255 / 0.02));
+}
+
+.action-chrome::after {
+  background: linear-gradient(180deg, var(--action-chrome-overlay-top), var(--action-chrome-overlay-bottom));
+}
+
+.action-chrome > * {
+  position: relative;
+  z-index: 1;
+}
+
+.action-chrome:hover:not(:disabled) {
+  border-color: var(--action-chrome-border-color-hover);
+  box-shadow: var(--action-chrome-shadow-hover);
+}
+
+.action-chrome:hover:not(:disabled)::after {
+  background: linear-gradient(180deg, var(--action-chrome-overlay-top-hover), var(--action-chrome-overlay-bottom-hover));
+}
+
+.action-chrome:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: var(--action-chrome-shadow-active);
+}
+
+.action-chrome:active:not(:disabled)::after {
+  background: linear-gradient(180deg, var(--action-chrome-overlay-top-active), var(--action-chrome-overlay-bottom-active));
+}
+
+.action-chrome:disabled {
+  box-shadow: none;
+}
+
+.action-chrome[data-action-chrome-selected="true"] {
+  border-color: var(--action-chrome-border-color-hover);
+  box-shadow: var(--action-chrome-shadow-hover);
+}
+
+.action-chrome-segmented {
+  border-radius: var(--action-chrome-segment-radius-compact);
+}
+
+.action-chrome-segmented:not([data-action-chrome-selected="true"]) {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035);
+}
+
+.action-chrome-segmented:not([data-action-chrome-selected="true"])::before {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.014));
+}
+
+.action-chrome[data-action-chrome-intent="neutral"] {
+  --action-chrome-border-color: rgb(255 255 255 / 0.12);
+  --action-chrome-border-color-hover: rgb(255 255 255 / 0.18);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.03);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.008);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.05);
+  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.018);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.06);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.022);
+  --action-chrome-text-color: rgb(var(--text) / 0.9);
+}
+
+.action-chrome[data-action-chrome-intent="positive"] {
+  --action-chrome-border-color: rgb(110 231 183 / 0.4);
+  --action-chrome-border-color-hover: rgb(110 231 183 / 0.5);
+  --action-chrome-overlay-top: rgb(16 185 129 / 0.28);
+  --action-chrome-overlay-bottom: rgb(5 150 105 / 0.17);
+  --action-chrome-overlay-top-hover: rgb(16 185 129 / 0.34);
+  --action-chrome-overlay-bottom-hover: rgb(5 150 105 / 0.22);
+  --action-chrome-overlay-top-active: rgb(16 185 129 / 0.38);
+  --action-chrome-overlay-bottom-active: rgb(5 150 105 / 0.25);
+  --action-chrome-text-color: rgb(236 253 245 / 0.98);
+  --action-chrome-shadow:
+    0 12px 28px rgb(16 185 129 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-hover:
+    0 14px 34px rgb(16 185 129 / 0.16),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --action-chrome-shadow-active:
+    0 9px 20px rgb(16 185 129 / 0.13),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.action-chrome[data-action-chrome-intent="info"] {
+  --action-chrome-border-color: rgb(125 211 252 / 0.36);
+  --action-chrome-border-color-hover: rgb(125 211 252 / 0.46);
+  --action-chrome-overlay-top: rgb(14 165 233 / 0.22);
+  --action-chrome-overlay-bottom: rgb(2 132 199 / 0.12);
+  --action-chrome-overlay-top-hover: rgb(14 165 233 / 0.28);
+  --action-chrome-overlay-bottom-hover: rgb(2 132 199 / 0.17);
+  --action-chrome-overlay-top-active: rgb(14 165 233 / 0.32);
+  --action-chrome-overlay-bottom-active: rgb(2 132 199 / 0.19);
+  --action-chrome-text-color: rgb(240 249 255 / 0.98);
+  --action-chrome-shadow:
+    0 12px 28px rgb(14 165 233 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-hover:
+    0 14px 32px rgb(14 165 233 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --action-chrome-shadow-active:
+    0 9px 20px rgb(14 165 233 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.action-chrome[data-action-chrome-intent="toggleInactive"] {
+  --action-chrome-border-color: rgb(252 211 77 / 0.26);
+  --action-chrome-border-color-hover: rgb(252 211 77 / 0.34);
+  --action-chrome-overlay-top: rgb(245 158 11 / 0.12);
+  --action-chrome-overlay-bottom: rgb(217 119 6 / 0.06);
+  --action-chrome-overlay-top-hover: rgb(245 158 11 / 0.16);
+  --action-chrome-overlay-bottom-hover: rgb(217 119 6 / 0.1);
+  --action-chrome-overlay-top-active: rgb(245 158 11 / 0.18);
+  --action-chrome-overlay-bottom-active: rgb(217 119 6 / 0.12);
+  --action-chrome-text-color: rgb(254 243 199 / 0.88);
+  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --action-chrome-shadow-hover:
+    0 10px 24px rgb(245 158 11 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.045);
+  --action-chrome-shadow-active:
+    0 7px 18px rgb(245 158 11 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.03);
+}
+
+.action-chrome[data-action-chrome-intent="toggleActive"] {
+  --action-chrome-border-color: rgb(252 211 77 / 0.42);
+  --action-chrome-border-color-hover: rgb(252 211 77 / 0.52);
+  --action-chrome-overlay-top: rgb(245 158 11 / 0.22);
+  --action-chrome-overlay-bottom: rgb(217 119 6 / 0.14);
+  --action-chrome-overlay-top-hover: rgb(245 158 11 / 0.28);
+  --action-chrome-overlay-bottom-hover: rgb(217 119 6 / 0.18);
+  --action-chrome-overlay-top-active: rgb(245 158 11 / 0.32);
+  --action-chrome-overlay-bottom-active: rgb(217 119 6 / 0.2);
+  --action-chrome-text-color: rgb(255 251 235 / 0.98);
+  --action-chrome-shadow:
+    0 12px 28px rgb(245 158 11 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-hover:
+    0 14px 32px rgb(245 158 11 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --action-chrome-shadow-active:
+    0 9px 20px rgb(245 158 11 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.action-chrome[data-action-chrome-intent="danger"] {
+  --action-chrome-border-color: rgb(253 164 175 / 0.34);
+  --action-chrome-border-color-hover: rgb(253 164 175 / 0.44);
+  --action-chrome-overlay-top: rgb(244 63 94 / 0.2);
+  --action-chrome-overlay-bottom: rgb(190 24 93 / 0.12);
+  --action-chrome-overlay-top-hover: rgb(244 63 94 / 0.26);
+  --action-chrome-overlay-bottom-hover: rgb(190 24 93 / 0.17);
+  --action-chrome-overlay-top-active: rgb(244 63 94 / 0.3);
+  --action-chrome-overlay-bottom-active: rgb(190 24 93 / 0.2);
+  --action-chrome-text-color: rgb(255 241 242 / 0.98);
+  --action-chrome-shadow:
+    0 12px 28px rgb(244 63 94 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-hover:
+    0 14px 32px rgb(244 63 94 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --action-chrome-shadow-active:
+    0 9px 20px rgb(244 63 94 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.action-chrome[data-action-chrome-intent="ghost"] {
+  --action-chrome-border-color: rgb(255 255 255 / 0.08);
+  --action-chrome-border-color-hover: rgb(255 255 255 / 0.14);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.02);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.04);
+  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.01);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.05);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.02);
+  --action-chrome-text-color: rgb(var(--text) / 0.9);
+  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.025);
+  --action-chrome-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.035);
+  --action-chrome-shadow-active: inset 0 1px 0 rgb(255 255 255 / 0.02);
 }
 
 
@@ -318,6 +556,24 @@ a:focus-visible {
     }
 
     .glass-interactive:active {
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .action-chrome {
+      transition:
+        border-color 120ms ease,
+        color 120ms ease,
+        box-shadow 120ms ease;
+    }
+
+    .action-chrome::before,
+    .action-chrome::after {
+      transition: opacity 120ms ease, background 120ms ease;
+    }
+
+    .action-chrome:active:not(:disabled) {
       transform: none;
     }
   }
