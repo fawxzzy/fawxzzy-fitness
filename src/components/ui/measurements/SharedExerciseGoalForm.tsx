@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
-import { cn } from "@/lib/cn";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { deriveGoalMeasurementSelections, getVisibleMetricsForModality, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
 
 function getDefaultMeasurements(modality: GoalModality): MeasurementSelection[] {
@@ -73,33 +73,22 @@ export function SharedExerciseGoalForm({
       {goalModeChoices.length ? (
         <div className="space-y-1">
           <p className="px-0.5 text-xs text-muted">Goal mode</p>
-          <div className="flex flex-wrap gap-2">
-            {goalModeChoices.map((choice) => {
-              const active = effectiveGoalModality === choice.value;
-              return (
-                <button
-                  key={choice.value}
-                  type="button"
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
-                    active
-                      ? "border-emerald-300/45 bg-emerald-400/16 text-text"
-                      : "border-border/40 bg-[rgb(var(--bg)/0.35)] text-muted hover:text-text",
-                  )}
-                  onClick={() => {
-                    onStateChange({
-                      ...state,
-                      measurements: getDefaultMeasurements(choice.value),
-                      duration: choice.value === "cardio_distance" ? "" : state.duration,
-                      distance: choice.value === "cardio_time" ? "" : state.distance,
-                    });
-                  }}
-                >
-                  {choice.label}
-                </button>
-              );
-            })}
-          </div>
+          <SegmentedControl
+            options={goalModeChoices}
+            value={effectiveGoalModality}
+            size="sm"
+            activeIntent="info"
+            ariaLabel="Goal mode"
+            onChange={(nextValue) => {
+              const nextMode = nextValue as GoalModality;
+              onStateChange({
+                ...state,
+                measurements: getDefaultMeasurements(nextMode),
+                duration: nextMode === "cardio_distance" ? "" : state.duration,
+                distance: nextMode === "cardio_time" ? "" : state.distance,
+              });
+            }}
+          />
         </div>
       ) : null}
 

@@ -1,9 +1,18 @@
 import Link from "next/link";
+import {
+  ACTION_CHROME_CONTROL_CLASS_NAME,
+  ACTION_CHROME_RAIL_CLASS_NAME,
+  ACTION_CHROME_RAIL_GRID_CLASS_NAME,
+  ACTION_CHROME_SEGMENTED_CLASS_NAME,
+  type ActionChromeIntent,
+} from "@/components/ui/actionChrome";
+import { cn } from "@/lib/cn";
 
 type SegmentedControlOption = {
   label: string;
   value: string;
   href?: string;
+  intent?: ActionChromeIntent;
 };
 
 export function SegmentedControl({
@@ -16,6 +25,8 @@ export function SegmentedControl({
   shellClassName,
   activeClassName,
   inactiveClassName,
+  activeIntent = "info",
+  inactiveIntent = "neutral",
 }: {
   options: SegmentedControlOption[];
   value: string;
@@ -26,22 +37,41 @@ export function SegmentedControl({
   shellClassName?: string;
   activeClassName?: string;
   inactiveClassName?: string;
+  activeIntent?: ActionChromeIntent;
+  inactiveIntent?: ActionChromeIntent;
 }) {
   const itemClassName = size === "sm"
-    ? "inline-flex min-h-8 min-w-0 flex-1 basis-0 items-center justify-center rounded-lg px-3 text-[11px] font-semibold transition"
-    : "inline-flex min-h-9 min-w-0 flex-1 basis-0 items-center justify-center rounded-lg px-3.5 text-xs font-semibold transition";
+    ? cn(
+      ACTION_CHROME_CONTROL_CLASS_NAME,
+      "min-h-8 min-w-0 flex-1 basis-0 rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[11px] font-semibold uppercase tracking-[0.12em] focus-visible:ring-sky-300/25",
+    )
+    : cn(
+      ACTION_CHROME_CONTROL_CLASS_NAME,
+      "min-h-10 min-w-0 flex-1 basis-0 rounded-[var(--action-chrome-segment-radius-compact)] px-3.5 text-xs font-semibold focus-visible:ring-sky-300/25",
+    );
 
   return (
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`flex w-full items-center gap-1 rounded-xl border border-[rgb(var(--glass-tint-rgb)/0.26)] bg-[rgb(var(--glass-tint-rgb)/0.56)] p-1 ${shellClassName ?? ""} ${className ?? ""}`.trim()}
+      className={cn(
+        ACTION_CHROME_RAIL_CLASS_NAME,
+        ACTION_CHROME_RAIL_GRID_CLASS_NAME,
+        "w-full",
+        shellClassName,
+        className,
+      )}
     >
       {options.map((option) => {
         const isActive = option.value === value;
-        const stateClassName = isActive
-          ? (activeClassName ?? "bg-[rgb(var(--glass-tint-rgb)/0.94)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.9)]")
-          : (inactiveClassName ?? "text-slate-300 hover:bg-white/5 hover:text-white");
+        const stateClassName = cn(
+          ACTION_CHROME_SEGMENTED_CLASS_NAME,
+          isActive
+            ? "text-[rgb(var(--text)/0.96)] shadow-[var(--action-chrome-shadow-hover)]"
+            : "text-[rgb(var(--text)/0.72)] shadow-none",
+          isActive ? activeClassName : inactiveClassName,
+        );
+        const intent = isActive ? (option.intent ?? activeIntent) : inactiveIntent;
 
         if (onChange || !option.href) {
           return (
@@ -50,8 +80,11 @@ export function SegmentedControl({
               type="button"
               role="tab"
               aria-selected={isActive}
+              data-action-chrome-intent={intent}
+              data-action-chrome-segmented="true"
+              data-action-chrome-selected={isActive ? "true" : undefined}
               onClick={() => onChange?.(option.value)}
-              className={`${itemClassName} ${stateClassName}`}
+              className={cn(itemClassName, stateClassName)}
             >
               {option.label}
             </button>
@@ -64,7 +97,10 @@ export function SegmentedControl({
             href={option.href}
             role="tab"
             aria-selected={isActive}
-            className={`${itemClassName} ${stateClassName}`}
+            data-action-chrome-intent={intent}
+            data-action-chrome-segmented="true"
+            data-action-chrome-selected={isActive ? "true" : undefined}
+            className={cn(itemClassName, stateClassName)}
           >
             {option.label}
           </Link>

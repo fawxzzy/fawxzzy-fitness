@@ -27,6 +27,8 @@ export function BottomDockButton({ children, intent, variant, className, loading
       disabled={isDisabled}
       aria-busy={loading}
       data-bottom-action-intent={resolvedIntent}
+      data-action-chrome-intent={resolvedIntent}
+      data-action-chrome-segmented="true"
       className={getBottomActionButtonClassName({ intent: resolvedIntent, fullWidth, className })}
     >
       <span>{children}</span>
@@ -55,6 +57,8 @@ export function BottomDockLink({
     <Link
       href={href}
       data-bottom-action-intent={resolvedIntent}
+      data-action-chrome-intent={resolvedIntent}
+      data-action-chrome-segmented="true"
       className={getBottomActionButtonClassName({ intent: resolvedIntent, fullWidth, className })}
     >
       <span>{children}</span>

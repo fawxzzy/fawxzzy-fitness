@@ -12,6 +12,7 @@ import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
 import { useToast } from "@/components/ui/ToastProvider";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
@@ -848,35 +849,18 @@ export function SetLoggerCard({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</p>
                 <p className="mt-0.5 text-[13px] leading-snug text-text/90 line-clamp-2">{currentSetLabel} • {liveSummaryText}</p>
               </div>
-              <div className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-[rgb(var(--surface-rgb)/0.52)] p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setWarmupValue(false)}
-                  aria-pressed={!resolvedIsWarmup}
-                  className={cn(
-                    "min-h-[34px] rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap transition",
-                    !resolvedIsWarmup
-                      ? "bg-white/[0.14] text-text"
-                      : "text-muted hover:text-text",
-                    tapFeedbackClass,
-                  )}
-                >
-                  Normal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setWarmupValue(true)}
-                  aria-pressed={resolvedIsWarmup}
-                  className={cn(
-                    "min-h-[34px] rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap transition",
-                    resolvedIsWarmup
-                      ? "bg-emerald-400/20 text-emerald-100"
-                      : "text-muted hover:text-text",
-                    tapFeedbackClass,
-                  )}
-                >
-                  Warm-Up
-                </button>
+              <div className="w-[10.75rem] shrink-0">
+                <SegmentedControl
+                  options={[
+                    { label: "Normal", value: "normal", intent: "info" },
+                    { label: "Warm-Up", value: "warmup", intent: "toggleActive" },
+                  ]}
+                  value={resolvedIsWarmup ? "warmup" : "normal"}
+                  size="sm"
+                  inactiveIntent="neutral"
+                  ariaLabel="Set type"
+                  onChange={(nextValue) => setWarmupValue(nextValue === "warmup")}
+                />
               </div>
             </div>
           )}

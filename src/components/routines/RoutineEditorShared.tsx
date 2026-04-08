@@ -11,6 +11,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { ScreenContractName } from "@/components/ui/app/screenContract";
 import { Glass } from "@/components/ui/Glass";
 import { GlassButton } from "@/components/ui/GlassButton";
@@ -272,23 +273,18 @@ export function RoutineEditorListModeControlRow({
       summary={summary}
       className={className}
       actions={(
-        <div className="flex items-center gap-2">
-          {actions.map((action) => (
-            <button
-              key={action.label}
-              type="button"
-              onClick={action.onClick}
-              aria-pressed={Boolean(action.active)}
-              className={cn(
-                "inline-flex min-h-9 min-w-[5.8rem] items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-                action.active
-                  ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                  : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-              )}
-            >
-              {action.label}
-            </button>
-          ))}
+        <div className="min-w-[12rem] flex-1 sm:flex-none">
+          <SegmentedControl
+            options={actions.map((action) => ({
+              label: action.label,
+              value: action.label,
+            }))}
+            value={actions.find((action) => action.active)?.label ?? actions[0]?.label ?? ""}
+            size="sm"
+            activeIntent="info"
+            ariaLabel="Routine editor list mode"
+            onChange={(nextValue) => actions.find((action) => action.label === nextValue)?.onClick()}
+          />
         </div>
       )}
     />

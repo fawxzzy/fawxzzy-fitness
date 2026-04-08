@@ -20,6 +20,8 @@ export function SignOutButton() {
   return (
     <button
       onClick={handleSignOut}
+      data-action-chrome-intent="danger"
+      data-action-chrome-segmented="true"
       className={getBottomActionButtonClassName({ intent: "danger" })}
     >
       Sign out

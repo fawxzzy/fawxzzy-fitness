@@ -75,6 +75,8 @@ export function ConfirmedServerFormButton({
         size={size}
         aria-label={triggerAriaLabel}
         data-bottom-action-intent={triggerIntent}
+        data-action-chrome-intent={triggerIntent}
+        data-action-chrome-segmented={triggerIntent ? "true" : undefined}
         className={(triggerIntent
           ? getBottomActionButtonClassName({
             intent: triggerIntent,

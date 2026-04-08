@@ -110,33 +110,18 @@ export function HistoryTitleControlShell({
         <div className="flex flex-wrap items-center justify-between gap-2">
           {label ? <p className="text-sm font-semibold text-slate-100">{label}</p> : null}
           {showViewModeToggle ? (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => onViewModeChange("compact")}
-                aria-pressed={viewMode === "compact"}
-                className={cn(
-                  "inline-flex min-h-8 min-w-[5.6rem] items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-                  viewMode === "compact"
-                    ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                    : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-                )}
-              >
-                Compact
-              </button>
-              <button
-                type="button"
-                onClick={() => onViewModeChange("detailed")}
-                aria-pressed={viewMode === "detailed"}
-                className={cn(
-                  "inline-flex min-h-8 min-w-[5.6rem] items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition",
-                  viewMode === "detailed"
-                    ? "border-emerald-400/40 bg-emerald-400/14 text-emerald-100"
-                    : "border-white/12 bg-white/[0.04] text-muted hover:bg-white/[0.06] hover:text-text",
-                )}
-              >
-                Detailed
-              </button>
+            <div className="min-w-[12rem] flex-1 sm:flex-none">
+              <SegmentedControl
+                options={[
+                  { label: "Compact", value: "compact" },
+                  { label: "Detailed", value: "detailed" },
+                ]}
+                value={viewMode}
+                size="sm"
+                activeIntent="info"
+                ariaLabel="History view mode"
+                onChange={(nextValue) => onViewModeChange(nextValue as "compact" | "detailed")}
+              />
             </div>
           ) : null}
         </div>
@@ -155,10 +140,8 @@ export function HistoryTabs({ value, sessionsHref, exercisesHref }: { value: "se
       ]}
       value={value}
       size="sm"
+      activeIntent="info"
       ariaLabel="History tabs"
-      shellClassName="bg-[rgb(var(--surface-rgb)/0.34)] border-white/10"
-      activeClassName="bg-[rgb(var(--surface-rgb)/0.86)] text-slate-50 shadow-[inset_0_-2px_0_0_rgb(var(--accent-rgb)/0.82)]"
-      inactiveClassName="text-slate-300 hover:bg-white/6 hover:text-white"
     />
   );
 }
