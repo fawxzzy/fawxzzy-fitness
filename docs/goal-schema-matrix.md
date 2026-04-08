@@ -1,6 +1,6 @@
 # Goal schema matrix by exercise modality
 
-This matrix defines the **minimum valid goal state** required before the Add Exercise CTA can be enabled.
+This matrix defines the **minimum valid goal state** required before the Add CTA can be enabled.
 
 | Modality | Required fields | Optional fields | Rendered in form (Add + inline Edit) | Notes |
 | --- | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ This matrix defines the **minimum valid goal state** required before the Add Exe
 
 ## Validation UX contract
 
-- Add Exercise is disabled until the minimum valid goal state is met.
+- Add is disabled until the minimum valid goal state is met.
 - Validation state is communicated in text directly under goal fields and under the CTA.
 - Goal mode only renders relevant metric cards for the chosen modality mode to improve mobile readability.
 - Empty goal previews use explicit guidance text instead of a visual-only "Goal missing" badge.

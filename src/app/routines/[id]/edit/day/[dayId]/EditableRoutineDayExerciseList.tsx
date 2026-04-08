@@ -20,6 +20,7 @@ import { cn } from "@/lib/cn";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
 
@@ -440,6 +441,8 @@ export function EditableRoutineDayExerciseList({
     </BottomActionUtilityCluster>
   ) : null;
 
+  const addExerciseLabel = NORMALIZED_ACTION_LABELS.add;
+
   const handleAddExercisePress = () => {
     if (isAddingExercise) return;
     setIsAddingExercise(true);
@@ -464,7 +467,7 @@ export function EditableRoutineDayExerciseList({
           left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
           right={(
         <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress} disabled={isAddingExercise}>
-          Add Exercise
+          {addExerciseLabel}
         </BottomDockButton>
       )}
     />
@@ -479,7 +482,7 @@ export function EditableRoutineDayExerciseList({
             <BottomActionDock
               left={(
                 <DockButton type="button" intent="info" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
-                  View Exercise
+                  {NORMALIZED_ACTION_LABELS.view}
                 </DockButton>
               )}
               right={(
@@ -507,7 +510,7 @@ export function EditableRoutineDayExerciseList({
           <BottomActionDock
             left={(
               <DockButton type="button" intent="info" onClick={() => setSelectedExerciseId(activeExercise.exerciseId)}>
-                View Exercise
+                {NORMALIZED_ACTION_LABELS.view}
               </DockButton>
             )}
             right={(
