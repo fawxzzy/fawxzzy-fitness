@@ -19,6 +19,8 @@ export function AttachedQuickActionStrip({
   rowContract: {
     label: string;
     skipLabel: "Skip" | "Unskip";
+    quickLogActionIntent?: string;
+    skipActionIntent?: string;
     quickLogActionClassName?: string;
     skipActionClassName?: string;
     actionRowClassName?: string;
@@ -34,6 +36,8 @@ export function AttachedQuickActionStrip({
   const actionRowClassName = rowContract.actionRowClassName;
   const skipActionClassName = rowContract.skipActionClassName;
   const quickLogActionClassName = rowContract.quickLogActionClassName;
+  const skipActionIntent = rowContract.skipActionIntent ?? "danger";
+  const quickLogActionIntent = rowContract.quickLogActionIntent ?? "positive";
   const isBusy = rowContract.isSkipPending || rowContract.isQuickLogPending;
   const isSkipDisabled = isBusy || !onSkip;
   const isQuickLogDisabled = isBusy || rowContract.isQuickLogDisabled;
@@ -41,19 +45,21 @@ export function AttachedQuickActionStrip({
   return (
     <div
       className={cn(
-        "mt-0.5 rounded-[1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] px-1.5 py-1",
+        "mt-0.75 rounded-[1.05rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] px-1.5 py-1.5",
         className,
       )}
     >
-      <div className={cn("grid grid-cols-3 items-stretch gap-2", actionRowClassName)}>
+      <div className={cn("grid grid-cols-3 items-stretch gap-1.5", actionRowClassName)}>
         <AppButton
           type="button"
           variant="secondary"
           size="sm"
           onClick={onSkip}
           disabled={isSkipDisabled}
+          data-action-chrome-intent={skipActionIntent}
+          data-action-chrome-segmented="true"
           className={cn(
-            "col-span-1 min-h-[34px] border-white/8 bg-transparent px-1.5 text-[11px] font-medium shadow-none hover:bg-white/[0.05] sm:min-h-[38px] sm:px-2 sm:text-[12px]",
+            "col-span-1 min-h-[40px] rounded-[var(--action-chrome-segment-radius-compact)] px-2 text-[11px] font-semibold tracking-[0.01em] shadow-none sm:min-h-[42px] sm:px-2.5 sm:text-[12px]",
             skipActionClassName,
           )}
         >
@@ -65,7 +71,9 @@ export function AttachedQuickActionStrip({
           size="sm"
           onClick={onPress}
           disabled={isQuickLogDisabled}
-          className={cn("col-span-2 min-h-[34px] border-white/8 bg-transparent px-1.5 text-[11px] font-medium shadow-none hover:bg-white/[0.05] sm:min-h-[38px] sm:px-2 sm:text-[12px]", quickLogActionClassName)}
+          data-action-chrome-intent={quickLogActionIntent}
+          data-action-chrome-segmented="true"
+          className={cn("col-span-2 min-h-[40px] rounded-[var(--action-chrome-segment-radius-compact)] px-2.5 text-[11px] font-semibold tracking-[0.01em] shadow-none sm:min-h-[42px] sm:px-3 sm:text-[12px]", quickLogActionClassName)}
         >
           <span className="block truncate">
             {rowContract.isQuickLogDisabled ? rowContract.quickLogDisabledMessage : rowContract.isQuickLogPending ? "Adding…" : rowContract.label}

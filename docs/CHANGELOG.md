@@ -5314,3 +5314,14 @@ WHY:
 - Explicitly separating the read-only base from editable operations keeps the contract clear while preserving existing shell and bottom dock behavior.
 - Destructive confirmation wording had started to drift between screens (`description` copy variants), which weakened consistency for high-risk actions like discarding an in-progress workout.
 - Codifying one destructive-dialog contract keeps visual rhythm and safe-area behavior stable while reducing route-local confirmation drift.
+## [v0.4.37] - UI: simplify session logger modifier toggle + action strip intent chrome
+
+### WHAT
+
+* Replaced the Current Session set logger's Normal/Warm-Up pair with a single `Warm` toggle and aligned the quick-log row to explicit red danger / green positive action-chrome intents.
+* Slightly increased shared dock/button hit areas so session `Add`, `Finish`, `View`, `Log`, and attached quick actions feel easier to tap without materially changing density.
+
+### WHY
+
+* Single-state modifiers should be explicit toggles, not false-choice button pairs where only one state needs a deliberate action.
+* Reusing the shared intent system on session action chrome makes destructive vs positive actions easier to parse under thumb-driven use.

@@ -3,22 +3,18 @@ import type { ComponentProps, ReactNode } from "react";
 import { ExercisePicker } from "@/components/ExercisePicker";
 import { BottomActionSplit, BottomActionStackedPrimary } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
-import { RoutineBackButton } from "@/components/RoutineBackButton";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppButton } from "@/components/ui/AppButton";
-import { AppShell } from "@/components/ui/app/AppShell";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { ScreenContractName } from "@/components/ui/app/screenContract";
-import { Glass } from "@/components/ui/Glass";
-import { GlassButton } from "@/components/ui/GlassButton";
 import { controlClassName } from "@/components/ui/formClasses";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
+import { RoutineDetailsScreenShellClient } from "@/components/routines/RoutineDetailsExitGuard";
 
 export type EditorExerciseOption = {
   id: string;
@@ -86,21 +82,7 @@ export function RoutineDetailsScreenShell({
   backHref: string;
   title?: ReactNode;
 }) {
-  // Shared contract for Routine Details routes (new/edit):
-  // keeps pinned header, scroll container, and bottom dock behavior aligned.
-  return (
-    <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions
-        floatingHeader={(
-          <div className="px-1">
-            <RoutineEditorPageHeader title={title} action={<RoutineBackButton href={backHref} />} />
-          </div>
-        )}
-      >
-        {children}
-      </ScrollScreenWithBottomActions>
-    </AppShell>
-  );
+  return <RoutineDetailsScreenShellClient backHref={backHref} title={title}>{children}</RoutineDetailsScreenShellClient>;
 }
 
 export function RoutineEditorSection({
@@ -352,47 +334,6 @@ export function RoutineEditorInlineSection({
   );
 }
 
-export function RoutineEditorSaveDiscardConfirmSheet({
-  open,
-  title = "Discard changes?",
-  description,
-  stayLabel = "Stay",
-  discardLabel = "Discard",
-  onStay,
-  onDiscard,
-}: {
-  open: boolean;
-  title?: string;
-  description: ReactNode;
-  stayLabel?: string;
-  discardLabel?: string;
-  onStay: () => void;
-  onDiscard: () => void;
-}) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Glass variant="overlay" className="w-full max-w-sm p-4 shadow-[0_24px_70px_rgba(0,0,0,0.42)]" interactive={false}>
-        <div className="space-y-3">
-          <h2 className="text-base font-semibold text-text">{title}</h2>
-          <p className="text-sm text-muted">{description}</p>
-          <div className="flex justify-end gap-2">
-            <GlassButton className="min-w-20" onClick={onStay}>
-              {stayLabel}
-            </GlassButton>
-            <GlassButton
-              className="min-w-20 border-red-300/70 bg-red-500/30 text-white hover:bg-red-500/45"
-              onClick={onDiscard}
-            >
-              {discardLabel}
-            </GlassButton>
-          </div>
-        </div>
-      </Glass>
-    </div>
-  );
-}
-
 export function RoutineEditorDayRow({
   title,
   subtitle,
@@ -452,10 +393,3 @@ export function RoutineEditorStickyActions({
   );
 }
 
-export function RoutineDetailsBackSecondaryAction({ href, label = "Back" }: { href: string; label?: string }) {
-  return (
-    <BottomDockLink href={href} intent="danger">
-      {label}
-    </BottomDockLink>
-  );
-}

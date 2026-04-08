@@ -167,7 +167,17 @@ test("rest and invalid-empty summaries resolve from pure summary selectors", () 
     invalidExerciseCount: 2,
     exercises: [],
   });
+  const neutralEmptySummary = getTodayDaySummary({
+    id: "day-3",
+    dayIndex: 3,
+    name: "Travel",
+    isRest: false,
+    state: "empty",
+    invalidExerciseCount: 0,
+    exercises: [],
+  });
 
   assert.equal(restSummary, "Rest day.");
   assert.equal(invalidEmptyTone, "blocking");
+  assert.equal(neutralEmptySummary, null);
 });

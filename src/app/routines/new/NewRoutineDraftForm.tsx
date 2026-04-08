@@ -4,10 +4,15 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
-  RoutineDetailsBackSecondaryAction,
   RoutineDetailsBottomActionPublisher,
   RoutineEditorPageBody,
 } from "@/components/routines/RoutineEditorShared";
+import {
+  RoutineDetailsBackSecondaryAction,
+  RoutineDetailsDiscardConfirmationDock,
+  useRoutineDetailsDirtyState,
+  useRoutineDetailsExitGuard,
+} from "@/components/routines/RoutineDetailsExitGuard";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
@@ -62,6 +67,9 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   const isDirty = currentSnapshot !== initialSnapshot;
   const hasDirtyChanges = hasUserEdited && isDirty;
   const canCreate = validation.valid && isDirty && !isSaving;
+  const { isConfirmingDiscard } = useRoutineDetailsExitGuard();
+
+  useRoutineDetailsDirtyState(hasDirtyChanges);
 
   useEffect(() => {
     if (!hasDirtyChanges) return;
@@ -96,53 +104,57 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
         <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={hasDirtyChanges} mode="create" />
       </RoutineEditorPageBody>
 
-      <RoutineDetailsBottomActionPublisher
-        secondary={<RoutineDetailsBackSecondaryAction href="/routines" label="Cancel" />}
-        primary={(
-          <BottomDockButton
-            type="button"
-            intent="positive"
-            disabled={!canCreate}
-            onClick={() => {
-              setError(null);
-              startTransition(async () => {
-                const nextValidation = validateRoutineDetailsDraft(draft);
-                if (!nextValidation.valid) {
-                  const nextError = nextValidation.error ?? "Please complete all required routine fields.";
-                  setError(nextError);
-                  toast.error(nextError);
-                  return;
-                }
+      {isConfirmingDiscard ? (
+        <RoutineDetailsDiscardConfirmationDock />
+      ) : (
+        <RoutineDetailsBottomActionPublisher
+          secondary={<RoutineDetailsBackSecondaryAction label="Cancel" />}
+          primary={(
+            <BottomDockButton
+              type="button"
+              intent="positive"
+              disabled={!canCreate}
+              onClick={() => {
+                setError(null);
+                startTransition(async () => {
+                  const nextValidation = validateRoutineDetailsDraft(draft);
+                  if (!nextValidation.valid) {
+                    const nextError = nextValidation.error ?? "Please complete all required routine fields.";
+                    setError(nextError);
+                    toast.error(nextError);
+                    return;
+                  }
 
-                const formData = new FormData();
-                formData.set("name", draft.name.trim());
-                formData.set("cycleLengthDays", String(draft.cycleLengthDays));
-                formData.set("startWeekday", draft.startWeekday);
-                formData.set("timezone", draft.timezone);
-                formData.set("weightUnit", draft.weightUnit);
-                const result = await createRoutineAction(formData);
-                if (!result.ok) {
-                  const nextError = result.error ?? "Could not create routine.";
-                  setError(nextError);
-                  toast.error(nextError);
-                  return;
-                }
-                if (!result.routineId) {
-                  const nextError = "Could not create routine.";
-                  setError(nextError);
-                  toast.error(nextError);
-                  return;
-                }
-                window.localStorage.removeItem(STORAGE_KEY);
-                toast.success("Routine created");
-                router.push("/routines?view=list");
-              });
-            }}
-          >
-            Create
-          </BottomDockButton>
-        )}
-      />
+                  const formData = new FormData();
+                  formData.set("name", draft.name.trim());
+                  formData.set("cycleLengthDays", String(draft.cycleLengthDays));
+                  formData.set("startWeekday", draft.startWeekday);
+                  formData.set("timezone", draft.timezone);
+                  formData.set("weightUnit", draft.weightUnit);
+                  const result = await createRoutineAction(formData);
+                  if (!result.ok) {
+                    const nextError = result.error ?? "Could not create routine.";
+                    setError(nextError);
+                    toast.error(nextError);
+                    return;
+                  }
+                  if (!result.routineId) {
+                    const nextError = "Could not create routine.";
+                    setError(nextError);
+                    toast.error(nextError);
+                    return;
+                  }
+                  window.localStorage.removeItem(STORAGE_KEY);
+                  toast.success("Routine created");
+                  router.push("/routines?view=list");
+                });
+              }}
+            >
+              Create
+            </BottomDockButton>
+          )}
+        />
+      )}
     </>
   );
 }

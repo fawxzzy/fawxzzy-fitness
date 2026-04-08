@@ -12,7 +12,7 @@ import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateRoutinesViews } from "@/lib/revalidation";
-import { getExerciseCountSummaryFromCanonicalExercises } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromCanonicalDay } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -137,7 +137,7 @@ export default async function RoutinesPage({
       activeRoutineExerciseSummaries = new Map(
         summaries.map((summary) => [
           summary.day.id,
-          getExerciseCountSummaryFromCanonicalExercises(summary.runnableExercises).label,
+          getRestDayExerciseCountSummaryFromCanonicalDay(summary).label,
         ]),
       );
     }

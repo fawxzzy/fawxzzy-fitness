@@ -24,7 +24,7 @@ Routine details uses **manual save** as the explicit save contract.
   - `Unsaved changes` while dirty
   - `All changes saved` while clean
 - Back/navigation protection is enabled while dirty:
-  - in-app back prompts for discard via the existing routine editor confirm sheet
+  - in-app back/cancel first swaps the shared bottom dock into an inline `Stay` / `Discard` confirmation state before any modal escalation
   - browser/tab unload prompts when edits are unsaved
 
 ### Shared Save-State Feedback

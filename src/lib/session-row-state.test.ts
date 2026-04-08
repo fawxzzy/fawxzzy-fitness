@@ -14,6 +14,8 @@ test("deriveSessionRowState maps completed+skipped into completed card with unsk
   assert.equal(state.cardState, "completed");
   assert.equal(state.badgeText, "Completed");
   assert.equal(state.skipActionLabel, "Unskip");
+  assert.equal(state.skipActionIntent, "info");
+  assert.equal(state.quickLogActionIntent, "neutral");
   assert.equal(state.isQuickLogDisabled, true);
   assert.equal(state.quickLogDisabledMessage, "Unskip to log");
 });
@@ -34,5 +36,7 @@ test("deriveSessionRowState keeps quick log label and partial chips from one con
 
   assert.equal(state.badgeText, "Partial");
   assert.deepEqual(state.chips, ["loggedProgress", "endedEarly"]);
+  assert.equal(state.skipActionIntent, "info");
+  assert.equal(state.quickLogActionIntent, "neutral");
   assert.equal(state.quickLogLabel, "Log: 8 reps • 95 lbs");
 });
