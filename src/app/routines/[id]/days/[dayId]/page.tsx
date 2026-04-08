@@ -108,13 +108,11 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                 </p>
               ) : null}
 
-              {canonicalDay && !isRunnableDayState(canonicalDay.state) ? (
+              {canonicalDay?.invalidExercises.length ? (
                 <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
-                  {canonicalDay.invalidExercises.length > 0
-                    ? "This day has invalid exercises. Edit the day before starting a workout."
-                    : "No runnable exercises planned for this day."}
+                  This day has invalid exercises. Edit the day before starting a workout.
                 </p>
-              ) : (
+              ) : canonicalDay && isRunnableDayState(canonicalDay.state) ? (
                 <RoutineDayExerciseList
                   exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
                     id: exercise.id,
@@ -126,7 +124,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                     slug: exercise.details?.slug ?? null,
                   }))}
                 />
-              )}
+              ) : null}
             </SharedSectionShell>
           </ScreenScaffold>
         )}

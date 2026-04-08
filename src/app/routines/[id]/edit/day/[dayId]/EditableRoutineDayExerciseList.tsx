@@ -9,7 +9,7 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
-import { BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle, BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
@@ -392,6 +392,7 @@ export function EditableRoutineDayExerciseList({
     () => items.find((exercise) => exercise.id === expandedId) ?? null,
     [expandedId, items],
   );
+  const hasExercises = items.length > 0;
   const visibleItems = useMemo(() => {
     if (!editModeActive || !expandedId) return items;
     return items.filter((exercise) => exercise.id === expandedId);
@@ -423,7 +424,7 @@ export function EditableRoutineDayExerciseList({
         }}
       />
     </div>
-  ) : modeViewModel.headerAction === "reorder_toggle" ? (
+  ) : modeViewModel.headerAction === "reorder_toggle" && hasExercises ? (
     <BottomActionUtilityCluster className="mx-0.5">
       <BottomDockButton
         type="button"
@@ -438,7 +439,7 @@ export function EditableRoutineDayExerciseList({
       >
         {reorderMode ? "Done" : "Reorder"}
       </BottomDockButton>
-    </BottomActionUtilityCluster>
+      </BottomActionUtilityCluster>
   ) : null;
 
   const addExerciseLabel = NORMALIZED_ACTION_LABELS.add;
@@ -449,18 +450,7 @@ export function EditableRoutineDayExerciseList({
     router.push(addExerciseHref);
   };
 
-  const emptyState = modeViewModel.sections.restDayCardVisible ? null : (
-    <div className="rounded-[1.2rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-3 text-sm text-muted">
-      No exercises yet. Add one below when you are ready.
-    </div>
-  );
-
-  const dockWithRestToggleSlot = (
-    <BottomActionDock
-      left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
-      right={null}
-    />
-  );
+  const dockWithRestToggleSlot = <BottomActionSingle><div id="edit-day-rest-toggle-slot" className="w-full" /></BottomActionSingle>;
 
   const addExerciseDock = (
         <BottomActionDock
@@ -493,11 +483,10 @@ export function EditableRoutineDayExerciseList({
             />
           ) : ctaDockState.variant === "add_exercise" ? (
             addExerciseDock
-          ) : ctaDockState.variant === "rest_toggle_only" ? (
+        ) : ctaDockState.variant === "rest_toggle_only" ? (
             dockWithRestToggleSlot
           ) : null}
         </PublishBottomActions>
-        {emptyState}
       </>
     );
   }

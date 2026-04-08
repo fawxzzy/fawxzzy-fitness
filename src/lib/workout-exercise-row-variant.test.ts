@@ -25,7 +25,7 @@ test("deriveWorkoutExerciseCardVariant returns skipped semantics with recoverabi
   assert.equal(state.variant, "active");
   assert.deepEqual(state.chips, ["skipped"]);
   assert.equal(state.skipActionLabel, "Unskip");
-  assert.equal(state.skipActionClassName, "text-amber-100");
+  assert.equal(state.skipActionClassName, "");
   assert.equal(state.isQuickLogDisabled, true);
 });
 

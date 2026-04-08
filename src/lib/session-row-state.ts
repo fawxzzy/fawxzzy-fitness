@@ -1,3 +1,4 @@
+import type { ActionChromeIntent } from "@/components/ui/actionChrome";
 import { deriveSessionExerciseProgressState, type SessionExercisePresentationSurface, type SessionExerciseProgressChip } from "./session-exercise-progress";
 import { formatQuickLogPreviewLabel, type SessionQuickLogTarget } from "./session-quick-log";
 
@@ -21,6 +22,8 @@ export type SessionRowState = {
   progressLabel?: string;
   chips: SessionExerciseProgressChip[];
   skipActionLabel: "Skip" | "Unskip";
+  quickLogActionIntent: ActionChromeIntent;
+  skipActionIntent: ActionChromeIntent;
   actionRowClassName: string;
   quickLogActionClassName: string;
   skipActionClassName: string;
@@ -35,13 +38,13 @@ export function deriveSessionRowState(input: DeriveSessionRowStateInput): Sessio
   const variantStyles: Record<SessionRowVisualVariant, Pick<SessionRowState, "actionRowClassName" | "quickLogActionClassName" | "skipActionClassName">> = {
     pending: {
       actionRowClassName: "opacity-85",
-      quickLogActionClassName: "text-[rgb(var(--text)/0.62)]",
-      skipActionClassName: "text-[rgb(var(--text)/0.62)]",
+      quickLogActionClassName: "",
+      skipActionClassName: "",
     },
     active: {
       actionRowClassName: "opacity-100",
-      quickLogActionClassName: "text-[rgb(var(--text)/0.74)]",
-      skipActionClassName: progressState.skipActionLabel === "Unskip" ? "text-amber-100" : "text-[rgb(var(--text)/0.74)]",
+      quickLogActionClassName: "",
+      skipActionClassName: "",
     },
   };
 
@@ -52,6 +55,8 @@ export function deriveSessionRowState(input: DeriveSessionRowStateInput): Sessio
     progressLabel: progressState.progressLabel,
     chips: progressState.chips,
     skipActionLabel: progressState.skipActionLabel,
+    quickLogActionIntent: progressState.allowQuickLog ? "positive" : "neutral",
+    skipActionIntent: progressState.skipActionLabel === "Unskip" ? "info" : "danger",
     isQuickLogDisabled: !progressState.allowQuickLog,
     quickLogDisabledMessage: "Unskip to log",
     quickLogLabel: `Log: ${formatQuickLogPreviewLabel({

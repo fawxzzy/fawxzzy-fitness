@@ -20,7 +20,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
+import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
@@ -147,6 +147,8 @@ export function TodayDayPicker({
     : null;
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
+  const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
+  const hasSelectedDayPanelContent = mode.dayPickerOpen || Boolean(daySummaryTone && daySummary) || hasSelectedDayRows;
 
 
   const headerNode = selectedDay ? (
@@ -219,7 +221,7 @@ export function TodayDayPicker({
       <div className="flex min-h-0 flex-col">
       {!mode.noRoutine && selectedDay ? (
         <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-          {mode.dayPickerOpen || selectedDay.state !== "rest" ? (
+          {mode.dayPickerOpen || (selectedDay.state !== "rest" && hasSelectedDayPanelContent) ? (
             <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
               {mode.dayPickerOpen ? (
               <DayList>
@@ -255,7 +257,7 @@ export function TodayDayPicker({
               </DayList>
               ) : null}
 
-              {!mode.dayPickerOpen && !mode.noRoutine && selectedDay.state !== "rest" && daySummary ? (
+              {!mode.dayPickerOpen && !mode.noRoutine && daySummaryTone && daySummary ? (
                 <div
                   className={[
                     "rounded-md px-3 py-1.5",
@@ -266,13 +268,13 @@ export function TodayDayPicker({
                         : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
                   ].join(" ")}
                 >
-                  {daySummaryTone
-                    ? <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-red-100" : "text-amber-100"}>{daySummary}</AccentSubtitleText>
-                    : <SubtitleText>{daySummary}</SubtitleText>}
+                  <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-red-100" : "text-amber-100"}>
+                    {daySummary}
+                  </AccentSubtitleText>
                 </div>
               ) : null}
 
-              {mode.dayRowsVisible ? <ul className="space-y-1.5">
+              {mode.dayRowsVisible && hasSelectedDayRows ? <ul className="space-y-1.5">
                 {selectedDay.exercises.map((exercise) => (
                   <li key={exercise.id}>
                     <StandardExerciseRow
@@ -287,11 +289,6 @@ export function TodayDayPicker({
                     />
                   </li>
                 ))}
-                {selectedDay.exercises.length === 0 ? (
-                  <li className="px-3 py-3">
-                    <SubtitleText>No exercises yet.</SubtitleText>
-                  </li>
-                ) : null}
               </ul> : null}
             </SharedSectionShell>
           ) : null}

@@ -3,6 +3,11 @@
 import { type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { RoutineDetailsBottomActionPublisher, RoutineEditorPageBody } from "@/components/routines/RoutineEditorShared";
+import {
+  RoutineDetailsDiscardConfirmationDock,
+  useRoutineDetailsDirtyState,
+  useRoutineDetailsExitGuard,
+} from "@/components/routines/RoutineDetailsExitGuard";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -57,6 +62,9 @@ export function EditRoutineAutosaveForm(props: Props) {
   const isDirty = currentSnapshot !== baselineSnapshot;
   const validation = validateRoutineDetailsDraft(draft);
   const canSave = validation.valid && isDirty && !isSaving;
+  const { isConfirmingDiscard } = useRoutineDetailsExitGuard();
+
+  useRoutineDetailsDirtyState(isDirty);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -134,14 +142,18 @@ export function EditRoutineAutosaveForm(props: Props) {
         </RoutineEditorPageBody>
       </form>
 
-      <RoutineDetailsBottomActionPublisher
-        secondary={props.deleteAction ?? <div aria-hidden="true" />}
-        primary={(
-          <BottomDockButton type="button" intent="positive" disabled={!canSave} onClick={saveChanges}>
-            Save
-          </BottomDockButton>
-        )}
-      />
+      {isConfirmingDiscard ? (
+        <RoutineDetailsDiscardConfirmationDock />
+      ) : (
+        <RoutineDetailsBottomActionPublisher
+          secondary={props.deleteAction ?? <div aria-hidden="true" />}
+          primary={(
+            <BottomDockButton type="button" intent="positive" disabled={!canSave} onClick={saveChanges}>
+              Save
+            </BottomDockButton>
+          )}
+        />
+      )}
     </>
   );
 }

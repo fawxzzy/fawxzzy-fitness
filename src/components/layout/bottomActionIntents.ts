@@ -12,7 +12,7 @@ export type BottomDockButtonVariant = "primary" | "secondary" | "destructive";
 
 export const BOTTOM_ACTION_BUTTON_BASE_CLASS_NAME = [
   ACTION_CHROME_SEGMENTED_CLASS_NAME,
-  "min-h-[3.1rem] rounded-[var(--action-chrome-segment-radius-compact)] px-4 text-sm font-semibold tracking-[0.01em]",
+  "min-h-[3.25rem] rounded-[var(--action-chrome-segment-radius-compact)] px-4 text-sm font-semibold tracking-[0.01em]",
 ].join(" ");
 
 const BOTTOM_ACTION_INTENT_FOCUS_RING_CLASS_NAMES: Record<BottomActionIntent, string> = {

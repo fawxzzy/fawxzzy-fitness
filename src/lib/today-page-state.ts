@@ -82,10 +82,6 @@ export function getTodayDaySummary(day: TodayPickerDay): string | null {
     return "This day has invalid exercises. Edit the day before starting a workout.";
   }
 
-  if (day.state === "empty") {
-    return "No exercises yet.";
-  }
-
   if (day.state === "partial") {
     return "Some exercises could not be loaded and will be skipped when you start this workout.";
   }

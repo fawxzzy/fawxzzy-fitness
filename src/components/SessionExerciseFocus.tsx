@@ -369,6 +369,8 @@ export function SessionExerciseFocus({
                     rowContract={{
                       label: rowState.quickLogLabel,
                       skipLabel: rowState.skipActionLabel,
+                      quickLogActionIntent: rowState.quickLogActionIntent,
+                      skipActionIntent: rowState.skipActionIntent,
                       quickLogActionClassName: rowState.quickLogActionClassName,
                       skipActionClassName: rowState.skipActionClassName,
                       actionRowClassName: rowState.actionRowClassName,
