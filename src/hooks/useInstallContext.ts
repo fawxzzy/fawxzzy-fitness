@@ -5,8 +5,10 @@ import {
   getInstallSnapshot,
   getStandaloneState,
   type InstallCapability,
+  type InstallPrimaryAction,
   type InstallPlatform,
   type ManualInstallInstructions,
+  resolveInstallPrimaryAction,
 } from "@/lib/install/install-detection";
 
 export type InstallContext = {
@@ -17,6 +19,7 @@ export type InstallContext = {
   manualInstructions: ManualInstallInstructions | null;
   nativePromptAvailable: boolean;
   platform: InstallPlatform;
+  primaryAction: InstallPrimaryAction | null;
   promptInstall: () => Promise<"accepted" | "dismissed" | "unavailable">;
 };
 
@@ -103,6 +106,12 @@ export function useInstallContext(): InstallContext {
   }, []);
 
   const nativePromptAvailable = snapshot.capability === "native-prompt" && deferredPrompt !== null;
+  const primaryAction = resolveInstallPrimaryAction({
+    isStandalone: snapshot.isStandalone,
+    manualInstructions: snapshot.manualInstructions,
+    nativePromptAvailable,
+    platform: snapshot.platform,
+  });
 
   return {
     capability: snapshot.capability,
@@ -112,6 +121,7 @@ export function useInstallContext(): InstallContext {
     manualInstructions: snapshot.manualInstructions,
     nativePromptAvailable,
     platform: snapshot.platform,
+    primaryAction,
     promptInstall: async () => {
       if (!deferredPrompt) {
         return "unavailable";

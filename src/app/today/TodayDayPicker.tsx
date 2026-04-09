@@ -139,16 +139,20 @@ export function TodayDayPicker({
   const getDayExerciseSummaryLabel = useCallback((day: TodayDay) => (
     getRestDayExerciseCountSummaryFromInputs(day.exercises, day.state === "rest").label
   ), []);
-  const resolveDayCardSubtitle = useCallback((day: TodayDay) => (
-    getDayExerciseSummaryLabel(day) || getTodayDaySummary(day) || undefined
-  ), [getDayExerciseSummaryLabel]);
+  const resolveDayCardSubtitle = useCallback((day: TodayDay) => {
+    const daySummary = getTodayDaySummary(day);
+    if (day.state === "partial" || day.invalidExerciseCount > 0) {
+      return daySummary || getDayExerciseSummaryLabel(day) || undefined;
+    }
+
+    return getDayExerciseSummaryLabel(day) || undefined;
+  }, [getDayExerciseSummaryLabel]);
   const daySummary = selectedDay
     ? getTodayDaySummary(selectedDay)
     : null;
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
-  const hasSelectedDayPanelContent = mode.dayPickerOpen || Boolean(daySummaryTone && daySummary) || hasSelectedDayRows;
 
 
   const headerNode = selectedDay ? (
@@ -221,7 +225,7 @@ export function TodayDayPicker({
       <div className="flex min-h-0 flex-col">
       {!mode.noRoutine && selectedDay ? (
         <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-          {mode.dayPickerOpen || (selectedDay.state !== "rest" && hasSelectedDayPanelContent) ? (
+          {selectedDay.state !== "rest" && mode.contentShellVisible ? (
             <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
               {mode.dayPickerOpen ? (
               <DayList>
@@ -257,7 +261,7 @@ export function TodayDayPicker({
               </DayList>
               ) : null}
 
-              {!mode.dayPickerOpen && !mode.noRoutine && daySummaryTone && daySummary ? (
+              {mode.summaryVisible && daySummaryTone && daySummary ? (
                 <div
                   className={[
                     "rounded-md px-3 py-1.5",

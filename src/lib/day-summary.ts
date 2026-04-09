@@ -1,5 +1,11 @@
 import type { CanonicalDayExercise, CanonicalDaySummary } from "@/lib/routine-day-loader";
-import { formatExerciseCountSummary, formatRestDayExerciseCountSummary, type ExerciseCountSummary, type ExerciseCountSummaryInput } from "@/lib/exercise-count-summary";
+import {
+  EMPTY_EXERCISE_SUMMARY_LABEL,
+  formatExerciseCountSummary,
+  formatRestDayExerciseCountSummary,
+  type ExerciseCountSummary,
+  type ExerciseCountSummaryInput,
+} from "@/lib/exercise-count-summary";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 
 type ExerciseCountSummaryInputSource =
@@ -74,6 +80,17 @@ export function getRestDayExerciseCountSummaryFromCanonicalDay(
   return getRestDayExerciseCountSummaryFromCanonicalExercises(day.runnableExercises, day.day.is_rest);
 }
 
+export function getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(
+  day: (Pick<CanonicalDaySummary, "runnableExercises"> & { day: Pick<CanonicalDaySummary["day"], "is_rest"> }) | null | undefined,
+  isRest: boolean,
+): ExerciseCountSummary {
+  if (!day) {
+    return formatRestDayExerciseCountSummary([], isRest);
+  }
+
+  return getRestDayExerciseCountSummaryFromCanonicalDay(day);
+}
+
 function formatHeaderTaxonomyParts(summary: Pick<ExerciseCountSummary, "strength" | "cardio" | "unknown">): string {
   const parts: string[] = [];
 
@@ -81,7 +98,7 @@ function formatHeaderTaxonomyParts(summary: Pick<ExerciseCountSummary, "strength
   if (summary.cardio > 0) parts.push(`${summary.cardio} cardio`);
   if (summary.unknown > 0) parts.push(`${summary.unknown} unknown`);
 
-  return parts.length > 0 ? parts.join(" • ") : "0 strength";
+  return parts.length > 0 ? parts.join(" • ") : EMPTY_EXERCISE_SUMMARY_LABEL;
 }
 
 export function getDayTaxonomyHeaderSummaryParts(args: {

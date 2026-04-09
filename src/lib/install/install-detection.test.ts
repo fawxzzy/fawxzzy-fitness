@@ -6,6 +6,7 @@ import {
   getInstallSnapshot,
   getManualInstallInstructions,
   getStandaloneState,
+  resolveInstallPrimaryAction,
 } from "./install-detection.ts";
 
 test("getStandaloneState honors display-mode and navigator.standalone", () => {
@@ -81,5 +82,73 @@ test("getInstallSnapshot reports native prompt, manual install, and unsupported 
       isStandalone: false,
     }).capability,
     "unsupported",
+  );
+});
+
+test("resolveInstallPrimaryAction only returns Install when a real prompt is ready", () => {
+  assert.deepEqual(
+    resolveInstallPrimaryAction({
+      isStandalone: false,
+      manualInstructions: null,
+      nativePromptAvailable: true,
+      platform: "chromium",
+    }),
+    {
+      kind: "install",
+      label: "Install",
+    },
+  );
+
+  assert.deepEqual(
+    resolveInstallPrimaryAction({
+      isStandalone: false,
+      manualInstructions: null,
+      nativePromptAvailable: false,
+      platform: "chromium",
+    }),
+    {
+      kind: "continue-browser",
+      label: "Continue in browser",
+    },
+  );
+});
+
+test("resolveInstallPrimaryAction routes iOS Safari and iOS webviews to real manual flows", () => {
+  assert.deepEqual(
+    resolveInstallPrimaryAction({
+      isStandalone: false,
+      manualInstructions: getManualInstallInstructions("ios-safari"),
+      nativePromptAvailable: false,
+      platform: "ios-safari",
+    }),
+    {
+      kind: "show-steps",
+      label: "Show Steps",
+    },
+  );
+
+  assert.deepEqual(
+    resolveInstallPrimaryAction({
+      isStandalone: false,
+      manualInstructions: getManualInstallInstructions("ios-webkit"),
+      nativePromptAvailable: false,
+      platform: "ios-webkit",
+    }),
+    {
+      kind: "open-safari",
+      label: "Open Safari",
+    },
+  );
+});
+
+test("resolveInstallPrimaryAction bypasses the gate in standalone mode", () => {
+  assert.equal(
+    resolveInstallPrimaryAction({
+      isStandalone: true,
+      manualInstructions: getManualInstallInstructions("ios-safari"),
+      nativePromptAvailable: true,
+      platform: "ios-safari",
+    }),
+    null,
   );
 });

@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 import { formatExerciseCountSummary, formatRestDayExerciseCountSummary } from "./exercise-count-summary.ts";
 
+test("formatExerciseCountSummary uses friendly zero-exercise copy", () => {
+  assert.equal(formatExerciseCountSummary([]).label, "No exercises yet");
+});
+
 test("formatExerciseCountSummary renders mixed strength and cardio totals canonically", () => {
   const summary = formatExerciseCountSummary([
     { measurement_type: "reps" },

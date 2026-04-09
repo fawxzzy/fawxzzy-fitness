@@ -185,10 +185,10 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 
 ## 2026-03-18 — Browser entry should coach install but never block auth
 - Type: Pattern
-- Summary: Browser auth entry points for install-first mobile products should recommend the installed app shell, but must keep login, account creation, email confirmation, and password recovery fully usable in-browser.
+- Summary: Browser auth entry points for install-first mobile products should recommend the installed app shell, but must keep login, account creation, email confirmation, and password recovery fully usable in-browser. Only show an Install CTA when a real install prompt can fire; on iPhone and iPad, use manual Add to Home Screen guidance, and route in-app browsers toward Safari-first steps instead of fake install affordances.
 - Suggested Playbook File: docs/PATTERNS/mobile-install-entry.md
 - Rationale: Prevents teams from overcorrecting into browser lockouts that break deep links, recovery flows, and first-run account access while still steering users toward the intended app shell.
-- Evidence: src/app/login/page.tsx, src/app/login/LoginScreen.tsx, src/components/auth/InstallGuidance.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx
+- Evidence: src/app/login/page.tsx, src/app/login/LoginScreen.tsx, src/components/install/InstallEntryGate.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx
 ## 2026-03-18 — Mobile history cards should prefer hierarchy over inline completeness
 - Type: Pattern
 - Summary: On narrow mobile surfaces, history cards should follow a consistent order of title, context, compact metrics, then optional detail so the most important workout information survives even when width is constrained.

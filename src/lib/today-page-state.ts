@@ -107,9 +107,11 @@ export type TodayScreenMode<TDay extends TodayPickerDay = TodayPickerDay> = {
   dayPickerOpen: boolean;
   restDay: boolean;
   emptyState: boolean;
+  emptyTrainingDay: boolean;
   noRoutine: boolean;
   runnableSelection: boolean;
   hasInProgressSession: boolean;
+  contentShellVisible: boolean;
   dayListVisible: boolean;
   dayRowsVisible: boolean;
   summaryVisible: boolean;
@@ -136,6 +138,16 @@ export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
   const restDay = selectedDay?.state === "rest";
   const noRoutine = args.days.length === 0 || selectedDay === null;
   const emptyState = Boolean(selectedDay && selectedDay.exercises.length === 0);
+  const emptyTrainingDay = Boolean(
+    selectedDay
+      && selectedDay.state === "empty"
+      && selectedDay.invalidExerciseCount === 0,
+  );
+  const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
+  const summary = selectedDay ? getTodayDaySummary(selectedDay) : null;
+  const summaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
+  const summaryVisible = !args.dayPickerOpen && !restDay && !noRoutine && Boolean(summary && summaryTone);
+  const contentShellVisible = args.dayPickerOpen || summaryVisible || hasSelectedDayRows;
 
   return {
     selectedDay,
@@ -143,12 +155,14 @@ export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
     dayPickerOpen: args.dayPickerOpen,
     restDay: Boolean(restDay),
     emptyState,
+    emptyTrainingDay,
     noRoutine,
     runnableSelection: Boolean(runnableSelection),
     hasInProgressSession,
+    contentShellVisible,
     dayListVisible: args.dayPickerOpen,
-    dayRowsVisible: !args.dayPickerOpen && !restDay && !noRoutine,
-    summaryVisible: !args.dayPickerOpen && !restDay && !noRoutine && Boolean(getTodayDaySummary(selectedDay)),
+    dayRowsVisible: !args.dayPickerOpen && !restDay && !noRoutine && hasSelectedDayRows,
+    summaryVisible,
     cta: {
       showPrimary: hasInProgressSession || Boolean(runnableSelection),
       primaryLabel: hasInProgressSession ? "Resume Session" : runnableSelection ? "Begin" : null,
