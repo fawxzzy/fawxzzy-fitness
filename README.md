@@ -152,6 +152,14 @@ npm run lint
 npm run build
 ```
 
+## Install gate
+
+Browser visits to `/` now land on an install-first entry surface. Installed or standalone launches skip that gate and continue into the normal app flow automatically.
+
+- Chromium browsers use the native install prompt only after the browser exposes `beforeinstallprompt`.
+- iPhone and iPad use manual Add to Home Screen instructions instead of a fake install button.
+- Unsupported browsers still expose a small Continue in browser fallback so auth, recovery, and deep app flows remain usable.
+
 ## Routine Details save contract
 
 Create Routine and Edit Routine both follow an explicit manual-save contract:
