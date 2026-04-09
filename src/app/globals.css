@@ -5,21 +5,21 @@
 :root {
   color-scheme: dark;
   --bg-app: 15 23 36;
-  --bg-panel: 22 33 51;
-  --bg-card: 42 53 72;
-  --bg-shell: 49 61 80;
-  --stroke-soft: 174 184 198;
-  --stroke-strong: 215 220 230;
+  --bg-panel: 25 36 59;
+  --bg-card: 47 60 88;
+  --bg-shell: 57 72 101;
+  --stroke-soft: 181 193 217;
+  --stroke-strong: 224 230 245;
   --text-primary: 243 245 248;
-  --text-secondary: 183 192 205;
-  --text-muted: 142 153 170;
-  --accent-mint: 127 216 195;
-  --accent-mint-strong: 103 191 173;
-  --accent-blue: 137 182 242;
+  --text-secondary: 192 202 222;
+  --text-muted: 156 169 192;
+  --accent-mint: 142 230 208;
+  --accent-mint-strong: 113 203 184;
+  --accent-blue: 153 198 255;
   --accent-yellow-off: 200 179 95;
   --accent-yellow-on: 231 210 123;
-  --accent-red: 216 141 152;
-  --accent-purple: 185 166 232;
+  --accent-red: 227 153 168;
+  --accent-purple: 198 180 244;
 
   --bg: var(--bg-app);
   --surface: var(--bg-panel);
@@ -50,11 +50,11 @@
   --button-primary-text: 244 249 248;
   --button-primary-border: 167 232 218;
 
-  --button-secondary-bg: 255 255 255 / 0.055;
-  --button-secondary-bg-hover: 255 255 255 / 0.085;
-  --button-secondary-bg-active: 255 255 255 / 0.11;
+  --button-secondary-bg: 153 198 255 / 0.09;
+  --button-secondary-bg-hover: 153 198 255 / 0.14;
+  --button-secondary-bg-active: 153 198 255 / 0.18;
   --button-secondary-text: var(--text-primary);
-  --button-secondary-border: 215 220 230 / 0.18;
+  --button-secondary-border: 198 180 244 / 0.24;
 
   --button-ghost-bg: 0 0 0 / 0;
   --button-ghost-bg-hover: 255 255 255 / 0.06;
@@ -372,14 +372,14 @@ button,
 }
 
 .action-chrome[data-action-chrome-intent="neutral"] {
-  --action-chrome-border-color: rgb(var(--border-strong) / 0.12);
-  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.2);
-  --action-chrome-overlay-top: rgb(255 255 255 / 0.028);
-  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.007);
-  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.04);
-  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.014);
-  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.05);
-  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.018);
+  --action-chrome-border-color: rgb(var(--accent-blue) / 0.2);
+  --action-chrome-border-color-hover: rgb(var(--accent-blue) / 0.3);
+  --action-chrome-overlay-top: rgb(var(--accent-purple) / 0.06);
+  --action-chrome-overlay-bottom: rgb(var(--accent-blue) / 0.025);
+  --action-chrome-overlay-top-hover: rgb(var(--accent-purple) / 0.09);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent-blue) / 0.04);
+  --action-chrome-overlay-top-active: rgb(var(--accent-purple) / 0.11);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent-blue) / 0.05);
   --action-chrome-text-color: rgb(var(--text-primary) / 0.92);
 }
 

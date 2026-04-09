@@ -809,7 +809,7 @@ export function SetLoggerCard({
           - Save button remains stable while toggling measurements */}
 
       <WorkoutEntrySection
-        className="border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]"
+        className="border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-rgb)/0.42)]"
       >
         <MeasurementPanelV2
           values={{
@@ -844,7 +844,7 @@ export function SetLoggerCard({
           showInnerHeader={false}
           visibleMetrics={(Object.entries(visibleMetrics) as Array<[keyof typeof visibleMetrics, boolean]>).filter(([, enabled]) => enabled).map(([metric]) => metric)}
           leadingContent={(
-            <div className="rounded-xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.3)] px-2.5 py-1.5">
+            <div className="rounded-xl border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-rgb)/0.38)] px-2.5 py-1.5">
               <div className="flex flex-col gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</p>
@@ -866,7 +866,7 @@ export function SetLoggerCard({
               aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
               onClick={() => setWarmupValue(!resolvedIsWarmup)}
             >
-              Warm
+              Warm-Up
             </AppButton>
           )}
           rpe={rpe}
@@ -906,7 +906,7 @@ export function SetLoggerCard({
                               <span className="rounded-full border border-[rgb(var(--button-primary-border)/0.34)] bg-[rgb(var(--button-primary-bg)/0.16)] px-2 py-0.5 text-[10px] font-medium text-[rgb(var(--button-primary-text)/0.94)]">Warm-Up</span>
                             ) : null}
                             {set.rpe !== null ? (
-                              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">RPE {set.rpe}</span>
+                              <span className="rounded-full border border-[rgb(var(--accent-blue)/0.24)] bg-[rgb(var(--accent-blue)/0.12)] px-2 py-0.5 text-[10px] font-medium text-[rgb(var(--text-primary)/0.96)]">RPE {set.rpe}</span>
                             ) : null}
                             {set.queueStatus ? <span className="text-[11px] text-muted">{set.queueStatus}</span> : null}
                             {set.pending && !set.queueStatus ? <span className="text-[11px] text-muted">saving...</span> : null}
@@ -931,7 +931,7 @@ export function SetLoggerCard({
                       />
                     </li>
                   ))}
-                  {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-white/10 px-3 py-3 text-muted">No {useIntervalLanguage ? "intervals" : "sets"} logged yet.</li> : null}
+                  {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-[rgb(var(--border-strong)/0.18)] px-3 py-3 text-muted">No {useIntervalLanguage ? "intervals" : "sets"} logged yet.</li> : null}
                 </ul>
               </div>
             </div>
