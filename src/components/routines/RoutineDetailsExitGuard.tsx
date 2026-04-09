@@ -2,10 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useBackNavigation } from "@/components/ui/useBackNavigation";
@@ -118,20 +117,14 @@ export function RoutineDetailsDiscardConfirmationDock() {
   const { stayOnScreen, discardChanges } = useRoutineDetailsExitGuard();
 
   return (
-    <PublishBottomActions>
-      <BottomActionSplit
-        secondary={(
-          <BottomDockButton type="button" intent="info" onClick={stayOnScreen}>
-            Cancel
-          </BottomDockButton>
-        )}
-        primary={(
-          <BottomDockButton type="button" intent="positive" onClick={discardChanges}>
-            Confirm
-          </BottomDockButton>
-        )}
-      />
-    </PublishBottomActions>
+    <ConfirmDestructiveModal
+      open
+      title="Discard changes?"
+      consequenceText="Your unsaved routine changes will be lost."
+      confirmLabel="Discard"
+      onCancel={stayOnScreen}
+      onConfirm={discardChanges}
+    />
   );
 }
 

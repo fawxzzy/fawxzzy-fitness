@@ -148,7 +148,7 @@ export function ExerciseGoalForm({
               onChange={(event) => onStateChange({ ...state, sets: event.target.value })}
               placeholder="Sets"
               required
-              className="input-no-spinner h-10 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+              className="input-no-spinner h-10 w-full rounded-lg border border-[rgb(var(--button-primary-border)/0.28)] bg-[rgb(var(--bg)/0.48)] px-3 text-base font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-[rgb(var(--button-primary-border)/0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.25)]"
             />
           ),
         }}
@@ -169,7 +169,7 @@ export function ExerciseGoalForm({
 
       {showValidationMessage ? (
         goalValidation.isValid ? null : (
-          <p className="rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/95">
+          <p className="rounded-lg border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] px-3 py-2 text-xs text-[rgb(var(--accent-yellow-on)/0.95)]">
             {validationOverride ?? goalValidation.message}
           </p>
         )

@@ -20,7 +20,7 @@ const METRICS: Array<{
 
 const shellClassName = "space-y-2";
 const metricCardClassName = "min-h-[4.7rem] rounded-xl border px-2.5 py-2 transition-colors";
-const valueInputClassName = "input-no-spinner mt-1 h-9 w-full rounded-lg border border-emerald-300/30 bg-[rgb(var(--bg)/0.48)] px-2.5 text-[15px] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-emerald-300/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25";
+const valueInputClassName = "input-no-spinner mt-1 h-9 w-full rounded-lg border border-[rgb(var(--button-primary-border)/0.28)] bg-[rgb(var(--bg)/0.48)] px-2.5 text-[15px] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-[rgb(var(--button-primary-border)/0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.25)]";
 function MetricHeader({ title, suffix }: { title: string; suffix: string }) {
   return <StatFieldLabel title={title} suffix={suffix} emphasis="default" />;
 }
@@ -92,7 +92,7 @@ export function MeasurementPanelV2({
 
         <div className="grid grid-cols-2 gap-2">
           {topField ? (
-            <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
+            <div className={cn(metricCardClassName, "col-span-2 border-[rgb(var(--button-primary-border)/0.22)] bg-[rgb(var(--bg)/0.32)]")}>
               <StatFieldLabel title={topField.title} suffix={topField.suffix} emphasis="target" />
               <div className="mt-1">{topField.input}</div>
             </div>
@@ -100,7 +100,7 @@ export function MeasurementPanelV2({
 
           {allowedMetrics.has("reps") ? (
             <div
-            className={cn(metricCardClassName, "col-span-2 border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
+            className={cn(metricCardClassName, "col-span-2 border-[rgb(var(--button-primary-border)/0.16)] bg-[rgb(var(--bg)/0.28)]")}
           >
             <MetricHeader title={METRICS[0].title} suffix={METRICS[0].suffix(values)} />
             {"repsMax" in values ? (
@@ -152,7 +152,7 @@ export function MeasurementPanelV2({
 
           {allowedMetrics.has("weight") ? (
             <div
-            className={cn(metricCardClassName, "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
+            className={cn(metricCardClassName, "border-[rgb(var(--button-primary-border)/0.16)] bg-[rgb(var(--bg)/0.28)]")}
           >
             <MetricHeader title={METRICS[1].title} suffix={METRICS[1].suffix(values)} />
             <input
@@ -173,7 +173,7 @@ export function MeasurementPanelV2({
 
           {allowedMetrics.has("time") ? (
             <div
-            className={cn(metricCardClassName, "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
+            className={cn(metricCardClassName, "border-[rgb(var(--button-primary-border)/0.16)] bg-[rgb(var(--bg)/0.28)]")}
           >
             <MetricHeader title={METRICS[2].title} suffix={METRICS[2].suffix(values)} />
             <input
@@ -192,7 +192,7 @@ export function MeasurementPanelV2({
 
           {allowedMetrics.has("distance") ? (
             <div
-            className={cn(metricCardClassName, "border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
+            className={cn(metricCardClassName, "border-[rgb(var(--button-primary-border)/0.16)] bg-[rgb(var(--bg)/0.28)]")}
           >
             <MetricHeader title={METRICS[3].title} suffix={METRICS[3].suffix(values)} />
             <input
@@ -213,7 +213,7 @@ export function MeasurementPanelV2({
 
           {allowedMetrics.has("calories") ? (
             <div
-            className={cn(metricCardClassName, "col-span-2 border-emerald-300/16 bg-[rgb(var(--bg)/0.28)]")}
+            className={cn(metricCardClassName, "col-span-2 border-[rgb(var(--button-primary-border)/0.16)] bg-[rgb(var(--bg)/0.28)]")}
           >
             <MetricHeader title={METRICS[4].title} suffix={METRICS[4].suffix(values)} />
             <input
@@ -232,7 +232,7 @@ export function MeasurementPanelV2({
           ) : null}
 
           {hasRpeInput ? (
-            <div className={cn(metricCardClassName, "col-span-2 border-emerald-300/22 bg-[rgb(var(--bg)/0.32)]")}>
+            <div className={cn(metricCardClassName, "col-span-2 border-[rgb(var(--button-primary-border)/0.22)] bg-[rgb(var(--bg)/0.32)]")}>
               <StatFieldLabel title="RPE" suffix="0–10" />
               <input
                 type="number"

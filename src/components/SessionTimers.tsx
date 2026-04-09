@@ -903,7 +903,7 @@ export function SetLoggerCard({
                               emptyLabel: "No measurements",
                             })}</span>
                             {set.is_warmup ? (
-                              <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-100">Warm-Up</span>
+                              <span className="rounded-full border border-[rgb(var(--button-primary-border)/0.34)] bg-[rgb(var(--button-primary-bg)/0.16)] px-2 py-0.5 text-[10px] font-medium text-[rgb(var(--button-primary-text)/0.94)]">Warm-Up</span>
                             ) : null}
                             {set.rpe !== null ? (
                               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-text">RPE {set.rpe}</span>
@@ -912,7 +912,7 @@ export function SetLoggerCard({
                             {set.pending && !set.queueStatus ? <span className="text-[11px] text-muted">saving...</span> : null}
                           </span>
                         )}
-                        actionClassName="border-l border-white/8 bg-[linear-gradient(180deg,rgba(244,63,94,0.08),rgba(190,24,93,0.04))]"
+                        actionClassName="border-l border-[rgb(var(--button-destructive-border)/0.38)] bg-[rgb(var(--button-destructive-bg))]"
                         action={(
                           <button
                             type="button"
@@ -921,7 +921,7 @@ export function SetLoggerCard({
                             }}
                             aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
                             className={cn(
-                              "min-h-[44px] self-stretch px-3.5 text-[11px] font-semibold tracking-[0.02em] text-rose-100/80 transition hover:bg-rose-400/8 hover:text-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-300/30",
+                              "min-h-[44px] self-stretch px-3.5 text-[11px] font-semibold tracking-[0.02em] text-[rgb(var(--button-destructive-text)/0.82)] transition hover:bg-[rgb(var(--button-destructive-bg-hover))] hover:text-[rgb(var(--button-destructive-text))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--button-destructive-border)/0.72)]",
                               tapFeedbackClass,
                             )}
                           >
@@ -937,7 +937,7 @@ export function SetLoggerCard({
             </div>
           )}
         />
-        {error ? <p className="text-sm text-red-400">{error}</p> : null}
+        {error ? <p className="text-sm text-[rgb(var(--accent-red))]">{error}</p> : null}
       </WorkoutEntrySection>
 
       <PublishBottomActions>{saveSetActions}</PublishBottomActions>

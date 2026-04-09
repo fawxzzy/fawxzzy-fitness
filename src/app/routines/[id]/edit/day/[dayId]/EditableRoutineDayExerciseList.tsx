@@ -645,7 +645,7 @@ export function EditableRoutineDayExerciseList({
                       max={items.length}
                       inputMode="numeric"
                       defaultValue={canonicalOrderById.get(exercise.id) ?? 1}
-                      className="h-10 w-full rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3 text-sm text-text outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20"
+                      className="h-10 w-full rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3 text-sm text-text outline-none transition focus:border-[rgb(var(--button-primary-border)/0.5)] focus:ring-2 focus:ring-[rgb(var(--button-primary-border)/0.22)]"
                     />
                   </div>
                   <RoutineTargetInputs
@@ -655,7 +655,7 @@ export function EditableRoutineDayExerciseList({
                     defaults={exercise.defaults}
                     modality={resolveInlineModality(exercise.measurementType, exercise.equipment)}
                   />
-                  {autosaveError ? <p className="text-xs text-rose-300">{autosaveError}</p> : null}
+                  {autosaveError ? <p className="text-xs text-[rgb(var(--accent-red))]">{autosaveError}</p> : null}
                 </form>
               );
             }}

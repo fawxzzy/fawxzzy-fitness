@@ -20,7 +20,7 @@ export function StatFieldLabel({
     <span
       className={cn(
         statFieldLabelClassName,
-        emphasis === "target" ? "text-emerald-100" : "text-emerald-100/86",
+        emphasis === "target" ? "text-[rgb(var(--button-primary-text)/0.94)]" : "text-[rgb(var(--button-primary-text)/0.86)]",
         className,
       )}
     >
@@ -29,7 +29,7 @@ export function StatFieldLabel({
         <span
           className={cn(
             "text-[10px] tracking-[0.1em]",
-            emphasis === "target" ? "text-emerald-200/82" : "text-emerald-200/74",
+            emphasis === "target" ? "text-[rgb(var(--button-primary-border)/0.82)]" : "text-[rgb(var(--button-primary-border)/0.74)]",
           )}
         >
           ({normalizedSuffix})
