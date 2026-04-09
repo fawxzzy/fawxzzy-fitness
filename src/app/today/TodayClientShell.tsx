@@ -141,7 +141,7 @@ export function TodayClientShell({
           <OfflineSyncBadge />
         </div>
         {display.staleAt ? (
-          <AccentSubtitleText className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          <AccentSubtitleText className="rounded-md border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] px-3 py-2 text-xs text-[rgb(var(--accent-yellow-on))]">
             Offline snapshot · stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
           </AccentSubtitleText>
         ) : null}

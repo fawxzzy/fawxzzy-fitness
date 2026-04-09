@@ -266,13 +266,13 @@ export function TodayDayPicker({
                   className={[
                     "rounded-md px-3 py-1.5",
                     daySummaryTone === "blocking"
-                      ? "border border-red-400/30 bg-red-500/10 text-red-100"
+                      ? "border border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
                       : daySummaryTone === "warning"
-                        ? "border border-amber-400/20 bg-amber-500/10 text-amber-100"
+                        ? "border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]"
                         : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
                   ].join(" ")}
                 >
-                  <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-red-100" : "text-amber-100"}>
+                  <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-[rgb(var(--button-destructive-text))]" : "text-[rgb(var(--accent-yellow-on))]"}>
                     {daySummary}
                   </AccentSubtitleText>
                 </div>

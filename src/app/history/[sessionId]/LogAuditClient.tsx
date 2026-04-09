@@ -179,6 +179,7 @@ export function LogAuditClient({
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [setToDelete, setSetToDelete] = useState<{ exerciseId: string; setId: string; label: string } | null>(null);
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
   const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>(Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.notes ?? ""])));
   const [editableSets, setEditableSets] = useState<Record<string, EditableSet[]>>(
@@ -411,16 +412,16 @@ export function LogAuditClient({
             {isEditing ? (
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Edit mode</p>
-                <div className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
-                  <p className="text-sm font-semibold text-slate-100">Session details</p>
+                <div className="rounded-[1.1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface)/0.42)] px-3 py-2.5">
+                  <p className="text-sm font-semibold text-text">Session details</p>
                   <div className="mt-3 space-y-3">
                     <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
                       Day Name
-                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
+                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-[rgb(var(--button-primary-border)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.25)]" />
                     </label>
                     <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
                       Session Notes
-                      <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25" />
+                      <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-[rgb(var(--button-primary-border)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.25)]" />
                     </label>
                   </div>
                 </div>
@@ -431,7 +432,7 @@ export function LogAuditClient({
         )
         : null}
 
-      <div className="rounded-[1.1rem] border border-white/10 bg-black/10 px-3 py-2.5">
+      <div className="rounded-[1.1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface)/0.42)] px-3 py-2.5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Session summary</p>
         <p className="mt-1 text-sm text-[rgb(var(--text)/0.84)]">{sessionMeta.summaryLine}</p>
       </div>
@@ -569,7 +570,22 @@ export function LogAuditClient({
                                   onChange={(patch) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
                                 />
                                 <div className="grid grid-cols-1 gap-2">
-                                  <DestructiveButton type="button" size="md" className="w-full" disabled={set.id.startsWith("temp-")} onClick={(event) => { event.stopPropagation(); handleDeleteSet(exercise.id, set.id); }}>Delete Set</DestructiveButton>
+                                  <DestructiveButton
+                                    type="button"
+                                    size="md"
+                                    className="w-full"
+                                    disabled={set.id.startsWith("temp-")}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setSetToDelete({
+                                        exerciseId: exercise.id,
+                                        setId: set.id,
+                                        label: `${name} - Set ${index + 1}`,
+                                      });
+                                    }}
+                                  >
+                                    Delete Set
+                                  </DestructiveButton>
                                 </div>
                               </div>
                             ) : null}
@@ -611,7 +627,7 @@ export function LogAuditClient({
                           setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
                         }}
                         rows={2}
-                        className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.22)] px-3 py-2 text-sm text-text focus-visible:border-emerald-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+                        className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.22)] px-3 py-2 text-sm text-text focus-visible:border-[rgb(var(--button-primary-border)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.25)]"
                       />
                     </label>
                   ) : notesValue.trim() ? (
@@ -634,6 +650,19 @@ export function LogAuditClient({
         onConfirm={() => {
           if (!exerciseToDelete) return;
           handleDeleteExercise(exerciseToDelete.id);
+        }}
+      />
+      <ConfirmDestructiveModal
+        open={setToDelete !== null}
+        title="Delete set?"
+        details={setToDelete?.label}
+        confirmLabel="Delete"
+        onCancel={() => setSetToDelete(null)}
+        onConfirm={() => {
+          if (!setToDelete) return;
+          const { exerciseId, setId } = setToDelete;
+          setSetToDelete(null);
+          handleDeleteSet(exerciseId, setId);
         }}
       />
     </>
