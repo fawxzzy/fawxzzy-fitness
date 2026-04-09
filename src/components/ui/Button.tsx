@@ -18,7 +18,7 @@ export function Button({
       data-action-chrome-intent={intent}
       className={cn(
         ACTION_CHROME_CONTROL_CLASS_NAME,
-        "min-h-11 rounded-[var(--action-chrome-segment-radius)] px-3 text-sm font-medium focus-visible:ring-emerald-300/25 disabled:opacity-55",
+        "min-h-11 rounded-[var(--action-chrome-segment-radius)] px-3 text-sm font-medium focus-visible:ring-[var(--button-focus-ring)] disabled:opacity-55",
         className,
       )}
       {...props}

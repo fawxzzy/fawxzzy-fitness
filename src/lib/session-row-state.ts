@@ -56,7 +56,7 @@ export function deriveSessionRowState(input: DeriveSessionRowStateInput): Sessio
     chips: progressState.chips,
     skipActionLabel: progressState.skipActionLabel,
     quickLogActionIntent: progressState.allowQuickLog ? "positive" : "neutral",
-    skipActionIntent: progressState.skipActionLabel === "Unskip" ? "info" : "danger",
+    skipActionIntent: progressState.skipActionLabel === "Unskip" ? "toggleActive" : "toggleInactive",
     isQuickLogDisabled: !progressState.allowQuickLog,
     quickLogDisabledMessage: "Unskip to log",
     quickLogLabel: `Log: ${formatQuickLogPreviewLabel({

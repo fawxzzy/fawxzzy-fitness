@@ -22,6 +22,7 @@ export function ConfirmedServerFormButton({
   bullets,
   size = "sm",
   disabled = false,
+  confirmVariant = "destructive",
 }: {
   action: (formData: FormData) => unknown | Promise<unknown>;
   onSuccess?: () => void | Promise<void>;
@@ -40,6 +41,7 @@ export function ConfirmedServerFormButton({
   bullets?: string[];
   size?: "sm" | "md";
   disabled?: boolean;
+  confirmVariant?: "primary" | "destructive";
 }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,6 +101,7 @@ export function ConfirmedServerFormButton({
         details={details}
         bullets={bullets}
         isLoading={isLoading}
+        confirmVariant={confirmVariant}
         onCancel={() => setOpen(false)}
         onConfirm={() => formRef.current?.requestSubmit()}
       />

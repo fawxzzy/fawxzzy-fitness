@@ -5,10 +5,10 @@ import {
   ACTION_CHROME_RAIL_GRID_CLASS_NAME,
 } from "@/components/ui/actionChrome";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3 pb-[calc(var(--app-safe-bottom)+1px)]";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3 pb-[calc(var(--app-safe-bottom)+2px)]";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   ACTION_CHROME_RAIL_CLASS_NAME,
-  "px-[var(--action-chrome-shell-padding)] py-[var(--action-chrome-shell-padding)]",
+  "overflow-hidden px-[var(--action-chrome-shell-padding)] py-[var(--action-chrome-shell-padding)]",
 );
 
 const CONTROL_LABEL_CLASSNAME = cn(
@@ -29,7 +29,7 @@ const CONTROL_LABEL_CLASSNAME = cn(
 );
 
 const itemBaseClassName = cn(
-  "[&>*]:min-h-[3.25rem] [&>*]:w-full [&>*]:px-4 [&>*]:text-sm [&>*]:font-semibold [&>*]:tracking-[0.01em]",
+  "[&>*]:min-h-[3.2rem] [&>*]:w-full [&>*]:px-4 [&>*]:text-sm [&>*]:font-semibold [&>*]:tracking-[0.01em]",
   CONTROL_LABEL_CLASSNAME,
 );
 
@@ -39,7 +39,7 @@ function BottomActionSlot({ children, className, fill = true }: { children: Reac
       className={cn(
         "flex min-w-0 items-stretch justify-center self-stretch",
         fill ? "flex-1 basis-0 [&>*]:w-full" : "shrink-0 [&>*]:w-auto",
-        "[&>*]:min-h-[3.25rem] [&>form>*]:h-full",
+        "[&>*]:min-h-[3.2rem] [&>form>*]:h-full",
         className,
       )}
     >
@@ -53,10 +53,10 @@ function SegmentedRow({ children, className }: { children: ReactNode; className?
 }
 
 const dominantPrimaryClassName = cn(
-  "[&_.action-chrome]:min-h-[3.35rem] [&_.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
-  "[&>a.action-chrome]:min-h-[3.35rem] [&>a.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
-  "[&>button.action-chrome]:min-h-[3.35rem] [&>button.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
-  "[&>form_.action-chrome]:min-h-[3.35rem] [&>form_.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
+  "[&_.action-chrome]:min-h-[3.3rem] [&_.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
+  "[&>a.action-chrome]:min-h-[3.3rem] [&>a.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
+  "[&>button.action-chrome]:min-h-[3.3rem] [&>button.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
+  "[&>form_.action-chrome]:min-h-[3.3rem] [&>form_.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
 );
 
 export function BottomActionSingle({ children, className }: { children: ReactNode; className?: string }) {

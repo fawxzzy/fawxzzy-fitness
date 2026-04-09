@@ -197,13 +197,13 @@ export function TodayDayPicker({
     return (
       <BottomActionSplit
         secondary={selectDayButton}
-        primary={mode.cta.primaryLabel === "Resume Session" ? (
+        primary={mode.cta.primaryLabel === "Resume" ? (
           <TodayStartButton
             sessionId={inProgressSessionId ?? undefined}
             returnTo="/today"
             fullWidth
             className="w-full"
-            label="Resume Session"
+            label="Resume"
           />
         ) : (
           <TodayStartButton

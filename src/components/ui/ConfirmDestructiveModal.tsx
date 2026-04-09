@@ -14,6 +14,7 @@ export function ConfirmDestructiveModal({
   details,
   bullets,
   isLoading = false,
+  confirmVariant = "destructive",
   onCancel,
   onConfirm,
 }: {
@@ -26,12 +27,16 @@ export function ConfirmDestructiveModal({
   details?: string;
   bullets?: string[];
   isLoading?: boolean;
+  confirmVariant?: "primary" | "destructive";
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const resolvedConsequenceText = consequenceText ?? description ?? "";
   const titleId = useId();
   const modalRef = useRef<HTMLDivElement | null>(null);
+  const detailLines = [resolvedConsequenceText, ...(contextLines ?? []), details ?? ""]
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   useEffect(() => {
     if (!open) return;
@@ -64,42 +69,44 @@ export function ConfirmDestructiveModal({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex items-end justify-center p-4 pb-[max(1rem,calc(var(--app-safe-bottom)+5.5rem))] pt-[max(1rem,var(--app-safe-top))]">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 pb-[max(1rem,var(--app-safe-bottom))] pt-[max(1rem,var(--app-safe-top))]">
       <button
         type="button"
         aria-label="Close confirmation"
-        className="fixed inset-0 z-0 bg-black/46 backdrop-blur-sm"
+        className="fixed inset-0 z-0 bg-black/42 backdrop-blur-[2px]"
         onClick={onCancel}
       />
       <div
         ref={modalRef}
-        className="relative z-10 w-[calc(100%-2rem)] max-w-[420px] space-y-3 rounded-2xl border border-white/14 bg-[rgb(var(--surface-rgb)/0.84)] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl"
+        className="relative z-10 w-full max-w-[22rem] space-y-3 rounded-[1.1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--shell-rgb)/0.94)] p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-lg"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <h2 id={titleId} className="text-lg font-semibold text-text">{title}</h2>
-        <p className="text-sm text-muted">{resolvedConsequenceText}</p>
-        {(contextLines?.length || details) ? (
-          <div className="space-y-1 rounded-xl bg-black/15 px-3 py-2 text-xs text-muted">
-            {contextLines?.map((line) => (
-              <p key={line}>{line}</p>
-            ))}
-            {details ? <p>{details}</p> : null}
+        <div className="space-y-1">
+          <h2 id={titleId} className="text-base font-semibold text-text">{title}</h2>
+          {detailLines.length ? (
+            <div className="space-y-0.5 text-sm text-[rgb(var(--text-secondary)/0.94)]">
+              {detailLines.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        {bullets?.length ? (
+          <div className="rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface)/0.42)] px-3 py-2">
+            <ul className="list-disc space-y-0.5 pl-4 text-xs text-[rgb(var(--text-muted)/0.95)]">
+              {bullets.map((bullet) => (
+                <li key={bullet}>{bullet}</li>
+              ))}
+            </ul>
           </div>
         ) : null}
-        {bullets?.length ? (
-          <ul className="list-disc space-y-1 pl-5 text-xs text-muted">
-            {bullets.map((bullet) => (
-              <li key={bullet}>{bullet}</li>
-            ))}
-          </ul>
-        ) : null}
-        <div className="flex justify-end gap-2 pt-1">
-          <AppButton type="button" variant="secondary" size="md" onClick={onCancel} disabled={isLoading} className="min-h-11">
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <AppButton type="button" variant="secondary" size="md" onClick={onCancel} disabled={isLoading} className="min-h-10 rounded-[0.92rem]">
             Cancel
           </AppButton>
-          <AppButton type="button" variant="destructive" size="md" onClick={onConfirm} disabled={isLoading} className="min-h-11">
+          <AppButton type="button" variant={confirmVariant} size="md" onClick={onConfirm} disabled={isLoading} className="min-h-10 rounded-[0.92rem]">
             {isLoading ? `${confirmLabel}...` : confirmLabel}
           </AppButton>
         </div>

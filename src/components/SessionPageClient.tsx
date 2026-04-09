@@ -182,7 +182,7 @@ export function SessionPageClient({
           secondary={quickAddAction}
           tertiary={(
             <div
-              className="inline-flex min-h-12 items-center justify-center rounded-full border border-emerald-400/22 bg-emerald-400/12 px-3 py-2 text-sm font-semibold tabular-nums text-emerald-100"
+              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-emerald-400/22 bg-emerald-400/12 px-3 py-2 text-sm font-semibold tabular-nums text-emerald-100"
               suppressHydrationWarning
               aria-live={hasMountedTimer ? "off" : undefined}
             >
@@ -198,7 +198,9 @@ export function SessionPageClient({
             </BottomDockButton>
           )}
           className="w-full"
-          tertiaryClassName="px-1"
+          primaryClassName="[&_.action-chrome]:min-h-[3.45rem] [&_.action-chrome]:px-[1.125rem] [&>button.action-chrome]:min-h-[3.45rem] [&>button.action-chrome]:px-[1.125rem]"
+          secondaryClassName="[&_.action-chrome]:min-h-[3.45rem] [&_.action-chrome]:px-[1.125rem] [&>a.action-chrome]:min-h-[3.45rem] [&>a.action-chrome]:px-[1.125rem]"
+          tertiaryClassName="px-0.5 [&>*]:max-w-[6.1rem]"
         />
       </form>
     ),

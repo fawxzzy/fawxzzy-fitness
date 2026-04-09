@@ -122,12 +122,12 @@ export function RoutineDetailsDiscardConfirmationDock() {
       <BottomActionSplit
         secondary={(
           <BottomDockButton type="button" intent="info" onClick={stayOnScreen}>
-            Stay
+            Cancel
           </BottomDockButton>
         )}
         primary={(
-          <BottomDockButton type="button" intent="danger" onClick={discardChanges}>
-            Discard
+          <BottomDockButton type="button" intent="positive" onClick={discardChanges}>
+            Confirm
           </BottomDockButton>
         )}
       />
@@ -135,11 +135,11 @@ export function RoutineDetailsDiscardConfirmationDock() {
   );
 }
 
-export function RoutineDetailsBackSecondaryAction({ label = "Back" }: { label?: string }) {
+export function RoutineDetailsBackSecondaryAction({ label = "Back", intent = "info" }: { label?: string; intent?: "info" | "danger" }) {
   const { requestExit } = useRoutineDetailsExitGuard();
 
   return (
-    <BottomDockButton type="button" intent="info" onClick={requestExit}>
+    <BottomDockButton type="button" intent={intent} onClick={requestExit}>
       {label}
     </BottomDockButton>
   );

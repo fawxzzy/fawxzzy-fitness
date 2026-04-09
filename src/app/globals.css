@@ -4,15 +4,35 @@
 
 :root {
   color-scheme: dark;
-  --bg: 20 25 34;
-  --surface: 37 44 54;
-  --surface-2: 47 56 68;
-  --border: 70 80 94;
-  --text: 245 247 250;
-  --muted: 198 206 216;
-  --faint: 148 158 171;
-  --accent: 16 185 129;
-  --accent-strong: 5 150 105;
+  --bg-app: 15 23 36;
+  --bg-panel: 22 33 51;
+  --bg-card: 42 53 72;
+  --bg-shell: 49 61 80;
+  --stroke-soft: 174 184 198;
+  --stroke-strong: 215 220 230;
+  --text-primary: 243 245 248;
+  --text-secondary: 183 192 205;
+  --text-muted: 142 153 170;
+  --accent-mint: 127 216 195;
+  --accent-mint-strong: 103 191 173;
+  --accent-blue: 137 182 242;
+  --accent-yellow-off: 200 179 95;
+  --accent-yellow-on: 231 210 123;
+  --accent-red: 216 141 152;
+  --accent-purple: 185 166 232;
+
+  --bg: var(--bg-app);
+  --surface: var(--bg-panel);
+  --surface-2: var(--bg-card);
+  --surface-rgb: var(--bg-card);
+  --shell-rgb: var(--bg-shell);
+  --border: var(--stroke-soft);
+  --border-strong: var(--stroke-strong);
+  --text: var(--text-primary);
+  --muted: var(--text-secondary);
+  --faint: var(--text-muted);
+  --accent: var(--accent-mint);
+  --accent-strong: var(--accent-mint-strong);
 
   --button-height: 2.75rem;
   --button-height-sm: 2.125rem;
@@ -22,50 +42,51 @@
   --button-font-size-sm: 0.8125rem;
   --button-font-weight: 600;
   --button-letter-spacing: 0;
-  --button-radius: 0.625rem;
+  --button-radius: 0.875rem;
 
-  --button-primary-bg: var(--accent);
-  --button-primary-bg-hover: var(--accent-strong);
-  --button-primary-bg-active: 4 120 84;
-  --button-primary-text: 247 250 252;
-  --button-primary-border: 20 145 104;
+  --button-primary-bg: var(--accent-mint);
+  --button-primary-bg-hover: var(--accent-mint-strong);
+  --button-primary-bg-active: 84 166 151;
+  --button-primary-text: 244 249 248;
+  --button-primary-border: 167 232 218;
 
-  --button-secondary-bg: 255 255 255 / 0.05;
-  --button-secondary-bg-hover: 255 255 255 / 0.09;
-  --button-secondary-bg-active: 255 255 255 / 0.13;
-  --button-secondary-text: var(--text);
-  --button-secondary-border: 255 255 255 / 0.14;
+  --button-secondary-bg: 255 255 255 / 0.055;
+  --button-secondary-bg-hover: 255 255 255 / 0.085;
+  --button-secondary-bg-active: 255 255 255 / 0.11;
+  --button-secondary-text: var(--text-primary);
+  --button-secondary-border: 215 220 230 / 0.18;
 
   --button-ghost-bg: 0 0 0 / 0;
-  --button-ghost-bg-hover: 255 255 255 / 0.08;
-  --button-ghost-bg-active: 255 255 255 / 0.12;
-  --button-ghost-text: var(--text);
-  --button-ghost-border: 120 133 150;
+  --button-ghost-bg-hover: 255 255 255 / 0.06;
+  --button-ghost-bg-active: 255 255 255 / 0.09;
+  --button-ghost-text: var(--text-primary);
+  --button-ghost-border: 174 184 198;
 
-  --button-destructive-bg: 126 32 45;
-  --button-destructive-bg-hover: 146 40 55;
-  --button-destructive-bg-active: 108 28 40;
-  --button-destructive-text: 255 239 241;
-  --button-destructive-border: 168 58 72;
+  --button-destructive-bg: 216 141 152 / 0.2;
+  --button-destructive-bg-hover: 216 141 152 / 0.26;
+  --button-destructive-bg-active: 216 141 152 / 0.32;
+  --button-destructive-text: 255 240 243;
+  --button-destructive-border: 216 141 152 / 0.42;
 
   --button-focus-ring: rgb(var(--accent) / 0.3);
   --button-transition: 140ms ease;
   --button-press-scale: 0.98;
 
-  --action-chrome-shell-radius: 1.32rem;
-  --action-chrome-segment-radius: 1.08rem;
+  --action-chrome-shell-radius: 1.12rem;
+  --action-chrome-segment-radius: 0.98rem;
   --action-chrome-segment-radius-compact: 0.92rem;
-  --action-chrome-shell-padding: 0.24rem;
-  --action-chrome-shell-gap: 0.24rem;
+  --action-chrome-shell-padding: 0.16rem;
+  --action-chrome-shell-gap: 0.14rem;
   --action-chrome-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
-  --action-chrome-shell-border: rgb(255 255 255 / 0.1);
-  --action-chrome-shell-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+  --action-chrome-shell-border: rgb(var(--border-strong) / 0.18);
+  --action-chrome-shell-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  --action-chrome-shell-highlight: rgb(255 255 255 / 0.06);
 
   --radius-sm: 0.625rem;
   --radius-md: 0.875rem;
   --radius-lg: 1.125rem;
 
-  --glass-tint-rgb: 38 45 56;
+  --glass-tint-rgb: var(--bg-panel);
   --glass-tint-alpha-on: 0.64;
   --glass-tint-alpha-reduced: 0.74;
   --glass-border-alpha-on: 0.36;
@@ -245,34 +266,34 @@ button,
   border-radius: var(--action-chrome-shell-radius);
   border: 1px solid var(--action-chrome-shell-border);
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.03), rgb(255 255 255 / 0.01)),
-    linear-gradient(180deg, rgb(var(--surface) / 0.985), rgb(var(--surface) / 0.955));
+    linear-gradient(180deg, var(--action-chrome-shell-highlight), rgb(255 255 255 / 0.012)),
+    linear-gradient(180deg, rgb(var(--shell-rgb) / 0.94), rgb(var(--surface-rgb) / 0.96));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.04),
-    inset 0 -1px 0 rgb(0 0 0 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.045),
+    inset 0 -1px 0 rgb(0 0 0 / 0.1),
     var(--action-chrome-shell-shadow);
   padding: var(--action-chrome-shell-padding);
 }
 
 .action-chrome {
-  --action-chrome-border-color: rgb(255 255 255 / 0.14);
-  --action-chrome-border-color-hover: rgb(255 255 255 / 0.2);
-  --action-chrome-overlay-top: rgb(255 255 255 / 0.06);
-  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.018);
-  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.08);
-  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.03);
-  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.1);
-  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.04);
-  --action-chrome-text-color: rgb(var(--text) / 0.92);
+  --action-chrome-border-color: rgb(var(--border-strong) / 0.14);
+  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.24);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.045);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.012);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.06);
+  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.02);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.075);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.028);
+  --action-chrome-text-color: rgb(var(--text-primary) / 0.94);
   --action-chrome-shadow:
-    0 10px 24px rgb(0 0 0 / 0.12),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
+    0 10px 24px rgb(0 0 0 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.035);
   --action-chrome-shadow-hover:
-    0 12px 28px rgb(0 0 0 / 0.16),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
+    0 12px 28px rgb(0 0 0 / 0.13),
+    inset 0 1px 0 rgb(255 255 255 / 0.045);
   --action-chrome-shadow-active:
-    0 7px 18px rgb(0 0 0 / 0.12),
-    inset 0 1px 0 rgb(255 255 255 / 0.03);
+    0 7px 18px rgb(0 0 0 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.028);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -299,7 +320,7 @@ button,
 }
 
 .action-chrome::before {
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.085), rgb(255 255 255 / 0.02));
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.015));
 }
 
 .action-chrome::after {
@@ -351,133 +372,133 @@ button,
 }
 
 .action-chrome[data-action-chrome-intent="neutral"] {
-  --action-chrome-border-color: rgb(255 255 255 / 0.12);
-  --action-chrome-border-color-hover: rgb(255 255 255 / 0.18);
-  --action-chrome-overlay-top: rgb(255 255 255 / 0.03);
-  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.008);
-  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.05);
-  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.018);
-  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.06);
-  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.022);
-  --action-chrome-text-color: rgb(var(--text) / 0.9);
+  --action-chrome-border-color: rgb(var(--border-strong) / 0.12);
+  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.2);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.028);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.007);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.04);
+  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.014);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.05);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.018);
+  --action-chrome-text-color: rgb(var(--text-primary) / 0.92);
 }
 
 .action-chrome[data-action-chrome-intent="positive"] {
-  --action-chrome-border-color: rgb(110 231 183 / 0.4);
-  --action-chrome-border-color-hover: rgb(110 231 183 / 0.5);
-  --action-chrome-overlay-top: rgb(16 185 129 / 0.28);
-  --action-chrome-overlay-bottom: rgb(5 150 105 / 0.17);
-  --action-chrome-overlay-top-hover: rgb(16 185 129 / 0.34);
-  --action-chrome-overlay-bottom-hover: rgb(5 150 105 / 0.22);
-  --action-chrome-overlay-top-active: rgb(16 185 129 / 0.38);
-  --action-chrome-overlay-bottom-active: rgb(5 150 105 / 0.25);
-  --action-chrome-text-color: rgb(236 253 245 / 0.98);
+  --action-chrome-border-color: rgb(var(--accent-mint) / 0.36);
+  --action-chrome-border-color-hover: rgb(var(--accent-mint) / 0.48);
+  --action-chrome-overlay-top: rgb(var(--accent-mint) / 0.2);
+  --action-chrome-overlay-bottom: rgb(var(--accent-mint-strong) / 0.12);
+  --action-chrome-overlay-top-hover: rgb(var(--accent-mint) / 0.26);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent-mint-strong) / 0.16);
+  --action-chrome-overlay-top-active: rgb(var(--accent-mint) / 0.3);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent-mint-strong) / 0.2);
+  --action-chrome-text-color: rgb(244 249 248 / 0.98);
   --action-chrome-shadow:
-    0 12px 28px rgb(16 185 129 / 0.12),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --action-chrome-shadow-hover:
-    0 14px 34px rgb(16 185 129 / 0.16),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  --action-chrome-shadow-active:
-    0 9px 20px rgb(16 185 129 / 0.13),
+    0 12px 28px rgb(var(--accent-mint) / 0.1),
     inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --action-chrome-shadow-hover:
+    0 14px 32px rgb(var(--accent-mint) / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-active:
+    0 9px 20px rgb(var(--accent-mint) / 0.11),
+    inset 0 1px 0 rgb(255 255 255 / 0.035);
 }
 
 .action-chrome[data-action-chrome-intent="info"] {
-  --action-chrome-border-color: rgb(125 211 252 / 0.36);
-  --action-chrome-border-color-hover: rgb(125 211 252 / 0.46);
-  --action-chrome-overlay-top: rgb(14 165 233 / 0.22);
-  --action-chrome-overlay-bottom: rgb(2 132 199 / 0.12);
-  --action-chrome-overlay-top-hover: rgb(14 165 233 / 0.28);
-  --action-chrome-overlay-bottom-hover: rgb(2 132 199 / 0.17);
-  --action-chrome-overlay-top-active: rgb(14 165 233 / 0.32);
-  --action-chrome-overlay-bottom-active: rgb(2 132 199 / 0.19);
-  --action-chrome-text-color: rgb(240 249 255 / 0.98);
+  --action-chrome-border-color: rgb(var(--accent-blue) / 0.34);
+  --action-chrome-border-color-hover: rgb(var(--accent-blue) / 0.44);
+  --action-chrome-overlay-top: rgb(var(--accent-blue) / 0.18);
+  --action-chrome-overlay-bottom: rgb(var(--accent-blue) / 0.1);
+  --action-chrome-overlay-top-hover: rgb(var(--accent-blue) / 0.24);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent-blue) / 0.14);
+  --action-chrome-overlay-top-active: rgb(var(--accent-blue) / 0.28);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent-blue) / 0.17);
+  --action-chrome-text-color: rgb(242 247 255 / 0.98);
   --action-chrome-shadow:
-    0 12px 28px rgb(14 165 233 / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --action-chrome-shadow-hover:
-    0 14px 32px rgb(14 165 233 / 0.14),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  --action-chrome-shadow-active:
-    0 9px 20px rgb(14 165 233 / 0.12),
+    0 12px 28px rgb(var(--accent-blue) / 0.09),
     inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --action-chrome-shadow-hover:
+    0 14px 30px rgb(var(--accent-blue) / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-active:
+    0 9px 20px rgb(var(--accent-blue) / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.035);
 }
 
 .action-chrome[data-action-chrome-intent="toggleInactive"] {
-  --action-chrome-border-color: rgb(252 211 77 / 0.26);
-  --action-chrome-border-color-hover: rgb(252 211 77 / 0.34);
-  --action-chrome-overlay-top: rgb(245 158 11 / 0.12);
-  --action-chrome-overlay-bottom: rgb(217 119 6 / 0.06);
-  --action-chrome-overlay-top-hover: rgb(245 158 11 / 0.16);
-  --action-chrome-overlay-bottom-hover: rgb(217 119 6 / 0.1);
-  --action-chrome-overlay-top-active: rgb(245 158 11 / 0.18);
-  --action-chrome-overlay-bottom-active: rgb(217 119 6 / 0.12);
-  --action-chrome-text-color: rgb(254 243 199 / 0.88);
-  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --action-chrome-border-color: rgb(var(--accent-yellow-off) / 0.24);
+  --action-chrome-border-color-hover: rgb(var(--accent-yellow-off) / 0.34);
+  --action-chrome-overlay-top: rgb(var(--accent-yellow-off) / 0.1);
+  --action-chrome-overlay-bottom: rgb(var(--accent-yellow-off) / 0.05);
+  --action-chrome-overlay-top-hover: rgb(var(--accent-yellow-off) / 0.14);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent-yellow-off) / 0.08);
+  --action-chrome-overlay-top-active: rgb(var(--accent-yellow-off) / 0.16);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent-yellow-off) / 0.1);
+  --action-chrome-text-color: rgb(249 239 205 / 0.9);
+  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
   --action-chrome-shadow-hover:
-    0 10px 24px rgb(245 158 11 / 0.08),
-    inset 0 1px 0 rgb(255 255 255 / 0.045);
+    0 10px 24px rgb(var(--accent-yellow-off) / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
   --action-chrome-shadow-active:
-    0 7px 18px rgb(245 158 11 / 0.08),
-    inset 0 1px 0 rgb(255 255 255 / 0.03);
+    0 7px 18px rgb(var(--accent-yellow-off) / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.028);
 }
 
 .action-chrome[data-action-chrome-intent="toggleActive"] {
-  --action-chrome-border-color: rgb(252 211 77 / 0.42);
-  --action-chrome-border-color-hover: rgb(252 211 77 / 0.52);
-  --action-chrome-overlay-top: rgb(245 158 11 / 0.22);
-  --action-chrome-overlay-bottom: rgb(217 119 6 / 0.14);
-  --action-chrome-overlay-top-hover: rgb(245 158 11 / 0.28);
-  --action-chrome-overlay-bottom-hover: rgb(217 119 6 / 0.18);
-  --action-chrome-overlay-top-active: rgb(245 158 11 / 0.32);
-  --action-chrome-overlay-bottom-active: rgb(217 119 6 / 0.2);
-  --action-chrome-text-color: rgb(255 251 235 / 0.98);
+  --action-chrome-border-color: rgb(var(--accent-yellow-on) / 0.34);
+  --action-chrome-border-color-hover: rgb(var(--accent-yellow-on) / 0.46);
+  --action-chrome-overlay-top: rgb(var(--accent-yellow-on) / 0.18);
+  --action-chrome-overlay-bottom: rgb(var(--accent-yellow-off) / 0.1);
+  --action-chrome-overlay-top-hover: rgb(var(--accent-yellow-on) / 0.24);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent-yellow-off) / 0.14);
+  --action-chrome-overlay-top-active: rgb(var(--accent-yellow-on) / 0.28);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent-yellow-off) / 0.17);
+  --action-chrome-text-color: rgb(255 248 229 / 0.98);
   --action-chrome-shadow:
-    0 12px 28px rgb(245 158 11 / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --action-chrome-shadow-hover:
-    0 14px 32px rgb(245 158 11 / 0.14),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  --action-chrome-shadow-active:
-    0 9px 20px rgb(245 158 11 / 0.12),
+    0 12px 28px rgb(var(--accent-yellow-on) / 0.09),
     inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --action-chrome-shadow-hover:
+    0 14px 30px rgb(var(--accent-yellow-on) / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-active:
+    0 9px 20px rgb(var(--accent-yellow-on) / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.035);
 }
 
 .action-chrome[data-action-chrome-intent="danger"] {
-  --action-chrome-border-color: rgb(253 164 175 / 0.34);
-  --action-chrome-border-color-hover: rgb(253 164 175 / 0.44);
-  --action-chrome-overlay-top: rgb(244 63 94 / 0.2);
-  --action-chrome-overlay-bottom: rgb(190 24 93 / 0.12);
-  --action-chrome-overlay-top-hover: rgb(244 63 94 / 0.26);
-  --action-chrome-overlay-bottom-hover: rgb(190 24 93 / 0.17);
-  --action-chrome-overlay-top-active: rgb(244 63 94 / 0.3);
-  --action-chrome-overlay-bottom-active: rgb(190 24 93 / 0.2);
-  --action-chrome-text-color: rgb(255 241 242 / 0.98);
+  --action-chrome-border-color: rgb(var(--accent-red) / 0.32);
+  --action-chrome-border-color-hover: rgb(var(--accent-red) / 0.44);
+  --action-chrome-overlay-top: rgb(var(--accent-red) / 0.16);
+  --action-chrome-overlay-bottom: rgb(var(--accent-red) / 0.09);
+  --action-chrome-overlay-top-hover: rgb(var(--accent-red) / 0.22);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent-red) / 0.13);
+  --action-chrome-overlay-top-active: rgb(var(--accent-red) / 0.26);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent-red) / 0.16);
+  --action-chrome-text-color: rgb(255 241 243 / 0.98);
   --action-chrome-shadow:
-    0 12px 28px rgb(244 63 94 / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --action-chrome-shadow-hover:
-    0 14px 32px rgb(244 63 94 / 0.14),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  --action-chrome-shadow-active:
-    0 9px 20px rgb(244 63 94 / 0.12),
+    0 12px 28px rgb(var(--accent-red) / 0.09),
     inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --action-chrome-shadow-hover:
+    0 14px 30px rgb(var(--accent-red) / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --action-chrome-shadow-active:
+    0 9px 20px rgb(var(--accent-red) / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.035);
 }
 
 .action-chrome[data-action-chrome-intent="ghost"] {
-  --action-chrome-border-color: rgb(255 255 255 / 0.08);
-  --action-chrome-border-color-hover: rgb(255 255 255 / 0.14);
-  --action-chrome-overlay-top: rgb(255 255 255 / 0.02);
+  --action-chrome-border-color: rgb(var(--border-strong) / 0.08);
+  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.14);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.018);
   --action-chrome-overlay-bottom: rgb(255 255 255 / 0);
-  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.04);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.03);
   --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.01);
-  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.05);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.04);
   --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.02);
-  --action-chrome-text-color: rgb(var(--text) / 0.9);
-  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.025);
-  --action-chrome-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.035);
-  --action-chrome-shadow-active: inset 0 1px 0 rgb(255 255 255 / 0.02);
+  --action-chrome-text-color: rgb(var(--text-primary) / 0.9);
+  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.02);
+  --action-chrome-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.03);
+  --action-chrome-shadow-active: inset 0 1px 0 rgb(255 255 255 / 0.018);
 }
 
 
@@ -639,6 +660,10 @@ a:focus-visible {
 
   .bg-accent-strong {
     background-color: rgb(var(--accent-strong));
+  }
+
+  .bg-shell {
+    background-color: rgb(var(--shell-rgb));
   }
 
   .text-accent {

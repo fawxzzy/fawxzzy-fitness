@@ -3,9 +3,9 @@ import { cn } from "@/lib/cn";
 
 const textRoleClassNames = {
   title: "text-[rgb(var(--text)/0.98)]",
-  subtitle: "text-[rgb(var(--text)/0.66)]",
-  accentSubtitle: "text-emerald-300",
-  eyebrow: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.6)]",
+  subtitle: "text-[rgb(var(--text-secondary)/0.96)]",
+  accentSubtitle: "text-[rgb(var(--accent-blue))]",
+  eyebrow: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.95)]",
 } as const;
 
 type TextRole = keyof typeof textRoleClassNames;

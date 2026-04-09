@@ -144,7 +144,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             )}
             right={(
               <BottomDockLink href={editDayHref} intent="positive">
-                Edit Day
+                Edit
               </BottomDockLink>
             )}
           />

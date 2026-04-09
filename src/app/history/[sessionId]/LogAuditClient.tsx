@@ -284,9 +284,8 @@ export function LogAuditClient({
             triggerAriaLabel="Delete log"
             triggerIntent="danger"
             modalTitle="Delete log?"
-            modalConsequenceText="This will permanently delete this workout session and all logged sets."
+            details={`${sessionSummary.routineTitle} - ${formatDateShort(sessionSummary.startedAt)}`}
             confirmLabel="Delete"
-            contextLines={[`${sessionSummary.routineTitle}`, `${formatDateShort(sessionSummary.startedAt)}${sessionSummary.durationSec ? ` • ${formatDurationShort(sessionSummary.durationSec)}` : ""}`]}
           />
         )}
         primary={(
@@ -300,7 +299,7 @@ export function LogAuditClient({
         )}
       />
     );
-  }, [handleCancel, handleSave, handleStartEditing, isEditing, isPending, logId, sessionSummary.durationSec, sessionSummary.routineTitle, sessionSummary.startedAt]);
+  }, [handleCancel, handleSave, handleStartEditing, isEditing, isPending, logId, sessionSummary.routineTitle, sessionSummary.startedAt]);
 
   usePublishBottomActions(actionsNode);
 
@@ -509,7 +508,7 @@ export function LogAuditClient({
                   {isEditing ? (
                     <div className="flex flex-wrap gap-2">
                       <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
-                      <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete Exercise</DestructiveButton>
+                      <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete</DestructiveButton>
                     </div>
                   ) : null}
 
@@ -628,10 +627,9 @@ export function LogAuditClient({
 
       <ConfirmDestructiveModal
         open={exerciseToDelete !== null}
-        title="Delete exercise from completed log?"
-        consequenceText="This will remove the exercise and all logged sets from this completed session."
+        title="Delete exercise?"
+        details={exerciseToDelete?.name}
         confirmLabel="Delete"
-        details={exerciseToDelete ? `Exercise: ${exerciseToDelete.name}` : undefined}
         onCancel={() => setExerciseToDelete(null)}
         onConfirm={() => {
           if (!exerciseToDelete) return;
