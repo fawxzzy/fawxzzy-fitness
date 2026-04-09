@@ -17,6 +17,8 @@ export type ExerciseCountSummary = {
   label: string;
 };
 
+export const EMPTY_EXERCISE_SUMMARY_LABEL = "No exercises yet";
+
 export function resolveExerciseCountKind(exercise: ExerciseCountSummaryInput | null | undefined): ExerciseCountKind {
   if (!exercise) return "unknown";
   if (exercise.isCardio === false && exercise.measurement_type == null) return "strength";
@@ -38,7 +40,7 @@ export function formatExerciseCountSummary(exercises: readonly ExerciseCountSumm
   }
 
   const total = exercises.length;
-  if (total === 0) return { total, strength, cardio, unknown, label: "0 exercises" };
+  if (total === 0) return { total, strength, cardio, unknown, label: EMPTY_EXERCISE_SUMMARY_LABEL };
   if (cardio === 0 && strength > 0 && unknown === 0) {
     return { total, strength, cardio, unknown, label: formatDaySummaryTaxonomyLabel("strength", strength) };
   }

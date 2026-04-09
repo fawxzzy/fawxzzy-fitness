@@ -142,7 +142,10 @@ test("deriveTodayScreenMode keeps resume CTA available for closed picker empty s
   });
 
   assert.equal(mode.dayPickerOpen, false);
-  assert.equal(mode.dayRowsVisible, true);
+  assert.equal(mode.dayRowsVisible, false);
+  assert.equal(mode.summaryVisible, false);
+  assert.equal(mode.contentShellVisible, false);
+  assert.equal(mode.emptyTrainingDay, true);
   assert.equal(mode.cta.showPrimary, true);
   assert.equal(mode.cta.primaryLabel, "Resume Session");
   assert.equal(mode.cta.secondaryLabel, "Days");

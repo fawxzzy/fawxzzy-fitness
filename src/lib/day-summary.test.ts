@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getExerciseCountSummaryFromCanonicalExercises, toExerciseCountSummaryInput } from "./day-summary.ts";
+import {
+  formatDayTaxonomyHeaderSummaryFromCounts,
+  getExerciseCountSummaryFromCanonicalExercises,
+  getRestDayExerciseCountSummaryFromCanonicalDayOrFallback,
+  toExerciseCountSummaryInput,
+} from "./day-summary.ts";
 import type { CanonicalDayExercise } from "./routine-day-loader";
 
 test("toExerciseCountSummaryInput preserves full cardio classification metadata", () => {
@@ -119,4 +124,24 @@ test("today offline payload shape preserves primary muscle cardio classification
   });
 
   assert.equal(summaryInput.isCardio, true);
+});
+
+test("day taxonomy header uses friendly zero-exercise copy for empty training days", () => {
+  assert.equal(
+    formatDayTaxonomyHeaderSummaryFromCounts({
+      dayName: "Travel",
+      summary: { strength: 0, cardio: 0, unknown: 0 },
+      isRest: false,
+    }),
+    "Travel | No exercises yet",
+  );
+});
+
+test("canonical day fallback summary keeps friendly zero-exercise copy for empty training days", () => {
+  const summary = getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(null, false);
+
+  assert.equal(summary.label, "No exercises yet");
+  assert.equal(summary.strength, 0);
+  assert.equal(summary.cardio, 0);
+  assert.equal(summary.unknown, 0);
 });

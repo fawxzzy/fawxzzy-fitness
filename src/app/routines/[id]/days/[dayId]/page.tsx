@@ -16,7 +16,7 @@ import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getRestDayExerciseCountSummaryFromCanonicalDay } from "@/lib/day-summary";
+import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -76,10 +76,13 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   });
   const canonicalDay = summaries[0] ?? null;
   const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : `Day ${dayRow.day_index}`);
-  const daySummary = canonicalDay
-    ? getRestDayExerciseCountSummaryFromCanonicalDay(canonicalDay)
-    : { strength: 0, cardio: 0, unknown: 0 };
+  const daySummary = getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(canonicalDay, dayRow.is_rest);
   const isRestState = dayRow.is_rest || canonicalDay?.state === "rest";
+  const hasWarningSummary = canonicalDay?.state === "partial";
+  const hasBlockingIssue = Boolean(canonicalDay?.invalidExercises.length);
+  const hasExerciseRows = Boolean(canonicalDay && isRunnableDayState(canonicalDay.state));
+  const isEmptyTrainingDay = !isRestState && !hasWarningSummary && !hasBlockingIssue && !hasExerciseRows;
+  const showTrainingDaySection = !isEmptyTrainingDay && (hasWarningSummary || hasBlockingIssue || hasExerciseRows);
   const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
   const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
   const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
@@ -93,26 +96,26 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             <SharedScreenHeader
               recipe="viewDay"
               title={routineRow.name}
-              subtitle={<DayTaxonomyHeaderSummary dayName={dayLabel} summary={daySummary} isRest={dayRow.is_rest} />}
+              subtitle={<DayTaxonomyHeaderSummary dayName={dayLabel} summary={daySummary} isRest={isRestState} />}
               action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
             />
           </ScreenScaffold>
         )}
       >
-        {isRestState ? null : (
+        {isRestState || !showTrainingDaySection ? null : (
           <ScreenScaffold recipe="viewDay" className="mx-auto w-full max-w-md">
             <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
-              {canonicalDay?.state === "partial" ? (
+              {hasWarningSummary ? (
                 <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
                   Some exercises could not be loaded and will be skipped when you start this workout.
                 </p>
               ) : null}
 
-              {canonicalDay?.invalidExercises.length ? (
+              {hasBlockingIssue ? (
                 <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
                   This day has invalid exercises. Edit the day before starting a workout.
                 </p>
-              ) : canonicalDay && isRunnableDayState(canonicalDay.state) ? (
+              ) : hasExerciseRows ? (
                 <RoutineDayExerciseList
                   exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
                     id: exercise.id,

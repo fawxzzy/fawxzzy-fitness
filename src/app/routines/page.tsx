@@ -6,13 +6,15 @@ import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
 import { ActiveRoutineStatusBadge, ActiveRoutineSummaryCard } from "@/components/routines/RoutinesScreenFamily";
 import { requireUser } from "@/lib/auth";
-import { formatRestDayExerciseCountSummary } from "@/lib/exercise-count-summary";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateRoutinesViews } from "@/lib/revalidation";
-import { getRestDayExerciseCountSummaryFromCanonicalDay } from "@/lib/day-summary";
+import {
+  getRestDayExerciseCountSummaryFromCanonicalDay,
+  getRestDayExerciseCountSummaryFromCanonicalDayOrFallback,
+} from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -295,7 +297,8 @@ export default async function RoutinesPage({
                   dayIndex: dayNumber,
                   title: day.name?.trim() || (day.is_rest ? "Rest" : "Training"),
                   isRest: Boolean(day.is_rest),
-                  exerciseSummary: activeRoutineExerciseSummaries.get(day.id) ?? formatRestDayExerciseCountSummary([], Boolean(day.is_rest)).label,
+                  exerciseSummary: activeRoutineExerciseSummaries.get(day.id)
+                    ?? getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(null, Boolean(day.is_rest)).label,
                   notes: day.notes ?? null,
                   href: `/routines/${activeRoutine.id}/days/${day.id}`,
                   isToday: index === todayRowIndex,

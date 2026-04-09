@@ -9,6 +9,24 @@ export type ManualInstallInstructions = {
   helperText: string;
 };
 
+export type InstallPrimaryAction =
+  | {
+    kind: "install";
+    label: "Install";
+  }
+  | {
+    kind: "show-steps";
+    label: "Show Steps";
+  }
+  | {
+    kind: "open-safari";
+    label: "Open Safari";
+  }
+  | {
+    kind: "continue-browser";
+    label: "Continue in browser";
+  };
+
 export type InstallSnapshot = {
   isStandalone: boolean;
   platform: InstallPlatform;
@@ -75,31 +93,73 @@ export function getInstallPlatform(userAgent: string): InstallPlatform {
 export function getManualInstallInstructions(platform: InstallPlatform): ManualInstallInstructions | null {
   if (platform === "ios-safari") {
     return {
-      ctaLabel: "Show install steps",
+      ctaLabel: "Show Steps",
       platformLabel: "iPhone or iPad",
       steps: [
         "Tap Share in Safari.",
         "Choose Add to Home Screen.",
         "Open FawxzzyFitness from the new home-screen icon.",
       ],
-      helperText: "Safari is the iPhone and iPad browser that can add this app to the home screen.",
+      helperText: "Safari is the iPhone and iPad browser that can add this app to the Home Screen.",
     };
   }
 
   if (platform === "ios-webkit") {
     return {
-      ctaLabel: "Show Safari steps",
+      ctaLabel: "Open Safari",
       platformLabel: "iPhone or iPad",
       steps: [
-        "Open this page in Safari.",
-        "Tap Share, then Add to Home Screen.",
-        "Launch FawxzzyFitness from the home-screen icon.",
+        "Open this page in Safari from your browser or in-app menu.",
+        "In Safari, tap Share, then choose Add to Home Screen.",
+        "Launch FawxzzyFitness from the new home-screen icon.",
       ],
       helperText: "iPhone and iPad home-screen install only works through Safari.",
     };
   }
 
   return null;
+}
+
+export function resolveInstallPrimaryAction({
+  isStandalone,
+  manualInstructions,
+  nativePromptAvailable,
+  platform,
+}: {
+  isStandalone: boolean;
+  manualInstructions: ManualInstallInstructions | null;
+  nativePromptAvailable: boolean;
+  platform: InstallPlatform;
+}): InstallPrimaryAction | null {
+  if (isStandalone) {
+    return null;
+  }
+
+  if (nativePromptAvailable) {
+    return {
+      kind: "install",
+      label: "Install",
+    };
+  }
+
+  if (platform === "ios-safari" && manualInstructions) {
+    return {
+      kind: "show-steps",
+      label: "Show Steps",
+    };
+  }
+
+  if (platform === "ios-webkit" && manualInstructions) {
+    return {
+      kind: "open-safari",
+      label: "Open Safari",
+    };
+  }
+
+  return {
+    kind: "continue-browser",
+    label: "Continue in browser",
+  };
 }
 
 export function getInstallSnapshot({

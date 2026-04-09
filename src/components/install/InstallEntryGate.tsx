@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { AuthCard, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { useInstallContext } from "@/hooks/useInstallContext";
@@ -11,41 +11,52 @@ type InstallEntryGateProps = {
   continueHref: string;
 };
 
-function getSubtitle({
-  capability,
-  nativePromptAvailable,
-}: {
-  capability: "native-prompt" | "manual" | "unsupported";
-  nativePromptAvailable: boolean;
-}) {
-  if (nativePromptAvailable) {
-    return "Install the app first for the cleanest full-screen workout flow.";
+function getIntroCopy(primaryAction: ReturnType<typeof useInstallContext>["primaryAction"]) {
+  if (primaryAction?.kind === "install") {
+    return {
+      eyebrow: "Install First",
+      title: "Install FawxzzyFitness",
+      subtitle: "Install the app now for the cleanest full-screen workout flow.",
+    };
   }
 
-  if (capability === "manual") {
-    return "Add it to your home screen first, or continue in the browser if you need to get moving now.";
+  if (primaryAction?.kind === "show-steps") {
+    return {
+      eyebrow: "Add to Home Screen",
+      title: "Add FawxzzyFitness on iPhone or iPad",
+      subtitle: "Safari installs this app through Add to Home Screen. Open the steps below, then launch from the new icon.",
+    };
   }
 
-  if (capability === "native-prompt") {
-    return "Chrome or Edge will enable install once the browser finishes its installability checks.";
+  if (primaryAction?.kind === "open-safari") {
+    return {
+      eyebrow: "Open in Safari",
+      title: "Move this page to Safari first",
+      subtitle: "This iPhone or iPad browser cannot install the app in place. Open Safari first, then use Add to Home Screen.",
+    };
   }
 
-  return "This browser cannot trigger app install directly, so use a supported install flow or continue in the browser.";
+  return {
+    eyebrow: "Browser Access",
+    title: "Continue in your browser",
+    subtitle: "Install is not available from this browser right now, so continue here or switch to a supported install flow later.",
+  };
 }
 
 export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
   const router = useRouter();
   const {
-    capability,
     isReady,
     isStandalone,
     manualInstructions,
     nativePromptAvailable,
     platform,
+    primaryAction,
     promptInstall,
   } = useInstallContext();
   const [showManualInstructions, setShowManualInstructions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const manualInstructionsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isReady || !isStandalone) {
@@ -57,10 +68,7 @@ export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
     });
   }, [continueHref, isReady, isStandalone, router]);
 
-  const subtitle = useMemo(
-    () => getSubtitle({ capability, nativePromptAvailable }),
-    [capability, nativePromptAvailable],
-  );
+  const introCopy = useMemo(() => getIntroCopy(primaryAction), [primaryAction]);
 
   if (!isReady || isStandalone) {
     return (
@@ -72,13 +80,24 @@ export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
     );
   }
 
-  const showContinueLink = !nativePromptAvailable;
-  const showNativePromptButton = capability === "native-prompt";
-  const manualInstallDetails = capability === "manual" ? manualInstructions : null;
+  const showContinueLink = primaryAction?.kind !== "continue-browser";
+  const manualInstallDetails = manualInstructions;
   const unsupportedBrowserMessage =
     platform === "unsupported"
-      ? "Install is available from Chromium browsers on desktop and Android, or from Safari on iPhone and iPad."
+      ? "Install prompts are available from Chromium browsers on desktop and Android. On iPhone and iPad, use Safari and Add to Home Screen."
       : null;
+
+  function revealManualInstructions() {
+    setShowManualInstructions(true);
+
+    window.requestAnimationFrame(() => {
+      manualInstructionsRef.current?.focus();
+      manualInstructionsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  }
 
   async function handleNativeInstall() {
     const outcome = await promptInstall();
@@ -96,52 +115,67 @@ export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
     setStatusMessage("Install is not available yet. Continue in the browser if you need access right away.");
   }
 
+  function handleContinueInBrowser() {
+    startTransition(() => {
+      router.push(continueHref);
+    });
+  }
+
+  function handlePrimaryAction() {
+    if (!primaryAction) {
+      return;
+    }
+
+    if (primaryAction.kind === "install") {
+      void handleNativeInstall();
+      return;
+    }
+
+    if (primaryAction.kind === "show-steps" || primaryAction.kind === "open-safari") {
+      revealManualInstructions();
+      return;
+    }
+
+    handleContinueInBrowser();
+  }
+
   return (
     <AuthShell>
       <AuthIntro
-        eyebrow="Install First"
-        title="Install FawxzzyFitness"
-        subtitle={subtitle}
+        eyebrow={introCopy.eyebrow}
+        title={introCopy.title}
+        subtitle={introCopy.subtitle}
       />
 
       <AuthCard className="space-y-4">
         <div className="space-y-2">
-          <p className="text-sm font-semibold text-white">Browser entry stays install-first.</p>
+          <p className="text-sm font-semibold text-white">
+            {primaryAction?.kind === "continue-browser" ? "Browser entry stays available." : "Browser entry stays install-aware."}
+          </p>
           <p className="text-sm leading-6 text-slate-300">
-            Installed launches skip this screen automatically, so the in-app flow stays unchanged once the app is on the device.
+            Installed launches skip this screen automatically, so the standalone workout flow stays unchanged once the app is on the device.
           </p>
         </div>
 
-        {showNativePromptButton ? (
-          <div className="space-y-3">
-            <PrimaryButton
-              type="button"
-              fullWidth
-              onClick={handleNativeInstall}
-              disabled={!nativePromptAvailable}
-            >
-              {nativePromptAvailable ? "Install app" : "Install app unavailable yet"}
-            </PrimaryButton>
-            {!nativePromptAvailable ? (
-              <p className="text-xs leading-5 text-slate-400">
-                The button enables only after Chromium exposes `beforeinstallprompt` for this visit.
-              </p>
-            ) : null}
-          </div>
+        {primaryAction ? (
+          <PrimaryButton
+            type="button"
+            fullWidth
+            onClick={handlePrimaryAction}
+            disabled={primaryAction.kind === "install" && !nativePromptAvailable}
+          >
+            {primaryAction.label}
+          </PrimaryButton>
         ) : null}
 
         {manualInstallDetails ? (
           <div className="space-y-3">
-            <PrimaryButton
-              type="button"
-              fullWidth
-              onClick={() => setShowManualInstructions((current) => !current)}
-            >
-              {showManualInstructions ? "Hide install steps" : manualInstallDetails.ctaLabel}
-            </PrimaryButton>
-
             {showManualInstructions ? (
-              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4">
+              <div
+                ref={manualInstructionsRef}
+                tabIndex={-1}
+                className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 outline-none"
+              >
                 <p className="text-sm font-semibold text-white">{manualInstallDetails.platformLabel}</p>
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-300">
                   {manualInstallDetails.steps.map((step) => (
@@ -149,6 +183,13 @@ export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
                   ))}
                 </ol>
                 <p className="mt-3 text-xs leading-5 text-slate-400">{manualInstallDetails.helperText}</p>
+                <button
+                  type="button"
+                  className="mt-3 text-xs font-medium tracking-[0.08em] text-slate-300 underline-offset-4 hover:text-white hover:underline"
+                  onClick={() => setShowManualInstructions(false)}
+                >
+                  Hide steps
+                </button>
               </div>
             ) : null}
           </div>
