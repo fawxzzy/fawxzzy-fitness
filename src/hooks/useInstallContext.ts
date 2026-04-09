@@ -1,81 +1,133 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  getInstallSnapshot,
+  getStandaloneState,
+  type InstallCapability,
+  type InstallPlatform,
+  type ManualInstallInstructions,
+} from "@/lib/install/install-detection";
 
 export type InstallContext = {
+  capability: InstallCapability;
+  isReady: boolean;
   isStandalone: boolean;
   isBrowserMode: boolean;
-  isDismissed: boolean;
-  dismiss: () => void;
+  manualInstructions: ManualInstallInstructions | null;
+  nativePromptAvailable: boolean;
+  platform: InstallPlatform;
+  promptInstall: () => Promise<"accepted" | "dismissed" | "unavailable">;
 };
 
-const DISMISS_KEY = "install-guidance-dismissed";
-const DISMISS_EVENT = "install-guidance-dismissed-change";
-
-function getStandaloneState() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const mediaMatch = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
-  const navigatorStandalone = typeof window.navigator !== "undefined" && "standalone" in window.navigator
-    ? Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone)
-    : false;
-
-  return mediaMatch || navigatorStandalone;
-}
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+};
 
 export function useInstallContext(): InstallContext {
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+  const [snapshot, setSnapshot] = useState(() =>
+    getInstallSnapshot({
+      userAgent: "",
+      isStandalone: false,
+    }),
+  );
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    const syncStandalone = () => setIsStandalone(getStandaloneState());
-    const syncDismissed = () => {
-      setIsDismissed(window.localStorage.getItem(DISMISS_KEY) === "1");
+    const syncInstallSnapshot = () => {
+      const nextSnapshot = getInstallSnapshot({
+        userAgent: window.navigator.userAgent,
+        isStandalone: getStandaloneState(),
+      });
+
+      setSnapshot((currentSnapshot) => {
+        if (
+          currentSnapshot.isStandalone === nextSnapshot.isStandalone
+          && currentSnapshot.platform === nextSnapshot.platform
+          && currentSnapshot.capability === nextSnapshot.capability
+          && currentSnapshot.manualInstructions?.ctaLabel === nextSnapshot.manualInstructions?.ctaLabel
+        ) {
+          return currentSnapshot;
+        }
+
+        return nextSnapshot;
+      });
+      setIsReady(true);
     };
 
-    syncStandalone();
-    syncDismissed();
+    syncInstallSnapshot();
 
     const mediaQuery = window.matchMedia?.("(display-mode: standalone)");
-    const handleChange = () => syncStandalone();
+    const handleDisplayModeChange = () => {
+      syncInstallSnapshot();
+      setDeferredPrompt(null);
+    };
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setDeferredPrompt(event as BeforeInstallPromptEvent);
+      syncInstallSnapshot();
+    };
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      syncInstallSnapshot();
+    };
 
     if (mediaQuery) {
       if (typeof mediaQuery.addEventListener === "function") {
-        mediaQuery.addEventListener("change", handleChange);
+        mediaQuery.addEventListener("change", handleDisplayModeChange);
       } else {
-        mediaQuery.addListener(handleChange);
+        mediaQuery.addListener(handleDisplayModeChange);
       }
     }
 
-    window.addEventListener("appinstalled", handleChange);
-    window.addEventListener("storage", syncDismissed);
-    window.addEventListener(DISMISS_EVENT, syncDismissed);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt as EventListener);
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
       if (mediaQuery) {
         if (typeof mediaQuery.removeEventListener === "function") {
-          mediaQuery.removeEventListener("change", handleChange);
+          mediaQuery.removeEventListener("change", handleDisplayModeChange);
         } else {
-          mediaQuery.removeListener(handleChange);
+          mediaQuery.removeListener(handleDisplayModeChange);
         }
       }
 
-      window.removeEventListener("appinstalled", handleChange);
-      window.removeEventListener("storage", syncDismissed);
-      window.removeEventListener(DISMISS_EVENT, syncDismissed);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt as EventListener);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
+  const nativePromptAvailable = snapshot.capability === "native-prompt" && deferredPrompt !== null;
+
   return {
-    isStandalone,
-    isBrowserMode: !isStandalone,
-    isDismissed,
-    dismiss: () => {
-      window.localStorage.setItem(DISMISS_KEY, "1");
-      setIsDismissed(true);
-      window.dispatchEvent(new Event(DISMISS_EVENT));
+    capability: snapshot.capability,
+    isReady,
+    isStandalone: snapshot.isStandalone,
+    isBrowserMode: isReady && !snapshot.isStandalone,
+    manualInstructions: snapshot.manualInstructions,
+    nativePromptAvailable,
+    platform: snapshot.platform,
+    promptInstall: async () => {
+      if (!deferredPrompt) {
+        return "unavailable";
+      }
+
+      const promptEvent = deferredPrompt;
+      setDeferredPrompt(null);
+
+      await promptEvent.prompt();
+
+      try {
+        const choice = await promptEvent.userChoice;
+        return choice.outcome;
+      } catch {
+        return "dismissed";
+      }
     },
   };
 }

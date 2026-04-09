@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { InstallabilityBootstrap } from "@/components/install/InstallabilityBootstrap";
 import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
 import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
 import { ToastProvider } from "@/components/ui/ToastProvider";
@@ -47,6 +48,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="relative overflow-x-hidden">
         <ToastProvider>
+          <InstallabilityBootstrap />
           <GlassEffectsBootstrap />
           <MobileViewportGuard />
           <AnimatedBackground />
