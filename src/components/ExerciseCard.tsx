@@ -33,13 +33,13 @@ const mediaShellStateClassNames: Record<ExerciseCardState, string> = {
 };
 
 const mediaShellSizeClassNames: Record<ExerciseCardVariant, string> = {
-  standard: "h-11 w-11 rounded-[0.95rem] p-0.5",
-  compact: "h-11 w-11 rounded-[0.95rem] p-0.5",
-  list: "h-11 w-11 rounded-[0.95rem] p-0.5",
-  interactive: "h-11 w-11 rounded-[0.95rem] p-0.5",
-  expanded: "h-11 w-11 rounded-[0.95rem] p-0.5",
-  summary: "h-11 w-11 rounded-[0.95rem] p-0.5",
-  reorder: "h-11 w-11 rounded-[0.95rem] p-0.5",
+  standard: "aspect-square self-stretch rounded-[0.95rem] p-0",
+  compact: "aspect-square self-stretch rounded-[0.95rem] p-0",
+  list: "aspect-square self-stretch rounded-[0.95rem] p-0",
+  interactive: "aspect-square self-stretch rounded-[0.95rem] p-0",
+  expanded: "aspect-square self-stretch rounded-[0.95rem] p-0",
+  summary: "aspect-square self-stretch rounded-[0.95rem] p-0",
+  reorder: "aspect-square self-stretch rounded-[0.95rem] p-0",
 };
 
 const variantClassNames: Record<ExerciseCardVariant, string> = {
@@ -124,11 +124,11 @@ export function ExerciseCard({
   state?: ExerciseCardState;
 }) {
   const bodyContent = (
-    <div className={cn("grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden", bodyClassName)}>
+    <div className={cn("grid min-w-0 flex-1 self-stretch grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden", bodyClassName)}>
       {leadingVisual ? (
         <div
           className={cn(
-            "shrink-0 self-center overflow-hidden border bg-[rgb(var(--bg)/0.08)] transition-colors [&_img]:transition [&_img]:duration-150",
+            "shrink-0 self-stretch overflow-hidden border bg-[rgb(var(--bg)/0.08)] transition-colors [&_img]:transition [&_img]:duration-150",
             mediaShellSizeClassNames[variant],
             mediaShellStateClassNames[state],
             mediaClassName,
@@ -149,20 +149,20 @@ export function ExerciseCard({
       </div>
 
       <div className={cn("flex min-h-full min-w-0 shrink-0 justify-end self-stretch overflow-hidden text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], rightRailClassName, trailingClassName)}>
-        <div className={cn("grid h-full w-full min-w-0 grid-rows-[auto_1fr_auto] items-center justify-items-end gap-1 overflow-hidden py-0.5", trailingStackClassName)}>
+        <div className={cn("flex h-full w-full min-w-0 flex-col items-end gap-1 overflow-hidden py-0.5", badgeText ? "justify-between" : "justify-end", trailingStackClassName)}>
           {badgeText ? (
             <span className={cn("max-w-full shrink-0 overflow-hidden text-ellipsis rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
               {badgeText}
             </span>
           ) : null}
-          <span className="row-start-3 inline-flex h-7 min-w-7 items-center justify-center self-center leading-none">{rightIcon}</span>
+          <span className="inline-flex h-7 min-w-7 items-center justify-center self-end leading-none">{rightIcon}</span>
         </div>
       </div>
     </div>
   );
 
   const baseClassName = cn(
-    "flex w-full min-w-0 items-start overflow-hidden rounded-[1.25rem] border text-left",
+    "flex w-full min-w-0 items-stretch overflow-hidden rounded-[1.25rem] border text-left",
     variantClassNames[variant],
     stateClassNames[state],
     onPress ? appTokens.rowInteractive : undefined,

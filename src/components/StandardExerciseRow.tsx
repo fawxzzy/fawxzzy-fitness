@@ -30,6 +30,7 @@ type StandardExerciseRowProps = {
   variant?: "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
   state?: "default" | "selected" | "active" | "completed" | "empty";
   children?: ReactNode;
+  showLeadingVisual?: boolean;
 };
 
 export function StandardExerciseRow({
@@ -51,6 +52,7 @@ export function StandardExerciseRow({
   variant = "standard",
   state,
   children,
+  showLeadingVisual = true,
 }: StandardExerciseRowProps) {
   const resolvedState = state ?? getExerciseGoalSummaryState(summary);
 
@@ -60,7 +62,7 @@ export function StandardExerciseRow({
       subtitle={getExerciseGoalSummaryText(summary)}
       variant={variant}
       state={resolvedState}
-      leadingVisual={(
+      leadingVisual={showLeadingVisual ? (
         <ExerciseAssetImage
           src={getExerciseIconSrc(exercise)}
           alt={`${exercise.name} icon`}
@@ -68,7 +70,7 @@ export function StandardExerciseRow({
           imageClassName="object-cover object-center"
           sizes="44px"
         />
-      )}
+      ) : undefined}
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}

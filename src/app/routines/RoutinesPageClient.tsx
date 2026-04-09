@@ -177,6 +177,7 @@ export function RoutinesPageClient({
                       summary={routine.summary}
                       variant="standard"
                       onPress={() => handleSwitchRoutine(routine.id)}
+                      showLeadingVisual={false}
                       state={isCurrent ? "selected" : "default"}
                       badgeText={isCurrent ? "ACTIVE" : undefined}
                       rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating…</span> : undefined}
