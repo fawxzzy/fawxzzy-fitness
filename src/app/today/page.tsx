@@ -517,8 +517,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     size="md"
                     modalTitle="Discard workout?"
                     modalConsequenceText="Current workout will be removed."
-                    confirmLabel="Confirm"
-                    confirmVariant="primary"
+                    confirmLabel="Discard"
                   />
                 )}
               />
