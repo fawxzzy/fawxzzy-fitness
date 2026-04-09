@@ -8,7 +8,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
       className={cn("border text-text", className)}
       style={{
         backgroundColor: tokens.colors.bgCard,
-        borderColor: tokens.colors.borderSubtle,
+        borderColor: tokens.colors.borderStrong,
         borderRadius: tokens.radii.card,
         padding: tokens.spacing.cardPad,
       }}

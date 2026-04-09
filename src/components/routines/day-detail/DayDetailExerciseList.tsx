@@ -1,6 +1,7 @@
 "use client";
 
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { listShellClasses } from "@/components/ui/listShellClasses";
 import { cn } from "@/lib/cn";
 
@@ -50,7 +51,14 @@ export function DayDetailExerciseList({
                   "w-full",
                   isActive && mode === "editable" ? "rounded-b-none" : undefined,
                 )}
-                rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
+                rightIcon={(
+                  <ChevronRightIcon
+                    className={cn(
+                      "h-4 w-4 text-[rgb(var(--text-muted)/0.8)] transition-transform duration-200",
+                      isActive && mode === "editable" ? "rotate-90 text-[rgb(var(--text-secondary)/0.92)]" : undefined,
+                    )}
+                  />
+                )}
               />
 
               {isActive && mode === "editable" && renderExpandedContent ? (

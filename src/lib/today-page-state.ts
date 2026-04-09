@@ -117,7 +117,7 @@ export type TodayScreenMode<TDay extends TodayPickerDay = TodayPickerDay> = {
   summaryVisible: boolean;
   cta: {
     showPrimary: boolean;
-    primaryLabel: "Resume Session" | "Begin" | null;
+    primaryLabel: "Resume" | "Begin" | null;
     showSecondarySelectDay: boolean;
     secondaryLabel: "Days" | "Hide";
   };
@@ -165,7 +165,7 @@ export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
     summaryVisible,
     cta: {
       showPrimary: hasInProgressSession || Boolean(runnableSelection),
-      primaryLabel: hasInProgressSession ? "Resume Session" : runnableSelection ? "Begin" : null,
+      primaryLabel: hasInProgressSession ? "Resume" : runnableSelection ? "Begin" : null,
       showSecondarySelectDay: true,
       secondaryLabel: args.dayPickerOpen ? "Hide" : "Days",
     },

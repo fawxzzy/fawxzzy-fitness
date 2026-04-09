@@ -846,26 +846,28 @@ export function SetLoggerCard({
           leadingContent={(
             <div className="rounded-xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.3)] px-2.5 py-1.5">
               <div className="flex flex-col gap-2">
-                <AppButton
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  state={resolvedIsWarmup ? "active" : "default"}
-                  data-action-chrome-intent={resolvedIsWarmup ? "info" : "neutral"}
-                  data-action-chrome-segmented="true"
-                  className="min-h-[2.35rem] self-start rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[11px] font-semibold tracking-[0.02em]"
-                  aria-pressed={resolvedIsWarmup}
-                  aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
-                  onClick={() => setWarmupValue(!resolvedIsWarmup)}
-                >
-                  Warm
-                </AppButton>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</p>
                   <p className="mt-0.5 text-[13px] leading-snug text-text/90 line-clamp-2">{currentSetLabel} • {liveSummaryText}</p>
                 </div>
               </div>
             </div>
+          )}
+          belowRpeContent={(
+            <AppButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              state={resolvedIsWarmup ? "active" : "default"}
+              data-action-chrome-intent={resolvedIsWarmup ? "info" : "neutral"}
+              data-action-chrome-segmented="true"
+              className="min-h-[2.6rem] w-full rounded-[var(--action-chrome-segment-radius-compact)] px-3.5 text-[12px] font-semibold tracking-[0.02em]"
+              aria-pressed={resolvedIsWarmup}
+              aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
+              onClick={() => setWarmupValue(!resolvedIsWarmup)}
+            >
+              Warm
+            </AppButton>
           )}
           rpe={rpe}
           onRpeChange={setRpe}

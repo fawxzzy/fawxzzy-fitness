@@ -243,7 +243,7 @@ export function ExerciseInfoSheet({
           className="overscroll-contain"
           floatingHeader={detailHeader}
         >
-          <section className="flex h-full w-full flex-col">
+          <section className="flex w-full flex-col">
             <ScreenScaffold recipe="exerciseDetail" className="mx-auto w-full max-w-md px-4 pb-[calc(var(--app-safe-bottom)+0.75rem)]">
               <DetailSection title="How to">
                 {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}

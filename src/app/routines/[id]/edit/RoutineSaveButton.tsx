@@ -27,12 +27,13 @@ export function RoutineSaveButton({ formId, originalCycleLength }: { formId: str
 
   return (
     <>
-      <AppButton type="button" variant="primary" fullWidth onClick={handleSaveClick}>Save Routine</AppButton>
+      <AppButton type="button" variant="primary" fullWidth onClick={handleSaveClick}>Save</AppButton>
       <ConfirmDestructiveModal
         open={open}
-        title="Reduce cycle length?"
-        consequenceText="Reducing cycle length will delete days beyond the new length."
-        confirmLabel="Save and remove extra days"
+        title="Shorten routine?"
+        consequenceText="Extra days will be removed."
+        confirmLabel="Confirm"
+        confirmVariant="primary"
         onCancel={() => setOpen(false)}
         onConfirm={submitForm}
       />

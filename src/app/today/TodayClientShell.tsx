@@ -186,7 +186,7 @@ export function TodayClientShell({
             returnTo="/today"
             fullWidth
             className="w-full"
-            label="Resume Session"
+            label="Resume"
           />
         ) : (
           <SubtitleText className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center">

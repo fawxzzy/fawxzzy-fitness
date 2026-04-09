@@ -35,6 +35,7 @@ export function MeasurementPanelV2({
   showHeader = false,
   leadingContent,
   trailingContent,
+  belowRpeContent,
   rpe,
   onRpeChange,
   footerContent,
@@ -57,6 +58,7 @@ export function MeasurementPanelV2({
   showHeader?: boolean;
   leadingContent?: ReactNode;
   trailingContent?: ReactNode;
+  belowRpeContent?: ReactNode;
   rpe?: string;
   onRpeChange?: (value: string) => void;
   footerContent?: ReactNode;
@@ -243,6 +245,7 @@ export function MeasurementPanelV2({
               />
             </div>
           ) : null}
+          {belowRpeContent ? <div className="col-span-2">{belowRpeContent}</div> : null}
         </div>
 
         {footerContent ? <div className="mt-2">{footerContent}</div> : null}

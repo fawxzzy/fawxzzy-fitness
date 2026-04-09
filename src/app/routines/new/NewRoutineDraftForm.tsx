@@ -108,7 +108,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
         <RoutineDetailsDiscardConfirmationDock />
       ) : (
         <RoutineDetailsBottomActionPublisher
-          secondary={<RoutineDetailsBackSecondaryAction label="Cancel" />}
+          secondary={<RoutineDetailsBackSecondaryAction label="Cancel" intent="danger" />}
           primary={(
             <BottomDockButton
               type="button"

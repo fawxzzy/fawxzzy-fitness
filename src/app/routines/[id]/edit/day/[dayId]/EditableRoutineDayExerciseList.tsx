@@ -12,7 +12,6 @@ import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDo
 import { BottomActionSingle, BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ActionResult } from "@/lib/action-result";
@@ -375,11 +374,6 @@ export function EditableRoutineDayExerciseList({
     }, 500);
   };
 
-  const handleCloseInlineEditor = () => {
-    flushAutosave();
-    setExpandedId(null);
-  };
-
   const editModeActive = expandedId !== null;
   const modeViewModel = getDayEditorModeViewModel({
     isRestDay,
@@ -413,18 +407,7 @@ export function EditableRoutineDayExerciseList({
     };
   }, [headerActionSlotId]);
 
-  const headerAction = modeViewModel.headerAction === "close_editor" ? (
-    <div className="flex justify-end px-0.5">
-      <TopRightBackButton
-        ariaLabel="Close exercise editor"
-        historyBehavior="fallback-only"
-        onClick={(event) => {
-          event.preventDefault();
-          handleCloseInlineEditor();
-        }}
-      />
-    </div>
-  ) : modeViewModel.headerAction === "reorder_toggle" && hasExercises ? (
+  const headerAction = modeViewModel.headerAction === "reorder_toggle" && hasExercises ? (
     <BottomActionUtilityCluster className="mx-0.5">
       <BottomDockButton
         type="button"
@@ -433,7 +416,7 @@ export function EditableRoutineDayExerciseList({
         aria-pressed={reorderMode}
         disabled={isRestDay}
         className={cn(
-          "w-full",
+          "min-h-[2.625rem] w-full rounded-[0.9rem] px-4 py-2 text-[0.92rem]",
           isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
         )}
       >
@@ -477,7 +460,7 @@ export function EditableRoutineDayExerciseList({
               )}
               right={(
                 <DockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
-                  Delete Exercise
+                  Delete
                 </DockButton>
               )}
             />
@@ -504,7 +487,7 @@ export function EditableRoutineDayExerciseList({
             )}
             right={(
               <DockButton type="button" intent="danger" onClick={() => setDeleteConfirmOpen(true)}>
-                Delete Exercise
+                Delete
               </DockButton>
               )}
             />
@@ -682,10 +665,9 @@ export function EditableRoutineDayExerciseList({
 
       <ConfirmDestructiveModal
         open={deleteConfirmOpen}
-        title="Delete routine day exercise?"
-        consequenceText="This will remove this exercise from the routine day."
+        title="Delete exercise?"
+        details={activeExercise?.name}
         confirmLabel="Delete"
-        details={activeExercise ? `Exercise: ${activeExercise.name}` : undefined}
         onCancel={() => setDeleteConfirmOpen(false)}
         onConfirm={async () => {
           if (!activeExercise) {
