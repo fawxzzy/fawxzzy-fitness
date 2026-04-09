@@ -45,6 +45,7 @@ export function DayDetailExerciseList({
                 variant="interactive"
                 state={isActive && mode === "editable" ? "selected" : "default"}
                 onPress={interactive ? () => onSelectItem?.(item) : undefined}
+                showLeadingVisual={false}
                 badgeText={mode === "editable" ? `ORDER ${item.orderNumber}` : undefined}
                 className={cn(
                   listShellClasses.card,

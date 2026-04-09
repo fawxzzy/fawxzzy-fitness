@@ -34,8 +34,9 @@ export function ReorderExerciseRow({
         summary={metadata}
         variant="reorder"
         state={isDragging ? "selected" : "default"}
+        showLeadingVisual={false}
         className={cn("shadow-none", isDragging ? "scale-[0.99] opacity-85" : undefined)}
-        trailingStackClassName="grid-rows-[auto_auto_1fr] gap-1.5 py-0"
+        trailingStackClassName="justify-start gap-1.5 py-0"
         rightIcon={(
           <button
             type="button"
