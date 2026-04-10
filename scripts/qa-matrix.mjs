@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { spawn } from "node:child_process";
@@ -7,10 +8,11 @@ import { pathToFileURL } from "node:url";
 
 const repoRoot = process.cwd();
 const qaRoot = path.join(repoRoot, ".codex", "qa");
-const runnerPath = path.join(qaRoot, "cdp-edge.mjs");
-const tmpConfigRoot = path.join(qaRoot, "tmp-mobile-regression");
+const edgePath = process.env.QA_EDGE_PATH ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const outputRoot = path.join(qaRoot, "mobile-regression");
 const baseUrl = (process.env.QA_BASE_URL ?? "http://127.0.0.1:3000").replace(/\/+$/, "");
+const viewportHeight = Number(process.env.QA_HEIGHT ?? "852");
+const captureDelayMs = Number(process.env.QA_CAPTURE_DELAY_MS ?? "5000");
 const widths = (process.env.QA_WIDTHS ?? "375,393,430")
   .split(",")
   .map((value) => Number(value.trim()))
@@ -34,23 +36,52 @@ function resolveScenarioSelection(allScenarios, args) {
   );
 }
 
-function runScreenshot(configPath) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [runnerPath, configPath], {
-      cwd: repoRoot,
-      stdio: "inherit",
-      windowsHide: true,
-    });
+async function runScreenshot({ url, width, outPath }) {
+  const profileDir = await fs.mkdtemp(path.join(os.tmpdir(), "fawxzzy-qa-edge-"));
+  const args = [
+    "--headless",
+    "--disable-gpu",
+    "--hide-scrollbars",
+    "--force-device-scale-factor=1",
+    `--user-data-dir=${profileDir}`,
+    `--window-size=${width},${viewportHeight}`,
+    `--virtual-time-budget=${captureDelayMs}`,
+    `--screenshot=${outPath}`,
+    url,
+  ];
 
-    child.once("error", reject);
-    child.once("exit", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(new Error(`Screenshot run failed for ${path.basename(configPath)} with exit code ${code ?? "unknown"}`));
+  try {
+    await new Promise((resolve, reject) => {
+      const child = spawn(edgePath, args, {
+        cwd: repoRoot,
+        stdio: "pipe",
+        windowsHide: true,
+      });
+
+      let stderr = "";
+      child.stderr?.on("data", (chunk) => {
+        stderr += String(chunk);
+      });
+
+      child.once("error", reject);
+      child.once("exit", (code) => {
+        if (code === 0) {
+          resolve();
+          return;
+        }
+        reject(new Error(`Screenshot run failed for ${path.basename(outPath)} with exit code ${code ?? "unknown"}${stderr ? `\n${stderr.trim()}` : ""}`));
+      });
     });
-  });
+  } finally {
+    await fs.rm(profileDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+async function assertScreenshotWritten(outPath) {
+  const screenshot = await fs.stat(outPath).catch(() => null);
+  if (!screenshot || screenshot.size === 0) {
+    throw new Error(`Screenshot file was not written for ${path.basename(outPath)}`);
+  }
 }
 
 async function main() {
@@ -62,43 +93,16 @@ async function main() {
     throw new Error(`No mobile regression scenarios matched: ${scenarioArgs.join(", ")}`);
   }
 
-  await fs.mkdir(tmpConfigRoot, { recursive: true });
   await fs.mkdir(outputRoot, { recursive: true });
 
-  const tempConfigPaths = [];
-
-  try {
-    for (const scenario of scenarios) {
-      for (const width of widths) {
-        const config = {
-          url: `${baseUrl}/dev/mobile-regression?scenario=${encodeURIComponent(scenario.id)}`,
-          width,
-          height: 852,
-          mobile: true,
-          outPath: path.join(outputRoot, `${scenario.id}-${width}.png`),
-          initialWaitMs: 1200,
-          finalWaitMs: 700,
-          actions: [
-            {
-              type: "waitForSelector",
-              selector: `[data-mobile-regression-id="${scenario.id}"]`,
-              timeoutMs: 15000,
-            },
-          ],
-        };
-
-        const configPath = path.join(tmpConfigRoot, `${scenario.id}-${width}.json`);
-        tempConfigPaths.push(configPath);
-        await fs.writeFile(configPath, JSON.stringify(config, null, 2));
-      }
+  for (const scenario of scenarios) {
+    for (const width of widths) {
+      const outPath = path.join(outputRoot, `${scenario.id}-${width}.png`);
+      const url = `${baseUrl}/dev/mobile-regression?scenario=${encodeURIComponent(scenario.id)}`;
+      console.log(`Running mobile regression capture: ${scenario.id} @ ${width}px`);
+      await runScreenshot({ url, width, outPath });
+      await assertScreenshotWritten(outPath);
     }
-
-    for (const configPath of tempConfigPaths) {
-      console.log(`Running QA screenshot config: ${path.relative(repoRoot, configPath)}`);
-      await runScreenshot(configPath);
-    }
-  } finally {
-    await Promise.all(tempConfigPaths.map((configPath) => fs.rm(configPath, { force: true })));
   }
 }
 
