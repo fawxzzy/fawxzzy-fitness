@@ -1,13 +1,13 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
-import { AppBadge } from "@/components/ui/app/AppBadge";
-import { AppPanel } from "@/components/ui/app/AppPanel";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
-import { SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { SurfaceCard } from "@/components/ui/SurfaceCard";
+import { AppHeader } from "@/components/ui/app/AppHeader";
+import { Chip } from "@/components/ui/Chip";
+import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
-const ROUTINES_OVERVIEW_RECIPE = "routinesOverview" as const;
+const CARD_HEADER_CLASS_NAME = "-mx-4 -mt-1 pb-1 sm:-mx-5";
+const SECTION_TITLE_CLASS_NAME = "text-[1.3125rem] font-semibold leading-[1.04] tracking-[-0.03em]";
 
 type RoutinesPageScaffoldProps = {
   children: ReactNode;
@@ -27,17 +27,19 @@ export function ActiveRoutineSummaryCard({
   status?: ReactNode;
 }) {
   return (
-    <SharedScreenHeader
-      recipe={ROUTINES_OVERVIEW_RECIPE}
-      title={title}
-      meta={metadata}
-      action={status}
-    />
+    <SurfaceCard dense>
+      <AppHeader
+        title={title}
+        meta={metadata}
+        action={status}
+        className={CARD_HEADER_CLASS_NAME}
+      />
+    </SurfaceCard>
   );
 }
 
 export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {
-  return active ? <AppBadge tone="success">ACTIVE</AppBadge> : null;
+  return active ? <Chip tone="success">ACTIVE</Chip> : null;
 }
 
 export function RoutinesSectionCard({
@@ -51,25 +53,18 @@ export function RoutinesSectionCard({
   action?: ReactNode;
   children: ReactNode;
 }) {
-  const recipe = resolveScreenRecipe(ROUTINES_OVERVIEW_RECIPE);
   return (
-    <AppPanel
-      data-screen-scaffold={recipe.scaffold}
-      data-section-chrome={recipe.sectionChrome}
-      data-footer-dock={recipe.footerDock}
-      className={recipe.sectionClassName}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <TitleText as="h2" className="text-base">
-            {title}
-          </TitleText>
-          {meta ? <SubtitleText>{meta}</SubtitleText> : null}
-        </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
+    <SurfaceCard dense>
+      <AppHeader
+        title={title}
+        meta={meta}
+        action={action}
+        titleAs="h2"
+        className={CARD_HEADER_CLASS_NAME}
+        titleClassName={SECTION_TITLE_CLASS_NAME}
+      />
       {children}
-    </AppPanel>
+    </SurfaceCard>
   );
 }
 

@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { updateUnitPreferencesAction } from "@/app/settings/actions";
-import { GlassButton } from "@/components/ui/GlassButton";
+import { AppButton } from "@/components/ui/AppButton";
+import { Chip } from "@/components/ui/Chip";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { type GlassEffectsMode, useGlassEffects } from "@/lib/useGlassEffects";
 
 const APPEARANCE_OPTIONS: Array<{ value: GlassEffectsMode; label: string; description: string }> = [
@@ -21,32 +23,6 @@ const DISTANCE_OPTIONS: Array<{ value: "mi" | "km"; label: string }> = [
   { value: "km", label: "km" },
 ];
 
-const ACTIVE_SETTING_OPTION_CLASS =
-  "border-[rgb(var(--accent)/0.38)] bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--text-primary))]";
-const INACTIVE_SETTING_OPTION_CLASS = "border-[rgb(var(--border)/0.18)] bg-[rgb(var(--surface-2)/0.94)] text-[rgb(var(--text-secondary)/0.96)]";
-
-function UnitChoiceButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <GlassButton
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={`justify-center px-2 py-2 text-sm ${active ? ACTIVE_SETTING_OPTION_CLASS : INACTIVE_SETTING_OPTION_CLASS}`}
-    >
-      <span className="font-semibold">{label}</span>
-    </GlassButton>
-  );
-}
-
 export function GlassEffectsSettings({
   preferredWeightUnit,
   preferredDistanceUnit,
@@ -61,6 +37,7 @@ export function GlassEffectsSettings({
   const [isSaving, startSaving] = useTransition();
 
   const isDirty = weightUnit !== preferredWeightUnit || distanceUnit !== preferredDistanceUnit;
+  const activeAppearance = APPEARANCE_OPTIONS.find((option) => option.value === mode) ?? APPEARANCE_OPTIONS[0];
 
   const saveUnits = () => {
     setMessage(null);
@@ -81,50 +58,49 @@ export function GlassEffectsSettings({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2.5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Appearance</p>
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Glass effects mode">
-          {APPEARANCE_OPTIONS.map((option) => {
-            const isActive = option.value === mode;
-
-            return (
-              <GlassButton
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={isActive}
-                onClick={() => setMode(option.value)}
-                className={`flex-col gap-0.5 px-2 py-2 text-center text-xs ${isActive ? ACTIVE_SETTING_OPTION_CLASS : INACTIVE_SETTING_OPTION_CLASS}`}
-              >
-                <span className="font-semibold">{option.label}</span>
-                <span className="text-[10px] opacity-80">{option.description}</span>
-              </GlassButton>
-            );
-          })}
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">Appearance</p>
+        <SegmentedControl
+          ariaLabel="Appearance mode"
+          options={APPEARANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
+          value={mode}
+          onChange={(nextValue) => setMode(nextValue as GlassEffectsMode)}
+        />
+        <div className="flex items-center gap-2">
+          <Chip tone="today">{activeAppearance.label}</Chip>
+          <p className="text-sm text-[rgb(var(--text-secondary)/0.96)]">{activeAppearance.description}</p>
         </div>
       </div>
 
-      <div className="space-y-3 border-t border-white/8 pt-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Weight unit</p>
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Weight unit">
-          {WEIGHT_OPTIONS.map((option) => (
-            <UnitChoiceButton key={option.value} label={option.label} active={option.value === weightUnit} onClick={() => setWeightUnit(option.value)} />
-          ))}
+      <div className="space-y-4 border-t border-[rgb(var(--border)/0.18)] pt-4">
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">Weight unit</p>
+          <SegmentedControl
+            ariaLabel="Weight unit"
+            options={WEIGHT_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
+            value={weightUnit}
+            onChange={(nextValue) => setWeightUnit(nextValue as "lbs" | "kg")}
+            size="sm"
+          />
         </div>
 
-        <p className="pt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Distance unit</p>
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Distance unit">
-          {DISTANCE_OPTIONS.map((option) => (
-            <UnitChoiceButton key={option.value} label={option.label} active={option.value === distanceUnit} onClick={() => setDistanceUnit(option.value)} />
-          ))}
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">Distance unit</p>
+          <SegmentedControl
+            ariaLabel="Distance unit"
+            options={DISTANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
+            value={distanceUnit}
+            onChange={(nextValue) => setDistanceUnit(nextValue as "mi" | "km")}
+            size="sm"
+          />
         </div>
 
-        <div className="space-y-2 pt-1">
-          <GlassButton type="button" disabled={!isDirty || isSaving} onClick={saveUnits} className="w-full px-3 py-2 text-sm font-semibold">
-            {isSaving ? "Saving…" : "Save Preferences"}
-          </GlassButton>
-          <p className={`text-xs ${message?.tone === "error" ? "text-red-200" : "text-[rgb(var(--text-muted)/0.78)]"}`}>
-            {message?.text ?? "Used for logging defaults and summaries."}
+        <div className="space-y-2">
+          <AppButton type="button" variant="primary" fullWidth disabled={!isDirty} loading={isSaving} onClick={saveUnits}>
+            Save preferences
+          </AppButton>
+          <p className={`text-sm leading-5 ${message?.tone === "error" ? "text-[rgb(var(--button-destructive-text))]" : "text-[rgb(var(--text-secondary)/0.92)]"}`}>
+            {message?.text ?? "These defaults apply to logging, summaries, and add-exercise flows."}
           </p>
         </div>
       </div>

@@ -2,7 +2,8 @@
 
 import { type FormEvent, useCallback, useMemo, useState, useTransition } from "react";
 import { updateAccountEmailAction, type EmailUpdateState } from "@/app/settings/actions";
-import { GlassButton } from "@/components/ui/GlassButton";
+import { AppButton } from "@/components/ui/AppButton";
+import { Input } from "@/components/ui/Input";
 
 const INITIAL_EMAIL_STATE: EmailUpdateState = { status: "idle" };
 
@@ -25,30 +26,33 @@ export function AccountSettingsForm({ email }: { email: string }) {
   );
 
   const emailMessageTone = useMemo(() => {
-    if (emailState.status === "error") return "text-red-200";
-    if (emailState.status === "success") return "text-emerald-200";
-    return "text-[rgb(var(--text-muted)/0.78)]";
+    if (emailState.status === "error") return "text-[rgb(var(--button-destructive-text))]";
+    if (emailState.status === "success") return "text-[rgb(var(--accent-green-on))]";
+    return "text-[rgb(var(--text-muted)/0.9)]";
   }, [emailState.status]);
 
   return (
-    <form onSubmit={submitEmailUpdate} className="space-y-2.5">
-      <div className="space-y-1.5">
-        <label htmlFor="settings-email" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Email</label>
-        <input
+    <form onSubmit={submitEmailUpdate} className="space-y-3">
+      <div className="space-y-2">
+        <label htmlFor="settings-email" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+          Email
+        </label>
+        <Input
           id="settings-email"
           name="email"
           type="email"
           defaultValue={email}
           autoComplete="email"
-          className="w-full rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-sm text-[rgb(var(--text)/0.96)] outline-none ring-0 placeholder:text-[rgb(var(--text-muted)/0.7)] focus:border-white/20"
           required
         />
       </div>
-      <div className="flex items-center gap-2">
-        <GlassButton type="submit" disabled={emailPending} className="px-2.5 py-2 text-xs font-medium text-[rgb(var(--text)/0.88)]">
-          {emailPending ? "Saving…" : "Update Email"}
-        </GlassButton>
-        <p className={`text-xs ${emailMessageTone}`}>{emailState.message ?? "Email changes may require confirmation."}</p>
+      <div className="space-y-2">
+        <AppButton type="submit" variant="secondary" fullWidth loading={emailPending}>
+          Update email
+        </AppButton>
+        <p className={`text-sm leading-5 ${emailMessageTone}`}>
+          {emailState.message ?? "Email changes may require confirmation before they take effect."}
+        </p>
       </div>
     </form>
   );

@@ -4,6 +4,7 @@ import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
 import { ActiveRoutineStatusBadge, ActiveRoutineSummaryCard } from "@/components/routines/RoutinesScreenFamily";
 import { requireUser } from "@/lib/auth";
@@ -265,15 +266,18 @@ export default async function RoutinesPage({
       >
         <ContentRail className="space-y-3">
           {routines.length === 0 ? (
-            <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
-              <p className="text-sm text-muted">No routines yet.</p>
-              <Link
-                href="/routines/new"
-                className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
-              >
-                Create your first routine
-              </Link>
-            </div>
+            <EmptyState
+              title="No routines yet"
+              body="Create a routine to unify Today, session tracking, and history around the same training plan."
+              action={(
+                <Link
+                  href="/routines/new"
+                  className={getAppButtonClassName({ variant: "primary", fullWidth: true })}
+                >
+                  Create your first routine
+                </Link>
+              )}
+            />
           ) : (
             <RoutinesPageClient
               activeRoutineId={activeRoutine?.id ?? null}

@@ -5265,6 +5265,8 @@ WHY:
 ## Unreleased
 
 ### Changed
+- Moved the tracked Edge CDP QA runner onto an OS temp profile by default, switched its remote-debugging port allocation to an ephemeral port when none is specified, and added explicit browser/process cleanup so screenshot runs do not leave a live repo-local Edge profile locked after capture.
+- Added dedicated `npm run qa:screenshot` and `npm run qa:matrix` commands so screenshot QA stays explicit and operationally separate from the production `build` path.
 - Updated shared routine-details save-state messaging to keep new-routine forms neutral when clean while preserving `All changes saved` for clean edit-routine state.
 - Unified routine details create/edit save behavior onto one explicit manual-save contract: edit no longer autosaves, now uses a primary `Save Changes` CTA that enables only when valid + dirty, with unsaved-change guardrails and separate destructive delete action.
 - Added a shared routine-details draft/validation module and documented the save contract in `docs/routine-details-save-contract.md`.
@@ -5297,6 +5299,8 @@ WHY:
 - Added a destructive-dialog pattern note to `docs/UI_NORMALIZATION_AUDIT.md` to document hierarchy, spacing, and safe-area ownership for this modal family.
 
 ### Why
+- A detached headless Edge process was being left alive against `.codex/qa/edge-profile`, which could keep Windows file locks active inside the repo and create noisy post-build `EBUSY` failures unrelated to app correctness.
+- Giving screenshot capture its own commands keeps browser QA operational concerns separate from `next build`, which already completes the product quality gates on its own.
 - Routine details save behavior had drifted between create (explicit submit) and edit (autosave), making save expectations ambiguous and weakening unsaved-change UX.
 - Today day-list breakdowns were still lagging behind Routines because their summary path was rebuilding labels from route-local exercise payloads instead of reusing the normalized canonical exercise metadata contract.
 - View Day was the last remaining route still capable of falling back to generic `N exercises` labels because it was not loading the same fallback exercise metadata and was still routing header summary generation through a route-specific wrapper instead of the shared canonical path.

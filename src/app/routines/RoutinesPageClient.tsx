@@ -7,7 +7,6 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import {
   RoutinesCardList,
-  RoutinesListEmpty,
   RoutinesListItem,
   RoutinesPageScaffold,
   RoutinesSectionCard,
@@ -23,6 +22,8 @@ import {
   REST_DAY_CARD_COPY,
 } from "@/components/day-list/DayList";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
 export type RoutineSwitcherItem = {
   id: string;
@@ -234,7 +235,16 @@ export function RoutinesPageClient({
               })}
             </DayList>
           ) : (
-            <RoutinesListEmpty>{ROUTINES_IA_COPY.routineDays.empty}</RoutinesListEmpty>
+            <EmptyState
+              title="No routine days"
+              body={ROUTINES_IA_COPY.routineDays.empty}
+              action={(
+                <Link href={newRoutineHref} className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}>
+                  Create a routine
+                </Link>
+              )}
+              className="border-0 bg-transparent p-0 shadow-none"
+            />
           )}
         </SharedDayListSection>
       ) : null}

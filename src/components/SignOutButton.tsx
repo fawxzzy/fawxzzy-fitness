@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
+import { AppButton } from "@/components/ui/AppButton";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const AUTH_ENTRY_PATH = "/login";
@@ -18,13 +18,14 @@ export function SignOutButton() {
   };
 
   return (
-    <button
+    <AppButton
+      type="button"
+      variant="destructive"
+      fullWidth
       onClick={handleSignOut}
-      data-action-chrome-intent="danger"
       data-action-chrome-segmented="true"
-      className={getBottomActionButtonClassName({ intent: "danger" })}
     >
       Sign out
-    </button>
+    </AppButton>
   );
 }
