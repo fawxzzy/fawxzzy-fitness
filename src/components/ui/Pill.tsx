@@ -8,18 +8,18 @@ type SharedProps = {
 };
 
 const toneClassNames: Record<NonNullable<SharedProps["tone"]>, string> = {
-  default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--bg-panel)/0.5)] text-[rgb(var(--text-primary)/0.82)]",
-  success: "border-[rgb(var(--accent-mint)/0.3)] bg-[rgb(var(--accent-mint)/0.12)] text-[rgb(244_249_248)]",
-  warning: "border-[rgb(var(--accent-yellow-on)/0.3)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(255_246_214)]",
-  destructive: "border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(255_241_243)]",
+  default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.9)] text-[rgb(var(--text-primary)/0.88)]",
+  success: "border-[rgb(var(--success-rgb)/0.32)] bg-[rgb(var(--success-rgb)/0.14)] text-[rgb(var(--text-primary))]",
+  warning: "border-[rgb(var(--warning-rgb)/0.34)] bg-[rgb(var(--warning-rgb)/0.14)] text-[rgb(255_242_220)]",
+  destructive: "border-[rgb(var(--danger-rgb)/0.34)] bg-[rgb(var(--danger-rgb)/0.12)] text-[rgb(255_228_233)]",
 };
 
 export function Pill({ active, tone = "default", className, ...props }: HTMLAttributes<HTMLSpanElement> & SharedProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
-        active ? "border-[rgb(var(--accent-mint)/0.34)] bg-[rgb(var(--accent-mint)/0.14)] text-[rgb(244_249_248)]" : toneClassNames[tone],
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]",
+        active ? "border-[rgb(var(--accent)/0.36)] bg-[rgb(var(--accent)/0.14)] text-[rgb(var(--text-primary))]" : toneClassNames[tone],
         className,
       )}
       {...props}
@@ -32,10 +32,10 @@ export function PillButton({ active, tone = "default", className, type = "button
     <button
       type={type}
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]",
         active
-          ? "border-[rgb(var(--accent-mint)/0.38)] bg-[rgb(var(--accent-mint)/0.14)] text-[rgb(244_249_248)]"
-          : cn(toneClassNames[tone], "hover:border-[rgb(var(--border-strong)/0.28)] hover:bg-[rgb(var(--bg-card)/0.56)] hover:text-[rgb(var(--text-primary))]"),
+          ? "border-[rgb(var(--accent)/0.38)] bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--text-primary))]"
+          : cn(toneClassNames[tone], "hover:border-[rgb(var(--border-strong)/0.28)] hover:bg-[rgb(var(--surface-2)/0.98)] hover:text-[rgb(var(--text-primary))]"),
         className,
       )}
       {...props}

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
 
@@ -10,9 +10,17 @@ const toneClassNames = {
   destructive: appTokens.destructiveBadge,
 } as const;
 
-export function AppBadge({ tone = "default", children, className }: { tone?: keyof typeof toneClassNames; children: ReactNode; className?: string }) {
+export function AppBadge({
+  tone = "default",
+  children,
+  className,
+  ...props
+}: HTMLAttributes<HTMLSpanElement> & {
+  tone?: keyof typeof toneClassNames;
+  children: ReactNode;
+}) {
   return (
-    <span className={cn(appTokens.badgeBase, toneClassNames[tone], className)}>
+    <span className={cn(appTokens.badgeBase, toneClassNames[tone], className)} {...props}>
       {children}
     </span>
   );

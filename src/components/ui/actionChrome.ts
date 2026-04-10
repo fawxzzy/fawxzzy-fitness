@@ -33,15 +33,15 @@ export function resolveAppButtonIntent({
   state?: AppButtonState;
 }): ActionChromeIntent {
   if (variant === "destructive") return "danger";
-  if (variant === "ghost") return "ghost";
+  if (variant === "ghost" || variant === "tertiary") return "ghost";
   if (state === "active") return "positive";
   if (variant === "primary") return "positive";
   return "neutral";
 }
 
-export function resolveSimpleButtonIntent(variant: "primary" | "secondary" | "ghost" | "danger"): ActionChromeIntent {
+export function resolveSimpleButtonIntent(variant: "primary" | "secondary" | "tertiary" | "ghost" | "danger"): ActionChromeIntent {
   if (variant === "primary") return "positive";
   if (variant === "danger") return "danger";
-  if (variant === "ghost") return "ghost";
+  if (variant === "ghost" || variant === "tertiary") return "ghost";
   return "neutral";
 }

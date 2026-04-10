@@ -73,18 +73,18 @@ export function ConfirmDestructiveModal({
       <button
         type="button"
         aria-label="Close confirmation"
-        className="fixed inset-0 z-0 bg-black/42 backdrop-blur-[2px]"
+        className="fixed inset-0 z-0 bg-[rgba(3,8,14,0.72)] backdrop-blur-[6px]"
         onClick={onCancel}
       />
       <div
         ref={modalRef}
-        className="relative z-10 w-full max-w-[22rem] space-y-3 rounded-[1.1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--shell-rgb)/0.94)] p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-lg"
+        className="relative z-10 w-full max-w-[22rem] space-y-3 rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.96)] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-[14px]"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
         <div className="space-y-1">
-          <h2 id={titleId} className="text-base font-semibold text-text">{title}</h2>
+          <h2 id={titleId} className="text-[1.3125rem] font-semibold leading-tight tracking-[-0.03em] text-text">{title}</h2>
           {detailLines.length ? (
             <div className="space-y-0.5 text-sm text-[rgb(var(--text-secondary)/0.94)]">
               {detailLines.map((line) => (
@@ -94,7 +94,7 @@ export function ConfirmDestructiveModal({
           ) : null}
         </div>
         {bullets?.length ? (
-          <div className="rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface)/0.42)] px-3 py-2">
+          <div className="rounded-[var(--radius-md)] border border-[rgb(var(--danger-rgb)/0.18)] bg-[rgb(var(--surface-2)/0.84)] px-3 py-2">
             <ul className="list-disc space-y-0.5 pl-4 text-xs text-[rgb(var(--text-muted)/0.95)]">
               {bullets.map((bullet) => (
                 <li key={bullet}>{bullet}</li>

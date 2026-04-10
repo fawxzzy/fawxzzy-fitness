@@ -3,9 +3,9 @@ import { cn } from "@/lib/cn";
 
 const textRoleClassNames = {
   title: "text-[rgb(var(--text)/0.98)]",
-  subtitle: "text-[rgb(var(--text-secondary)/0.96)]",
-  accentSubtitle: "text-[rgb(var(--accent-blue))]",
-  eyebrow: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.95)]",
+  subtitle: "text-[rgb(var(--text-secondary)/0.98)]",
+  accentSubtitle: "text-[rgb(var(--accent))]",
+  eyebrow: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]",
 } as const;
 
 type TextRole = keyof typeof textRoleClassNames;
@@ -36,7 +36,7 @@ function createSemanticText<TDefault extends ElementType>(
   };
 }
 
-export const TitleText = createSemanticText("title", "span", "font-semibold leading-tight");
+export const TitleText = createSemanticText("title", "span", "font-semibold leading-tight tracking-[-0.02em]");
 export const SubtitleText = createSemanticText("subtitle", "span", "text-sm leading-snug");
 export const AccentSubtitleText = createSemanticText("accentSubtitle", "span", "text-sm font-medium leading-snug");
 export const EyebrowText = createSemanticText("eyebrow", "span", "");

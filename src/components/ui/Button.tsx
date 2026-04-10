@@ -1,27 +1,28 @@
 import type { ButtonHTMLAttributes } from "react";
-import { ACTION_CHROME_CONTROL_CLASS_NAME, resolveSimpleButtonIntent } from "@/components/ui/actionChrome";
-import { cn } from "@/lib/cn";
+import { AppButton } from "@/components/ui/AppButton";
+import type { AppButtonSize, AppButtonVariant } from "@/components/ui/appButtonClasses";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "tertiary" | "ghost" | "danger";
 
 export function Button({
-  className,
   variant = "secondary",
   type = "button",
+  size = "md",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
-  const intent = resolveSimpleButtonIntent(variant);
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: AppButtonSize }) {
+  const mappedVariant: AppButtonVariant =
+    variant === "danger"
+      ? "destructive"
+      : variant === "ghost"
+        ? "tertiary"
+        : variant;
 
   return (
-    <button
-      type={type}
-      data-action-chrome-intent={intent}
-      className={cn(
-        ACTION_CHROME_CONTROL_CLASS_NAME,
-        "min-h-11 rounded-[var(--action-chrome-segment-radius)] px-3 text-sm font-medium focus-visible:ring-[var(--button-focus-ring)] disabled:opacity-55",
-        className,
-      )}
+    <AppButton
       {...props}
+      type={type}
+      variant={mappedVariant}
+      size={size}
     />
   );
 }

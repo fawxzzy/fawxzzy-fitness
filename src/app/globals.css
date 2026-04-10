@@ -4,28 +4,40 @@
 
 :root {
   color-scheme: dark;
-  --bg-app: 15 23 36;
-  --bg-panel: 25 36 59;
-  --bg-card: 47 60 88;
-  --bg-shell: 57 72 101;
-  --stroke-soft: 181 193 217;
-  --stroke-strong: 224 230 245;
-  --text-primary: 243 245 248;
-  --text-secondary: 192 202 222;
-  --text-muted: 156 169 192;
-  --accent-mint: 142 230 208;
-  --accent-mint-strong: 113 203 184;
-  --accent-blue: 153 198 255;
-  --accent-yellow-off: 200 179 95;
-  --accent-yellow-on: 231 210 123;
-  --accent-red: 227 153 168;
-  --accent-purple: 198 180 244;
+  --bg-0: 7 17 27;
+  --bg-1: 11 23 36;
+  --bg-2: 15 29 45;
+
+  --surface-1-rgb: 14 24 38;
+  --surface-2-rgb: 18 31 48;
+  --surface-3-rgb: 23 38 58;
+
+  --stroke-soft: 190 214 238;
+  --stroke-strong: 190 214 238;
+  --text-primary: 244 248 252;
+  --text-secondary: 205 217 232;
+  --text-muted: 144 164 188;
+  --accent-mint: 71 215 196;
+  --accent-mint-strong: 47 230 210;
+  --accent-blue: 71 215 196;
+  --accent-yellow-off: 240 178 78;
+  --accent-yellow-on: 240 178 78;
+  --accent-red: 255 111 131;
+  --accent-purple: 71 215 196;
+  --success-rgb: 79 209 126;
+  --warning-rgb: 240 178 78;
+  --danger-rgb: 255 111 131;
+
+  --bg-app: var(--bg-0);
+  --bg-panel: var(--bg-1);
+  --bg-card: var(--surface-2-rgb);
+  --bg-shell: var(--surface-3-rgb);
 
   --bg: var(--bg-app);
-  --surface: var(--bg-panel);
-  --surface-2: var(--bg-card);
-  --surface-rgb: var(--bg-card);
-  --shell-rgb: var(--bg-shell);
+  --surface: var(--surface-1-rgb);
+  --surface-2: var(--surface-2-rgb);
+  --surface-rgb: var(--surface-2-rgb);
+  --shell-rgb: var(--surface-3-rgb);
   --border: var(--stroke-soft);
   --border-strong: var(--stroke-strong);
   --text: var(--text-primary);
@@ -34,78 +46,83 @@
   --accent: var(--accent-mint);
   --accent-strong: var(--accent-mint-strong);
 
-  --button-height: 2.75rem;
-  --button-height-sm: 2.125rem;
+  --button-height-lg: 3.5rem;
+  --button-height: 3rem;
+  --button-height-sm: 2.5rem;
+  --button-padding-x-lg: 1.25rem;
   --button-padding-x: 1rem;
-  --button-padding-x-sm: 0.75rem;
+  --button-padding-x-sm: 0.875rem;
+  --button-font-size-lg: 1rem;
   --button-font-size: 0.9375rem;
-  --button-font-size-sm: 0.8125rem;
-  --button-font-weight: 600;
-  --button-letter-spacing: 0;
-  --button-radius: 0.875rem;
+  --button-font-size-sm: 0.875rem;
+  --button-font-weight: 650;
+  --button-letter-spacing: 0.01em;
+  --button-radius: 1.25rem;
 
-  --button-primary-bg: var(--accent-mint);
-  --button-primary-bg-hover: var(--accent-mint-strong);
-  --button-primary-bg-active: 84 166 151;
-  --button-primary-text: 244 249 248;
-  --button-primary-border: 167 232 218;
+  --button-primary-bg: var(--bg-2);
+  --button-primary-bg-hover: 16 35 51;
+  --button-primary-bg-active: 12 28 42;
+  --button-primary-text: var(--text-primary);
+  --button-primary-border: var(--accent);
 
-  --button-secondary-bg: 153 198 255 / 0.09;
-  --button-secondary-bg-hover: 153 198 255 / 0.14;
-  --button-secondary-bg-active: 153 198 255 / 0.18;
+  --button-secondary-bg: 18 31 48 / 0.94;
+  --button-secondary-bg-hover: 23 38 58 / 0.98;
+  --button-secondary-bg-active: 15 29 45 / 1;
   --button-secondary-text: var(--text-primary);
-  --button-secondary-border: 198 180 244 / 0.24;
+  --button-secondary-border: 190 214 238 / 0.22;
 
-  --button-ghost-bg: 0 0 0 / 0;
-  --button-ghost-bg-hover: 255 255 255 / 0.06;
-  --button-ghost-bg-active: 255 255 255 / 0.09;
-  --button-ghost-text: var(--text-primary);
-  --button-ghost-border: 174 184 198;
+  --button-ghost-bg: 255 255 255 / 0;
+  --button-ghost-bg-hover: 255 255 255 / 0.04;
+  --button-ghost-bg-active: 255 255 255 / 0.08;
+  --button-ghost-text: var(--text-secondary);
+  --button-ghost-border: 190 214 238 / 0.12;
 
-  --button-destructive-bg: 216 141 152 / 0.2;
-  --button-destructive-bg-hover: 216 141 152 / 0.26;
-  --button-destructive-bg-active: 216 141 152 / 0.32;
-  --button-destructive-text: 255 240 243;
-  --button-destructive-border: 216 141 152 / 0.42;
+  --button-destructive-bg: 18 31 48 / 0.94;
+  --button-destructive-bg-hover: 23 38 58 / 0.98;
+  --button-destructive-bg-active: 15 29 45 / 1;
+  --button-destructive-text: 255 223 229;
+  --button-destructive-border: 255 111 131 / 0.4;
 
-  --button-focus-ring: rgb(var(--accent) / 0.3);
-  --button-transition: 140ms ease;
+  --button-focus-ring: rgb(var(--accent) / 0.32);
+  --button-transition: 160ms cubic-bezier(0.22, 1, 0.36, 1);
   --button-press-scale: 0.98;
 
-  --action-chrome-shell-radius: 1.12rem;
-  --action-chrome-segment-radius: 0.98rem;
-  --action-chrome-segment-radius-compact: 0.92rem;
-  --action-chrome-shell-padding: 0.16rem;
-  --action-chrome-shell-gap: 0.14rem;
+  --action-chrome-shell-radius: 1.5rem;
+  --action-chrome-segment-radius: 1.25rem;
+  --action-chrome-segment-radius-compact: 1.1rem;
+  --action-chrome-shell-padding: 0.18rem;
+  --action-chrome-shell-gap: 0.16rem;
   --action-chrome-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
-  --action-chrome-shell-border: rgb(var(--border-strong) / 0.18);
-  --action-chrome-shell-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-  --action-chrome-shell-highlight: rgb(255 255 255 / 0.06);
+  --action-chrome-shell-border: rgb(var(--border-strong) / 0.14);
+  --action-chrome-shell-shadow: 0 18px 44px rgba(0, 0, 0, 0.3);
+  --action-chrome-shell-highlight: rgb(255 255 255 / 0.03);
 
-  --radius-sm: 0.625rem;
-  --radius-md: 0.875rem;
-  --radius-lg: 1.125rem;
+  --radius-xl: 1.875rem;
+  --radius-lg: 1.5rem;
+  --radius-md: 1.25rem;
+  --radius-sm: 1rem;
+  --radius-pill: 999px;
 
-  --glass-tint-rgb: var(--bg-panel);
-  --glass-tint-alpha-on: 0.64;
-  --glass-tint-alpha-reduced: 0.74;
-  --glass-border-alpha-on: 0.36;
-  --glass-border-alpha-reduced: 0.4;
+  --glass-tint-rgb: var(--surface-1-rgb);
+  --glass-tint-alpha-on: 0.88;
+  --glass-tint-alpha-reduced: 0.94;
+  --glass-border-alpha-on: 0.18;
+  --glass-border-alpha-reduced: 0.24;
 
-  --glass-blur-base-on: 7px;
-  --glass-blur-raised-on: 10px;
-  --glass-blur-overlay-on: 12px;
-  --glass-blur-base-reduced: 4px;
-  --glass-blur-raised-reduced: 6px;
-  --glass-blur-overlay-reduced: 8px;
+  --glass-blur-base-on: 10px;
+  --glass-blur-raised-on: 12px;
+  --glass-blur-overlay-on: 14px;
+  --glass-blur-base-reduced: 6px;
+  --glass-blur-raised-reduced: 8px;
+  --glass-blur-overlay-reduced: 10px;
   --glass-blur-off: 0px;
 
-  --glass-shadow-base: 0 6px 16px rgb(0 0 0 / 0.22);
-  --glass-shadow-raised: 0 10px 22px rgb(0 0 0 / 0.24);
-  --glass-shadow-overlay: 0 12px 28px rgb(0 0 0 / 0.26);
+  --glass-shadow-base: 0 12px 30px rgba(0, 0, 0, 0.24);
+  --glass-shadow-raised: 0 18px 44px rgba(0, 0, 0, 0.3);
+  --glass-shadow-overlay: 0 18px 44px rgba(0, 0, 0, 0.3);
 
-  --glass-sheen-strength-on: 0.09;
-  --glass-sheen-strength-reduced: 0.05;
+  --glass-sheen-strength-on: 0.025;
+  --glass-sheen-strength-reduced: 0.015;
   --glass-sheen-strength-off: 0;
 
   --glass-mode: on;
@@ -136,7 +153,7 @@
   --screen-gutter: 16px;
   --content-max: 430px;
   --section-gap: 12px;
-  --card-radius: 28px;
+  --card-radius: 24px;
   --bottom-nav-h: 92px;
 }
 
@@ -166,8 +183,8 @@
 
 :root[data-glass-effects="off"] {
   --glass-mode: off;
-  --glass-current-tint-alpha: 0.84;
-  --glass-current-border-alpha: 0.56;
+  --glass-current-tint-alpha: 0.98;
+  --glass-current-border-alpha: 0.32;
   --glass-current-sheen-strength: var(--glass-sheen-strength-off);
   --glass-current-blur-base: var(--glass-blur-off);
   --glass-current-blur-raised: var(--glass-blur-off);
@@ -176,6 +193,9 @@
 
 body {
   background-color: rgb(var(--bg));
+  background-image:
+    radial-gradient(circle at top, rgb(var(--accent) / 0.08), transparent 34%),
+    linear-gradient(180deg, rgb(var(--bg-1)), rgb(var(--bg-0)) 38%, rgb(var(--bg-0)));
   color: rgb(var(--text));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -195,8 +215,8 @@ a {
 input,
 select,
 textarea {
-  background-color: rgb(var(--surface));
-  border: 1px solid rgb(var(--border));
+  background-color: rgb(var(--surface-2) / 0.92);
+  border: 1px solid rgb(var(--border) / 0.22);
   color: rgb(var(--text));
 }
 
@@ -255,8 +275,16 @@ button,
 }
 
 .app-button {
+  position: relative;
+  overflow: hidden;
   font-weight: var(--button-font-weight);
   letter-spacing: var(--button-letter-spacing);
+}
+
+.app-button-lg {
+  height: var(--button-height-lg);
+  padding-inline: var(--button-padding-x-lg);
+  font-size: var(--button-font-size-lg);
 }
 
 .app-button-md {
@@ -272,6 +300,7 @@ button,
 }
 
 .app-button:active {
+  transform: scale(var(--button-press-scale));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -285,43 +314,43 @@ button,
   border-radius: var(--action-chrome-shell-radius);
   border: 1px solid var(--action-chrome-shell-border);
   background:
-    linear-gradient(180deg, var(--action-chrome-shell-highlight), rgb(255 255 255 / 0.012)),
-    linear-gradient(180deg, rgb(var(--shell-rgb) / 0.94), rgb(var(--surface-rgb) / 0.96));
+    linear-gradient(180deg, var(--action-chrome-shell-highlight), transparent 42%),
+    linear-gradient(180deg, rgb(var(--surface) / 0.96), rgb(var(--surface-2) / 0.98));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.045),
-    inset 0 -1px 0 rgb(0 0 0 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.03),
     var(--action-chrome-shell-shadow);
   padding: var(--action-chrome-shell-padding);
 }
 
 .action-chrome {
-  --action-chrome-border-color: rgb(var(--border-strong) / 0.14);
-  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.24);
-  --action-chrome-overlay-top: rgb(255 255 255 / 0.045);
-  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.012);
-  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.06);
+  --action-chrome-border-color: rgb(var(--border-strong) / 0.18);
+  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.28);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.035);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.01);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.045);
   --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.02);
-  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.075);
-  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.028);
-  --action-chrome-text-color: rgb(var(--text-primary) / 0.94);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.055);
+  --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.03);
+  --action-chrome-text-color: rgb(var(--text-primary) / 0.96);
   --action-chrome-shadow:
-    0 10px 24px rgb(0 0 0 / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.035);
+    0 1px 0 rgb(255 255 255 / 0.03) inset,
+    0 8px 18px rgb(0 0 0 / 0.16);
   --action-chrome-shadow-hover:
-    0 12px 28px rgb(0 0 0 / 0.13),
-    inset 0 1px 0 rgb(255 255 255 / 0.045);
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 10px 22px rgb(0 0 0 / 0.2);
   --action-chrome-shadow-active:
-    0 7px 18px rgb(0 0 0 / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.028);
+    0 1px 0 rgb(255 255 255 / 0.028) inset,
+    0 6px 14px rgb(0 0 0 / 0.18);
   position: relative;
   isolation: isolate;
   overflow: hidden;
   border-radius: var(--action-chrome-segment-radius);
   border-color: var(--action-chrome-border-color);
-  background: transparent;
+  background: rgb(var(--surface-2) / 0.94);
   color: var(--action-chrome-text-color);
   box-shadow: var(--action-chrome-shadow);
   transition:
+    background-color var(--action-chrome-transition),
     border-color var(--action-chrome-transition),
     color var(--action-chrome-transition),
     box-shadow var(--action-chrome-transition),
@@ -339,7 +368,7 @@ button,
 }
 
 .action-chrome::before {
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.015));
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.05), transparent 34%);
 }
 
 .action-chrome::after {
@@ -383,141 +412,107 @@ button,
 }
 
 .action-chrome-segmented:not([data-action-chrome-selected="true"]) {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
 }
 
 .action-chrome-segmented:not([data-action-chrome-selected="true"])::before {
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.014));
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.04), transparent 30%);
 }
 
 .action-chrome[data-action-chrome-intent="neutral"] {
-  --action-chrome-border-color: rgb(var(--accent-blue) / 0.2);
-  --action-chrome-border-color-hover: rgb(var(--accent-blue) / 0.3);
-  --action-chrome-overlay-top: rgb(var(--accent-purple) / 0.06);
-  --action-chrome-overlay-bottom: rgb(var(--accent-blue) / 0.025);
-  --action-chrome-overlay-top-hover: rgb(var(--accent-purple) / 0.09);
-  --action-chrome-overlay-bottom-hover: rgb(var(--accent-blue) / 0.04);
-  --action-chrome-overlay-top-active: rgb(var(--accent-purple) / 0.11);
-  --action-chrome-overlay-bottom-active: rgb(var(--accent-blue) / 0.05);
-  --action-chrome-text-color: rgb(var(--text-primary) / 0.92);
+  --action-chrome-border-color: rgb(var(--border-strong) / 0.2);
+  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.32);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.035);
+  --action-chrome-overlay-bottom: rgb(255 255 255 / 0.012);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.05);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent) / 0.035);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.055);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent) / 0.05);
+  --action-chrome-text-color: rgb(var(--text-primary) / 0.94);
 }
 
 .action-chrome[data-action-chrome-intent="positive"] {
-  --action-chrome-border-color: rgb(var(--accent-mint) / 0.36);
-  --action-chrome-border-color-hover: rgb(var(--accent-mint) / 0.48);
-  --action-chrome-overlay-top: rgb(var(--accent-mint) / 0.2);
-  --action-chrome-overlay-bottom: rgb(var(--accent-mint-strong) / 0.12);
-  --action-chrome-overlay-top-hover: rgb(var(--accent-mint) / 0.26);
-  --action-chrome-overlay-bottom-hover: rgb(var(--accent-mint-strong) / 0.16);
-  --action-chrome-overlay-top-active: rgb(var(--accent-mint) / 0.3);
-  --action-chrome-overlay-bottom-active: rgb(var(--accent-mint-strong) / 0.2);
-  --action-chrome-text-color: rgb(244 249 248 / 0.98);
+  --action-chrome-border-color: rgb(var(--accent) / 0.42);
+  --action-chrome-border-color-hover: rgb(var(--accent-strong) / 0.62);
+  --action-chrome-overlay-top: rgb(var(--accent) / 0.16);
+  --action-chrome-overlay-bottom: rgb(var(--accent) / 0.07);
+  --action-chrome-overlay-top-hover: rgb(var(--accent) / 0.22);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent) / 0.1);
+  --action-chrome-overlay-top-active: rgb(var(--accent) / 0.28);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent) / 0.12);
+  --action-chrome-text-color: rgb(var(--text-primary));
   --action-chrome-shadow:
-    0 12px 28px rgb(var(--accent-mint) / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 10px 24px rgb(0 0 0 / 0.22);
   --action-chrome-shadow-hover:
-    0 14px 32px rgb(var(--accent-mint) / 0.14),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
+    0 1px 0 rgb(255 255 255 / 0.05) inset,
+    0 14px 28px rgb(0 0 0 / 0.26);
   --action-chrome-shadow-active:
-    0 9px 20px rgb(var(--accent-mint) / 0.11),
-    inset 0 1px 0 rgb(255 255 255 / 0.035);
+    0 1px 0 rgb(255 255 255 / 0.035) inset,
+    0 8px 18px rgb(0 0 0 / 0.22);
 }
 
 .action-chrome[data-action-chrome-intent="info"] {
-  --action-chrome-border-color: rgb(var(--accent-blue) / 0.34);
-  --action-chrome-border-color-hover: rgb(var(--accent-blue) / 0.44);
-  --action-chrome-overlay-top: rgb(var(--accent-blue) / 0.18);
-  --action-chrome-overlay-bottom: rgb(var(--accent-blue) / 0.1);
-  --action-chrome-overlay-top-hover: rgb(var(--accent-blue) / 0.24);
-  --action-chrome-overlay-bottom-hover: rgb(var(--accent-blue) / 0.14);
-  --action-chrome-overlay-top-active: rgb(var(--accent-blue) / 0.28);
-  --action-chrome-overlay-bottom-active: rgb(var(--accent-blue) / 0.17);
-  --action-chrome-text-color: rgb(242 247 255 / 0.98);
-  --action-chrome-shadow:
-    0 12px 28px rgb(var(--accent-blue) / 0.09),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
-  --action-chrome-shadow-hover:
-    0 14px 30px rgb(var(--accent-blue) / 0.12),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --action-chrome-shadow-active:
-    0 9px 20px rgb(var(--accent-blue) / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.035);
+  --action-chrome-border-color: rgb(var(--accent) / 0.24);
+  --action-chrome-border-color-hover: rgb(var(--accent) / 0.36);
+  --action-chrome-overlay-top: rgb(var(--accent) / 0.08);
+  --action-chrome-overlay-bottom: rgb(var(--accent) / 0.03);
+  --action-chrome-overlay-top-hover: rgb(var(--accent) / 0.12);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent) / 0.05);
+  --action-chrome-overlay-top-active: rgb(var(--accent) / 0.16);
+  --action-chrome-overlay-bottom-active: rgb(var(--accent) / 0.07);
+  --action-chrome-text-color: rgb(var(--text-primary) / 0.96);
 }
 
 .action-chrome[data-action-chrome-intent="toggleInactive"] {
-  --action-chrome-border-color: rgb(var(--accent-yellow-off) / 0.24);
-  --action-chrome-border-color-hover: rgb(var(--accent-yellow-off) / 0.34);
-  --action-chrome-overlay-top: rgb(var(--accent-yellow-off) / 0.1);
-  --action-chrome-overlay-bottom: rgb(var(--accent-yellow-off) / 0.05);
-  --action-chrome-overlay-top-hover: rgb(var(--accent-yellow-off) / 0.14);
-  --action-chrome-overlay-bottom-hover: rgb(var(--accent-yellow-off) / 0.08);
-  --action-chrome-overlay-top-active: rgb(var(--accent-yellow-off) / 0.16);
-  --action-chrome-overlay-bottom-active: rgb(var(--accent-yellow-off) / 0.1);
-  --action-chrome-text-color: rgb(249 239 205 / 0.9);
-  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
-  --action-chrome-shadow-hover:
-    0 10px 24px rgb(var(--accent-yellow-off) / 0.08),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
-  --action-chrome-shadow-active:
-    0 7px 18px rgb(var(--accent-yellow-off) / 0.08),
-    inset 0 1px 0 rgb(255 255 255 / 0.028);
+  --action-chrome-border-color: rgb(var(--warning-rgb) / 0.24);
+  --action-chrome-border-color-hover: rgb(var(--warning-rgb) / 0.36);
+  --action-chrome-overlay-top: rgb(var(--warning-rgb) / 0.08);
+  --action-chrome-overlay-bottom: rgb(var(--warning-rgb) / 0.03);
+  --action-chrome-overlay-top-hover: rgb(var(--warning-rgb) / 0.12);
+  --action-chrome-overlay-bottom-hover: rgb(var(--warning-rgb) / 0.05);
+  --action-chrome-overlay-top-active: rgb(var(--warning-rgb) / 0.16);
+  --action-chrome-overlay-bottom-active: rgb(var(--warning-rgb) / 0.06);
+  --action-chrome-text-color: rgb(255 239 214 / 0.94);
 }
 
 .action-chrome[data-action-chrome-intent="toggleActive"] {
-  --action-chrome-border-color: rgb(var(--accent-yellow-on) / 0.34);
-  --action-chrome-border-color-hover: rgb(var(--accent-yellow-on) / 0.46);
-  --action-chrome-overlay-top: rgb(var(--accent-yellow-on) / 0.18);
-  --action-chrome-overlay-bottom: rgb(var(--accent-yellow-off) / 0.1);
-  --action-chrome-overlay-top-hover: rgb(var(--accent-yellow-on) / 0.24);
-  --action-chrome-overlay-bottom-hover: rgb(var(--accent-yellow-off) / 0.14);
-  --action-chrome-overlay-top-active: rgb(var(--accent-yellow-on) / 0.28);
-  --action-chrome-overlay-bottom-active: rgb(var(--accent-yellow-off) / 0.17);
-  --action-chrome-text-color: rgb(255 248 229 / 0.98);
-  --action-chrome-shadow:
-    0 12px 28px rgb(var(--accent-yellow-on) / 0.09),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
-  --action-chrome-shadow-hover:
-    0 14px 30px rgb(var(--accent-yellow-on) / 0.12),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --action-chrome-shadow-active:
-    0 9px 20px rgb(var(--accent-yellow-on) / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.035);
+  --action-chrome-border-color: rgb(var(--warning-rgb) / 0.34);
+  --action-chrome-border-color-hover: rgb(var(--warning-rgb) / 0.48);
+  --action-chrome-overlay-top: rgb(var(--warning-rgb) / 0.14);
+  --action-chrome-overlay-bottom: rgb(var(--warning-rgb) / 0.06);
+  --action-chrome-overlay-top-hover: rgb(var(--warning-rgb) / 0.18);
+  --action-chrome-overlay-bottom-hover: rgb(var(--warning-rgb) / 0.08);
+  --action-chrome-overlay-top-active: rgb(var(--warning-rgb) / 0.22);
+  --action-chrome-overlay-bottom-active: rgb(var(--warning-rgb) / 0.1);
+  --action-chrome-text-color: rgb(255 243 221 / 0.98);
 }
 
 .action-chrome[data-action-chrome-intent="danger"] {
-  --action-chrome-border-color: rgb(var(--accent-red) / 0.32);
-  --action-chrome-border-color-hover: rgb(var(--accent-red) / 0.44);
-  --action-chrome-overlay-top: rgb(var(--accent-red) / 0.16);
-  --action-chrome-overlay-bottom: rgb(var(--accent-red) / 0.09);
-  --action-chrome-overlay-top-hover: rgb(var(--accent-red) / 0.22);
-  --action-chrome-overlay-bottom-hover: rgb(var(--accent-red) / 0.13);
-  --action-chrome-overlay-top-active: rgb(var(--accent-red) / 0.26);
-  --action-chrome-overlay-bottom-active: rgb(var(--accent-red) / 0.16);
-  --action-chrome-text-color: rgb(255 241 243 / 0.98);
-  --action-chrome-shadow:
-    0 12px 28px rgb(var(--accent-red) / 0.09),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
-  --action-chrome-shadow-hover:
-    0 14px 30px rgb(var(--accent-red) / 0.12),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --action-chrome-shadow-active:
-    0 9px 20px rgb(var(--accent-red) / 0.1),
-    inset 0 1px 0 rgb(255 255 255 / 0.035);
+  --action-chrome-border-color: rgb(var(--danger-rgb) / 0.34);
+  --action-chrome-border-color-hover: rgb(var(--danger-rgb) / 0.5);
+  --action-chrome-overlay-top: rgb(var(--danger-rgb) / 0.08);
+  --action-chrome-overlay-bottom: rgb(var(--danger-rgb) / 0.03);
+  --action-chrome-overlay-top-hover: rgb(var(--danger-rgb) / 0.12);
+  --action-chrome-overlay-bottom-hover: rgb(var(--danger-rgb) / 0.05);
+  --action-chrome-overlay-top-active: rgb(var(--danger-rgb) / 0.16);
+  --action-chrome-overlay-bottom-active: rgb(var(--danger-rgb) / 0.06);
+  --action-chrome-text-color: rgb(255 223 229 / 0.98);
 }
 
 .action-chrome[data-action-chrome-intent="ghost"] {
-  --action-chrome-border-color: rgb(var(--border-strong) / 0.08);
-  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.14);
-  --action-chrome-overlay-top: rgb(255 255 255 / 0.018);
+  --action-chrome-border-color: rgb(var(--border-strong) / 0.1);
+  --action-chrome-border-color-hover: rgb(var(--border-strong) / 0.2);
+  --action-chrome-overlay-top: rgb(255 255 255 / 0.012);
   --action-chrome-overlay-bottom: rgb(255 255 255 / 0);
-  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.03);
-  --action-chrome-overlay-bottom-hover: rgb(255 255 255 / 0.01);
-  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.04);
+  --action-chrome-overlay-top-hover: rgb(255 255 255 / 0.024);
+  --action-chrome-overlay-bottom-hover: rgb(var(--accent) / 0.02);
+  --action-chrome-overlay-top-active: rgb(255 255 255 / 0.03);
   --action-chrome-overlay-bottom-active: rgb(255 255 255 / 0.02);
-  --action-chrome-text-color: rgb(var(--text-primary) / 0.9);
-  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.02);
-  --action-chrome-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.03);
-  --action-chrome-shadow-active: inset 0 1px 0 rgb(255 255 255 / 0.018);
+  --action-chrome-text-color: rgb(var(--text-secondary) / 0.96);
+  --action-chrome-shadow: inset 0 1px 0 rgb(255 255 255 / 0.018);
+  --action-chrome-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.024);
+  --action-chrome-shadow-active: inset 0 1px 0 rgb(255 255 255 / 0.016);
 }
 
 
@@ -530,19 +525,19 @@ button:focus-visible,
 [type="reset"]:focus-visible,
 a:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgb(var(--accent) / 0.25);
+  box-shadow: 0 0 0 2px rgb(var(--accent) / 0.3);
 }
 
 @layer utilities {
   .glass-surface {
     position: relative;
     overflow: hidden;
-    border-radius: var(--glass-radius, var(--radius-md));
-    border: 1px solid rgb(var(--glass-tint-rgb) / var(--glass-current-border-alpha));
+    border-radius: var(--glass-radius, var(--radius-lg));
+    border: 1px solid rgb(var(--stroke-strong) / var(--glass-current-border-alpha));
     background-color: rgb(var(--glass-tint-rgb) / var(--glass-current-tint-alpha));
     box-shadow: var(--glass-shadow, var(--glass-shadow-base));
-    backdrop-filter: blur(var(--glass-blur, var(--glass-current-blur-base))) saturate(118%);
-    -webkit-backdrop-filter: blur(var(--glass-blur, var(--glass-current-blur-base))) saturate(118%);
+    backdrop-filter: blur(var(--glass-blur, var(--glass-current-blur-base))) saturate(110%);
+    -webkit-backdrop-filter: blur(var(--glass-blur, var(--glass-current-blur-base))) saturate(110%);
   }
 
   @supports not ((backdrop-filter: blur(1px))) {
@@ -559,7 +554,7 @@ a:focus-visible {
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: linear-gradient(155deg, rgb(255 255 255 / var(--glass-current-sheen-strength)) 0%, rgb(255 255 255 / calc(var(--glass-current-sheen-strength) * 0.35)) 22%, transparent 56%);
+    background: linear-gradient(180deg, rgb(255 255 255 / var(--glass-current-sheen-strength)), transparent 34%);
   }
 
 
@@ -569,8 +564,8 @@ a:focus-visible {
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16);
-    opacity: 0.9;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+    opacity: 1;
   }
 
   .glass-solid {
@@ -583,7 +578,7 @@ a:focus-visible {
   }
 
   .glass-interactive:hover {
-    border-color: rgb(var(--glass-tint-rgb) / min(calc(var(--glass-current-border-alpha) + 0.12), 0.75));
+    border-color: rgb(var(--stroke-strong) / min(calc(var(--glass-current-border-alpha) + 0.08), 0.48));
   }
 
   .glass-interactive:active {

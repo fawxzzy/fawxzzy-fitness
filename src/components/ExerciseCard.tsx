@@ -39,19 +39,19 @@ const densityStyles: Record<ExerciseCardDensity, {
 };
 
 const shellStateClassNames: Record<ExerciseCardState, string> = {
-  default: "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-rgb)/0.44)]",
-  selected: "border-[rgb(var(--accent-blue)/0.3)] bg-[linear-gradient(180deg,rgba(137,182,242,0.12),rgba(137,182,242,0.04))] ring-1 ring-[rgb(var(--accent-blue)/0.14)]",
-  active: "border-[rgb(var(--accent-mint)/0.3)] bg-[linear-gradient(180deg,rgba(127,216,195,0.12),rgba(127,216,195,0.04))] ring-1 ring-[rgb(var(--accent-mint)/0.14)]",
-  completed: "border-[rgb(var(--accent-mint)/0.34)] bg-[linear-gradient(180deg,rgba(127,216,195,0.16),rgba(103,191,173,0.06))] ring-1 ring-[rgb(var(--accent-mint)/0.16)]",
-  empty: "border-dashed border-[rgb(var(--accent-yellow-off)/0.24)] bg-[linear-gradient(180deg,rgba(200,179,95,0.06),rgba(42,53,72,0.2))]",
+  default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)]",
+  selected: "border-[rgb(var(--accent)/0.34)] bg-[linear-gradient(180deg,rgba(71,215,196,0.12),rgba(14,24,38,0.96))] ring-1 ring-[rgb(var(--accent)/0.1)]",
+  active: "border-[rgb(var(--accent)/0.42)] bg-[linear-gradient(180deg,rgba(71,215,196,0.16),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent)/0.14)]",
+  completed: "border-[rgb(var(--success-rgb)/0.34)] bg-[linear-gradient(180deg,rgba(79,209,126,0.14),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--success-rgb)/0.12)]",
+  empty: "border-dashed border-[rgb(var(--warning-rgb)/0.3)] bg-[rgb(var(--surface-1-rgb)/0.76)]",
 };
 
 const thumbStateClassNames: Record<ExerciseCardState, string> = {
-  default: "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--bg)/0.08)]",
-  selected: "border-[rgb(var(--accent-blue)/0.28)] bg-[rgb(var(--accent-blue)/0.08)]",
-  active: "border-[rgb(var(--accent-mint)/0.28)] bg-[rgb(var(--accent-mint)/0.08)]",
-  completed: "border-[rgb(var(--accent-mint)/0.3)] bg-[rgb(var(--accent-mint)/0.1)]",
-  empty: "border-dashed border-[rgb(var(--accent-yellow-off)/0.24)] bg-[rgb(var(--accent-yellow-off)/0.08)]",
+  default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--bg-2)/0.56)]",
+  selected: "border-[rgb(var(--accent)/0.28)] bg-[rgb(var(--accent)/0.08)]",
+  active: "border-[rgb(var(--accent)/0.32)] bg-[rgb(var(--accent)/0.1)]",
+  completed: "border-[rgb(var(--success-rgb)/0.3)] bg-[rgb(var(--success-rgb)/0.1)]",
+  empty: "border-dashed border-[rgb(var(--warning-rgb)/0.26)] bg-[rgb(var(--warning-rgb)/0.08)]",
 };
 
 const titleStateClassNames: Record<ExerciseCardState, string> = {
@@ -64,21 +64,21 @@ const titleStateClassNames: Record<ExerciseCardState, string> = {
 
 const subtitleStateClassNames: Record<ExerciseCardState, string> = {
   default: textRoles.subtitle,
-  selected: "text-[rgb(var(--text-secondary)/0.94)]",
-  active: "text-[rgb(var(--text-secondary)/0.9)]",
+  selected: "text-[rgb(var(--text-secondary)/0.96)]",
+  active: "text-[rgb(var(--text-secondary)/0.98)]",
   completed: "text-[rgb(var(--text-secondary)/0.96)]",
-  empty: "text-[rgb(var(--text-muted)/0.95)]",
+  empty: "text-[rgb(var(--text-muted)/0.98)]",
 };
 
 const badgeStateClassNames: Record<ExerciseCardState, string> = {
-  default: "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--bg-panel)/0.55)] text-[rgb(var(--text-primary)/0.82)]",
-  selected: "border-[rgb(var(--accent-blue)/0.28)] bg-[rgb(var(--accent-blue)/0.12)] text-[rgb(242_247_255)]",
-  active: "border-[rgb(var(--accent-mint)/0.3)] bg-[rgb(var(--accent-mint)/0.12)] text-[rgb(244_249_248)]",
-  completed: "border-[rgb(var(--accent-mint)/0.32)] bg-[rgb(var(--accent-mint)/0.14)] text-[rgb(244_249_248)]",
-  empty: "border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(255_246_214)]",
+  default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.92)] text-[rgb(var(--text-primary)/0.88)]",
+  selected: "border-[rgb(var(--accent)/0.32)] bg-[rgb(var(--accent)/0.14)] text-[rgb(var(--text-primary))]",
+  active: "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--text-primary))]",
+  completed: "border-[rgb(var(--success-rgb)/0.34)] bg-[rgb(var(--success-rgb)/0.14)] text-[rgb(var(--text-primary))]",
+  empty: "border-[rgb(var(--warning-rgb)/0.32)] bg-[rgb(var(--warning-rgb)/0.14)] text-[rgb(255_242_220)]",
 };
 
-const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text)/0.55)]" />;
+const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />;
 
 export function ExerciseCard({
   title,
