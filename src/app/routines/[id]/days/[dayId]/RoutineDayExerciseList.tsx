@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
 
 type RoutineDayExerciseItem = {
   id: string;
@@ -27,8 +26,11 @@ export function RoutineDayExerciseList({ exercises }: { exercises: RoutineDayExe
           id: exercise.id,
           name: exercise.name,
           summary: exercise.goalLine,
-          iconSrc: getExerciseIconSrc(exercise),
           orderNumber: index + 1,
+          slug: exercise.slug,
+          image_path: exercise.image_path,
+          image_icon_path: exercise.image_icon_path,
+          image_howto_path: exercise.image_howto_path,
         }))}
         onSelectItem={(item) => {
           const exercise = exercises.find((entry) => entry.id === item.id);

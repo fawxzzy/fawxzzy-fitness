@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AppPanel } from "@/components/ui/app/AppPanel";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { SessionSummaryCard } from "@/components/SessionSummaryCard";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
 
@@ -30,36 +29,23 @@ function HistorySessionCard({
   selected: boolean;
   viewMode: "compact" | "detailed";
 }) {
+  const tone = session.prCounts.total > 0 ? "pr" : "completed";
+
   return (
     <Link
       href={`/history/${session.id}?returnTab=sessions`}
       aria-current={selected ? "page" : undefined}
       className="block rounded-[1.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
     >
-      <StandardExerciseRow
-        variant="list"
-        density={viewMode}
-        state={selected ? "selected" : "default"}
-        exercise={{ name: session.routineTitle || "Unknown routine" }}
-        summary={formatSubtitle(session)}
-        className="shadow-none"
-        titleClassName={viewMode === "compact" ? "line-clamp-1" : undefined}
-        subtitleClassName="line-clamp-2"
-        contentClassName="space-y-0.75"
-        rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-      >
-        {viewMode === "compact" ? (
-          <p className="text-xs text-[rgb(var(--text)/0.8)] [text-wrap:pretty]">{formatSummaryLine(session)}</p>
-        ) : (
-          <p className="text-xs text-[rgb(var(--text)/0.82)] [text-wrap:pretty]">{formatSummaryLine(session)}</p>
-        )}
-        {viewMode === "detailed" ? (
-          <p className="text-xs text-[rgb(var(--text)/0.7)] [text-wrap:pretty]">
-            <span className="font-medium text-[rgb(var(--text)/0.76)]">Latest:</span>{" "}
-            <span>{session.topSet ? `${session.topSet.exerciseName} · ${session.topSet.display}` : "No set data"}</span>
-          </p>
-        ) : null}
-      </StandardExerciseRow>
+      <SessionSummaryCard
+        title={session.routineTitle || "Unknown routine"}
+        subtitle={formatSubtitle(session)}
+        summary={formatSummaryLine(session)}
+        detail={viewMode === "detailed" ? (session.topSet ? `${session.topSet.exerciseName} · ${session.topSet.display}` : "No set data") : undefined}
+        badgeText={session.prCounts.total > 0 ? `${session.prCounts.total} PR` : undefined}
+        tone={tone}
+        className={selected ? "ring-1 ring-[rgb(var(--accent)/0.2)]" : undefined}
+      />
     </Link>
   );
 }

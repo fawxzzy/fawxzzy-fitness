@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { textRoles } from "@/components/ui/text-roles";
+import { type CardSemanticTone, cardAccentRailClassNames, cardBadgeToneClassNames, cardMediaToneClassNames, cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 
 export type ExerciseCardVariant = "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
@@ -21,18 +22,21 @@ const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
 const densityStyles: Record<ExerciseCardDensity, {
   shell: string;
   media: string;
+  mediaFrame: string;
   subtitleClamp: string;
   titleSize: string;
 }> = {
   compact: {
-    shell: "min-h-[96px] px-4 py-3",
-    media: "h-14 w-14 rounded-[20px]",
+    shell: "min-h-[104px] px-4 py-3",
+    media: "h-full w-full",
+    mediaFrame: "-my-3 -ml-4 mr-1 w-[82px] min-h-[78px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[20px]",
     subtitleClamp: "line-clamp-1",
     titleSize: "text-[0.98rem]",
   },
   detailed: {
-    shell: "min-h-[128px] px-4 py-4",
-    media: "h-[72px] w-[72px] rounded-[22px]",
+    shell: "min-h-[136px] px-4 py-4",
+    media: "h-full w-full",
+    mediaFrame: "-my-4 -ml-4 mr-1.5 w-[104px] min-h-[88px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[22px]",
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1.02rem,2.5vw,1.08rem)]",
   },
@@ -80,6 +84,22 @@ const badgeStateClassNames: Record<ExerciseCardState, string> = {
 
 const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />;
 
+function resolveDefaultSemanticTone(state: ExerciseCardState): CardSemanticTone {
+  if (state === "selected" || state === "active") {
+    return "current";
+  }
+
+  if (state === "completed") {
+    return "completed";
+  }
+
+  if (state === "empty") {
+    return "attention";
+  }
+
+  return "neutral";
+}
+
 export function ExerciseCard({
   title,
   subtitle,
@@ -103,6 +123,7 @@ export function ExerciseCard({
   variant = "standard",
   state = "default",
   density,
+  semanticTone,
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -126,9 +147,11 @@ export function ExerciseCard({
   variant?: ExerciseCardVariant;
   state?: ExerciseCardState;
   density?: ExerciseCardDensity;
+  semanticTone?: CardSemanticTone;
 }) {
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
+  const resolvedSemanticTone = semanticTone ?? resolveDefaultSemanticTone(state);
   const bodyGridClassName = leadingVisual
     ? "grid-cols-[auto_minmax(0,1fr)_auto]"
     : "grid-cols-[minmax(0,1fr)_auto]";
@@ -136,26 +159,34 @@ export function ExerciseCard({
   const bodyContent = (
     <div
       className={cn(
-        "grid w-full min-w-0 items-center gap-3",
+        "relative grid w-full min-w-0 items-center gap-3 overflow-hidden",
         bodyGridClassName,
         styles.shell,
         bodyClassName,
       )}
     >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute bottom-0 left-0 top-0 w-[4px]",
+          cardAccentRailClassNames[resolvedSemanticTone],
+        )}
+      />
       {leadingVisual ? (
         <div
           className={cn(
             "relative shrink-0 self-stretch overflow-hidden border p-0 transition-colors",
-            styles.media,
+            styles.mediaFrame,
             thumbStateClassNames[state],
+            cardMediaToneClassNames[resolvedSemanticTone],
             mediaClassName,
           )}
         >
-          {leadingVisual}
+          <div className={styles.media}>{leadingVisual}</div>
         </div>
       ) : null}
 
-      <div className={cn("min-w-0 self-stretch", contentClassName)}>
+      <div className={cn("min-w-0 self-center", contentClassName)}>
         <div className={cn("min-w-0", titleContainerClassName)}>
           <div className="flex items-start justify-between gap-2">
             <p
@@ -173,6 +204,7 @@ export function ExerciseCard({
                 className={cn(
                   "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
                   badgeStateClassNames[state],
+                  cardBadgeToneClassNames[resolvedSemanticTone],
                 )}
               >
                 {badgeText}
@@ -197,12 +229,12 @@ export function ExerciseCard({
 
       <div
         className={cn(
-          "flex min-h-full shrink-0 items-center justify-end self-stretch",
+          "flex shrink-0 items-center justify-end self-center",
           trailingClassName,
           rightRailClassName,
         )}
       >
-        <div className={cn("flex h-full min-w-10 items-center justify-end", trailingStackClassName)}>
+        <div className={cn("flex min-w-10 items-center justify-end", trailingStackClassName)}>
           {rightIcon}
         </div>
       </div>
@@ -212,22 +244,27 @@ export function ExerciseCard({
   const shellClassName = cn(
     "w-full max-w-none rounded-[var(--card-radius)] text-left",
     shellStateClassNames[state],
+    cardShellToneClassNames[resolvedSemanticTone],
     disabled ? "cursor-not-allowed opacity-60" : undefined,
     className,
   );
 
-  if (onPress && actions) {
+  if (actions) {
     return (
       <Glass variant="base" interactive={!disabled} className={shellClassName}>
         <div className="flex w-full items-stretch gap-2">
-          <button
-            type="button"
-            className="min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]"
-            onClick={onPress}
-            disabled={disabled}
-          >
-            {bodyContent}
-          </button>
+          {onPress ? (
+            <button
+              type="button"
+              className="min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]"
+              onClick={onPress}
+              disabled={disabled}
+            >
+              {bodyContent}
+            </button>
+          ) : (
+            <div className="min-w-0 flex-1">{bodyContent}</div>
+          )}
           <div className="flex shrink-0 items-center gap-1.5 px-2 py-2">{actions}</div>
         </div>
       </Glass>

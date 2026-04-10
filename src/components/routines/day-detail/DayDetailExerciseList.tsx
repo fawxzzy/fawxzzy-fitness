@@ -9,8 +9,11 @@ export type DayDetailExerciseListItem = {
   id: string;
   name: string;
   summary: string | null;
-  iconSrc: string;
   orderNumber: number;
+  slug?: string | null;
+  image_path?: string | null;
+  image_icon_path?: string | null;
+  image_howto_path?: string | null;
 };
 
 type Props = {
@@ -40,12 +43,17 @@ export function DayDetailExerciseList({
           <li key={item.id} className="rounded-[1.3rem] transition-all">
             <div className="overflow-hidden rounded-[1.25rem]">
               <StandardExerciseRow
-                exercise={{ name: item.name, image_icon_path: item.iconSrc }}
+                exercise={{
+                  name: item.name,
+                  slug: item.slug,
+                  image_path: item.image_path,
+                  image_icon_path: item.image_icon_path,
+                  image_howto_path: item.image_howto_path,
+                }}
                 summary={item.summary ?? undefined}
                 variant="interactive"
                 state={isActive && mode === "editable" ? "selected" : "default"}
                 onPress={interactive ? () => onSelectItem?.(item) : undefined}
-                showLeadingVisual={false}
                 badgeText={mode === "editable" ? `ORDER ${item.orderNumber}` : undefined}
                 className={cn(
                   listShellClasses.card,

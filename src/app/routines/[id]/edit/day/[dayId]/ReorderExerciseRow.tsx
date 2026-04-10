@@ -6,7 +6,10 @@ type Props = {
   exerciseId: string;
   exerciseName: string;
   metadata: string;
-  iconSrc: string;
+  slug?: string | null;
+  image_path?: string | null;
+  image_icon_path?: string | null;
+  image_howto_path?: string | null;
   orderNumber: number;
   isDragging: boolean;
   onHandlePointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
@@ -19,7 +22,10 @@ export function ReorderExerciseRow({
   exerciseId,
   exerciseName,
   metadata,
-  iconSrc,
+  slug,
+  image_path,
+  image_icon_path,
+  image_howto_path,
   orderNumber,
   isDragging,
   onHandlePointerDown,
@@ -30,11 +36,10 @@ export function ReorderExerciseRow({
   return (
     <div data-exercise-row-id={exerciseId}>
       <StandardExerciseRow
-        exercise={{ name: exerciseName, image_icon_path: iconSrc }}
+        exercise={{ name: exerciseName, slug, image_path, image_icon_path, image_howto_path }}
         summary={metadata}
         variant="reorder"
         state={isDragging ? "selected" : "default"}
-        showLeadingVisual={false}
         className={cn("shadow-none", isDragging ? "scale-[0.99] opacity-85" : undefined)}
         trailingStackClassName="justify-start gap-1.5 py-0"
         rightIcon={(

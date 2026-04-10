@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
 import { ExerciseCard } from "@/components/ExerciseCard";
+import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
 
@@ -16,6 +17,7 @@ type StandardExerciseRowProps = {
   onPress?: () => void;
   badgeText?: string;
   rightIcon?: ReactNode;
+  actions?: ReactNode;
   className?: string;
   trailingClassName?: string;
   rightRailClassName?: string;
@@ -29,8 +31,10 @@ type StandardExerciseRowProps = {
   variant?: "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
   state?: "default" | "selected" | "active" | "completed" | "empty";
   density?: "compact" | "detailed";
+  semanticTone?: CardSemanticTone;
   children?: ReactNode;
   showLeadingVisual?: boolean;
+  imageSizes?: string;
 };
 
 export function StandardExerciseRow({
@@ -39,6 +43,7 @@ export function StandardExerciseRow({
   onPress,
   badgeText,
   rightIcon,
+  actions,
   className,
   trailingClassName,
   rightRailClassName,
@@ -52,10 +57,15 @@ export function StandardExerciseRow({
   variant = "standard",
   state,
   density,
+  semanticTone,
   children,
   showLeadingVisual = true,
+  imageSizes,
 }: StandardExerciseRowProps) {
   const resolvedState = state ?? getExerciseGoalSummaryState(summary);
+  const resolvedImageSizes = imageSizes ?? (density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
+    ? "(max-width: 768px) 84px, 92px"
+    : "(max-width: 768px) 112px, 128px");
 
   return (
     <ExerciseCard
@@ -64,12 +74,14 @@ export function StandardExerciseRow({
       variant={variant}
       state={resolvedState}
       density={density}
+      semanticTone={semanticTone}
       leadingVisual={showLeadingVisual ? (
-        <ExerciseThumb exercise={exercise} sizes="72px" />
+        <ExerciseThumb exercise={exercise} sizes={resolvedImageSizes} />
       ) : undefined}
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}
+      actions={actions}
       className={cn("shadow-none", className)}
       trailingClassName={trailingClassName}
       rightRailClassName={rightRailClassName}

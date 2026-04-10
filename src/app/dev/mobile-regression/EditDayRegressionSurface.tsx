@@ -58,7 +58,7 @@ export function EditDayRegressionSurface({
               exerciseId={exercise.id}
               exerciseName={exercise.name}
               metadata={exercise.summary ?? "Goal missing"}
-              iconSrc={exercise.iconSrc}
+              image_icon_path={exercise.iconSrc}
               orderNumber={index + 1}
               isDragging={index === 0}
               onHandlePointerDown={() => {}}
@@ -76,8 +76,8 @@ export function EditDayRegressionSurface({
     id: exercise.id,
     name: exercise.name,
     summary: exercise.summary,
-    iconSrc: exercise.iconSrc,
     orderNumber: exercise.orderNumber,
+    image_icon_path: exercise.iconSrc,
   }));
 
   return (

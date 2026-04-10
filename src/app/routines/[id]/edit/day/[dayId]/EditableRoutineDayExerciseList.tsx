@@ -16,7 +16,6 @@ import { type ExerciseGoalFormState } from "@/components/ui/measurements/Exercis
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
@@ -527,7 +526,10 @@ export function EditableRoutineDayExerciseList({
                     exerciseId={exercise.id}
                     exerciseName={exercise.name}
                     metadata={exercise.targetSummary}
-                    iconSrc={getExerciseIconSrc(exercise)}
+                    slug={exercise.slug}
+                    image_path={exercise.image_path}
+                    image_icon_path={exercise.image_icon_path}
+                    image_howto_path={exercise.image_howto_path}
                     orderNumber={canonicalOrderById.get(exercise.id) ?? index + 1}
                     isDragging={isDragging}
                     onHandlePointerDown={(event) => handleHandlePointerDown(exercise.id, event)}
@@ -546,8 +548,11 @@ export function EditableRoutineDayExerciseList({
               id: exercise.id,
               name: exercise.name,
               summary: exercise.targetSummary,
-              iconSrc: getExerciseIconSrc(exercise),
               orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
+              slug: exercise.slug,
+              image_path: exercise.image_path,
+              image_icon_path: exercise.image_icon_path,
+              image_howto_path: exercise.image_howto_path,
             }))}
             activeItemId={expandedId}
             onSelectItem={!modeViewModel.exerciseListInteractive ? undefined : (item) => {
