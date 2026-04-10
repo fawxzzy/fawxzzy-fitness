@@ -1,4 +1,5 @@
 import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { AppShell } from "@/components/ui/app/AppShell";
@@ -20,7 +21,6 @@ type PageProps = {
 
 export default async function SessionAddExercisePage({ params, searchParams }: PageProps) {
   const {
-    sessionRow,
     routine,
     exerciseOptions,
     exerciseStatsByExerciseId,
@@ -33,27 +33,30 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions
-        className="px-4 pb-0"
         floatingHeader={(
-          <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md">
-            <RoutineEditorPageHeader
-              recipe="sessionAddExercise"
-              title="Add Exercise"
-              action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
-            />
-          </ScreenScaffold>
+          <ContentRail className="py-1">
+            <ScreenScaffold recipe="sessionAddExercise" className="w-full">
+              <RoutineEditorPageHeader
+                recipe="sessionAddExercise"
+                title="Add Exercise"
+                action={<TopRightBackButton href={backHref} ariaLabel="Back to session" historyBehavior="fallback-only" />}
+              />
+            </ScreenScaffold>
+          </ContentRail>
         )}
       >
-        <ScreenScaffold recipe="sessionAddExercise" className="mx-auto w-full max-w-md">
-          <SessionQuickAddExerciseForm
-            sessionId={params.id}
-            exercises={exerciseOptions}
-            weightUnit={routine?.weight_unit ?? "kg"}
-            exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
-            backHref={backHref}
-            quickAddExerciseAction={quickAddExerciseAction}
-          />
-        </ScreenScaffold>
+        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+          <ScreenScaffold recipe="sessionAddExercise" className="w-full">
+            <SessionQuickAddExerciseForm
+              sessionId={params.id}
+              exercises={exerciseOptions}
+              weightUnit={routine?.weight_unit ?? "kg"}
+              exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
+              backHref={backHref}
+              quickAddExerciseAction={quickAddExerciseAction}
+            />
+          </ScreenScaffold>
+        </ContentRail>
       </ScrollScreenWithBottomActions>
     </AppShell>
   );

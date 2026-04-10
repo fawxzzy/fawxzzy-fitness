@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { AppButton } from "@/components/ui/AppButton";
 import { listShellClasses } from "@/components/ui/listShellClasses";
@@ -75,7 +76,6 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 };
 
 const pickerRowMobileDensityClassNames = {
-  card: "max-md:min-h-[4.2rem] max-md:rounded-[1rem] max-md:border-border/38 max-md:bg-[rgb(var(--surface-2-soft)/0.62)] max-md:px-3 max-md:py-2.5 max-md:shadow-none",
   body: "max-md:gap-2",
   title: "max-md:text-[0.92rem] max-md:leading-[1.24] max-md:line-clamp-2",
   titleContainer: "max-md:space-y-0.5",
@@ -180,13 +180,15 @@ function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
 }
 
 const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, metadata, onPress }: ExerciseRowProps) {
+  const rowState = isSelected ? "selected" : hasStats ? "active" : "default";
+
   return (
     <li>
       <StandardExerciseRow
         exercise={exercise}
         summary={metadata || undefined}
         variant="compact"
-        state={isSelected ? "selected" : "default"}
+        state={rowState}
         onPress={() => onPress(exercise.id, isSelected)}
         rightIcon={(
           <span
@@ -195,20 +197,14 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
               "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
               pickerRowMobileDensityClassNames.selectPill,
               isSelected
-                ? "border-emerald-400/35 bg-emerald-400/14 text-[rgb(var(--text)/0.98)] shadow-[0_5px_16px_-14px_rgba(96,200,130,0.88)]"
-                : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
+                ? "border-[rgb(var(--accent-blue)/0.28)] bg-[rgb(var(--accent-blue)/0.12)] text-[rgb(var(--text)/0.98)]"
+                : hasStats
+                  ? "border-[rgb(var(--accent-mint)/0.28)] bg-[rgb(var(--accent-mint)/0.1)] text-[rgb(var(--text)/0.94)]"
+                  : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
             )}
           >
             {isSelected ? "Selected" : "Select"}
           </span>
-        )}
-        className={cn(
-          "md:rounded-[1.05rem] md:border md:border-[rgb(var(--glass-tint-rgb)/var(--glass-current-border-alpha))] md:bg-[rgb(var(--glass-tint-rgb)/0.74)] md:p-3 md:shadow-[0_10px_20px_-14px_rgba(0,0,0,0.88)]",
-          pickerRowMobileDensityClassNames.card,
-          isSelected ? "max-md:border-emerald-300/28 max-md:bg-emerald-500/7" : undefined,
-          hasStats
-            ? "border-emerald-400/35 bg-emerald-500/10 hover:bg-emerald-500/14 max-md:border-emerald-400/24 max-md:bg-emerald-500/8 max-md:hover:bg-emerald-500/12"
-            : undefined,
         )}
         trailingClassName={cn(
           pickerRowMobileDensityClassNames.trailing,
@@ -223,6 +219,43 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
     </li>
   );
 });
+
+function EmptyExerciseRow() {
+  return (
+    <li>
+      <ExerciseCard
+        title="No exercises match your filters"
+        subtitle="Clear search or remove a filter to widen the library."
+        variant="compact"
+        state="empty"
+        leadingVisual={(
+          <div className="grid h-full w-full place-items-center text-[rgb(var(--text-muted)/0.72)]" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10 10a3 3 0 1 1 0 6a3 3 0 0 1 0-6Z" />
+              <path d="m14.5 14.5 4 4" />
+              <path d="M4 7h10" />
+            </svg>
+          </div>
+        )}
+        rightIcon={<span aria-hidden="true" className="block h-5 w-5 opacity-0" />}
+        className="shadow-none"
+        bodyClassName={pickerRowMobileDensityClassNames.body}
+        titleClassName={pickerRowMobileDensityClassNames.title}
+        titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}
+        subtitleClassName={pickerRowMobileDensityClassNames.subtitle}
+        contentClassName={pickerRowMobileDensityClassNames.content}
+      />
+    </li>
+  );
+}
 
 export function ExercisePicker({
   exercises,
@@ -446,7 +479,7 @@ export function ExercisePicker({
           onPress={handleExercisePress}
         />
       ))}
-      {filteredExercises.length === 0 ? <li className="rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.68)] px-4 py-4 text-sm text-muted">No exercises match your filters.</li> : null}
+      {filteredExercises.length === 0 ? <EmptyExerciseRow /> : null}
     </ul>
   );
 

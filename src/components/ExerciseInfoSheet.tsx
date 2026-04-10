@@ -209,7 +209,6 @@ export function ExerciseInfoSheet({
           ))}
         </DetailMetaRow>
       ) : undefined}
-      className="px-4"
     />
   );
 
@@ -234,11 +233,11 @@ export function ExerciseInfoSheet({
       aria-label="Exercise info"
     >
       <main className="min-h-[100dvh]">
-        <ContentRail className="flex min-h-[100dvh] flex-col gap-[var(--section-gap)] pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
+        <ContentRail className="flex min-h-[100dvh] flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
           {detailHeader}
 
           <Glass variant="base" className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px]">
-            <div className="scroll-y h-full px-4 pb-6 pt-4">
+            <div className="scroll-y min-h-0 flex-1 px-4 pb-6 pt-4">
               <div className="space-y-3">
                 <DetailSection title="How to">
                   {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
