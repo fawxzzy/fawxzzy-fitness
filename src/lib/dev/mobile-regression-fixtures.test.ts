@@ -80,5 +80,8 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(new Set(pairs).size, mobileRegressionScenarios.length);
   assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "default" })?.id, "today-default");
   assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "reorder" })?.id, "edit-day-reorder");
+  assert.equal(resolveMobileRegressionScenario({ screen: "routines", fixture: "default" })?.id, "routines-current-view");
+  assert.equal(resolveMobileRegressionScenario({ screen: "history", fixture: "default" })?.id, "history-sessions-extreme");
+  assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "default" })?.id, "exercise-detail-broken-images");
   assert.equal(resolveMobileRegressionScenario({ scenario: "settings-default" })?.id, "settings-default");
 });
