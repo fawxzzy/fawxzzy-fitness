@@ -45,6 +45,7 @@ import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import {
   mobileRegressionScenarios,
   resolveMobileRegressionScenario,
+  type MobileRouteKey,
   type MobileFixtureScenario,
 } from "@/lib/dev/mobileRegressionFixtures";
 
@@ -112,6 +113,47 @@ async function noopSyncQueuedSetLogsAction(_: unknown) {
 
 function RegressionMarker({ scenario }: { scenario: MobileFixtureScenario }) {
   return <div hidden data-mobile-regression-id={scenario.id} data-mobile-regression-screen={scenario.screen} />;
+}
+
+function getRegressionRenderBoundary(route: MobileRouteKey) {
+  switch (route) {
+    case "today":
+      return "renderTodayScenario";
+    case "session":
+      return "renderSessionScenario";
+    case "routines":
+      return "renderRoutinesScenario";
+    case "viewDay":
+      return "renderViewDayScenario";
+    case "editDay":
+      return "renderEditDayScenario";
+    case "createRoutine":
+      return "renderCreateRoutineScenario";
+    case "editRoutine":
+      return "renderEditRoutineScenario";
+    case "addExercise":
+      return "renderAddExerciseScenario";
+    case "historySessions":
+      return "renderHistorySessionsScenario";
+    case "historyExercises":
+      return "renderHistoryExercisesScenario";
+    case "historyDetail":
+      return "renderHistoryDetailScenario";
+    case "settings":
+      return "renderSettingsScenario";
+    case "exerciseDetail":
+      return "renderExerciseDetailScenario";
+    default:
+      return "unknown";
+  }
+}
+
+function traceMobileRegression(event: string, details: Record<string, unknown>) {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  console.info(`[mobile-regression] ${event}`, details);
 }
 
 function RegressionIndex() {
@@ -997,6 +1039,14 @@ function renderExerciseDetailScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderScenario(scenario: MobileFixtureScenario) {
+  traceMobileRegression("render", {
+    scenarioId: scenario.id,
+    resolvedScreen: scenario.screen,
+    resolvedFixture: scenario.fixture,
+    componentChosen: getRegressionRenderBoundary(scenario.route),
+    firstRenderBoundaryEntered: getRegressionRenderBoundary(scenario.route),
+  });
+
   switch (scenario.route) {
     case "today":
       return renderTodayScenario(scenario);
@@ -1053,8 +1103,23 @@ export default function DevMobileRegressionPage({
   }
 
   if (!scenario) {
+    traceMobileRegression("resolve-miss", {
+      requestedScenario: searchParams?.scenario ?? null,
+      requestedScreen: searchParams?.screen ?? null,
+      requestedFixture: searchParams?.fixture ?? null,
+    });
     notFound();
   }
+
+  traceMobileRegression("resolve", {
+    requestedScenario: searchParams?.scenario ?? null,
+    requestedScreen: searchParams?.screen ?? null,
+    requestedFixture: searchParams?.fixture ?? null,
+    resolvedScenario: scenario.id,
+    resolvedScreen: scenario.screen,
+    resolvedFixture: scenario.fixture,
+    componentChosen: getRegressionRenderBoundary(scenario.route),
+  });
 
   return (
     <>

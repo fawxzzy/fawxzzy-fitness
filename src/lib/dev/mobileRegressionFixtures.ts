@@ -475,6 +475,23 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
 
 export const mobileRegressionScenarioIds = mobileRegressionScenarios.map((scenario) => scenario.id);
 
+const defaultScenarioIdByScreen = {
+  today: "today-default",
+  session: "active-workout-session",
+  routines: "routines-current-view",
+  "view-day": "view-day",
+  "edit-day": "edit-day-default",
+  "create-routine": "create-routine",
+  "edit-routine": "edit-routine",
+  "add-exercise": "add-exercise-default",
+  history: "history-sessions-extreme",
+  "history-sessions": "history-sessions-extreme",
+  "history-exercises": "history-exercises-zero-results",
+  "history-detail": "history-detail-broken-images",
+  settings: "settings-default",
+  "exercise-detail": "exercise-detail-broken-images",
+} as const;
+
 export function getMobileRegressionScenarioById(id?: string | null) {
   if (!id) return null;
   return mobileRegressionScenarios.find((scenario) => scenario.id === id) ?? null;
@@ -492,5 +509,17 @@ export function resolveMobileRegressionScenario(args: {
   if (!screen) return null;
   const fixture = args.fixture?.trim().toLowerCase() || "default";
 
-  return mobileRegressionScenarios.find((scenario) => scenario.screen === screen && scenario.fixture === fixture) ?? null;
+  const exactMatch = mobileRegressionScenarios.find((scenario) => scenario.screen === screen && scenario.fixture === fixture) ?? null;
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  if (fixture === "default") {
+    const defaultScenarioId = defaultScenarioIdByScreen[screen as keyof typeof defaultScenarioIdByScreen];
+    if (defaultScenarioId) {
+      return getMobileRegressionScenarioById(defaultScenarioId);
+    }
+  }
+
+  return null;
 }
