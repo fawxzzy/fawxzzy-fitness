@@ -6,9 +6,9 @@ import { GlassButton } from "@/components/ui/GlassButton";
 import { type GlassEffectsMode, useGlassEffects } from "@/lib/useGlassEffects";
 
 const APPEARANCE_OPTIONS: Array<{ value: GlassEffectsMode; label: string; description: string }> = [
-  { value: "on", label: "On", description: "Full blur and sheen" },
-  { value: "reduced", label: "Reduced", description: "Lower blur, stronger tint" },
-  { value: "off", label: "Off", description: "No blur effects" },
+  { value: "on", label: "Coated", description: "Sharper glass with subtle blur" },
+  { value: "reduced", label: "Performance", description: "Lower blur and stronger contrast" },
+  { value: "off", label: "Solid", description: "No blur, darkest surfaces" },
 ];
 
 const WEIGHT_OPTIONS: Array<{ value: "lbs" | "kg"; label: string }> = [
@@ -22,8 +22,8 @@ const DISTANCE_OPTIONS: Array<{ value: "mi" | "km"; label: string }> = [
 ];
 
 const ACTIVE_SETTING_OPTION_CLASS =
-  "border-emerald-300/70 bg-emerald-500/24 text-emerald-50 shadow-[0_0_0_1px_rgba(52,211,153,0.4),0_0_16px_rgba(16,185,129,0.25)]";
-const INACTIVE_SETTING_OPTION_CLASS = "border-white/10 bg-white/5 text-[rgb(var(--text)/0.82)]";
+  "border-[rgb(var(--accent)/0.38)] bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--text-primary))]";
+const INACTIVE_SETTING_OPTION_CLASS = "border-[rgb(var(--border)/0.18)] bg-[rgb(var(--surface-2)/0.94)] text-[rgb(var(--text-secondary)/0.96)]";
 
 function UnitChoiceButton({
   active,

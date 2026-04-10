@@ -1,15 +1,15 @@
 export const themeContract = {
   bg: {
     app: "rgb(var(--bg-app))",
-    panel: "rgb(var(--bg-panel))",
-    card: "rgb(var(--bg-card))",
-    shell: "rgb(var(--shell-rgb))",
-    panelSoft: "rgb(var(--surface)/0.76)",
-    cardSoft: "rgb(var(--surface-rgb)/0.46)",
+    panel: "rgb(var(--surface) / 0.88)",
+    card: "rgb(var(--surface-2) / 0.94)",
+    shell: "rgb(var(--shell-rgb) / 0.98)",
+    panelSoft: "rgb(var(--surface) / 0.88)",
+    cardSoft: "rgb(var(--surface-rgb) / 0.78)",
   },
   stroke: {
-    soft: "rgb(var(--border)/0.26)",
-    strong: "rgb(var(--border-strong)/0.48)",
+    soft: "rgb(var(--border) / 0.12)",
+    strong: "rgb(var(--border-strong) / 0.22)",
   },
   text: {
     primary: "rgb(var(--text-primary))",
@@ -25,13 +25,13 @@ export const themeContract = {
     purple: "rgb(var(--accent-purple))",
   },
   radii: {
-    panel: "1.125rem",
-    card: "1rem",
-    button: "0.875rem",
+    panel: "var(--radius-lg)",
+    card: "var(--radius-lg)",
+    button: "var(--button-radius)",
     pill: "999px",
   },
   spacing: {
-    cardPad: "0.875rem",
+    cardPad: "1rem",
     sectionGap: "0.75rem",
   },
 } as const;

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { appTokens } from "@/components/ui/app/tokens";
 
@@ -6,10 +6,10 @@ export function AppPanel({
   children,
   className,
   clip = false,
-}: {
+  ...props
+}: HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
-  className?: string;
   clip?: boolean;
 }) {
-  return <div className={cn(appTokens.panelBase, clip ? "overflow-hidden" : undefined, className)}>{children}</div>;
+  return <div className={cn(appTokens.panelBase, clip ? "overflow-hidden" : undefined, className)} {...props}>{children}</div>;
 }

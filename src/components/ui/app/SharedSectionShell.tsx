@@ -42,7 +42,7 @@ export function SharedSectionShell({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             {label ? (
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.58)]">{label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">{label}</p>
             ) : null}
             {context ? <SubtitleText>{context}</SubtitleText> : null}
             {meta ? <div>{meta}</div> : null}

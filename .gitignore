@@ -19,3 +19,8 @@ public/splash/*.png
 .playbook/
 .vercel
 .env*.local
+
+# Codex local runtime artifacts
+.codex/logs/
+.codex/qa/*
+!.codex/qa/cdp-edge.mjs

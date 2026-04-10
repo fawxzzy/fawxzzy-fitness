@@ -20,6 +20,7 @@ type BottomDockButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "chil
 export function BottomDockButton({ children, intent, variant, className, loading = false, fullWidth = true, ...props }: BottomDockButtonProps) {
   const resolvedIntent = resolveBottomActionIntent({ intent, variant });
   const isDisabled = Boolean(props.disabled || loading);
+  const loadingLabel = typeof children === "string" && children.trim().length > 0 ? `${children}...` : "Loading...";
 
   return (
     <button
@@ -31,7 +32,13 @@ export function BottomDockButton({ children, intent, variant, className, loading
       data-action-chrome-segmented="true"
       className={getBottomActionButtonClassName({ intent: resolvedIntent, fullWidth, className })}
     >
-      <span>{children}</span>
+      <span className={loading ? "opacity-0" : ""}>{children}</span>
+      {loading ? (
+        <span className="absolute inset-0 flex items-center justify-center gap-2">
+          <span aria-hidden="true" className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-r-transparent" />
+          <span>{loadingLabel}</span>
+        </span>
+      ) : null}
     </button>
   );
 }

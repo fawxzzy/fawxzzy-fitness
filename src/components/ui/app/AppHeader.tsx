@@ -52,22 +52,22 @@ export function AppHeader({
               {hasSubtitleRow ? (
                 <div className={cn("flex min-w-0 gap-2", subtitleRight ? "items-start justify-between" : "items-center")}>
                   {shouldMergeSubtitleAndMeta ? (
-                    <p className={cn("min-w-0 text-left text-sm leading-snug text-[rgb(var(--text)/0.72)] [text-wrap:pretty] [overflow-wrap:anywhere]", subtitleClassName)}>
+                    <p className={cn("min-w-0 text-left text-sm leading-snug text-[rgb(var(--text-secondary)/0.98)] [text-wrap:pretty] break-words", subtitleClassName)}>
                       <span className="align-middle">{resolvedSubtitle}</span>
-                      <span className="inline align-middle text-[rgb(var(--text)/0.6)] before:mx-1 before:inline-block before:text-[rgb(var(--text)/0.5)] before:content-['\2022']">
+                      <span className="inline align-middle text-[rgb(var(--text-muted)/0.98)] before:mx-1 before:inline-block before:text-[rgb(var(--text-muted)/0.82)] before:content-['\2022']">
                         {meta}
                       </span>
                     </p>
                   ) : resolvedSubtitle ? (
-                    <div className={cn("min-w-0 text-left text-sm text-[rgb(var(--text)/0.72)] [text-wrap:pretty]", subtitleClassName)}>{resolvedSubtitle}</div>
+                    <div className={cn("min-w-0 text-left text-sm text-[rgb(var(--text-secondary)/0.98)] [text-wrap:pretty] break-words", subtitleClassName)}>{resolvedSubtitle}</div>
                   ) : <span />}
                   {subtitleRight ? (
-                    <div className="shrink-0 text-right text-sm text-[rgb(var(--text)/0.6)]">{subtitleRight}</div>
+                    <div className="shrink-0 text-right text-sm text-[rgb(var(--text-muted)/0.98)]">{subtitleRight}</div>
                   ) : null}
                 </div>
               ) : null}
               {hasMeta && !shouldMergeSubtitleAndMeta ? (
-                <div className="text-left text-sm text-[rgb(var(--text)/0.6)]">{meta}</div>
+                <div className="text-left text-sm text-[rgb(var(--text-muted)/0.98)]">{meta}</div>
               ) : null}
             </div>
           ) : null}

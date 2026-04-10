@@ -56,7 +56,7 @@ export function DetailSection({
     <AppPanel className={cn("space-y-4 p-4", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <TitleText as="h3" className="text-base">{title}</TitleText>
+          <TitleText as="h3" className="text-[1.3125rem]">{title}</TitleText>
           {description ? <SubtitleText className="text-sm">{description}</SubtitleText> : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
@@ -76,12 +76,12 @@ export function DetailMetaChip({ label, value, emphasized = false }: { label: st
       className={cn(
         "min-w-0 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
         emphasized
-          ? "border-[rgb(var(--button-primary-border)/0.45)] bg-[rgb(var(--button-primary-bg)/0.18)] text-slate-100"
-          : "border-white/10 bg-white/5 text-slate-300",
+          ? "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.14)] text-[rgb(var(--text-primary))]"
+          : "border-[rgb(var(--border)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.92)] text-[rgb(var(--text-secondary)/0.96)]",
       )}
     >
-      <span className="text-slate-400">{label}</span>
-      <span className="ml-1 text-slate-100">{value}</span>
+      <span className="text-[rgb(var(--text-muted)/0.94)]">{label}</span>
+      <span className="ml-1 text-[rgb(var(--text-primary))]">{value}</span>
     </div>
   );
 }
