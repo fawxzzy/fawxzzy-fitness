@@ -11,20 +11,20 @@ export const cardAccentRailClassNames: Record<CardSemanticTone, string> = {
 
 export const cardShellToneClassNames: Record<CardSemanticTone, string> = {
   neutral: "",
-  current: "shadow-[inset_0_0_0_1px_rgb(var(--accent)/0.08)]",
-  logged: "shadow-[inset_0_0_0_1px_rgb(var(--success-rgb)/0.08)]",
-  completed: "shadow-[inset_0_0_0_1px_rgb(var(--success-rgb)/0.12)]",
-  attention: "shadow-[inset_0_0_0_1px_rgb(var(--warning-rgb)/0.12)]",
-  pr: "shadow-[inset_0_0_0_1px_rgb(var(--warning-rgb)/0.16)]",
+  current: "shadow-[inset_0_0_0_1px_rgb(var(--accent)/0.16),0_0_0_1px_rgb(var(--accent)/0.05)]",
+  logged: "shadow-[inset_0_0_0_1px_rgb(var(--success-rgb)/0.18),0_0_0_1px_rgb(var(--success-rgb)/0.06)]",
+  completed: "shadow-[inset_0_0_0_1px_rgb(var(--success-rgb)/0.22),0_0_0_1px_rgb(var(--success-rgb)/0.08)]",
+  attention: "shadow-[inset_0_0_0_1px_rgb(var(--warning-rgb)/0.2),0_0_0_1px_rgb(var(--warning-rgb)/0.08)]",
+  pr: "shadow-[inset_0_0_0_1px_rgb(var(--warning-rgb)/0.26),0_0_0_1px_rgb(var(--warning-rgb)/0.1)]",
 };
 
 export const cardMediaToneClassNames: Record<CardSemanticTone, string> = {
   neutral: "",
-  current: "border-[rgb(var(--accent)/0.24)]",
-  logged: "border-[rgb(var(--success-rgb)/0.24)]",
-  completed: "border-[rgb(var(--success-rgb)/0.3)]",
-  attention: "border-[rgb(var(--warning-rgb)/0.28)]",
-  pr: "border-[rgb(var(--warning-rgb)/0.34)]",
+  current: "border-[rgb(var(--accent)/0.3)]",
+  logged: "border-[rgb(var(--success-rgb)/0.32)]",
+  completed: "border-[rgb(var(--success-rgb)/0.38)]",
+  attention: "border-[rgb(var(--warning-rgb)/0.34)]",
+  pr: "border-[rgb(var(--warning-rgb)/0.4)]",
 };
 
 export const cardBadgeToneClassNames: Record<CardSemanticTone, string> = {

@@ -83,6 +83,23 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     : row.bestSummary ? `Best ${row.bestSummary}` : null;
 
   const fallbackLine = row.kind === "strength" ? "Strength history" : "Cardio history";
+  const rowChrome = viewMode === "detailed"
+    ? {
+        bodyClassName: "gap-[1.125rem]",
+        mediaClassName: "mr-0.5 w-[126px] min-h-[112px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[18px]",
+        contentClassName: "pr-1.5",
+        titleClassName: "line-clamp-2 text-[1.04rem] leading-[1.18]",
+        subtitleClassName: "line-clamp-2 text-[12.5px] leading-[1.35]",
+        imageSizes: "(max-width: 768px) 132px, 148px",
+      }
+    : {
+        bodyClassName: "gap-3.5",
+        mediaClassName: "mr-0.5 w-[104px] min-h-[96px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[16px]",
+        contentClassName: "pr-1",
+        titleClassName: "line-clamp-3 text-[1rem] leading-[1.18]",
+        subtitleClassName: "line-clamp-2 text-[12px] leading-[1.3]",
+        imageSizes: "(max-width: 768px) 108px, 120px",
+      };
 
   return (
     <StandardExerciseRow
@@ -100,9 +117,14 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       state="default"
       semanticTone={semanticTone}
       className="shadow-none"
-      titleClassName="line-clamp-2"
+      bodyClassName={rowChrome.bodyClassName}
+      mediaClassName={rowChrome.mediaClassName}
+      contentClassName={rowChrome.contentClassName}
+      titleClassName={rowChrome.titleClassName}
+      subtitleClassName={rowChrome.subtitleClassName}
+      imageSizes={rowChrome.imageSizes}
     >
-      {viewMode === "detailed" && secondaryLine ? <p className={cn("line-clamp-2 text-xs text-[rgb(var(--text)/0.62)]")}>{secondaryLine}</p> : null}
+      {viewMode === "detailed" && secondaryLine ? <p className={cn("line-clamp-2 text-[11px] leading-[1.35] text-[rgb(var(--text)/0.62)]")}>{secondaryLine}</p> : null}
     </StandardExerciseRow>
   );
 });
@@ -111,7 +133,7 @@ export function ExerciseBrowserClient({ rows = [], inlineHeaderControls = false 
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
+  const [viewMode, setViewMode] = useState<"compact" | "detailed">("detailed");
   const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   const exerciseTagsById = useMemo(() => {
