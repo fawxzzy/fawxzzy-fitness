@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import process from "node:process";
@@ -25,6 +26,64 @@ async function fetchJson(url, attempts = 50) {
     }
   }
   throw lastError ?? new Error(`Could not fetch ${url}`);
+}
+
+async function readDevToolsPort(profileDir, attempts = 50) {
+  const activePortPath = path.join(profileDir, "DevToolsActivePort");
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const activePort = await fs.readFile(activePortPath, "utf8");
+      const [portLine] = activePort.split(/\r?\n/, 1);
+      const port = Number(portLine);
+      if (!Number.isInteger(port) || port <= 0) {
+        throw new Error(`Invalid DevTools port "${portLine}"`);
+      }
+      return port;
+    } catch (error) {
+      lastError = error;
+      await delay(200);
+    }
+  }
+  throw lastError ?? new Error(`Could not read ${activePortPath}`);
+}
+
+async function resolveProfileDir(profileDir) {
+  if (profileDir) {
+    const resolvedProfileDir = path.resolve(profileDir);
+    await fs.mkdir(resolvedProfileDir, { recursive: true });
+    return { profileDir: resolvedProfileDir, temporary: false };
+  }
+
+  const temporaryProfileDir = await fs.mkdtemp(path.join(os.tmpdir(), "fawxzzy-qa-edge-"));
+  return { profileDir: temporaryProfileDir, temporary: true };
+}
+
+async function waitForChildExit(child, timeoutMs = 5000) {
+  if (child.exitCode !== null) {
+    return true;
+  }
+
+  return new Promise((resolve) => {
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      child.off("exit", onExit);
+      child.off("error", onExit);
+    };
+
+    const onExit = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      resolve(false);
+    }, timeoutMs);
+
+    child.once("exit", onExit);
+    child.once("error", onExit);
+  });
 }
 
 class CdpClient {
@@ -181,9 +240,8 @@ async function main() {
   }
 
   const config = JSON.parse(await fs.readFile(configPath, "utf8"));
-  const port = config.port ?? 9223;
-  const profileDir = path.resolve(config.profileDir ?? ".codex/qa/edge-profile");
-  await fs.mkdir(profileDir, { recursive: true });
+  const requestedPort = config.port ?? null;
+  const { profileDir, temporary: temporaryProfileDir } = await resolveProfileDir(config.profileDir);
   if (config.outPath) {
     await fs.mkdir(path.dirname(path.resolve(config.outPath)), { recursive: true });
   }
@@ -191,14 +249,14 @@ async function main() {
   const edge = spawn(EDGE_PATH, [
     "--headless",
     "--disable-gpu",
-    `--remote-debugging-port=${port}`,
+    `--remote-debugging-port=${requestedPort ?? 0}`,
     `--user-data-dir=${profileDir}`,
     "about:blank",
   ], {
-    detached: true,
     stdio: "ignore",
+    windowsHide: true,
   });
-  edge.unref();
+  const port = requestedPort ?? await readDevToolsPort(profileDir);
 
   const version = await fetchJson(`http://127.0.0.1:${port}/json/version`);
   const browserWs = new WebSocket(version.webSocketDebuggerUrl);
@@ -280,7 +338,29 @@ async function main() {
       console.log(JSON.stringify(result.result?.value ?? null, null, 2));
     }
   } finally {
-    await client.close();
+    try {
+      await browserClient.send("Browser.close");
+    } catch {
+      // Ignore shutdown races if the browser is already gone.
+    }
+
+    const exitedCleanly = await waitForChildExit(edge, 4000);
+    if (!exitedCleanly && edge.exitCode === null) {
+      edge.kill();
+      await waitForChildExit(edge, 4000);
+    }
+
+    await client.close().catch(() => {});
+
+    if (temporaryProfileDir) {
+      await delay(250);
+      await fs.rm(profileDir, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100,
+      }).catch(() => {});
+    }
   }
 }
 

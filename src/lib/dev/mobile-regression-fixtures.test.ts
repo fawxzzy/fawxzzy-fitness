@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mobileRegressionScenarios } from "./mobileRegressionFixtures.ts";
+import {
+  mobileRegressionScenarios,
+  resolveMobileRegressionScenario,
+} from "./mobileRegressionFixtures.ts";
 import { validateMobileScenarioContracts } from "./mobileRegressionContracts.ts";
 
 const expectedScenarioIds = [
@@ -19,6 +22,11 @@ const expectedScenarioIds = [
   "create-routine",
   "edit-routine",
   "add-exercise-default",
+  "history-sessions-extreme",
+  "history-exercises-zero-results",
+  "history-detail-broken-images",
+  "settings-default",
+  "exercise-detail-broken-images",
 ] as const;
 
 test("mobile regression fixtures include the deterministic screenshot contract inventory", () => {
@@ -65,4 +73,12 @@ test("mobile regression fixture contracts pass for the full fixture suite", () =
       `${scenario.id}: Current Session Save Set lost pinned floating header`,
     );
   }
+});
+
+test("mobile regression fixtures expose stable screen/fixture query pairs", () => {
+  const pairs = mobileRegressionScenarios.map((scenario) => `${scenario.screen}:${scenario.fixture}`);
+  assert.equal(new Set(pairs).size, mobileRegressionScenarios.length);
+  assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "default" })?.id, "today-default");
+  assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "reorder" })?.id, "edit-day-reorder");
+  assert.equal(resolveMobileRegressionScenario({ scenario: "settings-default" })?.id, "settings-default");
 });

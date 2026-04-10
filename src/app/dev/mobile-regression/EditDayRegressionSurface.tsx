@@ -1,0 +1,137 @@
+"use client";
+
+import { useState } from "react";
+import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
+import { DayDetailExerciseList, type DayDetailExerciseListItem } from "@/components/routines/day-detail/DayDetailExerciseList";
+import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
+import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+
+type EditDayFixture = "default" | "reorder" | "rest" | "edit-exercise" | "add-exercise";
+
+type EditDayExercise = {
+  id: string;
+  name: string;
+  summary: string | null;
+  iconSrc: string;
+  orderNumber: number;
+};
+
+function buildGoalState(): ExerciseGoalFormState {
+  return {
+    sets: "4",
+    repsMin: "8",
+    repsMax: "10",
+    weight: "70",
+    duration: "",
+    distance: "",
+    calories: "",
+    weightUnit: "lbs",
+    distanceUnit: "mi",
+    measurements: ["reps", "weight"],
+  };
+}
+
+export function EditDayRegressionSurface({
+  fixture,
+  exercises,
+}: {
+  fixture: EditDayFixture;
+  exercises: EditDayExercise[];
+}) {
+  const [goalState, setGoalState] = useState<ExerciseGoalFormState>(buildGoalState);
+  const [expandedId, setExpandedId] = useState<string | null>(fixture === "edit-exercise" ? exercises[0]?.id ?? null : null);
+
+  if (fixture === "rest") {
+    return (
+      <div className="rounded-[1.25rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-5 text-sm text-[rgb(var(--text-muted)/0.92)]">
+        Recovery day enabled. Training rows are hidden and the rest toggle becomes the only bottom action.
+      </div>
+    );
+  }
+
+  if (fixture === "reorder") {
+    return (
+      <ul className="space-y-2">
+        {exercises.map((exercise, index) => (
+          <li key={exercise.id} className="rounded-[1.3rem] transition-all">
+            <ReorderExerciseRow
+              exerciseId={exercise.id}
+              exerciseName={exercise.name}
+              metadata={exercise.summary ?? "Goal missing"}
+              iconSrc={exercise.iconSrc}
+              orderNumber={index + 1}
+              isDragging={index === 0}
+              onHandlePointerDown={() => {}}
+              onHandlePointerMove={() => {}}
+              onHandlePointerUp={() => {}}
+              onHandlePointerCancel={() => {}}
+            />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  const items: DayDetailExerciseListItem[] = exercises.map((exercise) => ({
+    id: exercise.id,
+    name: exercise.name,
+    summary: exercise.summary,
+    iconSrc: exercise.iconSrc,
+    orderNumber: exercise.orderNumber,
+  }));
+
+  return (
+    <div className="space-y-3">
+      <DayDetailExerciseList
+        mode="editable"
+        items={items}
+        activeItemId={expandedId}
+        onSelectItem={fixture === "default" ? undefined : (item) => setExpandedId((current) => current === item.id ? null : item.id)}
+        renderExpandedContent={(item) => {
+          if (fixture !== "edit-exercise" || expandedId !== item.id) return null;
+          return (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label htmlFor={`manual-order-${item.id}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                  Order
+                </label>
+                <input
+                  id={`manual-order-${item.id}`}
+                  name="manualOrder"
+                  type="number"
+                  min={1}
+                  max={exercises.length}
+                  defaultValue={item.orderNumber}
+                  className="h-10 w-full rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3 text-sm text-text outline-none"
+                />
+              </div>
+              <SharedExerciseGoalForm
+                modality="strength"
+                state={goalState}
+                onStateChange={setGoalState}
+                names={{
+                  sets: "targetSets",
+                  repsMin: "targetRepsMin",
+                  repsMax: "targetRepsMax",
+                  weight: "targetWeight",
+                  duration: "targetDuration",
+                  distance: "targetDistance",
+                  calories: "targetCalories",
+                  weightUnit: "targetWeightUnit",
+                  distanceUnit: "targetDistanceUnit",
+                }}
+                emptySummaryLabel="Goal missing"
+              />
+            </div>
+          );
+        }}
+      />
+
+      {fixture === "add-exercise" ? (
+        <div className="rounded-[1.25rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.38)] px-4 py-4 text-sm text-[rgb(var(--text-muted)/0.92)]">
+          Add Exercise stays in the same screen family. The list remains visible, the dock still clears content, and the next step opens the picker without changing chrome.
+        </div>
+      ) : null}
+    </div>
+  );
+}

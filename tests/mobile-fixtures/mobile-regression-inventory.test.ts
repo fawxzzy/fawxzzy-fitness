@@ -17,6 +17,11 @@ test("fixture inventory covers all mobile screens from the pre-fix set", () => {
   assert.equal(byRoute.get("createRoutine"), 1);
   assert.equal(byRoute.get("editRoutine"), 1);
   assert.equal(byRoute.get("addExercise"), 1);
+  assert.equal(byRoute.get("historySessions"), 1);
+  assert.equal(byRoute.get("historyExercises"), 1);
+  assert.equal(byRoute.get("historyDetail"), 1);
+  assert.equal(byRoute.get("settings"), 1);
+  assert.equal(byRoute.get("exerciseDetail"), 1);
 });
 
 test("major mobile routes declare floatingHeader usage", () => {

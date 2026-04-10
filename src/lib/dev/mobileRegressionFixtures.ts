@@ -6,7 +6,27 @@ export type MobileRouteKey =
   | "editDay"
   | "createRoutine"
   | "editRoutine"
-  | "addExercise";
+  | "addExercise"
+  | "historySessions"
+  | "historyExercises"
+  | "historyDetail"
+  | "settings"
+  | "exerciseDetail";
+
+export type MobileRegressionScreenKey =
+  | "today"
+  | "session"
+  | "routines"
+  | "view-day"
+  | "edit-day"
+  | "create-routine"
+  | "edit-routine"
+  | "add-exercise"
+  | "history-sessions"
+  | "history-exercises"
+  | "history-detail"
+  | "settings"
+  | "exercise-detail";
 
 export type ScreenGeometry = {
   viewportWidth: number;
@@ -55,7 +75,9 @@ export type GoalFormReadabilityFixture = {
 export type MobileFixtureScenario = {
   id: string;
   route: MobileRouteKey;
+  screen: MobileRegressionScreenKey;
   name: string;
+  fixture: string;
   geometry: ScreenGeometry;
   fixtureState: string;
   restDay?: boolean;
@@ -107,6 +129,7 @@ function withBaseGeometry(overrides: Partial<ScreenGeometry>): ScreenGeometry {
 function buildWorkoutFixture(args: {
   id: string;
   name: string;
+  fixture: string;
   fixtureState: string;
   inSessionSummary?: boolean;
   activeSession?: boolean;
@@ -120,7 +143,9 @@ function buildWorkoutFixture(args: {
   return {
     id: args.id,
     route: args.activeSession ? "session" : "today",
+    screen: args.activeSession ? "session" : "today",
     name: args.name,
+    fixture: args.fixture,
     fixtureState: args.fixtureState,
     geometry: withBaseGeometry({}),
     inSessionSummary: args.inSessionSummary,
@@ -138,6 +163,7 @@ function buildWorkoutFixture(args: {
 function buildRoutinesFixture(args: {
   id: string;
   name: string;
+  fixture: string;
   fixtureState: string;
   currentView: "current" | "list";
   lastInteractiveRowBottom?: number;
@@ -146,7 +172,9 @@ function buildRoutinesFixture(args: {
   return {
     id: args.id,
     route: "routines",
+    screen: "routines",
     name: args.name,
+    fixture: args.fixture,
     fixtureState: args.fixtureState,
     geometry: withBaseGeometry({ lastInteractiveRowBottom: args.lastInteractiveRowBottom ?? 700 }),
     currentView: args.currentView,
@@ -160,6 +188,7 @@ function buildDayFixture(args: {
   id: string;
   route: "viewDay" | "editDay";
   name: string;
+  fixture: string;
   fixtureState: string;
   restDay?: boolean;
   reorderText?: ReorderTextFixture;
@@ -173,7 +202,9 @@ function buildDayFixture(args: {
   return {
     id: args.id,
     route: args.route,
+    screen: args.route === "viewDay" ? "view-day" : "edit-day",
     name: args.name,
+    fixture: args.fixture,
     fixtureState: args.fixtureState,
     geometry: withBaseGeometry({ lastInteractiveRowBottom: 696 }),
     restDay: args.restDay,
@@ -191,6 +222,7 @@ function buildDayFixture(args: {
 function buildAddExerciseFixture(args: {
   id: string;
   name: string;
+  fixture: string;
   fixtureState: string;
   filterChipFrames: FilterChipFrame[];
   goalForm?: GoalFormReadabilityFixture;
@@ -198,7 +230,9 @@ function buildAddExerciseFixture(args: {
   return {
     id: args.id,
     route: "addExercise",
+    screen: "add-exercise",
     name: args.name,
+    fixture: args.fixture,
     fixtureState: args.fixtureState,
     geometry: withBaseGeometry({ lastInteractiveRowBottom: 700 }),
     filterChipFrames: args.filterChipFrames,
@@ -208,10 +242,38 @@ function buildAddExerciseFixture(args: {
   } satisfies MobileFixtureScenario;
 }
 
+function buildSimpleFixture(args: {
+  id: string;
+  route: MobileRouteKey;
+  screen: MobileRegressionScreenKey;
+  name: string;
+  fixture: string;
+  fixtureState: string;
+  lastInteractiveRowBottom?: number;
+  cardStates?: CardStateFixture[];
+  statusChips?: SessionStatusChip[];
+  libraryCardTextLayout?: LibraryCardTextLayout;
+}) {
+  return {
+    id: args.id,
+    route: args.route,
+    screen: args.screen,
+    name: args.name,
+    fixture: args.fixture,
+    fixtureState: args.fixtureState,
+    geometry: withBaseGeometry({ lastInteractiveRowBottom: args.lastInteractiveRowBottom ?? 700 }),
+    cardStates: args.cardStates,
+    statusChips: args.statusChips,
+    libraryCardTextLayout: args.libraryCardTextLayout,
+    usesFloatingHeader: true,
+  } satisfies MobileFixtureScenario;
+}
+
 export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   buildWorkoutFixture({
     id: "today-default",
     name: "Today: default",
+    fixture: "default",
     fixtureState: "today-default-v1",
     statusChips: ["in-progress"],
     cardStates: [{ cardId: "today-overview", state: "selected", badgeText: "Today" }],
@@ -221,6 +283,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   buildWorkoutFixture({
     id: "today-in-session-summary",
     name: "Today: in-session summary",
+    fixture: "in-session-summary",
     fixtureState: "today-in-session-summary-v1",
     inSessionSummary: true,
     statusChips: ["logged"],
@@ -231,6 +294,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   buildWorkoutFixture({
     id: "active-workout-session",
     name: "Active workout session",
+    fixture: "active",
     fixtureState: "workout-active-v1",
     activeSession: true,
     statusChips: ["in-progress"],
@@ -240,12 +304,14 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   buildRoutinesFixture({
     id: "routines-current-view",
     name: "Routines: current view",
+    fixture: "current-view",
     fixtureState: "routines-current-v1",
     currentView: "current",
   }),
   buildRoutinesFixture({
     id: "routines-list-view",
     name: "Routines: list view",
+    fixture: "list-view",
     fixtureState: "routines-list-v1",
     currentView: "list",
     historyLogHeaderCount: 1,
@@ -254,6 +320,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "view-day",
     route: "viewDay",
     name: "View Day",
+    fixture: "default",
     fixtureState: "view-day-v1",
     hasExtraLowerFillerBox: false,
     cardStates: [{ cardId: "planned-row-1", state: "default" }],
@@ -262,6 +329,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "edit-day-default",
     route: "editDay",
     name: "Edit Day: default",
+    fixture: "default",
     fixtureState: "edit-day-default-v1",
     headerPinned: true,
     cardStates: [{ cardId: "editable-row-1", state: "selected", badgeText: "Editing" }],
@@ -270,6 +338,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "edit-day-reorder",
     route: "editDay",
     name: "Edit Day: reorder",
+    fixture: "reorder",
     fixtureState: "edit-day-reorder-v1",
     headerPinned: true,
     reorderActionVisible: true,
@@ -285,6 +354,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "edit-day-rest",
     route: "editDay",
     name: "Edit Day: rest",
+    fixture: "rest",
     fixtureState: "edit-day-rest-v1",
     restDay: true,
     headerPinned: true,
@@ -295,6 +365,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "edit-day-edit-exercise",
     route: "editDay",
     name: "Edit Day: edit exercise",
+    fixture: "edit-exercise",
     fixtureState: "edit-day-edit-exercise-v1",
     headerPinned: true,
     goalForm: {
@@ -308,6 +379,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "edit-day-add-exercise",
     route: "editDay",
     name: "Edit Day: add exercise",
+    fixture: "add-exercise",
     fixtureState: "edit-day-add-exercise-v1",
     headerPinned: true,
     cardStates: [{ cardId: "add-exercise-entry", state: "default" }],
@@ -315,7 +387,9 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   {
     id: "create-routine",
     route: "createRoutine",
+    screen: "create-routine",
     name: "Create Routine",
+    fixture: "default",
     fixtureState: "create-routine-v1",
     geometry: withBaseGeometry({ lastInteractiveRowBottom: 698 }),
     bottomDockLayout: "split",
@@ -330,7 +404,9 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   {
     id: "edit-routine",
     route: "editRoutine",
+    screen: "edit-routine",
     name: "Edit Routine",
+    fixture: "default",
     fixtureState: "edit-routine-v1",
     geometry: withBaseGeometry({ lastInteractiveRowBottom: 698 }),
     bottomDockLayout: "split",
@@ -340,6 +416,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   buildAddExerciseFixture({
     id: "add-exercise-default",
     name: "Add Exercise: default",
+    fixture: "default",
     fixtureState: "add-exercise-default-v1",
     filterChipFrames: [
       { label: "Chest", left: 16, right: 82 },
@@ -347,4 +424,73 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
       { label: "Barbell", left: 184, right: 262 },
     ],
   }),
+  buildSimpleFixture({
+    id: "history-sessions-extreme",
+    route: "historySessions",
+    screen: "history-sessions",
+    name: "History sessions: extreme history",
+    fixture: "extreme",
+    fixtureState: "history-sessions-extreme-v1",
+    cardStates: [{ cardId: "history-session-latest", state: "selected", badgeText: "Latest" }],
+  }),
+  buildSimpleFixture({
+    id: "history-exercises-zero-results",
+    route: "historyExercises",
+    screen: "history-exercises",
+    name: "History exercises: zero results",
+    fixture: "zero-results",
+    fixtureState: "history-exercises-zero-results-v1",
+    libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 168 },
+  }),
+  buildSimpleFixture({
+    id: "history-detail-broken-images",
+    route: "historyDetail",
+    screen: "history-detail",
+    name: "History detail: broken images",
+    fixture: "broken-images",
+    fixtureState: "history-detail-broken-images-v1",
+    statusChips: ["logged"],
+    cardStates: [{ cardId: "history-detail-primary", state: "completed", badgeText: "Logged" }],
+  }),
+  buildSimpleFixture({
+    id: "settings-default",
+    route: "settings",
+    screen: "settings",
+    name: "Settings: default",
+    fixture: "default",
+    fixtureState: "settings-default-v1",
+    cardStates: [{ cardId: "settings-profile", state: "selected", badgeText: "Live" }],
+  }),
+  buildSimpleFixture({
+    id: "exercise-detail-broken-images",
+    route: "exerciseDetail",
+    screen: "exercise-detail",
+    name: "Exercise detail: broken images",
+    fixture: "broken-images",
+    fixtureState: "exercise-detail-broken-images-v1",
+    libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
+    cardStates: [{ cardId: "exercise-detail-primary", state: "default" }],
+  }),
 ] as const;
+
+export const mobileRegressionScenarioIds = mobileRegressionScenarios.map((scenario) => scenario.id);
+
+export function getMobileRegressionScenarioById(id?: string | null) {
+  if (!id) return null;
+  return mobileRegressionScenarios.find((scenario) => scenario.id === id) ?? null;
+}
+
+export function resolveMobileRegressionScenario(args: {
+  scenario?: string | null;
+  screen?: string | null;
+  fixture?: string | null;
+}) {
+  const byId = getMobileRegressionScenarioById(args.scenario);
+  if (byId) return byId;
+
+  const screen = args.screen?.trim().toLowerCase();
+  if (!screen) return null;
+  const fixture = args.fixture?.trim().toLowerCase() || "default";
+
+  return mobileRegressionScenarios.find((scenario) => scenario.screen === screen && scenario.fixture === fixture) ?? null;
+}

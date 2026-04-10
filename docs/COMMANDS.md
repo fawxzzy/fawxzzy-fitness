@@ -14,6 +14,8 @@ npm run
 | `npm run build` | Build production bundle. |
 | `npm run start` | Run production server locally. |
 | `npm run prebuild` | Refresh generated assets before build. |
+| `npm run qa:screenshot -- <config.json>` | Run one Edge CDP screenshot capture from a config file. |
+| `npm run qa:matrix [config.json ...]` | Run the QA screenshot matrix without coupling it to `build`. |
 
 ## Assets/icons
 
@@ -34,7 +36,7 @@ npm run
 | `npm run validate:exercise-info-endpoint` | Validate exercise-info API behavior. |
 | `npm run sanity:quick` | Fast local check (`lint`). |
 | `npm run sanity` | Full local check (`lint` + `build`). |
-| `npm run verify` | Alias for full local check (`lint` + `build`). |
+| `npm run verify` | Run the Playbook repo verification workflow. |
 | `npm run verify:strict` | Alias for full local check (`lint` + `build`). |
 
 ## Release
