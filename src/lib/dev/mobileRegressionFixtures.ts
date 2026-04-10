@@ -28,6 +28,15 @@ export type MobileRegressionScreenKey =
   | "settings"
   | "exercise-detail";
 
+export const mobileRegressionReviewFamilies = [
+  "Exercise cards",
+  "Session / logging",
+  "Session summaries",
+  "Settings / detail",
+] as const;
+
+export type MobileRegressionReviewFamily = (typeof mobileRegressionReviewFamilies)[number];
+
 export type ScreenGeometry = {
   viewportWidth: number;
   viewportHeight: number;
@@ -76,6 +85,7 @@ export type MobileFixtureScenario = {
   id: string;
   route: MobileRouteKey;
   screen: MobileRegressionScreenKey;
+  family: MobileRegressionReviewFamily;
   name: string;
   fixture: string;
   geometry: ScreenGeometry;
@@ -128,6 +138,7 @@ function withBaseGeometry(overrides: Partial<ScreenGeometry>): ScreenGeometry {
 
 function buildWorkoutFixture(args: {
   id: string;
+  family: MobileRegressionReviewFamily;
   name: string;
   fixture: string;
   fixtureState: string;
@@ -144,6 +155,7 @@ function buildWorkoutFixture(args: {
     id: args.id,
     route: args.activeSession ? "session" : "today",
     screen: args.activeSession ? "session" : "today",
+    family: args.family,
     name: args.name,
     fixture: args.fixture,
     fixtureState: args.fixtureState,
@@ -162,6 +174,7 @@ function buildWorkoutFixture(args: {
 
 function buildRoutinesFixture(args: {
   id: string;
+  family: MobileRegressionReviewFamily;
   name: string;
   fixture: string;
   fixtureState: string;
@@ -173,6 +186,7 @@ function buildRoutinesFixture(args: {
     id: args.id,
     route: "routines",
     screen: "routines",
+    family: args.family,
     name: args.name,
     fixture: args.fixture,
     fixtureState: args.fixtureState,
@@ -186,6 +200,7 @@ function buildRoutinesFixture(args: {
 
 function buildDayFixture(args: {
   id: string;
+  family: MobileRegressionReviewFamily;
   route: "viewDay" | "editDay";
   name: string;
   fixture: string;
@@ -203,6 +218,7 @@ function buildDayFixture(args: {
     id: args.id,
     route: args.route,
     screen: args.route === "viewDay" ? "view-day" : "edit-day",
+    family: args.family,
     name: args.name,
     fixture: args.fixture,
     fixtureState: args.fixtureState,
@@ -221,6 +237,7 @@ function buildDayFixture(args: {
 
 function buildAddExerciseFixture(args: {
   id: string;
+  family: MobileRegressionReviewFamily;
   name: string;
   fixture: string;
   fixtureState: string;
@@ -231,6 +248,7 @@ function buildAddExerciseFixture(args: {
     id: args.id,
     route: "addExercise",
     screen: "add-exercise",
+    family: args.family,
     name: args.name,
     fixture: args.fixture,
     fixtureState: args.fixtureState,
@@ -246,6 +264,7 @@ function buildSimpleFixture(args: {
   id: string;
   route: MobileRouteKey;
   screen: MobileRegressionScreenKey;
+  family: MobileRegressionReviewFamily;
   name: string;
   fixture: string;
   fixtureState: string;
@@ -258,6 +277,7 @@ function buildSimpleFixture(args: {
     id: args.id,
     route: args.route,
     screen: args.screen,
+    family: args.family,
     name: args.name,
     fixture: args.fixture,
     fixtureState: args.fixtureState,
@@ -272,6 +292,7 @@ function buildSimpleFixture(args: {
 export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   buildWorkoutFixture({
     id: "today-default",
+    family: "Exercise cards",
     name: "Today: default",
     fixture: "default",
     fixtureState: "today-default-v1",
@@ -282,6 +303,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildWorkoutFixture({
     id: "today-in-session-summary",
+    family: "Exercise cards",
     name: "Today: in-session summary",
     fixture: "in-session-summary",
     fixtureState: "today-in-session-summary-v1",
@@ -293,6 +315,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildWorkoutFixture({
     id: "active-workout-session",
+    family: "Session / logging",
     name: "Active workout session",
     fixture: "active",
     fixtureState: "workout-active-v1",
@@ -303,6 +326,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildRoutinesFixture({
     id: "routines-current-view",
+    family: "Exercise cards",
     name: "Routines: current view",
     fixture: "current-view",
     fixtureState: "routines-current-v1",
@@ -310,6 +334,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildRoutinesFixture({
     id: "routines-list-view",
+    family: "Exercise cards",
     name: "Routines: list view",
     fixture: "list-view",
     fixtureState: "routines-list-v1",
@@ -318,6 +343,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildDayFixture({
     id: "view-day",
+    family: "Exercise cards",
     route: "viewDay",
     name: "View Day",
     fixture: "default",
@@ -327,6 +353,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildDayFixture({
     id: "edit-day-default",
+    family: "Exercise cards",
     route: "editDay",
     name: "Edit Day: default",
     fixture: "default",
@@ -336,6 +363,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildDayFixture({
     id: "edit-day-reorder",
+    family: "Exercise cards",
     route: "editDay",
     name: "Edit Day: reorder",
     fixture: "reorder",
@@ -352,6 +380,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildDayFixture({
     id: "edit-day-rest",
+    family: "Exercise cards",
     route: "editDay",
     name: "Edit Day: rest",
     fixture: "rest",
@@ -363,6 +392,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildDayFixture({
     id: "edit-day-edit-exercise",
+    family: "Exercise cards",
     route: "editDay",
     name: "Edit Day: edit exercise",
     fixture: "edit-exercise",
@@ -377,6 +407,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   }),
   buildDayFixture({
     id: "edit-day-add-exercise",
+    family: "Exercise cards",
     route: "editDay",
     name: "Edit Day: add exercise",
     fixture: "add-exercise",
@@ -388,6 +419,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "create-routine",
     route: "createRoutine",
     screen: "create-routine",
+    family: "Exercise cards",
     name: "Create Routine",
     fixture: "default",
     fixtureState: "create-routine-v1",
@@ -405,6 +437,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "edit-routine",
     route: "editRoutine",
     screen: "edit-routine",
+    family: "Exercise cards",
     name: "Edit Routine",
     fixture: "default",
     fixtureState: "edit-routine-v1",
@@ -415,6 +448,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
   },
   buildAddExerciseFixture({
     id: "add-exercise-default",
+    family: "Exercise cards",
     name: "Add Exercise: default",
     fixture: "default",
     fixtureState: "add-exercise-default-v1",
@@ -428,6 +462,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "history-sessions-extreme",
     route: "historySessions",
     screen: "history-sessions",
+    family: "Session summaries",
     name: "History sessions: extreme history",
     fixture: "extreme",
     fixtureState: "history-sessions-extreme-v1",
@@ -437,6 +472,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "history-exercises-zero-results",
     route: "historyExercises",
     screen: "history-exercises",
+    family: "Exercise cards",
     name: "History exercises: zero results",
     fixture: "zero-results",
     fixtureState: "history-exercises-zero-results-v1",
@@ -446,6 +482,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "history-detail-broken-images",
     route: "historyDetail",
     screen: "history-detail",
+    family: "Session summaries",
     name: "History detail: broken images",
     fixture: "broken-images",
     fixtureState: "history-detail-broken-images-v1",
@@ -456,6 +493,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "settings-default",
     route: "settings",
     screen: "settings",
+    family: "Settings / detail",
     name: "Settings: default",
     fixture: "default",
     fixtureState: "settings-default-v1",
@@ -465,6 +503,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     id: "exercise-detail-broken-images",
     route: "exerciseDetail",
     screen: "exercise-detail",
+    family: "Settings / detail",
     name: "Exercise detail: broken images",
     fixture: "broken-images",
     fixtureState: "exercise-detail-broken-images-v1",

@@ -29,12 +29,41 @@ const expectedScenarioIds = [
   "exercise-detail-broken-images",
 ] as const;
 
+const expectedScenarioFamilies = [
+  ["today-default", "Exercise cards"],
+  ["today-in-session-summary", "Exercise cards"],
+  ["active-workout-session", "Session / logging"],
+  ["routines-current-view", "Exercise cards"],
+  ["routines-list-view", "Exercise cards"],
+  ["view-day", "Exercise cards"],
+  ["edit-day-default", "Exercise cards"],
+  ["edit-day-reorder", "Exercise cards"],
+  ["edit-day-rest", "Exercise cards"],
+  ["edit-day-edit-exercise", "Exercise cards"],
+  ["edit-day-add-exercise", "Exercise cards"],
+  ["create-routine", "Exercise cards"],
+  ["edit-routine", "Exercise cards"],
+  ["add-exercise-default", "Exercise cards"],
+  ["history-sessions-extreme", "Session summaries"],
+  ["history-exercises-zero-results", "Exercise cards"],
+  ["history-detail-broken-images", "Session summaries"],
+  ["settings-default", "Settings / detail"],
+  ["exercise-detail-broken-images", "Settings / detail"],
+] as const;
+
 test("mobile regression fixtures include the deterministic screenshot contract inventory", () => {
   assert.deepEqual(
     mobileRegressionScenarios.map((scenario) => scenario.id),
     expectedScenarioIds,
   );
   assert.ok(mobileRegressionScenarios.every((scenario) => scenario.fixtureState.endsWith("-v1")));
+});
+
+test("mobile regression fixtures pin explicit board families", () => {
+  assert.deepEqual(
+    mobileRegressionScenarios.map((scenario) => [scenario.id, scenario.family]),
+    expectedScenarioFamilies,
+  );
 });
 
 test("mobile regression fixture contracts pass for the full fixture suite", () => {
