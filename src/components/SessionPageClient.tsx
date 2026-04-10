@@ -8,14 +8,15 @@ import { SessionExerciseFocus, type SessionExerciseFocusItem } from "@/component
 import { SessionHeaderControls } from "@/components/SessionHeaderControls";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
-import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import type { ActionResult } from "@/lib/action-result";
+import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -55,6 +56,7 @@ type SyncQueuedSetLogsAction = (payload: {
 }) => Promise<ActionResult<{ results: Array<{ queueItemId: string; ok: boolean; serverSetId?: string; error?: string }> }>>;
 
 type ServerAction = (formData: FormData) => Promise<ActionResult<{ sessionId: string }>>;
+
 function formatDurationClock(totalSeconds: number) {
   const safeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
   const minutes = Math.floor(safeSeconds / 60);
@@ -115,7 +117,6 @@ export function SessionPageClient({
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [selectedExerciseFloatingHeaderContainer, setSelectedExerciseFloatingHeaderContainer] = useState<HTMLDivElement | null>(null);
   const router = useRouter();
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
@@ -143,15 +144,16 @@ export function SessionPageClient({
 
   const isExerciseOpen = selectedExerciseId !== null;
   const hasExercises = exercises.length > 0;
-  const topChrome = !isExerciseOpen ? (
-    <SessionHeaderControls
-      routineName={routineName}
-      sessionDayName={sessionDayName}
-      sessionSummaryCounts={sessionSummaryCounts}
-      backHref={fallbackReturnHref ?? "/today"}
-    />
-  ) : null;
-  const floatingHeader = isExerciseOpen ? <div ref={setSelectedExerciseFloatingHeaderContainer} className="px-1" /> : null;
+  const topChrome = (
+    <ContentRail className="py-1">
+      <SessionHeaderControls
+        routineName={routineName}
+        sessionDayName={sessionDayName}
+        sessionSummaryCounts={sessionSummaryCounts}
+        backHref={fallbackReturnHref ?? "/today"}
+      />
+    </ContentRail>
+  );
 
   const emptyState = useMemo(
     () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises yet.</p>),
@@ -208,44 +210,45 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip px-1" topChrome={topChrome} floatingHeader={floatingHeader}>
+    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip" topChrome={topChrome}>
       {!isExerciseOpen ? (
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
 
-      <section
-        data-screen-scaffold={sessionRecipe.scaffold}
-        data-section-chrome={sessionRecipe.sectionChrome}
-        data-footer-dock={sessionRecipe.footerDock}
-        data-row-interaction={sessionRecipe.rowInteraction}
-        className="flex flex-col space-y-3 bg-[rgb(var(--bg))]"
-      >
-        {!isExerciseOpen ? (
-          <div className="flex justify-end">
-            <OfflineSyncBadge />
-          </div>
-        ) : null}
-        {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
-        <ActionFeedbackToasts />
+      <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+        <section
+          data-screen-scaffold={sessionRecipe.scaffold}
+          data-section-chrome={sessionRecipe.sectionChrome}
+          data-footer-dock={sessionRecipe.footerDock}
+          data-row-interaction={sessionRecipe.rowInteraction}
+          className="flex flex-col gap-3 bg-[rgb(var(--bg))]"
+        >
+          {!isExerciseOpen ? (
+            <div className="flex justify-end">
+              <OfflineSyncBadge />
+            </div>
+          ) : null}
+          {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
+          <ActionFeedbackToasts />
 
-        {hasExercises ? (
-          <SessionExerciseFocus
-            sessionId={sessionId}
-            unitLabel={unitLabel}
-            exercises={exercises}
-            selectedExerciseId={selectedExerciseId}
-            onSelectedExerciseIdChange={setSelectedExerciseId}
-            addSetAction={addSetAction}
-            syncQueuedSetLogsAction={syncQueuedSetLogsAction}
-            toggleSkipAction={toggleSkipAction}
-            removeExerciseAction={removeExerciseAction}
-            deleteSetAction={deleteSetAction}
-            floatingHeaderContainer={selectedExerciseFloatingHeaderContainer}
-          />
-        ) : null}
+          {hasExercises ? (
+            <SessionExerciseFocus
+              sessionId={sessionId}
+              unitLabel={unitLabel}
+              exercises={exercises}
+              selectedExerciseId={selectedExerciseId}
+              onSelectedExerciseIdChange={setSelectedExerciseId}
+              addSetAction={addSetAction}
+              syncQueuedSetLogsAction={syncQueuedSetLogsAction}
+              toggleSkipAction={toggleSkipAction}
+              removeExerciseAction={removeExerciseAction}
+              deleteSetAction={deleteSetAction}
+            />
+          ) : null}
 
-        {emptyState}
-      </section>
+          {emptyState}
+        </section>
+      </ContentRail>
     </ScrollScreenWithBottomActions>
   );
 }

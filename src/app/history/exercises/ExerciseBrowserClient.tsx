@@ -55,7 +55,7 @@ function toTagArray(value: string | null | undefined) {
 
 function formatTagLabel(tag: string) {
   return tag
-    .split(/[\_\s-]+/)
+    .split(/[_\s-]+/)
     .filter(Boolean)
     .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
@@ -76,41 +76,19 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     ? `${row.pr_est_1rm.toFixed(0)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
     : null;
   const hasSignal = Boolean(row.lastSummary || row.bestSummary || row.prLabel || strengthPrSummary || row.last_performed_at);
-  const primaryLine = row.kind === "strength"
-    ? [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" • ")
-    : [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" • ");
+  const semanticTone = row.prLabel || strengthPrSummary ? "pr" : hasSignal ? "logged" : "neutral";
+  const primaryLine = [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" · ");
   const secondaryLine = row.kind === "strength"
-    ? [row.bestSummary ? `Best ${row.bestSummary}` : null, row.prLabel ? `PRs ${row.prLabel}` : null, strengthPrSummary ? `1RM ${strengthPrSummary}` : null].filter(Boolean).join(" • ")
+    ? [row.bestSummary ? `Best ${row.bestSummary}` : null, row.prLabel ? `PRs ${row.prLabel}` : null, strengthPrSummary ? `1RM ${strengthPrSummary}` : null].filter(Boolean).join(" · ")
     : row.bestSummary ? `Best ${row.bestSummary}` : null;
 
   const fallbackLine = row.kind === "strength" ? "Strength history" : "Cardio history";
-
-  if (viewMode === "compact") {
-    return (
-      <StandardExerciseRow
-        exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
-        summary={primaryLine || fallbackLine}
-        density="compact"
-        onPress={() => {
-          if (process.env.NODE_ENV === "development") {
-            console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
-          }
-          onOpen(row.exerciseId);
-        }}
-        rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-        variant="list"
-        state={hasSignal ? "selected" : "default"}
-        className="shadow-none"
-        titleClassName="line-clamp-2"
-      />
-    );
-  }
 
   return (
     <StandardExerciseRow
       exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
       summary={primaryLine || fallbackLine}
-      density="detailed"
+      density={viewMode}
       onPress={() => {
         if (process.env.NODE_ENV === "development") {
           console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
@@ -119,10 +97,12 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       }}
       rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
       variant="list"
-      state={hasSignal ? "selected" : "default"}
+      state="default"
+      semanticTone={semanticTone}
       className="shadow-none"
+      titleClassName="line-clamp-2"
     >
-      {secondaryLine ? <p className={cn("line-clamp-2 text-xs text-[rgb(var(--text)/0.62)]")}>{secondaryLine}</p> : null}
+      {viewMode === "detailed" && secondaryLine ? <p className={cn("line-clamp-2 text-xs text-[rgb(var(--text)/0.62)]")}>{secondaryLine}</p> : null}
     </StandardExerciseRow>
   );
 });

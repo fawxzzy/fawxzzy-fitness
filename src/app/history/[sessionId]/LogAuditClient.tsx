@@ -16,6 +16,7 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { SessionSummaryCard } from "@/components/SessionSummaryCard";
 import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { ExerciseCard } from "@/components/ExerciseCard";
@@ -432,10 +433,15 @@ export function LogAuditClient({
         )
         : null}
 
-      <div className="rounded-[1.1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface)/0.42)] px-3 py-2.5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Session summary</p>
-        <p className="mt-1 text-sm text-[rgb(var(--text)/0.84)]">{sessionMeta.summaryLine}</p>
-      </div>
+      <SessionSummaryCard
+        title="Session summary"
+        subtitle={sessionMeta.dateLine}
+        summary={sessionMeta.summaryLine}
+        detail={sessionSummary.prCounts.total > 0 ? sessionSummary.prLabel : undefined}
+        badgeText={sessionSummary.prCounts.total > 0 ? `${sessionSummary.prCounts.total} PR` : undefined}
+        tone={sessionSummary.prCounts.total > 0 ? "pr" : "completed"}
+        rightIcon={null}
+      />
 
       {!isEditing && sessionNotes.trim().length > 0 ? (
         <HistorySection title="Session notes">

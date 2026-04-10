@@ -1,0 +1,37 @@
+export type CardSemanticTone = "neutral" | "current" | "logged" | "completed" | "attention" | "pr";
+
+export const cardAccentRailClassNames: Record<CardSemanticTone, string> = {
+  neutral: "bg-transparent",
+  current: "bg-[rgb(var(--accent)/0.78)]",
+  logged: "bg-[rgb(var(--success-rgb)/0.74)]",
+  completed: "bg-[rgb(var(--success-rgb)/0.9)]",
+  attention: "bg-[rgb(var(--warning-rgb)/0.9)]",
+  pr: "bg-[rgb(var(--warning-rgb)/0.94)]",
+};
+
+export const cardShellToneClassNames: Record<CardSemanticTone, string> = {
+  neutral: "",
+  current: "shadow-[inset_0_0_0_1px_rgb(var(--accent)/0.08)]",
+  logged: "shadow-[inset_0_0_0_1px_rgb(var(--success-rgb)/0.08)]",
+  completed: "shadow-[inset_0_0_0_1px_rgb(var(--success-rgb)/0.12)]",
+  attention: "shadow-[inset_0_0_0_1px_rgb(var(--warning-rgb)/0.12)]",
+  pr: "shadow-[inset_0_0_0_1px_rgb(var(--warning-rgb)/0.16)]",
+};
+
+export const cardMediaToneClassNames: Record<CardSemanticTone, string> = {
+  neutral: "",
+  current: "border-[rgb(var(--accent)/0.24)]",
+  logged: "border-[rgb(var(--success-rgb)/0.24)]",
+  completed: "border-[rgb(var(--success-rgb)/0.3)]",
+  attention: "border-[rgb(var(--warning-rgb)/0.28)]",
+  pr: "border-[rgb(var(--warning-rgb)/0.34)]",
+};
+
+export const cardBadgeToneClassNames: Record<CardSemanticTone, string> = {
+  neutral: "",
+  current: "border-[rgb(var(--accent)/0.3)] bg-[rgb(var(--accent)/0.12)]",
+  logged: "border-[rgb(var(--success-rgb)/0.3)] bg-[rgb(var(--success-rgb)/0.12)]",
+  completed: "border-[rgb(var(--success-rgb)/0.34)] bg-[rgb(var(--success-rgb)/0.14)]",
+  attention: "border-[rgb(var(--warning-rgb)/0.3)] bg-[rgb(var(--warning-rgb)/0.13)] text-[rgb(255_241_213)]",
+  pr: "border-[rgb(var(--warning-rgb)/0.34)] bg-[rgb(var(--warning-rgb)/0.16)] text-[rgb(255_246_226)]",
+};

@@ -1,33 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { Pill } from "@/components/ui/Pill";
 import { useToast } from "@/components/ui/ToastProvider";
-import { useUndoAction } from "@/components/ui/useUndoAction";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } from "@/components/session/SessionExerciseBlock";
 import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { WorkoutEntryIdentity } from "@/components/ui/workout-entry/EntrySection";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
-import type { SetRow } from "@/types/db";
-import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
-import {
-  buildInitialSessionRowClientState,
-  reconcileSessionRowClientState,
-  type SessionRowClientState,
-} from "@/components/session/sessionRowClientState";
 import { hasMeaningfulExerciseGoalSummary } from "@/lib/exercise-goal-summary";
-import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
+import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/session-quick-log";
+import { buildInitialSessionRowClientState, reconcileSessionRowClientState, type SessionRowClientState } from "@/components/session/sessionRowClientState";
+import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model";
+import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
   sessionId: string;
@@ -104,6 +96,31 @@ export type SessionExerciseFocusItem = {
   slug?: string | null;
 };
 
+function resolveSessionExerciseTone(args: {
+  loggedSetCount: number;
+  isSkipped: boolean;
+  isCompleted: boolean;
+  isAddedToday: boolean;
+}) {
+  if (args.isSkipped) {
+    return "attention";
+  }
+
+  if (args.isCompleted) {
+    return "completed";
+  }
+
+  if (args.loggedSetCount > 0) {
+    return "logged";
+  }
+
+  if (args.isAddedToday) {
+    return "current";
+  }
+
+  return "neutral";
+}
+
 export function SessionExerciseFocus({
   sessionId,
   unitLabel,
@@ -115,7 +132,6 @@ export function SessionExerciseFocus({
   toggleSkipAction,
   removeExerciseAction,
   deleteSetAction,
-  floatingHeaderContainer,
 }: {
   sessionId: string;
   unitLabel: string;
@@ -127,7 +143,6 @@ export function SessionExerciseFocus({
   toggleSkipAction: (formData: FormData) => Promise<ActionResult>;
   removeExerciseAction: (formData: FormData) => Promise<ActionResult>;
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
-  floatingHeaderContainer?: HTMLElement | null;
 }) {
   const contract = resolveScreenContract("exerciseLog");
   const [removingExerciseIds, setRemovingExerciseIds] = useState<string[]>([]);
@@ -179,7 +194,7 @@ export function SessionExerciseFocus({
     : null;
   const toast = useToast();
   const router = useRouter();
-  const queueUndo = useUndoAction(6000);
+  void removeExerciseAction;
 
   useEffect(() => {
     if (!selectedExerciseId || !focusedRef.current) return;
@@ -189,34 +204,6 @@ export function SessionExerciseFocus({
   useEffect(() => {
     setWarmupDraft(false);
   }, [selectedExerciseId]);
-
-  const handleRemoveExercise = (exerciseId: string) => {
-    if (removingExerciseIds.includes(exerciseId)) return;
-
-    setRemovingExerciseIds((current) => [...current, exerciseId]);
-    onSelectedExerciseIdChange(null);
-
-    queueUndo({
-      message: "Removed exercise",
-      onUndo: () => {
-        setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
-      },
-      onCommit: async () => {
-        const formData = new FormData();
-        formData.set("sessionId", sessionId);
-        formData.set("sessionExerciseId", exerciseId);
-        const result = await removeExerciseAction(formData);
-
-        if (!result.ok) {
-          setRemovingExerciseIds((current) => current.filter((id) => id !== exerciseId));
-          toast.error(result.error || "Could not remove exercise.");
-          return;
-        }
-
-        router.refresh();
-      },
-    });
-  };
 
   const patchRowState = useCallback((
     sessionExerciseId: string,
@@ -290,19 +277,21 @@ export function SessionExerciseFocus({
     };
   }, [onSelectedExerciseIdChange, selectedExerciseId]);
 
-  const selectedExerciseIdentityHeader = selectedExercise ? (
-    <WorkoutEntryIdentity
-      title={selectedExercise.name}
-      description={selectedExercise.goalLabel || undefined}
-      descriptionClassName="truncate whitespace-nowrap text-ellipsis text-xs sm:text-sm"
-      meta={selectedExercise.routineDayExerciseId === null || (selectedExerciseProgress?.chips.length ?? 0) > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          {selectedExercise.routineDayExerciseId === null ? <Pill tone="success" className="normal-case tracking-normal">Added today</Pill> : null}
-          {selectedExerciseProgress?.chips.includes("loggedProgress") ? <Pill tone="default" className="normal-case tracking-normal">{selectedExerciseProgress.progressLabel ?? "Logged"}</Pill> : null}
-          {selectedExerciseProgress?.chips.includes("endedEarly") ? <Pill tone="warning" className="normal-case tracking-normal">Ended early</Pill> : null}
-          {selectedExerciseProgress?.chips.includes("skipped") ? <Pill tone="warning" className="normal-case tracking-normal">Skipped</Pill> : null}
-        </div>
-      ) : undefined}
+  const selectedExerciseHeaderCard = selectedExercise ? (
+    <StandardExerciseRow
+      exercise={selectedExercise}
+      summary={selectedExercise.goalLabel}
+      variant="standard"
+      state={selectedExerciseProgress?.cardState ?? "default"}
+      semanticTone={resolveSessionExerciseTone({
+        loggedSetCount: selectedExerciseSetCount,
+        isSkipped: selectedExerciseProgress?.kind === "skipped" || selectedExerciseProgress?.kind === "partialSkipped",
+        isCompleted: selectedExerciseProgress?.kind === "completed",
+        isAddedToday: selectedExercise.routineDayExerciseId === null,
+      })}
+      badgeText={selectedExerciseProgress?.badgeText}
+      rightIcon={null}
+      trailingStackClassName="hidden"
       actions={(
         <TopRightBackButton
           ariaLabel="Collapse exercise"
@@ -312,12 +301,17 @@ export function SessionExerciseFocus({
           }}
         />
       )}
-      className="mt-1"
-    />
+      className="shadow-none"
+    >
+      <WorkoutExerciseRowChips
+        progressLabel={selectedExerciseProgress?.progressLabel}
+        chips={selectedExercise.routineDayExerciseId === null ? ["addedToday", ...(selectedExerciseProgress?.chips ?? [])] : (selectedExerciseProgress?.chips ?? [])}
+      />
+    </StandardExerciseRow>
   ) : null;
 
   return (
-    <div className="flex flex-col space-y-2" data-row-interaction={contract.rowInteraction}>
+    <div className="flex flex-col gap-2.5" data-row-interaction={contract.rowInteraction}>
       {selectedExerciseId === null ? (
         <ul className="space-y-1.5">
           {exercises.map((exercise) => {
@@ -336,6 +330,12 @@ export function SessionExerciseFocus({
             const setCount = rowViewModel.loggedSetCount;
             const hasGoalSummary = hasMeaningfulExerciseGoalSummary(exercise.goalLabel);
             const rowState = rowViewModel.rowState;
+            const semanticTone = resolveSessionExerciseTone({
+              loggedSetCount: setCount,
+              isSkipped: rowViewModel.isSkipped,
+              isCompleted: rowState.cardState === "completed",
+              isAddedToday: exercise.routineDayExerciseId === null,
+            });
 
             return (
               <li
@@ -352,6 +352,7 @@ export function SessionExerciseFocus({
                       summary={exercise.goalLabel}
                       variant="standard"
                       state={rowState.cardState}
+                      semanticTone={semanticTone}
                       onPress={() => onSelectedExerciseIdChange(exercise.id)}
                       className="shadow-none"
                       trailingClassName="text-muted"
@@ -465,13 +466,9 @@ export function SessionExerciseFocus({
           })}
         </ul>
       ) : (
-        <div className="flex flex-col space-y-2.5">
-          {selectedExerciseIdentityHeader
-            ? (floatingHeaderContainer ? createPortal(selectedExerciseIdentityHeader, floatingHeaderContainer) : selectedExerciseIdentityHeader)
-            : null}
-
+        <div className="flex flex-col gap-2.5">
           <div ref={focusedRef} />
-
+          {selectedExerciseHeaderCard}
 
           {selectedExerciseProgress?.kind === "skipped" || selectedExerciseProgress?.kind === "partialSkipped" ? (
             <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
