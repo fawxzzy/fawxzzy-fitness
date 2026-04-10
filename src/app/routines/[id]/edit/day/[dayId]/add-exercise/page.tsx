@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -50,27 +51,30 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
       <ScrollScreenWithBottomActions
-        className="px-4 pb-0"
         floatingHeader={(
-          <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
-            <RoutineEditorPageHeader
-              title="Add Exercise"
-              action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
-            />
-          </ScreenScaffold>
+          <ContentRail className="py-1">
+            <ScreenScaffold recipe="editDay" className="w-full">
+              <RoutineEditorPageHeader
+                title="Add Exercise"
+                action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
+              />
+            </ScreenScaffold>
+          </ContentRail>
         )}
       >
-        <ScreenScaffold recipe="editDay" className="mx-auto w-full max-w-md">
-          <EditDayAddExerciseScreen
-            routineId={params.id}
-            routineDayId={params.dayId}
-            exercises={exerciseOptions}
-            weightUnit={routine.weight_unit}
-            addExerciseAction={addRoutineDayExerciseAction}
-            exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
-            backHref={backHref}
-          />
-        </ScreenScaffold>
+        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+          <ScreenScaffold recipe="editDay" className="w-full">
+            <EditDayAddExerciseScreen
+              routineId={params.id}
+              routineDayId={params.dayId}
+              exercises={exerciseOptions}
+              weightUnit={routine.weight_unit}
+              addExerciseAction={addRoutineDayExerciseAction}
+              exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
+              backHref={backHref}
+            />
+          </ScreenScaffold>
+        </ContentRail>
       </ScrollScreenWithBottomActions>
     </AppShell>
   );
