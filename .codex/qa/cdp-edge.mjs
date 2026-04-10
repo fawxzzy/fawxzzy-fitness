@@ -282,7 +282,7 @@ async function main() {
       width: config.width,
       height: config.height,
       deviceScaleFactor: config.deviceScaleFactor ?? 2,
-      mobile: false,
+      mobile: config.mobile ?? false,
       screenWidth: config.width,
       screenHeight: config.height,
     });
@@ -324,7 +324,19 @@ async function main() {
     if (config.outPath) {
       const screenshot = await client.send("Page.captureScreenshot", {
         format: "png",
+        fromSurface: config.fromSurface ?? true,
         captureBeyondViewport: Boolean(config.fullPage),
+        ...(config.fullPage
+          ? {}
+          : {
+            clip: {
+              x: 0,
+              y: 0,
+              width: config.width,
+              height: config.height,
+              scale: 1,
+            },
+          }),
       });
       await fs.writeFile(path.resolve(config.outPath), Buffer.from(screenshot.data, "base64"));
     }

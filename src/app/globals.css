@@ -717,6 +717,10 @@ a:focus-visible {
   overscroll-behavior: contain;
 }
 
+html[data-mobile-regression="true"] [data-app-scroll-container="true"] {
+  overflow-y: visible !important;
+}
+
 .text-safe-wrap {
   word-break: normal;
   overflow-wrap: break-word;

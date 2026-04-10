@@ -1,6 +1,10 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EditDayRegressionSurface } from "@/app/dev/mobile-regression/EditDayRegressionSurface";
+import { RegressionBodyFlag } from "@/app/dev/mobile-regression/RegressionBodyFlag";
+import { RegressionExerciseInfoSheet } from "@/app/dev/mobile-regression/RegressionExerciseInfoSheet";
+import { RegressionDayRestToggleDockControl } from "@/app/dev/mobile-regression/RegressionDayRestToggleDockControl";
 import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
@@ -37,8 +41,6 @@ import { Chip } from "@/components/ui/Chip";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { GlassEffectsSettings } from "@/components/settings/GlassEffectsSettings";
-import { ExerciseInfoSheet } from "@/components/ExerciseInfoSheet";
-import { DayRestToggleDockControl } from "@/components/day/DayRestToggleDockControl";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import {
   mobileRegressionScenarios,
@@ -47,6 +49,16 @@ import {
 } from "@/lib/dev/mobileRegressionFixtures";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
+};
 
 const CARD_HEADER_CLASS_NAME = "-mx-4 -mt-1 pb-1 sm:-mx-5";
 const SECTION_TITLE_CLASS_NAME = "text-[1.3125rem] font-semibold leading-[1.04] tracking-[-0.03em]";
@@ -687,7 +699,7 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
 
         <PublishBottomActions>
           <BottomActionDock
-            left={<DayRestToggleDockControl isRest={false} onToggle={() => {}} />}
+            left={<RegressionDayRestToggleDockControl isRest={false} />}
             right={<BottomDockButton type="button" intent="positive">Edit</BottomDockButton>}
           />
         </PublishBottomActions>
@@ -737,7 +749,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
         <PublishBottomActions>
           {fixture === "rest" ? (
             <BottomActionSingle>
-              <DayRestToggleDockControl isRest onToggle={() => {}} />
+              <RegressionDayRestToggleDockControl isRest />
             </BottomActionSingle>
           ) : fixture === "edit-exercise" ? (
             <BottomActionDock
@@ -746,7 +758,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
             />
           ) : (
             <BottomActionDock
-              left={<DayRestToggleDockControl isRest={false} onToggle={() => {}} />}
+              left={<RegressionDayRestToggleDockControl isRest={false} />}
               right={<BottomDockButton type="button" intent="positive">Add Exercise</BottomDockButton>}
             />
           )}
@@ -855,7 +867,7 @@ function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
         floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <ExerciseBrowserClient rows={[...mockHistoryExerciseRows]} />
+          <ExerciseBrowserClient rows={[...mockHistoryExerciseRows]} inlineHeaderControls />
         </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
@@ -949,9 +961,8 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
 
 function renderExerciseDetailScenario(scenario: MobileFixtureScenario) {
   return (
-    <>
-      <RegressionMarker scenario={scenario} />
-      <ExerciseInfoSheet
+    <RegressionExerciseInfoSheet
+      scenarioId={scenario.id}
         exercise={{
           id: MOCK_EXERCISE_IDS.squat,
           name: "Back Squat",
@@ -981,11 +992,7 @@ function renderExerciseDetailScenario(scenario: MobileFixtureScenario) {
           },
           prLabel: "2 PRs",
         }}
-        statsLoading={false}
-        open
-        onOpenChange={() => {}}
       />
-    </>
   );
 }
 
@@ -1049,5 +1056,10 @@ export default function DevMobileRegressionPage({
     notFound();
   }
 
-  return renderScenario(scenario);
+  return (
+    <>
+      <RegressionBodyFlag />
+      {renderScenario(scenario)}
+    </>
+  );
 }

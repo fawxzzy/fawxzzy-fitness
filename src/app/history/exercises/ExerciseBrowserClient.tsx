@@ -127,7 +127,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   );
 });
 
-export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps) {
+export function ExerciseBrowserClient({ rows = [], inlineHeaderControls = false }: ExerciseBrowserClientProps & { inlineHeaderControls?: boolean }) {
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -200,7 +200,22 @@ export function ExerciseBrowserClient({ rows = [] }: ExerciseBrowserClientProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {floatingHeaderContainer
+      {inlineHeaderControls ? (
+        <HistoryTitleControlShell
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          showViewModeToggle={false}
+        >
+          <ExerciseSearchFilters
+            query={query}
+            onQueryChange={setQuery}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            groups={availableTagGroups}
+          />
+          <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
+        </HistoryTitleControlShell>
+      ) : floatingHeaderContainer
         ? createPortal(
           <HistoryTitleControlShell
             viewMode={viewMode}
