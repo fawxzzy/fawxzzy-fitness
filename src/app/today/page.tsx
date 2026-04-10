@@ -8,6 +8,7 @@ import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -395,45 +396,51 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         bottomDock={<BottomActionsSlot />}
         floatingHeader={todayPayload.routine ? (
           todayPayload.inProgressSessionId ? (
-            <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-              <SharedScreenHeader
-                recipe="todayOverview"
-                title={todayPayload.routine.name}
-                subtitle={(
-                  <DayTaxonomyHeaderSummary
-                    dayName={todayPayload.routine.dayName}
-                    summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
-                    isRest={todayPayload.routine.isRest}
-                  />
-                )}
-                action={todayPayload.inProgressSessionId
-                  ? <AppBadge tone="success">In Session</AppBadge>
-                  : completedDayIndexes.includes(todayPayload.routine.dayIndex)
-                    ? <AppBadge tone="success">Completed</AppBadge>
-                    : undefined}
-              />
-            </ScreenScaffold>
+            <ContentRail>
+              <ScreenScaffold recipe="todayOverview" className="w-full">
+                <SharedScreenHeader
+                  recipe="todayOverview"
+                  title={todayPayload.routine.name}
+                  subtitle={(
+                    <DayTaxonomyHeaderSummary
+                      dayName={todayPayload.routine.dayName}
+                      summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
+                      isRest={todayPayload.routine.isRest}
+                    />
+                  )}
+                  action={todayPayload.inProgressSessionId
+                    ? <AppBadge tone="success">In Session</AppBadge>
+                    : completedDayIndexes.includes(todayPayload.routine.dayIndex)
+                      ? <AppBadge tone="success">Completed</AppBadge>
+                      : undefined}
+                />
+              </ScreenScaffold>
+            </ContentRail>
           ) : (
-            <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-              <div id="today-floating-header-slot" />
-            </ScreenScaffold>
+            <ContentRail>
+              <ScreenScaffold recipe="todayOverview" className="w-full">
+                <div id="today-floating-header-slot" />
+              </ScreenScaffold>
+            </ContentRail>
           )
         ) : !todayPayload.routine ? (
-          <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-            <SharedScreenHeader
-              recipe="todayOverview"
-              title="No active routine"
-              subtitle="Select a routine to plan your session."
-            />
-          </ScreenScaffold>
+          <ContentRail>
+            <ScreenScaffold recipe="todayOverview" className="w-full">
+              <SharedScreenHeader
+                recipe="todayOverview"
+                title="No active routine"
+                subtitle="Select a routine to plan your session."
+              />
+            </ScreenScaffold>
+          </ContentRail>
         ) : undefined}
       >
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
-            <div className="space-y-3">
+            <ContentRail className="space-y-3">
               <OfflineSyncBadge />
               {todayPayload.inProgressSessionId ? (
-                <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+                <ScreenScaffold recipe="todayOverview" className="w-full">
                   <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}
@@ -488,9 +495,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     : {}}
                   routineName={todayPayload.routine.name}
                   floatingHeaderSlotId="today-floating-header-slot"
-                />
-              )}
-            </div>
+                  />
+                )}
+            </ContentRail>
           ) : (
             <TodayClientShell payload={todayPayload} fetchFailed={fetchFailed} />
           )}

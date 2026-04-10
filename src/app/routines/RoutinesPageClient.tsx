@@ -176,6 +176,7 @@ export function RoutinesPageClient({
                       exercise={{ name: routine.name }}
                       summary={routine.summary}
                       variant="standard"
+                      density="compact"
                       onPress={() => handleSwitchRoutine(routine.id)}
                       showLeadingVisual={false}
                       state={isCurrent ? "selected" : "default"}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -220,10 +221,9 @@ export default async function HistoryPage({
     <MainTabScreen topNavMode="none">
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<HistoryPageHeader title={`Logged Sessions: ${sessionItems.length}`} />}
-        className="px-1"
+        floatingHeader={<ContentRail><HistoryPageHeader title={`Logged Sessions: ${sessionItems.length}`} /></ContentRail>}
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient sessions={sessionItems} selectedSessionId={searchParams?.selected} />
 
           {nextCursor ? (
@@ -236,7 +236,7 @@ export default async function HistoryPage({
               </Link>
             </div>
           ) : null}
-        </div>
+        </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );

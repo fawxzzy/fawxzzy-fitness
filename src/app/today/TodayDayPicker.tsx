@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
@@ -156,7 +157,7 @@ export function TodayDayPicker({
 
 
   const headerNode = selectedDay ? (
-    <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
+    <ScreenScaffold recipe="todayOverview" className="w-full">
       <SharedScreenHeader
         recipe="todayOverview"
         title={routineName}
@@ -224,9 +225,10 @@ export function TodayDayPicker({
       {headerNode && floatingHeaderTarget ? createPortal(headerNode, floatingHeaderTarget) : null}
       <div className="flex min-h-0 flex-col">
       {!mode.noRoutine && selectedDay ? (
-        <ScreenScaffold recipe="todayOverview" className="mx-auto w-full max-w-md">
-          {selectedDay.state !== "rest" && mode.contentShellVisible ? (
-            <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+        <ContentRail>
+          <ScreenScaffold recipe="todayOverview" className="w-full">
+            {selectedDay.state !== "rest" && mode.contentShellVisible ? (
+              <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
               {mode.dayPickerOpen ? (
               <DayList>
                 {days.map((day) => {
@@ -283,6 +285,7 @@ export function TodayDayPicker({
                   <li key={exercise.id}>
                     <StandardExerciseRow
                       exercise={exercise}
+                      density="detailed"
                       summary={exercise.targets}
                       onPress={() => {
                         if (process.env.NODE_ENV === "development") {
@@ -294,9 +297,10 @@ export function TodayDayPicker({
                   </li>
                 ))}
               </ul> : null}
-            </SharedSectionShell>
-          ) : null}
-        </ScreenScaffold>
+              </SharedSectionShell>
+            ) : null}
+          </ScreenScaffold>
+        </ContentRail>
       ) : null}
 
       <ExerciseInfo

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
 import { ExerciseCard } from "@/components/ExerciseCard";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { cn } from "@/lib/cn";
 import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
 
@@ -29,6 +28,7 @@ type StandardExerciseRowProps = {
   subtitleClassName?: string;
   variant?: "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
   state?: "default" | "selected" | "active" | "completed" | "empty";
+  density?: "compact" | "detailed";
   children?: ReactNode;
   showLeadingVisual?: boolean;
 };
@@ -51,6 +51,7 @@ export function StandardExerciseRow({
   subtitleClassName,
   variant = "standard",
   state,
+  density,
   children,
   showLeadingVisual = true,
 }: StandardExerciseRowProps) {
@@ -62,14 +63,9 @@ export function StandardExerciseRow({
       subtitle={getExerciseGoalSummaryText(summary)}
       variant={variant}
       state={resolvedState}
+      density={density}
       leadingVisual={showLeadingVisual ? (
-        <ExerciseAssetImage
-          src={getExerciseIconSrc(exercise)}
-          alt={`${exercise.name} icon`}
-          className="h-full w-full"
-          imageClassName="object-cover object-center"
-          sizes="44px"
-        />
+        <ExerciseThumb exercise={exercise} sizes="72px" />
       ) : undefined}
       badgeText={badgeText}
       onPress={onPress}

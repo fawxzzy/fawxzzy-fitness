@@ -1,6 +1,7 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { AppNav } from "@/components/AppNav";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppPanel } from "@/components/ui/app/AppPanel";
@@ -26,12 +27,11 @@ export default async function HistoryExercisesPage() {
       <MainTabScreen topNavMode="none">
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={<div id="history-exercises-floating-header" className="px-1 py-1" />}
-          className="px-1"
+          floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
         >
-          <div className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+          <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
             <ExerciseBrowserClient rows={rows} />
-          </div>
+          </ContentRail>
         </ScrollScreenWithBottomActions>
       </MainTabScreen>
     );
@@ -46,10 +46,11 @@ export default async function HistoryExercisesPage() {
       <MainTabScreen topNavMode="none">
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={<div id="history-exercises-floating-header" className="px-1 py-1" />}
-          className="px-1"
+          floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
         >
-          <ExercisesBrowserError />
+          <ContentRail className="py-1">
+            <ExercisesBrowserError />
+          </ContentRail>
         </ScrollScreenWithBottomActions>
       </MainTabScreen>
     );

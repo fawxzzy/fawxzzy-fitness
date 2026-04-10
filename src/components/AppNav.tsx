@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { SVGProps } from "react";
 import { useEffect } from "react";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { Glass } from "@/components/ui/Glass";
 
 type NavLink = {
@@ -85,16 +86,16 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
 
   return (
     <div
-      className={`pointer-events-none inset-x-0 flex max-w-full justify-center overflow-x-clip px-4 ${
+      className={`pointer-events-none inset-x-0 flex max-w-full justify-center overflow-x-clip ${
         mode === "fixed"
           ? "fixed top-[calc(var(--app-top-nav-safe-top,var(--app-safe-top))+var(--header-floating-gap))] z-[60]"
           : "relative z-30"
       }`}
     >
-      <div className="pointer-events-auto w-full max-w-md min-w-0">
+      <ContentRail className="pointer-events-auto min-w-0">
         <Glass
           variant="raised"
-          className="relative isolate min-h-[var(--header-h)] rounded-xl border border-white/15 bg-[rgb(var(--glass-tint-rgb)/0.9)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] [--glass-current-border-alpha:0.3] [--glass-current-tint-alpha:0.88] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.72)]"
+          className="relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-white/15 bg-[rgb(var(--glass-tint-rgb)/0.9)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] [--glass-current-border-alpha:0.3] [--glass-current-tint-alpha:0.88] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.72)]"
           interactive={false}
         >
           <div className="flex h-[var(--header-h)] flex-col justify-center gap-1 pt-0.5">
@@ -127,7 +128,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
             </nav>
           </div>
         </Glass>
-      </div>
+      </ContentRail>
     </div>
   );
 }

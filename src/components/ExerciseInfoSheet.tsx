@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
+import { Glass } from "@/components/ui/Glass";
 import { formatCount, formatDateShort, formatWeight } from "@/lib/formatting";
 import { formatCalories, formatDistance, formatDurationShort, formatPace } from "@/lib/exercise-stats-formatting";
+import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
 export type ExerciseInfoSheetExercise = {
@@ -182,10 +182,10 @@ export function ExerciseInfoSheet({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [handleClose, open]);
 
-  const resolvedHowToSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const metadata = exercise ? buildExerciseInfoMeta(exercise) : [];
   const statSections = buildExerciseInfoStatSections(stats);
+  const howToImageSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const detailHeader = (
     <DetailHeader
       title={exercise?.name ?? "Exercise"}
@@ -228,60 +228,55 @@ export function ExerciseInfoSheet({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 pointer-events-auto"
+      className="fixed inset-0 z-50 pointer-events-auto bg-[rgb(var(--bg))]"
       role="dialog"
       aria-modal="true"
       aria-label="Exercise info"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          handleClose();
-        }
-      }}
     >
-      <div className="absolute inset-0 h-[100dvh] w-full bg-[rgb(var(--bg))]">
-        <ScrollScreenWithBottomActions
-          className="overscroll-contain"
-          floatingHeader={detailHeader}
-        >
-          <section className="flex w-full flex-col">
-            <ScreenScaffold recipe="exerciseDetail" className="mx-auto w-full max-w-md px-4 pb-[calc(var(--app-safe-bottom)+0.75rem)]">
-              <DetailSection title="How to">
-                {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
-                <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
-                  <ExerciseAssetImage
-                    key={exercise.id ?? exercise.slug ?? resolvedHowToSrc}
-                    src={resolvedHowToSrc}
-                    alt="How-to visual"
-                    className="h-full w-full"
-                    imageClassName="object-contain object-center"
-                    sizes="(max-width: 768px) 100vw, 480px"
-                  />
-                </div>
-              </DetailSection>
+      <main className="min-h-[100dvh]">
+        <ContentRail className="flex min-h-[100dvh] flex-col gap-[var(--section-gap)] pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
+          {detailHeader}
 
-              <DetailSection title="Stats">
-                <div
-                  id={statsPanelId}
-                  data-testid="exercise-info-stats-box"
-                  className="min-h-[94px] space-y-2.5 text-xs text-muted"
-                >
-                  {statsLoading ? (
-                    <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
-                      <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
-                      <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
-                      <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
-                    </div>
-                  ) : stats ? (
-                    statSections.map((section) => <ExerciseInfoStatGrid key={section.title} title={section.title} rows={section.rows} />)
-                  ) : (
-                    <p className="text-muted">No stats yet — log a set to generate stats.</p>
-                  )}
-                </div>
-              </DetailSection>
-            </ScreenScaffold>
-          </section>
-        </ScrollScreenWithBottomActions>
-      </div>
+          <Glass variant="base" className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px]">
+            <div className="scroll-y h-full px-4 pb-6 pt-4">
+              <div className="space-y-3">
+                <DetailSection title="How to">
+                  {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
+                  <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
+                    <ExerciseAssetImage
+                      src={howToImageSrc}
+                      alt={`${exercise.name} demonstration`}
+                      className="h-full w-full"
+                      imageClassName="object-contain object-center"
+                      sizes="(max-width: 768px) 100vw, 480px"
+                    />
+                  </div>
+                </DetailSection>
+
+                <DetailSection title="Stats">
+                  <div
+                    id={statsPanelId}
+                    data-testid="exercise-info-stats-box"
+                    className="min-h-[94px] space-y-2.5 text-xs text-muted"
+                  >
+                    {statsLoading ? (
+                      <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
+                        <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
+                        <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
+                        <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
+                      </div>
+                    ) : stats ? (
+                      statSections.map((section) => <ExerciseInfoStatGrid key={section.title} title={section.title} rows={section.rows} />)
+                    ) : (
+                      <p className="text-muted">No stats yet - log a set to generate stats.</p>
+                    )}
+                  </div>
+                </DetailSection>
+              </div>
+            </div>
+          </Glass>
+        </ContentRail>
+      </main>
     </div>,
     document.body,
   );

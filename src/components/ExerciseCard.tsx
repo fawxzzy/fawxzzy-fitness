@@ -1,12 +1,58 @@
 import type { ReactNode } from "react";
-import { cn } from "@/lib/cn";
-import { appTokens } from "@/components/ui/app/tokens";
+import { Glass } from "@/components/ui/Glass";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { textRoles } from "@/components/ui/text-roles";
+import { cn } from "@/lib/cn";
 
-type ExerciseCardVariant = "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
-type ExerciseCardState = "default" | "selected" | "active" | "completed" | "empty";
+export type ExerciseCardVariant = "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
+export type ExerciseCardState = "default" | "selected" | "active" | "completed" | "empty";
+export type ExerciseCardDensity = "compact" | "detailed";
 
-const defaultChevron = <span aria-hidden="true" className="text-muted">›</span>;
+const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
+  standard: "detailed",
+  compact: "compact",
+  list: "compact",
+  interactive: "compact",
+  expanded: "detailed",
+  summary: "detailed",
+  reorder: "compact",
+};
+
+const densityStyles: Record<ExerciseCardDensity, {
+  shell: string;
+  media: string;
+  subtitleClamp: string;
+  titleSize: string;
+}> = {
+  compact: {
+    shell: "min-h-[96px] px-4 py-3",
+    media: "h-14 w-14 rounded-[20px]",
+    subtitleClamp: "line-clamp-1",
+    titleSize: "text-[0.98rem]",
+  },
+  detailed: {
+    shell: "min-h-[128px] px-4 py-4",
+    media: "h-[72px] w-[72px] rounded-[22px]",
+    subtitleClamp: "line-clamp-3",
+    titleSize: "text-[clamp(1.02rem,2.5vw,1.08rem)]",
+  },
+};
+
+const shellStateClassNames: Record<ExerciseCardState, string> = {
+  default: "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-rgb)/0.44)]",
+  selected: "border-[rgb(var(--accent-blue)/0.3)] bg-[linear-gradient(180deg,rgba(137,182,242,0.12),rgba(137,182,242,0.04))] ring-1 ring-[rgb(var(--accent-blue)/0.14)]",
+  active: "border-[rgb(var(--accent-mint)/0.3)] bg-[linear-gradient(180deg,rgba(127,216,195,0.12),rgba(127,216,195,0.04))] ring-1 ring-[rgb(var(--accent-mint)/0.14)]",
+  completed: "border-[rgb(var(--accent-mint)/0.34)] bg-[linear-gradient(180deg,rgba(127,216,195,0.16),rgba(103,191,173,0.06))] ring-1 ring-[rgb(var(--accent-mint)/0.16)]",
+  empty: "border-dashed border-[rgb(var(--accent-yellow-off)/0.24)] bg-[linear-gradient(180deg,rgba(200,179,95,0.06),rgba(42,53,72,0.2))]",
+};
+
+const thumbStateClassNames: Record<ExerciseCardState, string> = {
+  default: "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--bg)/0.08)]",
+  selected: "border-[rgb(var(--accent-blue)/0.28)] bg-[rgb(var(--accent-blue)/0.08)]",
+  active: "border-[rgb(var(--accent-mint)/0.28)] bg-[rgb(var(--accent-mint)/0.08)]",
+  completed: "border-[rgb(var(--accent-mint)/0.3)] bg-[rgb(var(--accent-mint)/0.1)]",
+  empty: "border-dashed border-[rgb(var(--accent-yellow-off)/0.24)] bg-[rgb(var(--accent-yellow-off)/0.08)]",
+};
 
 const titleStateClassNames: Record<ExerciseCardState, string> = {
   default: textRoles.title,
@@ -24,52 +70,6 @@ const subtitleStateClassNames: Record<ExerciseCardState, string> = {
   empty: "text-[rgb(var(--text-muted)/0.95)]",
 };
 
-const mediaShellStateClassNames: Record<ExerciseCardState, string> = {
-  default: "border-[rgb(var(--border-strong)/0.16)]",
-  selected: "border-[rgb(var(--accent-blue)/0.28)] bg-[rgb(var(--accent-blue)/0.08)] shadow-[0_0_0_1px_rgba(137,182,242,0.1)]",
-  active: "border-[rgb(var(--accent-mint)/0.28)] bg-[rgb(var(--accent-mint)/0.08)] shadow-[0_0_0_1px_rgba(127,216,195,0.1)]",
-  completed: "border-[rgb(var(--accent-mint)/0.3)] bg-[rgb(var(--accent-mint)/0.1)] shadow-[0_0_0_1px_rgba(127,216,195,0.12)]",
-  empty: "border-dashed border-[rgb(var(--accent-yellow-off)/0.24)] saturate-[0.82] opacity-84",
-};
-
-const mediaShellSizeClassNames: Record<ExerciseCardVariant, string> = {
-  standard: "aspect-square self-stretch rounded-[0.95rem] p-0",
-  compact: "aspect-square self-stretch rounded-[0.95rem] p-0",
-  list: "aspect-square self-stretch rounded-[0.95rem] p-0",
-  interactive: "aspect-square self-stretch rounded-[0.95rem] p-0",
-  expanded: "aspect-square self-stretch rounded-[0.95rem] p-0",
-  summary: "aspect-square self-stretch rounded-[0.95rem] p-0",
-  reorder: "aspect-square self-stretch rounded-[0.95rem] p-0",
-};
-
-const variantClassNames: Record<ExerciseCardVariant, string> = {
-  standard: "min-h-[4.35rem] px-3.5 py-2.75",
-  compact: "min-h-[4.35rem] px-3.5 py-2.75",
-  list: "min-h-[4.35rem] px-3.5 py-2.75",
-  interactive: "min-h-[4.35rem] px-3.5 py-2.75",
-  expanded: "min-h-[4.35rem] px-3.5 py-2.75",
-  summary: "min-h-[4.35rem] px-3.5 py-2.75",
-  reorder: "min-h-[4.35rem] px-3.5 py-2.75",
-};
-
-const rightRailWidthByVariant: Record<ExerciseCardVariant, string> = {
-  standard: "w-[5.2rem] min-w-[5.2rem]",
-  compact: "w-[5.2rem] min-w-[5.2rem]",
-  list: "w-[5.2rem] min-w-[5.2rem]",
-  interactive: "w-[5.2rem] min-w-[5.2rem]",
-  expanded: "w-[5.2rem] min-w-[5.2rem]",
-  summary: "w-[5.2rem] min-w-[5.2rem]",
-  reorder: "w-[5.9rem] min-w-[5.9rem]",
-};
-
-const stateClassNames: Record<ExerciseCardState, string> = {
-  default: "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-rgb)/0.44)] hover:border-[rgb(var(--border-strong)/0.26)] hover:bg-[rgb(var(--surface-rgb)/0.56)]",
-  selected: "border-[rgb(var(--accent-blue)/0.3)] bg-[linear-gradient(180deg,rgba(137,182,242,0.12),rgba(137,182,242,0.04))] shadow-[0_14px_30px_-24px_rgba(137,182,242,0.32)] ring-1 ring-[rgb(var(--accent-blue)/0.14)] hover:border-[rgb(var(--accent-blue)/0.38)] hover:bg-[linear-gradient(180deg,rgba(137,182,242,0.14),rgba(137,182,242,0.05))]",
-  active: "border-[rgb(var(--accent-mint)/0.3)] bg-[linear-gradient(180deg,rgba(127,216,195,0.12),rgba(127,216,195,0.04))] shadow-[0_14px_32px_-26px_rgba(127,216,195,0.34)] ring-1 ring-[rgb(var(--accent-mint)/0.14)] hover:border-[rgb(var(--accent-mint)/0.38)] hover:bg-[linear-gradient(180deg,rgba(127,216,195,0.14),rgba(127,216,195,0.05))]",
-  completed: "border-[rgb(var(--accent-mint)/0.34)] bg-[linear-gradient(180deg,rgba(127,216,195,0.16),rgba(103,191,173,0.06))] shadow-[0_14px_30px_-24px_rgba(103,191,173,0.36)] ring-1 ring-[rgb(var(--accent-mint)/0.16)] hover:border-[rgb(var(--accent-mint)/0.4)] hover:bg-[linear-gradient(180deg,rgba(127,216,195,0.18),rgba(103,191,173,0.08))]",
-  empty: "border-dashed border-[rgb(var(--accent-yellow-off)/0.24)] bg-[linear-gradient(180deg,rgba(200,179,95,0.06),rgba(42,53,72,0.2))] hover:border-[rgb(var(--accent-yellow-on)/0.32)] hover:bg-[linear-gradient(180deg,rgba(200,179,95,0.08),rgba(42,53,72,0.28))]",
-};
-
 const badgeStateClassNames: Record<ExerciseCardState, string> = {
   default: "border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--bg-panel)/0.55)] text-[rgb(var(--text-primary)/0.82)]",
   selected: "border-[rgb(var(--accent-blue)/0.28)] bg-[rgb(var(--accent-blue)/0.12)] text-[rgb(242_247_255)]",
@@ -77,6 +77,8 @@ const badgeStateClassNames: Record<ExerciseCardState, string> = {
   completed: "border-[rgb(var(--accent-mint)/0.32)] bg-[rgb(var(--accent-mint)/0.14)] text-[rgb(244_249_248)]",
   empty: "border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(255_246_214)]",
 };
+
+const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text)/0.55)]" />;
 
 export function ExerciseCard({
   title,
@@ -100,9 +102,10 @@ export function ExerciseCard({
   subtitleClassName,
   variant = "standard",
   state = "default",
+  density,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   children?: ReactNode;
   leadingVisual?: ReactNode;
   onPress?: () => void;
@@ -122,15 +125,29 @@ export function ExerciseCard({
   subtitleClassName?: string;
   variant?: ExerciseCardVariant;
   state?: ExerciseCardState;
+  density?: ExerciseCardDensity;
 }) {
+  const resolvedDensity = density ?? densityByVariant[variant];
+  const styles = densityStyles[resolvedDensity];
+  const bodyGridClassName = leadingVisual
+    ? "grid-cols-[auto_minmax(0,1fr)_auto]"
+    : "grid-cols-[minmax(0,1fr)_auto]";
+
   const bodyContent = (
-    <div className={cn("grid min-w-0 flex-1 self-stretch grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden", bodyClassName)}>
+    <div
+      className={cn(
+        "grid w-full min-w-0 items-center gap-3",
+        bodyGridClassName,
+        styles.shell,
+        bodyClassName,
+      )}
+    >
       {leadingVisual ? (
         <div
           className={cn(
-            "shrink-0 self-stretch overflow-hidden border bg-[rgb(var(--bg)/0.08)] transition-colors [&_img]:transition [&_img]:duration-150",
-            mediaShellSizeClassNames[variant],
-            mediaShellStateClassNames[state],
+            "relative shrink-0 self-stretch overflow-hidden border p-0 transition-colors",
+            styles.media,
+            thumbStateClassNames[state],
             mediaClassName,
           )}
         >
@@ -138,68 +155,103 @@ export function ExerciseCard({
         </div>
       ) : null}
 
-      <div className={cn("min-w-0 self-center space-y-1", contentClassName)}>
-        <div className={cn("min-w-0 space-y-0.5", titleContainerClassName)}>
-          <p className={cn("min-w-0 text-[0.98rem] font-semibold leading-[1.26] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", titleStateClassNames[state], titleClassName)}>
-            {title}
-          </p>
-          {subtitle ? <p className={cn("min-w-0 text-xs leading-[1.28] whitespace-normal [word-break:normal] [overflow-wrap:anywhere] [text-wrap:pretty]", subtitleStateClassNames[state], subtitleClassName)}>{subtitle}</p> : null}
+      <div className={cn("min-w-0 self-stretch", contentClassName)}>
+        <div className={cn("min-w-0", titleContainerClassName)}>
+          <div className="flex items-start justify-between gap-2">
+            <p
+              className={cn(
+                "text-safe-wrap min-w-0 flex-1 font-semibold leading-tight [text-wrap:pretty]",
+                styles.titleSize,
+                titleStateClassNames[state],
+                titleClassName,
+              )}
+            >
+              {title}
+            </p>
+            {badgeText ? (
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
+                  badgeStateClassNames[state],
+                )}
+              >
+                {badgeText}
+              </span>
+            ) : null}
+          </div>
+          {subtitle ? (
+            <div
+              className={cn(
+                "text-safe-wrap mt-1 text-xs leading-[1.35] [text-wrap:pretty]",
+                styles.subtitleClamp,
+                subtitleStateClassNames[state],
+                subtitleClassName,
+              )}
+            >
+              {subtitle}
+            </div>
+          ) : null}
         </div>
-        {children}
+        {children ? <div className="mt-2 min-w-0">{children}</div> : null}
       </div>
 
-      <div className={cn("flex min-h-full min-w-0 shrink-0 justify-end self-stretch overflow-hidden text-sm font-medium leading-none text-[rgb(var(--text)/0.82)]", rightRailWidthByVariant[variant], rightRailClassName, trailingClassName)}>
-        <div className={cn("flex h-full w-full min-w-0 flex-col items-end gap-1 overflow-hidden py-0.5", badgeText ? "justify-between" : "justify-end", trailingStackClassName)}>
-          {badgeText ? (
-            <span className={cn("max-w-full shrink-0 overflow-hidden text-ellipsis rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-right whitespace-nowrap", badgeStateClassNames[state])}>
-              {badgeText}
-            </span>
-          ) : null}
-          <span className="inline-flex h-7 min-w-7 items-center justify-center self-end leading-none">{rightIcon}</span>
+      <div
+        className={cn(
+          "flex min-h-full shrink-0 items-center justify-end self-stretch",
+          trailingClassName,
+          rightRailClassName,
+        )}
+      >
+        <div className={cn("flex h-full min-w-10 items-center justify-end", trailingStackClassName)}>
+          {rightIcon}
         </div>
       </div>
     </div>
   );
 
-  const baseClassName = cn(
-    "flex w-full min-w-0 items-stretch overflow-hidden rounded-[1.25rem] border text-left",
-    variantClassNames[variant],
-    stateClassNames[state],
-    onPress ? appTokens.rowInteractive : undefined,
+  const shellClassName = cn(
+    "w-full max-w-none rounded-[var(--card-radius)] text-left",
+    shellStateClassNames[state],
     disabled ? "cursor-not-allowed opacity-60" : undefined,
     className,
   );
 
-  const pressableBodyClassName = "min-w-0 flex-1 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]";
-
   if (onPress && actions) {
     return (
-      <article className={cn(baseClassName, "items-stretch gap-2")}>
-        <button
-          type="button"
-          className={cn(pressableBodyClassName, "min-w-0 flex-1")}
-          onClick={onPress}
-          disabled={disabled}
-        >
-          {bodyContent}
-        </button>
-        <div className="flex shrink-0 items-start gap-1.5">{actions}</div>
-      </article>
+      <Glass variant="base" interactive={!disabled} className={shellClassName}>
+        <div className="flex w-full items-stretch gap-2">
+          <button
+            type="button"
+            className="min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]"
+            onClick={onPress}
+            disabled={disabled}
+          >
+            {bodyContent}
+          </button>
+          <div className="flex shrink-0 items-center gap-1.5 px-2 py-2">{actions}</div>
+        </div>
+      </Glass>
     );
   }
 
   if (onPress) {
     return (
-      <button
-        type="button"
-        className={cn(baseClassName, pressableBodyClassName)}
-        onClick={onPress}
-        disabled={disabled}
-      >
-        {bodyContent}
-      </button>
+      <Glass variant="base" interactive={!disabled} className={shellClassName}>
+        <button
+          type="button"
+          className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]"
+          onClick={onPress}
+          disabled={disabled}
+        >
+          {bodyContent}
+        </button>
+      </Glass>
     );
   }
 
-  return <div className={baseClassName}>{bodyContent}</div>;
+  return (
+    <Glass variant="base" className={shellClassName}>
+      {bodyContent}
+    </Glass>
+  );
 }

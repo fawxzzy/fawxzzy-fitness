@@ -5,7 +5,7 @@ import {
   ACTION_CHROME_RAIL_GRID_CLASS_NAME,
 } from "@/components/ui/actionChrome";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "px-3 pb-[calc(var(--app-safe-bottom)+2px)]";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pb-[calc(var(--app-safe-bottom)+2px)]";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
   ACTION_CHROME_RAIL_CLASS_NAME,
   "overflow-hidden px-[var(--action-chrome-shell-padding)] py-[var(--action-chrome-shell-padding)]",

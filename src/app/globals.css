@@ -133,6 +133,25 @@
   --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset));
   --app-bottom-inset: var(--app-safe-bottom);
   --app-bottom-gap: 3px;
+  --screen-gutter: 16px;
+  --content-max: 430px;
+  --section-gap: 12px;
+  --card-radius: 28px;
+  --bottom-nav-h: 92px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --screen-gutter: 20px;
+    --content-max: 560px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --screen-gutter: 24px;
+    --content-max: 680px;
+  }
 }
 
 :root[data-glass-effects="reduced"] {
@@ -689,4 +708,22 @@ a:focus-visible {
 .picker-scroll-viewport::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+.app-page-scroll {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 12px);
+}
+
+.scroll-y {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.text-safe-wrap {
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
 }
