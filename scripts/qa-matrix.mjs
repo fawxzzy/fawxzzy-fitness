@@ -74,6 +74,7 @@ async function main() {
           url: `${baseUrl}/dev/mobile-regression?scenario=${encodeURIComponent(scenario.id)}`,
           width,
           height: 852,
+          mobile: true,
           outPath: path.join(outputRoot, `${scenario.id}-${width}.png`),
           initialWaitMs: 1200,
           finalWaitMs: 700,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
@@ -148,6 +148,7 @@ export function ExerciseInfoSheet({
   open,
   onOpenChange,
   onClose,
+  inline = false,
 }: {
   exercise: ExerciseInfoSheetExercise | null;
   stats: ExerciseInfoSheetStats | null;
@@ -155,10 +156,16 @@ export function ExerciseInfoSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onClose?: () => void;
+  inline?: boolean;
 }) {
   const router = useRouter();
   const statsPanelId = useId();
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   useBodyScrollLock(open);
+
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
 
   const handleClose = useCallback(() => {
     if (onClose) {
@@ -223,7 +230,64 @@ export function ExerciseInfoSheet({
     }
   }, [canonicalExerciseId, exercise, open, statsPanelId]);
 
-  if (!open || !exercise) return null;
+  if (!open || !exercise || (!inline && !portalTarget)) return null;
+  const resolvedPortalTarget = portalTarget;
+
+  const sheetBody = (
+    <main className={inline ? "min-h-[100dvh]" : "min-h-[100dvh]"}>
+      <ContentRail className="flex min-h-[100dvh] flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
+        {detailHeader}
+
+        <Glass variant="base" className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px]">
+          <div className="scroll-y min-h-0 flex-1 px-4 pb-6 pt-4">
+            <div className="space-y-3">
+              <DetailSection title="How to">
+                {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
+                <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
+                  <ExerciseAssetImage
+                    src={howToImageSrc}
+                    alt={`${exercise.name} demonstration`}
+                    className="h-full w-full"
+                    imageClassName="object-contain object-center"
+                    sizes="(max-width: 768px) 100vw, 480px"
+                    priority
+                  />
+                </div>
+              </DetailSection>
+
+              <DetailSection title="Stats">
+                <div
+                  id={statsPanelId}
+                  data-testid="exercise-info-stats-box"
+                  className="min-h-[94px] space-y-2.5 text-xs text-muted"
+                >
+                  {statsLoading ? (
+                    <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
+                      <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
+                      <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
+                      <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
+                    </div>
+                  ) : stats ? (
+                    statSections.map((section) => <ExerciseInfoStatGrid key={section.title} title={section.title} rows={section.rows} />)
+                  ) : (
+                    <p className="text-muted">No stats yet - log a set to generate stats.</p>
+                  )}
+                </div>
+              </DetailSection>
+            </div>
+          </div>
+        </Glass>
+      </ContentRail>
+    </main>
+  );
+
+  if (inline) {
+    return sheetBody;
+  }
+
+  if (!resolvedPortalTarget) {
+    return null;
+  }
 
   return createPortal(
     <div
@@ -232,51 +296,8 @@ export function ExerciseInfoSheet({
       aria-modal="true"
       aria-label="Exercise info"
     >
-      <main className="min-h-[100dvh]">
-        <ContentRail className="flex min-h-[100dvh] flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
-          {detailHeader}
-
-          <Glass variant="base" className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px]">
-            <div className="scroll-y min-h-0 flex-1 px-4 pb-6 pt-4">
-              <div className="space-y-3">
-                <DetailSection title="How to">
-                  {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
-                  <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
-                    <ExerciseAssetImage
-                      src={howToImageSrc}
-                      alt={`${exercise.name} demonstration`}
-                      className="h-full w-full"
-                      imageClassName="object-contain object-center"
-                      sizes="(max-width: 768px) 100vw, 480px"
-                    />
-                  </div>
-                </DetailSection>
-
-                <DetailSection title="Stats">
-                  <div
-                    id={statsPanelId}
-                    data-testid="exercise-info-stats-box"
-                    className="min-h-[94px] space-y-2.5 text-xs text-muted"
-                  >
-                    {statsLoading ? (
-                      <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
-                        <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
-                        <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
-                        <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
-                      </div>
-                    ) : stats ? (
-                      statSections.map((section) => <ExerciseInfoStatGrid key={section.title} title={section.title} rows={section.rows} />)
-                    ) : (
-                      <p className="text-muted">No stats yet - log a set to generate stats.</p>
-                    )}
-                  </div>
-                </DetailSection>
-              </div>
-            </div>
-          </Glass>
-        </ContentRail>
-      </main>
+      {sheetBody}
     </div>,
-    document.body,
+    resolvedPortalTarget,
   );
 }

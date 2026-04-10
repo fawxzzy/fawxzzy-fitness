@@ -14,12 +14,22 @@ type ExerciseAssetImageProps = {
   fallback?: ReactNode;
   sizes?: string;
   loading?: "eager" | "lazy";
+  priority?: boolean;
 };
 
 const DEFAULT_FALLBACK_SRC = "/exercises/icons/_placeholder.svg";
 const DEFAULT_SIZES = "(max-width: 768px) 40vw, 160px";
 // Session-scoped cache prevents repeated retries for known-missing local asset paths.
 const missingSrcCache = new Set<string>();
+
+function resolveKnownMissingAssetSrc(src: string, fallbackSrc: string) {
+  if (src.startsWith("/missing/") && src !== fallbackSrc) {
+    missingSrcCache.add(src);
+    return fallbackSrc;
+  }
+
+  return missingSrcCache.has(src) && src !== fallbackSrc ? fallbackSrc : src;
+}
 
 export function ExerciseAssetImage({
   src,
@@ -30,12 +40,13 @@ export function ExerciseAssetImage({
   fallback,
   sizes = DEFAULT_SIZES,
   loading = "lazy",
+  priority = false,
 }: ExerciseAssetImageProps) {
-  const [renderSrc, setRenderSrc] = useState(() => (missingSrcCache.has(src) && src !== fallbackSrc ? fallbackSrc : src));
+  const [renderSrc, setRenderSrc] = useState(() => resolveKnownMissingAssetSrc(src, fallbackSrc));
   const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
-    setRenderSrc(missingSrcCache.has(src) && src !== fallbackSrc ? fallbackSrc : src);
+    setRenderSrc(resolveKnownMissingAssetSrc(src, fallbackSrc));
     setShowFallback(false);
   }, [src, fallbackSrc]);
 
@@ -50,7 +61,8 @@ export function ExerciseAssetImage({
         unoptimized
         src={renderSrc}
         alt={alt}
-        loading={loading}
+        loading={priority ? undefined : loading}
+        priority={priority}
         sizes={sizes}
         className={cn("object-cover object-center", imageClassName)}
         onError={() => {
