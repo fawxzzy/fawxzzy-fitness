@@ -38,6 +38,7 @@ function HistorySessionCard({
     >
       <StandardExerciseRow
         variant="list"
+        density={viewMode}
         state={selected ? "selected" : "default"}
         exercise={{ name: session.routineTitle || "Unknown routine" }}
         summary={formatSubtitle(session)}

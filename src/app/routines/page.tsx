@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
@@ -253,16 +254,16 @@ export default async function RoutinesPage({
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
-          <div className="mx-auto w-full max-w-md px-1">
+          <ContentRail>
             <ActiveRoutineSummaryCard
               title={activeRoutine?.name ?? "Select routine"}
               metadata={cycleSummary}
               status={<ActiveRoutineStatusBadge active={Boolean(activeRoutine?.id)} />}
             />
-          </div>
+          </ContentRail>
         )}
       >
-        <div className="space-y-3 px-1">
+        <ContentRail className="space-y-3">
           {routines.length === 0 ? (
             <div className="space-y-3 rounded-xl border border-border/45 bg-surface/45 p-4">
               <p className="text-sm text-muted">No routines yet.</p>
@@ -311,7 +312,7 @@ export default async function RoutinesPage({
               initialRoutineListOpen={initialRoutineListOpen}
             />
           )}
-        </div>
+        </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );

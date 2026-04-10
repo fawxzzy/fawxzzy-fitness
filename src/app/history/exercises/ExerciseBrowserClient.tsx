@@ -90,6 +90,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       <StandardExerciseRow
         exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
         summary={primaryLine || fallbackLine}
+        density="compact"
         onPress={() => {
           if (process.env.NODE_ENV === "development") {
             console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
@@ -109,6 +110,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     <StandardExerciseRow
       exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
       summary={primaryLine || fallbackLine}
+      density="detailed"
       onPress={() => {
         if (process.env.NODE_ENV === "development") {
           console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
