@@ -1,44 +1,51 @@
 # Mobile regression fixtures
 
-This fixture suite turns the known pre-fix mobile screenshots into deterministic route-level regression coverage.
+This fixture suite turns the known mobile regression inventory into deterministic route-level coverage and explicit review boards.
 
-## Protected screen/state contracts
+## Review buckets
 
-- `today-selected-day`
-  - Guards default Today selected-day rendering.
-  - Contract: title stays below safe area; final interactive row remains above bottom dock.
-- `today-day-picker-open`
-  - Guards Today day-picker expanded state.
-  - Contract: picker state keeps interactive rows reachable above dock.
-- `today-rest-day`
-  - Guards Today rest-day state.
-  - Contract: rest-day rendering still respects safe-area and dock boundaries.
-- `today-in-session-summary`
-  - Guards Today in-session summary state.
-  - Contract: summary state cannot accidentally render impossible status combinations.
-- `active-workout-session`
-  - Guards active workout session overview.
-  - Contract: impossible `logged + skipped` plain mixed state is blocked unless explicitly modeled.
-- `add-exercise-default`
-  - Guards default Add Exercise list state.
-  - Contract: filter chips never clip off-screen unintentionally.
-- `add-exercise-filters-expanded`
-  - Guards Add Exercise with expanded filters.
-  - Contract: expanded chips stay inside viewport bounds.
-- `add-exercise-long-title-metadata`
-  - Guards long-title and long-metadata card rendering.
-  - Contract: long labels stay stable (no narrow shredded metadata columns).
-- `add-exercise-goal-configuration`
-  - Guards Add Exercise goal configuration step.
-  - Contract: dock spacing and top safe-area remain valid while configuring goals.
-- `exercise-detail-view`
-  - Guards exercise detail/view route.
-  - Contract: header/title remains clear of system safe-area.
+The board pipeline uses scenario-owned family metadata, not filename-prefix guessing. The review buckets are:
+
+- `Exercise cards`
+- `Session / logging`
+- `Session summaries`
+- `Settings / detail`
+
+Current review order for the final symmetry pass:
+
+1. `session-logging-board.png`
+2. `exercise-cards-board.png`
+3. `session-summaries-board.png`
+4. `settings-detail-board.png`
+
+## Capture and board flow
+
+Capture screenshots and emit the manifest:
+
+```bash
+npm run qa:matrix
+```
+
+Build the review boards from the manifest:
+
+```bash
+npm run qa:boards
+```
+
+The capture step writes `.codex/qa/mobile-regression/manifest.json` beside the screenshots. The board builder reads that manifest and writes:
+
+- `mega-board.png`
+- `exercise-cards-board.png`
+- `session-logging-board.png`
+- `session-summaries-board.png`
+- `settings-detail-board.png`
+
+Local QA note: the board builder uses Pillow. If it is missing, install it once with `python -m pip install Pillow`.
 
 ## Test runner
 
 Run the fixture suite with:
 
 ```bash
-node --test src/lib/dev/mobile-regression-fixtures.test.ts
+npm run test:mobile-regression-fixtures
 ```

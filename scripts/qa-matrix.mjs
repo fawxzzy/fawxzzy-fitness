@@ -17,6 +17,7 @@ const widths = (process.env.QA_WIDTHS ?? "375,393,430")
   .split(",")
   .map((value) => Number(value.trim()))
   .filter((value) => Number.isInteger(value) && value > 0);
+const manifestPath = path.join(outputRoot, "manifest.json");
 
 async function loadScenarios() {
   const moduleUrl = pathToFileURL(path.join(repoRoot, "src", "lib", "dev", "mobileRegressionFixtures.ts")).href;
@@ -84,6 +85,27 @@ async function assertScreenshotWritten(outPath) {
   }
 }
 
+function buildManifest({ scenarios }) {
+  return {
+    generatedAt: new Date().toISOString(),
+    baseUrl,
+    viewportHeight,
+    widths,
+    scenarios: scenarios.map((scenario) => ({
+      id: scenario.id,
+      name: scenario.name,
+      family: scenario.family,
+      route: scenario.route,
+      screen: scenario.screen,
+      fixture: scenario.fixture,
+      captures: widths.map((width) => ({
+        width,
+        file: `${scenario.id}-${width}.png`,
+      })),
+    })),
+  };
+}
+
 async function main() {
   const scenarioArgs = process.argv.slice(2);
   const allScenarios = await loadScenarios();
@@ -104,6 +126,10 @@ async function main() {
       await assertScreenshotWritten(outPath);
     }
   }
+
+  const manifest = buildManifest({ scenarios });
+  await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  console.log(`Wrote mobile regression manifest: ${manifestPath}`);
 }
 
 main().catch((error) => {
