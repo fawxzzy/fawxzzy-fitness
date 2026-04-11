@@ -43,6 +43,9 @@ export type AmbientPresetTuning = {
   motionMultiplier: number;
   twinkleMultiplier: number;
   geometryMultiplier: number;
+  frameOpacityMultiplier?: number;
+  railOpacityMultiplier?: number;
+  railMotionMultiplier?: number;
 };
 
 const createAmbientSkyTuning = (): AmbientSkyTuning => ({
@@ -102,30 +105,44 @@ export const ambientBackdropTuning = {
       motionMultiplier: 0.9,
       twinkleMultiplier: 0.8,
       geometryMultiplier: 0.9,
+      railOpacityMultiplier: 0.92,
+      railMotionMultiplier: 0.9,
     }),
     viewDay: createPreset({
       intensity: 0.82,
       motionMultiplier: 0.75,
       twinkleMultiplier: 0.6,
       geometryMultiplier: 0.78,
+      frameOpacityMultiplier: 1.02,
+      railOpacityMultiplier: 0.86,
+      railMotionMultiplier: 0.78,
     }),
     editDay: createPreset({
       intensity: 0.55,
       motionMultiplier: 0.45,
       twinkleMultiplier: 0.35,
       geometryMultiplier: 0.52,
+      frameOpacityMultiplier: 1.12,
+      railOpacityMultiplier: 0.56,
+      railMotionMultiplier: 0.38,
     }),
     logSet: createPreset({
       intensity: 0.42,
       motionMultiplier: 0.35,
       twinkleMultiplier: 0.18,
       geometryMultiplier: 0.45,
+      frameOpacityMultiplier: 1.18,
+      railOpacityMultiplier: 0.44,
+      railMotionMultiplier: 0.28,
     }),
     modal: createPreset({
       intensity: 0.18,
       motionMultiplier: 0.12,
       twinkleMultiplier: 0.1,
       geometryMultiplier: 0.16,
+      frameOpacityMultiplier: 1.36,
+      railOpacityMultiplier: 0.24,
+      railMotionMultiplier: 0.18,
     }),
   },
   reducedMotion: {

@@ -240,6 +240,104 @@ body {
   isolation: isolate;
 }
 
+.app-edge-frame {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  contain: layout paint style;
+  isolation: isolate;
+  --app-edge-frame-inset: 3px;
+  --app-edge-frame-radius: 28px;
+  --app-edge-frame-line-rgb: var(--text, 244 248 252);
+  --app-edge-frame-accent-rgb: var(--accent-strong, 47 230 210);
+}
+
+.app-edge-frame__buffer,
+.app-edge-frame__line,
+.app-edge-frame__echo,
+.app-edge-frame__corners,
+.app-edge-frame__rail {
+  position: absolute;
+  inset: var(--app-edge-frame-inset);
+  border-radius: calc(var(--app-edge-frame-radius) + var(--app-edge-frame-inset));
+}
+
+.app-edge-frame__buffer {
+  box-shadow:
+    inset 0 0 0 3px rgb(var(--bg, 6 11 24) / 0.16),
+    inset 0 0 24px rgb(0 0 0 / 0.08);
+}
+
+.app-edge-frame__line {
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--app-edge-frame-line-rgb) / var(--app-edge-frame-static-opacity)),
+    0 0 0 1px rgb(255 255 255 / 0.012);
+}
+
+.app-edge-frame__echo {
+  inset: calc(var(--app-edge-frame-inset) + 2px);
+  border-radius: calc(var(--app-edge-frame-radius) + var(--app-edge-frame-inset) - 2px);
+  box-shadow: inset 0 0 0 1px rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-echo-opacity));
+  opacity: 0.92;
+}
+
+.app-edge-frame__corners {
+  background:
+    linear-gradient(90deg, rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-corner-opacity)), transparent 42%) top left / 84px 1px no-repeat,
+    linear-gradient(180deg, rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-corner-opacity)), transparent 42%) top left / 1px 84px no-repeat,
+    linear-gradient(-90deg, rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-corner-opacity)), transparent 42%) top right / 84px 1px no-repeat,
+    linear-gradient(180deg, rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-corner-opacity)), transparent 42%) top right / 1px 84px no-repeat,
+    linear-gradient(90deg, rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-corner-opacity)), transparent 42%) bottom left / 84px 1px no-repeat,
+    linear-gradient(-180deg, rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-corner-opacity)), transparent 42%) bottom left / 1px 84px no-repeat,
+    linear-gradient(-90deg, rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-corner-opacity)), transparent 42%) bottom right / 84px 1px no-repeat,
+    linear-gradient(-180deg, rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-corner-opacity)), transparent 42%) bottom right / 1px 84px no-repeat;
+}
+
+.app-edge-frame__rail {
+  overflow: visible;
+}
+
+.app-edge-frame__rail-group {
+  opacity: calc(var(--app-edge-frame-rail-opacity) * var(--app-edge-frame-rail-local-opacity));
+}
+
+.app-edge-frame__rail-path {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: geometricPrecision;
+  stroke-linejoin: round;
+  stroke-linecap: square;
+}
+
+.app-edge-frame__rail-path--base {
+  stroke: rgb(var(--app-edge-frame-line-rgb) / 0.72);
+  stroke-width: 1;
+  opacity: 0.26;
+}
+
+.app-edge-frame__rail-path--highlight {
+  stroke: rgb(var(--app-edge-frame-accent-rgb) / var(--app-edge-frame-rail-highlight-opacity));
+  stroke-width: 1.15;
+  stroke-dasharray: 16 140;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 0 5px rgb(var(--app-edge-frame-accent-rgb) / 0.1));
+  animation:
+    app-edge-frame-rail-trace var(--app-edge-frame-rail-duration) linear infinite,
+    app-edge-frame-rail-breathe var(--app-edge-frame-rail-breathe-duration) ease-in-out infinite;
+  animation-delay: var(--app-edge-frame-rail-delay), var(--app-edge-frame-rail-delay);
+}
+
+.app-edge-frame__rail-group:nth-child(2n) .app-edge-frame__rail-path--highlight {
+  animation-direction: reverse, normal;
+}
+
+[data-ambient-preset="editDay"] .app-edge-frame__rail-path--highlight,
+[data-ambient-preset="logSet"] .app-edge-frame__rail-path--highlight,
+[data-ambient-preset="modal"] .app-edge-frame__rail-path--highlight {
+  stroke-dasharray: 10 180;
+}
+
 .app-ambient__depth,
 .app-ambient__veil,
 .app-ambient__haze,
@@ -499,6 +597,39 @@ body {
   }
 }
 
+@keyframes app-edge-frame-rail-trace {
+  0%,
+  10% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+
+  18%,
+  56% {
+    opacity: 1;
+  }
+
+  76% {
+    opacity: 0.24;
+  }
+
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -150;
+  }
+}
+
+@keyframes app-edge-frame-rail-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px rgb(var(--app-edge-frame-accent-rgb) / 0.06));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 8px rgb(var(--app-edge-frame-accent-rgb) / 0.14));
+  }
+}
+
 @media (max-width: 640px) {
   .app-ambient__haze--two {
     top: 30%;
@@ -528,6 +659,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .app-edge-frame__rail-path--highlight {
+    animation: none;
+    opacity: 0.18;
+    stroke-dasharray: none;
+    filter: none;
+  }
+
   .app-ambient__haze,
   .app-ambient__twinkle,
   .app-ambient__mote,

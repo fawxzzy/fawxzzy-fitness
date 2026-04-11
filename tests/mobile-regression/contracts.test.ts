@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mobileRegressionScenarios } from "../../src/lib/dev/mobileRegressionFixtures.ts";
-import { validateMobileScenarioContracts } from "../../src/lib/dev/mobileRegressionContracts.ts";
+import { mobileRegressionScenarios } from "../../src/features/mobile-regression/fixtures.ts";
+import { validateMobileScenarioContracts } from "../../src/features/mobile-regression/contracts.ts";
 
 function requireScenario(id: string) {
   const scenario = mobileRegressionScenarios.find((candidate) => candidate.id === id);

@@ -4,8 +4,8 @@ import test from "node:test";
 import {
   mobileRegressionScenarios,
   resolveMobileRegressionScenario,
-} from "./mobileRegressionFixtures.ts";
-import { validateMobileScenarioContracts } from "./mobileRegressionContracts.ts";
+} from "../../src/features/mobile-regression/fixtures.ts";
+import { validateMobileScenarioContracts } from "../../src/features/mobile-regression/contracts.ts";
 
 const expectedScenarioIds = [
   "today-default",

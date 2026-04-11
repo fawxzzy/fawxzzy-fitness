@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AppAmbientBackdrop } from "@/components/layout/AppAmbientBackdrop";
+import { AppEdgeFrame } from "@/components/layout/AppEdgeFrame";
 import { cn } from "@/lib/cn";
 import type { AmbientPreset } from "@/lib/ambient/tuning";
 
@@ -40,6 +41,7 @@ export function AppShell({
       style={shellStyle}
     >
       <AppAmbientBackdrop preset={ambientPreset} />
+      <AppEdgeFrame preset={ambientPreset} />
       <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
         {children}
       </div>
