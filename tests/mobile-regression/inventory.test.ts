@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mobileRegressionScenarios } from "../../src/lib/dev/mobileRegressionFixtures.ts";
+import { mobileRegressionScenarios } from "../../src/features/mobile-regression/fixtures.ts";
 
 test("fixture inventory covers all mobile screens from the pre-fix set", () => {
   const byRoute = new Map<string, number>();

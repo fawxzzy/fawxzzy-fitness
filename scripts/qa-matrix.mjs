@@ -20,7 +20,7 @@ const widths = (process.env.QA_WIDTHS ?? "375,393,430")
 const manifestPath = path.join(outputRoot, "manifest.json");
 
 async function loadScenarios() {
-  const moduleUrl = pathToFileURL(path.join(repoRoot, "src", "lib", "dev", "mobileRegressionFixtures.ts")).href;
+  const moduleUrl = pathToFileURL(path.join(repoRoot, "src", "features", "mobile-regression", "fixtures.ts")).href;
   const fixtureModule = await import(moduleUrl);
   return fixtureModule.mobileRegressionScenarios;
 }

@@ -42,13 +42,13 @@ import { Chip } from "@/components/ui/Chip";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { GlassEffectsSettings } from "@/components/settings/GlassEffectsSettings";
-import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import {
   mobileRegressionScenarios,
   resolveMobileRegressionScenario,
   type MobileRouteKey,
   type MobileFixtureScenario,
-} from "@/lib/dev/mobileRegressionFixtures";
+} from "@/features/mobile-regression/fixtures";
+import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
