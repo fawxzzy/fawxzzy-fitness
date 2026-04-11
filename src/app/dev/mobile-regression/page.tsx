@@ -21,14 +21,12 @@ import { AppButton } from "@/components/ui/AppButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
-import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
-import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -242,6 +240,8 @@ const mockPickerExercises = [
   },
 ];
 
+const LONG_GOAL_SUMMARY = "Goal: 4 sets • 8-10 reps • controlled eccentric • last set AMRAP";
+
 const mockTodayDays = [
   {
     id: "day-1",
@@ -293,7 +293,7 @@ const mockTodayDays = [
         id: "td-3",
         exerciseId: MOCK_EXERCISE_IDS.lunge,
         name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
-        targets: "3 sets x 12 steps @ 35 lb",
+        targets: LONG_GOAL_SUMMARY,
         primary_muscle: "Glutes",
         equipment: "Dumbbell",
         movement_pattern: "Lunge",
@@ -352,23 +352,13 @@ const mockViewDayExercises = [
   {
     id: "view-2",
     name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
-    goalLine: "3 sets x 12 steps @ 35 lb",
+    goalLine: LONG_GOAL_SUMMARY,
     exerciseId: MOCK_EXERCISE_IDS.lunge,
     image_icon_path: "/missing/icon-lunge.png",
     image_howto_path: null,
     slug: "walking-lunge",
   },
 ] as const;
-
-const parityAuditExercise = {
-  id: "parity-1",
-  name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
-  summary: "3 sets x 12 steps @ 35 lb",
-  image_icon_path: "/missing/icon-lunge.png",
-  image_howto_path: null,
-  slug: "walking-lunge",
-  orderNumber: 1,
-} as const;
 
 const longExerciseInfoHowTo = [
   "Start tall, keep the front foot fully planted, and let the back knee travel straight down without rushing the descent.",
@@ -428,7 +418,7 @@ const mockSessionExercises = [
     initialEnabledMetrics: { reps: true, weight: true, time: false, distance: false, calories: false },
     routineDayExerciseId: "routine-row-2",
     planTargetsHash: "11000",
-    goalLabel: "3 sets x 12 steps @ 35 lb",
+    goalLabel: LONG_GOAL_SUMMARY,
     prefill: { weight: 35, reps: 12, weightUnit: "lbs" as const },
     quickLogTarget: { measurementType: "reps" as const, repsMin: 12, repsMax: 12, weightMin: 35, weightMax: 35, weightUnit: "lbs" as const },
     initialSets: [],
@@ -666,7 +656,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
                       id: "summary-2",
                       exerciseId: MOCK_EXERCISE_IDS.lunge,
                       name: "Walking Lunge",
-                      targets: "3 sets x 12 steps @ 35 lb",
+                      targets: LONG_GOAL_SUMMARY,
                       image_icon_path: "/missing/icon-lunge.png",
                       image_howto_path: null,
                       slug: "walking-lunge",
@@ -852,7 +842,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
     : [
       { id: "edit-1", name: "Back Squat", summary: "4 sets x 5 reps @ 225 lb", iconSrc: "/missing/icon-squat.png", orderNumber: 1 },
       { id: "edit-2", name: "Romanian Deadlift", summary: "3 sets x 8 reps @ 185 lb", iconSrc: "/missing/icon-row.png", orderNumber: 2 },
-      { id: "edit-3", name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof", summary: "3 sets x 12 steps @ 35 lb", iconSrc: "/missing/icon-lunge.png", orderNumber: 3 },
+      { id: "edit-3", name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof", summary: LONG_GOAL_SUMMARY, iconSrc: "/missing/icon-lunge.png", orderNumber: 3 },
     ];
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
@@ -879,64 +869,10 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <ScreenScaffold recipe="editDay" className="w-full">
-            {fixture === "card-parity" ? (
-              <div className="space-y-3" data-mobile-regression-card-parity="true">
-                <div className="space-y-1.5" data-mobile-regression-card-mode="view">
-                  <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">View Day</p>
-                  <DayDetailExerciseList
-                    mode="read_only"
-                    items={[{
-                      id: parityAuditExercise.id,
-                      name: parityAuditExercise.name,
-                      summary: parityAuditExercise.summary,
-                      orderNumber: parityAuditExercise.orderNumber,
-                      slug: parityAuditExercise.slug,
-                      image_icon_path: parityAuditExercise.image_icon_path,
-                      image_howto_path: parityAuditExercise.image_howto_path,
-                    }]}
-                  />
-                </div>
-
-                <div className="space-y-1.5" data-mobile-regression-card-mode="edit">
-                  <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">Edit Day</p>
-                  <DayDetailExerciseList
-                    mode="editable"
-                    items={[{
-                      id: parityAuditExercise.id,
-                      name: parityAuditExercise.name,
-                      summary: parityAuditExercise.summary,
-                      orderNumber: parityAuditExercise.orderNumber,
-                      slug: parityAuditExercise.slug,
-                      image_icon_path: parityAuditExercise.image_icon_path,
-                      image_howto_path: parityAuditExercise.image_howto_path,
-                    }]}
-                  />
-                </div>
-
-                <div className="space-y-1.5" data-mobile-regression-card-mode="reorder">
-                  <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">Reorder</p>
-                  <ReorderExerciseRow
-                    exerciseId={parityAuditExercise.id}
-                    exerciseName={parityAuditExercise.name}
-                    metadata={parityAuditExercise.summary}
-                    slug={parityAuditExercise.slug}
-                    image_icon_path={parityAuditExercise.image_icon_path}
-                    image_howto_path={parityAuditExercise.image_howto_path}
-                    orderNumber={parityAuditExercise.orderNumber}
-                    isDragging={false}
-                    onHandlePointerDown={() => {}}
-                    onHandlePointerMove={() => {}}
-                    onHandlePointerUp={() => {}}
-                    onHandlePointerCancel={() => {}}
-                  />
-                </div>
-              </div>
-            ) : (
-              <EditDayRegressionSurface
-                fixture={fixture}
-                exercises={editDayExercises}
-              />
-            )}
+            <EditDayRegressionSurface
+              fixture={fixture}
+              exercises={editDayExercises}
+            />
           </ScreenScaffold>
         </ContentRail>
 

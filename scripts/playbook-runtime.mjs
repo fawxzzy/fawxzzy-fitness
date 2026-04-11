@@ -207,6 +207,10 @@ function installViaNpm({ targetSpec, prefix }) {
   };
 }
 
+export function shouldUseShellForExecutable(executablePath, platform = process.platform) {
+  return platform === 'win32' && /\.(cmd|bat)$/i.test(executablePath);
+}
+
 function handleInstallPackage() {
   if (!isPackageAcquisitionEnabled()) {
     console.error('[playbook-runtime] Package acquisition is disabled by default because the official GitHub release tarball is the canonical distribution path.');
@@ -399,6 +403,7 @@ async function main() {
 
   const result = spawnSync(resolution.bin, [command, ...passthroughArgs], {
     stdio: 'inherit',
+    shell: shouldUseShellForExecutable(resolution.bin),
     env: {
       ...process.env,
       PLAYBOOK_STATE_ROOT: process.env.PLAYBOOK_STATE_ROOT ?? '.playbook'

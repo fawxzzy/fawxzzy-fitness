@@ -5265,6 +5265,8 @@ WHY:
 ## Unreleased
 
 ### Changed
+- Hardened `scripts/playbook-runtime.mjs` on Windows by enabling shell execution only for resolved `.cmd`/`.bat` Playbook wrappers, which fixes `npm run verify` when the bridge resolves to `.playbook/runtime/node_modules/.bin/playbook.cmd`.
+- Added a targeted Playbook runtime regression test that locks the Windows batch-wrapper launch contract without changing non-Windows entrypoint behavior.
 - Added explicit mobile-regression review-family metadata to the deterministic scenario inventory so review boards no longer infer buckets from screenshot filename prefixes.
 - Updated `scripts/qa-matrix.mjs` to emit `.codex/qa/mobile-regression/manifest.json` alongside captured screenshots.
 - Added a tracked `qa:boards` flow backed by `scripts/build-mobile-regression-boards.py`, which reads the manifest and emits `mega-board.png` plus the exact family boards (`exercise-cards`, `session-logging`, `session-summaries`, `settings-detail`) without an `other-board` fallback.
@@ -5371,5 +5373,7 @@ WHY:
 
 ### WHY
 
+- The runtime bridge was correctly resolving the official fallback CLI on Windows but then failing to launch the `.cmd` shim with `spawnSync(..., shell: false)`, which surfaced as `EINVAL` even though the CLI itself was healthy.
+- Locking the batch-wrapper launch rule in tests keeps the fix local to the bridge layer and avoids papering over the problem in repo scripts or the upstream Playbook package.
 * Exercise Info scroll ownership regressions are easiest to miss once content gets long, so the fixture should explicitly exercise the bottom-reach state rather than only the top of the sheet.
 * Card-surface drift often re-enters through wrapper reintroduction, so keeping a one-viewport parity capture makes wrapper-level regressions easier to spot before they ship.
