@@ -671,8 +671,10 @@ body {
     animation:
       app-edge-frame-rail-trace var(--app-edge-frame-reduced-rail-duration) linear infinite,
       app-edge-frame-rail-breathe var(--app-edge-frame-reduced-rail-breathe-duration) ease-in-out infinite;
+    animation-delay:
+      var(--app-edge-frame-rail-delay),
+      var(--app-edge-frame-rail-delay);
     stroke-dasharray: 10 220;
-    opacity: 0.12;
     filter: none;
   }
 
