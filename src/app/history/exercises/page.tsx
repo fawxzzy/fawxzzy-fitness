@@ -24,7 +24,7 @@ export default async function HistoryExercisesPage() {
     const rows = await getExercisesWithStatsForUser();
 
     return (
-      <MainTabScreen topNavMode="none">
+      <MainTabScreen topNavMode="none" ambientPreset="history">
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
           floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
@@ -43,7 +43,7 @@ export default async function HistoryExercisesPage() {
     console.error("[history/exercises] failed to load exercise stats", error);
 
     return (
-      <MainTabScreen topNavMode="none">
+      <MainTabScreen topNavMode="none" ambientPreset="history">
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
           floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}

@@ -92,7 +92,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   const detailSectionVisible = isRestState || hasWarningSummary || hasBlockingIssue || hasExerciseRows || isEmptyTrainingDay;
 
   return (
-    <MainTabScreen topNavMode="none" className="space-y-0">
+    <MainTabScreen topNavMode="none" className="space-y-0" ambientPreset="viewDay">
       <DetailScreenScaffold
         recipe="viewDay"
         floatingHeader={(

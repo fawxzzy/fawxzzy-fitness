@@ -49,7 +49,7 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
   const backHref = getRoutineDayEditHref(params.id, params.dayId);
 
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]">
+    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="logSet">
       <ScrollScreenWithBottomActions
         floatingHeader={(
           <ContentRail className="py-1">

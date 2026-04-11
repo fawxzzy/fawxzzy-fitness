@@ -21,7 +21,7 @@ export default async function SettingsPage() {
   const profile = await ensureProfile(user.id);
 
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="modal">
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(

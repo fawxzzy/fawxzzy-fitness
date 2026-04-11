@@ -251,7 +251,7 @@ export default async function RoutinesPage({
   }
 
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(

@@ -1,13 +1,21 @@
 import type { CSSProperties, ReactNode } from "react";
+import { AppAmbientBackdrop } from "@/components/layout/AppAmbientBackdrop";
 import { cn } from "@/lib/cn";
+import type { AmbientPreset } from "@/lib/ambient/tuning";
 
 type AppShellProps = {
   children: ReactNode;
   className?: string;
   topNavMode?: "main" | "none";
+  ambientPreset?: AmbientPreset;
 };
 
-export function AppShell({ children, className, topNavMode = "main" }: AppShellProps) {
+export function AppShell({
+  children,
+  className,
+  topNavMode = "main",
+  ambientPreset = "viewDay",
+}: AppShellProps) {
   const shellStyle = ({
     "--app-top-nav-safe-top": "max(env(safe-area-inset-top, 0px), var(--vv-top, 0px))",
     "--app-header-offset": topNavMode === "none" ? "0px" : "calc(var(--header-floating-gap) + var(--header-h))",
@@ -26,8 +34,15 @@ export function AppShell({ children, className, topNavMode = "main" }: AppShellP
   } as CSSProperties);
 
   return (
-    <div className={cn("app-shell flex h-[100dvh] min-h-0 min-w-0 max-w-full flex-col overflow-x-hidden overflow-y-hidden pt-[var(--app-top-offset)] touch-pan-y [overscroll-behavior-x:none]", className)} data-top-nav-mode={topNavMode} style={shellStyle}>
-      {children}
+    <div
+      className={cn("app-shell relative isolate flex h-[100dvh] min-h-0 min-w-0 max-w-full flex-col overflow-x-hidden overflow-y-hidden bg-[rgb(var(--bg-app))] pt-[var(--app-top-offset)] touch-pan-y [overscroll-behavior-x:none]", className)}
+      data-top-nav-mode={topNavMode}
+      style={shellStyle}
+    >
+      <AppAmbientBackdrop preset={ambientPreset} />
+      <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
+        {children}
+      </div>
     </div>
   );
 }

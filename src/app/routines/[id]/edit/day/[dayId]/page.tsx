@@ -138,7 +138,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     day.is_rest,
   );
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]">
+    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
       <DetailScreenScaffold
         recipe="editDay"
         floatingHeader={<div id="edit-day-floating-header-slot" />}

@@ -390,7 +390,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         };
 
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="today">
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         bottomDock={<BottomActionsSlot />}

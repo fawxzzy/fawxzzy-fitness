@@ -68,7 +68,7 @@ export function RoutineDetailsScreenShellClient({
 
   return (
     <RoutineDetailsExitGuardContext.Provider value={contextValue}>
-      <AppShell topNavMode="none" className="h-[100dvh]">
+      <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
         <ScrollScreenWithBottomActions
           floatingHeader={(
             <div className="px-1">
