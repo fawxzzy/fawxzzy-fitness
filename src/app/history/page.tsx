@@ -103,12 +103,12 @@ export default async function HistoryPage({
   const { data: sessionExercisesData } = sessionIds.length
     ? await supabase
       .from("session_exercises")
-      .select("id, session_id, exercise_id")
+      .select("id, session_id, exercise_id, is_skipped")
       .in("session_id", sessionIds)
       .eq("user_id", user.id)
     : { data: [] };
 
-  const sessionExercises = (sessionExercisesData ?? []) as Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id">[];
+  const sessionExercises = (sessionExercisesData ?? []) as Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id" | "is_skipped">[];
   const exerciseIds = Array.from(new Set(sessionExercises.map((row) => row.exercise_id)));
   const sessionExerciseIds = sessionExercises.map((row) => row.id);
 

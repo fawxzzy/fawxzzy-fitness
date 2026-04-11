@@ -11,7 +11,7 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
-import { cn } from "@/lib/cn";
+import { MetricStrip, type MetricDatum } from "@/components/ui/MetricItem";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 
 type ExerciseBrowserClientProps = {
@@ -61,6 +61,38 @@ function formatTagLabel(tag: string) {
     .join(" ");
 }
 
+function buildDetailedMetrics(row: ExerciseBrowserRow): MetricDatum[] {
+  const metrics: MetricDatum[] = [];
+
+  if (row.bestSummary) {
+    metrics.push({
+      label: "Best Set",
+      value: row.bestSummary.replace(/^Best \| /, ""),
+    });
+  }
+
+  metrics.push({
+    label: "PR Count",
+    value: `${row.prCount}`,
+  });
+
+  if (row.sessionCount > 0) {
+    metrics.push({
+      label: "Sessions",
+      value: `${row.sessionCount}`,
+    });
+  }
+
+  if (row.deltaFromBest) {
+    metrics.push({
+      label: "Last vs Best",
+      value: row.deltaFromBest,
+    });
+  }
+
+  return metrics;
+}
+
 const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   row,
   onOpen,
@@ -72,33 +104,26 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
 }) {
   const displayName = getExerciseDisplayName(row);
   const lastDate = formatShortDate(row.last_performed_at);
-  const strengthPrSummary = typeof row.pr_est_1rm === "number" && Number.isFinite(row.pr_est_1rm) && row.pr_est_1rm > 0
-    ? `${row.pr_est_1rm.toFixed(0)}${row.last_unit === "kg" ? "kg" : row.last_unit === "lb" || row.last_unit === "lbs" ? "lb" : ""}`
-    : null;
-  const hasSignal = Boolean(row.lastSummary || row.bestSummary || row.prLabel || strengthPrSummary || row.last_performed_at);
-  const semanticTone = row.prLabel || strengthPrSummary ? "pr" : hasSignal ? "logged" : "neutral";
-  const primaryLine = [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" · ");
-  const secondaryLine = row.kind === "strength"
-    ? [row.bestSummary ? `Best ${row.bestSummary}` : null, row.prLabel ? `PRs ${row.prLabel}` : null, strengthPrSummary ? `1RM ${strengthPrSummary}` : null].filter(Boolean).join(" · ")
-    : row.bestSummary ? `Best ${row.bestSummary}` : null;
-
+  const hasSignal = Boolean(row.lastSummary || row.bestSummary || row.prLabel || row.last_performed_at);
+  const semanticTone = row.prCount > 0 ? "pr" : hasSignal ? "logged" : "neutral";
+  const primaryLine = [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" | ");
   const fallbackLine = row.kind === "strength" ? "Strength history" : "Cardio history";
   const rowChrome = viewMode === "detailed"
     ? {
-        bodyClassName: "gap-[1.125rem]",
-        mediaClassName: "mr-0.5 w-[126px] min-h-[112px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[18px]",
+        bodyClassName: "gap-4",
+        mediaClassName: "mr-0.5 w-[118px] min-h-[112px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[18px]",
         contentClassName: "pr-1.5",
-        titleClassName: "line-clamp-2 text-[1.04rem] leading-[1.18]",
+        titleClassName: "line-clamp-2 text-[1.03rem] leading-[1.18]",
         subtitleClassName: "line-clamp-2 text-[12.5px] leading-[1.35]",
-        imageSizes: "(max-width: 768px) 132px, 148px",
+        imageSizes: "(max-width: 768px) 124px, 144px",
       }
     : {
-        bodyClassName: "gap-3.5",
-        mediaClassName: "mr-0.5 w-[104px] min-h-[96px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[16px]",
+        bodyClassName: "gap-3",
+        mediaClassName: "mr-0.5 w-[96px] min-h-[92px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[16px]",
         contentClassName: "pr-1",
-        titleClassName: "line-clamp-3 text-[1rem] leading-[1.18]",
+        titleClassName: "line-clamp-2 text-[0.98rem] leading-[1.18]",
         subtitleClassName: "line-clamp-2 text-[12px] leading-[1.3]",
-        imageSizes: "(max-width: 768px) 108px, 120px",
+        imageSizes: "(max-width: 768px) 100px, 112px",
       };
 
   return (
@@ -124,7 +149,16 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       subtitleClassName={rowChrome.subtitleClassName}
       imageSizes={rowChrome.imageSizes}
     >
-      {viewMode === "detailed" && secondaryLine ? <p className={cn("line-clamp-2 text-[11px] leading-[1.35] text-[rgb(var(--text)/0.62)]")}>{secondaryLine}</p> : null}
+      {viewMode === "detailed" ? (
+        <div className="space-y-1.5">
+          <MetricStrip items={buildDetailedMetrics(row)} />
+          {row.tagsSummary ? (
+            <p className="text-[11px] leading-[1.35] text-[rgb(var(--text-secondary)/0.74)] [text-wrap:pretty]">
+              {row.tagsSummary}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </StandardExerciseRow>
   );
 });
@@ -219,22 +253,22 @@ export function ExerciseBrowserClient({ rows = [], inlineHeaderControls = false 
         </HistoryTitleControlShell>
       ) : floatingHeaderContainer
         ? createPortal(
-          <HistoryTitleControlShell
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            showViewModeToggle={false}
-          >
-            <ExerciseSearchFilters
-              query={query}
-              onQueryChange={setQuery}
-              selectedTags={selectedTags}
-              onTagsChange={setSelectedTags}
-              groups={availableTagGroups}
-            />
-            <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
-          </HistoryTitleControlShell>,
-          floatingHeaderContainer,
-        )
+            <HistoryTitleControlShell
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              showViewModeToggle={false}
+            >
+              <ExerciseSearchFilters
+                query={query}
+                onQueryChange={setQuery}
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
+                groups={availableTagGroups}
+              />
+              <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
+            </HistoryTitleControlShell>,
+            floatingHeaderContainer,
+          )
         : null}
 
       <div className="relative min-h-0">

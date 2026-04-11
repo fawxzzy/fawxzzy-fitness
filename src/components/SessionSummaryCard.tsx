@@ -31,7 +31,7 @@ export function SessionSummaryCard({
   tone?: CardSemanticTone;
 }) {
   const body = (
-    <div className="relative min-h-[104px] w-full overflow-hidden px-4 py-3">
+    <div className="relative min-h-[110px] w-full overflow-hidden px-4 py-3.5">
       <span
         aria-hidden="true"
         className={cn(
@@ -41,10 +41,10 @@ export function SessionSummaryCard({
       />
 
       <div className="relative z-[1] flex min-h-full gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="space-y-1">
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <div className="space-y-1.5">
             <div className="flex items-start justify-between gap-2">
-              <p className={cn("min-w-0 flex-1 text-[1rem] font-semibold leading-tight [text-wrap:pretty]", textRoles.title)}>
+              <p className={cn("min-w-0 flex-1 line-clamp-2 text-[1rem] font-semibold leading-tight [text-wrap:pretty]", textRoles.title)}>
                 {title}
               </p>
               {badgeText ? (

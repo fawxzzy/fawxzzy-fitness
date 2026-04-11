@@ -81,6 +81,25 @@ export type GoalFormReadabilityFixture = {
   helperCopy: string[];
 };
 
+export type GoalRowLayoutFixture = {
+  titleMaxLines: number;
+  goalMaxLines: number;
+  dedicatedRow: boolean;
+  wrapsBeforeTruncation: boolean;
+};
+
+export type DetailedModeFixture = {
+  extraMetricCount: number;
+  analyticsSlotsReady: boolean;
+};
+
+export type ExerciseInfoLayoutFixture = {
+  mediaFullyVisible: boolean;
+  quickMetricCount: number;
+  hasProgressBlock: boolean;
+  topSafePaddingRelaxed: boolean;
+};
+
 export type MobileFixtureScenario = {
   id: string;
   route: MobileRouteKey;
@@ -118,6 +137,10 @@ export type MobileFixtureScenario = {
   currentSessionSaveSetHeaderPinned?: boolean;
   captureScrollPosition?: "top" | "bottom";
   cardParityModes?: Array<"view" | "edit" | "reorder">;
+  sectionChromeOwnedByShell?: boolean;
+  goalRowLayout?: GoalRowLayoutFixture;
+  detailedMode?: DetailedModeFixture;
+  exerciseInfoLayout?: ExerciseInfoLayoutFixture;
 };
 
 const MOBILE_VIEWPORT = {
@@ -171,6 +194,13 @@ function buildWorkoutFixture(args: {
     todayHeaderMatchesSelectedDay: args.todayHeaderMatchesSelectedDay,
     hasExtraLowerFillerBox: args.hasExtraLowerFillerBox,
     exerciseInfoHeaderPinned: args.exerciseInfoHeaderPinned,
+    sectionChromeOwnedByShell: true,
+    goalRowLayout: args.inSessionSummary ? undefined : {
+      titleMaxLines: 2,
+      goalMaxLines: 2,
+      dedicatedRow: true,
+      wrapsBeforeTruncation: true,
+    },
   } satisfies MobileFixtureScenario;
 }
 
@@ -197,6 +227,7 @@ function buildRoutinesFixture(args: {
     historyLogHeaderCount: args.historyLogHeaderCount,
     cardStates: [{ cardId: "routine-card-primary", state: "selected", badgeText: "Current" }],
     usesFloatingHeader: true,
+    sectionChromeOwnedByShell: true,
   } satisfies MobileFixtureScenario;
 }
 
@@ -236,6 +267,13 @@ function buildDayFixture(args: {
     manualOrderEdit: args.manualOrderEdit,
     hasExtraLowerFillerBox: args.hasExtraLowerFillerBox,
     cardParityModes: args.cardParityModes,
+    sectionChromeOwnedByShell: true,
+    goalRowLayout: args.restDay ? undefined : {
+      titleMaxLines: 2,
+      goalMaxLines: 2,
+      dedicatedRow: true,
+      wrapsBeforeTruncation: true,
+    },
   } satisfies MobileFixtureScenario;
 }
 
@@ -261,6 +299,7 @@ function buildAddExerciseFixture(args: {
     goalForm: args.goalForm,
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 172 },
     usesFloatingHeader: true,
+    sectionChromeOwnedByShell: true,
   } satisfies MobileFixtureScenario;
 }
 
@@ -277,6 +316,8 @@ function buildSimpleFixture(args: {
   statusChips?: SessionStatusChip[];
   libraryCardTextLayout?: LibraryCardTextLayout;
   captureScrollPosition?: MobileFixtureScenario["captureScrollPosition"];
+  detailedMode?: DetailedModeFixture;
+  exerciseInfoLayout?: ExerciseInfoLayoutFixture;
 }) {
   return {
     id: args.id,
@@ -292,6 +333,9 @@ function buildSimpleFixture(args: {
     libraryCardTextLayout: args.libraryCardTextLayout,
     captureScrollPosition: args.captureScrollPosition,
     usesFloatingHeader: true,
+    sectionChromeOwnedByShell: true,
+    detailedMode: args.detailedMode,
+    exerciseInfoLayout: args.exerciseInfoLayout,
   } satisfies MobileFixtureScenario;
 }
 
@@ -506,6 +550,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     },
     cardStates: [{ cardId: "new-routine-card", state: "selected", badgeText: "Draft" }],
     usesFloatingHeader: true,
+    sectionChromeOwnedByShell: true,
   },
   {
     id: "edit-routine",
@@ -519,6 +564,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     bottomDockLayout: "split",
     cardStates: [{ cardId: "edit-routine-card", state: "selected", badgeText: "Current" }],
     usesFloatingHeader: true,
+    sectionChromeOwnedByShell: true,
   },
   buildAddExerciseFixture({
     id: "add-exercise-default",
@@ -541,6 +587,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixture: "extreme",
     fixtureState: "history-sessions-extreme-v1",
     cardStates: [{ cardId: "history-session-latest", state: "selected", badgeText: "Latest" }],
+    detailedMode: { extraMetricCount: 4, analyticsSlotsReady: true },
   }),
   buildSimpleFixture({
     id: "history-exercises-zero-results",
@@ -551,6 +598,18 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixture: "zero-results",
     fixtureState: "history-exercises-zero-results-v1",
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 168 },
+  }),
+  buildSimpleFixture({
+    id: "history-exercises-detailed",
+    route: "historyExercises",
+    screen: "history-exercises",
+    family: "Exercise cards",
+    name: "History exercises: detailed analytics",
+    fixture: "detailed",
+    fixtureState: "history-exercises-detailed-v1",
+    libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 172 },
+    cardStates: [{ cardId: "history-exercise-latest", state: "default" }],
+    detailedMode: { extraMetricCount: 4, analyticsSlotsReady: true },
   }),
   buildSimpleFixture({
     id: "history-detail-broken-images",
@@ -583,6 +642,12 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "exercise-detail-broken-images-v1",
     libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
     cardStates: [{ cardId: "exercise-detail-primary", state: "default" }],
+    exerciseInfoLayout: {
+      mediaFullyVisible: true,
+      quickMetricCount: 4,
+      hasProgressBlock: true,
+      topSafePaddingRelaxed: true,
+    },
   }),
   buildSimpleFixture({
     id: "exercise-detail-long-scroll",
@@ -595,6 +660,12 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
     cardStates: [{ cardId: "exercise-detail-long-scroll", state: "default" }],
     captureScrollPosition: "bottom",
+    exerciseInfoLayout: {
+      mediaFullyVisible: true,
+      quickMetricCount: 4,
+      hasProgressBlock: true,
+      topSafePaddingRelaxed: true,
+    },
   }),
 ] as const;
 
@@ -611,7 +682,7 @@ const defaultScenarioIdByScreen = {
   "add-exercise": "add-exercise-default",
   history: "history-sessions-extreme",
   "history-sessions": "history-sessions-extreme",
-  "history-exercises": "history-exercises-zero-results",
+  "history-exercises": "history-exercises-detailed",
   "history-detail": "history-detail-broken-images",
   settings: "settings-default",
   "exercise-detail": "exercise-detail-broken-images",

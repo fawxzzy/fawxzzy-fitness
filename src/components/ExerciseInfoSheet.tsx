@@ -6,10 +6,9 @@ import { useRouter } from "next/navigation";
 import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ContentRail } from "@/components/layout/ContentRail";
+import { MetricGrid, MetricStrip, type MetricDatum } from "@/components/ui/MetricItem";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { Glass } from "@/components/ui/Glass";
-import { formatCount, formatDateShort, formatWeight } from "@/lib/formatting";
-import { formatCalories, formatDistance, formatDurationShort, formatPace } from "@/lib/exercise-stats-formatting";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
@@ -58,11 +57,16 @@ export type ExerciseInfoSheetStats = {
     bestCalories?: number;
   };
   prLabel: string;
-};
-
-type ExerciseInfoStatRow = {
-  label: string;
-  value: string | null;
+  prCount: number;
+  quickMetrics: MetricDatum[];
+  progress: {
+    metrics: MetricDatum[];
+    performances: Array<{
+      label: string;
+      value: string;
+      context?: string | null;
+    }>;
+  };
 };
 
 function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
@@ -73,70 +77,39 @@ function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
   ].filter((item): item is { label: string; value: string } => Boolean(item));
 }
 
-function buildExerciseInfoStatSections(stats: ExerciseInfoSheetStats | null) {
-  if (!stats) return [] as Array<{ title: string; rows: ExerciseInfoStatRow[] }>;
+function ExerciseInfoProgressCard({ stats }: { stats: ExerciseInfoSheetStats }) {
+  const progressItems = stats.progress.metrics;
+  const performances = stats.progress.performances;
 
-  const bestWeightLabel = stats.bests.bestWeight ? formatWeight(stats.bests.bestWeight, null) : null;
-
-  return [
-    {
-      title: "Recent",
-      rows: [
-        { label: "Last performed", value: stats.recent.lastPerformedAt ? formatDateShort(stats.recent.lastPerformedAt) : null },
-        { label: stats.kind === "cardio" ? "Last effort" : "Last", value: stats.recent.lastSummary ?? null },
-        ...(stats.kind === "strength" ? [{ label: "PRs", value: stats.prLabel || null }] : []),
-      ],
-    },
-    {
-      title: "Totals",
-      rows: [
-        { label: "Sessions", value: stats.totals.sessions > 0 ? formatCount(stats.totals.sessions, "session") : null },
-        { label: "Sets", value: stats.totals.sets > 0 ? formatCount(stats.totals.sets, "set") : null },
-        ...(stats.kind === "strength"
-          ? [{ label: "Reps", value: stats.totals.reps ? formatCount(stats.totals.reps, "rep") : null }]
-          : [
-            { label: "Duration", value: formatDurationShort(stats.totals.durationSeconds) },
-            { label: "Distance", value: formatDistance(stats.totals.distance, stats.bests.bestDistanceUnit) },
-            { label: "Calories", value: formatCalories(stats.totals.calories) },
-          ]),
-      ],
-    },
-    {
-      title: "Bests",
-      rows: stats.kind === "cardio"
-        ? [
-          { label: "Best effort", value: stats.bests.bestSetSummary ?? null },
-          { label: "Best duration", value: formatDurationShort(stats.bests.bestDurationSeconds) },
-          { label: "Best distance", value: formatDistance(stats.bests.bestDistance, stats.bests.bestDistanceUnit) },
-          { label: "Best pace", value: formatPace(stats.bests.bestPace, stats.bests.bestDistanceUnit) },
-          { label: "Best calories", value: formatCalories(stats.bests.bestCalories) },
-        ]
-        : [
-          { label: "Best bodyweight reps", value: stats.bests.bestBodyweightReps ? formatCount(stats.bests.bestBodyweightReps, "rep") : null },
-          { label: "Best weight", value: bestWeightLabel },
-          { label: "Best reps at best weight", value: stats.bests.bestRepsAtBestWeight ? formatCount(stats.bests.bestRepsAtBestWeight, "rep") : null },
-          { label: "Best set", value: stats.bests.bestSetSummary ?? null },
-          { label: "PRs", value: stats.prLabel || null },
-        ],
-    },
-  ];
-}
-
-function ExerciseInfoStatGrid({ title, rows }: { title: string; rows: ExerciseInfoStatRow[] }) {
-  const visibleRows = rows.filter((row): row is { label: string; value: string } => Boolean(row.value));
-  if (!visibleRows.length) return null;
+  if (progressItems.length === 0 && performances.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="space-y-1.5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{title}</p>
-      <div className="grid gap-1.5 text-left sm:grid-cols-2">
-        {visibleRows.map((row) => (
-          <div key={`${title}-${row.label}`} className="rounded-[0.95rem] border border-white/6 bg-black/5 px-3 py-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{row.label}</p>
-            <p className="mt-0.5 break-words text-sm leading-5 text-[rgb(var(--text)/0.93)]">{row.value}</p>
-          </div>
-        ))}
+    <div className="space-y-2 rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.9)]">Progress</p>
+        <p className="text-[11px] text-[rgb(var(--text-secondary)/0.72)]">
+          Last {Math.min(performances.length, 3)} {Math.min(performances.length, 3) === 1 ? "performance" : "performances"}
+        </p>
       </div>
+      {progressItems.length > 0 ? <MetricStrip items={progressItems} /> : null}
+      {performances.length > 0 ? (
+        <div className="space-y-2">
+          {performances.map((entry) => (
+            <div
+              key={`${entry.label}-${entry.value}`}
+              className="rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.52)] px-3 py-2.5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.88)]">{entry.label}</p>
+                {entry.context ? <p className="text-[11px] text-[rgb(var(--text-secondary)/0.72)]">{entry.context}</p> : null}
+              </div>
+              <p className="mt-1 text-sm leading-[1.4] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]">{entry.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -191,7 +164,6 @@ export function ExerciseInfoSheet({
 
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
   const metadata = exercise ? buildExerciseInfoMeta(exercise) : [];
-  const statSections = buildExerciseInfoStatSections(stats);
   const howToImageSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
   const detailHeader = (
     <DetailHeader
@@ -235,21 +207,21 @@ export function ExerciseInfoSheet({
 
   const sheetBody = (
     <main className="app-page-scroll min-h-[100dvh]">
-      <ContentRail className="flex min-h-[100dvh] flex-col gap-3 pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
+      <ContentRail className="flex min-h-[100dvh] flex-col gap-3 pt-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.75rem)]">
         {detailHeader}
 
-        <Glass variant="base" className="overflow-hidden rounded-[32px]">
+        <Glass variant="base" className="overflow-hidden rounded-[34px]">
           <div className="px-4 pb-6 pt-4">
             <div className="space-y-3">
               <DetailSection title="How to">
                 {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
-                <div className="flex aspect-[16/10] w-full items-center justify-center overflow-hidden rounded-[1rem] border border-white/10 bg-[rgb(var(--bg)/0.16)] p-0.5">
+                <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.48)] p-3">
                   <ExerciseAssetImage
                     src={howToImageSrc}
                     alt={`${exercise.name} demonstration`}
                     className="h-full w-full"
                     imageClassName="object-contain object-center"
-                    sizes="(max-width: 768px) 100vw, 480px"
+                    sizes="(max-width: 768px) 100vw, 520px"
                     priority
                   />
                 </div>
@@ -259,16 +231,23 @@ export function ExerciseInfoSheet({
                 <div
                   id={statsPanelId}
                   data-testid="exercise-info-stats-box"
-                  className="min-h-[94px] space-y-2.5 text-xs text-muted"
+                  className="min-h-[140px] space-y-3 text-xs text-muted"
                 >
                   {statsLoading ? (
-                    <div className="space-y-1.5 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
-                      <div className="h-3 w-4/5 animate-pulse rounded bg-surface-2-soft" />
-                      <div className="h-3 w-3/5 animate-pulse rounded bg-surface-2-soft" />
-                      <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2-soft" />
+                    <div className="space-y-2 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+                        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+                        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+                        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+                      </div>
+                      <div className="h-28 animate-pulse rounded-[1.15rem] bg-surface-2-soft" />
                     </div>
                   ) : stats ? (
-                    statSections.map((section) => <ExerciseInfoStatGrid key={section.title} title={section.title} rows={section.rows} />)
+                    <>
+                      <MetricGrid items={stats.quickMetrics} className="gap-2.5" />
+                      <ExerciseInfoProgressCard stats={stats} />
+                    </>
                   ) : (
                     <p className="text-muted">No stats yet - log a set to generate stats.</p>
                   )}
@@ -291,7 +270,7 @@ export function ExerciseInfoSheet({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 pointer-events-auto scroll-y bg-[rgb(var(--bg))]"
+      className="pointer-events-auto fixed inset-0 z-50 scroll-y bg-[rgb(var(--bg))]"
       role="dialog"
       aria-modal="true"
       aria-label="Exercise info"

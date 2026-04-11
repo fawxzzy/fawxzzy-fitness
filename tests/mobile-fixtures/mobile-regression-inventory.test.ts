@@ -18,7 +18,7 @@ test("fixture inventory covers all mobile screens from the pre-fix set", () => {
   assert.equal(byRoute.get("editRoutine"), 1);
   assert.equal(byRoute.get("addExercise"), 1);
   assert.equal(byRoute.get("historySessions"), 1);
-  assert.equal(byRoute.get("historyExercises"), 1);
+  assert.equal(byRoute.get("historyExercises"), 2);
   assert.equal(byRoute.get("historyDetail"), 1);
   assert.equal(byRoute.get("settings"), 1);
   assert.equal(byRoute.get("exerciseDetail"), 2);
@@ -51,4 +51,9 @@ test("hardening fixtures keep long Exercise Info scroll and day-card parity cove
   assert.ok(dayCardParity);
   assert.equal(dayCardParity.route, "editDay");
   assert.deepEqual(dayCardParity.cardParityModes, ["view", "edit", "reorder"]);
+
+  const historyExerciseDetail = mobileRegressionScenarios.find((scenario) => scenario.id === "history-exercises-detailed");
+  assert.ok(historyExerciseDetail);
+  assert.equal(historyExerciseDetail.route, "historyExercises");
+  assert.deepEqual(historyExerciseDetail.detailedMode, { extraMetricCount: 4, analyticsSlotsReady: true });
 });
