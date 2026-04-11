@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -30,6 +31,7 @@ CARD_PADDING = 18
 BOARD_GAP = 24
 CARD_GAP = 12
 THUMBNAIL_HEIGHT = 240
+BOARD_FONT_OVERRIDE_ENV = "MOBILE_REGRESSION_BOARD_FONT"
 
 
 def repo_root() -> Path:
@@ -48,7 +50,74 @@ def load_manifest(manifest_path: Path) -> dict:
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
+def validate_manifest(manifest: object) -> dict:
+    if not isinstance(manifest, dict):
+        raise ValueError("Manifest root must be a JSON object.")
+
+    widths = manifest.get("widths")
+    if not isinstance(widths, list) or not widths or any(not isinstance(width, int) or width <= 0 for width in widths):
+        raise ValueError("Manifest widths must be a non-empty list of positive integers.")
+
+    scenarios = manifest.get("scenarios")
+    if not isinstance(scenarios, list):
+        raise ValueError("Manifest scenarios must be a list.")
+
+    for index, scenario in enumerate(scenarios):
+        if not isinstance(scenario, dict):
+            raise ValueError(f"Manifest scenario at index {index} must be an object.")
+
+        scenario_id = scenario.get("id")
+        missing_fields = [field for field in ("id", "name", "family", "captures") if field not in scenario]
+        if missing_fields:
+            scenario_label = scenario_id if isinstance(scenario_id, str) and scenario_id else f"at index {index}"
+            raise ValueError(
+                f"Manifest scenario {scenario_label} missing required field(s): {', '.join(missing_fields)}"
+            )
+
+        if not isinstance(scenario["id"], str) or not scenario["id"]:
+            raise ValueError(f"Manifest scenario at index {index} must have a non-empty string id.")
+
+        if not isinstance(scenario["name"], str) or not scenario["name"]:
+            raise ValueError(f"Manifest scenario {scenario['id']} must have a non-empty string name.")
+
+        if not isinstance(scenario["family"], str) or not scenario["family"]:
+            raise ValueError(f"Manifest scenario {scenario['id']} must have a non-empty string family.")
+
+        captures = scenario["captures"]
+        if not isinstance(captures, list) or not captures:
+            raise ValueError(f"Manifest scenario {scenario['id']} must define at least one capture.")
+
+        for capture_index, capture in enumerate(captures):
+            if not isinstance(capture, dict):
+                raise ValueError(f"Manifest capture {capture_index} for scenario {scenario['id']} must be an object.")
+
+            missing_capture_fields = [field for field in ("width", "file") if field not in capture]
+            if missing_capture_fields:
+                raise ValueError(
+                    f"Manifest capture {capture_index} for scenario {scenario['id']} missing required field(s): "
+                    + ", ".join(missing_capture_fields)
+                )
+
+            if not isinstance(capture["width"], int) or capture["width"] <= 0:
+                raise ValueError(
+                    f"Manifest capture {capture_index} for scenario {scenario['id']} must define a positive integer width."
+                )
+
+            if not isinstance(capture["file"], str) or not capture["file"]:
+                raise ValueError(
+                    f"Manifest capture {capture_index} for scenario {scenario['id']} must define a non-empty file name."
+                )
+
+    return manifest
+
+
 def load_font(size: int) -> ImageFont.ImageFont:
+    font_override = os.environ.get(BOARD_FONT_OVERRIDE_ENV)
+    if font_override:
+        if font_override.lower() == "default":
+            return ImageFont.load_default()
+        return ImageFont.truetype(font_override, size=size)
+
     for candidate in ("DejaVuSans.ttf", "arial.ttf"):
         try:
             return ImageFont.truetype(candidate, size=size)
@@ -176,7 +245,7 @@ def render_board(output_dir: Path, *, title: str, subtitle: str, scenarios: list
 
 def main() -> None:
     manifest_path = manifest_path_from_argv()
-    manifest = load_manifest(manifest_path)
+    manifest = validate_manifest(load_manifest(manifest_path))
     output_dir = manifest_path.parent
 
     scenarios = manifest["scenarios"]
