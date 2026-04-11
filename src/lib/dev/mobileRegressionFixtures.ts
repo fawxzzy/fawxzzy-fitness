@@ -116,6 +116,8 @@ export type MobileFixtureScenario = {
   historyLogHeaderCount?: number;
   exerciseInfoHeaderPinned?: boolean;
   currentSessionSaveSetHeaderPinned?: boolean;
+  captureScrollPosition?: "top" | "bottom";
+  cardParityModes?: Array<"view" | "edit" | "reorder">;
 };
 
 const MOBILE_VIEWPORT = {
@@ -213,6 +215,7 @@ function buildDayFixture(args: {
   reorderActionVisible?: boolean;
   manualOrderEdit?: MobileFixtureScenario["manualOrderEdit"];
   hasExtraLowerFillerBox?: boolean;
+  cardParityModes?: MobileFixtureScenario["cardParityModes"];
 }) {
   return {
     id: args.id,
@@ -232,6 +235,7 @@ function buildDayFixture(args: {
     reorderActionVisible: args.reorderActionVisible,
     manualOrderEdit: args.manualOrderEdit,
     hasExtraLowerFillerBox: args.hasExtraLowerFillerBox,
+    cardParityModes: args.cardParityModes,
   } satisfies MobileFixtureScenario;
 }
 
@@ -272,6 +276,7 @@ function buildSimpleFixture(args: {
   cardStates?: CardStateFixture[];
   statusChips?: SessionStatusChip[];
   libraryCardTextLayout?: LibraryCardTextLayout;
+  captureScrollPosition?: MobileFixtureScenario["captureScrollPosition"];
 }) {
   return {
     id: args.id,
@@ -285,6 +290,7 @@ function buildSimpleFixture(args: {
     cardStates: args.cardStates,
     statusChips: args.statusChips,
     libraryCardTextLayout: args.libraryCardTextLayout,
+    captureScrollPosition: args.captureScrollPosition,
     usesFloatingHeader: true,
   } satisfies MobileFixtureScenario;
 }
@@ -468,6 +474,21 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     headerPinned: true,
     cardStates: [{ cardId: "add-exercise-entry", state: "default" }],
   }),
+  buildDayFixture({
+    id: "edit-day-card-parity",
+    family: "Exercise cards",
+    route: "editDay",
+    name: "Edit Day: card parity audit",
+    fixture: "card-parity",
+    fixtureState: "edit-day-card-parity-v1",
+    headerPinned: true,
+    cardParityModes: ["view", "edit", "reorder"],
+    cardStates: [
+      { cardId: "parity-view-row", state: "default" },
+      { cardId: "parity-edit-row", state: "default", badgeText: "ORDER 1" },
+      { cardId: "parity-reorder-row", state: "default", badgeText: "Order 1" },
+    ],
+  }),
   {
     id: "create-routine",
     route: "createRoutine",
@@ -562,6 +583,18 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "exercise-detail-broken-images-v1",
     libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
     cardStates: [{ cardId: "exercise-detail-primary", state: "default" }],
+  }),
+  buildSimpleFixture({
+    id: "exercise-detail-long-scroll",
+    route: "exerciseDetail",
+    screen: "exercise-detail",
+    family: "Settings / detail",
+    name: "Exercise detail: long scroll bottom reach",
+    fixture: "long-scroll",
+    fixtureState: "exercise-detail-long-scroll-v1",
+    libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
+    cardStates: [{ cardId: "exercise-detail-long-scroll", state: "default" }],
+    captureScrollPosition: "bottom",
   }),
 ] as const;
 

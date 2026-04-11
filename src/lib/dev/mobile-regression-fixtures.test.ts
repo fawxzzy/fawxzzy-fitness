@@ -24,6 +24,7 @@ const expectedScenarioIds = [
   "edit-day-empty",
   "edit-day-edit-exercise",
   "edit-day-add-exercise",
+  "edit-day-card-parity",
   "create-routine",
   "edit-routine",
   "add-exercise-default",
@@ -32,6 +33,7 @@ const expectedScenarioIds = [
   "history-detail-broken-images",
   "settings-default",
   "exercise-detail-broken-images",
+  "exercise-detail-long-scroll",
 ] as const;
 
 const expectedScenarioFamilies = [
@@ -51,6 +53,7 @@ const expectedScenarioFamilies = [
   ["edit-day-empty", "Exercise cards"],
   ["edit-day-edit-exercise", "Exercise cards"],
   ["edit-day-add-exercise", "Exercise cards"],
+  ["edit-day-card-parity", "Exercise cards"],
   ["create-routine", "Exercise cards"],
   ["edit-routine", "Exercise cards"],
   ["add-exercise-default", "Exercise cards"],
@@ -59,6 +62,7 @@ const expectedScenarioFamilies = [
   ["history-detail-broken-images", "Session summaries"],
   ["settings-default", "Settings / detail"],
   ["exercise-detail-broken-images", "Settings / detail"],
+  ["exercise-detail-long-scroll", "Settings / detail"],
 ] as const;
 
 test("mobile regression fixtures include the deterministic screenshot contract inventory", () => {
@@ -124,8 +128,10 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(resolveMobileRegressionScenario({ screen: "view-day", fixture: "empty" })?.id, "view-day-empty");
   assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "reorder" })?.id, "edit-day-reorder");
   assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "empty" })?.id, "edit-day-empty");
+  assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "card-parity" })?.id, "edit-day-card-parity");
   assert.equal(resolveMobileRegressionScenario({ screen: "routines", fixture: "default" })?.id, "routines-current-view");
   assert.equal(resolveMobileRegressionScenario({ screen: "history", fixture: "default" })?.id, "history-sessions-extreme");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "default" })?.id, "exercise-detail-broken-images");
+  assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "long-scroll" })?.id, "exercise-detail-long-scroll");
   assert.equal(resolveMobileRegressionScenario({ scenario: "settings-default" })?.id, "settings-default");
 });

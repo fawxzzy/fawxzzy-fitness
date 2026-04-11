@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { InstallabilityBootstrap } from "@/components/install/InstallabilityBootstrap";
-import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
+import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
@@ -51,7 +51,7 @@ export default function RootLayout({
           <InstallabilityBootstrap />
           <GlassEffectsBootstrap />
           <MobileViewportGuard />
-          <AnimatedBackground />
+          <AmbientBackground />
           <main className="safe-area-main relative z-10 min-h-screen w-full pb-[var(--app-bottom-gap)]">
             {children}
           </main>

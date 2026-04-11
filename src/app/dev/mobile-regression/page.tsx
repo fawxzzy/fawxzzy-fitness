@@ -21,12 +21,14 @@ import { AppButton } from "@/components/ui/AppButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
+import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -357,6 +359,23 @@ const mockViewDayExercises = [
     slug: "walking-lunge",
   },
 ] as const;
+
+const parityAuditExercise = {
+  id: "parity-1",
+  name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
+  summary: "3 sets x 12 steps @ 35 lb",
+  image_icon_path: "/missing/icon-lunge.png",
+  image_howto_path: null,
+  slug: "walking-lunge",
+  orderNumber: 1,
+} as const;
+
+const longExerciseInfoHowTo = [
+  "Start tall, keep the front foot fully planted, and let the back knee travel straight down without rushing the descent.",
+  "Pause briefly at the bottom so the front heel, mid-foot pressure, and stacked torso position all stay honest before you drive up.",
+  "If the stride shortens as fatigue builds, reset the step length and keep the load balanced instead of letting the front knee shoot forward.",
+  "Treat every rep like a controlled setup: brace, lower, settle, and push through the floor before taking the next step.",
+].join(" ");
 
 const mockSessionExercises = [
   {
@@ -805,7 +824,7 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderEditDayScenario(scenario: MobileFixtureScenario) {
-  const fixture = scenario.fixture as "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise";
+  const fixture = scenario.fixture as "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
   const editDayExercises = fixture === "empty"
     ? []
     : [
@@ -838,10 +857,64 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <ScreenScaffold recipe="editDay" className="w-full">
-            <EditDayRegressionSurface
-              fixture={fixture}
-              exercises={editDayExercises}
-            />
+            {fixture === "card-parity" ? (
+              <div className="space-y-3" data-mobile-regression-card-parity="true">
+                <div className="space-y-1.5" data-mobile-regression-card-mode="view">
+                  <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">View Day</p>
+                  <DayDetailExerciseList
+                    mode="read_only"
+                    items={[{
+                      id: parityAuditExercise.id,
+                      name: parityAuditExercise.name,
+                      summary: parityAuditExercise.summary,
+                      orderNumber: parityAuditExercise.orderNumber,
+                      slug: parityAuditExercise.slug,
+                      image_icon_path: parityAuditExercise.image_icon_path,
+                      image_howto_path: parityAuditExercise.image_howto_path,
+                    }]}
+                  />
+                </div>
+
+                <div className="space-y-1.5" data-mobile-regression-card-mode="edit">
+                  <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">Edit Day</p>
+                  <DayDetailExerciseList
+                    mode="editable"
+                    items={[{
+                      id: parityAuditExercise.id,
+                      name: parityAuditExercise.name,
+                      summary: parityAuditExercise.summary,
+                      orderNumber: parityAuditExercise.orderNumber,
+                      slug: parityAuditExercise.slug,
+                      image_icon_path: parityAuditExercise.image_icon_path,
+                      image_howto_path: parityAuditExercise.image_howto_path,
+                    }]}
+                  />
+                </div>
+
+                <div className="space-y-1.5" data-mobile-regression-card-mode="reorder">
+                  <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">Reorder</p>
+                  <ReorderExerciseRow
+                    exerciseId={parityAuditExercise.id}
+                    exerciseName={parityAuditExercise.name}
+                    metadata={parityAuditExercise.summary}
+                    slug={parityAuditExercise.slug}
+                    image_icon_path={parityAuditExercise.image_icon_path}
+                    image_howto_path={parityAuditExercise.image_howto_path}
+                    orderNumber={parityAuditExercise.orderNumber}
+                    isDragging={false}
+                    onHandlePointerDown={() => {}}
+                    onHandlePointerMove={() => {}}
+                    onHandlePointerUp={() => {}}
+                    onHandlePointerCancel={() => {}}
+                  />
+                </div>
+              </div>
+            ) : (
+              <EditDayRegressionSurface
+                fixture={fixture}
+                exercises={editDayExercises}
+              />
+            )}
           </ScreenScaffold>
         </ContentRail>
 
@@ -1059,37 +1132,57 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderExerciseDetailScenario(scenario: MobileFixtureScenario) {
+  const isLongScrollFixture = scenario.id === "exercise-detail-long-scroll";
   return (
     <RegressionExerciseInfoSheet
       scenarioId={scenario.id}
+      scrollToBottom={scenario.captureScrollPosition === "bottom"}
         exercise={{
           id: MOCK_EXERCISE_IDS.lunge,
-          name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
+          name: isLongScrollFixture
+            ? "Walking Lunge With Very Long Accessory Naming For Wrapping Proof And Bottom Reach Audit"
+            : "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
           primary_muscle: "Glutes",
           equipment: "Dumbbell",
           movement_pattern: "Lunge",
           image_howto_path: null,
           image_icon_path: "/missing/icon-lunge.png",
           slug: "walking-lunge",
-          how_to_short: "Stay tall, keep the front foot planted, and let the back knee sink straight down before driving through the floor.",
+          how_to_short: isLongScrollFixture
+            ? longExerciseInfoHowTo
+            : "Stay tall, keep the front foot planted, and let the back knee sink straight down before driving through the floor.",
         }}
         stats={{
-          kind: "strength",
+          kind: isLongScrollFixture ? "cardio" : "strength",
           recent: {
             lastPerformedAt: "2026-04-09T13:00:00.000Z",
-            lastSummary: "35 lb x 12 steps",
+            lastSummary: isLongScrollFixture ? "24m • 1.85 mi • 12:58/mi" : "35 lb x 12 steps",
+            lastDurationSeconds: isLongScrollFixture ? 1440 : undefined,
+            lastDistance: isLongScrollFixture ? 1.85 : undefined,
+            lastCalories: isLongScrollFixture ? 286 : undefined,
+            lastPaceSecondsPerUnit: isLongScrollFixture ? 778 : undefined,
+            lastDistanceUnit: isLongScrollFixture ? "mi" : undefined,
           },
           totals: {
             sessions: 14,
-            sets: 42,
-            reps: 168,
+            sets: isLongScrollFixture ? 14 : 42,
+            reps: isLongScrollFixture ? undefined : 168,
+            durationSeconds: isLongScrollFixture ? 18640 : undefined,
+            distance: isLongScrollFixture ? 21.7 : undefined,
+            calories: isLongScrollFixture ? 3120 : undefined,
           },
           bests: {
-            bestWeight: 50,
-            bestRepsAtBestWeight: 16,
-            bestSetSummary: "50 lb x 16 steps",
+            bestBodyweightReps: isLongScrollFixture ? undefined : 18,
+            bestWeight: isLongScrollFixture ? undefined : 50,
+            bestRepsAtBestWeight: isLongScrollFixture ? undefined : 16,
+            bestSetSummary: isLongScrollFixture ? "31m • 2.35 mi • 13:11/mi" : "50 lb x 16 steps",
+            bestDurationSeconds: isLongScrollFixture ? 1860 : undefined,
+            bestDistance: isLongScrollFixture ? 2.35 : undefined,
+            bestPace: isLongScrollFixture ? 791 : undefined,
+            bestDistanceUnit: isLongScrollFixture ? "mi" : undefined,
+            bestCalories: isLongScrollFixture ? 364 : undefined,
           },
-          prLabel: "1 PR",
+          prLabel: isLongScrollFixture ? "4 PRs" : "1 PR",
         }}
       />
   );

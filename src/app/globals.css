@@ -27,6 +27,14 @@
   --success-rgb: 79 209 126;
   --warning-rgb: 240 178 78;
   --danger-rgb: 255 111 131;
+  --ambient-depth-top: 12 22 33;
+  --ambient-depth-mid: 8 17 27;
+  --ambient-depth-bottom: 5 12 19;
+  --ambient-orb-one: 104 232 208;
+  --ambient-orb-two: 113 159 204;
+  --ambient-orb-three: 173 205 156;
+  --ambient-layer-opacity: 1;
+  --ambient-orb-filter: blur(46px);
 
   --bg-app: var(--bg-0);
   --bg-panel: var(--bg-1);
@@ -179,6 +187,8 @@
   --glass-current-blur-base: var(--glass-blur-base-reduced);
   --glass-current-blur-raised: var(--glass-blur-raised-reduced);
   --glass-current-blur-overlay: var(--glass-blur-overlay-reduced);
+  --ambient-layer-opacity: 0.94;
+  --ambient-orb-filter: blur(40px);
 }
 
 :root[data-glass-effects="off"] {
@@ -189,18 +199,153 @@
   --glass-current-blur-base: var(--glass-blur-off);
   --glass-current-blur-raised: var(--glass-blur-off);
   --glass-current-blur-overlay: var(--glass-blur-off);
+  --ambient-layer-opacity: 0.84;
+  --ambient-orb-filter: blur(34px);
 }
 
 body {
   background-color: rgb(var(--bg));
-  background-image:
-    radial-gradient(circle at top, rgb(var(--accent) / 0.08), transparent 34%),
-    linear-gradient(180deg, rgb(var(--bg-1)), rgb(var(--bg-0)) 38%, rgb(var(--bg-0)));
+  background-image: linear-gradient(180deg, rgb(var(--bg-1)), rgb(var(--bg-0)) 42%, rgb(var(--bg-0)));
   color: rgb(var(--text));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   overscroll-behavior-x: none;
+}
+
+.ambient-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  opacity: var(--ambient-layer-opacity);
+}
+
+.ambient-background__depth,
+.ambient-background__veil {
+  position: absolute;
+  inset: 0;
+}
+
+.ambient-background__depth {
+  background:
+    radial-gradient(circle at 50% -12%, rgb(255 255 255 / 0.03), transparent 44%),
+    linear-gradient(
+      180deg,
+      rgb(var(--ambient-depth-top)) 0%,
+      rgb(var(--ambient-depth-mid)) 46%,
+      rgb(var(--ambient-depth-bottom)) 100%
+    );
+}
+
+.ambient-background__orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: var(--ambient-orb-filter);
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.ambient-background__orb--one {
+  left: clamp(-9rem, -8vw, -4rem);
+  top: clamp(-10rem, -10vw, -4rem);
+  height: clamp(22rem, 46vw, 34rem);
+  width: clamp(22rem, 46vw, 34rem);
+  background: radial-gradient(
+    circle at 34% 34%,
+    rgb(var(--ambient-orb-one) / 0.24) 0%,
+    rgb(var(--ambient-orb-one) / 0.12) 28%,
+    rgb(var(--ambient-orb-one) / 0.04) 52%,
+    transparent 74%
+  );
+  animation: ambient-orb-one 18s ease-in-out infinite;
+}
+
+.ambient-background__orb--two {
+  right: clamp(-8rem, -7vw, -3rem);
+  top: 26%;
+  height: clamp(19rem, 40vw, 30rem);
+  width: clamp(19rem, 40vw, 30rem);
+  background: radial-gradient(
+    circle at 42% 42%,
+    rgb(var(--ambient-orb-two) / 0.18) 0%,
+    rgb(var(--ambient-orb-two) / 0.1) 30%,
+    rgb(var(--ambient-orb-two) / 0.035) 55%,
+    transparent 74%
+  );
+  animation: ambient-orb-two 24s ease-in-out infinite;
+}
+
+.ambient-background__orb--three {
+  bottom: clamp(-12rem, -10vw, -5rem);
+  left: 18%;
+  height: clamp(20rem, 42vw, 31rem);
+  width: clamp(20rem, 42vw, 31rem);
+  background: radial-gradient(
+    circle at 50% 38%,
+    rgb(var(--ambient-orb-three) / 0.14) 0%,
+    rgb(var(--ambient-orb-three) / 0.08) 30%,
+    rgb(var(--ambient-orb-three) / 0.03) 54%,
+    transparent 76%
+  );
+  animation: ambient-orb-three 32s ease-in-out infinite;
+}
+
+.ambient-background__veil {
+  background:
+    radial-gradient(circle at top, rgb(255 255 255 / 0.02), transparent 40%),
+    radial-gradient(circle at 50% 120%, rgb(0 0 0 / 0.22), transparent 52%);
+}
+
+@keyframes ambient-orb-one {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(4vw, 3vh, 0) scale(1.08);
+  }
+}
+
+@keyframes ambient-orb-two {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(-3vw, -2vh, 0) scale(1.05);
+  }
+}
+
+@keyframes ambient-orb-three {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(2vw, -3vh, 0) scale(1.04);
+  }
+}
+
+@media (max-width: 640px) {
+  .ambient-background__orb--two {
+    top: 31%;
+  }
+
+  .ambient-background__orb--three {
+    left: 4%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-background__orb {
+    animation: none;
+    transform: none;
+  }
 }
 
 html {

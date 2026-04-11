@@ -5336,3 +5336,40 @@ WHY:
 
 * Single-state modifiers should be explicit toggles, not false-choice button pairs where only one state needs a deliberate action.
 * Reusing the shared intent system on session action chrome makes destructive vs positive actions easier to parse under thumb-driven use.
+## [v0.4.38] - UI: restore shared ambient app-shell background
+
+### WHAT
+
+* Replaced the prior app-level decorative background with one shared ambient shell layer mounted once at the root layout.
+* Rebuilt the effect from a static depth gradient plus three deterministic CSS radial-gradient glow orbs with long, low-motion drift loops instead of busier overlay treatment.
+* Added reduced-motion-safe behavior so the ambient layer becomes fully static when motion reduction is requested, while keeping it decorative-only and behind all content.
+* Tuned the layer to stay subordinate to cards, headers, inputs, sticky chrome, and modal/sheet surfaces with no layout ownership changes.
+
+### WHY
+
+* The app benefits from a small amount of atmospheric depth, but decorative motion needs to stay quieter than the product hierarchy.
+* A single fixed CSS-based ambient layer is easier to tune, cheaper to render, and less likely to create readability or layering regressions than screen-local effects.
+## [v0.4.39] - UI: restore day-detail card parity and Exercise Info full-page scroll reachability
+
+### WHAT
+
+* Removed the extra day-detail list shell around View Day and Edit Day exercise rows so `StandardExerciseRow` now owns the base card surface directly, matching the shared exercise-card language used by reorder and adjacent workout surfaces.
+* Switched Exercise Info to a single wrapper-owned vertical scroll path by letting the full-screen dialog wrapper scroll and removing the inner nested scroller inside the glass content shell.
+* Kept existing headers, actions, row spacing, and inline edit expansion behavior intact while restoring full bottom reachability for long Exercise Info content.
+
+### WHY
+
+* View Day and Edit Day had drifted into a double-wrapped exercise-card treatment that made those surfaces look harsher and older than the shared card system.
+* Exercise Info was mixing a fixed full-screen shell with an inner scroll region, which made long content easier to clip near the bottom instead of giving the screen one obvious scroll owner.
+## [v0.4.40] - QA: harden mobile regression fixtures for Exercise Info reachability and day-card parity
+
+### WHAT
+
+* Added a dedicated mobile regression scenario for a long Exercise Info detail view that auto-scrolls to the bottom capture state so screenshot review can validate final-section reachability above the bottom UI.
+* Added a compact day-card parity audit scenario that renders View Day, Edit Day, and Reorder exercise rows in one mobile viewport for direct shared-surface comparison.
+* Tightened the mobile regression fixture inventory tests so both new hardening scenarios remain part of the canonical QA matrix.
+
+### WHY
+
+* Exercise Info scroll ownership regressions are easiest to miss once content gets long, so the fixture should explicitly exercise the bottom-reach state rather than only the top of the sheet.
+* Card-surface drift often re-enters through wrapper reintroduction, so keeping a one-viewport parity capture makes wrapper-level regressions easier to spot before they ship.
