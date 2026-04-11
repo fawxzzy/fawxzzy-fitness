@@ -8,15 +8,18 @@ const args = new Set(process.argv.slice(2));
 const DRY_RUN = args.has('--dry-run');
 const ARCHIVE = args.has('--archive');
 const INCLUDE_BUILD_CACHE = args.has('--include-build-cache');
+const ONLY_BUILD_CACHE = args.has('--only-build-cache');
 
-const targets = [
-  'artifacts/icon-audit',
-  'icon-missing-backfill-report.md',
-  'icon-sync-report.md',
-  'docs/icon-audit-report.md',
-  'codex.patch',
-];
-if (INCLUDE_BUILD_CACHE) targets.push('.next');
+const targets = ONLY_BUILD_CACHE
+  ? []
+  : [
+      'artifacts/icon-audit',
+      'icon-missing-backfill-report.md',
+      'icon-sync-report.md',
+      'docs/icon-audit-report.md',
+      'codex.patch',
+    ];
+if (INCLUDE_BUILD_CACHE || ONLY_BUILD_CACHE) targets.push('.next');
 
 async function exists(p) { try { await fs.stat(p); return true; } catch { return false; } }
 

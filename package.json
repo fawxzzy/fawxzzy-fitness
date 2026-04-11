@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "clean:next": "node scripts/cleanup-repo.mjs --only-build-cache",
+    "rebuild:clean": "npm run clean:next && npm run build",
     "start": "next start",
     "qa:screenshot": "node .codex/qa/cdp-edge.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
