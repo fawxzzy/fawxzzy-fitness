@@ -1,27 +1,14 @@
-import {
-  getAppButtonClassName,
-  type AppButtonSize,
-  type AppButtonState,
-  type AppButtonVariant,
-} from "@/components/ui/appButtonClasses";
-import { ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
 import { cn } from "@/lib/cn";
 
 export type BottomActionIntent = "positive" | "info" | "toggleInactive" | "toggleActive" | "danger";
 export type BottomDockButtonVariant = "primary" | "secondary" | "destructive";
 
 export const BOTTOM_ACTION_BUTTON_BASE_CLASS_NAME = [
-  ACTION_CHROME_SEGMENTED_CLASS_NAME,
-  "min-h-[3.25rem] rounded-[var(--action-chrome-segment-radius-compact)] px-4 text-sm font-semibold tracking-[0.01em]",
+  "bottom-action",
+  "relative inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full border px-4 text-center text-[0.9375rem] font-semibold leading-[1.08] tracking-[0.01em]",
+  "[-webkit-tap-highlight-color:transparent]",
+  "focus-visible:outline-none",
 ].join(" ");
-
-const BOTTOM_ACTION_INTENT_FOCUS_RING_CLASS_NAMES: Record<BottomActionIntent, string> = {
-  positive: "focus-visible:ring-emerald-300/28",
-  info: "focus-visible:ring-sky-300/26",
-  toggleInactive: "focus-visible:ring-amber-300/24",
-  toggleActive: "focus-visible:ring-amber-300/26",
-  danger: "focus-visible:ring-rose-300/26",
-};
 
 const LEGACY_VARIANT_TO_INTENT: Record<BottomDockButtonVariant, BottomActionIntent> = {
   primary: "positive",
@@ -29,12 +16,12 @@ const LEGACY_VARIANT_TO_INTENT: Record<BottomDockButtonVariant, BottomActionInte
   destructive: "danger",
 };
 
-const INTENT_TO_APP_BUTTON_VARIANT: Record<BottomActionIntent, AppButtonVariant> = {
-  positive: "primary",
-  info: "secondary",
-  toggleInactive: "secondary",
-  toggleActive: "secondary",
-  danger: "destructive",
+const INTENT_TO_BOTTOM_ACTION_CLASS_NAME: Record<BottomActionIntent, string> = {
+  positive: "bottom-action--primary",
+  info: "bottom-action--secondary",
+  toggleInactive: "bottom-action--secondary",
+  toggleActive: "bottom-action--secondary",
+  danger: "bottom-action--secondary",
 };
 
 export function resolveBottomActionIntent({
@@ -48,33 +35,27 @@ export function resolveBottomActionIntent({
   return LEGACY_VARIANT_TO_INTENT[variant ?? "primary"];
 }
 
-export function getBottomActionAppButtonVariant(intent: BottomActionIntent): AppButtonVariant {
-  return INTENT_TO_APP_BUTTON_VARIANT[intent];
-}
-
 export function getBottomActionButtonClassName({
   intent,
   variant,
-  size = "md",
-  state = "default",
+  size: _size = "md",
+  state: _state = "default",
   fullWidth = true,
   className,
 }: {
   intent?: BottomActionIntent;
   variant?: BottomDockButtonVariant;
-  size?: AppButtonSize;
-  state?: AppButtonState;
+  size?: "lg" | "md" | "sm";
+  state?: "default" | "active";
   fullWidth?: boolean;
   className?: string;
 }) {
   const resolvedIntent = resolveBottomActionIntent({ intent, variant });
 
-  return getAppButtonClassName({
-    variant: getBottomActionAppButtonVariant(resolvedIntent),
-    size,
-    state,
-    fullWidth,
-    focusRingClassName: BOTTOM_ACTION_INTENT_FOCUS_RING_CLASS_NAMES[resolvedIntent],
-    className: cn(BOTTOM_ACTION_BUTTON_BASE_CLASS_NAME, className),
-  });
+  return cn(
+    BOTTOM_ACTION_BUTTON_BASE_CLASS_NAME,
+    INTENT_TO_BOTTOM_ACTION_CLASS_NAME[resolvedIntent],
+    fullWidth ? "w-full" : "",
+    className,
+  );
 }

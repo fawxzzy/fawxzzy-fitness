@@ -12,7 +12,7 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
    - `AppShell` owns global safe-area tokens (`--app-safe-*`) and top offset contracts.
    - `ScreenScaffold`/header spacing tokens may add only rhythm spacing, never additional safe-area inset math.
    - Top safe-area spacing must have one owner per screen; do not stack route-local `safe-area` padding over shell-provided offset.
-   - Dock chrome uses shell-safe-area spacing through shared bottom action surface tokens.
+   - Bottom dock wrappers use shell-safe-area spacing only; action styling is owned by the shared no-container bottom action pattern.
 
 3. **Top chrome slot**
    - `topChrome` renders in a persistent non-scrolling slot above the scroll owner.
@@ -42,9 +42,19 @@ The canonical mobile shell for route surfaces with persistent top chrome and/or 
 
 7. **Bottom-action semantic intents**
    - Bottom dock actions must use shared semantic intents through `BottomDockButton` / `DockButton` (`intent` prop), not route-local color classes.
-   - Intent map: `positive` (green), `info` (blue), `toggleInactive` (faded yellow), `toggleActive` (strong yellow), `danger` (red).
+   - Intent map: `positive` owns the accent fill, `info` uses the muted secondary surface, `toggleInactive` uses the muted secondary surface, `toggleActive` uses the muted secondary surface with restrained active emphasis, and `danger` uses the muted secondary surface with destructive text/border.
    - Pattern: `intent -> shared primitive -> surface label mapping`.
    - Usage note: color follows `intent`; label follows the owning surface/workflow copy.
+
+## Bottom Action Pattern (No Container)
+
+- Bottom action wrappers provide spacing only.
+- No parent surface, border, blur, glow, or highlight plate.
+- Primary action uses `--accent` and `--text-on-accent`.
+- Secondary action uses `--surface-muted` with a subtle border.
+- Preserve asymmetric width: primary wider, secondary narrower.
+- Press behavior: slight scale + slight darken only.
+- No idle glow, bloom, or outer highlight.
 
 ## Validation checklist
 

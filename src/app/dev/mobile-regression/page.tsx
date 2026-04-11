@@ -17,7 +17,6 @@ import { NewRoutineDraftForm } from "@/app/routines/new/NewRoutineDraftForm";
 import { EditRoutineAutosaveForm } from "@/app/routines/[id]/edit/EditRoutineAutosaveForm";
 import { SessionPageClient } from "@/components/SessionPageClient";
 import { AppNav } from "@/components/AppNav";
-import { AppButton } from "@/components/ui/AppButton";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
@@ -1081,7 +1080,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
 
         <PublishBottomActions>
           <BottomActionSingle>
-            <AppButton type="button" variant="destructive" fullWidth disabled>Sign out</AppButton>
+            <BottomDockButton type="button" intent="danger" disabled>Sign out</BottomDockButton>
           </BottomActionSingle>
         </PublishBottomActions>
       </ScrollScreenWithBottomActions>

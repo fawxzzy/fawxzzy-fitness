@@ -1,21 +1,22 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import {
-  ACTION_CHROME_RAIL_CLASS_NAME,
-  ACTION_CHROME_RAIL_GRID_CLASS_NAME,
-} from "@/components/ui/actionChrome";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pb-[calc(var(--app-safe-bottom)+2px)]";
-export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = cn(
-  ACTION_CHROME_RAIL_CLASS_NAME,
-  "overflow-hidden px-[var(--action-chrome-shell-padding)] py-[var(--action-chrome-shell-padding)]",
-);
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-2 pb-[calc(var(--app-safe-bottom)+10px)]";
+
+const BOTTOM_ACTION_ARIA_LABEL = "Bottom actions";
+const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-3";
+export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = BOTTOM_ACTION_GROUP_CLASSNAME;
 
 const CONTROL_LABEL_CLASSNAME = cn(
+  "[&_.bottom-action]:leading-[1.08] [&_.bottom-action]:text-center [&_.bottom-action]:whitespace-normal",
+  "[&_.bottom-action__label]:flex [&_.bottom-action__label]:min-w-0 [&_.bottom-action__label]:flex-1",
+  "[&_.bottom-action__label]:items-center [&_.bottom-action__label]:justify-center [&_.bottom-action__label]:text-center [&_.bottom-action__label]:self-center",
   "[&_.action-chrome]:leading-[1.08] [&_.action-chrome]:text-center [&_.action-chrome]:whitespace-normal",
   "[&_.action-chrome>span:last-child]:flex [&_.action-chrome>span:last-child]:min-w-0 [&_.action-chrome>span:last-child]:flex-1",
   "[&_.action-chrome>span:last-child]:items-center [&_.action-chrome>span:last-child]:justify-center [&_.action-chrome>span:last-child]:text-center [&_.action-chrome>span:last-child]:self-center",
   "[&_.action-chrome>span:last-child]:leading-[1.08]",
+  "[&>a.bottom-action]:leading-[1.08] [&>a.bottom-action]:text-center [&>a.bottom-action]:whitespace-normal",
+  "[&>button.bottom-action]:leading-[1.08] [&>button.bottom-action]:text-center [&>button.bottom-action]:whitespace-normal",
   "[&>a.action-chrome]:leading-[1.08] [&>a.action-chrome]:text-center [&>a.action-chrome]:whitespace-normal",
   "[&>a.action-chrome>span:last-child]:flex [&>a.action-chrome>span:last-child]:min-w-0 [&>a.action-chrome>span:last-child]:flex-1",
   "[&>a.action-chrome>span:last-child]:items-center [&>a.action-chrome>span:last-child]:justify-center [&>a.action-chrome>span:last-child]:text-center [&>a.action-chrome>span:last-child]:self-center",
@@ -25,21 +26,29 @@ const CONTROL_LABEL_CLASSNAME = cn(
   "[&>button.action-chrome>span:last-child]:items-center [&>button.action-chrome>span:last-child]:justify-center [&>button.action-chrome>span:last-child]:text-center [&>button.action-chrome>span:last-child]:self-center",
   "[&>button.action-chrome>span:last-child]:leading-[1.08]",
   "[&>form]:flex [&>form]:h-full [&>form]:w-full [&>form]:items-stretch",
+  "[&>form_.bottom-action]:h-full [&>form_.bottom-action]:w-full",
   "[&>form_.action-chrome]:h-full [&>form_.action-chrome]:w-full",
 );
 
 const itemBaseClassName = cn(
-  "[&>*]:min-h-[3.2rem] [&>*]:w-full [&>*]:px-4 [&>*]:text-sm [&>*]:font-semibold [&>*]:tracking-[0.01em]",
+  "[&>*]:min-w-0",
   CONTROL_LABEL_CLASSNAME,
 );
 
-function BottomActionSlot({ children, className, fill = true }: { children: ReactNode; className?: string; fill?: boolean }) {
+function BottomActionSlot({
+  children,
+  className,
+  fill = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  fill?: boolean;
+}) {
   return (
     <div
       className={cn(
         "flex min-w-0 items-stretch justify-center self-stretch",
-        fill ? "flex-1 basis-0 [&>*]:w-full" : "shrink-0 [&>*]:w-auto",
-        "[&>*]:min-h-[3.2rem] [&>form>*]:h-full",
+        fill ? "[&>*]:w-full [&>form]:w-full [&>form>*]:w-full" : "shrink-0 [&>*]:w-auto",
         className,
       )}
     >
@@ -48,28 +57,48 @@ function BottomActionSlot({ children, className, fill = true }: { children: Reac
   );
 }
 
-function SegmentedRow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn(ACTION_CHROME_RAIL_GRID_CLASS_NAME, itemBaseClassName, className)}>{children}</div>;
+function BottomActionUtilityRow({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-stretch gap-3 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-0",
+        itemBaseClassName,
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
-const dominantPrimaryClassName = cn(
-  "[&_.action-chrome]:min-h-[3.3rem] [&_.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
-  "[&>a.action-chrome]:min-h-[3.3rem] [&>a.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
-  "[&>button.action-chrome]:min-h-[3.3rem] [&>button.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
-  "[&>form_.action-chrome]:min-h-[3.3rem] [&>form_.action-chrome]:rounded-[var(--action-chrome-segment-radius)]",
-);
-
 export function BottomActionSingle({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "grid-cols-1", itemBaseClassName, dominantPrimaryClassName, className)}>{children}</div>;
+  return (
+    <div
+      role="group"
+      aria-label={BOTTOM_ACTION_ARIA_LABEL}
+      data-layout="single"
+      className={cn(BOTTOM_ACTION_GROUP_CLASSNAME, "grid-cols-1", itemBaseClassName, className)}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function BottomActionSplit({ primary, secondary, className }: { primary: ReactNode; secondary: ReactNode; className?: string }) {
   return (
-    <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, className)}>
-      <SegmentedRow className="grid-cols-2 [&>*]:h-full [&>*]:min-w-0 [&>*]:basis-0">
-        <BottomActionSlot>{secondary}</BottomActionSlot>
-        <BottomActionSlot>{primary}</BottomActionSlot>
-      </SegmentedRow>
+    <div
+      role="group"
+      aria-label={BOTTOM_ACTION_ARIA_LABEL}
+      data-layout="split"
+      className={cn(
+        BOTTOM_ACTION_GROUP_CLASSNAME,
+        "grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]",
+        itemBaseClassName,
+        className,
+      )}
+    >
+      <BottomActionSlot>{secondary}</BottomActionSlot>
+      <BottomActionSlot>{primary}</BottomActionSlot>
     </div>
   );
 }
@@ -94,49 +123,56 @@ export function BottomActionTriad({
   tertiaryFill?: boolean;
 }) {
   return (
-    <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, className)}>
-      <SegmentedRow className="grid-cols-[minmax(0,1fr)_minmax(5.75rem,7.25rem)_minmax(0,1fr)]">
-        <BottomActionSlot className={secondaryClassName}>{secondary}</BottomActionSlot>
-        <BottomActionSlot
-          className={cn(
-            "px-1 justify-self-stretch [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[6.5rem]",
-            CONTROL_LABEL_CLASSNAME,
-            tertiaryClassName,
-          )}
-          fill={tertiaryFill}
-        >
-          {tertiary}
-        </BottomActionSlot>
-        <BottomActionSlot className={primaryClassName}>{primary}</BottomActionSlot>
-      </SegmentedRow>
-    </div>
-  );
-}
-
-function BottomActionUtilityRow({ children, className }: { children: ReactNode; className?: string }) {
-  return (
     <div
+      role="group"
+      aria-label={BOTTOM_ACTION_ARIA_LABEL}
+      data-layout="triad"
       className={cn(
-        ACTION_CHROME_RAIL_GRID_CLASS_NAME,
-        "flex flex-wrap items-stretch [&>*]:min-h-11 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-0",
+        BOTTOM_ACTION_GROUP_CLASSNAME,
+        "grid-cols-[minmax(112px,0.92fr)_minmax(5.75rem,7.25rem)_minmax(0,1.42fr)]",
         itemBaseClassName,
         className,
       )}
     >
-      {children}
+      <BottomActionSlot className={secondaryClassName}>{secondary}</BottomActionSlot>
+      <BottomActionSlot
+        className={cn(
+          "px-0.5 justify-self-stretch [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[6.5rem]",
+          CONTROL_LABEL_CLASSNAME,
+          tertiaryClassName,
+        )}
+        fill={tertiaryFill}
+      >
+        {tertiary}
+      </BottomActionSlot>
+      <BottomActionSlot className={primaryClassName}>{primary}</BottomActionSlot>
     </div>
   );
 }
 
 export function BottomActionUtilityCluster({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, className)}><BottomActionUtilityRow>{children}</BottomActionUtilityRow></div>;
+  return (
+    <div
+      role="group"
+      aria-label={BOTTOM_ACTION_ARIA_LABEL}
+      data-layout="utility"
+      className={cn(BOTTOM_ACTION_GROUP_CLASSNAME, "grid-cols-1", className)}
+    >
+      <BottomActionUtilityRow>{children}</BottomActionUtilityRow>
+    </div>
+  );
 }
 
 export function BottomActionStackedPrimary({ utility, primary, className }: { utility?: ReactNode; primary: ReactNode; className?: string }) {
   return (
-    <div className={cn(BOTTOM_ACTION_SURFACE_INNER_CLASSNAME, ACTION_CHROME_RAIL_GRID_CLASS_NAME, "grid-cols-1", itemBaseClassName, className)}>
+    <div
+      role="group"
+      aria-label={BOTTOM_ACTION_ARIA_LABEL}
+      data-layout="stacked"
+      className={cn("grid items-stretch gap-3", className)}
+    >
       {utility ? <BottomActionUtilityRow>{utility}</BottomActionUtilityRow> : null}
-      <div className={cn(ACTION_CHROME_RAIL_GRID_CLASS_NAME, "grid-cols-1", dominantPrimaryClassName)}>{primary}</div>
+      <div className={cn(BOTTOM_ACTION_GROUP_CLASSNAME, "grid-cols-1", itemBaseClassName)}>{primary}</div>
     </div>
   );
 }

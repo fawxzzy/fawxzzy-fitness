@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { cn } from "@/lib/cn";
 import {
   getBottomActionButtonClassName,
   resolveBottomActionIntent,
@@ -28,15 +29,13 @@ export function BottomDockButton({ children, intent, variant, className, loading
       disabled={isDisabled}
       aria-busy={loading}
       data-bottom-action-intent={resolvedIntent}
-      data-action-chrome-intent={resolvedIntent}
-      data-action-chrome-segmented="true"
       className={getBottomActionButtonClassName({ intent: resolvedIntent, fullWidth, className })}
     >
-      <span className={loading ? "opacity-0" : ""}>{children}</span>
+      <span className={cn("bottom-action__label", loading ? "opacity-0" : "")}>{children}</span>
       {loading ? (
         <span className="absolute inset-0 flex items-center justify-center gap-2">
           <span aria-hidden="true" className="h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-current border-r-transparent" />
-          <span>{loadingLabel}</span>
+          <span className="bottom-action__label flex-none">{loadingLabel}</span>
         </span>
       ) : null}
     </button>
@@ -64,11 +63,9 @@ export function BottomDockLink({
     <Link
       href={href}
       data-bottom-action-intent={resolvedIntent}
-      data-action-chrome-intent={resolvedIntent}
-      data-action-chrome-segmented="true"
       className={getBottomActionButtonClassName({ intent: resolvedIntent, fullWidth, className })}
     >
-      <span>{children}</span>
+      <span className="bottom-action__label">{children}</span>
     </Link>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AppButton } from "@/components/ui/AppButton";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const AUTH_ENTRY_PATH = "/login";
@@ -18,14 +18,12 @@ export function SignOutButton() {
   };
 
   return (
-    <AppButton
+    <BottomDockButton
       type="button"
-      variant="destructive"
-      fullWidth
+      intent="danger"
       onClick={handleSignOut}
-      data-action-chrome-segmented="true"
     >
       Sign out
-    </AppButton>
+    </BottomDockButton>
   );
 }
