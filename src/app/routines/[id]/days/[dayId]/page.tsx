@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
-import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
@@ -12,6 +9,9 @@ import { DayRestToggleAutosaveDock } from "@/components/day/DayRestToggleAutosav
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
+import { REST_DAY_CARD_COPY } from "@/components/day-list/DayList";
+import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
+import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
 import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isRunnableDayState } from "@/lib/runnable-day";
@@ -83,58 +83,71 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
   const hasBlockingIssue = Boolean(canonicalDay?.invalidExercises.length);
   const hasExerciseRows = Boolean(canonicalDay && isRunnableDayState(canonicalDay.state));
   const isEmptyTrainingDay = !isRestState && !hasWarningSummary && !hasBlockingIssue && !hasExerciseRows;
-  const showTrainingDaySection = !isEmptyTrainingDay && (hasWarningSummary || hasBlockingIssue || hasExerciseRows);
   const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
   const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
   const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
+  const preservedExerciseMeta = dayExercises.length > 0
+    ? `${dayExercises.length} planned ${dayExercises.length === 1 ? "exercise remains" : "exercises remain"} attached to this day.`
+    : undefined;
+  const detailSectionVisible = isRestState || hasWarningSummary || hasBlockingIssue || hasExerciseRows || isEmptyTrainingDay;
 
   return (
     <MainTabScreen topNavMode="none" className="space-y-0">
-      <ScrollScreenWithBottomActions
+      <DetailScreenScaffold
+        recipe="viewDay"
         floatingHeader={(
-          <ContentRail>
-            <ScreenScaffold recipe="viewDay" className="w-full">
-              <SharedScreenHeader
-                recipe="viewDay"
-                title={routineRow.name}
-                subtitle={<DayTaxonomyHeaderSummary dayName={dayLabel} summary={daySummary} isRest={isRestState} />}
-                action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
-              />
-            </ScreenScaffold>
-          </ContentRail>
+          <SharedScreenHeader
+            recipe="viewDay"
+            title={routineRow.name}
+            subtitle={<DayTaxonomyHeaderSummary dayName={dayLabel} summary={daySummary} isRest={isRestState} />}
+            action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
+          />
         )}
       >
-        {isRestState || !showTrainingDaySection ? null : (
-          <ContentRail>
-            <ScreenScaffold recipe="viewDay" className="w-full">
-              <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
-                {hasWarningSummary ? (
-                  <p className="rounded-md border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-                    Some exercises could not be loaded and will be skipped when you start this workout.
-                  </p>
-                ) : null}
+        {detailSectionVisible ? (
+          <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
+            {hasWarningSummary ? (
+              <DayDetailStateCard
+                tone="warning"
+                title="Partial workout"
+                body="Some exercises could not be loaded and will be skipped when you start this workout."
+              />
+            ) : null}
 
-                {hasBlockingIssue ? (
-                  <p className="rounded-lg border border-border/45 bg-surface/52 px-3 py-3 text-sm text-muted">
-                    This day has invalid exercises. Edit the day before starting a workout.
-                  </p>
-                ) : hasExerciseRows ? (
-                  <RoutineDayExerciseList
-                    exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
-                      id: exercise.id,
-                      name: exercise.displayName,
-                      goalLine: exercise.goalLine,
-                      exerciseId: exercise.details?.id ?? exercise.exercise_id,
-                      image_icon_path: exercise.details?.image_icon_path ?? null,
-                      image_howto_path: exercise.details?.image_howto_path ?? null,
-                      slug: exercise.details?.slug ?? null,
-                    }))}
-                  />
-                ) : null}
-              </SharedSectionShell>
-            </ScreenScaffold>
-          </ContentRail>
-        )}
+            {isRestState ? (
+              <DayDetailStateCard
+                tone="rest"
+                title="Rest day"
+                body={REST_DAY_CARD_COPY}
+                meta={preservedExerciseMeta}
+              />
+            ) : hasBlockingIssue ? (
+              <DayDetailStateCard
+                tone="blocking"
+                title="Invalid exercises"
+                body="This day has invalid exercises. Edit the day before starting a workout."
+              />
+            ) : hasExerciseRows ? (
+              <RoutineDayExerciseList
+                exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
+                  id: exercise.id,
+                  name: exercise.displayName,
+                  goalLine: exercise.goalLine,
+                  exerciseId: exercise.details?.id ?? exercise.exercise_id,
+                  image_icon_path: exercise.details?.image_icon_path ?? null,
+                  image_howto_path: exercise.details?.image_howto_path ?? null,
+                  slug: exercise.details?.slug ?? null,
+                }))}
+              />
+            ) : (
+              <DayDetailStateCard
+                tone="neutral"
+                title="No exercises planned"
+                body="Add exercises to this day to start a workout."
+              />
+            )}
+          </SharedSectionShell>
+        ) : null}
 
         <PublishBottomActions>
           <BottomActionDock
@@ -153,7 +166,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
             )}
           />
         </PublishBottomActions>
-      </ScrollScreenWithBottomActions>
+      </DetailScreenScaffold>
     </MainTabScreen>
   );
 }

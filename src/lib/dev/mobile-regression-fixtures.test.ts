@@ -9,14 +9,19 @@ import { validateMobileScenarioContracts } from "./mobileRegressionContracts.ts"
 
 const expectedScenarioIds = [
   "today-default",
+  "today-rest",
+  "today-empty",
   "today-in-session-summary",
   "active-workout-session",
   "routines-current-view",
   "routines-list-view",
   "view-day",
+  "view-day-rest",
+  "view-day-empty",
   "edit-day-default",
   "edit-day-reorder",
   "edit-day-rest",
+  "edit-day-empty",
   "edit-day-edit-exercise",
   "edit-day-add-exercise",
   "create-routine",
@@ -31,14 +36,19 @@ const expectedScenarioIds = [
 
 const expectedScenarioFamilies = [
   ["today-default", "Exercise cards"],
+  ["today-rest", "Exercise cards"],
+  ["today-empty", "Exercise cards"],
   ["today-in-session-summary", "Exercise cards"],
   ["active-workout-session", "Session / logging"],
   ["routines-current-view", "Exercise cards"],
   ["routines-list-view", "Exercise cards"],
   ["view-day", "Exercise cards"],
+  ["view-day-rest", "Exercise cards"],
+  ["view-day-empty", "Exercise cards"],
   ["edit-day-default", "Exercise cards"],
   ["edit-day-reorder", "Exercise cards"],
   ["edit-day-rest", "Exercise cards"],
+  ["edit-day-empty", "Exercise cards"],
   ["edit-day-edit-exercise", "Exercise cards"],
   ["edit-day-add-exercise", "Exercise cards"],
   ["create-routine", "Exercise cards"],
@@ -108,7 +118,12 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   const pairs = mobileRegressionScenarios.map((scenario) => `${scenario.screen}:${scenario.fixture}`);
   assert.equal(new Set(pairs).size, mobileRegressionScenarios.length);
   assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "default" })?.id, "today-default");
+  assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "rest" })?.id, "today-rest");
+  assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "empty" })?.id, "today-empty");
+  assert.equal(resolveMobileRegressionScenario({ screen: "view-day", fixture: "rest" })?.id, "view-day-rest");
+  assert.equal(resolveMobileRegressionScenario({ screen: "view-day", fixture: "empty" })?.id, "view-day-empty");
   assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "reorder" })?.id, "edit-day-reorder");
+  assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "empty" })?.id, "edit-day-empty");
   assert.equal(resolveMobileRegressionScenario({ screen: "routines", fixture: "default" })?.id, "routines-current-view");
   assert.equal(resolveMobileRegressionScenario({ screen: "history", fixture: "default" })?.id, "history-sessions-extreme");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "default" })?.id, "exercise-detail-broken-images");

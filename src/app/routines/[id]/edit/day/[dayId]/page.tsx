@@ -1,11 +1,9 @@
 import { notFound } from "next/navigation";
-import { ContentRail } from "@/components/layout/ContentRail";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { reorderRoutineDayExercisesAction, updateRoutineDayExerciseAction, deleteRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditableRoutineDayExerciseList } from "@/app/routines/[id]/edit/day/[dayId]/EditableRoutineDayExerciseList";
 import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm";
+import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { listExercises } from "@/lib/exercises";
@@ -141,44 +139,35 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   );
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
-      <ScrollScreenWithBottomActions
-        floatingHeader={(
-          <ContentRail className="py-1">
-            <ScreenScaffold recipe="editDay" className="w-full">
-              <div id="edit-day-floating-header-slot" />
-            </ScreenScaffold>
-          </ContentRail>
-        )}
+      <DetailScreenScaffold
+        recipe="editDay"
+        floatingHeader={<div id="edit-day-floating-header-slot" />}
       >
-        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <ScreenScaffold recipe="editDay" className="w-full">
-            <EditDaySettingsAutosaveForm
-              routineId={params.id}
-              daySummaryCounts={activeExerciseCountSummary}
-              backHref={backHref}
-              routineDayId={params.dayId}
-              dayIndex={day.day_index}
-              name={(day as RoutineDayRow).name}
-              isRest={(day as RoutineDayRow).is_rest}
-              floatingHeaderSlotId="edit-day-floating-header-slot"
-              headerActionSlotId="planned-workout-header-action-slot"
-            />
+        <EditDaySettingsAutosaveForm
+          routineId={params.id}
+          daySummaryCounts={activeExerciseCountSummary}
+          backHref={backHref}
+          routineDayId={params.dayId}
+          dayIndex={day.day_index}
+          name={(day as RoutineDayRow).name}
+          isRest={(day as RoutineDayRow).is_rest}
+          floatingHeaderSlotId="edit-day-floating-header-slot"
+          headerActionSlotId="planned-workout-header-action-slot"
+        />
 
-            <EditableRoutineDayExerciseList
-              routineId={params.id}
-              routineDayId={params.dayId}
-              weightUnit={(routine as RoutineRow).weight_unit}
-              exercises={editableExercises}
-              updateAction={updateRoutineDayExerciseAction}
-              deleteAction={deleteRoutineDayExerciseAction}
-              reorderAction={reorderRoutineDayExercisesAction}
-              initialIsRest={(day as RoutineDayRow).is_rest}
-              addExerciseHref={addExerciseHref}
-              headerActionSlotId="planned-workout-header-action-slot"
-            />
-          </ScreenScaffold>
-        </ContentRail>
-      </ScrollScreenWithBottomActions>
+        <EditableRoutineDayExerciseList
+          routineId={params.id}
+          routineDayId={params.dayId}
+          weightUnit={(routine as RoutineRow).weight_unit}
+          exercises={editableExercises}
+          updateAction={updateRoutineDayExerciseAction}
+          deleteAction={deleteRoutineDayExerciseAction}
+          reorderAction={reorderRoutineDayExercisesAction}
+          initialIsRest={(day as RoutineDayRow).is_rest}
+          addExerciseHref={addExerciseHref}
+          headerActionSlotId="planned-workout-header-action-slot"
+        />
+      </DetailScreenScaffold>
     </AppShell>
   );
 }
