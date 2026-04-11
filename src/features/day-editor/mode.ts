@@ -2,14 +2,12 @@ export type DayEditorMode =
   | "default"
   | "reorder"
   | "editing_exercise"
-  | "adding_exercise"
   | "rest_day";
 
 export type DayEditorModeContext = {
   isRestDay: boolean;
   isReorderMode: boolean;
   hasExpandedExercise: boolean;
-  isAddingExercise: boolean;
 };
 
 export type DayEditorSections = {
@@ -27,7 +25,6 @@ export type DayEditorModeViewModel = {
 
 export function resolveDayEditorMode(context: DayEditorModeContext): DayEditorMode {
   if (context.isRestDay) return "rest_day";
-  if (context.isAddingExercise) return "adding_exercise";
   if (context.hasExpandedExercise) return "editing_exercise";
   if (context.isReorderMode) return "reorder";
   return "default";

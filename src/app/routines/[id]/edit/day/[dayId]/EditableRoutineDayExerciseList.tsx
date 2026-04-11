@@ -170,12 +170,12 @@ export function EditableRoutineDayExerciseList({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [autosaveError, setAutosaveError] = useState<string | null>(null);
-  const [isAddingExercise, setIsAddingExercise] = useState(false);
   const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeEditFormRef = useRef<HTMLFormElement | null>(null);
   const pendingSnapshotRef = useRef<string | null>(null);
   const lastSavedSnapshotRef = useRef<Record<string, string>>({});
   const itemsRef = useRef(exercises);
+  const addExerciseNavigationLockedRef = useRef(false);
 
   useEffect(() => {
     setItems(exercises);
@@ -311,10 +311,6 @@ export function EditableRoutineDayExerciseList({
     }
   }, [expandedId]);
 
-  useEffect(() => {
-    setIsAddingExercise(false);
-  }, [addExerciseHref, items.length, isRestDay]);
-
   const handleToggleReorderMode = () => {
     if (isRestDay) return;
     setExpandedId(null);
@@ -381,7 +377,6 @@ export function EditableRoutineDayExerciseList({
     isRestDay,
     isReorderMode: reorderMode,
     hasExpandedExercise: editModeActive,
-    isAddingExercise,
   });
   const ctaDockState = getDayCtaDockState(modeViewModel.mode);
   const activeExercise = useMemo(
@@ -430,8 +425,8 @@ export function EditableRoutineDayExerciseList({
   const addExerciseLabel = NORMALIZED_ACTION_LABELS.add;
 
   const handleAddExercisePress = () => {
-    if (isAddingExercise) return;
-    setIsAddingExercise(true);
+    if (addExerciseNavigationLockedRef.current) return;
+    addExerciseNavigationLockedRef.current = true;
     router.push(addExerciseHref);
   };
 
@@ -441,7 +436,7 @@ export function EditableRoutineDayExerciseList({
         <BottomActionDock
           left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
           right={(
-        <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress} disabled={isAddingExercise}>
+        <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress}>
           {addExerciseLabel}
         </BottomDockButton>
       )}

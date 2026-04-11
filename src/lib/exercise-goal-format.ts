@@ -1,5 +1,5 @@
 import type { RoutineDayExerciseRow } from "@/types/db";
-import { formatGoalSummaryText } from "./measurement-display";
+import { formatGoalInlineSummaryText } from "./measurement-display";
 
 type GoalFields = Pick<
   RoutineDayExerciseRow,
@@ -24,7 +24,7 @@ type GoalFields = Pick<
 };
 
 export function formatExerciseGoal(goal: GoalFields) {
-  return formatGoalSummaryText({
+  return formatGoalInlineSummaryText({
     sets: goal.target_sets,
     reps: goal.target_reps_min ?? goal.target_reps,
     repsMax: goal.target_reps_max ?? goal.target_reps,

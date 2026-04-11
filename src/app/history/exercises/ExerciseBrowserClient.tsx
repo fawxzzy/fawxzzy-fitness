@@ -83,13 +83,6 @@ function buildDetailedMetrics(row: ExerciseBrowserRow): MetricDatum[] {
     });
   }
 
-  if (row.deltaFromBest) {
-    metrics.push({
-      label: "Last vs Best",
-      value: row.deltaFromBest,
-    });
-  }
-
   return metrics;
 }
 
@@ -106,30 +99,14 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const lastDate = formatShortDate(row.last_performed_at);
   const hasSignal = Boolean(row.lastSummary || row.bestSummary || row.prLabel || row.last_performed_at);
   const semanticTone = row.prCount > 0 ? "pr" : hasSignal ? "logged" : "neutral";
-  const primaryLine = [lastDate ? `Last ${lastDate}` : null, row.lastSummary].filter(Boolean).join(" | ");
+  const primaryLine = [lastDate, row.lastSummary].filter(Boolean).join(" • ");
   const fallbackLine = row.kind === "strength" ? "Strength history" : "Cardio history";
-  const rowChrome = viewMode === "detailed"
-    ? {
-        bodyClassName: "gap-4",
-        mediaClassName: "mr-0.5 w-[118px] min-h-[112px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[18px]",
-        contentClassName: "pr-1.5",
-        titleClassName: "line-clamp-2 text-[1.03rem] leading-[1.18]",
-        subtitleClassName: "line-clamp-2 text-[12.5px] leading-[1.35]",
-        imageSizes: "(max-width: 768px) 124px, 144px",
-      }
-    : {
-        bodyClassName: "gap-3",
-        mediaClassName: "mr-0.5 w-[96px] min-h-[92px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[16px]",
-        contentClassName: "pr-1",
-        titleClassName: "line-clamp-2 text-[0.98rem] leading-[1.18]",
-        subtitleClassName: "line-clamp-2 text-[12px] leading-[1.3]",
-        imageSizes: "(max-width: 768px) 100px, 112px",
-      };
 
   return (
     <StandardExerciseRow
       exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
       summary={primaryLine || fallbackLine}
+      variant="interactive"
       density={viewMode}
       onPress={() => {
         if (process.env.NODE_ENV === "development") {
@@ -138,27 +115,11 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         onOpen(row.exerciseId);
       }}
       rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-      variant="list"
       state="default"
       semanticTone={semanticTone}
       className="shadow-none"
-      bodyClassName={rowChrome.bodyClassName}
-      mediaClassName={rowChrome.mediaClassName}
-      contentClassName={rowChrome.contentClassName}
-      titleClassName={rowChrome.titleClassName}
-      subtitleClassName={rowChrome.subtitleClassName}
-      imageSizes={rowChrome.imageSizes}
     >
-      {viewMode === "detailed" ? (
-        <div className="space-y-1.5">
-          <MetricStrip items={buildDetailedMetrics(row)} />
-          {row.tagsSummary ? (
-            <p className="text-[11px] leading-[1.35] text-[rgb(var(--text-secondary)/0.74)] [text-wrap:pretty]">
-              {row.tagsSummary}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      {viewMode === "detailed" ? <MetricStrip items={buildDetailedMetrics(row)} /> : null}
     </StandardExerciseRow>
   );
 });
@@ -238,6 +199,7 @@ export function ExerciseBrowserClient({ rows = [], inlineHeaderControls = false 
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {inlineHeaderControls ? (
         <HistoryTitleControlShell
+          caption={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"} shown`}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           showViewModeToggle={false}
@@ -248,12 +210,14 @@ export function ExerciseBrowserClient({ rows = [], inlineHeaderControls = false 
             selectedTags={selectedTags}
             onTagsChange={setSelectedTags}
             groups={availableTagGroups}
+            className="space-y-1.5"
+            filterClassName="space-y-1"
           />
-          <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
         </HistoryTitleControlShell>
       ) : floatingHeaderContainer
         ? createPortal(
             <HistoryTitleControlShell
+              caption={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"} shown`}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               showViewModeToggle={false}
@@ -264,8 +228,9 @@ export function ExerciseBrowserClient({ rows = [], inlineHeaderControls = false 
                 selectedTags={selectedTags}
                 onTagsChange={setSelectedTags}
                 groups={availableTagGroups}
+                className="space-y-1.5"
+                filterClassName="space-y-1"
               />
-              <p className="px-1 text-xs text-muted">{filteredRows.length} {filteredRows.length === 1 ? "exercise" : "exercises"} shown</p>
             </HistoryTitleControlShell>,
             floatingHeaderContainer,
           )

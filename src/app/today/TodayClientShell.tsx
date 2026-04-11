@@ -146,7 +146,7 @@ export function TodayClientShell({
             </AccentSubtitleText>
           ) : null}
 
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {display.exercises.map((exercise) => {
               const cardVariantState = deriveReadOnlyExercisePresentation({
                 loggedSetCount: exercise.loggedSetCount ?? 0,
@@ -159,7 +159,8 @@ export function TodayClientShell({
                 <li key={exercise.id}>
                   <StandardExerciseRow
                     exercise={exercise}
-                    density="detailed"
+                    variant="interactive"
+                    density="compact"
                     summary={exercise.targets}
                     state={cardVariantState.cardState}
                     badgeText={cardVariantState.badgeText}

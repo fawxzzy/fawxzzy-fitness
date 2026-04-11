@@ -10,7 +10,7 @@ import { listExercises } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
-import { formatGoalSummaryText } from "@/lib/measurement-display";
+import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
@@ -95,7 +95,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       name,
       measurementType,
       equipment: matchingExercise?.equipment ?? null,
-      targetSummary: formatGoalSummaryText({
+      targetSummary: formatGoalInlineSummaryText({
         sets: exercise.target_sets,
         reps: exercise.target_reps_min ?? exercise.target_reps,
         repsMax: exercise.target_reps_max ?? exercise.target_reps,

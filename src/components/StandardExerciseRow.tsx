@@ -14,6 +14,7 @@ type StandardExerciseRowProps = {
     image_howto_path?: string | null;
   };
   summary?: ExerciseGoalSummaryValue;
+  subtitle?: ExerciseGoalSummaryValue;
   onPress?: () => void;
   badgeText?: string;
   rightIcon?: ReactNode;
@@ -33,6 +34,7 @@ type StandardExerciseRowProps = {
   density?: "compact" | "detailed";
   semanticTone?: CardSemanticTone;
   children?: ReactNode;
+  leadingVisual?: ReactNode;
   showLeadingVisual?: boolean;
   imageSizes?: string;
 };
@@ -40,6 +42,7 @@ type StandardExerciseRowProps = {
 export function StandardExerciseRow({
   exercise,
   summary,
+  subtitle,
   onPress,
   badgeText,
   rightIcon,
@@ -59,25 +62,27 @@ export function StandardExerciseRow({
   density,
   semanticTone,
   children,
+  leadingVisual,
   showLeadingVisual = true,
   imageSizes,
 }: StandardExerciseRowProps) {
-  const resolvedState = state ?? getExerciseGoalSummaryState(summary);
+  const resolvedSummary = summary ?? subtitle;
+  const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
   const resolvedImageSizes = imageSizes ?? (density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
-    ? "(max-width: 768px) 84px, 92px"
-    : "(max-width: 768px) 112px, 128px");
+    ? "(max-width: 768px) 88px, 104px"
+    : "(max-width: 768px) 96px, 112px");
 
   return (
     <ExerciseCard
       title={exercise.name}
-      subtitle={getExerciseGoalSummaryText(summary)}
+      subtitle={getExerciseGoalSummaryText(resolvedSummary)}
       variant={variant}
       state={resolvedState}
       density={density}
       semanticTone={semanticTone}
-      leadingVisual={showLeadingVisual ? (
+      leadingVisual={leadingVisual ?? (showLeadingVisual ? (
         <ExerciseThumb exercise={exercise} sizes={resolvedImageSizes} />
-      ) : undefined}
+      ) : undefined)}
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}

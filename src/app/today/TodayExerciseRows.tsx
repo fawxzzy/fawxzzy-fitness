@@ -32,7 +32,7 @@ export function TodayExerciseRows({
 
   return (
     <>
-      <ul className="space-y-2">
+      <ul className="space-y-1.5">
         {exercises.map((exercise) => {
           const cardVariantState = deriveReadOnlyExercisePresentation({
             loggedSetCount: exercise.loggedSetCount ?? 0,
@@ -46,8 +46,8 @@ export function TodayExerciseRows({
               <StandardExerciseRow
                 exercise={exercise}
                 summary={exercise.targets}
-                variant="standard"
-                density="detailed"
+                variant="interactive"
+                density="compact"
                 state={cardVariantState.cardState}
                 badgeText={cardVariantState.badgeText}
                 onPress={() => {

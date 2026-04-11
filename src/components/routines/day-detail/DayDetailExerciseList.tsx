@@ -35,7 +35,7 @@ export function DayDetailExerciseList({
   const interactive = Boolean(onSelectItem);
 
   return (
-    <ul className={cn("space-y-2", className)}>
+    <ul className={cn("space-y-1.5", className)}>
       {items.map((item) => {
         const isActive = activeItemId === item.id;
         return (
