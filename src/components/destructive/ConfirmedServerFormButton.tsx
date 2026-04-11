@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 import { getBottomActionButtonClassName, type BottomActionIntent } from "@/components/layout/bottomActionIntents";
-import { AppButton } from "@/components/ui/AppButton";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
+import { cn } from "@/lib/cn";
 
 export function ConfirmedServerFormButton({
   action,
@@ -71,27 +71,25 @@ export function ConfirmedServerFormButton({
       {Object.entries(hiddenFields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <AppButton
+      <button
         type="button"
-        variant="destructive"
-        size={size}
         aria-label={triggerAriaLabel}
         data-bottom-action-intent={triggerIntent}
-        data-action-chrome-intent={triggerIntent}
-        data-action-chrome-segmented={triggerIntent ? "true" : undefined}
-        className={(triggerIntent
-          ? getBottomActionButtonClassName({
-            intent: triggerIntent,
-            size,
-            className: triggerClassName,
-          })
-          : [triggerClassName].filter(Boolean).join(" "))
-          .concat(open ? " pointer-events-none opacity-0" : "")}
+        className={cn(
+          triggerIntent
+            ? getBottomActionButtonClassName({
+              intent: triggerIntent,
+              size,
+              className: triggerClassName,
+            })
+            : triggerClassName,
+          open ? "pointer-events-none opacity-0" : "",
+        )}
         disabled={isLoading || disabled}
         onClick={() => setOpen(true)}
       >
-        {triggerLabel}
-      </AppButton>
+        <span className={triggerIntent ? "bottom-action__label" : undefined}>{triggerLabel}</span>
+      </button>
       <ConfirmDestructiveModal
         open={open}
         title={modalTitle}

@@ -52,11 +52,14 @@
   --shell-rgb: var(--surface-3-rgb);
   --border: var(--stroke-soft);
   --border-strong: var(--stroke-strong);
+  --border-subtle: var(--stroke-soft);
   --text: var(--text-primary);
   --muted: var(--text-secondary);
   --faint: var(--text-muted);
   --accent: var(--accent-mint);
   --accent-strong: var(--accent-mint-strong);
+  --surface-muted: var(--surface-2-rgb);
+  --text-on-accent: var(--bg-0);
 
   --button-height-lg: 3.5rem;
   --button-height: 3rem;
@@ -1443,6 +1446,75 @@ button:focus-visible,
 a:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px rgb(var(--accent) / 0.3);
+}
+
+.bottom-action {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgb(var(--border-subtle) / 0.16);
+  background: rgb(var(--surface-muted) / 0.92);
+  color: rgb(var(--text-secondary) / 0.96);
+  box-shadow: none;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+}
+
+.bottom-action > * {
+  position: relative;
+  z-index: 1;
+}
+
+.bottom-action__label {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.bottom-action--primary {
+  border-color: transparent;
+  background: rgb(var(--accent));
+  color: rgb(var(--text-on-accent));
+}
+
+.bottom-action--secondary {
+  background: rgb(var(--surface-muted) / 0.92);
+  color: rgb(var(--text-secondary) / 0.96);
+}
+
+.bottom-action[data-bottom-action-intent="toggleActive"] {
+  border-color: rgb(var(--accent-yellow-on) / 0.22);
+  color: rgb(var(--accent-yellow-on) / 0.96);
+}
+
+.bottom-action[data-bottom-action-intent="danger"] {
+  border-color: rgb(var(--danger-rgb) / 0.2);
+  color: rgb(var(--danger-rgb) / 0.96);
+}
+
+.bottom-action:active:not(:disabled) {
+  transform: scale(0.985);
+  filter: brightness(0.96);
+}
+
+.bottom-action:focus-visible {
+  outline: 1px solid rgb(var(--border-strong) / 0.62);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.bottom-action:disabled {
+  opacity: 0.56;
+  transform: none;
+  filter: none;
 }
 
 @layer utilities {

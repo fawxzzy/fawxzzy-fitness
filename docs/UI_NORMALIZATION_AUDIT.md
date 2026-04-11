@@ -49,3 +49,12 @@
 - **Pattern:** Normalize by layer: shared app shell first, shared content scaffold second, route-specific title/actions last.
 - **Rule:** Do not introduce new layout primitives when an existing screen pattern already solves the shell/scaffold problem, but do preserve route-owned identity and action semantics.
 - **Failure Mode:** Copying another screen's full contract instead of only its reusable scaffold erases route-specific title meaning and action ownership.
+
+## 2026-04-11 - Bottom action pattern uses no-container footer layout
+
+- Bottom action wrappers now provide spacing only; there is no parent surface, border, blur, glow, or highlight plate.
+- Primary actions use `--accent` and `--text-on-accent`; secondary actions use `--surface-muted` with a subtle border.
+- Split footer geometry preserves asymmetry by width, not color noise: the primary lane stays wider and the secondary lane stays narrower.
+- Primary hierarchy stays stable across shared footer owners: Begin outranks Days, and Finish outranks Add.
+- Press behavior is limited to a slight scale plus slight darken; idle bloom and outer highlights are intentionally absent.
+- Failure mode avoided: footer rails and glossy button chrome add visual density, weaken the primary/secondary hierarchy, and drift away from the shared card/row token family.
