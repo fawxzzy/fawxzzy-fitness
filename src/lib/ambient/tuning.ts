@@ -48,6 +48,15 @@ export type AmbientPresetTuning = {
   railMotionMultiplier?: number;
 };
 
+export type AmbientReducedMotionTuning = {
+  motionMultiplier: number;
+  twinkleMultiplier: number;
+  geometryMultiplier: number;
+  frameOpacityMultiplier: number;
+  railOpacityMultiplier: number;
+  railMotionMultiplier: number;
+};
+
 const createAmbientSkyTuning = (): AmbientSkyTuning => ({
   twinkleCount: 18,
   twinkleAlphaMin: 0.08,
@@ -81,12 +90,27 @@ const createSacredGeometryTuning = (): SacredGeometryTuning => ({
 });
 
 const createPreset = (
-  overrides: Partial<AmbientPresetTuning>,
+  overrides: Partial<AmbientPresetTuning> = {},
 ): AmbientPresetTuning => ({
   intensity: 1,
   motionMultiplier: 1,
   twinkleMultiplier: 1,
   geometryMultiplier: 1,
+  frameOpacityMultiplier: 1,
+  railOpacityMultiplier: 1,
+  railMotionMultiplier: 1,
+  ...overrides,
+});
+
+const createReducedMotionTuning = (
+  overrides: Partial<AmbientReducedMotionTuning> = {},
+): AmbientReducedMotionTuning => ({
+  motionMultiplier: 0.12,
+  twinkleMultiplier: 0.35,
+  geometryMultiplier: 0.18,
+  frameOpacityMultiplier: 1.04,
+  railOpacityMultiplier: 0.08,
+  railMotionMultiplier: 0.01,
   ...overrides,
 });
 
@@ -145,11 +169,7 @@ export const ambientBackdropTuning = {
       railMotionMultiplier: 0.18,
     }),
   },
-  reducedMotion: {
-    motionMultiplier: 0.12,
-    twinkleMultiplier: 0.35,
-    geometryMultiplier: 0.18,
-  },
+  reducedMotion: createReducedMotionTuning(),
 } as const;
 
 export const legacyTuning = ambientBackdropTuning;
