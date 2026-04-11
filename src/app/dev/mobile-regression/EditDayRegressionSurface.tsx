@@ -7,7 +7,7 @@ import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailSt
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 
-type EditDayFixture = "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise";
+type EditDayFixture = "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
 
 type EditDayExercise = {
   id: string;
@@ -80,6 +80,68 @@ export function EditDayRegressionSurface({
           </li>
         ))}
       </ul>
+    );
+  }
+
+  if (fixture === "card-parity") {
+    const parityExercise = exercises[2] ?? exercises[0];
+
+    if (!parityExercise) {
+      return (
+        <DayDetailStateCard
+          tone="neutral"
+          title="Parity audit unavailable"
+          body="Add an exercise fixture to compare view, edit, and reorder rows."
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-3" data-mobile-regression-card-parity="true">
+        <div className="space-y-1.5" data-mobile-regression-card-mode="view">
+          <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">View Day</p>
+          <DayDetailExerciseList
+            mode="read_only"
+            items={[{
+              id: parityExercise.id,
+              name: parityExercise.name,
+              summary: parityExercise.summary,
+              orderNumber: parityExercise.orderNumber,
+              image_icon_path: parityExercise.iconSrc,
+            }]}
+          />
+        </div>
+
+        <div className="space-y-1.5" data-mobile-regression-card-mode="edit">
+          <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">Edit Day</p>
+          <DayDetailExerciseList
+            mode="editable"
+            items={[{
+              id: parityExercise.id,
+              name: parityExercise.name,
+              summary: parityExercise.summary,
+              orderNumber: parityExercise.orderNumber,
+              image_icon_path: parityExercise.iconSrc,
+            }]}
+          />
+        </div>
+
+        <div className="space-y-1.5" data-mobile-regression-card-mode="reorder">
+          <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">Reorder</p>
+          <ReorderExerciseRow
+            exerciseId={parityExercise.id}
+            exerciseName={parityExercise.name}
+            metadata={parityExercise.summary ?? "Goal missing"}
+            image_icon_path={parityExercise.iconSrc}
+            orderNumber={parityExercise.orderNumber}
+            isDragging={false}
+            onHandlePointerDown={() => {}}
+            onHandlePointerMove={() => {}}
+            onHandlePointerUp={() => {}}
+            onHandlePointerCancel={() => {}}
+          />
+        </div>
+      </div>
     );
   }
 
