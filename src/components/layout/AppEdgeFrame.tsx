@@ -48,23 +48,51 @@ function interpolate(min: number, max: number, weight: number) {
   return min + ((max - min) * weight);
 }
 
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
 function formatUnit(value: number) {
   return Number(value.toFixed(4)).toString();
 }
 
 export function AppEdgeFrame({ preset }: AppEdgeFrameProps) {
   const presetTuning = ambientBackdropTuning.presets[preset];
+  const reducedMotionTuning = ambientBackdropTuning.reducedMotion;
   const frameOpacity = presetTuning.frameOpacityMultiplier ?? 1;
   const railOpacity = presetTuning.railOpacityMultiplier ?? 1;
   const railMotion = presetTuning.railMotionMultiplier ?? presetTuning.motionMultiplier;
-  const frameIntensity = interpolate(0.22, 1, presetTuning.intensity) * frameOpacity;
-  const frameMotion = Math.max(railMotion, 0.16);
+  const frameIntensity = clamp01(interpolate(0.22, 1, presetTuning.intensity) * frameOpacity);
+  const reducedFrameIntensity = clamp01(frameIntensity * reducedMotionTuning.frameOpacityMultiplier);
+  const frameMotion = Math.max(railMotion, 0.12);
+  const reducedRailMotion = Math.max(railMotion * reducedMotionTuning.railMotionMultiplier, 0.01);
   const rootStyle = {
     "--app-edge-frame-static-opacity": formatUnit(interpolate(0.14, 0.28, frameIntensity)),
     "--app-edge-frame-echo-opacity": formatUnit(interpolate(0.04, 0.1, frameIntensity)),
     "--app-edge-frame-corner-opacity": formatUnit(interpolate(0.08, 0.16, frameIntensity)),
-    "--app-edge-frame-rail-opacity": formatUnit(interpolate(0.12, 0.34, frameIntensity) * railOpacity),
-    "--app-edge-frame-rail-highlight-opacity": formatUnit(interpolate(0.08, 0.18, frameIntensity) * railOpacity),
+    "--app-edge-frame-rail-opacity": formatUnit(
+      clamp01(interpolate(0.12, 0.34, frameIntensity) * railOpacity),
+    ),
+    "--app-edge-frame-rail-highlight-opacity": formatUnit(
+      clamp01(interpolate(0.08, 0.18, frameIntensity) * railOpacity),
+    ),
+    "--app-edge-frame-reduced-static-opacity": formatUnit(interpolate(0.14, 0.28, reducedFrameIntensity)),
+    "--app-edge-frame-reduced-echo-opacity": formatUnit(interpolate(0.04, 0.1, reducedFrameIntensity)),
+    "--app-edge-frame-reduced-corner-opacity": formatUnit(interpolate(0.08, 0.16, reducedFrameIntensity)),
+    "--app-edge-frame-reduced-rail-opacity": formatUnit(
+      clamp01(
+        interpolate(0.12, 0.34, reducedFrameIntensity)
+          * railOpacity
+          * reducedMotionTuning.railOpacityMultiplier,
+      ),
+    ),
+    "--app-edge-frame-reduced-rail-highlight-opacity": formatUnit(
+      clamp01(
+        interpolate(0.08, 0.18, reducedFrameIntensity)
+          * railOpacity
+          * reducedMotionTuning.railOpacityMultiplier,
+      ),
+    ),
   } as CSSProperties;
 
   return (
@@ -89,6 +117,8 @@ export function AppEdgeFrame({ preset }: AppEdgeFrameProps) {
         {GLYPH_RAILS.map((rail) => {
           const durationMs = interpolate(14000, 22000, rail.durationSeed) / frameMotion;
           const breatheDurationMs = durationMs * 0.72;
+          const reducedDurationMs = interpolate(14000, 22000, rail.durationSeed) / reducedRailMotion;
+          const reducedBreatheDurationMs = reducedDurationMs * 0.72;
           const railOpacity = interpolate(0.58, 1, rail.opacitySeed);
 
           return (
@@ -99,6 +129,8 @@ export function AppEdgeFrame({ preset }: AppEdgeFrameProps) {
                 "--app-edge-frame-rail-local-opacity": formatUnit(railOpacity),
                 "--app-edge-frame-rail-duration": `${Math.round(durationMs)}ms`,
                 "--app-edge-frame-rail-breathe-duration": `${Math.round(breatheDurationMs)}ms`,
+                "--app-edge-frame-reduced-rail-duration": `${Math.round(reducedDurationMs)}ms`,
+                "--app-edge-frame-reduced-rail-breathe-duration": `${Math.round(reducedBreatheDurationMs)}ms`,
                 "--app-edge-frame-rail-delay": `${rail.delayMs}ms`,
               } as CSSProperties}
             >

@@ -659,10 +659,20 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .app-edge-frame {
+    --app-edge-frame-static-opacity: var(--app-edge-frame-reduced-static-opacity);
+    --app-edge-frame-echo-opacity: var(--app-edge-frame-reduced-echo-opacity);
+    --app-edge-frame-corner-opacity: var(--app-edge-frame-reduced-corner-opacity);
+    --app-edge-frame-rail-opacity: var(--app-edge-frame-reduced-rail-opacity);
+    --app-edge-frame-rail-highlight-opacity: var(--app-edge-frame-reduced-rail-highlight-opacity);
+  }
+
   .app-edge-frame__rail-path--highlight {
-    animation: none;
-    opacity: 0.18;
-    stroke-dasharray: none;
+    animation:
+      app-edge-frame-rail-trace var(--app-edge-frame-reduced-rail-duration) linear infinite,
+      app-edge-frame-rail-breathe var(--app-edge-frame-reduced-rail-breathe-duration) ease-in-out infinite;
+    stroke-dasharray: 10 220;
+    opacity: 0.12;
     filter: none;
   }
 
