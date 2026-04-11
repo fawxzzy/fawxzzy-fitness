@@ -2,6 +2,8 @@
 
 This fixture suite turns the known mobile regression inventory into deterministic route-level coverage and explicit review boards.
 
+Boundary ownership and public entrypoints are documented in `docs/MOBILE-REGRESSION-EXTRACTION-CONTRACT.md`.
+
 ## Review buckets
 
 The board pipeline uses scenario-owned family metadata, not filename-prefix guessing. The review buckets are:
