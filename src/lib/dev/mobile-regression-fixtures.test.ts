@@ -30,6 +30,7 @@ const expectedScenarioIds = [
   "add-exercise-default",
   "history-sessions-extreme",
   "history-exercises-zero-results",
+  "history-exercises-detailed",
   "history-detail-broken-images",
   "settings-default",
   "exercise-detail-broken-images",
@@ -59,6 +60,7 @@ const expectedScenarioFamilies = [
   ["add-exercise-default", "Exercise cards"],
   ["history-sessions-extreme", "Session summaries"],
   ["history-exercises-zero-results", "Exercise cards"],
+  ["history-exercises-detailed", "Exercise cards"],
   ["history-detail-broken-images", "Session summaries"],
   ["settings-default", "Settings / detail"],
   ["exercise-detail-broken-images", "Settings / detail"],
@@ -88,11 +90,15 @@ test("mobile regression fixture contracts pass for the full fixture suite", () =
     assert.equal(contracts.hasSingleTopSpacingOwner, true, `${scenario.id}: duplicate top safe-area spacing owners`);
     assert.equal(contracts.hasSingleBottomDockSpacingOwner, true, `${scenario.id}: duplicate bottom dock spacing owners`);
     assert.equal(contracts.chipsStayWithinViewport, true, `${scenario.id}: filter chips clipped off screen`);
+    assert.equal(contracts.sectionChromeOwnedByShell, true, `${scenario.id}: a shared section still owns rectangular chrome outside the rounded shell`);
     assert.equal(contracts.longTextLayoutStable, true, `${scenario.id}: long title/metadata layout became unstable`);
     assert.equal(contracts.noImpossibleLoggedSkippedMix, true, `${scenario.id}: invalid logged+skipped mixed state`);
     assert.equal(contracts.cardStateCorrectness, true, `${scenario.id}: invalid card state mapping`);
     assert.equal(contracts.reorderTextStable, true, `${scenario.id}: reorder text drifted`);
     assert.equal(contracts.goalFormReadable, true, `${scenario.id}: goal form readability regressed`);
+    assert.equal(contracts.goalRowBehaviorStable, true, `${scenario.id}: goal copy no longer has its own readable row`);
+    assert.equal(contracts.detailedModeClearlyRicher, true, `${scenario.id}: detailed mode no longer adds enough analytics density`);
+    assert.equal(contracts.exerciseInfoAnalyticsLayoutReady, true, `${scenario.id}: Exercise Info lost media visibility or analytics density`);
     assert.equal(contracts.routeUsesFloatingHeader, true, `${scenario.id}: route header is not using floatingHeader`);
     assert.equal(contracts.todayHeaderMatchesSelectedDay, true, `${scenario.id}: Today header drifted from selected day`);
     assert.equal(contracts.restDayHasNoExtraLowerFillerBox, true, `${scenario.id}: rest day introduced lower filler box`);
@@ -131,6 +137,7 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "card-parity" })?.id, "edit-day-card-parity");
   assert.equal(resolveMobileRegressionScenario({ screen: "routines", fixture: "default" })?.id, "routines-current-view");
   assert.equal(resolveMobileRegressionScenario({ screen: "history", fixture: "default" })?.id, "history-sessions-extreme");
+  assert.equal(resolveMobileRegressionScenario({ screen: "history-exercises", fixture: "detailed" })?.id, "history-exercises-detailed");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "default" })?.id, "exercise-detail-broken-images");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "long-scroll" })?.id, "exercise-detail-long-scroll");
   assert.equal(resolveMobileRegressionScenario({ scenario: "settings-default" })?.id, "settings-default");

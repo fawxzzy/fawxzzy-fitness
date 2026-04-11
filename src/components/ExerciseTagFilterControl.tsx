@@ -65,7 +65,7 @@ export function ExerciseTagFilterControl({
         aria-expanded={isOpen}
         className={compact
           ? "min-h-10 w-full justify-between rounded-lg border border-border/45 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-sm font-medium [-webkit-tap-highlight-color:transparent]"
-          : "w-full justify-between border border-white/10 bg-black/10 [-webkit-tap-highlight-color:transparent]"}
+          : "w-full justify-between rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] [-webkit-tap-highlight-color:transparent]"}
       >
         <span className="inline-flex items-center gap-2">
           <span>{headerLabel}</span>

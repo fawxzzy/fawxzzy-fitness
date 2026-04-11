@@ -81,6 +81,41 @@ test("goal form readability catches unreadable labels and missing helper copy", 
   assert.equal(contracts.goalFormReadable, false);
 });
 
+test("shell, goal-row, detailed-mode, and Exercise Info analytics regressions are detected", () => {
+  const dayBaseline = requireScenario("view-day");
+  const dayContracts = validateMobileScenarioContracts({
+    ...dayBaseline,
+    sectionChromeOwnedByShell: false,
+    goalRowLayout: {
+      titleMaxLines: 3,
+      goalMaxLines: 3,
+      dedicatedRow: false,
+      wrapsBeforeTruncation: false,
+    },
+  });
+  assert.equal(dayContracts.sectionChromeOwnedByShell, false);
+  assert.equal(dayContracts.goalRowBehaviorStable, false);
+
+  const historyBaseline = requireScenario("history-sessions-extreme");
+  const historyContracts = validateMobileScenarioContracts({
+    ...historyBaseline,
+    detailedMode: { extraMetricCount: 1, analyticsSlotsReady: false },
+  });
+  assert.equal(historyContracts.detailedModeClearlyRicher, false);
+
+  const exerciseInfoBaseline = requireScenario("exercise-detail-broken-images");
+  const exerciseInfoContracts = validateMobileScenarioContracts({
+    ...exerciseInfoBaseline,
+    exerciseInfoLayout: {
+      mediaFullyVisible: false,
+      quickMetricCount: 3,
+      hasProgressBlock: false,
+      topSafePaddingRelaxed: false,
+    },
+  });
+  assert.equal(exerciseInfoContracts.exerciseInfoAnalyticsLayoutReady, false);
+});
+
 test("mobile chrome/day editing contract regressions are detected", () => {
   const todayBaseline = requireScenario("today-default");
   const todayContracts = validateMobileScenarioContracts({

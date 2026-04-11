@@ -28,19 +28,19 @@ const densityStyles: Record<ExerciseCardDensity, {
   titleSize: string;
 }> = {
   compact: {
-    shell: "min-h-[104px] px-4 py-3",
+    shell: "min-h-[108px] px-4 py-3.5",
     media: "h-full w-full",
-    mediaFrame: "-my-3 -ml-4 mr-1 w-[82px] min-h-[78px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[20px]",
-    titleClamp: "line-clamp-1",
-    subtitleClamp: "line-clamp-1",
-    titleSize: "text-[0.98rem]",
+    mediaFrame: "-my-3.5 -ml-4 mr-1 w-[84px] min-h-[80px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[20px]",
+    titleClamp: "line-clamp-2",
+    subtitleClamp: "line-clamp-2",
+    titleSize: "text-[0.96rem]",
   },
   detailed: {
-    shell: "min-h-[136px] px-4 py-4",
+    shell: "min-h-[140px] px-4 py-4",
     media: "h-full w-full",
     mediaFrame: "-my-4 -ml-4 mr-1.5 w-[104px] min-h-[88px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[22px]",
     titleClamp: "line-clamp-2",
-    subtitleClamp: "line-clamp-3",
+    subtitleClamp: "line-clamp-2",
     titleSize: "text-[clamp(1.02rem,2.5vw,1.08rem)]",
   },
 };
@@ -162,7 +162,7 @@ export function ExerciseCard({
   const bodyContent = (
     <div
       className={cn(
-        "relative grid w-full min-w-0 items-center gap-3 overflow-hidden",
+        "relative grid w-full min-w-0 items-stretch gap-3 overflow-hidden",
         bodyGridClassName,
         styles.shell,
         bodyClassName,
@@ -189,9 +189,9 @@ export function ExerciseCard({
         </div>
       ) : null}
 
-      <div className={cn("min-w-0 self-center", contentClassName)}>
-        <div className={cn("min-w-0", titleContainerClassName)}>
-          <div className="flex min-w-0 items-start justify-between gap-2">
+      <div className={cn("min-w-0 self-stretch py-0.5", contentClassName)}>
+        <div className={cn("flex min-h-full min-w-0 flex-col justify-center", titleContainerClassName)}>
+          <div className="flex min-w-0 items-start gap-2">
             <p
               className={cn(
                 "text-safe-wrap min-w-0 flex-1 shrink leading-tight [text-wrap:pretty]",
@@ -207,7 +207,7 @@ export function ExerciseCard({
             {badgeText ? (
               <span
                 className={cn(
-                  "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
+                  "mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
                   badgeStateClassNames[state],
                   cardBadgeToneClassNames[resolvedSemanticTone],
                 )}
@@ -219,7 +219,7 @@ export function ExerciseCard({
           {subtitle ? (
             <div
               className={cn(
-                "text-safe-wrap mt-1 text-xs leading-[1.35] [text-wrap:pretty]",
+                "text-safe-wrap mt-1.5 pr-1 text-xs leading-[1.35] [text-wrap:pretty]",
                 styles.subtitleClamp,
                 subtitleStateClassNames[state],
                 subtitleClassName,
@@ -228,8 +228,8 @@ export function ExerciseCard({
               {subtitle}
             </div>
           ) : null}
+          {children ? <div className="mt-2 min-w-0">{children}</div> : null}
         </div>
-        {children ? <div className="mt-2 min-w-0">{children}</div> : null}
       </div>
 
       <div

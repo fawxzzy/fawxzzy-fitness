@@ -148,7 +148,7 @@ export function HistoryTabs({ value, sessionsHref, exercisesHref }: { value: "se
 
 export function HistoryControlGroup({ label, children, summary }: { label: string; children: ReactNode; summary?: string }) {
   return (
-    <div className="space-y-2 rounded-[1.15rem] border border-white/8 bg-black/10 px-3 py-2.5">
+    <div className="space-y-2 rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-3 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{label}</p>
         {summary ? <SubtitleText className="text-xs">{summary}</SubtitleText> : null}

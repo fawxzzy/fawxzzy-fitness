@@ -23,6 +23,10 @@ export function chipsStayWithinViewport(scenario: MobileFixtureScenario) {
   return (scenario.filterChipFrames ?? []).every((chip) => chip.left >= 0 && chip.right <= scenario.geometry.viewportWidth);
 }
 
+export function sectionChromeOwnedByShell(scenario: MobileFixtureScenario) {
+  return scenario.sectionChromeOwnedByShell ?? true;
+}
+
 export function longTextLayoutStable(scenario: MobileFixtureScenario) {
   if (!scenario.libraryCardTextLayout) return true;
   return scenario.libraryCardTextLayout.titleLineCount <= 3
@@ -66,6 +70,27 @@ export function goalFormReadable(scenario: MobileFixtureScenario) {
   const hasAnyHelperText = scenario.goalForm.helperCopy.length > 0;
 
   return !hasLabelOverflow && hasAnyHelperText;
+}
+
+export function goalRowBehaviorStable(scenario: MobileFixtureScenario) {
+  if (!scenario.goalRowLayout) return true;
+  return scenario.goalRowLayout.dedicatedRow
+    && scenario.goalRowLayout.titleMaxLines <= 2
+    && scenario.goalRowLayout.goalMaxLines <= 2
+    && scenario.goalRowLayout.wrapsBeforeTruncation;
+}
+
+export function detailedModeClearlyRicher(scenario: MobileFixtureScenario) {
+  if (!scenario.detailedMode) return true;
+  return scenario.detailedMode.extraMetricCount >= 2 && scenario.detailedMode.analyticsSlotsReady;
+}
+
+export function exerciseInfoAnalyticsLayoutReady(scenario: MobileFixtureScenario) {
+  if (!scenario.exerciseInfoLayout) return true;
+  return scenario.exerciseInfoLayout.mediaFullyVisible
+    && scenario.exerciseInfoLayout.quickMetricCount >= 4
+    && scenario.exerciseInfoLayout.hasProgressBlock
+    && scenario.exerciseInfoLayout.topSafePaddingRelaxed;
 }
 
 export function routeUsesFloatingHeader(scenario: MobileFixtureScenario) {
@@ -135,11 +160,15 @@ export function validateMobileScenarioContracts(scenario: MobileFixtureScenario)
     hasSingleTopSpacingOwner: hasSingleTopSpacingOwner(scenario),
     hasSingleBottomDockSpacingOwner: hasSingleBottomDockSpacingOwner(scenario),
     chipsStayWithinViewport: chipsStayWithinViewport(scenario),
+    sectionChromeOwnedByShell: sectionChromeOwnedByShell(scenario),
     longTextLayoutStable: longTextLayoutStable(scenario),
     noImpossibleLoggedSkippedMix: noImpossibleLoggedSkippedMix(scenario),
     cardStateCorrectness: cardStateCorrectness(scenario),
     reorderTextStable: reorderTextStable(scenario),
     goalFormReadable: goalFormReadable(scenario),
+    goalRowBehaviorStable: goalRowBehaviorStable(scenario),
+    detailedModeClearlyRicher: detailedModeClearlyRicher(scenario),
+    exerciseInfoAnalyticsLayoutReady: exerciseInfoAnalyticsLayoutReady(scenario),
     routeUsesFloatingHeader: routeUsesFloatingHeader(scenario),
     todayHeaderMatchesSelectedDay: todayHeaderMatchesSelectedDay(scenario),
     restDayHasNoExtraLowerFillerBox: restDayHasNoExtraLowerFillerBox(scenario),

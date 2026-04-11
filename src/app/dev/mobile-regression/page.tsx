@@ -453,6 +453,11 @@ const mockHistorySessions = [
     prCounts: { reps: 0, weight: 1, total: 1 },
     prLabel: "1 PR",
     topSet: { exerciseName: "Bench Press", display: "205 lb x 4" },
+    bestLift: { exerciseName: "Bench Press", display: "205 lb x 4" },
+    totalVolume: 6820,
+    completionRate: 1,
+    hasNote: false,
+    hasSetData: true,
   },
   {
     id: "history-session-2",
@@ -465,6 +470,11 @@ const mockHistorySessions = [
     prCounts: { reps: 1, weight: 1, total: 3 },
     prLabel: "3 PRs",
     topSet: { exerciseName: "Back Squat", display: "275 lb x 3" },
+    bestLift: { exerciseName: "Back Squat", display: "275 lb x 3" },
+    totalVolume: 11340,
+    completionRate: 0.86,
+    hasNote: true,
+    hasSetData: true,
   },
   {
     id: "history-session-3",
@@ -476,6 +486,10 @@ const mockHistorySessions = [
     setCount: 12,
     prCounts: { reps: 0, weight: 0, total: 0 },
     prLabel: "",
+    totalVolume: 0,
+    completionRate: 0.75,
+    hasNote: false,
+    hasSetData: false,
   },
 ];
 
@@ -505,6 +519,10 @@ const mockHistoryExerciseRows = [
     lastSummary: "22m • 1.7 mi • 12:56/mi",
     bestSummary: "Best: 2.1 mi",
     prLabel: "",
+    prCount: 0,
+    sessionCount: 12,
+    deltaFromBest: "-0.4mi vs best",
+    tagsSummary: "Cardio | Gait | Treadmill",
   },
   {
     exerciseId: MOCK_EXERCISE_IDS.row,
@@ -531,6 +549,10 @@ const mockHistoryExerciseRows = [
     lastSummary: null,
     bestSummary: null,
     prLabel: "",
+    prCount: 0,
+    sessionCount: 0,
+    deltaFromBest: null,
+    tagsSummary: "Back | Horizontal Pull | Machine",
   },
 ];
 
@@ -1183,6 +1205,43 @@ function renderExerciseDetailScenario(scenario: MobileFixtureScenario) {
             bestCalories: isLongScrollFixture ? 364 : undefined,
           },
           prLabel: isLongScrollFixture ? "4 PRs" : "1 PR",
+          prCount: isLongScrollFixture ? 4 : 1,
+          quickMetrics: isLongScrollFixture
+            ? [
+                { label: "Last Performed", value: "Wed, Apr 9", timeframe: "24m | 1.85 mi | 12:58/mi" },
+                { label: "Best Effort", value: "31m | 2.35 mi | 13:11/mi" },
+                { label: "PR Count", value: "4", timeframe: "Not tracked" },
+                { label: "Total Sessions", value: "14", timeframe: "14 sets logged" },
+              ]
+            : [
+                { label: "Last Performed", value: "Wed, Apr 9", timeframe: "35 lb x 12 steps" },
+                { label: "Best Set", value: "50 lb x 16 steps" },
+                { label: "PR Count", value: "1", timeframe: "1 PR" },
+                { label: "Total Sessions", value: "14", timeframe: "42 sets logged" },
+              ],
+          progress: isLongScrollFixture
+            ? {
+                metrics: [
+                  { label: "Trend", value: "+0.20mi vs previous", timeframe: "vs previous" },
+                  { label: "30D Frequency", value: "5 sessions", timeframe: "last 30 days" },
+                ],
+                performances: [
+                  { label: "Wed, Apr 9", value: "24m | 1.85 mi | 12:58/mi", context: "1 set" },
+                  { label: "Mon, Apr 7", value: "22m | 1.65 mi | 13:20/mi", context: "1 set" },
+                  { label: "Thu, Apr 3", value: "31m | 2.35 mi | 13:11/mi", context: "1 set" },
+                ],
+              }
+            : {
+                metrics: [
+                  { label: "Trend", value: "+5lb vs previous", timeframe: "vs previous" },
+                  { label: "30D Frequency", value: "6 sessions", timeframe: "last 30 days" },
+                ],
+                performances: [
+                  { label: "Wed, Apr 9", value: "35 lb x 12 steps", context: "3 sets" },
+                  { label: "Mon, Apr 7", value: "30 lb x 12 steps", context: "3 sets" },
+                  { label: "Thu, Apr 3", value: "50 lb x 16 steps", context: "4 sets" },
+                ],
+              },
         }}
       />
   );
