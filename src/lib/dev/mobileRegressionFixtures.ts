@@ -167,6 +167,7 @@ function buildWorkoutFixture(args: {
   name: string;
   fixture: string;
   fixtureState: string;
+  lastInteractiveRowBottom?: number;
   inSessionSummary?: boolean;
   activeSession?: boolean;
   statusChips?: SessionStatusChip[];
@@ -184,7 +185,7 @@ function buildWorkoutFixture(args: {
     name: args.name,
     fixture: args.fixture,
     fixtureState: args.fixtureState,
-    geometry: withBaseGeometry({}),
+    geometry: withBaseGeometry({ lastInteractiveRowBottom: args.lastInteractiveRowBottom ?? 710 }),
     inSessionSummary: args.inSessionSummary,
     activeSession: args.activeSession,
     statusChips: args.statusChips,
@@ -238,6 +239,7 @@ function buildDayFixture(args: {
   name: string;
   fixture: string;
   fixtureState: string;
+  lastInteractiveRowBottom?: number;
   restDay?: boolean;
   reorderText?: ReorderTextFixture;
   goalForm?: GoalFormReadabilityFixture;
@@ -256,7 +258,7 @@ function buildDayFixture(args: {
     name: args.name,
     fixture: args.fixture,
     fixtureState: args.fixtureState,
-    geometry: withBaseGeometry({ lastInteractiveRowBottom: 696 }),
+    geometry: withBaseGeometry({ lastInteractiveRowBottom: args.lastInteractiveRowBottom ?? 696 }),
     restDay: args.restDay,
     reorderText: args.reorderText,
     goalForm: args.goalForm,
@@ -345,7 +347,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     family: "Exercise cards",
     name: "Today: default",
     fixture: "default",
-    fixtureState: "today-default-v1",
+    fixtureState: "today-default-v2",
+    lastInteractiveRowBottom: 688,
     statusChips: ["in-progress"],
     cardStates: [{ cardId: "today-overview", state: "selected", badgeText: "Today" }],
     todayHeaderMatchesSelectedDay: true,
@@ -390,7 +393,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     family: "Session / logging",
     name: "Active workout session",
     fixture: "active",
-    fixtureState: "workout-active-v1",
+    fixtureState: "workout-active-v2",
+    lastInteractiveRowBottom: 696,
     activeSession: true,
     statusChips: ["in-progress"],
     cardStates: [{ cardId: "exercise-row-primary", state: "active", badgeText: "In Session" }],
@@ -419,7 +423,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     route: "viewDay",
     name: "View Day",
     fixture: "default",
-    fixtureState: "view-day-v1",
+    fixtureState: "view-day-v2",
+    lastInteractiveRowBottom: 690,
     hasExtraLowerFillerBox: false,
     cardStates: [{ cardId: "planned-row-1", state: "default" }],
   }),
@@ -514,7 +519,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     route: "editDay",
     name: "Edit Day: add exercise",
     fixture: "add-exercise",
-    fixtureState: "edit-day-add-exercise-v1",
+    fixtureState: "edit-day-add-exercise-v2",
     headerPinned: true,
     cardStates: [{ cardId: "add-exercise-entry", state: "default" }],
   }),
@@ -524,13 +529,13 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     route: "editDay",
     name: "Edit Day: card parity audit",
     fixture: "card-parity",
-    fixtureState: "edit-day-card-parity-v1",
+    fixtureState: "edit-day-card-parity-v2",
     headerPinned: true,
     cardParityModes: ["view", "edit", "reorder"],
     cardStates: [
       { cardId: "parity-view-row", state: "default" },
       { cardId: "parity-edit-row", state: "default", badgeText: "ORDER 1" },
-      { cardId: "parity-reorder-row", state: "default", badgeText: "Order 1" },
+      { cardId: "parity-reorder-row", state: "default", badgeText: "ORDER 1" },
     ],
   }),
   {
@@ -606,10 +611,10 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     family: "Exercise cards",
     name: "History exercises: detailed analytics",
     fixture: "detailed",
-    fixtureState: "history-exercises-detailed-v1",
-    libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 172 },
+    fixtureState: "history-exercises-detailed-v2",
+    libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 188 },
     cardStates: [{ cardId: "history-exercise-latest", state: "default" }],
-    detailedMode: { extraMetricCount: 4, analyticsSlotsReady: true },
+    detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
   }),
   buildSimpleFixture({
     id: "history-detail-broken-images",

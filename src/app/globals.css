@@ -162,6 +162,20 @@
   --content-max: 430px;
   --section-gap: 12px;
   --card-radius: 24px;
+  --exercise-row-shell-padding-x: 1rem;
+  --exercise-row-shell-padding-y-compact: 0.875rem;
+  --exercise-row-shell-padding-y-detailed: 0.9375rem;
+  --exercise-row-min-height-compact: 6.75rem;
+  --exercise-row-min-height-detailed: 7.375rem;
+  --exercise-row-media-width-compact: 5.25rem;
+  --exercise-row-media-width-detailed: 5.75rem;
+  --exercise-row-media-min-height-compact: 5rem;
+  --exercise-row-media-min-height-detailed: 5.5rem;
+  --exercise-row-media-radius-compact: 1rem;
+  --exercise-row-media-radius-detailed: 1.125rem;
+  --exercise-row-trailing-min-width: 2.75rem;
+  --exercise-row-gap: 0.625rem;
+  --exercise-row-badge-gap: 0.5rem;
   --bottom-nav-h: 92px;
 }
 
@@ -868,6 +882,6 @@ html[data-mobile-regression="true"] [data-app-scroll-container="true"] {
 
 .text-safe-wrap {
   word-break: normal;
-  overflow-wrap: break-word;
+  overflow-wrap: normal;
   hyphens: none;
 }

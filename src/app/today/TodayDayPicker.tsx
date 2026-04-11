@@ -323,7 +323,8 @@ export function TodayDayPicker({
                         <li key={exercise.id}>
                           <StandardExerciseRow
                             exercise={exercise}
-                            density="detailed"
+                            variant="interactive"
+                            density="compact"
                             summary={exercise.targets}
                             onPress={() => {
                               if (process.env.NODE_ENV === "development") {

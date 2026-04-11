@@ -40,8 +40,9 @@ export function ReorderExerciseRow({
         summary={metadata}
         variant="reorder"
         state={isDragging ? "selected" : "default"}
+        badgeText={`ORDER ${orderNumber}`}
         className={cn("shadow-none", isDragging ? "scale-[0.99] opacity-85" : undefined)}
-        trailingStackClassName="justify-start gap-1.5 py-0"
+        trailingStackClassName="gap-2"
         rightIcon={(
           <button
             type="button"
@@ -56,11 +57,7 @@ export function ReorderExerciseRow({
             <span aria-hidden="true" className="text-base leading-none tracking-[-0.08em]">⋮⋮</span>
           </button>
         )}
-      >
-        <span className="inline-flex w-fit items-center justify-center rounded-full border border-emerald-400/35 bg-emerald-400/14 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-100">
-          Order {orderNumber}
-        </span>
-      </StandardExerciseRow>
+      />
     </div>
   );
 }

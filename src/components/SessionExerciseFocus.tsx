@@ -350,7 +350,8 @@ export function SessionExerciseFocus({
                     <StandardExerciseRow
                       exercise={exercise}
                       summary={exercise.goalLabel}
-                      variant="standard"
+                      variant="interactive"
+                      density="compact"
                       state={rowState.cardState}
                       semanticTone={semanticTone}
                       onPress={() => onSelectedExerciseIdChange(exercise.id)}

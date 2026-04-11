@@ -72,7 +72,7 @@ test("mobile regression fixtures include the deterministic screenshot contract i
     mobileRegressionScenarios.map((scenario) => scenario.id),
     expectedScenarioIds,
   );
-  assert.ok(mobileRegressionScenarios.every((scenario) => scenario.fixtureState.endsWith("-v1")));
+  assert.ok(mobileRegressionScenarios.every((scenario) => /-v\d+$/.test(scenario.fixtureState)));
 });
 
 test("mobile regression fixtures pin explicit board families", () => {

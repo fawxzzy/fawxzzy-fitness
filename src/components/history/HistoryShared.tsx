@@ -86,11 +86,12 @@ export function HistorySection({
 }
 
 export function HistoryControlPanel({ children, className }: { children: ReactNode; className?: string }) {
-  return <AppPanel className={cn("space-y-3 p-3", className)}>{children}</AppPanel>;
+  return <AppPanel className={cn("space-y-2.5 p-[0.875rem]", className)}>{children}</AppPanel>;
 }
 
 export function HistoryTitleControlShell({
   label,
+  caption,
   viewMode,
   onViewModeChange,
   showViewModeToggle = true,
@@ -98,6 +99,7 @@ export function HistoryTitleControlShell({
   className,
 }: {
   label?: string;
+  caption?: string;
   viewMode: "compact" | "detailed";
   onViewModeChange: (nextMode: "compact" | "detailed") => void;
   showViewModeToggle?: boolean;
@@ -106,9 +108,14 @@ export function HistoryTitleControlShell({
 }) {
   return (
     <HistoryControlPanel className={cn("space-y-2", className)}>
-      {(label || showViewModeToggle) ? (
+      {(label || caption || showViewModeToggle) ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {label ? <p className="text-sm font-semibold text-slate-100">{label}</p> : null}
+          {(label || caption) ? (
+            <div className="min-w-0">
+              {label ? <p className="text-sm font-semibold text-slate-100">{label}</p> : null}
+              {caption ? <p className="mt-0.5 text-[11px] leading-[1.35] text-[rgb(var(--text-muted)/0.9)]">{caption}</p> : null}
+            </div>
+          ) : null}
           {showViewModeToggle ? (
             <div className="min-w-[12rem] flex-1 sm:flex-none">
               <SegmentedControl

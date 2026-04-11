@@ -17,9 +17,9 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { SessionSummaryCard } from "@/components/SessionSummaryCard";
+import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
-import { ExerciseCard } from "@/components/ExerciseCard";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
@@ -483,20 +483,27 @@ export function LogAuditClient({
             image_howto_path: exercise.exercise_image_howto_path ?? null,
           });
           const subtitleParts = [
-            `Latest: ${latestSummary}`,
+            latestSummary,
             `${setsForExercise.length} ${setsForExercise.length === 1 ? "set" : "sets"}`,
           ];
 
           return (
             <article key={exercise.id} className="space-y-2">
-              <ExerciseCard
-                title={name}
+              <StandardExerciseRow
+                exercise={{
+                  name,
+                  slug: exercise.exercise_slug ?? null,
+                  image_path: exercise.exercise_image_path ?? null,
+                  image_icon_path: exercise.exercise_image_icon_path ?? null,
+                  image_howto_path: exercise.exercise_image_howto_path ?? null,
+                }}
                 subtitle={subtitleParts.join(" • ")}
                 onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
                 rightIcon={isExpanded
                   ? <ChevronDownIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
                   : <ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-                variant="summary"
+                variant="interactive"
+                density="compact"
                 state={isExpanded ? "selected" : "default"}
                 leadingVisual={(
                   <ExerciseAssetImage
@@ -507,7 +514,7 @@ export function LogAuditClient({
                     sizes="80px"
                   />
                 )}
-                className="items-center"
+                className="w-full shadow-none"
               />
 
               {isExpanded ? (

@@ -55,5 +55,5 @@ test("hardening fixtures keep long Exercise Info scroll and day-card parity cove
   const historyExerciseDetail = mobileRegressionScenarios.find((scenario) => scenario.id === "history-exercises-detailed");
   assert.ok(historyExerciseDetail);
   assert.equal(historyExerciseDetail.route, "historyExercises");
-  assert.deepEqual(historyExerciseDetail.detailedMode, { extraMetricCount: 4, analyticsSlotsReady: true });
+  assert.deepEqual(historyExerciseDetail.detailedMode, { extraMetricCount: 3, analyticsSlotsReady: true });
 });

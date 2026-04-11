@@ -28,20 +28,20 @@ const densityStyles: Record<ExerciseCardDensity, {
   titleSize: string;
 }> = {
   compact: {
-    shell: "min-h-[108px] px-4 py-3.5",
+    shell: "min-h-[var(--exercise-row-min-height-compact)] px-[var(--exercise-row-shell-padding-x)] py-[var(--exercise-row-shell-padding-y-compact)]",
     media: "h-full w-full",
-    mediaFrame: "-my-3.5 -ml-4 mr-1 w-[84px] min-h-[80px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[20px]",
+    mediaFrame: "-my-[var(--exercise-row-shell-padding-y-compact)] -ml-[var(--exercise-row-shell-padding-x)] mr-0.5 w-[var(--exercise-row-media-width-compact)] min-h-[var(--exercise-row-media-min-height-compact)] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[var(--exercise-row-media-radius-compact)]",
     titleClamp: "line-clamp-2",
-    subtitleClamp: "line-clamp-2",
-    titleSize: "text-[0.96rem]",
+    subtitleClamp: "line-clamp-1",
+    titleSize: "text-[0.98rem]",
   },
   detailed: {
-    shell: "min-h-[140px] px-4 py-4",
+    shell: "min-h-[var(--exercise-row-min-height-detailed)] px-[var(--exercise-row-shell-padding-x)] py-[var(--exercise-row-shell-padding-y-detailed)]",
     media: "h-full w-full",
-    mediaFrame: "-my-4 -ml-4 mr-1.5 w-[104px] min-h-[88px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[22px]",
+    mediaFrame: "-my-[var(--exercise-row-shell-padding-y-detailed)] -ml-[var(--exercise-row-shell-padding-x)] mr-1 w-[var(--exercise-row-media-width-detailed)] min-h-[var(--exercise-row-media-min-height-detailed)] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[var(--exercise-row-media-radius-detailed)]",
     titleClamp: "line-clamp-2",
-    subtitleClamp: "line-clamp-2",
-    titleSize: "text-[clamp(1.02rem,2.5vw,1.08rem)]",
+    subtitleClamp: "line-clamp-1",
+    titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
   },
 };
 
@@ -158,11 +158,18 @@ export function ExerciseCard({
   const bodyGridClassName = leadingVisual
     ? "grid-cols-[auto_minmax(0,1fr)_auto]"
     : "grid-cols-[minmax(0,1fr)_auto]";
+  const hasBadge = Boolean(badgeText);
+  const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
+  const trailingStackLayoutClassName = hasBadge && hasRightIcon
+    ? "min-h-full flex-col justify-between"
+    : hasBadge
+      ? "min-h-full flex-col justify-start"
+      : "items-center justify-center";
 
   const bodyContent = (
     <div
       className={cn(
-        "relative grid w-full min-w-0 items-stretch gap-3 overflow-hidden",
+        "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-hidden",
         bodyGridClassName,
         styles.shell,
         bodyClassName,
@@ -191,31 +198,18 @@ export function ExerciseCard({
 
       <div className={cn("min-w-0 self-stretch py-0.5", contentClassName)}>
         <div className={cn("flex min-h-full min-w-0 flex-col justify-center", titleContainerClassName)}>
-          <div className="flex min-w-0 items-start gap-2">
-            <p
-              className={cn(
-                "text-safe-wrap min-w-0 flex-1 shrink leading-tight [text-wrap:pretty]",
-                styles.titleClamp,
-                styles.titleSize,
-                "font-semibold",
-                titleStateClassNames[state],
-                titleClassName,
-              )}
-            >
-              {title}
-            </p>
-            {badgeText ? (
-              <span
-                className={cn(
-                  "mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
-                  badgeStateClassNames[state],
-                  cardBadgeToneClassNames[resolvedSemanticTone],
-                )}
-              >
-                {badgeText}
-              </span>
-            ) : null}
-          </div>
+          <p
+            className={cn(
+              "text-safe-wrap min-w-0 leading-tight [text-wrap:pretty]",
+              styles.titleClamp,
+              styles.titleSize,
+              "font-semibold",
+              titleStateClassNames[state],
+              titleClassName,
+            )}
+          >
+            {title}
+          </p>
           {subtitle ? (
             <div
               className={cn(
@@ -234,13 +228,30 @@ export function ExerciseCard({
 
       <div
         className={cn(
-          "flex shrink-0 items-center justify-end self-center",
+          "flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-stretch justify-end self-stretch",
           trailingClassName,
           rightRailClassName,
         )}
       >
-        <div className={cn("flex min-w-10 items-center justify-end", trailingStackClassName)}>
-          {rightIcon}
+        <div
+          className={cn(
+            "flex h-full min-w-[var(--exercise-row-trailing-min-width)] items-end gap-[var(--exercise-row-badge-gap)]",
+            trailingStackLayoutClassName,
+            trailingStackClassName,
+          )}
+        >
+          {badgeText ? (
+            <span
+              className={cn(
+                "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
+                badgeStateClassNames[state],
+                cardBadgeToneClassNames[resolvedSemanticTone],
+              )}
+            >
+              {badgeText}
+            </span>
+          ) : null}
+          {hasRightIcon ? <div className="flex min-h-10 items-center justify-end">{rightIcon}</div> : null}
         </div>
       </div>
     </div>
