@@ -234,12 +234,12 @@ export function ExerciseInfoSheet({
   const resolvedPortalTarget = portalTarget;
 
   const sheetBody = (
-    <main className={inline ? "min-h-[100dvh]" : "min-h-[100dvh]"}>
-      <ContentRail className="flex min-h-[100dvh] flex-col gap-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
+    <main className="app-page-scroll min-h-[100dvh]">
+      <ContentRail className="flex min-h-[100dvh] flex-col gap-3 pt-[max(var(--app-safe-top),var(--vv-top,0px))]">
         {detailHeader}
 
-        <Glass variant="base" className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px]">
-          <div className="scroll-y min-h-0 flex-1 px-4 pb-6 pt-4">
+        <Glass variant="base" className="overflow-hidden rounded-[32px]">
+          <div className="px-4 pb-6 pt-4">
             <div className="space-y-3">
               <DetailSection title="How to">
                 {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
@@ -291,7 +291,7 @@ export function ExerciseInfoSheet({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 pointer-events-auto bg-[rgb(var(--bg))]"
+      className="fixed inset-0 z-50 pointer-events-auto scroll-y bg-[rgb(var(--bg))]"
       role="dialog"
       aria-modal="true"
       aria-label="Exercise info"

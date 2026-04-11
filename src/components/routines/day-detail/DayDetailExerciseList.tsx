@@ -2,7 +2,6 @@
 
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
-import { listShellClasses } from "@/components/ui/listShellClasses";
 import { cn } from "@/lib/cn";
 
 export type DayDetailExerciseListItem = {
@@ -55,11 +54,7 @@ export function DayDetailExerciseList({
                 state={isActive && mode === "editable" ? "selected" : "default"}
                 onPress={interactive ? () => onSelectItem?.(item) : undefined}
                 badgeText={mode === "editable" ? `ORDER ${item.orderNumber}` : undefined}
-                className={cn(
-                  listShellClasses.card,
-                  "w-full",
-                  isActive && mode === "editable" ? "rounded-b-none" : undefined,
-                )}
+                className={cn("w-full", isActive && mode === "editable" ? "rounded-b-none" : undefined)}
                 rightIcon={(
                   <ChevronRightIcon
                     className={cn(
