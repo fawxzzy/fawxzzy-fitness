@@ -169,7 +169,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
 
   return (
-    <AppShell topNavMode="none">
+    <AppShell topNavMode="none" ambientPreset="logSet">
         <SessionPageClient
           sessionId={params.id}
           initialDurationSeconds={sessionRow.duration_seconds}

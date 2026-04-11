@@ -149,7 +149,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     prCounts: sessionCountsById.get(sessionRow.id) ?? { ...EMPTY_PR_COUNTS },
   });
   return (
-    <AppShell className="gap-4" topNavMode="none">
+    <AppShell className="gap-4" topNavMode="none" ambientPreset="history">
       <ScrollScreenWithBottomActions
         floatingHeader={(
           <ContentRail><div id="history-log-floating-header" /></ContentRail>

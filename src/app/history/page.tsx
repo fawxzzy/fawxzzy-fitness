@@ -218,7 +218,7 @@ export default async function HistoryPage({
 
   const sessionItems = sessions.map((session) => sessionSummaryById.get(session.id)).filter((item): item is SessionSummary => Boolean(item));
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="history">
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={<ContentRail><HistoryPageHeader title={`Logged Sessions: ${sessionItems.length}`} /></ContentRail>}

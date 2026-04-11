@@ -31,7 +31,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
     : `/session/${params.id}`;
 
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]">
+    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="logSet">
       <ScrollScreenWithBottomActions
         floatingHeader={(
           <ContentRail className="py-1">

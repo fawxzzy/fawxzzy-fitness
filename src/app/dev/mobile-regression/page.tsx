@@ -159,7 +159,7 @@ function traceMobileRegression(event: string, details: Record<string, unknown>) 
 
 function RegressionIndex() {
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <ContentRail className="space-y-3 py-6">
         <SurfaceCard>
           <AppHeader
@@ -683,7 +683,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
   }
 
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="today">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
@@ -712,7 +712,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
 
 function renderSessionScenario(scenario: MobileFixtureScenario) {
   return (
-    <AppShell topNavMode="none">
+    <AppShell topNavMode="none" ambientPreset="logSet">
       <RegressionMarker scenario={scenario} />
       <SessionPageClient
         sessionId="dev-session"
@@ -738,7 +738,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
 
 function renderRoutinesScenario(scenario: MobileFixtureScenario) {
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
@@ -784,7 +784,7 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
       ? getRestDayExerciseCountSummaryFromInputs([], false)
       : { strength: 2, cardio: 1, unknown: 0 };
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         floatingHeader={(
@@ -845,7 +845,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
       { id: "edit-3", name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof", summary: LONG_GOAL_SUMMARY, iconSrc: "/missing/icon-lunge.png", orderNumber: 3 },
     ];
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]">
+    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         floatingHeader={(
@@ -940,7 +940,7 @@ function renderEditRoutineScenario(scenario: MobileFixtureScenario) {
 
 function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]">
+    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="logSet">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         floatingHeader={(
@@ -974,7 +974,7 @@ function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
 
 function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="history">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
@@ -990,7 +990,7 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
 
 function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="history">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
@@ -1006,7 +1006,7 @@ function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
 
 function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
   return (
-    <AppShell className="gap-4" topNavMode="none">
+    <AppShell className="gap-4" topNavMode="none" ambientPreset="history">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         floatingHeader={<ContentRail><div id="history-log-floating-header" /></ContentRail>}
@@ -1033,7 +1033,7 @@ function renderHistoryDetailScenario(scenario: MobileFixtureScenario) {
 
 function renderSettingsScenario(scenario: MobileFixtureScenario) {
   return (
-    <MainTabScreen topNavMode="none">
+    <MainTabScreen topNavMode="none" ambientPreset="modal">
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
