@@ -144,11 +144,34 @@ test("deriveTodayScreenMode keeps resume CTA available for closed picker empty s
   assert.equal(mode.dayPickerOpen, false);
   assert.equal(mode.dayRowsVisible, false);
   assert.equal(mode.summaryVisible, false);
-  assert.equal(mode.contentShellVisible, false);
+  assert.equal(mode.contentShellVisible, true);
   assert.equal(mode.emptyTrainingDay, true);
   assert.equal(mode.cta.showPrimary, true);
   assert.equal(mode.cta.primaryLabel, "Resume");
   assert.equal(mode.cta.secondaryLabel, "Days");
+});
+
+test("deriveTodayScreenMode keeps rest-day detail content visible when the picker is closed", () => {
+  const mode = deriveTodayScreenMode({
+    days: [{
+      id: "day-4",
+      dayIndex: 4,
+      name: "Recovery",
+      isRest: true,
+      state: "rest",
+      invalidExerciseCount: 0,
+      exercises: [],
+    }],
+    selectedDayIndex: 4,
+    currentDayIndex: 4,
+    dayPickerOpen: false,
+  });
+
+  assert.equal(mode.restDay, true);
+  assert.equal(mode.summaryVisible, true);
+  assert.equal(mode.dayRowsVisible, false);
+  assert.equal(mode.contentShellVisible, true);
+  assert.equal(mode.cta.showPrimary, false);
 });
 
 test("rest and invalid-empty summaries resolve from pure summary selectors", () => {

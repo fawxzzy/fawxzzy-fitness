@@ -14,12 +14,15 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
+import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
 
 type EditableRoutineDayExerciseItem = {
@@ -449,6 +452,22 @@ export function EditableRoutineDayExerciseList({
     return (
       <>
         {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
+        <SharedSectionShell recipe="editDay" bodyClassName="space-y-3">
+          {modeViewModel.sections.restDayCardVisible ? (
+            <DayDetailStateCard
+              tone="rest"
+              title="Rest day enabled"
+              body={REST_DAY_BEHAVIOR_CONTRACT.copy.helper}
+              meta={items.length > 0 ? REST_DAY_BEHAVIOR_CONTRACT.copy.enabled : undefined}
+            />
+          ) : (
+            <DayDetailStateCard
+              tone="neutral"
+              title="No exercises planned"
+              body="Add an exercise to start building this day."
+            />
+          )}
+        </SharedSectionShell>
         <PublishBottomActions>
           {ctaDockState.variant === "edit_exercise" && activeExercise ? (
             <BottomActionDock

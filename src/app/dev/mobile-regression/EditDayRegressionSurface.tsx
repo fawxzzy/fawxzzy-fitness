@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { DayDetailExerciseList, type DayDetailExerciseListItem } from "@/components/routines/day-detail/DayDetailExerciseList";
+import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 
-type EditDayFixture = "default" | "reorder" | "rest" | "edit-exercise" | "add-exercise";
+type EditDayFixture = "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise";
 
 type EditDayExercise = {
   id: string;
@@ -46,6 +47,16 @@ export function EditDayRegressionSurface({
       <div className="rounded-[1.25rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-5 text-sm text-[rgb(var(--text-muted)/0.92)]">
         Recovery day enabled. Training rows are hidden and the rest toggle becomes the only bottom action.
       </div>
+    );
+  }
+
+  if (fixture === "empty") {
+    return (
+      <DayDetailStateCard
+        tone="neutral"
+        title="No exercises planned"
+        body="Add an exercise to start building this day."
+      />
     );
   }
 

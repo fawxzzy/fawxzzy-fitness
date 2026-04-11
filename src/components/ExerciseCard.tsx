@@ -23,6 +23,7 @@ const densityStyles: Record<ExerciseCardDensity, {
   shell: string;
   media: string;
   mediaFrame: string;
+  titleClamp: string;
   subtitleClamp: string;
   titleSize: string;
 }> = {
@@ -30,6 +31,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     shell: "min-h-[104px] px-4 py-3",
     media: "h-full w-full",
     mediaFrame: "-my-3 -ml-4 mr-1 w-[82px] min-h-[78px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[20px]",
+    titleClamp: "line-clamp-1",
     subtitleClamp: "line-clamp-1",
     titleSize: "text-[0.98rem]",
   },
@@ -37,6 +39,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     shell: "min-h-[136px] px-4 py-4",
     media: "h-full w-full",
     mediaFrame: "-my-4 -ml-4 mr-1.5 w-[104px] min-h-[88px] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[22px]",
+    titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1.02rem,2.5vw,1.08rem)]",
   },
@@ -188,11 +191,13 @@ export function ExerciseCard({
 
       <div className={cn("min-w-0 self-center", contentClassName)}>
         <div className={cn("min-w-0", titleContainerClassName)}>
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-start justify-between gap-2">
             <p
               className={cn(
-                "text-safe-wrap min-w-0 flex-1 font-semibold leading-tight [text-wrap:pretty]",
+                "text-safe-wrap min-w-0 flex-1 shrink leading-tight [text-wrap:pretty]",
+                styles.titleClamp,
                 styles.titleSize,
+                "font-semibold",
                 titleStateClassNames[state],
                 titleClassName,
               )}

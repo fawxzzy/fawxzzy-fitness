@@ -13,6 +13,7 @@ import {
   DayCard,
   DayList,
   formatLoggedSetCount,
+  REST_DAY_CARD_COPY,
   resolveDayCardBadgeText,
   resolveDayCardState,
 } from "@/components/day-list/DayList";
@@ -23,6 +24,7 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { AccentSubtitleText } from "@/components/ui/text-roles";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
+import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import {
@@ -154,7 +156,57 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
+  const selectedDayStateCard = useMemo(() => {
+    if (!selectedDay || mode.dayPickerOpen) {
+      return null;
+    }
 
+    if (selectedDay.state === "rest") {
+      return (
+        <DayDetailStateCard
+          tone="rest"
+          title="Rest day"
+          body={REST_DAY_CARD_COPY}
+        />
+      );
+    }
+
+    if (selectedDay.state === "empty" && selectedDay.invalidExerciseCount === 0) {
+      return (
+        <DayDetailStateCard
+          tone="neutral"
+          title="No exercises planned"
+          body="Add exercises to this day to start a workout."
+        />
+      );
+    }
+
+    return null;
+  }, [mode.dayPickerOpen, selectedDay]);
+  const selectedDaySummaryNode = useMemo(() => {
+    if (selectedDayStateCard) {
+      return selectedDayStateCard;
+    }
+
+    if (!mode.summaryVisible || !daySummary || !daySummaryTone) {
+      return null;
+    }
+
+    return (
+      <div
+        className={[
+          "rounded-md px-3 py-1.5",
+          daySummaryTone === "blocking"
+            ? "border border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
+            : "border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]",
+        ].join(" ")}
+      >
+        <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-[rgb(var(--button-destructive-text))]" : "text-[rgb(var(--accent-yellow-on))]"}>
+          {daySummary}
+        </AccentSubtitleText>
+      </div>
+    );
+  }, [daySummary, daySummaryTone, mode.summaryVisible, selectedDayStateCard]);
 
   const headerNode = selectedDay ? (
     <ScreenScaffold recipe="todayOverview" className="w-full">
@@ -224,98 +276,85 @@ export function TodayDayPicker({
     <>
       {headerNode && floatingHeaderTarget ? createPortal(headerNode, floatingHeaderTarget) : null}
       <div className="flex min-h-0 flex-col">
-      {!mode.noRoutine && selectedDay ? (
-        <ContentRail>
-          <ScreenScaffold recipe="todayOverview" className="w-full">
-            {selectedDay.state !== "rest" && mode.contentShellVisible ? (
-              <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
-              {mode.dayPickerOpen ? (
-              <DayList>
-                {days.map((day) => {
-                  const isSelected = selectedDayIndex === day.dayIndex;
-                  return (
-                    <DayCard
-                      key={day.id}
-                      title={`Day ${day.dayIndex} | ${day.name}`}
-                      subtitle={resolveDayCardSubtitle(day)}
-                      onPress={() => {
-                        setSelectedDayIndex(day.dayIndex);
-                        setIsPickerOpen(false);
-                      }}
-                      state={resolveDayCardState({
-                        isSelected,
-                        isToday: day.dayIndex === currentDayIndex,
-                        isRest: day.isRest,
-                        isCompleted: completedDayIndexSet.has(day.dayIndex),
-                        isInSession: inSessionDayIndex === day.dayIndex,
+        {!mode.noRoutine && selectedDay ? (
+          <ContentRail>
+            <ScreenScaffold recipe="todayOverview" className="w-full">
+              {mode.contentShellVisible ? (
+                <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+                  {mode.dayPickerOpen ? (
+                    <DayList>
+                      {days.map((day) => {
+                        const isSelected = selectedDayIndex === day.dayIndex;
+                        return (
+                          <DayCard
+                            key={day.id}
+                            title={`Day ${day.dayIndex} | ${day.name}`}
+                            subtitle={resolveDayCardSubtitle(day)}
+                            onPress={() => {
+                              setSelectedDayIndex(day.dayIndex);
+                              setIsPickerOpen(false);
+                            }}
+                            state={resolveDayCardState({
+                              isSelected,
+                              isToday: day.dayIndex === currentDayIndex,
+                              isRest: day.isRest,
+                              isCompleted: completedDayIndexSet.has(day.dayIndex),
+                              isInSession: inSessionDayIndex === day.dayIndex,
+                            })}
+                            badgeText={resolveDayCardBadgeText({
+                              isToday: day.dayIndex === currentDayIndex,
+                              isRest: day.isRest,
+                              isCompleted: completedDayIndexSet.has(day.dayIndex),
+                              isInSession: inSessionDayIndex === day.dayIndex,
+                            })}
+                            metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
+                            rightIcon={null}
+                          />
+                        );
                       })}
-                      badgeText={resolveDayCardBadgeText({
-                        isToday: day.dayIndex === currentDayIndex,
-                        isRest: day.isRest,
-                        isCompleted: completedDayIndexSet.has(day.dayIndex),
-                        isInSession: inSessionDayIndex === day.dayIndex,
-                      })}
-                      metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
-                      rightIcon={null}
-                    />
-                  );
-                })}
-              </DayList>
+                    </DayList>
+                  ) : null}
+
+                  {selectedDaySummaryNode}
+
+                  {mode.dayRowsVisible && hasSelectedDayRows ? (
+                    <ul className="space-y-1.5">
+                      {selectedDay.exercises.map((exercise) => (
+                        <li key={exercise.id}>
+                          <StandardExerciseRow
+                            exercise={exercise}
+                            density="detailed"
+                            summary={exercise.targets}
+                            onPress={() => {
+                              if (process.env.NODE_ENV === "development") {
+                                console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
+                              }
+                              setSelectedExerciseId(exercise.exerciseId);
+                            }}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </SharedSectionShell>
               ) : null}
+            </ScreenScaffold>
+          </ContentRail>
+        ) : null}
 
-              {mode.summaryVisible && daySummaryTone && daySummary ? (
-                <div
-                  className={[
-                    "rounded-md px-3 py-1.5",
-                    daySummaryTone === "blocking"
-                      ? "border border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
-                      : daySummaryTone === "warning"
-                        ? "border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]"
-                        : "border border-border/70 bg-[rgb(var(--bg)/0.35)] text-muted",
-                  ].join(" ")}
-                >
-                  <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-[rgb(var(--button-destructive-text))]" : "text-[rgb(var(--accent-yellow-on))]"}>
-                    {daySummary}
-                  </AccentSubtitleText>
-                </div>
-              ) : null}
-
-              {mode.dayRowsVisible && hasSelectedDayRows ? <ul className="space-y-1.5">
-                {selectedDay.exercises.map((exercise) => (
-                  <li key={exercise.id}>
-                    <StandardExerciseRow
-                      exercise={exercise}
-                      density="detailed"
-                      summary={exercise.targets}
-                      onPress={() => {
-                        if (process.env.NODE_ENV === "development") {
-                          console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
-                        }
-                        setSelectedExerciseId(exercise.exerciseId);
-                      }}
-                    />
-                  </li>
-                ))}
-              </ul> : null}
-              </SharedSectionShell>
-            ) : null}
-          </ScreenScaffold>
-        </ContentRail>
-      ) : null}
-
-      <ExerciseInfo
-        exerciseId={selectedExerciseId}
-        open={Boolean(selectedExerciseId)}
-        onOpenChange={(open) => {
-          if (!open) {
+        <ExerciseInfo
+          exerciseId={selectedExerciseId}
+          open={Boolean(selectedExerciseId)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedExerciseId(null);
+            }
+          }}
+          onClose={() => {
             setSelectedExerciseId(null);
-          }
-        }}
-        onClose={() => {
-          setSelectedExerciseId(null);
-        }}
-        sourceContext="TodayDayPicker"
-      />
+          }}
+          sourceContext="TodayDayPicker"
+        />
       </div>
     </>
   );

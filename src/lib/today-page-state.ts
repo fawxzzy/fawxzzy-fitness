@@ -145,9 +145,8 @@ export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
   );
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
   const summary = selectedDay ? getTodayDaySummary(selectedDay) : null;
-  const summaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
-  const summaryVisible = !args.dayPickerOpen && !restDay && !noRoutine && Boolean(summary && summaryTone);
-  const contentShellVisible = args.dayPickerOpen || summaryVisible || hasSelectedDayRows;
+  const summaryVisible = !args.dayPickerOpen && !noRoutine && Boolean(summary);
+  const contentShellVisible = args.dayPickerOpen || summaryVisible || hasSelectedDayRows || emptyTrainingDay;
 
   return {
     selectedDay,

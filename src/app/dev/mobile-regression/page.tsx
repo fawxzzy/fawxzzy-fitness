@@ -26,6 +26,7 @@ import { BottomActionSingle, BottomActionSplit } from "@/components/layout/Canon
 import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -325,7 +326,37 @@ const mockTodayDays = [
     invalidExerciseCount: 0,
     exercises: [],
   },
+  {
+    id: "day-4",
+    dayIndex: 4,
+    name: "Travel Reset",
+    isRest: false,
+    state: "empty" as const,
+    invalidExerciseCount: 0,
+    exercises: [],
+  },
 ];
+
+const mockViewDayExercises = [
+  {
+    id: "view-1",
+    name: "Back Squat",
+    goalLine: "4 sets x 5 reps @ 225 lb",
+    exerciseId: MOCK_EXERCISE_IDS.squat,
+    image_icon_path: "/missing/icon-squat.png",
+    image_howto_path: "/missing/howto-squat.png",
+    slug: "back-squat",
+  },
+  {
+    id: "view-2",
+    name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
+    goalLine: "3 sets x 12 steps @ 35 lb",
+    exerciseId: MOCK_EXERCISE_IDS.lunge,
+    image_icon_path: "/missing/icon-lunge.png",
+    image_howto_path: null,
+    slug: "walking-lunge",
+  },
+] as const;
 
 const mockSessionExercises = [
   {
@@ -547,7 +578,12 @@ const mockHistoryDetailExercises = [
 ];
 
 function renderTodayScenario(scenario: MobileFixtureScenario) {
-  const selectedDay = mockTodayDays[1];
+  const selectedDayIndex = scenario.id === "today-rest"
+    ? 3
+    : scenario.id === "today-empty"
+      ? 4
+      : 2;
+  const selectedDay = mockTodayDays.find((day) => day.dayIndex === selectedDayIndex) ?? mockTodayDays[1];
 
   if (scenario.id === "today-in-session-summary") {
     return (
@@ -631,7 +667,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
         <ContentRail className="space-y-3">
           <TodayDayPicker
             days={mockTodayDays}
-            currentDayIndex={2}
+            currentDayIndex={selectedDayIndex}
             completedDayIndexes={[1]}
             loggedSetCountsByDayIndex={{ 2: 5 }}
             routineName="Lower Rotation"
@@ -709,6 +745,13 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderViewDayScenario(scenario: MobileFixtureScenario) {
+  const isRestFixture = scenario.id === "view-day-rest";
+  const isEmptyFixture = scenario.id === "view-day-empty";
+  const viewDaySummary = isRestFixture
+    ? getRestDayExerciseCountSummaryFromInputs([], true)
+    : isEmptyFixture
+      ? getRestDayExerciseCountSummaryFromInputs([], false)
+      : { strength: 2, cardio: 1, unknown: 0 };
   return (
     <MainTabScreen topNavMode="none">
       <RegressionMarker scenario={scenario} />
@@ -719,7 +762,7 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
               <SharedScreenHeader
                 recipe="viewDay"
                 title="Lower Rotation"
-                subtitle={<DayTaxonomyHeaderSummary dayName="Lower" summary={{ strength: 2, cardio: 1, unknown: 0 }} isRest={false} />}
+                subtitle={<DayTaxonomyHeaderSummary dayName={isRestFixture ? "Recovery" : isEmptyFixture ? "Travel Reset" : "Lower"} summary={viewDaySummary} isRest={isRestFixture} />}
                 action={<TopRightBackButton href="/routines" ariaLabel="Back to routines" historyBehavior="fallback-only" />}
               />
             </ScreenScaffold>
@@ -729,12 +772,23 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
         <ContentRail>
           <ScreenScaffold recipe="viewDay" className="w-full">
             <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
-              <RoutineDayExerciseList
-                exercises={[
-                  { id: "view-1", name: "Back Squat", goalLine: "4 sets x 5 reps @ 225 lb", exerciseId: MOCK_EXERCISE_IDS.squat, image_icon_path: "/missing/icon-squat.png", image_howto_path: "/missing/howto-squat.png", slug: "back-squat" },
-                  { id: "view-2", name: "Walking Lunge", goalLine: "3 sets x 12 steps @ 35 lb", exerciseId: MOCK_EXERCISE_IDS.lunge, image_icon_path: "/missing/icon-lunge.png", image_howto_path: null, slug: "walking-lunge" },
-                ]}
-              />
+              {isRestFixture ? (
+                <DayDetailStateCard
+                  tone="rest"
+                  title="Rest day"
+                  body="Use this day for recovery, mobility, or an easy walk."
+                />
+              ) : isEmptyFixture ? (
+                <DayDetailStateCard
+                  tone="neutral"
+                  title="No exercises planned"
+                  body="Add exercises to this day to start a workout."
+                />
+              ) : (
+                <RoutineDayExerciseList
+                  exercises={[...mockViewDayExercises]}
+                />
+              )}
             </SharedSectionShell>
           </ScreenScaffold>
         </ContentRail>
@@ -751,7 +805,14 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderEditDayScenario(scenario: MobileFixtureScenario) {
-  const fixture = scenario.fixture as "default" | "reorder" | "rest" | "edit-exercise" | "add-exercise";
+  const fixture = scenario.fixture as "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise";
+  const editDayExercises = fixture === "empty"
+    ? []
+    : [
+      { id: "edit-1", name: "Back Squat", summary: "4 sets x 5 reps @ 225 lb", iconSrc: "/missing/icon-squat.png", orderNumber: 1 },
+      { id: "edit-2", name: "Romanian Deadlift", summary: "3 sets x 8 reps @ 185 lb", iconSrc: "/missing/icon-row.png", orderNumber: 2 },
+      { id: "edit-3", name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof", summary: "3 sets x 12 steps @ 35 lb", iconSrc: "/missing/icon-lunge.png", orderNumber: 3 },
+    ];
   return (
     <AppShell topNavMode="none" className="h-[100dvh]">
       <RegressionMarker scenario={scenario} />
@@ -762,7 +823,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
               <SharedScreenHeader
                 recipe="editDay"
                 title="Lower"
-                subtitle={<DayTaxonomyHeaderSummary dayName="Lower" summary={{ strength: 2, cardio: 1, unknown: 0 }} isRest={fixture === "rest"} />}
+                subtitle={<DayTaxonomyHeaderSummary dayName={fixture === "rest" ? "Recovery" : fixture === "empty" ? "Travel Reset" : "Lower"} summary={fixture === "rest" ? getRestDayExerciseCountSummaryFromInputs([], true) : fixture === "empty" ? getRestDayExerciseCountSummaryFromInputs([], false) : { strength: 2, cardio: 1, unknown: 0 }} isRest={fixture === "rest"} />}
                 action={<TopRightBackButton href="/routines" ariaLabel="Back to day" historyBehavior="fallback-only" />}
               >
                 {fixture === "reorder" ? (
@@ -779,11 +840,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
           <ScreenScaffold recipe="editDay" className="w-full">
             <EditDayRegressionSurface
               fixture={fixture}
-              exercises={[
-                { id: "edit-1", name: "Back Squat", summary: "4 sets x 5 reps @ 225 lb", iconSrc: "/missing/icon-squat.png", orderNumber: 1 },
-                { id: "edit-2", name: "Romanian Deadlift", summary: "3 sets x 8 reps @ 185 lb", iconSrc: "/missing/icon-row.png", orderNumber: 2 },
-                { id: "edit-3", name: "Walking Lunge", summary: "3 sets x 12 steps @ 35 lb", iconSrc: "/missing/icon-lunge.png", orderNumber: 3 },
-              ]}
+              exercises={editDayExercises}
             />
           </ScreenScaffold>
         </ContentRail>
@@ -1006,33 +1063,33 @@ function renderExerciseDetailScenario(scenario: MobileFixtureScenario) {
     <RegressionExerciseInfoSheet
       scenarioId={scenario.id}
         exercise={{
-          id: MOCK_EXERCISE_IDS.squat,
-          name: "Back Squat",
-          primary_muscle: "Quads",
-          equipment: "Barbell",
-          movement_pattern: "Squat",
-          image_howto_path: "/missing/howto-squat.png",
-          image_icon_path: "/missing/icon-squat.png",
-          slug: "back-squat",
-          how_to_short: "Set the brace before the descent, keep pressure through the mid-foot, and finish by driving the shoulders into the bar.",
+          id: MOCK_EXERCISE_IDS.lunge,
+          name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
+          primary_muscle: "Glutes",
+          equipment: "Dumbbell",
+          movement_pattern: "Lunge",
+          image_howto_path: null,
+          image_icon_path: "/missing/icon-lunge.png",
+          slug: "walking-lunge",
+          how_to_short: "Stay tall, keep the front foot planted, and let the back knee sink straight down before driving through the floor.",
         }}
         stats={{
           kind: "strength",
           recent: {
             lastPerformedAt: "2026-04-09T13:00:00.000Z",
-            lastSummary: "225 lb x 5",
+            lastSummary: "35 lb x 12 steps",
           },
           totals: {
-            sessions: 18,
-            sets: 74,
-            reps: 356,
+            sessions: 14,
+            sets: 42,
+            reps: 168,
           },
           bests: {
-            bestWeight: 315,
-            bestRepsAtBestWeight: 2,
-            bestSetSummary: "315 lb x 2",
+            bestWeight: 50,
+            bestRepsAtBestWeight: 16,
+            bestSetSummary: "50 lb x 16 steps",
           },
-          prLabel: "2 PRs",
+          prLabel: "1 PR",
         }}
       />
   );
