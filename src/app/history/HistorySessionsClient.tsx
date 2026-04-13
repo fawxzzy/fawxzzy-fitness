@@ -8,8 +8,10 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { MetricStrip, type MetricDatum } from "@/components/ui/MetricItem";
+import { WorkoutCardChipRow } from "@/components/workout/WorkoutCardChipRow";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
+import { buildHistorySessionCardViewModel } from "@/lib/workout-card-view-models";
 
 function formatSummaryLine(session: SessionSummary) {
   const duration = session.durationSec ? formatDurationShort(session.durationSec) : "0m";
@@ -21,68 +23,18 @@ function formatSubtitle(session: SessionSummary) {
   return session.dayTitle ? `${session.dayTitle} | ${dateLabel}` : dateLabel;
 }
 
-function formatVolume(value: number) {
-  return `${Math.round(value).toLocaleString()} load`;
-}
-
-function formatCompletionRate(value?: number) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return `${Math.round(value * 100)}%`;
-}
-
-function buildDetailedMetrics(session: SessionSummary): MetricDatum[] {
-  const metrics: MetricDatum[] = [];
-
-  if (session.bestLift) {
-    metrics.push({
-      label: "Best Lift",
-      value: `${session.bestLift.exerciseName} | ${session.bestLift.display}`,
-    });
-  }
-
-  if (session.totalVolume > 0) {
-    metrics.push({
-      label: "Volume",
-      value: formatVolume(session.totalVolume),
-    });
-  }
-
-  const completionRate = formatCompletionRate(session.completionRate);
-  if (completionRate) {
-    metrics.push({
-      label: "Completion",
-      value: completionRate,
-      timeframe: `${session.exerciseCount} exercises`,
-    });
-  }
-
-  if (session.prCounts.total > 0) {
-    metrics.push({
-      label: "PRs",
-      value: `${session.prCounts.total}`,
-      timeframe: session.prLabel,
-    });
-  }
-
-  return metrics;
-}
-
 function HistorySessionCard({
   session,
+  previousSession,
   selected,
   viewMode,
 }: {
   session: SessionSummary;
+  previousSession?: SessionSummary | null;
   selected: boolean;
   viewMode: "compact" | "detailed";
 }) {
-  const tone = session.prCounts.total > 0 ? "pr" : "completed";
-  const detailCopy = viewMode === "detailed"
-    ? [
-        !session.hasSetData ? "No set data recorded." : null,
-        session.hasNote ? "Session note saved." : null,
-      ].filter(Boolean).join(" | ") || undefined
-    : undefined;
+  const viewModel = buildHistorySessionCardViewModel(session, previousSession);
 
   return (
     <Link
@@ -93,13 +45,18 @@ function HistorySessionCard({
       <SessionSummaryCard
         title={session.routineTitle || "Unknown routine"}
         subtitle={formatSubtitle(session)}
-        summary={formatSummaryLine(session)}
-        detail={detailCopy}
+        summary={viewModel.outcome}
+        detail={viewMode === "detailed" ? (viewModel.progress ?? formatSummaryLine(session)) : undefined}
         badgeText={session.prCounts.total > 0 ? `${session.prCounts.total} PR` : undefined}
-        tone={tone}
+        tone={viewModel.tone}
+        density={viewMode}
         className={selected ? "ring-1 ring-[rgb(var(--accent)/0.2)]" : undefined}
       >
-        {viewMode === "detailed" ? <MetricStrip items={buildDetailedMetrics(session)} /> : null}
+        {viewMode === "detailed" ? (
+          <MetricStrip items={viewModel.detailedMetrics as MetricDatum[]} />
+        ) : (
+          <WorkoutCardChipRow chips={viewModel.compactChips} />
+        )}
       </SessionSummaryCard>
     </Link>
   );
@@ -108,20 +65,27 @@ function HistorySessionCard({
 export function HistorySessionsClient({
   sessions,
   selectedSessionId,
+  initialViewMode = "compact",
 }: {
   sessions: SessionSummary[];
   selectedSessionId?: string;
+  initialViewMode?: "compact" | "detailed";
 }) {
-  const [viewMode, setViewMode] = useState<"compact" | "detailed">("compact");
+  const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
   const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {sessions.length > 0 ? (
-        <ul className="space-y-1.5">
-          {sessions.map((session) => (
+          <ul className="space-y-1.5">
+          {sessions.map((session, index) => (
             <li key={session.id}>
-              <HistorySessionCard session={session} selected={session.id === selectedSessionId} viewMode={viewMode} />
+              <HistorySessionCard
+                session={session}
+                previousSession={sessions[index + 1] ?? null}
+                selected={session.id === selectedSessionId}
+                viewMode={viewMode}
+              />
             </li>
           ))}
         </ul>

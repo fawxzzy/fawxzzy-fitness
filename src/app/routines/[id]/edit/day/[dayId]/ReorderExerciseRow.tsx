@@ -1,11 +1,22 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { cn } from "@/lib/cn";
+import { buildExerciseIdentityChips } from "@/lib/workout-card-view-models";
 
 type Props = {
   exerciseId: string;
   exerciseName: string;
   metadata: string;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | null;
+  primary_muscle?: string | null;
+  equipment?: string | null;
+  movement_pattern?: string | null;
+  isCardio?: boolean | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
   slug?: string | null;
   image_path?: string | null;
   image_icon_path?: string | null;
@@ -22,6 +33,15 @@ export function ReorderExerciseRow({
   exerciseId,
   exerciseName,
   metadata,
+  measurementType,
+  primary_muscle,
+  equipment,
+  movement_pattern,
+  isCardio,
+  kind,
+  type,
+  tags,
+  categories,
   slug,
   image_path,
   image_icon_path,
@@ -38,6 +58,7 @@ export function ReorderExerciseRow({
       <StandardExerciseRow
         exercise={{ name: exerciseName, slug, image_path, image_icon_path, image_howto_path }}
         summary={metadata}
+        summaryLabel="Goal"
         variant="reorder"
         state={isDragging ? "selected" : "default"}
         badgeText={`ORDER ${orderNumber}`}
@@ -54,10 +75,24 @@ export function ReorderExerciseRow({
             onPointerUp={onHandlePointerUp}
             onPointerCancel={onHandlePointerCancel}
           >
-            <span aria-hidden="true" className="text-base leading-none tracking-[-0.08em]">⋮⋮</span>
+            <span aria-hidden="true" className="text-base leading-none tracking-[-0.08em]">::</span>
           </button>
         )}
-      />
+      >
+        <WorkoutExerciseCardDetails
+          chips={buildExerciseIdentityChips({
+            measurementType,
+            isCardio,
+            kind,
+            type,
+            equipment,
+            movementPattern: movement_pattern,
+            primaryMuscle: primary_muscle,
+            tags,
+            categories,
+          })}
+        />
+      </StandardExerciseRow>
     </div>
   );
 }

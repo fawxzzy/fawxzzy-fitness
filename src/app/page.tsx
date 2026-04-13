@@ -9,5 +9,5 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return <InstallEntryGate continueHref={user ? "/today" : "/login"} />;
+  return <InstallEntryGate continueHref={user ? "/entry" : "/login"} />;
 }

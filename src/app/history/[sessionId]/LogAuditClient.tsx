@@ -25,6 +25,7 @@ import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
+import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { HistoryDetailHeader, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -34,6 +35,7 @@ import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { formatMeasurementSummaryText } from "@/lib/measurement-display";
+import { buildExerciseIdentityChips } from "@/lib/workout-card-view-models";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -440,6 +442,7 @@ export function LogAuditClient({
         detail={sessionSummary.prCounts.total > 0 ? sessionSummary.prLabel : undefined}
         badgeText={sessionSummary.prCounts.total > 0 ? `${sessionSummary.prCounts.total} PR` : undefined}
         tone={sessionSummary.prCounts.total > 0 ? "pr" : "completed"}
+        density="detailed"
         rightIcon={null}
       />
 
@@ -497,7 +500,8 @@ export function LogAuditClient({
                   image_icon_path: exercise.exercise_image_icon_path ?? null,
                   image_howto_path: exercise.exercise_image_howto_path ?? null,
                 }}
-                subtitle={subtitleParts.join(" • ")}
+                summary={subtitleParts.join(" | ")}
+                summaryLabel="Latest"
                 onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
                 rightIcon={isExpanded
                   ? <ChevronDownIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
@@ -515,7 +519,11 @@ export function LogAuditClient({
                   />
                 )}
                 className="w-full shadow-none"
-              />
+              >
+                <WorkoutExerciseCardDetails
+                  chips={buildExerciseIdentityChips({ measurementType: exercise.measurement_type })}
+                />
+              </StandardExerciseRow>
 
               {isExpanded ? (
                 <div className="space-y-2.5 px-1.5 pb-1 pt-2">

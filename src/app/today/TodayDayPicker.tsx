@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { ContentRail } from "@/components/layout/ContentRail";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import {
   DayCard,
   DayList,
@@ -27,6 +27,7 @@ import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeade
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
+import { buildExerciseIdentityChips, buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import {
   deriveTodayScreenMode,
   getTodayDaySummary,
@@ -39,6 +40,8 @@ type TodayExercise = {
   exerciseId: string;
   name: string;
   targets: string | null;
+  targetSetsMin?: number | null;
+  targetSetsMax?: number | null;
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
@@ -74,6 +77,7 @@ export function TodayDayPicker({
   loggedSetCountsByDayIndex,
   routineName,
   floatingHeaderSlotId,
+  exerciseDensity = "compact",
 }: {
   days: TodayDay[];
   currentDayIndex: number;
@@ -83,6 +87,7 @@ export function TodayDayPicker({
   loggedSetCountsByDayIndex?: Record<number, number>;
   routineName: string;
   floatingHeaderSlotId?: string;
+  exerciseDensity?: "compact" | "detailed";
 }) {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(currentDayIndex);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -277,70 +282,102 @@ export function TodayDayPicker({
       {headerNode && floatingHeaderTarget ? createPortal(headerNode, floatingHeaderTarget) : null}
       <div className="flex min-h-0 flex-col">
         {!mode.noRoutine && selectedDay ? (
-          <ContentRail>
-            <ScreenScaffold recipe="todayOverview" className="w-full">
-              {mode.contentShellVisible ? (
-                <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
-                  {mode.dayPickerOpen ? (
-                    <DayList>
-                      {days.map((day) => {
-                        const isSelected = selectedDayIndex === day.dayIndex;
-                        return (
-                          <DayCard
-                            key={day.id}
-                            title={`Day ${day.dayIndex} | ${day.name}`}
-                            subtitle={resolveDayCardSubtitle(day)}
-                            onPress={() => {
-                              setSelectedDayIndex(day.dayIndex);
-                              setIsPickerOpen(false);
-                            }}
-                            state={resolveDayCardState({
-                              isSelected,
-                              isToday: day.dayIndex === currentDayIndex,
-                              isRest: day.isRest,
-                              isCompleted: completedDayIndexSet.has(day.dayIndex),
-                              isInSession: inSessionDayIndex === day.dayIndex,
-                            })}
-                            badgeText={resolveDayCardBadgeText({
-                              isToday: day.dayIndex === currentDayIndex,
-                              isRest: day.isRest,
-                              isCompleted: completedDayIndexSet.has(day.dayIndex),
-                              isInSession: inSessionDayIndex === day.dayIndex,
-                            })}
-                            metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
-                            rightIcon={null}
-                          />
-                        );
-                      })}
-                    </DayList>
-                  ) : null}
+          <ScreenScaffold recipe="todayOverview" className="w-full">
+            {mode.contentShellVisible ? (
+              <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+                {mode.dayPickerOpen ? (
+                  <DayList>
+                    {days.map((day) => {
+                      const isSelected = selectedDayIndex === day.dayIndex;
+                      return (
+                        <DayCard
+                          key={day.id}
+                          title={`Day ${day.dayIndex} | ${day.name}`}
+                          subtitle={resolveDayCardSubtitle(day)}
+                          onPress={() => {
+                            setSelectedDayIndex(day.dayIndex);
+                            setIsPickerOpen(false);
+                          }}
+                          state={resolveDayCardState({
+                            isSelected,
+                            isToday: day.dayIndex === currentDayIndex,
+                            isRest: day.isRest,
+                            isCompleted: completedDayIndexSet.has(day.dayIndex),
+                            isInSession: inSessionDayIndex === day.dayIndex,
+                          })}
+                          badgeText={resolveDayCardBadgeText({
+                            isToday: day.dayIndex === currentDayIndex,
+                            isRest: day.isRest,
+                            isCompleted: completedDayIndexSet.has(day.dayIndex),
+                            isInSession: inSessionDayIndex === day.dayIndex,
+                          })}
+                          metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
+                          rightIcon={null}
+                        />
+                      );
+                    })}
+                  </DayList>
+                ) : null}
 
-                  {selectedDaySummaryNode}
+                {selectedDaySummaryNode}
 
-                  {mode.dayRowsVisible && hasSelectedDayRows ? (
-                    <ul className="space-y-1.5">
-                      {selectedDay.exercises.map((exercise) => (
+                {mode.dayRowsVisible && hasSelectedDayRows ? (
+                  <ul className="space-y-1.5">
+                    {selectedDay.exercises.map((exercise) => {
+                      const identityChips = buildExerciseIdentityChips({
+                        measurementType: exercise.measurement_type,
+                        isCardio: exercise.isCardio,
+                        kind: exercise.kind,
+                        type: exercise.type,
+                        equipment: exercise.equipment,
+                        movementPattern: exercise.movement_pattern,
+                        primaryMuscle: exercise.primary_muscle,
+                        tags: exercise.tags,
+                        categories: exercise.categories,
+                      });
+                      const detailedMetrics = buildPlannedExerciseDetailMetrics({
+                        measurementType: exercise.measurement_type,
+                        isCardio: exercise.isCardio,
+                        kind: exercise.kind,
+                        type: exercise.type,
+                        equipment: exercise.equipment,
+                        movementPattern: exercise.movement_pattern,
+                        primaryMuscle: exercise.primary_muscle,
+                        tags: exercise.tags,
+                        categories: exercise.categories,
+                        targetSetsMin: exercise.targetSetsMin,
+                        targetSetsMax: exercise.targetSetsMax,
+                      });
+
+                      return (
                         <li key={exercise.id}>
                           <StandardExerciseRow
                             exercise={exercise}
                             variant="interactive"
-                            density="compact"
+                            density={exerciseDensity}
                             summary={exercise.targets}
+                            summaryLabel="Goal"
                             onPress={() => {
                               if (process.env.NODE_ENV === "development") {
                                 console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });
                               }
                               setSelectedExerciseId(exercise.exerciseId);
                             }}
-                          />
+                          >
+                            <WorkoutExerciseCardDetails
+                              density={exerciseDensity}
+                              chips={identityChips}
+                              detailedMetrics={detailedMetrics}
+                            />
+                          </StandardExerciseRow>
                         </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </SharedSectionShell>
-              ) : null}
-            </ScreenScaffold>
-          </ContentRail>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </SharedSectionShell>
+            ) : null}
+          </ScreenScaffold>
         ) : null}
 
         <ExerciseInfo

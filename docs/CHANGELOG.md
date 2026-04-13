@@ -5377,3 +5377,15 @@ WHY:
 - Locking the batch-wrapper launch rule in tests keeps the fix local to the bridge layer and avoids papering over the problem in repo scripts or the upstream Playbook package.
 * Exercise Info scroll ownership regressions are easiest to miss once content gets long, so the fixture should explicitly exercise the bottom-reach state rather than only the top of the sheet.
 * Card-surface drift often re-enters through wrapper reintroduction, so keeping a one-viewport parity capture makes wrapper-level regressions easier to spot before they ship.
+## [v0.4.41] - UI/Auth: warm-up login entry flow
+
+### WHAT
+
+* Rebuilt `/login` into a branded warm-up card with a live progress ring, state-aware helper copy, remembered-user treatment, and CTA states that move from `Start` to `Enter Gym` before submit lock.
+* Reworked the shared auth shell background into a quieter training-space surface with faint grid structure, soft line accents, and deeper static atmosphere.
+* Added brief submit handoff feedback on the login card and CTA while keeping reduced-motion-safe transitions and the same underlying email/password flow.
+
+### WHY
+
+* The prior login still read like a generic SaaS form instead of a Fawxzzy Fitness entry point.
+* Lightweight readiness feedback and remembered-user context make auth feel faster and more specific to the product without adding extra steps or gimmicks.

@@ -94,7 +94,13 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       orderNumber: exercise.position,
       name,
       measurementType,
+      primary_muscle: matchingExercise?.primary_muscle ?? null,
       equipment: matchingExercise?.equipment ?? null,
+      movement_pattern: matchingExercise?.movement_pattern ?? null,
+      kind: null,
+      type: null,
+      tags: null,
+      categories: null,
       targetSummary: formatGoalInlineSummaryText({
         sets: exercise.target_sets,
         reps: exercise.target_reps_min ?? exercise.target_reps,

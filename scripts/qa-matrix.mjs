@@ -22,7 +22,10 @@ const manifestPath = path.join(outputRoot, "manifest.json");
 async function loadScenarios() {
   const moduleUrl = pathToFileURL(path.join(repoRoot, "src", "features", "mobile-regression", "fixtures.ts")).href;
   const fixtureModule = await import(moduleUrl);
-  return fixtureModule.mobileRegressionScenarios;
+  return {
+    scenarios: fixtureModule.mobileRegressionScenarios,
+    reviewFamilies: fixtureModule.mobileRegressionBoardFamilies,
+  };
 }
 
 function resolveScenarioSelection(allScenarios, args) {
@@ -85,12 +88,16 @@ async function assertScreenshotWritten(outPath) {
   }
 }
 
-function buildManifest({ scenarios }) {
+function buildManifest({ scenarios, reviewFamilies }) {
   return {
     generatedAt: new Date().toISOString(),
     baseUrl,
     viewportHeight,
     widths,
+    reviewFamilies: reviewFamilies.map((reviewFamily) => ({
+      family: reviewFamily.family,
+      boardFile: reviewFamily.boardFile,
+    })),
     scenarios: scenarios.map((scenario) => ({
       id: scenario.id,
       name: scenario.name,
@@ -108,7 +115,7 @@ function buildManifest({ scenarios }) {
 
 async function main() {
   const scenarioArgs = process.argv.slice(2);
-  const allScenarios = await loadScenarios();
+  const { scenarios: allScenarios, reviewFamilies } = await loadScenarios();
   const scenarios = resolveScenarioSelection(allScenarios, scenarioArgs);
 
   if (scenarios.length === 0) {
@@ -127,7 +134,7 @@ async function main() {
     }
   }
 
-  const manifest = buildManifest({ scenarios });
+  const manifest = buildManifest({ scenarios, reviewFamilies });
   await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   console.log(`Wrote mobile regression manifest: ${manifestPath}`);
 }

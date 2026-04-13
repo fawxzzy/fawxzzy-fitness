@@ -7,12 +7,33 @@ export type AuthModeCopy = {
   helper?: string;
 };
 
+export type PasswordLoginUiCopy = {
+  wordmark: string;
+  progressLabel: string;
+  helper: {
+    default: string;
+    emailValid: string;
+    ready: string;
+  };
+  cta: {
+    idle: string;
+    ready: string;
+    pending: string;
+  };
+  returningUserLabel: string;
+  switchPrompt: string;
+  switchAction: string;
+  forgotPassword: string;
+  createAccountPrefix: string;
+  createAccountAction: string;
+};
+
 export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
   "password-login": {
-    eyebrow: "Welcome back",
-    title: "Log in to your training app",
-    subtitle: "Use your email and password to get back to your routines and workouts.",
-    helper: "Use the Forgot password link below if you need a reset email.",
+    eyebrow: "Training space",
+    title: "Welcome back",
+    subtitle: "Pick up where you left off.",
+    helper: "Use Forgot password if you need a reset email.",
   },
   "magic-link": {
     eyebrow: "Check your inbox",
@@ -31,4 +52,25 @@ export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
     title: "Create your account",
     subtitle: "Create your login to start tracking routines, workouts, and progression.",
   },
+};
+
+export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
+  wordmark: "Fawxzzy Fitness",
+  progressLabel: "Warm-up",
+  helper: {
+    default: "Log in to continue your routine",
+    emailValid: "Good. Now unlock your session",
+    ready: "You're good to go",
+  },
+  cta: {
+    idle: "Start",
+    ready: "Enter Gym",
+    pending: "Entering Gym...",
+  },
+  returningUserLabel: "Returning athlete",
+  switchPrompt: "Not you?",
+  switchAction: "Switch account",
+  forgotPassword: "Forgot password?",
+  createAccountPrefix: "New here?",
+  createAccountAction: "Create account",
 };

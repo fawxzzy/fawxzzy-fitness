@@ -28,6 +28,7 @@ export type ExerciseInfoSheetExercise = {
 export type ExerciseInfoSheetStats = {
   exercise_id?: string;
   kind: "strength" | "cardio";
+  presentationKind?: "strength" | "bodyweight" | "cardio" | "timed";
   recent: {
     lastPerformedAt: string | null;
     lastSummary: string | null;
@@ -59,6 +60,7 @@ export type ExerciseInfoSheetStats = {
   prLabel: string;
   prCount: number;
   quickMetrics: MetricDatum[];
+  performanceMetrics?: MetricDatum[];
   progress: {
     metrics: MetricDatum[];
     performances: Array<{
@@ -77,39 +79,101 @@ function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
   ].filter((item): item is { label: string; value: string } => Boolean(item));
 }
 
-function ExerciseInfoProgressCard({ stats }: { stats: ExerciseInfoSheetStats }) {
-  const progressItems = stats.progress.metrics;
-  const performances = stats.progress.performances;
+function describeOverview(stats: ExerciseInfoSheetStats | null) {
+  switch (stats?.presentationKind ?? stats?.kind) {
+    case "bodyweight":
+      return "Rep PRs, recent totals, and repeatable bodyweight work.";
+    case "timed":
+      return "Best holds, recent work time, and repeatability.";
+    case "cardio":
+      return "Pace, distance, duration, and recent effort.";
+    default:
+      return "Top sets, estimated max, volume, and recent progression.";
+  }
+}
 
-  if (progressItems.length === 0 && performances.length === 0) {
-    return null;
+function ExerciseInfoLoadingMetrics() {
+  return (
+    <div className="space-y-2 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+      </div>
+    </div>
+  );
+}
+
+function ExerciseInfoLoadingRows() {
+  return (
+    <div className="space-y-2" aria-hidden="true">
+      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+    </div>
+  );
+}
+
+function ExerciseInfoOverviewMedia({
+  exercise,
+  howToImageSrc,
+}: {
+  exercise: ExerciseInfoSheetExercise;
+  howToImageSrc: string;
+}) {
+  return (
+    <div className="space-y-3 rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] p-3">
+      {exercise.how_to_short ? (
+        <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)] [text-wrap:pretty]">
+          {exercise.how_to_short}
+        </p>
+      ) : (
+        <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.86)]">
+          Log a few sessions to unlock more specific cues and trends for this exercise.
+        </p>
+      )}
+      <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.52)] p-3">
+        <ExerciseAssetImage
+          src={howToImageSrc}
+          alt={`${exercise.name} demonstration`}
+          className="h-full w-full"
+          imageClassName="object-contain object-center"
+          sizes="(max-width: 768px) 100vw, 520px"
+          priority
+        />
+      </div>
+    </div>
+  );
+}
+
+function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
+  if (stats.progress.performances.length === 0) {
+    return <p className="text-sm text-[rgb(var(--text-secondary)/0.84)]">No recent performances logged yet.</p>;
   }
 
   return (
-    <div className="space-y-2 rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] p-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.9)]">Progress</p>
-        <p className="text-[11px] text-[rgb(var(--text-secondary)/0.72)]">
-          Last {Math.min(performances.length, 3)} {Math.min(performances.length, 3) === 1 ? "performance" : "performances"}
-        </p>
-      </div>
-      {progressItems.length > 0 ? <MetricStrip items={progressItems} /> : null}
-      {performances.length > 0 ? (
-        <div className="space-y-2">
-          {performances.map((entry) => (
-            <div
-              key={`${entry.label}-${entry.value}`}
-              className="rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.52)] px-3 py-2.5"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.88)]">{entry.label}</p>
-                {entry.context ? <p className="text-[11px] text-[rgb(var(--text-secondary)/0.72)]">{entry.context}</p> : null}
-              </div>
-              <p className="mt-1 text-sm leading-[1.4] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]">{entry.value}</p>
-            </div>
-          ))}
+    <div className="space-y-2">
+      {stats.progress.performances.map((entry) => (
+        <div
+          key={`${entry.label}-${entry.value}`}
+          className="min-w-0 rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.52)] px-3 py-2.5"
+        >
+          <div className="flex min-w-0 flex-wrap items-start gap-2">
+            <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.88)]">
+              {entry.label}
+            </p>
+            {entry.context ? (
+              <p className="min-w-0 max-w-full text-[11px] leading-[1.35] text-[rgb(var(--text-secondary)/0.72)] [text-wrap:pretty]">
+                {entry.context}
+              </p>
+            ) : null}
+          </div>
+          <p className="mt-1 min-w-0 text-sm leading-[1.4] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]">
+            {entry.value}
+          </p>
         </div>
-      ) : null}
+      ))}
     </div>
   );
 }
@@ -204,6 +268,9 @@ export function ExerciseInfoSheet({
 
   if (!open || !exercise || (!inline && !portalTarget)) return null;
   const resolvedPortalTarget = portalTarget;
+  const performanceMetrics = stats?.performanceMetrics ?? [];
+  const progressMetrics = stats?.progress.metrics ?? [];
+  const historyCount = stats?.progress.performances.length ?? 0;
 
   const sheetBody = (
     <main className="app-page-scroll min-h-[100dvh]">
@@ -213,46 +280,65 @@ export function ExerciseInfoSheet({
         <Glass variant="base" className="overflow-hidden rounded-[34px]">
           <div className="px-4 pb-6 pt-4">
             <div className="space-y-3">
-              <DetailSection title="How to">
-                {exercise.how_to_short ? <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)]">{exercise.how_to_short}</p> : null}
-                <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.48)] p-3">
-                  <ExerciseAssetImage
-                    src={howToImageSrc}
-                    alt={`${exercise.name} demonstration`}
-                    className="h-full w-full"
-                    imageClassName="object-contain object-center"
-                    sizes="(max-width: 768px) 100vw, 520px"
-                    priority
-                  />
-                </div>
-              </DetailSection>
-
-              <DetailSection title="Stats">
+              <DetailSection title="Overview" description={describeOverview(stats)}>
                 <div
                   id={statsPanelId}
                   data-testid="exercise-info-stats-box"
                   className="min-h-[140px] space-y-3 text-xs text-muted"
                 >
-                  {statsLoading ? (
-                    <div className="space-y-2 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-                        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-                        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-                        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-                      </div>
-                      <div className="h-28 animate-pulse rounded-[1.15rem] bg-surface-2-soft" />
-                    </div>
-                  ) : stats ? (
-                    <>
-                      <MetricGrid items={stats.quickMetrics} className="gap-2.5" />
-                      <ExerciseInfoProgressCard stats={stats} />
-                    </>
-                  ) : (
-                    <p className="text-muted">No stats yet - log a set to generate stats.</p>
-                  )}
+                  {statsLoading ? <ExerciseInfoLoadingMetrics /> : null}
+                  {!statsLoading && stats ? <MetricGrid items={stats.quickMetrics} className="gap-2.5" /> : null}
+                  {!statsLoading && !stats ? (
+                    <p className="text-sm text-[rgb(var(--text-secondary)/0.84)]">
+                      No stats yet. Log a set to generate performance history for this exercise.
+                    </p>
+                  ) : null}
+                  <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
                 </div>
               </DetailSection>
+
+              {statsLoading || stats ? (
+                <DetailSection
+                  title="Performance"
+                  description="Key metrics for this exercise type."
+                >
+                  {statsLoading ? (
+                    <ExerciseInfoLoadingMetrics />
+                  ) : performanceMetrics.length > 0 ? (
+                    <MetricGrid items={performanceMetrics} className="gap-2.5" compact />
+                  ) : (
+                    <p className="text-sm text-[rgb(var(--text-secondary)/0.84)]">
+                      No performance metrics available yet.
+                    </p>
+                  )}
+                </DetailSection>
+              ) : null}
+
+              {statsLoading || stats ? (
+                <DetailSection
+                  title="Progress"
+                  description="Recent comparisons and training frequency."
+                >
+                  {statsLoading ? (
+                    <ExerciseInfoLoadingMetrics />
+                  ) : progressMetrics.length > 0 ? (
+                    <MetricStrip items={progressMetrics} />
+                  ) : (
+                    <p className="text-sm text-[rgb(var(--text-secondary)/0.84)]">
+                      No progress comparisons available yet.
+                    </p>
+                  )}
+                </DetailSection>
+              ) : null}
+
+              {statsLoading || stats ? (
+                <DetailSection
+                  title="Recent History"
+                  description={historyCount > 0 ? `Last ${Math.min(historyCount, 3)} logged performances.` : "Most recent logged performances."}
+                >
+                  {statsLoading ? <ExerciseInfoLoadingRows /> : stats ? <ExerciseInfoRecentHistoryList stats={stats} /> : null}
+                </DetailSection>
+              ) : null}
             </div>
           </div>
         </Glass>

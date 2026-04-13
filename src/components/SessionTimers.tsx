@@ -801,7 +801,7 @@ export function SetLoggerCard({
   }
 
   return (
-    <div className="flex min-h-0 flex-col space-y-2.5">
+    <div className="flex min-h-0 flex-col space-y-2.5" data-testid="set-logger-card">
       {/* Manual QA checklist:
           - Add/exercise metric hints are visible inside input boxes
           - No Set Timer UI remains; duration logging still works via mm:ss
@@ -844,11 +844,14 @@ export function SetLoggerCard({
           showInnerHeader={false}
           visibleMetrics={(Object.entries(visibleMetrics) as Array<[keyof typeof visibleMetrics, boolean]>).filter(([, enabled]) => enabled).map(([metric]) => metric)}
           leadingContent={(
-            <div className="rounded-xl border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-rgb)/0.38)] px-2.5 py-1.5">
+            <div
+              className="rounded-[1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-rgb)/0.4)] px-3 py-2.5"
+              data-testid="set-logger-current-summary"
+            >
               <div className="flex flex-col gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">This set logs</p>
-                  <p className="mt-0.5 text-[13px] leading-snug text-text/90 line-clamp-2">{currentSetLabel} • {liveSummaryText}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Current set</p>
+                  <p className="mt-1 text-[13px] leading-snug text-text/90 line-clamp-2">{currentSetLabel} • {liveSummaryText}</p>
                 </div>
               </div>
             </div>
@@ -869,11 +872,12 @@ export function SetLoggerCard({
               Warm-Up
             </AppButton>
           )}
+          belowRpeField={{ title: "SET TYPE", suffix: "toggle", width: "compact" }}
           rpe={rpe}
           onRpeChange={setRpe}
           footerContent={(
             <div className="space-y-2.5">
-              <div className="rounded-lg bg-[rgb(var(--surface-rgb)/0.42)] px-2.5 py-2">
+              <div className="rounded-[1rem] bg-[rgb(var(--surface-rgb)/0.42)] px-2.5 py-2" data-testid="set-logger-set-list">
                 <div className="mb-2 flex items-center justify-between gap-2 px-1">
                   <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Sets</span>
                   <span className="text-[11px] text-muted">{sets.length} logged</span>

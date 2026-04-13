@@ -87,9 +87,12 @@ export function detailedModeClearlyRicher(scenario: MobileFixtureScenario) {
 
 export function exerciseInfoAnalyticsLayoutReady(scenario: MobileFixtureScenario) {
   if (!scenario.exerciseInfoLayout) return true;
+  const expectedSectionOrder = ["Overview", "Performance", "Progress", "Recent History"].join("|");
   return scenario.exerciseInfoLayout.mediaFullyVisible
     && scenario.exerciseInfoLayout.quickMetricCount >= 4
     && scenario.exerciseInfoLayout.hasProgressBlock
+    && scenario.exerciseInfoLayout.hasRecentHistoryBlock
+    && scenario.exerciseInfoLayout.sectionOrder.join("|") === expectedSectionOrder
     && scenario.exerciseInfoLayout.topSafePaddingRelaxed;
 }
 

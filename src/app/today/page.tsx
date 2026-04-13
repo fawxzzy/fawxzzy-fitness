@@ -462,6 +462,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                       exerciseId: exercise.details?.id ?? exercise.exercise_id,
                       name: exercise.displayName,
                       targets: exercise.goalLine,
+                      targetSetsMin: exercise.target_sets ?? null,
+                      targetSetsMax: exercise.target_sets ?? null,
                       primary_muscle: exercise.details?.primary_muscle ?? null,
                       equipment: exercise.details?.equipment ?? null,
                       movement_pattern: exercise.details?.movement_pattern ?? null,

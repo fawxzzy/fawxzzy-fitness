@@ -1,27 +1,17 @@
-# Mobile Regression Fixture Inventory
+# Mobile Regression Tests
 
-Deterministic fixture scenarios that backfill the pre-fix screenshot set:
+This directory is the consolidated mobile-regression verification surface.
 
-- `today-default`
-- `today-in-session-summary`
-- `active-workout-session`
-- `routines-current-view`
-- `routines-list-view`
-- `view-day`
-- `edit-day-default`
-- `edit-day-reorder`
-- `edit-day-rest`
-- `edit-day-edit-exercise`
-- `edit-day-add-exercise`
-- `create-routine`
-- `edit-routine`
-- `add-exercise-default`
+Canonical ownership stays with the implementation modules:
 
-Contracts asserted by visual-regression tests:
+- Scenario inventory: `src/features/mobile-regression/fixtures.ts`
+- Contract validation: `src/features/mobile-regression/contracts.ts`
+- Board-generation wrapper: `scripts/build-mobile-regression-boards.py`
 
-- safe-area correctness
-- dock overlap prevention
-- card state correctness
-- reorder text stability
-- goal form readability
-- mobile chrome/day-editing invariants (rest filler removal, pinned headers, manual reorder clamping, routine dock parity, single history header)
+The tests here verify that the fixture inventory stays deterministic, the contract set stays enforced, and the review-board wrapper continues to emit the stable board outputs behind `npm run qa:boards`.
+
+Run the repo-owned mobile-regression suite with:
+
+```bash
+npm run test:mobile-regression-fixtures
+```

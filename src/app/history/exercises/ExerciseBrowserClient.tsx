@@ -11,8 +11,9 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
-import { MetricStrip, type MetricDatum } from "@/components/ui/MetricItem";
+import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
+import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
 
 type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
@@ -61,31 +62,6 @@ function formatTagLabel(tag: string) {
     .join(" ");
 }
 
-function buildDetailedMetrics(row: ExerciseBrowserRow): MetricDatum[] {
-  const metrics: MetricDatum[] = [];
-
-  if (row.bestSummary) {
-    metrics.push({
-      label: "Best Set",
-      value: row.bestSummary.replace(/^Best \| /, ""),
-    });
-  }
-
-  metrics.push({
-    label: "PR Count",
-    value: `${row.prCount}`,
-  });
-
-  if (row.sessionCount > 0) {
-    metrics.push({
-      label: "Sessions",
-      value: `${row.sessionCount}`,
-    });
-  }
-
-  return metrics;
-}
-
 const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   row,
   onOpen,
@@ -97,15 +73,16 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
 }) {
   const displayName = getExerciseDisplayName(row);
   const lastDate = formatShortDate(row.last_performed_at);
-  const hasSignal = Boolean(row.lastSummary || row.bestSummary || row.prLabel || row.last_performed_at);
-  const semanticTone = row.prCount > 0 ? "pr" : hasSignal ? "logged" : "neutral";
-  const primaryLine = [lastDate, row.lastSummary].filter(Boolean).join(" • ");
-  const fallbackLine = row.kind === "strength" ? "Strength history" : "Cardio history";
+  const viewModel = buildHistoryExerciseCardViewModel(row);
+  const primaryLine = row.lastSummary
+    ? `${lastDate ? `${lastDate} | ` : ""}${viewModel.summary}`
+    : viewModel.summary;
 
   return (
     <StandardExerciseRow
       exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
-      summary={primaryLine || fallbackLine}
+      summary={primaryLine}
+      summaryLabel={viewModel.summaryLabel}
       variant="interactive"
       density={viewMode}
       onPress={() => {
@@ -116,19 +93,27 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       }}
       rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
       state="default"
-      semanticTone={semanticTone}
+      semanticTone={viewModel.semanticTone}
       className="shadow-none"
     >
-      {viewMode === "detailed" ? <MetricStrip items={buildDetailedMetrics(row)} /> : null}
+      <WorkoutExerciseCardDetails
+        density={viewMode}
+        chips={viewModel.chips}
+        detailedMetrics={viewModel.detailedMetrics}
+      />
     </StandardExerciseRow>
   );
 });
 
-export function ExerciseBrowserClient({ rows = [], inlineHeaderControls = false }: ExerciseBrowserClientProps & { inlineHeaderControls?: boolean }) {
+export function ExerciseBrowserClient({
+  rows = [],
+  inlineHeaderControls = false,
+  initialViewMode = "detailed",
+}: ExerciseBrowserClientProps & { inlineHeaderControls?: boolean; initialViewMode?: "compact" | "detailed" }) {
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"compact" | "detailed">("detailed");
+  const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
   const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   const exerciseTagsById = useMemo(() => {

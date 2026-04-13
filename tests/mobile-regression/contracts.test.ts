@@ -96,20 +96,22 @@ test("shell, goal-row, detailed-mode, and Exercise Info analytics regressions ar
   assert.equal(dayContracts.sectionChromeOwnedByShell, false);
   assert.equal(dayContracts.goalRowBehaviorStable, false);
 
-  const historyBaseline = requireScenario("history-sessions-extreme");
+  const historyBaseline = requireScenario("history-sessions-detailed");
   const historyContracts = validateMobileScenarioContracts({
     ...historyBaseline,
     detailedMode: { extraMetricCount: 1, analyticsSlotsReady: false },
   });
   assert.equal(historyContracts.detailedModeClearlyRicher, false);
 
-  const exerciseInfoBaseline = requireScenario("exercise-detail-broken-images");
+  const exerciseInfoBaseline = requireScenario("exercise-detail-strength");
   const exerciseInfoContracts = validateMobileScenarioContracts({
     ...exerciseInfoBaseline,
     exerciseInfoLayout: {
       mediaFullyVisible: false,
       quickMetricCount: 3,
       hasProgressBlock: false,
+      hasRecentHistoryBlock: false,
+      sectionOrder: ["Overview", "Progress", "Performance", "Recent History"],
       topSafePaddingRelaxed: false,
     },
   });

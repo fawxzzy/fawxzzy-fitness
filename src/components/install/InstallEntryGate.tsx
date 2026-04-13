@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { AuthCard, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import { AuthCard, AuthIntro, AuthMessage, AuthShell, AuthStatusCard } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { useInstallContext } from "@/hooks/useInstallContext";
 
@@ -73,9 +73,11 @@ export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
   if (!isReady || isStandalone) {
     return (
       <AuthShell className="justify-center">
-        <section className="glass-surface glass-sheen rounded-[1.5rem] border border-white/10 px-5 py-5 text-center shadow-[0_20px_44px_rgba(0,0,0,0.28)]">
-          <p className="text-sm text-slate-300">Opening FawxzzyFitness...</p>
-        </section>
+        <AuthStatusCard
+          title="Opening FawxzzyFitness"
+          description="Checking the cleanest install-aware entry for this device."
+          testId="install-entry-loading"
+        />
       </AuthShell>
     );
   }
@@ -141,74 +143,79 @@ export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
 
   return (
     <AuthShell>
-      <AuthIntro
-        eyebrow={introCopy.eyebrow}
-        title={introCopy.title}
-        subtitle={introCopy.subtitle}
-      />
+      <div className="space-y-5" data-testid="install-entry-gate">
+        <AuthIntro
+          eyebrow={introCopy.eyebrow}
+          title={introCopy.title}
+          subtitle={introCopy.subtitle}
+        />
 
-      <AuthCard className="space-y-4">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-white">
-            {primaryAction?.kind === "continue-browser" ? "Browser entry stays available." : "Browser entry stays install-aware."}
-          </p>
-          <p className="text-sm leading-6 text-slate-300">
-            Installed launches skip this screen automatically, so the standalone workout flow stays unchanged once the app is on the device.
-          </p>
-        </div>
-
-        {primaryAction ? (
-          <PrimaryButton
-            type="button"
-            fullWidth
-            onClick={handlePrimaryAction}
-            disabled={primaryAction.kind === "install" && !nativePromptAvailable}
-          >
-            {primaryAction.label}
-          </PrimaryButton>
-        ) : null}
-
-        {manualInstallDetails ? (
-          <div className="space-y-3">
-            {showManualInstructions ? (
-              <div
-                ref={manualInstructionsRef}
-                tabIndex={-1}
-                className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 outline-none"
-              >
-                <p className="text-sm font-semibold text-white">{manualInstallDetails.platformLabel}</p>
-                <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-300">
-                  {manualInstallDetails.steps.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ol>
-                <p className="mt-3 text-xs leading-5 text-slate-400">{manualInstallDetails.helperText}</p>
-                <button
-                  type="button"
-                  className="mt-3 text-xs font-medium tracking-[0.08em] text-slate-300 underline-offset-4 hover:text-white hover:underline"
-                  onClick={() => setShowManualInstructions(false)}
-                >
-                  Hide steps
-                </button>
-              </div>
-            ) : null}
+        <AuthCard className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-white">
+              {primaryAction?.kind === "continue-browser" ? "Browser entry stays available." : "Browser entry stays install-aware."}
+            </p>
+            <p className="text-sm leading-6 text-slate-300">
+              Installed launches skip this screen automatically, so the standalone workout flow stays unchanged once the app is on the device.
+            </p>
           </div>
-        ) : null}
 
-        {statusMessage ? <AuthMessage>{statusMessage}</AuthMessage> : null}
-        {unsupportedBrowserMessage ? <AuthMessage>{unsupportedBrowserMessage}</AuthMessage> : null}
-
-        {showContinueLink ? (
-          <div className="border-t border-white/10 pt-3">
-            <Link
-              href={continueHref}
-              className="block text-center text-xs font-medium tracking-[0.08em] text-slate-300 underline-offset-4 hover:text-white hover:underline"
+          {primaryAction ? (
+            <PrimaryButton
+              type="button"
+              fullWidth
+              onClick={handlePrimaryAction}
+              disabled={primaryAction.kind === "install" && !nativePromptAvailable}
+              data-testid="install-entry-primary"
             >
-              Continue in browser
-            </Link>
-          </div>
-        ) : null}
-      </AuthCard>
+              {primaryAction.label}
+            </PrimaryButton>
+          ) : null}
+
+          {manualInstallDetails ? (
+            <div className="space-y-3">
+              {showManualInstructions ? (
+                <div
+                  ref={manualInstructionsRef}
+                  tabIndex={-1}
+                  data-testid="install-manual-steps"
+                  className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 outline-none"
+                >
+                  <p className="text-sm font-semibold text-white">{manualInstallDetails.platformLabel}</p>
+                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-300">
+                    {manualInstallDetails.steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                  <p className="mt-3 text-xs leading-5 text-slate-400">{manualInstallDetails.helperText}</p>
+                  <button
+                    type="button"
+                    className="mt-3 text-xs font-medium tracking-[0.08em] text-slate-300 underline-offset-4 hover:text-white hover:underline"
+                    onClick={() => setShowManualInstructions(false)}
+                  >
+                    Hide steps
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {statusMessage ? <AuthMessage>{statusMessage}</AuthMessage> : null}
+          {unsupportedBrowserMessage ? <AuthMessage>{unsupportedBrowserMessage}</AuthMessage> : null}
+
+          {showContinueLink ? (
+            <div className="border-t border-white/10 pt-3">
+              <Link
+                href={continueHref}
+                className="block text-center text-xs font-medium tracking-[0.08em] text-slate-300 underline-offset-4 hover:text-white hover:underline"
+                data-testid="install-entry-continue"
+              >
+                Continue in browser
+              </Link>
+            </div>
+          ) : null}
+        </AuthCard>
+      </div>
     </AuthShell>
   );
 }

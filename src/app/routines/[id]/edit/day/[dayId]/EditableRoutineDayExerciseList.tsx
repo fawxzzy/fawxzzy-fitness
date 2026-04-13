@@ -21,6 +21,7 @@ import { cn } from "@/lib/cn";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
+import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
@@ -31,7 +32,13 @@ type EditableRoutineDayExerciseItem = {
   orderNumber: number;
   name: string;
   measurementType: "reps" | "time" | "distance" | "time_distance";
+  primary_muscle?: string | null;
   equipment: string | null;
+  movement_pattern?: string | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
   targetSummary: string;
   isCardio: boolean;
   defaultDistanceUnit: "mi" | "km" | "m";
@@ -311,6 +318,33 @@ export function EditableRoutineDayExerciseList({
     }
   }, [expandedId]);
 
+  useEffect(() => {
+    if (!expandedId) {
+      return;
+    }
+
+    let frameA = 0;
+    let frameB = 0;
+
+    frameA = window.requestAnimationFrame(() => {
+      frameB = window.requestAnimationFrame(() => {
+        const scrollContainer = document.querySelector("[data-app-scroll-container='true']");
+        const activeRow = document.querySelector(`[data-testid='day-detail-toggle-${expandedId}']`)?.closest("li");
+
+        if (!(scrollContainer instanceof HTMLElement) || !(activeRow instanceof HTMLElement)) {
+          return;
+        }
+
+        scrollDockAwareIntoView(scrollContainer, activeRow);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameA);
+      window.cancelAnimationFrame(frameB);
+    };
+  }, [expandedId]);
+
   const handleToggleReorderMode = () => {
     if (isRestDay) return;
     setExpandedId(null);
@@ -540,6 +574,15 @@ export function EditableRoutineDayExerciseList({
                     exerciseId={exercise.id}
                     exerciseName={exercise.name}
                     metadata={exercise.targetSummary}
+                    measurementType={exercise.measurementType}
+                    primary_muscle={exercise.primary_muscle}
+                    equipment={exercise.equipment}
+                    movement_pattern={exercise.movement_pattern}
+                    isCardio={exercise.isCardio}
+                    kind={exercise.kind}
+                    type={exercise.type}
+                    tags={exercise.tags}
+                    categories={exercise.categories}
                     slug={exercise.slug}
                     image_path={exercise.image_path}
                     image_icon_path={exercise.image_icon_path}
@@ -563,6 +606,15 @@ export function EditableRoutineDayExerciseList({
               name: exercise.name,
               summary: exercise.targetSummary,
               orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
+              measurementType: exercise.measurementType,
+              primary_muscle: exercise.primary_muscle,
+              equipment: exercise.equipment,
+              movement_pattern: exercise.movement_pattern,
+              isCardio: exercise.isCardio,
+              kind: exercise.kind,
+              type: exercise.type,
+              tags: exercise.tags,
+              categories: exercise.categories,
               slug: exercise.slug,
               image_path: exercise.image_path,
               image_icon_path: exercise.image_icon_path,

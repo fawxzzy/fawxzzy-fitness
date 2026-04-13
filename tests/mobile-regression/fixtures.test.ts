@@ -9,6 +9,7 @@ import { validateMobileScenarioContracts } from "../../src/features/mobile-regre
 
 const expectedScenarioIds = [
   "today-default",
+  "today-detailed",
   "today-rest",
   "today-empty",
   "today-in-session-summary",
@@ -28,17 +29,22 @@ const expectedScenarioIds = [
   "create-routine",
   "edit-routine",
   "add-exercise-default",
-  "history-sessions-extreme",
+  "history-sessions-compact",
+  "history-sessions-detailed",
   "history-exercises-zero-results",
+  "history-exercises-compact",
   "history-exercises-detailed",
   "history-detail-broken-images",
   "settings-default",
-  "exercise-detail-broken-images",
+  "exercise-detail-strength",
+  "exercise-detail-cardio",
+  "exercise-detail-bodyweight",
   "exercise-detail-long-scroll",
 ] as const;
 
 const expectedScenarioFamilies = [
   ["today-default", "Exercise cards"],
+  ["today-detailed", "Exercise cards"],
   ["today-rest", "Exercise cards"],
   ["today-empty", "Exercise cards"],
   ["today-in-session-summary", "Exercise cards"],
@@ -58,12 +64,16 @@ const expectedScenarioFamilies = [
   ["create-routine", "Exercise cards"],
   ["edit-routine", "Exercise cards"],
   ["add-exercise-default", "Exercise cards"],
-  ["history-sessions-extreme", "Session summaries"],
+  ["history-sessions-compact", "Session summaries"],
+  ["history-sessions-detailed", "Session summaries"],
   ["history-exercises-zero-results", "Exercise cards"],
+  ["history-exercises-compact", "Exercise cards"],
   ["history-exercises-detailed", "Exercise cards"],
   ["history-detail-broken-images", "Session summaries"],
   ["settings-default", "Settings / detail"],
-  ["exercise-detail-broken-images", "Settings / detail"],
+  ["exercise-detail-strength", "Settings / detail"],
+  ["exercise-detail-cardio", "Settings / detail"],
+  ["exercise-detail-bodyweight", "Settings / detail"],
   ["exercise-detail-long-scroll", "Settings / detail"],
 ] as const;
 
@@ -128,6 +138,7 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   const pairs = mobileRegressionScenarios.map((scenario) => `${scenario.screen}:${scenario.fixture}`);
   assert.equal(new Set(pairs).size, mobileRegressionScenarios.length);
   assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "default" })?.id, "today-default");
+  assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "detailed" })?.id, "today-detailed");
   assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "rest" })?.id, "today-rest");
   assert.equal(resolveMobileRegressionScenario({ screen: "today", fixture: "empty" })?.id, "today-empty");
   assert.equal(resolveMobileRegressionScenario({ screen: "view-day", fixture: "rest" })?.id, "view-day-rest");
@@ -136,9 +147,13 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "empty" })?.id, "edit-day-empty");
   assert.equal(resolveMobileRegressionScenario({ screen: "edit-day", fixture: "card-parity" })?.id, "edit-day-card-parity");
   assert.equal(resolveMobileRegressionScenario({ screen: "routines", fixture: "default" })?.id, "routines-current-view");
-  assert.equal(resolveMobileRegressionScenario({ screen: "history", fixture: "default" })?.id, "history-sessions-extreme");
+  assert.equal(resolveMobileRegressionScenario({ screen: "history", fixture: "default" })?.id, "history-sessions-compact");
+  assert.equal(resolveMobileRegressionScenario({ screen: "history-sessions", fixture: "detailed" })?.id, "history-sessions-detailed");
+  assert.equal(resolveMobileRegressionScenario({ screen: "history-exercises", fixture: "compact" })?.id, "history-exercises-compact");
   assert.equal(resolveMobileRegressionScenario({ screen: "history-exercises", fixture: "detailed" })?.id, "history-exercises-detailed");
-  assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "default" })?.id, "exercise-detail-broken-images");
+  assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "default" })?.id, "exercise-detail-strength");
+  assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "cardio" })?.id, "exercise-detail-cardio");
+  assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "bodyweight" })?.id, "exercise-detail-bodyweight");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "long-scroll" })?.id, "exercise-detail-long-scroll");
   assert.equal(resolveMobileRegressionScenario({ scenario: "settings-default" })?.id, "settings-default");
 });

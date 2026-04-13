@@ -50,7 +50,7 @@ export default function RootLayout({
           <InstallabilityBootstrap />
           <GlassEffectsBootstrap />
           <MobileViewportGuard />
-          <main className="safe-area-main relative z-10 min-h-screen w-full pb-[var(--app-bottom-gap)]">
+          <main className="safe-area-main relative z-10 flex min-h-[100dvh] w-full flex-col overflow-hidden">
             {children}
           </main>
         </ToastProvider>
