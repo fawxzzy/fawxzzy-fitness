@@ -11,6 +11,14 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function resolveOrigin(url) {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchJson(url, attempts = 50) {
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -155,6 +163,20 @@ async function waitForCondition(client, expression, timeoutMs = 15000) {
   throw new Error(`Condition timed out: ${expression}`);
 }
 
+async function clearBrowsingState(client, url) {
+  const origin = resolveOrigin(url);
+
+  await client.send("Network.clearBrowserCache").catch(() => {});
+  await client.send("Network.clearBrowserCookies").catch(() => {});
+
+  if (origin) {
+    await client.send("Storage.clearDataForOrigin", {
+      origin,
+      storageTypes: "all",
+    }).catch(() => {});
+  }
+}
+
 async function runAction(client, action) {
   if (action.type === "waitForSelector") {
     const selector = JSON.stringify(action.selector);
@@ -223,7 +245,24 @@ async function runAction(client, action) {
 
   if (action.type === "scrollToBottom") {
     await client.send("Runtime.evaluate", {
-      expression: "window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }); true;",
+      expression: `
+        (() => {
+          const requestedSelector = ${JSON.stringify("[data-app-scroll-container='true']")};
+          const scrollRoot = document.querySelector(requestedSelector);
+          const target = scrollRoot instanceof HTMLElement
+            ? scrollRoot
+            : (document.scrollingElement ?? document.documentElement);
+          if (!target) {
+            return false;
+          }
+          if (typeof target.scrollTo === "function") {
+            target.scrollTo({ top: target.scrollHeight, behavior: "instant" });
+          } else {
+            target.scrollTop = target.scrollHeight;
+          }
+          return true;
+        })()
+      `,
       returnByValue: true,
       awaitPromise: true,
     });
@@ -281,11 +320,13 @@ async function main() {
     await client.send("Emulation.setDeviceMetricsOverride", {
       width: config.width,
       height: config.height,
-      deviceScaleFactor: config.deviceScaleFactor ?? 2,
+      deviceScaleFactor: config.deviceScaleFactor ?? 1,
       mobile: config.mobile ?? false,
       screenWidth: config.width,
       screenHeight: config.height,
     });
+
+    await clearBrowsingState(client, config.url);
 
     if (config.cookies?.access && config.cookies?.refresh) {
       await client.send("Network.setCookies", {

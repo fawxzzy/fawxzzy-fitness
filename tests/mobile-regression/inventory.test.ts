@@ -9,7 +9,7 @@ test("fixture inventory covers all mobile screens from the pre-fix set", () => {
     byRoute.set(scenario.route, (byRoute.get(scenario.route) ?? 0) + 1);
   }
 
-  assert.equal(byRoute.get("today"), 4);
+  assert.equal(byRoute.get("today"), 5);
   assert.equal(byRoute.get("session"), 1);
   assert.equal(byRoute.get("routines"), 2);
   assert.equal(byRoute.get("viewDay"), 3);
@@ -17,11 +17,11 @@ test("fixture inventory covers all mobile screens from the pre-fix set", () => {
   assert.equal(byRoute.get("createRoutine"), 1);
   assert.equal(byRoute.get("editRoutine"), 1);
   assert.equal(byRoute.get("addExercise"), 1);
-  assert.equal(byRoute.get("historySessions"), 1);
-  assert.equal(byRoute.get("historyExercises"), 2);
+  assert.equal(byRoute.get("historySessions"), 2);
+  assert.equal(byRoute.get("historyExercises"), 3);
   assert.equal(byRoute.get("historyDetail"), 1);
   assert.equal(byRoute.get("settings"), 1);
-  assert.equal(byRoute.get("exerciseDetail"), 2);
+  assert.equal(byRoute.get("exerciseDetail"), 4);
 });
 
 test("major mobile routes declare floatingHeader usage", () => {
@@ -56,4 +56,17 @@ test("hardening fixtures keep long Exercise Info scroll and day-card parity cove
   assert.ok(historyExerciseDetail);
   assert.equal(historyExerciseDetail.route, "historyExercises");
   assert.deepEqual(historyExerciseDetail.detailedMode, { extraMetricCount: 3, analyticsSlotsReady: true });
+
+  const historyExerciseCompact = mobileRegressionScenarios.find((scenario) => scenario.id === "history-exercises-compact");
+  assert.ok(historyExerciseCompact);
+  assert.equal(historyExerciseCompact.route, "historyExercises");
+
+  const todayDetailed = mobileRegressionScenarios.find((scenario) => scenario.id === "today-detailed");
+  assert.ok(todayDetailed);
+  assert.equal(todayDetailed.route, "today");
+  assert.deepEqual(todayDetailed.detailedMode, { extraMetricCount: 3, analyticsSlotsReady: true });
+
+  const bodyweightDetail = mobileRegressionScenarios.find((scenario) => scenario.id === "exercise-detail-bodyweight");
+  assert.ok(bodyweightDetail);
+  assert.equal(bodyweightDetail.route, "exerciseDetail");
 });

@@ -87,7 +87,7 @@ export default function ForgotPasswordFormClient({
       <AuthCard>
         <form action={requestPasswordReset} className="space-y-5">
           <div className="space-y-3">
-            <p className="text-sm leading-6 text-slate-300">Enter your email and we’ll send a reset link.</p>
+            <p className="text-sm leading-6 text-slate-300">Enter your email and we&apos;ll send a reset link.</p>
             <AuthField label="Email">
               <Input type="email" name="email" required autoComplete="email" placeholder="you@example.com" />
             </AuthField>

@@ -169,19 +169,19 @@
   --content-max: 430px;
   --section-gap: 12px;
   --card-radius: 24px;
-  --exercise-row-shell-padding-x: 1rem;
-  --exercise-row-shell-padding-y-compact: 0.875rem;
+  --exercise-row-shell-padding-x: 0.9375rem;
+  --exercise-row-shell-padding-y-compact: 0.75rem;
   --exercise-row-shell-padding-y-detailed: 0.9375rem;
-  --exercise-row-min-height-compact: 6.75rem;
-  --exercise-row-min-height-detailed: 7.375rem;
-  --exercise-row-media-width-compact: 5.25rem;
-  --exercise-row-media-width-detailed: 5.75rem;
-  --exercise-row-media-min-height-compact: 5rem;
-  --exercise-row-media-min-height-detailed: 5.5rem;
-  --exercise-row-media-radius-compact: 1rem;
-  --exercise-row-media-radius-detailed: 1.125rem;
-  --exercise-row-trailing-min-width: 2.75rem;
-  --exercise-row-gap: 0.625rem;
+  --exercise-row-min-height-compact: 5.75rem;
+  --exercise-row-min-height-detailed: 7rem;
+  --exercise-row-media-width-compact: 3.5rem;
+  --exercise-row-media-width-detailed: 4.1rem;
+  --exercise-row-media-min-height-compact: 4.15rem;
+  --exercise-row-media-min-height-detailed: 4.7rem;
+  --exercise-row-media-radius-compact: 0.95rem;
+  --exercise-row-media-radius-detailed: 1.05rem;
+  --exercise-row-trailing-min-width: 2.35rem;
+  --exercise-row-gap: 0.75rem;
   --exercise-row-badge-gap: 0.5rem;
   --bottom-nav-h: 92px;
 }
@@ -225,13 +225,16 @@
 }
 
 body {
+  min-height: 100%;
   background-color: rgb(var(--bg));
   background-image: linear-gradient(180deg, rgb(var(--bg-1)), rgb(var(--bg-0)) 42%, rgb(var(--bg-0)));
   color: rgb(var(--text));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  overflow-y: hidden;
   overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
 }
 
 .app-ambient {
@@ -1124,8 +1127,28 @@ body {
 }
 
 html {
+  height: 100%;
   overflow-x: hidden;
+  overflow-y: hidden;
   overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar,
+.scroll-y::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+body,
+.hide-scrollbar,
+.scroll-y {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 a {
@@ -1704,10 +1727,6 @@ a:focus-visible {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-}
-
-html[data-mobile-regression="true"] [data-app-scroll-container="true"] {
-  overflow-y: visible !important;
 }
 
 .text-safe-wrap {

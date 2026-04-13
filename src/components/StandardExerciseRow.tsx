@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
-import { ExerciseCard } from "@/components/ExerciseCard";
+import { ExerciseCard, type ExerciseCardButtonProps } from "@/components/ExerciseCard";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
@@ -29,6 +29,7 @@ type StandardExerciseRowProps = {
   titleContainerClassName?: string;
   titleClassName?: string;
   subtitleClassName?: string;
+  summaryLabel?: string;
   variant?: "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
   state?: "default" | "selected" | "active" | "completed" | "empty";
   density?: "compact" | "detailed";
@@ -37,6 +38,7 @@ type StandardExerciseRowProps = {
   leadingVisual?: ReactNode;
   showLeadingVisual?: boolean;
   imageSizes?: string;
+  buttonProps?: ExerciseCardButtonProps;
 };
 
 export function StandardExerciseRow({
@@ -57,6 +59,7 @@ export function StandardExerciseRow({
   titleContainerClassName,
   titleClassName,
   subtitleClassName,
+  summaryLabel,
   variant = "standard",
   state,
   density,
@@ -65,6 +68,7 @@ export function StandardExerciseRow({
   leadingVisual,
   showLeadingVisual = true,
   imageSizes,
+  buttonProps,
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
@@ -97,6 +101,8 @@ export function StandardExerciseRow({
       titleContainerClassName={titleContainerClassName}
       titleClassName={titleClassName}
       subtitleClassName={subtitleClassName}
+      subtitleLabel={summaryLabel}
+      buttonProps={buttonProps}
     >
       {children}
     </ExerciseCard>

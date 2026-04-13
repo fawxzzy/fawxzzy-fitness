@@ -70,6 +70,8 @@ const MOCK_EXERCISE_IDS = {
   bench: "33333333-3333-4333-8333-333333333333",
   row: "44444444-4444-4444-8444-444444444444",
   walk: "55555555-5555-4555-8555-555555555555",
+  pullup: "66666666-6666-4666-8666-666666666666",
+  plank: "77777777-7777-4777-8777-777777777777",
 } as const;
 
 async function noopRoutineSwitchAction(_: FormData) {
@@ -237,6 +239,38 @@ const mockPickerExercises = [
     how_to_short: "Keep the pace steady and maintain nasal breathing if possible.",
     slug: "incline-walk",
   },
+  {
+    id: MOCK_EXERCISE_IDS.pullup,
+    name: "Pull-Up",
+    user_id: null,
+    is_global: true,
+    primary_muscle: "Back",
+    equipment: "Pull-Up Bar",
+    movement_pattern: "Vertical Pull",
+    measurement_type: "reps" as const,
+    default_unit: null,
+    calories_estimation_method: null,
+    image_howto_path: "/missing/howto-pullup.png",
+    image_icon_path: "/missing/icon-pullup.png",
+    how_to_short: "Start from a dead hang, drive elbows down, and keep the ribs tucked.",
+    slug: "pull-up",
+  },
+  {
+    id: MOCK_EXERCISE_IDS.plank,
+    name: "Plank",
+    user_id: null,
+    is_global: true,
+    primary_muscle: "Core",
+    equipment: "Bodyweight",
+    movement_pattern: "Brace",
+    measurement_type: "time" as const,
+    default_unit: "sec",
+    calories_estimation_method: null,
+    image_howto_path: "/missing/howto-plank.png",
+    image_icon_path: "/missing/icon-plank.png",
+    how_to_short: "Squeeze glutes, keep ribs down, and push the floor away.",
+    slug: "plank",
+  },
 ];
 
 const LONG_GOAL_SUMMARY = "Goal: 4 sets • 8-10 reps • controlled eccentric • last set AMRAP";
@@ -255,6 +289,8 @@ const mockTodayDays = [
         exerciseId: MOCK_EXERCISE_IDS.bench,
         name: "Bench Press",
         targets: "4 sets x 6 reps @ 185 lb",
+        targetSetsMin: 4,
+        targetSetsMax: 4,
         primary_muscle: "Chest",
         equipment: "Barbell",
         movement_pattern: "Horizontal Push",
@@ -279,6 +315,8 @@ const mockTodayDays = [
         exerciseId: MOCK_EXERCISE_IDS.squat,
         name: "Back Squat",
         targets: "4 sets x 5 reps @ 225 lb",
+        targetSetsMin: 4,
+        targetSetsMax: 4,
         primary_muscle: "Quads",
         equipment: "Barbell",
         movement_pattern: "Squat",
@@ -293,6 +331,8 @@ const mockTodayDays = [
         exerciseId: MOCK_EXERCISE_IDS.lunge,
         name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
         targets: LONG_GOAL_SUMMARY,
+        targetSetsMin: 3,
+        targetSetsMax: 3,
         primary_muscle: "Glutes",
         equipment: "Dumbbell",
         movement_pattern: "Lunge",
@@ -307,6 +347,8 @@ const mockTodayDays = [
         exerciseId: MOCK_EXERCISE_IDS.walk,
         name: "Incline Walk",
         targets: "18 minutes @ 8% grade",
+        targetSetsMin: 1,
+        targetSetsMax: 1,
         primary_muscle: "Cardio",
         equipment: "Treadmill",
         movement_pattern: "Gait",
@@ -374,6 +416,10 @@ const mockSessionExercises = [
     isSkipped: false,
     defaultUnit: null,
     isCardio: false,
+    measurementType: "reps" as const,
+    primary_muscle: "Quads",
+    equipment: "Barbell",
+    movement_pattern: "Squat",
     useIntervalLanguage: false,
     initialEnabledMetrics: { reps: true, weight: true, time: false, distance: false, calories: false },
     routineDayExerciseId: "routine-row-1",
@@ -413,6 +459,10 @@ const mockSessionExercises = [
     isSkipped: false,
     defaultUnit: null,
     isCardio: false,
+    measurementType: "reps" as const,
+    primary_muscle: "Glutes",
+    equipment: "Dumbbell",
+    movement_pattern: "Lunge",
     useIntervalLanguage: false,
     initialEnabledMetrics: { reps: true, weight: true, time: false, distance: false, calories: false },
     routineDayExerciseId: "routine-row-2",
@@ -427,6 +477,89 @@ const mockSessionExercises = [
     image_icon_path: "/missing/icon-lunge.png",
     image_howto_path: null,
     slug: "walking-lunge",
+  },
+  {
+    id: "session-ex-3",
+    exerciseId: MOCK_EXERCISE_IDS.walk,
+    name: "Incline Walk",
+    isSkipped: false,
+    defaultUnit: "km" as const,
+    isCardio: true,
+    measurementType: "time_distance" as const,
+    primary_muscle: "Cardio",
+    equipment: "Treadmill",
+    movement_pattern: "Gait",
+    useIntervalLanguage: false,
+    initialEnabledMetrics: { reps: false, weight: false, time: true, distance: true, calories: false },
+    routineDayExerciseId: "routine-row-3",
+    planTargetsHash: "00110",
+    goalLabel: "2.0 km in 18:00 @ 8% grade",
+    prefill: { durationSeconds: 1080 },
+    quickLogTarget: {
+      measurementType: "time_distance" as const,
+      durationSeconds: 1080,
+      distance: 2,
+      distanceUnit: "km" as const,
+    },
+    initialSets: [],
+    loggedSetCount: 0,
+    targetSetsMin: 1,
+    targetSetsMax: 1,
+    image_icon_path: "/missing/icon-walk.png",
+    image_howto_path: null,
+    slug: "incline-walk",
+  },
+  {
+    id: "session-ex-4",
+    exerciseId: MOCK_EXERCISE_IDS.pullup,
+    name: "Pull-Up",
+    isSkipped: false,
+    defaultUnit: null,
+    isCardio: false,
+    measurementType: "reps" as const,
+    primary_muscle: "Back",
+    equipment: "Pull-Up Bar",
+    movement_pattern: "Vertical Pull",
+    useIntervalLanguage: false,
+    initialEnabledMetrics: { reps: true, weight: true, time: false, distance: false, calories: false },
+    routineDayExerciseId: "routine-row-4",
+    planTargetsHash: "11000",
+    goalLabel: "4 sets x 6 reps",
+    prefill: { reps: 6 },
+    quickLogTarget: { measurementType: "reps" as const, repsMin: 6, repsMax: 6 },
+    initialSets: [],
+    loggedSetCount: 0,
+    targetSetsMin: 4,
+    targetSetsMax: 4,
+    image_icon_path: "/missing/icon-pullup.png",
+    image_howto_path: "/missing/howto-pullup.png",
+    slug: "pull-up",
+  },
+  {
+    id: "session-ex-5",
+    exerciseId: MOCK_EXERCISE_IDS.plank,
+    name: "Plank",
+    isSkipped: false,
+    defaultUnit: null,
+    isCardio: false,
+    measurementType: "time" as const,
+    primary_muscle: "Core",
+    equipment: "Bodyweight",
+    movement_pattern: "Brace",
+    useIntervalLanguage: false,
+    initialEnabledMetrics: { reps: false, weight: false, time: true, distance: false, calories: false },
+    routineDayExerciseId: "routine-row-5",
+    planTargetsHash: "00100",
+    goalLabel: "3 holds x 45 sec",
+    prefill: { durationSeconds: 45 },
+    quickLogTarget: { measurementType: "time" as const, durationSeconds: 45 },
+    initialSets: [],
+    loggedSetCount: 0,
+    targetSetsMin: 3,
+    targetSetsMax: 3,
+    image_icon_path: "/missing/icon-plank.png",
+    image_howto_path: "/missing/howto-plank.png",
+    slug: "plank",
   },
 ];
 
@@ -543,6 +676,66 @@ const mockHistoryExerciseRows = [
     deltaFromBest: null,
     tagsSummary: "Back | Horizontal Pull | Machine",
   },
+  {
+    exerciseId: MOCK_EXERCISE_IDS.pullup,
+    name: "Pull-Up",
+    slug: "pull-up",
+    image_path: null,
+    image_icon_path: "/missing/icon-pullup.png",
+    image_howto_path: "/missing/howto-pullup.png",
+    how_to_short: "Drive elbows down and stay hollow through the trunk.",
+    primary_muscle: "Back",
+    equipment: "Pull-Up Bar",
+    movement_pattern: "Vertical Pull",
+    last_performed_at: "2026-04-08T13:00:00.000Z",
+    last_weight: 0,
+    last_reps: 9,
+    last_unit: null,
+    pr_weight: null,
+    pr_reps: 12,
+    pr_est_1rm: null,
+    actual_pr_weight: 0,
+    actual_pr_reps: 12,
+    actual_pr_at: "2026-03-28T13:00:00.000Z",
+    kind: "strength" as const,
+    lastSummary: "9 reps",
+    bestSummary: "Best: 12 reps",
+    prLabel: "Rep PR",
+    prCount: 1,
+    sessionCount: 9,
+    deltaFromBest: "-3 reps vs best",
+    tagsSummary: "Bodyweight | Vertical Pull | Pull-Up Bar",
+  },
+  {
+    exerciseId: MOCK_EXERCISE_IDS.plank,
+    name: "Plank",
+    slug: "plank",
+    image_path: null,
+    image_icon_path: "/missing/icon-plank.png",
+    image_howto_path: "/missing/howto-plank.png",
+    how_to_short: "Lock the ribcage down and keep the pelvis tucked.",
+    primary_muscle: "Core",
+    equipment: "Bodyweight",
+    movement_pattern: "Brace",
+    last_performed_at: "2026-04-10T13:00:00.000Z",
+    last_weight: null,
+    last_reps: null,
+    last_unit: null,
+    pr_weight: null,
+    pr_reps: null,
+    pr_est_1rm: null,
+    actual_pr_weight: null,
+    actual_pr_reps: null,
+    actual_pr_at: null,
+    kind: "cardio" as const,
+    lastSummary: "60 sec hold",
+    bestSummary: "Best: 90 sec",
+    prLabel: "",
+    prCount: 0,
+    sessionCount: 11,
+    deltaFromBest: "-30 sec vs best",
+    tagsSummary: "Timed | Brace | Bodyweight",
+  },
 ];
 
 const mockHistoryDetailExercises = [
@@ -614,6 +807,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
       ? 4
       : 2;
   const selectedDay = mockTodayDays.find((day) => day.dayIndex === selectedDayIndex) ?? mockTodayDays[1];
+  const exerciseDensity = scenario.id === "today-detailed" ? "detailed" : "compact";
 
   if (scenario.id === "today-in-session-summary") {
     return (
@@ -665,6 +859,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
                     },
                   ]}
                   emptyMessage="No runnable exercises planned for this day."
+                  density={exerciseDensity}
                 />
               </SharedSectionShell>
             </ScreenScaffold>
@@ -702,6 +897,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
             loggedSetCountsByDayIndex={{ 2: 5 }}
             routineName="Lower Rotation"
             floatingHeaderSlotId="today-floating-header-slot"
+            exerciseDensity={exerciseDensity}
           />
         </ContentRail>
       </ScrollScreenWithBottomActions>
@@ -719,7 +915,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         performedAt="2026-04-10T12:00:00.000Z"
         routineName="Lower Rotation"
         sessionDayName="Day 2"
-        sessionSummaryCounts={{ strength: 2, cardio: 0, unknown: 0 }}
+        sessionSummaryCounts={{ strength: 2, cardio: 1, unknown: 0 }}
         unitLabel="lbs"
         exercises={mockSessionExercises}
         saveSessionAction={noopActionResult}
@@ -839,9 +1035,39 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
   const editDayExercises = fixture === "empty"
     ? []
     : [
-      { id: "edit-1", name: "Back Squat", summary: "4 sets x 5 reps @ 225 lb", iconSrc: "/missing/icon-squat.png", orderNumber: 1 },
-      { id: "edit-2", name: "Romanian Deadlift", summary: "3 sets x 8 reps @ 185 lb", iconSrc: "/missing/icon-row.png", orderNumber: 2 },
-      { id: "edit-3", name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof", summary: LONG_GOAL_SUMMARY, iconSrc: "/missing/icon-lunge.png", orderNumber: 3 },
+      {
+        id: "edit-1",
+        name: "Back Squat",
+        summary: "4 sets x 5 reps @ 225 lb",
+        iconSrc: "/missing/icon-squat.png",
+        orderNumber: 1,
+        measurementType: "reps" as const,
+        primary_muscle: "Quads",
+        equipment: "Barbell",
+        movement_pattern: "Squat",
+      },
+      {
+        id: "edit-2",
+        name: "Romanian Deadlift",
+        summary: "3 sets x 8 reps @ 185 lb",
+        iconSrc: "/missing/icon-row.png",
+        orderNumber: 2,
+        measurementType: "reps" as const,
+        primary_muscle: "Hamstrings",
+        equipment: "Barbell",
+        movement_pattern: "Hinge",
+      },
+      {
+        id: "edit-3",
+        name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
+        summary: LONG_GOAL_SUMMARY,
+        iconSrc: "/missing/icon-lunge.png",
+        orderNumber: 3,
+        measurementType: "reps" as const,
+        primary_muscle: "Glutes",
+        equipment: "Dumbbell",
+        movement_pattern: "Lunge",
+      },
     ];
   return (
     <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="editDay">
@@ -972,6 +1198,8 @@ function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
+  const initialViewMode = scenario.fixture === "detailed" ? "detailed" : "compact";
+
   return (
     <MainTabScreen topNavMode="none" ambientPreset="history">
       <RegressionMarker scenario={scenario} />
@@ -980,7 +1208,11 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
         floatingHeader={<ContentRail><HistoryPageHeader title={`Logged Sessions: ${mockHistorySessions.length}`} /></ContentRail>}
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <HistorySessionsClient sessions={[...mockHistorySessions]} selectedSessionId="history-session-2" />
+          <HistorySessionsClient
+            sessions={[...mockHistorySessions]}
+            selectedSessionId="history-session-2"
+            initialViewMode={initialViewMode}
+          />
         </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
@@ -988,6 +1220,8 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
+  const initialViewMode = scenario.fixture === "detailed" ? "detailed" : "compact";
+
   return (
     <MainTabScreen topNavMode="none" ambientPreset="history">
       <RegressionMarker scenario={scenario} />
@@ -996,7 +1230,7 @@ function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
         floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <ExerciseBrowserClient rows={[...mockHistoryExerciseRows]} inlineHeaderControls />
+          <ExerciseBrowserClient rows={[...mockHistoryExerciseRows]} inlineHeaderControls initialViewMode={initialViewMode} />
         </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
@@ -1088,97 +1322,207 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
   );
 }
 
+function getRegressionExerciseDetailFixture(scenario: MobileFixtureScenario) {
+  if (scenario.id === "exercise-detail-cardio" || scenario.id === "exercise-detail-long-scroll") {
+    const isLongScrollFixture = scenario.id === "exercise-detail-long-scroll";
+    return {
+      exercise: {
+        id: MOCK_EXERCISE_IDS.walk,
+        name: isLongScrollFixture ? "Incline Walk With Long-Scroll Bottom Reach Audit" : "Incline Walk",
+        primary_muscle: "Cardio",
+        equipment: "Treadmill",
+        movement_pattern: "Gait",
+        image_howto_path: "/missing/howto-walk.png",
+        image_icon_path: "/missing/icon-walk.png",
+        slug: "incline-walk",
+        how_to_short: isLongScrollFixture
+          ? longExerciseInfoHowTo
+          : "Keep posture tall, let the incline drive the effort, and settle into a repeatable pace.",
+      },
+      stats: {
+        kind: "cardio" as const,
+        presentationKind: "cardio" as const,
+        recent: {
+          lastPerformedAt: "2026-04-09T13:00:00.000Z",
+          lastSummary: "24m | 1.85 mi | 12:58/mi",
+          lastDurationSeconds: 1440,
+          lastDistance: 1.85,
+          lastCalories: 286,
+          lastPaceSecondsPerUnit: 778,
+          lastDistanceUnit: "mi" as const,
+        },
+        totals: {
+          sessions: 14,
+          sets: 14,
+          durationSeconds: 18640,
+          distance: 21.7,
+          calories: 3120,
+        },
+        bests: {
+          bestSetSummary: "31m | 2.35 mi | 13:11/mi",
+          bestDurationSeconds: 1860,
+          bestDistance: 2.35,
+          bestPace: 791,
+          bestDistanceUnit: "mi" as const,
+          bestCalories: 364,
+        },
+        prLabel: "",
+        prCount: 0,
+        quickMetrics: [
+          { label: "Last", value: "Wed, Apr 9", timeframe: "24m | 1.85 mi | 12:58/mi" },
+          { label: "Best", value: "31m | 2.35 mi | 13:11/mi" },
+          { label: "PRs", value: "0", timeframe: "Pace tracking live" },
+          { label: "Sessions", value: "14", timeframe: "14 sets logged" },
+        ],
+        performanceMetrics: [
+          { label: "Best Pace", value: "12:58/mi" },
+          { label: "Longest Distance", value: "2.35 mi" },
+          { label: "Longest Time", value: "31m" },
+          { label: "7D Total", value: "6.4 mi" },
+        ],
+        progress: {
+          metrics: [
+            { label: "Vs Previous", value: "+0.20 mi" },
+            { label: "30D Frequency", value: "5 sessions", timeframe: "last 30 days" },
+          ],
+          performances: [
+            { label: "Wed, Apr 9", value: "24m | 1.85 mi | 12:58/mi", context: "1 set" },
+            { label: "Mon, Apr 7", value: "22m | 1.65 mi | 13:20/mi", context: "1 set" },
+            { label: "Thu, Apr 3", value: "31m | 2.35 mi | 13:11/mi", context: "1 set" },
+          ],
+        },
+      },
+    };
+  }
+
+  if (scenario.id === "exercise-detail-bodyweight") {
+    return {
+      exercise: {
+        id: MOCK_EXERCISE_IDS.pullup,
+        name: "Pull-Up",
+        primary_muscle: "Back",
+        equipment: "Pull-Up Bar",
+        movement_pattern: "Vertical Pull",
+        image_howto_path: "/missing/howto-pullup.png",
+        image_icon_path: "/missing/icon-pullup.png",
+        slug: "pull-up",
+        how_to_short: "Start from a dead hang, keep the ribs tucked, and drive the elbows down before the chin clears the bar.",
+      },
+      stats: {
+        kind: "strength" as const,
+        presentationKind: "bodyweight" as const,
+        recent: {
+          lastPerformedAt: "2026-04-08T13:00:00.000Z",
+          lastSummary: "9 reps",
+        },
+        totals: {
+          sessions: 12,
+          sets: 36,
+          reps: 248,
+        },
+        bests: {
+          bestBodyweightReps: 12,
+          bestWeight: 25,
+          bestRepsAtBestWeight: 5,
+          bestSetSummary: "12 reps",
+        },
+        prLabel: "Rep PR",
+        prCount: 1,
+        quickMetrics: [
+          { label: "Last", value: "Tue, Apr 8", timeframe: "9 reps" },
+          { label: "Best Set", value: "12 reps" },
+          { label: "PRs", value: "1", timeframe: "Rep PR" },
+          { label: "Sessions", value: "12", timeframe: "36 sets logged" },
+        ],
+        performanceMetrics: [
+          { label: "Best Reps", value: "12 reps" },
+          { label: "Added Load", value: "25 lb" },
+          { label: "28D Reps", value: "94 reps" },
+          { label: "Last Best", value: "9 reps", timeframe: "Tue, Apr 8" },
+        ],
+        progress: {
+          metrics: [
+            { label: "Vs Previous", value: "+1 rep" },
+            { label: "30D Frequency", value: "5 sessions", timeframe: "last 30 days" },
+          ],
+          performances: [
+            { label: "Tue, Apr 8", value: "9 reps", context: "4 sets" },
+            { label: "Sat, Apr 5", value: "8 reps", context: "4 sets" },
+            { label: "Tue, Apr 1", value: "12 reps", context: "5 sets" },
+          ],
+        },
+      },
+    };
+  }
+
+  return {
+    exercise: {
+      id: MOCK_EXERCISE_IDS.squat,
+      name: "Back Squat",
+      primary_muscle: "Quads",
+      equipment: "Barbell",
+      movement_pattern: "Squat",
+      image_howto_path: "/missing/howto-squat.png",
+      image_icon_path: "/missing/icon-squat.png",
+      slug: "back-squat",
+      how_to_short: "Brace hard, stay rooted through the whole foot, and drive the bar straight up through the mid-foot.",
+    },
+    stats: {
+      kind: "strength" as const,
+      presentationKind: "strength" as const,
+      recent: {
+        lastPerformedAt: "2026-04-09T13:00:00.000Z",
+        lastSummary: "225 lb x 5",
+      },
+      totals: {
+        sessions: 14,
+        sets: 42,
+        reps: 168,
+      },
+      bests: {
+        bestWeight: 275,
+        bestRepsAtBestWeight: 3,
+        bestSetSummary: "275 lb x 3",
+      },
+      prLabel: "Load PR",
+      prCount: 1,
+      quickMetrics: [
+        { label: "Last", value: "Wed, Apr 9", timeframe: "225 lb x 5" },
+        { label: "Best Set", value: "275 lb x 3" },
+        { label: "PRs", value: "1", timeframe: "Load PR" },
+        { label: "Sessions", value: "14", timeframe: "42 sets logged" },
+      ],
+      performanceMetrics: [
+        { label: "Top Set", value: "275 lb x 3" },
+        { label: "e1RM", value: "303 lb" },
+        { label: "4W Load", value: "9,240 lb" },
+        { label: "Last", value: "Wed, Apr 9", timeframe: "225 lb x 5" },
+      ],
+      progress: {
+        metrics: [
+          { label: "Vs Previous", value: "+10 lb" },
+          { label: "30D Frequency", value: "6 sessions", timeframe: "last 30 days" },
+        ],
+        performances: [
+          { label: "Wed, Apr 9", value: "225 lb x 5", context: "4 sets" },
+          { label: "Mon, Apr 7", value: "220 lb x 5", context: "4 sets" },
+          { label: "Thu, Apr 3", value: "275 lb x 3", context: "5 sets" },
+        ],
+      },
+    },
+  };
+}
+
 function renderExerciseDetailScenario(scenario: MobileFixtureScenario) {
-  const isLongScrollFixture = scenario.id === "exercise-detail-long-scroll";
+  const fixture = getRegressionExerciseDetailFixture(scenario);
+
   return (
     <RegressionExerciseInfoSheet
       scenarioId={scenario.id}
       scrollToBottom={scenario.captureScrollPosition === "bottom"}
-        exercise={{
-          id: MOCK_EXERCISE_IDS.lunge,
-          name: isLongScrollFixture
-            ? "Walking Lunge With Very Long Accessory Naming For Wrapping Proof And Bottom Reach Audit"
-            : "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
-          primary_muscle: "Glutes",
-          equipment: "Dumbbell",
-          movement_pattern: "Lunge",
-          image_howto_path: null,
-          image_icon_path: "/missing/icon-lunge.png",
-          slug: "walking-lunge",
-          how_to_short: isLongScrollFixture
-            ? longExerciseInfoHowTo
-            : "Stay tall, keep the front foot planted, and let the back knee sink straight down before driving through the floor.",
-        }}
-        stats={{
-          kind: isLongScrollFixture ? "cardio" : "strength",
-          recent: {
-            lastPerformedAt: "2026-04-09T13:00:00.000Z",
-            lastSummary: isLongScrollFixture ? "24m • 1.85 mi • 12:58/mi" : "35 lb x 12 steps",
-            lastDurationSeconds: isLongScrollFixture ? 1440 : undefined,
-            lastDistance: isLongScrollFixture ? 1.85 : undefined,
-            lastCalories: isLongScrollFixture ? 286 : undefined,
-            lastPaceSecondsPerUnit: isLongScrollFixture ? 778 : undefined,
-            lastDistanceUnit: isLongScrollFixture ? "mi" : undefined,
-          },
-          totals: {
-            sessions: 14,
-            sets: isLongScrollFixture ? 14 : 42,
-            reps: isLongScrollFixture ? undefined : 168,
-            durationSeconds: isLongScrollFixture ? 18640 : undefined,
-            distance: isLongScrollFixture ? 21.7 : undefined,
-            calories: isLongScrollFixture ? 3120 : undefined,
-          },
-          bests: {
-            bestBodyweightReps: isLongScrollFixture ? undefined : 18,
-            bestWeight: isLongScrollFixture ? undefined : 50,
-            bestRepsAtBestWeight: isLongScrollFixture ? undefined : 16,
-            bestSetSummary: isLongScrollFixture ? "31m • 2.35 mi • 13:11/mi" : "50 lb x 16 steps",
-            bestDurationSeconds: isLongScrollFixture ? 1860 : undefined,
-            bestDistance: isLongScrollFixture ? 2.35 : undefined,
-            bestPace: isLongScrollFixture ? 791 : undefined,
-            bestDistanceUnit: isLongScrollFixture ? "mi" : undefined,
-            bestCalories: isLongScrollFixture ? 364 : undefined,
-          },
-          prLabel: isLongScrollFixture ? "4 PRs" : "1 PR",
-          prCount: isLongScrollFixture ? 4 : 1,
-          quickMetrics: isLongScrollFixture
-            ? [
-                { label: "Last Performed", value: "Wed, Apr 9", timeframe: "24m | 1.85 mi | 12:58/mi" },
-                { label: "Best Effort", value: "31m | 2.35 mi | 13:11/mi" },
-                { label: "PR Count", value: "4", timeframe: "Not tracked" },
-                { label: "Total Sessions", value: "14", timeframe: "14 sets logged" },
-              ]
-            : [
-                { label: "Last Performed", value: "Wed, Apr 9", timeframe: "35 lb x 12 steps" },
-                { label: "Best Set", value: "50 lb x 16 steps" },
-                { label: "PR Count", value: "1", timeframe: "1 PR" },
-                { label: "Total Sessions", value: "14", timeframe: "42 sets logged" },
-              ],
-          progress: isLongScrollFixture
-            ? {
-                metrics: [
-                  { label: "Trend", value: "+0.20mi vs previous", timeframe: "vs previous" },
-                  { label: "30D Frequency", value: "5 sessions", timeframe: "last 30 days" },
-                ],
-                performances: [
-                  { label: "Wed, Apr 9", value: "24m | 1.85 mi | 12:58/mi", context: "1 set" },
-                  { label: "Mon, Apr 7", value: "22m | 1.65 mi | 13:20/mi", context: "1 set" },
-                  { label: "Thu, Apr 3", value: "31m | 2.35 mi | 13:11/mi", context: "1 set" },
-                ],
-              }
-            : {
-                metrics: [
-                  { label: "Trend", value: "+5lb vs previous", timeframe: "vs previous" },
-                  { label: "30D Frequency", value: "6 sessions", timeframe: "last 30 days" },
-                ],
-                performances: [
-                  { label: "Wed, Apr 9", value: "35 lb x 12 steps", context: "3 sets" },
-                  { label: "Mon, Apr 7", value: "30 lb x 12 steps", context: "3 sets" },
-                  { label: "Thu, Apr 3", value: "50 lb x 16 steps", context: "4 sets" },
-                ],
-              },
-        }}
-      />
+      exercise={fixture.exercise}
+      stats={fixture.stats}
+    />
   );
 }
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { textRoles } from "@/components/ui/text-roles";
@@ -8,6 +8,9 @@ import { cn } from "@/lib/cn";
 export type ExerciseCardVariant = "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
 export type ExerciseCardState = "default" | "selected" | "active" | "completed" | "empty";
 export type ExerciseCardDensity = "compact" | "detailed";
+export type ExerciseCardButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "onClick" | "disabled" | "className"> & {
+  [key: `data-${string}`]: string | number | boolean | undefined;
+};
 
 const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
   standard: "detailed",
@@ -26,22 +29,31 @@ const densityStyles: Record<ExerciseCardDensity, {
   titleClamp: string;
   subtitleClamp: string;
   titleSize: string;
+  contentGap: string;
+  goalRow: string;
+  childrenSpacing: string;
 }> = {
   compact: {
     shell: "min-h-[var(--exercise-row-min-height-compact)] px-[var(--exercise-row-shell-padding-x)] py-[var(--exercise-row-shell-padding-y-compact)]",
     media: "h-full w-full",
     mediaFrame: "-my-[var(--exercise-row-shell-padding-y-compact)] -ml-[var(--exercise-row-shell-padding-x)] mr-0.5 w-[var(--exercise-row-media-width-compact)] min-h-[var(--exercise-row-media-min-height-compact)] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[var(--exercise-row-media-radius-compact)]",
     titleClamp: "line-clamp-2",
-    subtitleClamp: "line-clamp-1",
+    subtitleClamp: "line-clamp-2",
     titleSize: "text-[0.98rem]",
+    contentGap: "gap-1.5",
+    goalRow: "rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-2.5 py-2",
+    childrenSpacing: "mt-1.5",
   },
   detailed: {
     shell: "min-h-[var(--exercise-row-min-height-detailed)] px-[var(--exercise-row-shell-padding-x)] py-[var(--exercise-row-shell-padding-y-detailed)]",
     media: "h-full w-full",
     mediaFrame: "-my-[var(--exercise-row-shell-padding-y-detailed)] -ml-[var(--exercise-row-shell-padding-x)] mr-1 w-[var(--exercise-row-media-width-detailed)] min-h-[var(--exercise-row-media-min-height-detailed)] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[var(--exercise-row-media-radius-detailed)]",
     titleClamp: "line-clamp-2",
-    subtitleClamp: "line-clamp-1",
+    subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
+    contentGap: "gap-2",
+    goalRow: "rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.56)] px-3 py-2.5",
+    childrenSpacing: "mt-2",
   },
 };
 
@@ -123,6 +135,8 @@ export function ExerciseCard({
   titleContainerClassName,
   titleClassName,
   subtitleClassName,
+  subtitleLabel,
+  buttonProps,
   variant = "standard",
   state = "default",
   density,
@@ -147,6 +161,8 @@ export function ExerciseCard({
   titleContainerClassName?: string;
   titleClassName?: string;
   subtitleClassName?: string;
+  subtitleLabel?: string;
+  buttonProps?: ExerciseCardButtonProps;
   variant?: ExerciseCardVariant;
   state?: ExerciseCardState;
   density?: ExerciseCardDensity;
@@ -197,7 +213,7 @@ export function ExerciseCard({
       ) : null}
 
       <div className={cn("min-w-0 self-stretch py-0.5", contentClassName)}>
-        <div className={cn("flex min-h-full min-w-0 flex-col justify-center", titleContainerClassName)}>
+        <div className={cn("flex min-h-full min-w-0 flex-col justify-center", styles.contentGap, titleContainerClassName)}>
           <p
             className={cn(
               "text-safe-wrap min-w-0 leading-tight [text-wrap:pretty]",
@@ -211,18 +227,29 @@ export function ExerciseCard({
             {title}
           </p>
           {subtitle ? (
-            <div
-              className={cn(
-                "text-safe-wrap mt-1.5 pr-1 text-xs leading-[1.35] [text-wrap:pretty]",
-                styles.subtitleClamp,
-                subtitleStateClassNames[state],
-                subtitleClassName,
-              )}
-            >
-              {subtitle}
+            <div className={cn("min-w-0", styles.goalRow)}>
+              {subtitleLabel ? (
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.84)]">
+                  {subtitleLabel}
+                </p>
+              ) : null}
+              <div
+                className={cn(
+                  "text-safe-wrap pr-1 text-xs leading-[1.35] [text-wrap:pretty]",
+                  styles.subtitleClamp,
+                  subtitleStateClassNames[state],
+                  subtitleClassName,
+                )}
+              >
+                {subtitle}
+              </div>
             </div>
           ) : null}
-          {children ? <div className="mt-2 min-w-0">{children}</div> : null}
+          {children ? (
+            <div className={cn("min-w-0", styles.childrenSpacing)}>
+              {children}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -235,7 +262,7 @@ export function ExerciseCard({
       >
         <div
           className={cn(
-            "flex h-full min-w-[var(--exercise-row-trailing-min-width)] items-end gap-[var(--exercise-row-badge-gap)]",
+            "flex h-full min-w-[var(--exercise-row-trailing-min-width)] items-start gap-[var(--exercise-row-badge-gap)] pt-0.5",
             trailingStackLayoutClassName,
             trailingStackClassName,
           )}
@@ -258,7 +285,7 @@ export function ExerciseCard({
   );
 
   const shellClassName = cn(
-    "w-full max-w-none rounded-[var(--card-radius)] text-left",
+    "w-full max-w-none overflow-hidden rounded-[var(--card-radius)] text-left",
     shellStateClassNames[state],
     cardShellToneClassNames[resolvedSemanticTone],
     disabled ? "cursor-not-allowed opacity-60" : undefined,
@@ -272,6 +299,7 @@ export function ExerciseCard({
           {onPress ? (
             <button
               type="button"
+              {...buttonProps}
               className="min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]"
               onClick={onPress}
               disabled={disabled}
@@ -292,6 +320,7 @@ export function ExerciseCard({
       <Glass variant="base" interactive={!disabled} className={shellClassName}>
         <button
           type="button"
+          {...buttonProps}
           className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]"
           onClick={onPress}
           disabled={disabled}

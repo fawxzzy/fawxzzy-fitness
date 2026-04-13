@@ -28,14 +28,18 @@ export type MobileRegressionScreenKey =
   | "settings"
   | "exercise-detail";
 
-export const mobileRegressionReviewFamilies = [
-  "Exercise cards",
-  "Session / logging",
-  "Session summaries",
-  "Settings / detail",
+export const mobileRegressionBoardFamilies = [
+  { family: "Exercise cards", boardFile: "exercise-cards-board.png" },
+  { family: "Session / logging", boardFile: "session-logging-board.png" },
+  { family: "Session summaries", boardFile: "session-summaries-board.png" },
+  { family: "Settings / detail", boardFile: "settings-detail-board.png" },
 ] as const;
 
-export type MobileRegressionReviewFamily = (typeof mobileRegressionReviewFamilies)[number];
+export const mobileRegressionReviewFamilies = mobileRegressionBoardFamilies.map((entry) => entry.family) as ReadonlyArray<
+  (typeof mobileRegressionBoardFamilies)[number]["family"]
+>;
+
+export type MobileRegressionReviewFamily = (typeof mobileRegressionBoardFamilies)[number]["family"];
 
 export type ScreenGeometry = {
   viewportWidth: number;
@@ -97,6 +101,8 @@ export type ExerciseInfoLayoutFixture = {
   mediaFullyVisible: boolean;
   quickMetricCount: number;
   hasProgressBlock: boolean;
+  hasRecentHistoryBlock: boolean;
+  sectionOrder: Array<"Overview" | "Performance" | "Progress" | "Recent History">;
   topSafePaddingRelaxed: boolean;
 };
 
@@ -176,6 +182,7 @@ function buildWorkoutFixture(args: {
   todayHeaderMatchesSelectedDay?: boolean;
   hasExtraLowerFillerBox?: boolean;
   exerciseInfoHeaderPinned?: boolean;
+  detailedMode?: DetailedModeFixture;
 }) {
   return {
     id: args.id,
@@ -196,6 +203,7 @@ function buildWorkoutFixture(args: {
     hasExtraLowerFillerBox: args.hasExtraLowerFillerBox,
     exerciseInfoHeaderPinned: args.exerciseInfoHeaderPinned,
     sectionChromeOwnedByShell: true,
+    detailedMode: args.detailedMode,
     goalRowLayout: args.inSessionSummary ? undefined : {
       titleMaxLines: 2,
       goalMaxLines: 2,
@@ -353,6 +361,19 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     cardStates: [{ cardId: "today-overview", state: "selected", badgeText: "Today" }],
     todayHeaderMatchesSelectedDay: true,
     exerciseInfoHeaderPinned: true,
+  }),
+  buildWorkoutFixture({
+    id: "today-detailed",
+    family: "Exercise cards",
+    name: "Today: detailed density",
+    fixture: "detailed",
+    fixtureState: "today-detailed-v1",
+    lastInteractiveRowBottom: 688,
+    statusChips: ["in-progress"],
+    cardStates: [{ cardId: "today-overview-detailed", state: "selected", badgeText: "Today" }],
+    todayHeaderMatchesSelectedDay: true,
+    exerciseInfoHeaderPinned: true,
+    detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
   }),
   buildWorkoutFixture({
     id: "today-rest",
@@ -584,14 +605,24 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     ],
   }),
   buildSimpleFixture({
-    id: "history-sessions-extreme",
+    id: "history-sessions-compact",
     route: "historySessions",
     screen: "history-sessions",
     family: "Session summaries",
-    name: "History sessions: extreme history",
-    fixture: "extreme",
-    fixtureState: "history-sessions-extreme-v1",
+    name: "History sessions: compact density",
+    fixture: "compact",
+    fixtureState: "history-sessions-compact-v1",
     cardStates: [{ cardId: "history-session-latest", state: "selected", badgeText: "Latest" }],
+  }),
+  buildSimpleFixture({
+    id: "history-sessions-detailed",
+    route: "historySessions",
+    screen: "history-sessions",
+    family: "Session summaries",
+    name: "History sessions: detailed density",
+    fixture: "detailed",
+    fixtureState: "history-sessions-detailed-v1",
+    cardStates: [{ cardId: "history-session-detailed", state: "selected", badgeText: "Latest" }],
     detailedMode: { extraMetricCount: 4, analyticsSlotsReady: true },
   }),
   buildSimpleFixture({
@@ -605,13 +636,24 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 168 },
   }),
   buildSimpleFixture({
+    id: "history-exercises-compact",
+    route: "historyExercises",
+    screen: "history-exercises",
+    family: "Exercise cards",
+    name: "History exercises: compact density",
+    fixture: "compact",
+    fixtureState: "history-exercises-compact-v1",
+    libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 188 },
+    cardStates: [{ cardId: "history-exercise-compact", state: "default" }],
+  }),
+  buildSimpleFixture({
     id: "history-exercises-detailed",
     route: "historyExercises",
     screen: "history-exercises",
     family: "Exercise cards",
     name: "History exercises: detailed analytics",
     fixture: "detailed",
-    fixtureState: "history-exercises-detailed-v2",
+    fixtureState: "history-exercises-detailed-v3",
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 188 },
     cardStates: [{ cardId: "history-exercise-latest", state: "default" }],
     detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
@@ -638,19 +680,59 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     cardStates: [{ cardId: "settings-profile", state: "selected", badgeText: "Live" }],
   }),
   buildSimpleFixture({
-    id: "exercise-detail-broken-images",
+    id: "exercise-detail-strength",
     route: "exerciseDetail",
     screen: "exercise-detail",
     family: "Settings / detail",
-    name: "Exercise detail: broken images",
-    fixture: "broken-images",
-    fixtureState: "exercise-detail-broken-images-v1",
+    name: "Exercise detail: strength analytics",
+    fixture: "strength",
+    fixtureState: "exercise-detail-strength-v2",
     libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
-    cardStates: [{ cardId: "exercise-detail-primary", state: "default" }],
+    cardStates: [{ cardId: "exercise-detail-strength", state: "default" }],
     exerciseInfoLayout: {
       mediaFullyVisible: true,
       quickMetricCount: 4,
       hasProgressBlock: true,
+      hasRecentHistoryBlock: true,
+      sectionOrder: ["Overview", "Performance", "Progress", "Recent History"],
+      topSafePaddingRelaxed: true,
+    },
+  }),
+  buildSimpleFixture({
+    id: "exercise-detail-cardio",
+    route: "exerciseDetail",
+    screen: "exercise-detail",
+    family: "Settings / detail",
+    name: "Exercise detail: cardio analytics",
+    fixture: "cardio",
+    fixtureState: "exercise-detail-cardio-v2",
+    libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
+    cardStates: [{ cardId: "exercise-detail-cardio", state: "default" }],
+    exerciseInfoLayout: {
+      mediaFullyVisible: true,
+      quickMetricCount: 4,
+      hasProgressBlock: true,
+      hasRecentHistoryBlock: true,
+      sectionOrder: ["Overview", "Performance", "Progress", "Recent History"],
+      topSafePaddingRelaxed: true,
+    },
+  }),
+  buildSimpleFixture({
+    id: "exercise-detail-bodyweight",
+    route: "exerciseDetail",
+    screen: "exercise-detail",
+    family: "Settings / detail",
+    name: "Exercise detail: bodyweight analytics",
+    fixture: "bodyweight",
+    fixtureState: "exercise-detail-bodyweight-v1",
+    libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
+    cardStates: [{ cardId: "exercise-detail-bodyweight", state: "default" }],
+    exerciseInfoLayout: {
+      mediaFullyVisible: true,
+      quickMetricCount: 4,
+      hasProgressBlock: true,
+      hasRecentHistoryBlock: true,
+      sectionOrder: ["Overview", "Performance", "Progress", "Recent History"],
       topSafePaddingRelaxed: true,
     },
   }),
@@ -661,7 +743,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     family: "Settings / detail",
     name: "Exercise detail: long scroll bottom reach",
     fixture: "long-scroll",
-    fixtureState: "exercise-detail-long-scroll-v1",
+    fixtureState: "exercise-detail-long-scroll-v2",
     libraryCardTextLayout: { titleLineCount: 3, metadataColumnWidth: 156 },
     cardStates: [{ cardId: "exercise-detail-long-scroll", state: "default" }],
     captureScrollPosition: "bottom",
@@ -669,6 +751,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
       mediaFullyVisible: true,
       quickMetricCount: 4,
       hasProgressBlock: true,
+      hasRecentHistoryBlock: true,
+      sectionOrder: ["Overview", "Performance", "Progress", "Recent History"],
       topSafePaddingRelaxed: true,
     },
   }),
@@ -685,12 +769,12 @@ const defaultScenarioIdByScreen = {
   "create-routine": "create-routine",
   "edit-routine": "edit-routine",
   "add-exercise": "add-exercise-default",
-  history: "history-sessions-extreme",
-  "history-sessions": "history-sessions-extreme",
+  history: "history-sessions-compact",
+  "history-sessions": "history-sessions-compact",
   "history-exercises": "history-exercises-detailed",
   "history-detail": "history-detail-broken-images",
   settings: "settings-default",
-  "exercise-detail": "exercise-detail-broken-images",
+  "exercise-detail": "exercise-detail-strength",
 } as const;
 
 export function getMobileRegressionScenarioById(id?: string | null) {

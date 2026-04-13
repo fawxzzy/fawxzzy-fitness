@@ -12,7 +12,7 @@ export function ScrollContainer({ children, className, style }: ScrollContainerP
     <div
       data-app-scroll-container="true"
       className={cn(
-        "flex-1 min-h-0 min-w-0 max-w-full overflow-x-hidden overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] [overscroll-behavior-x:none]",
+        "hide-scrollbar flex-1 min-h-0 min-w-0 max-w-full overflow-x-hidden overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] [overscroll-behavior-x:none]",
         className,
       )}
       style={style}

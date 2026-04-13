@@ -11,14 +11,12 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 
-FAMILY_OUTPUTS = {
-    "Exercise cards": "exercise-cards-board.png",
-    "Session / logging": "session-logging-board.png",
-    "Session summaries": "session-summaries-board.png",
-    "Settings / detail": "settings-detail-board.png",
-}
-
-FAMILY_ORDER = list(FAMILY_OUTPUTS.keys())
+LEGACY_REVIEW_FAMILIES = [
+    {"family": "Exercise cards", "boardFile": "exercise-cards-board.png"},
+    {"family": "Session / logging", "boardFile": "session-logging-board.png"},
+    {"family": "Session summaries", "boardFile": "session-summaries-board.png"},
+    {"family": "Settings / detail", "boardFile": "settings-detail-board.png"},
+]
 
 BOARD_BACKGROUND = (8, 13, 18)
 CARD_BACKGROUND = (17, 24, 31)
@@ -57,6 +55,44 @@ def validate_manifest(manifest: object) -> dict:
     widths = manifest.get("widths")
     if not isinstance(widths, list) or not widths or any(not isinstance(width, int) or width <= 0 for width in widths):
         raise ValueError("Manifest widths must be a non-empty list of positive integers.")
+
+    review_families = manifest.get("reviewFamilies")
+    if review_families is not None:
+        if not isinstance(review_families, list) or not review_families:
+            raise ValueError("Manifest reviewFamilies must be a non-empty list when provided.")
+
+        seen_families: set[str] = set()
+        seen_board_files: set[str] = set()
+        for index, review_family in enumerate(review_families):
+            if not isinstance(review_family, dict):
+                raise ValueError(f"Manifest review family at index {index} must be an object.")
+
+            missing_review_family_fields = [field for field in ("family", "boardFile") if field not in review_family]
+            if missing_review_family_fields:
+                raise ValueError(
+                    "Manifest review family "
+                    + f"at index {index} missing required field(s): {', '.join(missing_review_family_fields)}"
+                )
+
+            family = review_family["family"]
+            board_file = review_family["boardFile"]
+
+            if not isinstance(family, str) or not family:
+                raise ValueError(f"Manifest review family at index {index} must define a non-empty family string.")
+
+            if not isinstance(board_file, str) or not board_file:
+                raise ValueError(
+                    f"Manifest review family {family} must define a non-empty boardFile string."
+                )
+
+            if family in seen_families:
+                raise ValueError(f"Manifest reviewFamilies contains duplicate family entries: {family}")
+
+            if board_file in seen_board_files:
+                raise ValueError(f"Manifest reviewFamilies contains duplicate boardFile entries: {board_file}")
+
+            seen_families.add(family)
+            seen_board_files.add(board_file)
 
     scenarios = manifest.get("scenarios")
     if not isinstance(scenarios, list):
@@ -109,6 +145,13 @@ def validate_manifest(manifest: object) -> dict:
                 )
 
     return manifest
+
+
+def review_families_from_manifest(manifest: dict) -> list[dict[str, str]]:
+    review_families = manifest.get("reviewFamilies")
+    if review_families is None:
+        return LEGACY_REVIEW_FAMILIES
+    return review_families
 
 
 def load_font(size: int) -> ImageFont.ImageFont:
@@ -249,12 +292,14 @@ def main() -> None:
     output_dir = manifest_path.parent
 
     scenarios = manifest["scenarios"]
+    review_families = review_families_from_manifest(manifest)
+    family_outputs = {review_family["family"]: review_family["boardFile"] for review_family in review_families}
     widths = ", ".join(f"{width}px" for width in manifest["widths"])
 
     if not scenarios:
         raise ValueError("Manifest contains no scenarios.")
 
-    unknown_families = sorted({scenario["family"] for scenario in scenarios if scenario["family"] not in FAMILY_OUTPUTS})
+    unknown_families = sorted({scenario["family"] for scenario in scenarios if scenario["family"] not in family_outputs})
     if unknown_families:
         raise ValueError(f"Manifest contains unknown review families: {', '.join(unknown_families)}")
 
@@ -262,7 +307,9 @@ def main() -> None:
     if extra_board.exists():
         extra_board.unlink()
 
-    for family, filename in FAMILY_OUTPUTS.items():
+    for review_family in review_families:
+        family = review_family["family"]
+        filename = review_family["boardFile"]
         family_scenarios = [scenario for scenario in scenarios if scenario["family"] == family]
         if not family_scenarios:
             continue
@@ -276,7 +323,8 @@ def main() -> None:
         )
 
     ordered_scenarios = []
-    for family in FAMILY_ORDER:
+    for review_family in review_families:
+        family = review_family["family"]
         ordered_scenarios.extend([scenario for scenario in scenarios if scenario["family"] == family])
     if len(ordered_scenarios) != len(scenarios):
         raise ValueError("Manifest scenario ordering dropped one or more scenarios.")

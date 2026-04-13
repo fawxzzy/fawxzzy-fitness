@@ -15,6 +15,13 @@ type EditDayExercise = {
   summary: string | null;
   iconSrc: string;
   orderNumber: number;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | null;
+  primary_muscle?: string | null;
+  equipment?: string | null;
+  movement_pattern?: string | null;
+  isCardio?: boolean | null;
+  kind?: string | null;
+  type?: string | null;
 };
 
 function buildGoalState(): ExerciseGoalFormState {
@@ -69,6 +76,13 @@ export function EditDayRegressionSurface({
               exerciseId={exercise.id}
               exerciseName={exercise.name}
               metadata={exercise.summary ?? "Goal missing"}
+              measurementType={exercise.measurementType}
+              primary_muscle={exercise.primary_muscle}
+              equipment={exercise.equipment}
+              movement_pattern={exercise.movement_pattern}
+              isCardio={exercise.isCardio}
+              kind={exercise.kind}
+              type={exercise.type}
               image_icon_path={exercise.iconSrc}
               orderNumber={index + 1}
               isDragging={index === 0}
@@ -107,6 +121,13 @@ export function EditDayRegressionSurface({
               name: parityExercise.name,
               summary: parityExercise.summary,
               orderNumber: parityExercise.orderNumber,
+              measurementType: parityExercise.measurementType,
+              primary_muscle: parityExercise.primary_muscle,
+              equipment: parityExercise.equipment,
+              movement_pattern: parityExercise.movement_pattern,
+              isCardio: parityExercise.isCardio,
+              kind: parityExercise.kind,
+              type: parityExercise.type,
               image_icon_path: parityExercise.iconSrc,
             }]}
           />
@@ -121,6 +142,13 @@ export function EditDayRegressionSurface({
               name: parityExercise.name,
               summary: parityExercise.summary,
               orderNumber: parityExercise.orderNumber,
+              measurementType: parityExercise.measurementType,
+              primary_muscle: parityExercise.primary_muscle,
+              equipment: parityExercise.equipment,
+              movement_pattern: parityExercise.movement_pattern,
+              isCardio: parityExercise.isCardio,
+              kind: parityExercise.kind,
+              type: parityExercise.type,
               image_icon_path: parityExercise.iconSrc,
             }]}
           />
@@ -128,13 +156,20 @@ export function EditDayRegressionSurface({
 
         <div className="space-y-1.5" data-mobile-regression-card-mode="reorder">
           <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">Reorder</p>
-          <ReorderExerciseRow
-            exerciseId={parityExercise.id}
-            exerciseName={parityExercise.name}
-            metadata={parityExercise.summary ?? "Goal missing"}
-            image_icon_path={parityExercise.iconSrc}
-            orderNumber={parityExercise.orderNumber}
-            isDragging={false}
+            <ReorderExerciseRow
+              exerciseId={parityExercise.id}
+              exerciseName={parityExercise.name}
+              metadata={parityExercise.summary ?? "Goal missing"}
+              measurementType={parityExercise.measurementType}
+              primary_muscle={parityExercise.primary_muscle}
+              equipment={parityExercise.equipment}
+              movement_pattern={parityExercise.movement_pattern}
+              isCardio={parityExercise.isCardio}
+              kind={parityExercise.kind}
+              type={parityExercise.type}
+              image_icon_path={parityExercise.iconSrc}
+              orderNumber={parityExercise.orderNumber}
+              isDragging={false}
             onHandlePointerDown={() => {}}
             onHandlePointerMove={() => {}}
             onHandlePointerUp={() => {}}
@@ -150,6 +185,13 @@ export function EditDayRegressionSurface({
     name: exercise.name,
     summary: exercise.summary,
     orderNumber: exercise.orderNumber,
+    measurementType: exercise.measurementType,
+    primary_muscle: exercise.primary_muscle,
+    equipment: exercise.equipment,
+    movement_pattern: exercise.movement_pattern,
+    isCardio: exercise.isCardio,
+    kind: exercise.kind,
+    type: exercise.type,
     image_icon_path: exercise.iconSrc,
   }));
 

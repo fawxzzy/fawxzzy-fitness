@@ -7,6 +7,8 @@ import path from "node:path";
 import test, { type TestContext } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { mobileRegressionBoardFamilies } from "../../src/features/mobile-regression/fixtures.ts";
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const boardBuilderScript = path.join(repoRoot, "scripts", "build-mobile-regression-boards.py");
 
@@ -18,7 +20,7 @@ const expectedBoardHashes = {
   "mega-board.png": "a1de977b9976087b39271fa32d3ec72f6771530d163bda814a85182a00c3cc1a",
 } as const;
 
-const boardNames = Object.keys(expectedBoardHashes);
+const boardNames = [...mobileRegressionBoardFamilies.map((reviewFamily) => reviewFamily.boardFile), "mega-board.png"];
 
 const scenarioFixtures = [
   {
@@ -174,6 +176,10 @@ function buildManifest(scenarios = scenarioFixtures) {
     baseUrl: "http://127.0.0.1:3000",
     viewportHeight: 852,
     widths: [360, 420],
+    reviewFamilies: mobileRegressionBoardFamilies.map((reviewFamily) => ({
+      family: reviewFamily.family,
+      boardFile: reviewFamily.boardFile,
+    })),
     scenarios: scenarios.map(({ captures, ...scenario }) => ({
       ...scenario,
       captures: captures.map(({ width, file }) => ({ width, file })),
@@ -260,6 +266,10 @@ test("board builder rejects malformed manifests before rendering", async (t) => 
     baseUrl: "http://127.0.0.1:3000",
     viewportHeight: 852,
     widths: [360],
+    reviewFamilies: mobileRegressionBoardFamilies.map((reviewFamily) => ({
+      family: reviewFamily.family,
+      boardFile: reviewFamily.boardFile,
+    })),
     scenarios: [
       {
         id: "malformed-one",
@@ -275,6 +285,25 @@ test("board builder rejects malformed manifests before rendering", async (t) => 
   const result = await runBoardBuilder(manifestPath);
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /Manifest scenario malformed-one missing required field\(s\): family/);
+});
+
+test("board builder rejects malformed review-family output mappings", async (t) => {
+  const fixtureRoot = await makeFixtureRoot(t);
+  const manifestPath = path.join(fixtureRoot, "manifest.json");
+
+  await writeManifest(fixtureRoot, {
+    generatedAt: "2026-04-11T00:00:00.000Z",
+    baseUrl: "http://127.0.0.1:3000",
+    viewportHeight: 852,
+    widths: [360, 420],
+    reviewFamilies: [{ family: "Exercise cards" }],
+    scenarios: buildManifest([scenarioFixtures[0]]).scenarios,
+  });
+  await writeSyntheticCaptures(fixtureRoot, [scenarioFixtures[0]]);
+
+  const result = await runBoardBuilder(manifestPath);
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /Manifest review family at index 0 missing required field\(s\): boardFile/);
 });
 
 test("board builder rejects unknown review families", async (t) => {

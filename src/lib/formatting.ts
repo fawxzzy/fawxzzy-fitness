@@ -33,7 +33,7 @@ export function formatSetDisplay(set: { weight?: number | null; reps?: number | 
   const reps = Number.isFinite(set.reps ?? null) && (set.reps ?? 0) > 0 ? Math.floor(set.reps as number) : null;
 
   if (weightLabel && reps) {
-    return `${weightLabel.split(" ")[0]} × ${reps}`;
+    return `${weightLabel} x ${reps}`;
   }
 
   if (reps) return `${reps} reps`;

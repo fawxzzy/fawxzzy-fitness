@@ -74,7 +74,7 @@ export async function login(formData: FormData) {
   }
 
   setSessionCookies(data.session);
-  redirect("/today");
+  redirect("/entry");
 }
 
 export async function signup(formData: FormData) {
@@ -96,7 +96,7 @@ export async function signup(formData: FormData) {
 
   if (data.session) {
     setSessionCookies(data.session);
-    redirect("/today");
+    redirect("/entry");
   }
 
   redirect(`/signup?info=${encodeURIComponent("Check your email to confirm your account.")}`);

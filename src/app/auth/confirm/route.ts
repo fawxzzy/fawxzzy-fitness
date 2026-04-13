@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(confirmedRedirect);
   }
 
-  const redirectPath = isRecoveryFlow ? "/reset-password" : next || "/today";
+  const redirectPath = isRecoveryFlow ? "/reset-password" : next || "/entry";
 
   const response = NextResponse.redirect(new URL(redirectPath, request.url));
   response.cookies.set("sb-access-token", session.access_token, {

@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
+import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
+import { buildExerciseIdentityChips, buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 
 type TodayExerciseRow = {
   id: string;
@@ -19,14 +20,25 @@ type TodayExerciseRow = {
   isSkipped?: boolean;
   targetSetsMin?: number | null;
   targetSetsMax?: number | null;
+  primary_muscle?: string | null;
+  equipment?: string | null;
+  movement_pattern?: string | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  isCardio?: boolean | null;
+  kind?: string | null;
+  type?: string | null;
+  tags?: string[] | string | null;
+  categories?: string[] | string | null;
 };
 
 export function TodayExerciseRows({
   exercises,
   emptyMessage,
+  density = "compact",
 }: {
   exercises: TodayExerciseRow[];
   emptyMessage: string;
+  density?: "compact" | "detailed";
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
@@ -40,14 +52,41 @@ export function TodayExerciseRows({
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
           });
+          const identityChips = buildExerciseIdentityChips({
+            measurementType: exercise.measurement_type,
+            isCardio: exercise.isCardio,
+            kind: exercise.kind,
+            type: exercise.type,
+            equipment: exercise.equipment,
+            movementPattern: exercise.movement_pattern,
+            primaryMuscle: exercise.primary_muscle,
+            tags: exercise.tags,
+            categories: exercise.categories,
+          });
+          const detailedMetrics = buildPlannedExerciseDetailMetrics({
+            measurementType: exercise.measurement_type,
+            isCardio: exercise.isCardio,
+            kind: exercise.kind,
+            type: exercise.type,
+            equipment: exercise.equipment,
+            movementPattern: exercise.movement_pattern,
+            primaryMuscle: exercise.primary_muscle,
+            tags: exercise.tags,
+            categories: exercise.categories,
+            loggedSetCount: exercise.loggedSetCount ?? 0,
+            isSkipped: exercise.isSkipped === true,
+            targetSetsMin: exercise.targetSetsMin,
+            targetSetsMax: exercise.targetSetsMax,
+          });
 
           return (
             <li key={exercise.id}>
               <StandardExerciseRow
                 exercise={exercise}
                 summary={exercise.targets}
+                summaryLabel="Goal"
                 variant="interactive"
-                density="compact"
+                density={density}
                 state={cardVariantState.cardState}
                 badgeText={cardVariantState.badgeText}
                 onPress={() => {
@@ -57,7 +96,11 @@ export function TodayExerciseRows({
                   setSelectedExerciseId(exercise.exerciseId);
                 }}
               >
-                <WorkoutExerciseRowChips chips={cardVariantState.chips} progressLabel={cardVariantState.progressLabel} />
+                <WorkoutExerciseCardDetails
+                  density={density}
+                  chips={identityChips}
+                  detailedMetrics={detailedMetrics}
+                />
               </StandardExerciseRow>
             </li>
           );

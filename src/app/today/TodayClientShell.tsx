@@ -3,17 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
-import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ContentRail } from "@/components/layout/ContentRail";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { WorkoutExerciseRowChips } from "@/components/session/WorkoutExerciseRowChips";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
-import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 
 type TodayPayload = {
@@ -60,7 +57,6 @@ export function TodayClientShell({
   fetchFailed: boolean;
 }) {
   const [cachedSnapshot, setCachedSnapshot] = useState<TodayCacheSnapshot | null>(null);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -146,48 +142,13 @@ export function TodayClientShell({
             </AccentSubtitleText>
           ) : null}
 
-          <ul className="space-y-1.5">
-            {display.exercises.map((exercise) => {
-              const cardVariantState = deriveReadOnlyExercisePresentation({
-                loggedSetCount: exercise.loggedSetCount ?? 0,
-                isSkipped: exercise.isSkipped === true,
-                targetSetsMin: exercise.targetSetsMin,
-                targetSetsMax: exercise.targetSetsMax,
-              });
-
-              return (
-                <li key={exercise.id}>
-                  <StandardExerciseRow
-                    exercise={exercise}
-                    variant="interactive"
-                    density="compact"
-                    summary={exercise.targets}
-                    state={cardVariantState.cardState}
-                    badgeText={cardVariantState.badgeText}
-                    onPress={() => {
-                      const canonicalExerciseId = "exerciseId" in exercise && exercise.exerciseId ? exercise.exerciseId : exercise.id;
-                      if (process.env.NODE_ENV === "development") {
-                        console.debug("[ExerciseInfo:open] TodayClientShell", {
-                          exerciseId: canonicalExerciseId,
-                          exercise: {
-                            id: exercise.id,
-                            exerciseId: "exerciseId" in exercise ? exercise.exerciseId : undefined,
-                            name: exercise.name,
-                          },
-                        });
-                      }
-                      setSelectedExerciseId(canonicalExerciseId);
-                    }}
-                  >
-                    <WorkoutExerciseRowChips chips={cardVariantState.chips} progressLabel={cardVariantState.progressLabel} />
-                  </StandardExerciseRow>
-                </li>
-              );
-            })}
-            {display.exercises.length === 0 ? (
-              <li className="rounded-2xl border border-white/8 bg-[rgb(var(--surface-rgb)/0.42)] px-3 py-3"><SubtitleText>{display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}</SubtitleText></li>
-            ) : null}
-          </ul>
+          <TodayExerciseRows
+            exercises={display.exercises.map((exercise) => ({
+              ...exercise,
+              exerciseId: exercise.exerciseId ?? exercise.id,
+            }))}
+            emptyMessage={display.routine.isRest ? "Rest day active. Exercises stay saved and hidden until rest mode is turned off." : "No exercises today."}
+          />
 
           {display.inProgressSessionId ? (
             <TodayStartButton
@@ -203,20 +164,6 @@ export function TodayClientShell({
             </SubtitleText>
           )}
         </SharedSectionShell>
-
-        <ExerciseInfo
-          exerciseId={selectedExerciseId}
-          open={Boolean(selectedExerciseId)}
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelectedExerciseId(null);
-            }
-          }}
-          onClose={() => {
-            setSelectedExerciseId(null);
-          }}
-          sourceContext="TodayClientShell"
-        />
       </ScreenScaffold>
     </ContentRail>
   );

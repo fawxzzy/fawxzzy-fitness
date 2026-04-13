@@ -69,7 +69,7 @@ export function MobileScreenShell({
 
   return (
     <BottomActionsProvider>
-      <section className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden", className)}>
+      <section className={cn("relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-hidden", className)}>
         {hasTopChrome ? <div className="z-30 flex-none pt-[var(--app-top-nav-safe-top,var(--app-safe-top))]">{topChrome}</div> : null}
         {hasFloatingHeader ? (
           <div
@@ -85,12 +85,17 @@ export function MobileScreenShell({
 
         <ScrollContainer
           className={cn("min-h-0 flex-1", scrollClassName)}
-          style={{ "--app-mobile-bottom-dock-height": `${dockHeight}px` } as CSSProperties}
+          style={{
+            "--bottom-actions-height": `${dockHeight}px`,
+            "--app-mobile-bottom-dock-height": `${dockHeight}px`,
+            "--app-mobile-dock-clearance-gap": dockHeight > 0 ? "12px" : "0px",
+            paddingBottom: "calc(var(--app-mobile-bottom-dock-height,0px) + var(--app-mobile-dock-clearance-gap,0px))",
+          } as CSSProperties}
         >
           <div
             ref={scrollContentRef}
             className={cn(
-              "min-w-0 max-w-full overflow-x-hidden pb-[calc(var(--app-mobile-bottom-dock-height,0px)+var(--app-mobile-dock-clearance-gap,0px))]",
+              "min-w-0 max-w-full overflow-x-hidden",
               shouldApplyTopChromeContentGap ? "pt-[var(--app-top-chrome-content-gap,8px)]" : "",
             )}
           >
@@ -98,7 +103,10 @@ export function MobileScreenShell({
           </div>
         </ScrollContainer>
 
-        <div ref={dockRef} className="z-40 flex-none">
+        <div
+          ref={dockRef}
+          className="z-40 flex-none border-t border-white/6 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.82)_0%,rgba(var(--bg-app),0.95)_22%,rgba(var(--bg-app),0.995)_100%)] shadow-[0_-10px_24px_rgba(0,0,0,0.22)] backdrop-blur-[12px]"
+        >
           {bottomDock ? bottomDock : <BottomActionsSlot />}
         </div>
       </section>

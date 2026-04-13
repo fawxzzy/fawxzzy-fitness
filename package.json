@@ -9,6 +9,7 @@
     "rebuild:clean": "npm run clean:next && npm run build",
     "start": "next start",
     "qa:screenshot": "node .codex/qa/cdp-edge.mjs",
+    "qa:ui-pass": "node scripts/qa-ui-pass.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
     "qa:boards": "python scripts/build-mobile-regression-boards.py",
     "lint": "next lint",
@@ -46,7 +47,7 @@
     "verify:strict": "npm run lint && npm run build",
     "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs",
     "test:session-set-count": "node --test src/components/session/setCountSync.test.ts",
-    "test:mobile-regression-fixtures": "node --test tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts"
+    "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/workout-card-view-models.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
