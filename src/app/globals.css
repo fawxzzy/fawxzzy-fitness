@@ -174,6 +174,8 @@
   --exercise-row-shell-padding-y-detailed: 0.9375rem;
   --exercise-row-min-height-compact: 5.75rem;
   --exercise-row-min-height-detailed: 7rem;
+  --exercise-row-media-size-compact: 3.75rem;
+  --exercise-row-media-size-detailed: 4.5rem;
   --exercise-row-media-width-compact: 3.5rem;
   --exercise-row-media-width-detailed: 4.1rem;
   --exercise-row-media-min-height-compact: 4.15rem;

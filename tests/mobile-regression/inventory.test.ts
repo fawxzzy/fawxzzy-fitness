@@ -10,7 +10,7 @@ test("fixture inventory covers all mobile screens from the pre-fix set", () => {
   }
 
   assert.equal(byRoute.get("today"), 5);
-  assert.equal(byRoute.get("session"), 1);
+  assert.equal(byRoute.get("session"), 2);
   assert.equal(byRoute.get("routines"), 2);
   assert.equal(byRoute.get("viewDay"), 3);
   assert.equal(byRoute.get("editDay"), 7);
@@ -18,7 +18,7 @@ test("fixture inventory covers all mobile screens from the pre-fix set", () => {
   assert.equal(byRoute.get("editRoutine"), 1);
   assert.equal(byRoute.get("addExercise"), 1);
   assert.equal(byRoute.get("historySessions"), 2);
-  assert.equal(byRoute.get("historyExercises"), 3);
+  assert.equal(byRoute.get("historyExercises"), 5);
   assert.equal(byRoute.get("historyDetail"), 1);
   assert.equal(byRoute.get("settings"), 1);
   assert.equal(byRoute.get("exerciseDetail"), 4);

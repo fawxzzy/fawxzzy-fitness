@@ -18,8 +18,13 @@ import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
-import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import {
+  createEditDayExerciseDraft,
+  formatEditDayExerciseDraftSummary,
+  resolveEditDayExercisePreview,
+  type EditDayExerciseDraft,
+} from "@/lib/edit-day-exercise-draft";
 import { NORMALIZED_ACTION_LABELS } from "@/lib/action-labels";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
@@ -86,56 +91,25 @@ function clampOrderValue(rawValue: number, listLength: number) {
   return normalized;
 }
 
-function formatDuration(seconds: number | null | undefined) {
-  if (seconds === null || seconds === undefined) return "";
-  if (seconds < 60) return String(seconds);
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  return `${minutes}:${String(remainder).padStart(2, "0")}`;
-}
-
 function resolveInlineModality(measurementType: "reps" | "time" | "distance" | "time_distance", equipment: string | null): GoalModality {
   return resolveGoalModality({ measurementType, equipment, tags: undefined });
 }
 
 function RoutineTargetInputs({
-  weightUnit,
-  distanceUnit,
-  defaultSets,
-  defaults,
+  state,
+  onStateChange,
   modality,
 }: {
-  weightUnit: "lbs" | "kg";
-  distanceUnit: "mi" | "km" | "m";
-  defaultSets: number;
-  defaults: EditableRoutineDayExerciseItem["defaults"];
+  state: ExerciseGoalFormState;
+  onStateChange: (next: ExerciseGoalFormState) => void;
   modality: GoalModality;
 }) {
-  const [state, setState] = useState<ExerciseGoalFormState>({
-    sets: String(defaultSets),
-    repsMin: String(defaults.targetRepsMin ?? defaults.targetReps ?? ""),
-    repsMax: String(defaults.targetRepsMax ?? ""),
-    weight: String(defaults.targetWeight ?? ""),
-    duration: formatDuration(defaults.targetDurationSeconds),
-    distance: String(defaults.targetDistance ?? ""),
-    calories: String(defaults.targetCalories ?? ""),
-    weightUnit: defaults.targetWeightUnit ?? weightUnit,
-    distanceUnit: defaults.targetDistanceUnit ?? distanceUnit,
-    measurements: [
-      ...(defaults.targetRepsMin != null || defaults.targetRepsMax != null || defaults.targetReps != null ? ["reps" as const] : []),
-      ...(defaults.targetWeight != null ? ["weight" as const] : []),
-      ...(defaults.targetDurationSeconds != null ? ["time" as const] : []),
-      ...(defaults.targetDistance != null ? ["distance" as const] : []),
-      ...(defaults.targetCalories != null ? ["calories" as const] : []),
-    ],
-  });
-
   return (
     <div className="space-y-3">
       <SharedExerciseGoalForm
         modality={modality}
         state={state}
-        onStateChange={setState}
+        onStateChange={onStateChange}
         names={{
           sets: "targetSets",
           repsMin: "targetRepsMin",
@@ -177,6 +151,7 @@ export function EditableRoutineDayExerciseList({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [autosaveError, setAutosaveError] = useState<string | null>(null);
+  const [draftsById, setDraftsById] = useState<Record<string, EditDayExerciseDraft>>({});
   const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeEditFormRef = useRef<HTMLFormElement | null>(null);
   const pendingSnapshotRef = useRef<string | null>(null);
@@ -191,6 +166,12 @@ export function EditableRoutineDayExerciseList({
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  useEffect(() => {
+    setDraftsById((current) => Object.fromEntries(
+      Object.entries(current).filter(([exerciseId]) => exercises.some((exercise) => exercise.id === exerciseId)),
+    ));
+  }, [exercises]);
 
   useEffect(() => {
     setIsRestDay(initialIsRest);
@@ -417,6 +398,29 @@ export function EditableRoutineDayExerciseList({
     () => items.find((exercise) => exercise.id === expandedId) ?? null,
     [expandedId, items],
   );
+  const buildExerciseDraft = useCallback((exercise: EditableRoutineDayExerciseItem) => createEditDayExerciseDraft({
+    defaults: exercise.defaults,
+    weightUnit,
+    distanceUnit: exercise.defaultDistanceUnit,
+    orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
+    modality: resolveInlineModality(exercise.measurementType, exercise.equipment),
+  }), [canonicalOrderById, weightUnit]);
+  const getExerciseDraft = useCallback(
+    (exercise: EditableRoutineDayExerciseItem) => draftsById[exercise.id] ?? buildExerciseDraft(exercise),
+    [buildExerciseDraft, draftsById],
+  );
+  const updateExerciseDraft = useCallback(
+    (exercise: EditableRoutineDayExerciseItem, updater: (draft: EditDayExerciseDraft) => EditDayExerciseDraft) => {
+      setDraftsById((current) => {
+        const baseDraft = current[exercise.id] ?? buildExerciseDraft(exercise);
+        return {
+          ...current,
+          [exercise.id]: updater(baseDraft),
+        };
+      });
+    },
+    [buildExerciseDraft],
+  );
   const hasExercises = items.length > 0;
   const visibleItems = useMemo(() => {
     if (!editModeActive || !expandedId) return items;
@@ -602,10 +606,14 @@ export function EditableRoutineDayExerciseList({
           <DayDetailExerciseList
             mode="editable"
             items={visibleItems.map((exercise) => ({
+              ...resolveEditDayExercisePreview({
+                savedSummary: exercise.targetSummary,
+                savedOrderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
+                draft: expandedId === exercise.id ? getExerciseDraft(exercise) : null,
+                listLength: items.length,
+              }),
               id: exercise.id,
               name: exercise.name,
-              summary: exercise.targetSummary,
-              orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
               measurementType: exercise.measurementType,
               primary_muscle: exercise.primary_muscle,
               equipment: exercise.equipment,
@@ -629,6 +637,7 @@ export function EditableRoutineDayExerciseList({
               if (!exercise) return null;
               const isExpanded = expandedId === exercise.id;
               if (!isExpanded) return null;
+              const draft = getExerciseDraft(exercise);
               return (
                 <form
                   ref={(node) => {
@@ -647,6 +656,7 @@ export function EditableRoutineDayExerciseList({
                           if (autosaveTimeoutRef.current) clearTimeout(autosaveTimeoutRef.current);
                           if (result.ok) {
                             const snapshot = pendingSnapshotRef.current ?? createDraftSnapshot(formData);
+                            const submittedDraft = getExerciseDraft(exercise);
                             lastSavedSnapshotRef.current[exercise.id] = snapshot;
                             pendingSnapshotRef.current = null;
                             const targetSets = Number(formData.get("targetSets") ?? exercise.defaults.targetSets ?? 1);
@@ -671,24 +681,24 @@ export function EditableRoutineDayExerciseList({
                                 ? Number(durationRaw.split(":")[0]) * 60 + Number(durationRaw.split(":")[1])
                                 : Number(durationRaw))
                               : null;
-                            const summary = formatGoalInlineSummaryText({
-                              sets: Number.isFinite(targetSets) ? targetSets : null,
-                              reps: measurementSelections.has("reps") ? targetRepsMin : null,
-                              repsMax: measurementSelections.has("reps") ? targetRepsMax : null,
-                              weight: measurementSelections.has("weight") ? targetWeight : null,
-                              durationSeconds: measurementSelections.has("time") && Number.isFinite(durationSeconds) ? durationSeconds : null,
-                              distance: measurementSelections.has("distance") ? targetDistance : null,
-                              calories: measurementSelections.has("calories") ? targetCalories : null,
-                              weightUnit: targetWeightUnit,
-                              distanceUnit: targetDistanceUnit,
-                              emptyLabel: "Goal missing",
-                            });
+                            const summary = formatEditDayExerciseDraftSummary(submittedDraft);
                             updateLocalItem(exercise.id, (item) => ({
                               ...item,
                               targetSummary: summary,
                               defaults: {
                                 ...item.defaults,
-                                targetSets,
+                                targetSets: Number.isFinite(targetSets) ? targetSets : null,
+                                targetReps: measurementSelections.has("reps") ? targetRepsMin : null,
+                                targetRepsMin: measurementSelections.has("reps") ? targetRepsMin : null,
+                                targetRepsMax: measurementSelections.has("reps") ? targetRepsMax : null,
+                                targetWeight: measurementSelections.has("weight") ? targetWeight : null,
+                                targetWeightUnit: measurementSelections.has("weight") ? (targetWeightUnit === "kg" ? "kg" : "lbs") : null,
+                                targetDurationSeconds: measurementSelections.has("time") && Number.isFinite(durationSeconds) ? durationSeconds : null,
+                                targetDistance: measurementSelections.has("distance") ? targetDistance : null,
+                                targetDistanceUnit: measurementSelections.has("distance")
+                                  ? (targetDistanceUnit === "km" || targetDistanceUnit === "m" ? targetDistanceUnit : "mi")
+                                  : null,
+                                targetCalories: measurementSelections.has("calories") ? targetCalories : null,
                               },
                             }));
                             const manualOrderValue = Number(formData.get("manualOrder") ?? canonicalOrderById.get(exercise.id) ?? 1);
@@ -715,15 +725,20 @@ export function EditableRoutineDayExerciseList({
                       min={1}
                       max={items.length}
                       inputMode="numeric"
-                      defaultValue={canonicalOrderById.get(exercise.id) ?? 1}
+                      value={draft.manualOrder}
+                      onChange={(event) => updateExerciseDraft(exercise, (current) => ({
+                        ...current,
+                        manualOrder: event.target.value,
+                      }))}
                       className="h-10 w-full rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3 text-sm text-text outline-none transition focus:border-[rgb(var(--button-primary-border)/0.5)] focus:ring-2 focus:ring-[rgb(var(--button-primary-border)/0.22)]"
                     />
                   </div>
                   <RoutineTargetInputs
-                    weightUnit={weightUnit}
-                    distanceUnit={exercise.defaultDistanceUnit}
-                    defaultSets={exercise.defaults.targetSets ?? 1}
-                    defaults={exercise.defaults}
+                    state={draft.goalState}
+                    onStateChange={(nextState) => updateExerciseDraft(exercise, (current) => ({
+                      ...current,
+                      goalState: nextState,
+                    }))}
                     modality={resolveInlineModality(exercise.measurementType, exercise.equipment)}
                   />
                   {autosaveError ? <p className="text-xs text-[rgb(var(--accent-red))]">{autosaveError}</p> : null}
@@ -756,6 +771,10 @@ export function EditableRoutineDayExerciseList({
           }
           setDeleteConfirmOpen(false);
           setItems((current) => current.filter((item) => item.id !== activeExercise.id));
+          setDraftsById((current) => {
+            const { [activeExercise.id]: _deletedDraft, ...remainingDrafts } = current;
+            return remainingDrafts;
+          });
           setExpandedId(null);
           toast.success("Exercise removed.");
         }}

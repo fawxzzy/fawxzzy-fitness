@@ -6,6 +6,7 @@ import {
   buildExerciseIdentityChips,
   buildHistoryExerciseCardViewModel,
   buildPlannedExerciseDetailMetrics,
+  resolveWorkoutCardPresentationKind,
   buildStrengthVolumeMetric,
   mergeWorkoutCardChips,
 } from "./workout-card-view-models.ts";
@@ -71,6 +72,38 @@ test("buildExerciseIdentityChips falls back to primary muscle when metadata is s
   });
 
   assert.deepEqual(chips.map((chip) => chip.label), ["Strength", "Barbell", "Quads"]);
+});
+
+test("buildExerciseIdentityChips stays empty when no identity signal exists", () => {
+  const chips = buildExerciseIdentityChips({});
+
+  assert.deepEqual(chips, []);
+});
+
+test("resolveWorkoutCardPresentationKind keeps cardio, bodyweight, and timed buckets distinct", () => {
+  assert.equal(resolveWorkoutCardPresentationKind({
+    measurementType: "reps",
+    equipment: "Barbell",
+    movementPattern: "Squat",
+  }), "strength");
+
+  assert.equal(resolveWorkoutCardPresentationKind({
+    measurementType: "time_distance",
+    primaryMuscle: "Cardio",
+    equipment: "Treadmill",
+  }), "cardio");
+
+  assert.equal(resolveWorkoutCardPresentationKind({
+    measurementType: "reps",
+    equipment: "Bodyweight",
+    movementPattern: "Vertical Pull",
+  }), "bodyweight");
+
+  assert.equal(resolveWorkoutCardPresentationKind({
+    measurementType: "time",
+    equipment: "Bodyweight",
+    movementPattern: "Brace",
+  }), "timed");
 });
 
 test("mergeWorkoutCardChips dedupes labels and respects the shared max-chip cap", () => {

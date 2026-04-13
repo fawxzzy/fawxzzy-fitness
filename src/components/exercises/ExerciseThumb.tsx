@@ -2,7 +2,7 @@
 
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { cn } from "@/lib/cn";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
+import { getExerciseIconSrc, isPlaceholderExerciseIconSrc } from "@/lib/exerciseImages";
 
 type ExerciseThumbProps = {
   exercise: {
@@ -48,12 +48,18 @@ export function ExerciseThumb({
   imageClassName,
   sizes = "(max-width: 768px) 40vw, 160px",
 }: ExerciseThumbProps) {
+  const iconSrc = getExerciseIconSrc(exercise);
+
+  if (isPlaceholderExerciseIconSrc(iconSrc)) {
+    return <ThumbFallback />;
+  }
+
   return (
     <ExerciseAssetImage
-      src={getExerciseIconSrc(exercise)}
+      src={iconSrc}
       alt={alt ?? `${exercise.name} icon`}
       className={cn("h-full w-full", className)}
-      imageClassName={cn("object-cover object-center", imageClassName)}
+      imageClassName={cn("object-contain object-center p-2", imageClassName)}
       sizes={sizes}
       fallback={<ThumbFallback />}
     />

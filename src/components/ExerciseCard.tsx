@@ -35,8 +35,8 @@ const densityStyles: Record<ExerciseCardDensity, {
 }> = {
   compact: {
     shell: "min-h-[var(--exercise-row-min-height-compact)] px-[var(--exercise-row-shell-padding-x)] py-[var(--exercise-row-shell-padding-y-compact)]",
-    media: "h-full w-full",
-    mediaFrame: "-my-[var(--exercise-row-shell-padding-y-compact)] -ml-[var(--exercise-row-shell-padding-x)] mr-0.5 w-[var(--exercise-row-media-width-compact)] min-h-[var(--exercise-row-media-min-height-compact)] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[var(--exercise-row-media-radius-compact)]",
+    media: "grid h-full w-full place-items-center rounded-[calc(var(--exercise-row-media-radius-compact)-0.12rem)] bg-[rgb(var(--surface-1-rgb)/0.44)] p-1.5",
+    mediaFrame: "mr-0.5 mt-0.5 h-[var(--exercise-row-media-size-compact)] w-[var(--exercise-row-media-size-compact)] self-start rounded-[var(--exercise-row-media-radius-compact)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-2",
     titleSize: "text-[0.98rem]",
@@ -46,8 +46,8 @@ const densityStyles: Record<ExerciseCardDensity, {
   },
   detailed: {
     shell: "min-h-[var(--exercise-row-min-height-detailed)] px-[var(--exercise-row-shell-padding-x)] py-[var(--exercise-row-shell-padding-y-detailed)]",
-    media: "h-full w-full",
-    mediaFrame: "-my-[var(--exercise-row-shell-padding-y-detailed)] -ml-[var(--exercise-row-shell-padding-x)] mr-1 w-[var(--exercise-row-media-width-detailed)] min-h-[var(--exercise-row-media-min-height-detailed)] rounded-l-[calc(var(--card-radius)-1px)] rounded-r-[var(--exercise-row-media-radius-detailed)]",
+    media: "grid h-full w-full place-items-center rounded-[calc(var(--exercise-row-media-radius-detailed)-0.12rem)] bg-[rgb(var(--surface-1-rgb)/0.46)] p-2",
+    mediaFrame: "mr-0.5 mt-0.5 h-[var(--exercise-row-media-size-detailed)] w-[var(--exercise-row-media-size-detailed)] self-start rounded-[var(--exercise-row-media-radius-detailed)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
@@ -201,7 +201,7 @@ export function ExerciseCard({
       {leadingVisual ? (
         <div
           className={cn(
-            "relative shrink-0 self-stretch overflow-hidden border p-0 transition-colors",
+            "relative shrink-0 overflow-hidden border p-0 transition-colors",
             styles.mediaFrame,
             thumbStateClassNames[state],
             cardMediaToneClassNames[resolvedSemanticTone],

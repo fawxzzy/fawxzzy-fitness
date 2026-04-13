@@ -5389,3 +5389,18 @@ WHY:
 
 * The prior login still read like a generic SaaS form instead of a Fawxzzy Fitness entry point.
 * Lightweight readiness feedback and remembered-user context make auth feel faster and more specific to the product without adding extra steps or gimmicks.
+## [v0.4.42] - UI: normalize workout card media, taxonomy, and disclosure behavior
+
+### WHAT
+
+* Removed list-card media from Today, Current Session, View Day, Edit Day, Reorder, and history detail rows so dense workout surfaces now stay text-first with the goal row always visible.
+* Rebuilt shared card media rendering around a fixed contained tile with a padded frame and placeholder-to-badge fallback, then limited list-card media to compact browser/picker contexts where the asset can remain fully visible.
+* Moved session and edit-day expand/collapse rows onto one shared disclosure contract and component, while routing dense-card chip/media decisions through a shared surface-policy helper instead of route-local conditions.
+* Fixed shared workout taxonomy resolution so cardio uses real metadata signals, timed holds do not collapse into cardio, empty metadata no longer invents a `Strength` chip, and modality chips stay neutral instead of giving cardio a one-off green treatment.
+* Extended the mobile regression harness with expanded-session, cardio-taxonomy, and media-fallback scenarios plus shared selector/disclosure policy tests.
+
+### WHY
+
+* The previous card system was trying to show too many optional ingredients on every surface, which made dense workout lists feel cramped and inconsistent.
+* Media only helps when it is intentional and readable; contained tiles plus surface gating are safer than cropped thumbnails on utility-first workout rows.
+* Disclosure, taxonomy, and card-density behavior need to come from shared contracts so View/Edit Day and Current Session cannot drift independently on future UI passes.

@@ -2,6 +2,7 @@ import type { SessionSummary } from "@/app/history/session-summary";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
+import { isCardioExercise } from "@/lib/exercise-metadata";
 import { formatDistance, formatDurationShort as formatWorkoutDuration, formatPace, positive } from "@/lib/exercise-stats-formatting";
 import { formatCount, formatDateShort, formatDurationShort, formatSetDisplay, formatWeight } from "@/lib/formatting";
 
@@ -135,22 +136,55 @@ function resolveStrengthPresentationKind(row: {
   return "strength" as const;
 }
 
-function resolveExplicitPresentationKind(args: ExerciseIdentityChipArgs): WorkoutCardPresentationKind {
+function hasBodyweightToken(value: string) {
+  return value === "bodyweight" || value === "body weight" || value === "calisthenics" || value === "gymnastics";
+}
+
+function resolveExplicitPresentationKind(args: ExerciseIdentityChipArgs): WorkoutCardPresentationKind | null {
   const normalizedMeasurementType = resolvePrimaryTag(args.measurementType);
   const normalizedKind = resolvePrimaryTag(args.kind);
   const normalizedType = resolvePrimaryTag(args.type);
+  const normalizedEquipment = resolvePrimaryTag(args.equipment);
+  const normalizedMovementPattern = resolvePrimaryTag(args.movementPattern);
+  const normalizedPrimaryMuscle = resolvePrimaryTag(args.primaryMuscle);
   const normalizedTags = new Set([
     ...normalizeTagArray(args.tags),
     ...normalizeTagArray(args.categories),
     normalizedKind,
     normalizedType,
-    resolvePrimaryTag(args.equipment),
+    normalizedEquipment,
+    normalizedMovementPattern,
+    normalizedPrimaryMuscle,
   ].filter(Boolean));
+  const hasIdentitySignal = Boolean(
+    args.isCardio
+    || normalizedMeasurementType
+    || normalizedKind
+    || normalizedType
+    || normalizedEquipment
+    || normalizedMovementPattern
+    || normalizedPrimaryMuscle
+    || normalizedTags.size > 0,
+  );
+
+  if (!hasIdentitySignal) {
+    return null;
+  }
 
   if (
-    args.isCardio
-    || normalizedKind === "cardio"
-    || normalizedType === "cardio"
+    isCardioExercise({
+      isCardio: args.isCardio,
+      measurement_type: normalizedMeasurementType === "time" || normalizedMeasurementType === "duration"
+        ? null
+        : (args.measurementType ?? null),
+      equipment: args.equipment,
+      movement_pattern: args.movementPattern,
+      primary_muscle: args.primaryMuscle,
+      kind: args.kind,
+      type: args.type,
+      tags: args.tags,
+      categories: args.categories,
+    })
     || normalizedMeasurementType === "distance"
     || normalizedMeasurementType === "time_distance"
   ) {
@@ -167,15 +201,16 @@ function resolveExplicitPresentationKind(args: ExerciseIdentityChipArgs): Workou
   }
 
   if (
-    normalizedTags.has("bodyweight")
-    || normalizedTags.has("body weight")
-    || normalizedTags.has("calisthenics")
-    || normalizedTags.has("gymnastics")
+    Array.from(normalizedTags).some(hasBodyweightToken)
   ) {
     return "bodyweight";
   }
 
   return "strength";
+}
+
+export function resolveWorkoutCardPresentationKind(args: ExerciseIdentityChipArgs): WorkoutCardPresentationKind | null {
+  return resolveExplicitPresentationKind(args);
 }
 
 export function buildExerciseIdentityChips(
@@ -188,16 +223,18 @@ export function buildExerciseIdentityChips(
   const presentationKind = resolveExplicitPresentationKind(args);
   const chips: WorkoutCardChip[] = [];
 
-  chips.push({
-    label: presentationKind === "cardio"
-      ? "Cardio"
-      : presentationKind === "timed"
-        ? "Timed"
-        : presentationKind === "bodyweight"
-          ? "Bodyweight"
-          : "Strength",
-    tone: presentationKind === "cardio" || presentationKind === "timed" ? "success" : "default",
-  });
+  if (presentationKind) {
+    chips.push({
+      label: presentationKind === "cardio"
+        ? "Cardio"
+        : presentationKind === "timed"
+          ? "Timed"
+          : presentationKind === "bodyweight"
+            ? "Bodyweight"
+            : "Strength",
+      tone: "default",
+    });
+  }
 
   const supportingLabels = [
     titleCase(args.equipment),
@@ -306,7 +343,7 @@ export function buildPlannedExerciseDetailMetrics(args: ExerciseIdentityChipArgs
   targetSetsMax?: number | null;
   useIntervalLanguage?: boolean;
 }): MetricDatum[] {
-  const presentationKind = resolveExplicitPresentationKind(args);
+  const presentationKind = resolveExplicitPresentationKind(args) ?? "strength";
   const metrics: MetricDatum[] = [];
   const loggedSetCount = Math.max(0, Math.floor(args.loggedSetCount ?? 0));
   const targetSetGoal = positive(args.targetSetsMin) > 0 ? positive(args.targetSetsMin) : positive(args.targetSetsMax);

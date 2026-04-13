@@ -14,6 +14,7 @@ import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
+import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
 type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
@@ -74,6 +75,12 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const displayName = getExerciseDisplayName(row);
   const lastDate = formatShortDate(row.last_performed_at);
   const viewModel = buildHistoryExerciseCardViewModel(row);
+  const { policy, chips, detailedMetrics } = applyWorkoutCardSurfacePolicy({
+    surface: "history-browser",
+    density: viewMode,
+    chips: viewModel.chips,
+    detailedMetrics: viewModel.detailedMetrics,
+  });
   const primaryLine = row.lastSummary
     ? `${lastDate ? `${lastDate} | ` : ""}${viewModel.summary}`
     : viewModel.summary;
@@ -95,11 +102,12 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       state="default"
       semanticTone={viewModel.semanticTone}
       className="shadow-none"
+      showLeadingVisual={policy.showMedia}
     >
       <WorkoutExerciseCardDetails
         density={viewMode}
-        chips={viewModel.chips}
-        detailedMetrics={viewModel.detailedMetrics}
+        chips={chips}
+        detailedMetrics={detailedMetrics}
       />
     </StandardExerciseRow>
   );

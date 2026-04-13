@@ -6,6 +6,8 @@ import { DayDetailExerciseList, type DayDetailExerciseListItem } from "@/compone
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
+import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 
 type EditDayFixture = "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
 
@@ -39,6 +41,10 @@ function buildGoalState(): ExerciseGoalFormState {
   };
 }
 
+function resolveInlineModality(measurementType: "reps" | "time" | "distance" | "time_distance", equipment: string | null): GoalModality {
+  return resolveGoalModality({ measurementType, equipment, tags: undefined });
+}
+
 export function EditDayRegressionSurface({
   fixture,
   exercises,
@@ -47,7 +53,16 @@ export function EditDayRegressionSurface({
   exercises: EditDayExercise[];
 }) {
   const [goalState, setGoalState] = useState<ExerciseGoalFormState>(buildGoalState);
+  const [manualOrder, setManualOrder] = useState<string>(fixture === "edit-exercise" ? String(exercises[0]?.orderNumber ?? 1) : "1");
   const [expandedId, setExpandedId] = useState<string | null>(fixture === "edit-exercise" ? exercises[0]?.id ?? null : null);
+  const activeExercise = expandedId ? exercises.find((exercise) => exercise.id === expandedId) ?? null : null;
+  const activeDraft: EditDayExerciseDraft | null = fixture === "edit-exercise" && activeExercise
+    ? {
+      goalState,
+      manualOrder,
+      modality: resolveInlineModality(activeExercise.measurementType ?? "reps", activeExercise.equipment ?? null),
+    }
+    : null;
 
   if (fixture === "rest") {
     return (
@@ -181,10 +196,14 @@ export function EditDayRegressionSurface({
   }
 
   const items: DayDetailExerciseListItem[] = exercises.map((exercise) => ({
+    ...resolveEditDayExercisePreview({
+      savedSummary: exercise.summary ?? "Goal missing",
+      savedOrderNumber: exercise.orderNumber,
+      draft: fixture === "edit-exercise" && expandedId === exercise.id ? activeDraft : null,
+      listLength: exercises.length,
+    }),
     id: exercise.id,
     name: exercise.name,
-    summary: exercise.summary,
-    orderNumber: exercise.orderNumber,
     measurementType: exercise.measurementType,
     primary_muscle: exercise.primary_muscle,
     equipment: exercise.equipment,
@@ -216,7 +235,8 @@ export function EditDayRegressionSurface({
                   type="number"
                   min={1}
                   max={exercises.length}
-                  defaultValue={item.orderNumber}
+                  value={manualOrder}
+                  onChange={(event) => setManualOrder(event.target.value)}
                   className="h-10 w-full rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3 text-sm text-text outline-none"
                 />
               </div>
