@@ -5,7 +5,8 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
-import { buildExerciseIdentityChips, buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
+import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
+import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
 type TodayExerciseRow = {
   id: string;
@@ -52,17 +53,6 @@ export function TodayExerciseRows({
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
           });
-          const identityChips = buildExerciseIdentityChips({
-            measurementType: exercise.measurement_type,
-            isCardio: exercise.isCardio,
-            kind: exercise.kind,
-            type: exercise.type,
-            equipment: exercise.equipment,
-            movementPattern: exercise.movement_pattern,
-            primaryMuscle: exercise.primary_muscle,
-            tags: exercise.tags,
-            categories: exercise.categories,
-          });
           const detailedMetrics = buildPlannedExerciseDetailMetrics({
             measurementType: exercise.measurement_type,
             isCardio: exercise.isCardio,
@@ -77,6 +67,11 @@ export function TodayExerciseRows({
             isSkipped: exercise.isSkipped === true,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
+          });
+          const { policy, chips, detailedMetrics: visibleDetailedMetrics } = applyWorkoutCardSurfacePolicy({
+            surface: "today",
+            density,
+            detailedMetrics,
           });
 
           return (
@@ -95,11 +90,12 @@ export function TodayExerciseRows({
                   }
                   setSelectedExerciseId(exercise.exerciseId);
                 }}
+                showLeadingVisual={policy.showMedia}
               >
                 <WorkoutExerciseCardDetails
                   density={density}
-                  chips={identityChips}
-                  detailedMetrics={detailedMetrics}
+                  chips={chips}
+                  detailedMetrics={visibleDetailedMetrics}
                 />
               </StandardExerciseRow>
             </li>

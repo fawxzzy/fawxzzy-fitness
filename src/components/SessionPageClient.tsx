@@ -84,6 +84,7 @@ export function SessionPageClient({
   searchError,
   unitLabel,
   exercises,
+  initialSelectedExerciseId = null,
   saveSessionAction,
   quickAddAction,
   requestedReturnTo,
@@ -106,6 +107,7 @@ export function SessionPageClient({
   searchError?: string;
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
+  initialSelectedExerciseId?: string | null;
   saveSessionAction: ServerAction;
   quickAddAction: import("react").ReactNode;
   requestedReturnTo?: string;
@@ -116,7 +118,7 @@ export function SessionPageClient({
   deleteSetAction: (payload: { sessionId: string; sessionExerciseId: string; setId: string }) => Promise<ActionResult>;
 }) {
   const sessionRecipe = resolveScreenRecipe("currentSession");
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(initialSelectedExerciseId);
   const router = useRouter();
   const baseDurationSeconds = initialDurationSeconds ?? 0;
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);

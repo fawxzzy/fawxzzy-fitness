@@ -1,10 +1,9 @@
 "use client";
 
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
 import { cn } from "@/lib/cn";
-import { buildExerciseIdentityChips } from "@/lib/workout-card-view-models";
+import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
 export type DayDetailExerciseListItem = {
   id: string;
@@ -44,65 +43,50 @@ export function DayDetailExerciseList({
   className,
 }: Props) {
   const interactive = Boolean(onSelectItem);
+  const policy = resolveWorkoutCardSurfacePolicy(mode === "editable" ? "edit-day" : "view-day", "compact");
 
   return (
     <ul className={cn("space-y-1.5", className)}>
       {items.map((item) => {
         const isActive = activeItemId === item.id;
-        const panelId = `day-detail-exercise-panel-${item.id}`;
+        const exerciseVisual = {
+          name: item.name,
+          slug: item.slug,
+          image_path: item.image_path,
+          image_icon_path: item.image_icon_path,
+          image_howto_path: item.image_howto_path,
+        };
+
         return (
           <li key={item.id} className="rounded-[1.3rem] transition-all">
-            <div className="overflow-hidden rounded-[1.25rem]">
-              <StandardExerciseRow
-                exercise={{
-                  name: item.name,
-                  slug: item.slug,
-                  image_path: item.image_path,
-                  image_icon_path: item.image_icon_path,
-                  image_howto_path: item.image_howto_path,
-                }}
+            {mode === "editable" && interactive ? (
+              <ExerciseDisclosureCard
+                scope="day-detail"
+                itemId={item.id}
+                expanded={isActive}
+                onToggle={() => onSelectItem?.(item)}
+                exercise={exerciseVisual}
                 summary={item.summary ?? undefined}
                 summaryLabel="Goal"
-                variant="interactive"
-                state={isActive && mode === "editable" ? "selected" : "default"}
-                onPress={interactive ? () => onSelectItem?.(item) : undefined}
-                buttonProps={interactive ? {
-                  "aria-expanded": mode === "editable" ? isActive : undefined,
-                  "aria-controls": mode === "editable" ? panelId : undefined,
-                  "data-testid": `day-detail-toggle-${item.id}`,
-                } : undefined}
-                badgeText={mode === "editable" ? `ORDER ${item.orderNumber}` : undefined}
-                className={cn("w-full", isActive && mode === "editable" ? "rounded-b-none" : undefined)}
-                rightIcon={(
-                  <ChevronRightIcon
-                    className={cn(
-                      "h-4 w-4 text-[rgb(var(--text-muted)/0.8)] transition-transform duration-200",
-                      isActive && mode === "editable" ? "rotate-90 text-[rgb(var(--text-secondary)/0.92)]" : undefined,
-                    )}
-                  />
-                )}
+                state={isActive ? "selected" : "default"}
+                badgeText={`ORDER ${item.orderNumber}`}
+                showLeadingVisual={policy.showMedia}
               >
-                <WorkoutExerciseCardDetails
-                  chips={buildExerciseIdentityChips({
-                    measurementType: item.measurementType,
-                    isCardio: item.isCardio,
-                    kind: item.kind,
-                    type: item.type,
-                    equipment: item.equipment,
-                    movementPattern: item.movement_pattern,
-                    primaryMuscle: item.primary_muscle,
-                    tags: item.tags,
-                    categories: item.categories,
-                  })}
-                />
-              </StandardExerciseRow>
-
-              {isActive && mode === "editable" && renderExpandedContent ? (
-                <div id={panelId} data-testid={`day-detail-panel-${item.id}`} className="border-t border-border/30 px-3.5 pb-3.5 pt-2 sm:px-4">
-                  {renderExpandedContent(item)}
-                </div>
-              ) : null}
-            </div>
+                {renderExpandedContent?.(item)}
+              </ExerciseDisclosureCard>
+            ) : (
+              <StandardExerciseRow
+                exercise={exerciseVisual}
+                summary={item.summary ?? undefined}
+                summaryLabel="Goal"
+                variant={interactive ? "interactive" : "standard"}
+                state="default"
+                onPress={interactive ? () => onSelectItem?.(item) : undefined}
+                badgeText={mode === "editable" ? `ORDER ${item.orderNumber}` : undefined}
+                className="w-full shadow-none"
+                showLeadingVisual={policy.showMedia}
+              />
+            )}
           </li>
         );
       })}

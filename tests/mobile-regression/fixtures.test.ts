@@ -14,6 +14,7 @@ const expectedScenarioIds = [
   "today-empty",
   "today-in-session-summary",
   "active-workout-session",
+  "active-workout-session-expanded",
   "routines-current-view",
   "routines-list-view",
   "view-day",
@@ -34,6 +35,8 @@ const expectedScenarioIds = [
   "history-exercises-zero-results",
   "history-exercises-compact",
   "history-exercises-detailed",
+  "history-exercises-media-fallback",
+  "history-exercises-cardio-taxonomy",
   "history-detail-broken-images",
   "settings-default",
   "exercise-detail-strength",
@@ -49,6 +52,7 @@ const expectedScenarioFamilies = [
   ["today-empty", "Exercise cards"],
   ["today-in-session-summary", "Exercise cards"],
   ["active-workout-session", "Session / logging"],
+  ["active-workout-session-expanded", "Session / logging"],
   ["routines-current-view", "Exercise cards"],
   ["routines-list-view", "Exercise cards"],
   ["view-day", "Exercise cards"],
@@ -69,6 +73,8 @@ const expectedScenarioFamilies = [
   ["history-exercises-zero-results", "Exercise cards"],
   ["history-exercises-compact", "Exercise cards"],
   ["history-exercises-detailed", "Exercise cards"],
+  ["history-exercises-media-fallback", "Exercise cards"],
+  ["history-exercises-cardio-taxonomy", "Exercise cards"],
   ["history-detail-broken-images", "Session summaries"],
   ["settings-default", "Settings / detail"],
   ["exercise-detail-strength", "Settings / detail"],
@@ -151,6 +157,8 @@ test("mobile regression fixtures expose stable screen/fixture query pairs", () =
   assert.equal(resolveMobileRegressionScenario({ screen: "history-sessions", fixture: "detailed" })?.id, "history-sessions-detailed");
   assert.equal(resolveMobileRegressionScenario({ screen: "history-exercises", fixture: "compact" })?.id, "history-exercises-compact");
   assert.equal(resolveMobileRegressionScenario({ screen: "history-exercises", fixture: "detailed" })?.id, "history-exercises-detailed");
+  assert.equal(resolveMobileRegressionScenario({ screen: "history-exercises", fixture: "media-fallback" })?.id, "history-exercises-media-fallback");
+  assert.equal(resolveMobileRegressionScenario({ screen: "history-exercises", fixture: "cardio-taxonomy" })?.id, "history-exercises-cardio-taxonomy");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "default" })?.id, "exercise-detail-strength");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "cardio" })?.id, "exercise-detail-cardio");
   assert.equal(resolveMobileRegressionScenario({ screen: "exercise-detail", fixture: "bodyweight" })?.id, "exercise-detail-bodyweight");

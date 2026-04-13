@@ -71,6 +71,10 @@ export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
   return PLACEHOLDER_ICON_SRC;
 }
 
+export function isPlaceholderExerciseIconSrc(src: string | null | undefined) {
+  return typeof src === "string" && src === PLACEHOLDER_ICON_SRC;
+}
+
 export function getExerciseHowToImageSrc(exercise: ExerciseImageSource): string {
   const rawHowTo = exercise.image_howto_path?.trim() ?? "";
   if (rawHowTo.startsWith("/") && !HOWTO_PLACEHOLDER_PATHS.has(rawHowTo)) {

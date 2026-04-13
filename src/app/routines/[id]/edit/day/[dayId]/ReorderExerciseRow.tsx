@@ -1,8 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { cn } from "@/lib/cn";
-import { buildExerciseIdentityChips } from "@/lib/workout-card-view-models";
+import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
 type Props = {
   exerciseId: string;
@@ -53,6 +52,8 @@ export function ReorderExerciseRow({
   onHandlePointerUp,
   onHandlePointerCancel,
 }: Props) {
+  const policy = resolveWorkoutCardSurfacePolicy("reorder", "compact");
+
   return (
     <div data-exercise-row-id={exerciseId}>
       <StandardExerciseRow
@@ -64,6 +65,7 @@ export function ReorderExerciseRow({
         badgeText={`ORDER ${orderNumber}`}
         className={cn("shadow-none", isDragging ? "scale-[0.99] opacity-85" : undefined)}
         trailingStackClassName="gap-2"
+        showLeadingVisual={policy.showMedia}
         rightIcon={(
           <button
             type="button"
@@ -78,21 +80,7 @@ export function ReorderExerciseRow({
             <span aria-hidden="true" className="text-base leading-none tracking-[-0.08em]">::</span>
           </button>
         )}
-      >
-        <WorkoutExerciseCardDetails
-          chips={buildExerciseIdentityChips({
-            measurementType,
-            isCardio,
-            kind,
-            type,
-            equipment,
-            movementPattern: movement_pattern,
-            primaryMuscle: primary_muscle,
-            tags,
-            categories,
-          })}
-        />
-      </StandardExerciseRow>
+      />
     </div>
   );
 }

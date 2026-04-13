@@ -27,7 +27,8 @@ import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeade
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
-import { buildExerciseIdentityChips, buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
+import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
+import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import {
   deriveTodayScreenMode,
   getTodayDaySummary,
@@ -324,17 +325,6 @@ export function TodayDayPicker({
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
                   <ul className="space-y-1.5">
                     {selectedDay.exercises.map((exercise) => {
-                      const identityChips = buildExerciseIdentityChips({
-                        measurementType: exercise.measurement_type,
-                        isCardio: exercise.isCardio,
-                        kind: exercise.kind,
-                        type: exercise.type,
-                        equipment: exercise.equipment,
-                        movementPattern: exercise.movement_pattern,
-                        primaryMuscle: exercise.primary_muscle,
-                        tags: exercise.tags,
-                        categories: exercise.categories,
-                      });
                       const detailedMetrics = buildPlannedExerciseDetailMetrics({
                         measurementType: exercise.measurement_type,
                         isCardio: exercise.isCardio,
@@ -347,6 +337,11 @@ export function TodayDayPicker({
                         categories: exercise.categories,
                         targetSetsMin: exercise.targetSetsMin,
                         targetSetsMax: exercise.targetSetsMax,
+                      });
+                      const { policy, chips, detailedMetrics: visibleDetailedMetrics } = applyWorkoutCardSurfacePolicy({
+                        surface: "today",
+                        density: exerciseDensity,
+                        detailedMetrics,
                       });
 
                       return (
@@ -363,11 +358,12 @@ export function TodayDayPicker({
                               }
                               setSelectedExerciseId(exercise.exerciseId);
                             }}
+                            showLeadingVisual={policy.showMedia}
                           >
                             <WorkoutExerciseCardDetails
                               density={exerciseDensity}
-                              chips={identityChips}
-                              detailedMetrics={detailedMetrics}
+                              chips={chips}
+                              detailedMetrics={visibleDetailedMetrics}
                             />
                           </StandardExerciseRow>
                         </li>

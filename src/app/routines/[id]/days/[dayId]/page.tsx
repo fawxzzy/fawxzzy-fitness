@@ -14,6 +14,7 @@ import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailSt
 import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
 import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
+import { isCardioExercise } from "@/lib/exercise-metadata";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -134,6 +135,24 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                   name: exercise.displayName,
                   goalLine: exercise.goalLine,
                   exerciseId: exercise.details?.id ?? exercise.exercise_id,
+                  measurementType: exercise.measurement_type ?? exercise.details?.measurement_type ?? null,
+                  primary_muscle: exercise.details?.primary_muscle ?? null,
+                  equipment: exercise.details?.equipment ?? null,
+                  movement_pattern: exercise.details?.movement_pattern ?? null,
+                  isCardio: isCardioExercise({
+                    measurement_type: exercise.measurement_type ?? exercise.details?.measurement_type ?? null,
+                    equipment: exercise.details?.equipment ?? null,
+                    movement_pattern: exercise.details?.movement_pattern ?? null,
+                    primary_muscle: exercise.details?.primary_muscle ?? null,
+                    kind: exercise.details?.kind ?? null,
+                    type: exercise.details?.type ?? null,
+                    tags: exercise.details?.tags ?? null,
+                    categories: exercise.details?.categories ?? null,
+                  }),
+                  kind: exercise.details?.kind ?? null,
+                  type: exercise.details?.type ?? null,
+                  tags: exercise.details?.tags ?? null,
+                  categories: exercise.details?.categories ?? null,
                   image_icon_path: exercise.details?.image_icon_path ?? null,
                   image_howto_path: exercise.details?.image_howto_path ?? null,
                   slug: exercise.details?.slug ?? null,

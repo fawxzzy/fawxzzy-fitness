@@ -657,7 +657,7 @@ const mockHistoryExerciseRows = [
     primary_muscle: "Back",
     equipment: "Machine",
     movement_pattern: "Horizontal Pull",
-    last_performed_at: null,
+    last_performed_at: "2026-04-06T13:00:00.000Z",
     last_weight: null,
     last_reps: null,
     last_unit: null,
@@ -668,11 +668,11 @@ const mockHistoryExerciseRows = [
     actual_pr_reps: null,
     actual_pr_at: null,
     kind: "strength" as const,
-    lastSummary: null,
+    lastSummary: "Technique reset block | 4 controlled sets | slow eccentric | pause on every top-end squeeze",
     bestSummary: null,
     prLabel: "",
     prCount: 0,
-    sessionCount: 0,
+    sessionCount: 3,
     deltaFromBest: null,
     tagsSummary: "Back | Horizontal Pull | Machine",
   },
@@ -918,6 +918,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         sessionSummaryCounts={{ strength: 2, cardio: 1, unknown: 0 }}
         unitLabel="lbs"
         exercises={mockSessionExercises}
+        initialSelectedExerciseId={scenario.id === "active-workout-session-expanded" ? "session-ex-2" : null}
         saveSessionAction={noopActionResult}
         requestedReturnTo="/today"
         quickAddAction={<BottomDockButton type="button" intent="info">Add</BottomDockButton>}
@@ -1221,6 +1222,11 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
 
 function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
   const initialViewMode = scenario.fixture === "detailed" ? "detailed" : "compact";
+  const rows = scenario.id === "history-exercises-cardio-taxonomy"
+    ? [mockHistoryExerciseRows[0]]
+    : scenario.id === "history-exercises-media-fallback"
+      ? [mockHistoryExerciseRows[1]]
+      : [...mockHistoryExerciseRows];
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="history">
@@ -1230,7 +1236,7 @@ function renderHistoryExercisesScenario(scenario: MobileFixtureScenario) {
         floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <ExerciseBrowserClient rows={[...mockHistoryExerciseRows]} inlineHeaderControls initialViewMode={initialViewMode} />
+          <ExerciseBrowserClient rows={rows} inlineHeaderControls initialViewMode={initialViewMode} />
         </ContentRail>
       </ScrollScreenWithBottomActions>
     </MainTabScreen>

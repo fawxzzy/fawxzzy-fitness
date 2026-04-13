@@ -6,11 +6,9 @@ import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId
 import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
-import { listExercises } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
-import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
-import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
+import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
@@ -62,45 +60,53 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   const allRoutineDayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
   const dayExercises = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === params.dayId);
-  const exerciseOptions = await listExercises();
-  const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
-  const exerciseMeasurementMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.measurement_type]));
-  const exerciseUnitMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.default_unit]));
-  const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
+  const { canonicalExerciseIdByRawId, exerciseDetailsById } = await loadCanonicalExerciseCatalog({
+    supabase,
+    exercises: dayExercises,
+  });
   const backHref = resolveRoutineDayEditBackHref(params.id, params.dayId, searchParams?.returnTo);
   const addExerciseHref = `${getRoutineDayEditHref(params.id, params.dayId)}/add-exercise`;
   // NOTE: Edit Day rows own a stable `orderNumber` so ORDER badges remain canonical even when the list is filtered.
   const editableExercises = dayExercises.map((exercise) => {
-    const measurementType = exercise.measurement_type ?? exerciseMeasurementMap.get(exercise.exercise_id) ?? "reps";
-    const matchingExercise = exerciseOptions.find((option) => option.id === exercise.exercise_id);
+    const canonicalExerciseId = canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id;
+    const matchingExercise = exerciseDetailsById.get(canonicalExerciseId) ?? null;
+    const measurementType = exercise.measurement_type ?? matchingExercise?.measurement_type ?? "reps";
     const isCardio = isCardioExercise({
       measurement_type: exercise.measurement_type ?? matchingExercise?.measurement_type ?? null,
       equipment: matchingExercise?.equipment ?? null,
       movement_pattern: matchingExercise?.movement_pattern ?? null,
+      primary_muscle: matchingExercise?.primary_muscle ?? null,
+      kind: matchingExercise?.kind ?? null,
+      type: matchingExercise?.type ?? null,
+      tags: matchingExercise?.tags ?? null,
+      categories: matchingExercise?.categories ?? null,
     });
     const defaultDistanceUnit: "mi" | "km" | "m" = exercise.default_unit === "km" || exercise.default_unit === "m"
       ? exercise.default_unit
-      : (exerciseUnitMap.get(exercise.exercise_id) === "km" || exerciseUnitMap.get(exercise.exercise_id) === "m"
-        ? (exerciseUnitMap.get(exercise.exercise_id) as "km" | "m")
+      : (matchingExercise?.default_unit === "km" || matchingExercise?.default_unit === "m"
+        ? matchingExercise.default_unit
         : "mi");
     const name = normalizeExerciseDisplayName({
-      exerciseId: exercise.exercise_id,
-      fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null,
+      exerciseId: canonicalExerciseId,
+      name: matchingExercise?.name ?? null,
     });
 
     return {
       id: exercise.id,
-      exerciseId: matchingExercise?.id ?? exercise.exercise_id,
+      exerciseId: matchingExercise?.id ?? canonicalExerciseId,
       orderNumber: exercise.position,
       name,
       measurementType,
       primary_muscle: matchingExercise?.primary_muscle ?? null,
       equipment: matchingExercise?.equipment ?? null,
       movement_pattern: matchingExercise?.movement_pattern ?? null,
-      kind: null,
-      type: null,
-      tags: null,
-      categories: null,
+      kind: matchingExercise?.kind ?? null,
+      type: matchingExercise?.type ?? null,
+      tags: matchingExercise?.tags ?? null,
+      categories: matchingExercise?.categories ?? null,
+      image_icon_path: matchingExercise?.image_icon_path ?? null,
+      image_howto_path: matchingExercise?.image_howto_path ?? null,
+      slug: matchingExercise?.slug ?? null,
       targetSummary: formatGoalInlineSummaryText({
         sets: exercise.target_sets,
         reps: exercise.target_reps_min ?? exercise.target_reps,

@@ -20,22 +20,19 @@ import { SessionSummaryCard } from "@/components/SessionSummaryCard";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
-import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
-import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { HistoryDetailHeader, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
-import { getExerciseIconSrc } from "@/lib/exerciseImages";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { formatMeasurementSummaryText } from "@/lib/measurement-display";
-import { buildExerciseIdentityChips } from "@/lib/workout-card-view-models";
+import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -173,6 +170,7 @@ export function LogAuditClient({
   sessionSummary: SessionSummary;
   backHref: string;
 }) {
+  const surfacePolicy = resolveWorkoutCardSurfacePolicy("history-detail", "compact");
   const router = useRouter();
   const toast = useToast();
   const { navigateReturn } = useReturnNavigation(backHref);
@@ -478,13 +476,6 @@ export function LogAuditClient({
               emptyLabel: "No measurements",
             })
             : "No measurements";
-          const exerciseIconSrc = getExerciseIconSrc({
-            name,
-            slug: exercise.exercise_slug ?? null,
-            image_path: exercise.exercise_image_path ?? null,
-            image_icon_path: exercise.exercise_image_icon_path ?? null,
-            image_howto_path: exercise.exercise_image_howto_path ?? null,
-          });
           const subtitleParts = [
             latestSummary,
             `${setsForExercise.length} ${setsForExercise.length === 1 ? "set" : "sets"}`,
@@ -509,21 +500,9 @@ export function LogAuditClient({
                 variant="interactive"
                 density="compact"
                 state={isExpanded ? "selected" : "default"}
-                leadingVisual={(
-                  <ExerciseAssetImage
-                    src={exerciseIconSrc}
-                    alt={name}
-                    className="h-full w-full"
-                    imageClassName="object-cover object-center"
-                    sizes="80px"
-                  />
-                )}
                 className="w-full shadow-none"
-              >
-                <WorkoutExerciseCardDetails
-                  chips={buildExerciseIdentityChips({ measurementType: exercise.measurement_type })}
-                />
-              </StandardExerciseRow>
+                showLeadingVisual={surfacePolicy.showMedia}
+              />
 
               {isExpanded ? (
                 <div className="space-y-2.5 px-1.5 pb-1 pt-2">
