@@ -46,8 +46,7 @@ function getIntroCopy(primaryAction: ReturnType<typeof useInstallContext>["prima
 export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
   const router = useRouter();
   const {
-    isReady,
-    isStandalone,
+    bootstrapStatus,
     manualInstructions,
     nativePromptAvailable,
     platform,
@@ -59,18 +58,18 @@ export function InstallEntryGate({ continueHref }: InstallEntryGateProps) {
   const manualInstructionsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!isReady || !isStandalone) {
+    if (bootstrapStatus !== "standalone") {
       return;
     }
 
     startTransition(() => {
       router.replace(continueHref);
     });
-  }, [continueHref, isReady, isStandalone, router]);
+  }, [bootstrapStatus, continueHref, router]);
 
   const introCopy = useMemo(() => getIntroCopy(primaryAction), [primaryAction]);
 
-  if (!isReady || isStandalone) {
+  if (bootstrapStatus === "checking" || bootstrapStatus === "standalone") {
     return (
       <AuthShell className="justify-center">
         <AuthStatusCard
