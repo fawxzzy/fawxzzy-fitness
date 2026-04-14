@@ -2,9 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  areInstallSnapshotsEqual,
+  getBrowserInstallSnapshot,
   getInstallPlatform,
   getInstallSnapshot,
   getManualInstallInstructions,
+  getRuntimeInstallSnapshot,
+  INSTALL_BOOTSTRAP_TIMEOUT_MS,
+  resolveInstallBootstrapSnapshot,
+  resolveInstallBootstrapTimeoutStatus,
   getStandaloneState,
   resolveInstallPrimaryAction,
 } from "./install-detection.ts";
@@ -85,6 +91,44 @@ test("getInstallSnapshot reports native prompt, manual install, and unsupported 
   );
 });
 
+test("getRuntimeInstallSnapshot resolves browser and standalone states without waiting on prompt availability", () => {
+  assert.deepEqual(
+    resolveInstallBootstrapSnapshot({
+      matchMedia: () => ({ matches: false }),
+      navigator: {
+        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
+      } as Navigator,
+    }),
+    {
+      status: "browser",
+      snapshot: getBrowserInstallSnapshot("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36"),
+    },
+  );
+
+  const standaloneSnapshot = getRuntimeInstallSnapshot({
+    matchMedia: () => ({ matches: true }),
+    navigator: {
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 Version/17.4 Mobile/15E148 Safari/604.1",
+    } as Navigator,
+  });
+
+  assert.equal(standaloneSnapshot.isStandalone, true);
+  assert.equal(resolveInstallBootstrapSnapshot({
+    matchMedia: () => ({ matches: true }),
+    navigator: {
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 Version/17.4 Mobile/15E148 Safari/604.1",
+    } as Navigator,
+  }).status, "standalone");
+});
+
+test("resolveInstallBootstrapTimeoutStatus forces checking to fail open into browser mode quickly", () => {
+  assert.equal(resolveInstallBootstrapTimeoutStatus("checking"), "browser");
+  assert.equal(resolveInstallBootstrapTimeoutStatus("standalone"), "standalone");
+  assert.equal(resolveInstallBootstrapTimeoutStatus("browser"), "browser");
+  assert.equal(resolveInstallBootstrapTimeoutStatus("error"), "error");
+  assert.equal(INSTALL_BOOTSTRAP_TIMEOUT_MS >= 400 && INSTALL_BOOTSTRAP_TIMEOUT_MS <= 800, true);
+});
+
 test("resolveInstallPrimaryAction only returns Install when a real prompt is ready", () => {
   assert.deepEqual(
     resolveInstallPrimaryAction({
@@ -109,6 +153,40 @@ test("resolveInstallPrimaryAction only returns Install when a real prompt is rea
     {
       kind: "continue-browser",
       label: "Continue in browser",
+    },
+  );
+});
+
+test("resolveInstallPrimaryAction upgrades Chromium browser mode when the prompt arrives later", () => {
+  const chromiumSnapshot = getBrowserInstallSnapshot(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
+  );
+
+  assert.equal(chromiumSnapshot.capability, "native-prompt");
+
+  assert.deepEqual(
+    resolveInstallPrimaryAction({
+      isStandalone: chromiumSnapshot.isStandalone,
+      manualInstructions: chromiumSnapshot.manualInstructions,
+      nativePromptAvailable: false,
+      platform: chromiumSnapshot.platform,
+    }),
+    {
+      kind: "continue-browser",
+      label: "Continue in browser",
+    },
+  );
+
+  assert.deepEqual(
+    resolveInstallPrimaryAction({
+      isStandalone: chromiumSnapshot.isStandalone,
+      manualInstructions: chromiumSnapshot.manualInstructions,
+      nativePromptAvailable: true,
+      platform: chromiumSnapshot.platform,
+    }),
+    {
+      kind: "install",
+      label: "Install",
     },
   );
 });
@@ -151,4 +229,18 @@ test("resolveInstallPrimaryAction bypasses the gate in standalone mode", () => {
     }),
     null,
   );
+});
+
+test("areInstallSnapshotsEqual only changes when the actual gate contract changes", () => {
+  const chromiumSnapshot = getBrowserInstallSnapshot(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
+  );
+
+  assert.equal(areInstallSnapshotsEqual(chromiumSnapshot, getBrowserInstallSnapshot(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
+  )), true);
+  assert.equal(areInstallSnapshotsEqual(chromiumSnapshot, getInstallSnapshot({
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 Version/17.4 Mobile/15E148 Safari/604.1",
+    isStandalone: false,
+  })), false);
 });

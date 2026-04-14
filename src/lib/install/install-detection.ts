@@ -2,6 +2,10 @@ export type InstallPlatform = "ios-safari" | "ios-webkit" | "chromium" | "unsupp
 
 export type InstallCapability = "native-prompt" | "manual" | "unsupported";
 
+export type InstallBootstrapStatus = "checking" | "standalone" | "browser" | "error";
+
+export const INSTALL_BOOTSTRAP_TIMEOUT_MS = 600;
+
 export type ManualInstallInstructions = {
   ctaLabel: string;
   platformLabel: string;
@@ -34,11 +38,11 @@ export type InstallSnapshot = {
   manualInstructions: ManualInstallInstructions | null;
 };
 
-type NavigatorLike = Navigator & {
+export type NavigatorLike = Navigator & {
   standalone?: boolean;
 };
 
-type WindowLike = {
+export type WindowLike = {
   matchMedia?: (query: string) => MediaQueryList | { matches: boolean };
   navigator?: NavigatorLike;
 };
@@ -76,6 +80,18 @@ export function getStandaloneState(winLike?: WindowLike) {
   return mediaMatch || navigatorStandalone;
 }
 
+export function areInstallSnapshotsEqual(currentSnapshot: InstallSnapshot, nextSnapshot: InstallSnapshot) {
+  return (
+    currentSnapshot.isStandalone === nextSnapshot.isStandalone
+    && currentSnapshot.platform === nextSnapshot.platform
+    && currentSnapshot.capability === nextSnapshot.capability
+    && currentSnapshot.manualInstructions?.ctaLabel === nextSnapshot.manualInstructions?.ctaLabel
+    && currentSnapshot.manualInstructions?.platformLabel === nextSnapshot.manualInstructions?.platformLabel
+    && currentSnapshot.manualInstructions?.helperText === nextSnapshot.manualInstructions?.helperText
+    && currentSnapshot.manualInstructions?.steps.join("|") === nextSnapshot.manualInstructions?.steps.join("|")
+  );
+}
+
 export function getInstallPlatform(userAgent: string): InstallPlatform {
   const normalizedUserAgent = normalizeUserAgent(userAgent);
 
@@ -88,6 +104,19 @@ export function getInstallPlatform(userAgent: string): InstallPlatform {
   }
 
   return "unsupported";
+}
+
+export function getRuntimeInstallSnapshot(winLike?: WindowLike): InstallSnapshot {
+  const resolvedWindow =
+    winLike
+    ?? (typeof window !== "undefined"
+      ? (window as WindowLike)
+      : undefined);
+
+  return getInstallSnapshot({
+    userAgent: resolvedWindow?.navigator?.userAgent ?? "",
+    isStandalone: getStandaloneState(resolvedWindow),
+  });
 }
 
 export function getManualInstallInstructions(platform: InstallPlatform): ManualInstallInstructions | null {
@@ -118,6 +147,13 @@ export function getManualInstallInstructions(platform: InstallPlatform): ManualI
   }
 
   return null;
+}
+
+export function getBrowserInstallSnapshot(userAgent: string): InstallSnapshot {
+  return getInstallSnapshot({
+    userAgent,
+    isStandalone: false,
+  });
 }
 
 export function resolveInstallPrimaryAction({
@@ -160,6 +196,22 @@ export function resolveInstallPrimaryAction({
     kind: "continue-browser",
     label: "Continue in browser",
   };
+}
+
+export function resolveInstallBootstrapSnapshot(winLike?: WindowLike) {
+  const snapshot = getRuntimeInstallSnapshot(winLike);
+
+  return {
+    status: snapshot.isStandalone ? "standalone" : "browser",
+    snapshot,
+  } satisfies {
+    status: Exclude<InstallBootstrapStatus, "checking" | "error">;
+    snapshot: InstallSnapshot;
+  };
+}
+
+export function resolveInstallBootstrapTimeoutStatus(status: InstallBootstrapStatus): InstallBootstrapStatus {
+  return status === "checking" ? "browser" : status;
 }
 
 export function getInstallSnapshot({

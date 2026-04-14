@@ -2,16 +2,22 @@
 
 import { useEffect, useState } from "react";
 import {
+  areInstallSnapshotsEqual,
+  getBrowserInstallSnapshot,
   getInstallSnapshot,
-  getStandaloneState,
+  INSTALL_BOOTSTRAP_TIMEOUT_MS,
   type InstallCapability,
+  type InstallBootstrapStatus,
   type InstallPrimaryAction,
   type InstallPlatform,
   type ManualInstallInstructions,
+  resolveInstallBootstrapSnapshot,
+  resolveInstallBootstrapTimeoutStatus,
   resolveInstallPrimaryAction,
 } from "@/lib/install/install-detection";
 
 export type InstallContext = {
+  bootstrapStatus: InstallBootstrapStatus;
   capability: InstallCapability;
   isReady: boolean;
   isStandalone: boolean;
@@ -31,39 +37,72 @@ type BeforeInstallPromptEvent = Event & {
   }>;
 };
 
+type InstallBootstrapState = {
+  status: InstallBootstrapStatus;
+  snapshot: ReturnType<typeof getInstallSnapshot>;
+};
+
 export function useInstallContext(): InstallContext {
-  const [isReady, setIsReady] = useState(false);
-  const [snapshot, setSnapshot] = useState(() =>
-    getInstallSnapshot({
+  const [installState, setInstallState] = useState<InstallBootstrapState>(() => ({
+    status: "checking",
+    snapshot: getInstallSnapshot({
       userAgent: "",
       isStandalone: false,
     }),
-  );
+  }));
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
     const syncInstallSnapshot = () => {
-      const nextSnapshot = getInstallSnapshot({
-        userAgent: window.navigator.userAgent,
-        isStandalone: getStandaloneState(),
-      });
+      try {
+        const nextInstallState = resolveInstallBootstrapSnapshot();
 
-      setSnapshot((currentSnapshot) => {
-        if (
-          currentSnapshot.isStandalone === nextSnapshot.isStandalone
-          && currentSnapshot.platform === nextSnapshot.platform
-          && currentSnapshot.capability === nextSnapshot.capability
-          && currentSnapshot.manualInstructions?.ctaLabel === nextSnapshot.manualInstructions?.ctaLabel
-        ) {
-          return currentSnapshot;
-        }
+        setInstallState((currentState) => {
+          if (
+            currentState.status === nextInstallState.status
+            && areInstallSnapshotsEqual(currentState.snapshot, nextInstallState.snapshot)
+          ) {
+            return currentState;
+          }
 
-        return nextSnapshot;
-      });
-      setIsReady(true);
+          return nextInstallState;
+        });
+      } catch {
+        const fallbackSnapshot = getBrowserInstallSnapshot(window.navigator.userAgent);
+
+        setInstallState((currentState) => {
+          if (
+            currentState.status === "error"
+            && areInstallSnapshotsEqual(currentState.snapshot, fallbackSnapshot)
+          ) {
+            return currentState;
+          }
+
+          return {
+            status: "error",
+            snapshot: fallbackSnapshot,
+          };
+        });
+      }
     };
 
     syncInstallSnapshot();
+    const bootstrapTimeout = window.setTimeout(() => {
+      const fallbackSnapshot = getBrowserInstallSnapshot(window.navigator.userAgent);
+
+      setInstallState((currentState) => {
+        const nextStatus = resolveInstallBootstrapTimeoutStatus(currentState.status);
+
+        if (nextStatus === currentState.status) {
+          return currentState;
+        }
+
+        return {
+          status: nextStatus,
+          snapshot: fallbackSnapshot,
+        };
+      });
+    }, INSTALL_BOOTSTRAP_TIMEOUT_MS);
 
     const mediaQuery = window.matchMedia?.("(display-mode: standalone)");
     const handleDisplayModeChange = () => {
@@ -92,6 +131,8 @@ export function useInstallContext(): InstallContext {
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
+      window.clearTimeout(bootstrapTimeout);
+
       if (mediaQuery) {
         if (typeof mediaQuery.removeEventListener === "function") {
           mediaQuery.removeEventListener("change", handleDisplayModeChange);
@@ -105,6 +146,8 @@ export function useInstallContext(): InstallContext {
     };
   }, []);
 
+  const bootstrapStatus = installState.status;
+  const snapshot = installState.snapshot;
   const nativePromptAvailable = snapshot.capability === "native-prompt" && deferredPrompt !== null;
   const primaryAction = resolveInstallPrimaryAction({
     isStandalone: snapshot.isStandalone,
@@ -114,10 +157,11 @@ export function useInstallContext(): InstallContext {
   });
 
   return {
+    bootstrapStatus,
     capability: snapshot.capability,
-    isReady,
+    isReady: bootstrapStatus !== "checking",
     isStandalone: snapshot.isStandalone,
-    isBrowserMode: isReady && !snapshot.isStandalone,
+    isBrowserMode: bootstrapStatus === "browser" || bootstrapStatus === "error",
     manualInstructions: snapshot.manualInstructions,
     nativePromptAvailable,
     platform: snapshot.platform,
