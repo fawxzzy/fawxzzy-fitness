@@ -23,16 +23,18 @@ type ExerciseThumbProps = {
   imageClassName?: string;
   sizes?: string;
   size?: number;
+  detailed?: boolean;
+  layout?: "rail" | "inline";
   intent?: ExerciseThumbIntent;
 };
 
-function ThumbFallback() {
+function ThumbFallback({ glyphClassName }: { glyphClassName: string }) {
   return (
-    <div className="grid h-full w-full place-items-center rounded-md border border-dashed border-white/10 bg-transparent text-[rgb(var(--text)/0.42)]">
+    <div className="grid h-full w-full place-items-center bg-transparent text-[rgb(var(--text)/0.42)]">
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className="h-7 w-7"
+        className={glyphClassName}
         fill="none"
         stroke="currentColor"
         strokeWidth="1.8"
@@ -56,37 +58,50 @@ export function ExerciseThumb({
   imageClassName,
   sizes,
   size = 56,
+  detailed = false,
+  layout = "inline",
   intent = "default",
 }: ExerciseThumbProps) {
   const thumb = resolveExerciseThumb(exercise, { intent });
-  const iconPx = size === 48 ? 22 : 26;
-  const iconInsetPx = Math.max(0, Math.round((size - iconPx) / 2));
+  const isRail = layout === "rail";
+  const fallbackGlyphClassName = isRail
+    ? detailed
+      ? "h-9 w-9"
+      : "h-8 w-8"
+    : size <= 48
+      ? "h-6 w-6"
+      : "h-7 w-7";
 
   if (thumb.mode === "fallback") {
     return (
-      <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
-        <ThumbFallback />
+      <div
+        className={cn(
+          isRail ? "relative h-full w-full self-stretch overflow-hidden" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
+          className,
+        )}
+        style={isRail ? undefined : { width: size, height: size }}
+      >
+        <ThumbFallback glyphClassName={fallbackGlyphClassName} />
       </div>
     );
   }
 
   return (
-    <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
+    <div
+      className={cn(
+        isRail ? "relative h-full w-full self-stretch overflow-hidden" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
+        className,
+      )}
+      style={isRail ? undefined : { width: size, height: size }}
+    >
       <ExerciseAssetImage
         src={thumb.src}
         alt={alt ?? ""}
-        className="h-full w-full rounded-md border border-white/10 bg-black/20"
-        imageClassName={cn(
-          thumb.mode === "icon"
-            ? "object-contain object-center"
-            : thumb.mode === "legacy-composite"
-              ? "origin-top scale-[1.08] object-cover object-top"
-              : "object-cover object-center",
-          imageClassName,
-        )}
-        imageStyle={thumb.mode === "icon" ? { padding: `${iconInsetPx}px` } : undefined}
-        sizes={sizes ?? `${size}px`}
-        fallback={<ThumbFallback />}
+        className="h-full w-full"
+        imageClassName={imageClassName}
+        sizes={sizes ?? (isRail ? (detailed ? "96px" : "84px") : `${size}px`)}
+        fit="contain"
+        fallback={<ThumbFallback glyphClassName={fallbackGlyphClassName} />}
       />
     </div>
   );

@@ -40,7 +40,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     shell: "min-h-[var(--exercise-row-min-height-compact)] py-[var(--exercise-row-shell-padding-y-compact)] pr-[var(--exercise-row-shell-padding-x)]",
     shellWithMedia: "pl-0",
     bodyGridWithMedia: "grid-cols-[var(--exercise-row-media-width-compact)_minmax(0,1fr)_auto]",
-    media: "grid h-full w-full place-items-center",
+    media: "flex h-full w-full self-stretch items-stretch",
     mediaRail: "-my-[var(--exercise-row-shell-padding-y-compact)] min-h-[calc(var(--exercise-row-media-min-height-compact)+(var(--exercise-row-shell-padding-y-compact)*2))] self-stretch overflow-hidden border-r border-[rgb(var(--border-strong)/0.14)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-2",
@@ -53,7 +53,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     shell: "min-h-[var(--exercise-row-min-height-detailed)] py-[var(--exercise-row-shell-padding-y-detailed)] pr-[var(--exercise-row-shell-padding-x)]",
     shellWithMedia: "pl-0",
     bodyGridWithMedia: "grid-cols-[var(--exercise-row-media-width-detailed)_minmax(0,1fr)_auto]",
-    media: "grid h-full w-full place-items-center",
+    media: "flex h-full w-full self-stretch items-stretch",
     mediaRail: "-my-[var(--exercise-row-shell-padding-y-detailed)] min-h-[calc(var(--exercise-row-media-min-height-detailed)+(var(--exercise-row-shell-padding-y-detailed)*2))] self-stretch overflow-hidden border-r border-[rgb(var(--border-strong)/0.14)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-3",
@@ -359,3 +359,4 @@ export function ExerciseCard({
     </Glass>
   );
 }
+
