@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -10,6 +10,7 @@ type ExerciseAssetImageProps = {
   alt: string;
   className?: string;
   imageClassName?: string;
+  imageStyle?: CSSProperties;
   fallbackSrc?: string;
   fallback?: ReactNode;
   sizes?: string;
@@ -36,6 +37,7 @@ export function ExerciseAssetImage({
   alt,
   className,
   imageClassName,
+  imageStyle,
   fallbackSrc = DEFAULT_FALLBACK_SRC,
   fallback,
   sizes = DEFAULT_SIZES,
@@ -65,6 +67,7 @@ export function ExerciseAssetImage({
         priority={priority}
         sizes={sizes}
         className={cn("object-cover object-center", imageClassName)}
+        style={imageStyle}
         onError={() => {
           if (renderSrc !== fallbackSrc && src !== fallbackSrc) {
             missingSrcCache.add(src);

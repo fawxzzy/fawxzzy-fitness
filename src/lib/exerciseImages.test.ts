@@ -53,15 +53,15 @@ test("resolveExerciseThumb prefers generated manifest icons before legacy image 
   });
 });
 
-test("resolveExerciseThumb uses legacy composite art for row cards when a known-bad icon is also present", () => {
+test("resolveExerciseThumb prefers icons over legacy composite art for row cards", () => {
   const resolved = resolveExerciseThumb({
     name: "Lateral Raise",
     imageUrl: "/images/lateral-raise-composite.png",
   }, { intent: "row-card" });
 
   assert.deepEqual(resolved, {
-    src: "/images/lateral-raise-composite.png",
-    mode: "legacy-composite",
+    src: "/exercises/icons/lateral-raise.png",
+    mode: "icon",
   });
 });
 
@@ -162,6 +162,48 @@ test("resolveExerciseThumb prefers thumbnail photos over legacy composite art", 
   assert.deepEqual(resolved, {
     src: "/images/photo-thumb.png",
     mode: "photo",
+  });
+});
+
+test("resolveExerciseThumb ignores untrusted thumbnails for row cards and keeps icons ahead of legacy art", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Incline Dumbbell Bench Press",
+    thumbnailUrl: "/images/catalog-incline-thumb.png",
+    thumbnailSource: "catalog-thumbnail",
+    imageUrl: "/images/catalog-incline-composite.png",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(resolved, {
+    src: "/exercises/icons/incline-dumbbell-bench-press.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb allows trusted thumbnails for row cards", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
+    name: "Session Photo Exercise",
+    thumbnailUrl: "/images/session-photo-thumb.png",
+    thumbnailSource: "session-log",
+    imageUrl: "/images/session-photo-composite.png",
+  }, { intent: "row-card" }));
+
+  assert.deepEqual(resolved, {
+    src: "/images/session-photo-thumb.png",
+    mode: "photo",
+  });
+});
+
+test("resolveExerciseThumb falls back to legacy composite art for row cards when the thumbnail is untrusted and no icon exists", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
+    name: "Catalog Only Exercise",
+    thumbnailUrl: "/images/catalog-only-thumb.png",
+    thumbnailSource: "catalog-thumbnail",
+    imageUrl: "/images/catalog-only-composite.png",
+  }, { intent: "row-card" }));
+
+  assert.deepEqual(resolved, {
+    src: "/images/catalog-only-composite.png",
+    mode: "legacy-composite",
   });
 });
 

@@ -1,11 +1,22 @@
 import { EXERCISE_ICON_EXT_BY_SLUG, EXERCISE_ICON_SLUGS } from "@/generated/exerciseIconManifest";
 
+export type ExerciseThumbSourceKind =
+  | "custom-upload"
+  | "session-log"
+  | "generated-thumb"
+  | "catalog-thumbnail"
+  | "legacy-image"
+  | "manifest-icon"
+  | "unknown";
+
 export type ExerciseImageSource = {
   slug?: string | null;
   name?: string | null;
   image_path?: string | null;
   image_icon_path?: string | null;
   image_howto_path?: string | null;
+  thumbnailUrl?: string | null;
+  thumbnailSource?: ExerciseThumbSourceKind | null;
 };
 
 export type ExerciseThumbSpec = {
@@ -19,7 +30,6 @@ export type ExerciseThumbIntent = "default" | "row-card";
 type ExerciseThumbInput = ExerciseImageSource & {
   cardIconSrc?: string | null;
   iconSrc?: string | null;
-  thumbnailUrl?: string | null;
   imageUrl?: string | null;
 };
 
@@ -30,13 +40,10 @@ type ResolveExerciseThumbOptions = {
 const PLACEHOLDER_ICON_SRC = "/exercises/icons/_placeholder.svg";
 const HOWTO_PLACEHOLDER_PATHS = new Set(["/exercises/placeholders/howto.svg"]);
 const missingIconSlugLogCache = new Set<string>();
-const ROW_CARD_UNSAFE_ICON_SLUGS = new Set([
-  "barbell-bench-press",
-  "incline-walk",
-  "lateral-raise",
-  "single-arm-lat-pulldown",
-  "treadmill-run",
-  "weighted-pull-up",
+const TRUSTED_ROW_THUMB_SOURCES = new Set<ExerciseThumbSourceKind>([
+  "custom-upload",
+  "generated-thumb",
+  "session-log",
 ]);
 
 export function slugifyExerciseName(name: string): string {
@@ -83,26 +90,15 @@ function getExerciseNameSlug(exercise: ExerciseThumbInput): string | null {
   return trimmedName ? slugifyExerciseName(trimmedName) : null;
 }
 
-function isCardSafeGlyph(
-  exercise: ExerciseThumbInput,
-  intent: ExerciseThumbIntent,
-  options?: { hasAlternateMedia?: boolean },
-): boolean {
-  if (intent !== "row-card") {
-    return true;
+function getTrustedRowPhoto(exercise: ExerciseThumbInput): string | null {
+  const thumbnailPath = getLocalImagePath(exercise.thumbnailUrl);
+  if (!thumbnailPath) {
+    return null;
   }
 
-  if (!options?.hasAlternateMedia) {
-    return true;
-  }
-
-  const slug = exercise.slug?.trim();
-  const nameSlug = getExerciseNameSlug(exercise);
-
-  return !(
-    (slug && ROW_CARD_UNSAFE_ICON_SLUGS.has(slug))
-    || (nameSlug && ROW_CARD_UNSAFE_ICON_SLUGS.has(nameSlug))
-  );
+  return exercise.thumbnailSource && TRUSTED_ROW_THUMB_SOURCES.has(exercise.thumbnailSource)
+    ? thumbnailPath
+    : null;
 }
 
 function resolveManifestIconPath(exercise: ExerciseThumbInput): string | null {
@@ -128,20 +124,19 @@ export function resolveExerciseThumb(
     ?? getLocalImagePath(exercise.image_path);
   const manifestIconPath = resolveManifestIconPath(exercise);
   const iconPath = explicitIconPath ?? manifestIconPath;
-  const hasAlternateMedia = Boolean(thumbnailPath || legacyImagePath);
-  const safeIconPath = isCardSafeGlyph(exercise, intent, { hasAlternateMedia }) ? iconPath : null;
+  const trustedRowPhoto = getTrustedRowPhoto(exercise);
 
   if (intent === "row-card") {
-    if (thumbnailPath) {
-      return { src: thumbnailPath, mode: "photo" };
+    if (trustedRowPhoto) {
+      return { src: trustedRowPhoto, mode: "photo" };
+    }
+
+    if (iconPath) {
+      return { src: iconPath, mode: "icon" };
     }
 
     if (legacyImagePath) {
       return { src: legacyImagePath, mode: "legacy-composite" };
-    }
-
-    if (safeIconPath) {
-      return { src: safeIconPath, mode: "icon" };
     }
 
     return { src: PLACEHOLDER_ICON_SRC, mode: "fallback" };

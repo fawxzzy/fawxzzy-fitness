@@ -2,7 +2,11 @@
 
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { cn } from "@/lib/cn";
-import { resolveExerciseThumb, type ExerciseThumbIntent } from "@/lib/exerciseImages";
+import {
+  resolveExerciseThumb,
+  type ExerciseThumbIntent,
+  type ExerciseThumbSourceKind,
+} from "@/lib/exerciseImages";
 
 type ExerciseThumbProps = {
   exercise: {
@@ -11,6 +15,8 @@ type ExerciseThumbProps = {
     image_path?: string | null;
     image_icon_path?: string | null;
     image_howto_path?: string | null;
+    thumbnailUrl?: string | null;
+    thumbnailSource?: ExerciseThumbSourceKind | null;
   };
   alt?: string;
   className?: string;
@@ -53,6 +59,8 @@ export function ExerciseThumb({
   intent = "default",
 }: ExerciseThumbProps) {
   const thumb = resolveExerciseThumb(exercise, { intent });
+  const iconPx = size === 48 ? 22 : 26;
+  const iconInsetPx = Math.max(0, Math.round((size - iconPx) / 2));
 
   if (thumb.mode === "fallback") {
     return (
@@ -70,12 +78,13 @@ export function ExerciseThumb({
         className="h-full w-full rounded-md border border-white/10 bg-black/20"
         imageClassName={cn(
           thumb.mode === "icon"
-            ? "object-contain object-center p-1.5"
+            ? "object-contain object-center"
             : thumb.mode === "legacy-composite"
               ? "origin-top scale-[1.08] object-cover object-top"
               : "object-cover object-center",
           imageClassName,
         )}
+        imageStyle={thumb.mode === "icon" ? { padding: `${iconInsetPx}px` } : undefined}
         sizes={sizes ?? `${size}px`}
         fallback={<ThumbFallback />}
       />
