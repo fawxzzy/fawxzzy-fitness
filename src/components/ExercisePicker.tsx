@@ -210,6 +210,7 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           pickerRowMobileDensityClassNames.trailing,
           isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
         )}
+        surface="exercise-picker"
         bodyClassName={pickerRowMobileDensityClassNames.body}
         titleClassName={pickerRowMobileDensityClassNames.title}
         titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}

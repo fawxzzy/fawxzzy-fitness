@@ -501,6 +501,7 @@ export function LogAuditClient({
                 density="compact"
                 state={isExpanded ? "selected" : "default"}
                 className="w-full shadow-none"
+                surface="history-detail"
                 showLeadingVisual={surfacePolicy.showMedia}
               />
 

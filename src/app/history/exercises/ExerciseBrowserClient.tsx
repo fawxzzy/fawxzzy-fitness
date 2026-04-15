@@ -104,6 +104,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       state="default"
       semanticTone={viewModel.semanticTone}
       className="shadow-none"
+      surface="history-browser"
       showLeadingVisual={policy.showMedia}
     >
       <WorkoutExerciseCardDetails

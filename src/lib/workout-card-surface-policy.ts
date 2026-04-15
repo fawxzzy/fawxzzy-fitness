@@ -15,7 +15,27 @@ export type WorkoutCardSurfacePolicy = {
   showMedia: boolean;
   showIdentityChips: boolean;
   showDetailedMetrics: boolean;
+  mediaRailWidth: number;
 };
+
+const DEFAULT_MEDIA_RAIL_WIDTH = 72;
+
+export function resolveWorkoutCardMediaRailWidth(surface: WorkoutCardSurface): number {
+  switch (surface) {
+    case "current-session":
+      return 80;
+    case "history-detail":
+      return 76;
+    case "today":
+    case "view-day":
+    case "edit-day":
+    case "reorder":
+    case "history-browser":
+    case "exercise-picker":
+    default:
+      return DEFAULT_MEDIA_RAIL_WIDTH;
+  }
+}
 
 export function resolveWorkoutCardSurfacePolicy(
   surface: WorkoutCardSurface,
@@ -27,54 +47,63 @@ export function resolveWorkoutCardSurfacePolicy(
         showMedia: false,
         showIdentityChips: false,
         showDetailedMetrics: density === "detailed",
+        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
       };
     case "current-session":
       return {
         showMedia: true,
         showIdentityChips: false,
         showDetailedMetrics: false,
+        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
       };
     case "view-day":
       return {
         showMedia: false,
         showIdentityChips: false,
         showDetailedMetrics: false,
+        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
       };
     case "edit-day":
       return {
         showMedia: true,
         showIdentityChips: false,
         showDetailedMetrics: false,
+        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
       };
     case "reorder":
       return {
         showMedia: false,
         showIdentityChips: false,
         showDetailedMetrics: false,
+        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
       };
     case "history-browser":
       return {
         showMedia: true,
         showIdentityChips: true,
         showDetailedMetrics: density === "detailed",
+        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
       };
     case "history-detail":
       return {
         showMedia: true,
         showIdentityChips: false,
         showDetailedMetrics: false,
+        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
       };
     case "exercise-picker":
       return {
         showMedia: true,
         showIdentityChips: false,
         showDetailedMetrics: false,
+        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
       };
     default:
       return {
         showMedia: false,
         showIdentityChips: false,
         showDetailedMetrics: false,
+        mediaRailWidth: DEFAULT_MEDIA_RAIL_WIDTH,
       };
   }
 }

@@ -1013,6 +1013,30 @@ body {
   }
 }
 
+@keyframes route-loader-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes route-loader-card-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.985);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
 @supports selector(body:has(*)) {
   body:has([data-mobile-regression-screen="today"]) .ambient-background,
   body:has([data-mobile-regression-screen="view-day"]) .ambient-background,

@@ -6,7 +6,8 @@ const ICONS_DIR = path.resolve(process.cwd(), "public/exercises/icons");
 const CARD_OUTPUT_DIR = path.resolve(process.cwd(), "public/exercises/cards");
 const OUTPUT_FILE = path.resolve(process.cwd(), "src/generated/exerciseIconManifest.ts");
 const ALLOWED_EXTENSIONS = new Set([".png", ".svg", ".webp"]);
-const CARD_PADDING_PX = 8;
+const CARD_PADDING_PX = 4;
+const CARD_TRIM_THRESHOLD = 12;
 
 function isAllowedIconFile(fileName) {
   const extension = path.extname(fileName).toLowerCase();
@@ -28,7 +29,7 @@ function supportsCardDerivative(extension) {
 async function generateTrimmedCardAsset(inputPath, outputPath) {
   await sharp(inputPath)
     .ensureAlpha()
-    .trim()
+    .trim({ threshold: CARD_TRIM_THRESHOLD })
     .extend({
       top: CARD_PADDING_PX,
       right: CARD_PADDING_PX,
