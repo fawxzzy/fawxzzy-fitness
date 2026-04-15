@@ -75,13 +75,8 @@ export function StandardExerciseRow({
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
-  const resolvedThumbSize = density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
-    ? 48
-    : 64;
-  const resolvedImageSizes = imageSizes ?? (density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
-    ? "48px"
-    : "64px");
-  const usesInlineMedia = density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder";
+  const usesCompactDensity = density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder";
+  const resolvedImageSizes = imageSizes ?? (usesCompactDensity ? "84px" : "96px");
 
   return (
     <ExerciseCard
@@ -92,9 +87,15 @@ export function StandardExerciseRow({
       density={density}
       semanticTone={semanticTone}
       leadingVisual={leadingVisual ?? (showLeadingVisual ? (
-        <ExerciseThumb exercise={exercise} size={resolvedThumbSize} sizes={resolvedImageSizes} intent={usesInlineMedia ? "row-card" : "default"} />
+        <ExerciseThumb
+          exercise={exercise}
+          detailed={!usesCompactDensity}
+          layout="rail"
+          sizes={resolvedImageSizes}
+          intent="row-card"
+        />
       ) : undefined)}
-      mediaLayout={usesInlineMedia ? "inline" : "rail"}
+      mediaLayout="rail"
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}

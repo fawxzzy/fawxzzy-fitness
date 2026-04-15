@@ -11,6 +11,7 @@ type ExerciseAssetImageProps = {
   className?: string;
   imageClassName?: string;
   imageStyle?: CSSProperties;
+  fit?: "contain" | "cover";
   fallbackSrc?: string;
   fallback?: ReactNode;
   sizes?: string;
@@ -38,6 +39,7 @@ export function ExerciseAssetImage({
   className,
   imageClassName,
   imageStyle,
+  fit = "contain",
   fallbackSrc = DEFAULT_FALLBACK_SRC,
   fallback,
   sizes = DEFAULT_SIZES,
@@ -66,7 +68,7 @@ export function ExerciseAssetImage({
         loading={priority ? undefined : loading}
         priority={priority}
         sizes={sizes}
-        className={cn("object-cover object-center", imageClassName)}
+        className={cn(fit === "cover" ? "object-cover object-center" : "object-contain object-center", imageClassName)}
         style={imageStyle}
         onError={() => {
           if (renderSrc !== fallbackSrc && src !== fallbackSrc) {
