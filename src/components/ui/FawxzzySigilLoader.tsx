@@ -2,10 +2,14 @@ import { cn } from "@/lib/cn";
 
 type FawxzzySigilLoaderProps = {
   className?: string;
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
 };
 
 const sizeClassNames = {
+  sm: {
+    shell: "h-10 w-10",
+    core: "h-5 w-5 text-[0.54rem]",
+  },
   md: {
     shell: "h-14 w-14",
     core: "h-7 w-7 text-[0.7rem]",
