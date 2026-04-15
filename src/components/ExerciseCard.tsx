@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { textRoles } from "@/components/ui/text-roles";
@@ -41,7 +41,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     shellWithMedia: "pl-0",
     bodyGridWithMedia: "grid-cols-[var(--exercise-row-media-width-compact)_minmax(0,1fr)_auto]",
     media: "flex h-full w-full self-stretch items-stretch",
-    mediaRail: "-my-[var(--exercise-row-shell-padding-y-compact)] min-h-[calc(var(--exercise-row-media-min-height-compact)+(var(--exercise-row-shell-padding-y-compact)*2))] self-stretch overflow-hidden border-r border-[rgb(var(--border-strong)/0.14)]",
+    mediaRail: "-my-[var(--exercise-row-shell-padding-y-compact)] min-h-[calc(var(--exercise-row-media-min-height-compact)+(var(--exercise-row-shell-padding-y-compact)*2))] self-stretch overflow-hidden rounded-l-[inherit] border-r border-[rgb(var(--border-strong)/0.14)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-2",
     titleSize: "text-[0.98rem]",
@@ -54,7 +54,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     shellWithMedia: "pl-0",
     bodyGridWithMedia: "grid-cols-[var(--exercise-row-media-width-detailed)_minmax(0,1fr)_auto]",
     media: "flex h-full w-full self-stretch items-stretch",
-    mediaRail: "-my-[var(--exercise-row-shell-padding-y-detailed)] min-h-[calc(var(--exercise-row-media-min-height-detailed)+(var(--exercise-row-shell-padding-y-detailed)*2))] self-stretch overflow-hidden border-r border-[rgb(var(--border-strong)/0.14)]",
+    mediaRail: "-my-[var(--exercise-row-shell-padding-y-detailed)] min-h-[calc(var(--exercise-row-media-min-height-detailed)+(var(--exercise-row-shell-padding-y-detailed)*2))] self-stretch overflow-hidden rounded-l-[inherit] border-r border-[rgb(var(--border-strong)/0.14)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
@@ -149,6 +149,7 @@ export function ExerciseCard({
   density,
   semanticTone,
   mediaLayout = "rail",
+  mediaRailWidth,
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -176,6 +177,7 @@ export function ExerciseCard({
   density?: ExerciseCardDensity;
   semanticTone?: CardSemanticTone;
   mediaLayout?: ExerciseCardMediaLayout;
+  mediaRailWidth?: number;
 }) {
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
@@ -189,6 +191,12 @@ export function ExerciseCard({
     : "grid-cols-[minmax(0,1fr)_auto]";
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
   const hasSupportingContent = Boolean(subtitle) || Boolean(children);
+  const bodyGridStyle = usesRailMedia && mediaRailWidth
+    ? { gridTemplateColumns: `${mediaRailWidth}px minmax(0,1fr) auto` } satisfies CSSProperties
+    : undefined;
+  const mediaRailStyle = usesRailMedia && mediaRailWidth
+    ? { width: mediaRailWidth, minWidth: mediaRailWidth } satisfies CSSProperties
+    : undefined;
 
   const bodyContent = (
     <div
@@ -199,6 +207,7 @@ export function ExerciseCard({
         usesRailMedia ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
         bodyClassName,
       )}
+      style={bodyGridStyle}
     >
       <span
         aria-hidden="true"
@@ -216,6 +225,7 @@ export function ExerciseCard({
             cardMediaToneClassNames[resolvedSemanticTone],
             mediaClassName,
           )}
+          style={mediaRailStyle}
         >
           <div className={styles.media}>{leadingVisual}</div>
         </div>

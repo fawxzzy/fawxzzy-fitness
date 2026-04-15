@@ -24,6 +24,7 @@ type ExerciseThumbProps = {
   imageClassName?: string;
   sizes?: string;
   size?: number;
+  railWidth?: number;
   detailed?: boolean;
   layout?: "rail" | "inline";
   intent?: ExerciseThumbIntent;
@@ -59,6 +60,7 @@ export function ExerciseThumb({
   imageClassName,
   sizes,
   size = 56,
+  railWidth = detailed ? 76 : 72,
   detailed = false,
   layout = "inline",
   intent = "default",
@@ -77,7 +79,7 @@ export function ExerciseThumb({
     return (
       <div
         className={cn(
-          isRail ? "relative h-full w-full self-stretch overflow-hidden" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
+          isRail ? "relative h-full w-full self-stretch overflow-hidden rounded-l-[inherit]" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
           className,
         )}
         style={isRail ? undefined : { width: size, height: size }}
@@ -90,7 +92,7 @@ export function ExerciseThumb({
   return (
     <div
       className={cn(
-        isRail ? "relative h-full w-full self-stretch overflow-hidden" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
+        isRail ? "relative h-full w-full self-stretch overflow-hidden rounded-l-[inherit]" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
         className,
       )}
       style={isRail ? undefined : { width: size, height: size }}
@@ -98,9 +100,9 @@ export function ExerciseThumb({
       <ExerciseAssetImage
         src={thumb.src}
         alt={alt ?? ""}
-        className="h-full w-full"
-        imageClassName={imageClassName}
-        sizes={sizes ?? (isRail ? (detailed ? "96px" : "84px") : `${size}px`)}
+        className={isRail ? "absolute inset-0 h-full w-full" : "h-full w-full"}
+        imageClassName={cn(isRail ? "h-full w-full object-contain object-center" : undefined, imageClassName)}
+        sizes={sizes ?? (isRail ? `${railWidth}px` : `${size}px`)}
         fit="contain"
         fallback={<ThumbFallback glyphClassName={fallbackGlyphClassName} />}
       />

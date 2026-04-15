@@ -8,6 +8,7 @@ import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import type { ExerciseCardButtonProps, ExerciseCardDensity, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
 import type { ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
+import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 type DisclosureScope = "session-exercise" | "day-detail";
 
@@ -61,6 +62,7 @@ export function ExerciseDisclosureCard({
   className?: string;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
+  const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
 
   return (
     <div className={cn("overflow-hidden rounded-[1.25rem]", className)}>
@@ -72,6 +74,7 @@ export function ExerciseDisclosureCard({
         density={density}
         state={state}
         semanticTone={semanticTone}
+        surface={surface}
         onPress={onToggle}
         showLeadingVisual={showLeadingVisual}
         leadingVisual={leadingVisual}

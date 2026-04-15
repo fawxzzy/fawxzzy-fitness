@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { AppShell } from "@/components/ui/app/AppShell";
@@ -17,6 +18,22 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: { sessionId: string };
 };
+
+function HistoryDetailContentShell({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <ContentRail>
+      <ScreenScaffold recipe="historyDetail" className={className}>
+        {children}
+      </ScreenScaffold>
+    </ContentRail>
+  );
+}
 
 export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const user = await requireUser();
@@ -152,56 +169,56 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
     <AppShell className="gap-4" topNavMode="none" ambientPreset="history">
       <ScrollScreenWithBottomActions
         floatingHeader={(
-          <ContentRail><div id="history-log-floating-header" /></ContentRail>
+          <HistoryDetailContentShell>
+            <div id="history-log-floating-header" />
+          </HistoryDetailContentShell>
         )}
         className="flex flex-col gap-3"
       >
-        <ContentRail>
-          <ScreenScaffold className="space-y-2">
-            <HistoryLogPageClient
-              logId={sessionRow.id}
-              initialDayName={effectiveDayName}
-              initialNotes={sessionRow.notes}
-              unitLabel={unitLabel}
-              exerciseNameMap={exerciseNameRecord}
-              sessionSummary={sessionSummary}
-              backHref={backHref}
-              exercises={orderedSessionExercises.map((exercise) => {
-                const exerciseId = String(exercise.exercise_id);
-                const metadata = exerciseMetadataById.get(exerciseId);
-                const resolvedExerciseName = resolveHistoryExerciseName({
-                  metadataName: metadata?.name,
-                  rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
-                  rowName: (exercise as { name?: string | null }).name,
-                  mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
-                });
-                return ({
-                  id: exercise.id,
-                  exercise_id: exerciseId,
-                  exercise_name: resolvedExerciseName,
-                  exercise_slug: metadata?.slug ?? null,
-                  exercise_image_path: metadata?.image_path ?? null,
-                  exercise_image_icon_path: metadata?.image_icon_path ?? null,
-                  exercise_image_howto_path: metadata?.image_howto_path ?? null,
-                  notes: exercise.notes,
-                  measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
-                  default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
-                  sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
-                    id: set.id,
-                    set_index: set.set_index,
-                    weight: set.weight,
-                    reps: set.reps,
-                    duration_seconds: set.duration_seconds,
-                    distance: set.distance,
-                    distance_unit: set.distance_unit,
-                    calories: set.calories,
-                    weight_unit: set.weight_unit,
-                  })),
-                });
-              })}
-            />
-          </ScreenScaffold>
-        </ContentRail>
+        <HistoryDetailContentShell className="space-y-2">
+          <HistoryLogPageClient
+            logId={sessionRow.id}
+            initialDayName={effectiveDayName}
+            initialNotes={sessionRow.notes}
+            unitLabel={unitLabel}
+            exerciseNameMap={exerciseNameRecord}
+            sessionSummary={sessionSummary}
+            backHref={backHref}
+            exercises={orderedSessionExercises.map((exercise) => {
+              const exerciseId = String(exercise.exercise_id);
+              const metadata = exerciseMetadataById.get(exerciseId);
+              const resolvedExerciseName = resolveHistoryExerciseName({
+                metadataName: metadata?.name,
+                rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
+                rowName: (exercise as { name?: string | null }).name,
+                mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
+              });
+              return ({
+                id: exercise.id,
+                exercise_id: exerciseId,
+                exercise_name: resolvedExerciseName,
+                exercise_slug: metadata?.slug ?? null,
+                exercise_image_path: metadata?.image_path ?? null,
+                exercise_image_icon_path: metadata?.image_icon_path ?? null,
+                exercise_image_howto_path: metadata?.image_howto_path ?? null,
+                notes: exercise.notes,
+                measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
+                default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
+                sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
+                  id: set.id,
+                  set_index: set.set_index,
+                  weight: set.weight,
+                  reps: set.reps,
+                  duration_seconds: set.duration_seconds,
+                  distance: set.distance,
+                  distance_unit: set.distance_unit,
+                  calories: set.calories,
+                  weight_unit: set.weight_unit,
+                })),
+              });
+            })}
+          />
+        </HistoryDetailContentShell>
       </ScrollScreenWithBottomActions>
     </AppShell>
   );
