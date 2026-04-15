@@ -4,6 +4,7 @@ import { ExerciseCard, type ExerciseCardButtonProps } from "@/components/Exercis
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
+import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
 
 type StandardExerciseRowProps = {
   exercise: {
@@ -12,6 +13,8 @@ type StandardExerciseRowProps = {
     image_path?: string | null;
     image_icon_path?: string | null;
     image_howto_path?: string | null;
+    thumbnailUrl?: string | null;
+    thumbnailSource?: ExerciseThumbSourceKind | null;
   };
   summary?: ExerciseGoalSummaryValue;
   subtitle?: ExerciseGoalSummaryValue;
