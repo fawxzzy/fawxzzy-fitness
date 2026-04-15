@@ -11,6 +11,7 @@ export type ExerciseCardDensity = "compact" | "detailed";
 export type ExerciseCardButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "onClick" | "disabled" | "className"> & {
   [key: `data-${string}`]: string | number | boolean | undefined;
 };
+export type ExerciseCardMediaLayout = "rail" | "inline";
 
 const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
   standard: "detailed",
@@ -147,6 +148,7 @@ export function ExerciseCard({
   state = "default",
   density,
   semanticTone,
+  mediaLayout = "rail",
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -173,12 +175,17 @@ export function ExerciseCard({
   state?: ExerciseCardState;
   density?: ExerciseCardDensity;
   semanticTone?: CardSemanticTone;
+  mediaLayout?: ExerciseCardMediaLayout;
 }) {
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
   const resolvedSemanticTone = semanticTone ?? resolveDefaultSemanticTone(state);
-  const bodyGridClassName = leadingVisual
+  const usesRailMedia = Boolean(leadingVisual) && mediaLayout === "rail";
+  const usesInlineMedia = Boolean(leadingVisual) && mediaLayout === "inline";
+  const bodyGridClassName = usesRailMedia
     ? styles.bodyGridWithMedia
+    : usesInlineMedia
+      ? "grid-cols-[auto_minmax(0,1fr)_auto]"
     : "grid-cols-[minmax(0,1fr)_auto]";
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
   const hasSupportingContent = Boolean(subtitle) || Boolean(children);
@@ -189,7 +196,7 @@ export function ExerciseCard({
         "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-hidden",
         bodyGridClassName,
         styles.shell,
-        leadingVisual ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
+        usesRailMedia ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
         bodyClassName,
       )}
     >
@@ -200,7 +207,7 @@ export function ExerciseCard({
           cardAccentRailClassNames[resolvedSemanticTone],
         )}
       />
-      {leadingVisual ? (
+      {usesRailMedia ? (
         <div
           className={cn(
             "relative shrink-0 transition-colors",
@@ -211,6 +218,11 @@ export function ExerciseCard({
           )}
         >
           <div className={styles.media}>{leadingVisual}</div>
+        </div>
+      ) : null}
+      {usesInlineMedia ? (
+        <div className={cn("relative flex shrink-0 items-center justify-center self-center", mediaClassName)}>
+          {leadingVisual}
         </div>
       ) : null}
 

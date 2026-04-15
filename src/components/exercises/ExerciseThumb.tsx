@@ -2,7 +2,7 @@
 
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { cn } from "@/lib/cn";
-import { resolveExerciseThumb } from "@/lib/exerciseImages";
+import { resolveExerciseThumb, type ExerciseThumbIntent } from "@/lib/exerciseImages";
 
 type ExerciseThumbProps = {
   exercise: {
@@ -17,6 +17,7 @@ type ExerciseThumbProps = {
   imageClassName?: string;
   sizes?: string;
   size?: number;
+  intent?: ExerciseThumbIntent;
 };
 
 function ThumbFallback() {
@@ -49,8 +50,9 @@ export function ExerciseThumb({
   imageClassName,
   sizes,
   size = 56,
+  intent = "default",
 }: ExerciseThumbProps) {
-  const thumb = resolveExerciseThumb(exercise);
+  const thumb = resolveExerciseThumb(exercise, { intent });
 
   return (
     <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
@@ -62,7 +64,7 @@ export function ExerciseThumb({
           thumb.mode === "icon" || thumb.mode === "fallback"
             ? "object-contain object-center p-1.5"
             : thumb.mode === "legacy-composite"
-              ? "object-cover object-top"
+              ? "origin-top scale-[1.08] object-cover object-top"
               : "object-cover object-center",
           imageClassName,
         )}
