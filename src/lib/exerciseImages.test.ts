@@ -27,15 +27,29 @@ test("resolveExerciseThumb prefers icon sources over legacy image paths", () => 
   });
 });
 
-test("resolveExerciseThumb prefers explicit card icons over repo legacy image paths", () => {
+test("resolveExerciseThumb prefers explicit card art over repo legacy image paths on row cards", () => {
   const resolved = resolveExerciseThumb({
     name: "Incline Dumbbell Bench Press",
-    cardIconSrc: "/images/custom-incline-thumb.png",
+    cardSrc: "/images/custom-incline-thumb.png",
     image_path: "/images/legacy-incline-howto.png",
-  });
+  }, { intent: "row-card" });
 
   assert.deepEqual(resolved, {
     src: "/images/custom-incline-thumb.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb prefers explicit card art before trusted thumbnails on row cards", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Incline Dumbbell Bench Press",
+    cardSrc: "/images/custom-incline-card.png",
+    thumbnailUrl: "/images/session-photo-thumb.png",
+    thumbnailSource: "session-log",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(resolved, {
+    src: "/images/custom-incline-card.png",
     mode: "icon",
   });
 });
@@ -60,7 +74,7 @@ test("resolveExerciseThumb prefers icons over legacy composite art for row cards
   }, { intent: "row-card" });
 
   assert.deepEqual(resolved, {
-    src: "/exercises/icons/lateral-raise.png",
+    src: "/exercises/cards/lateral-raise.png",
     mode: "icon",
   });
 });
@@ -74,11 +88,11 @@ test("resolveExerciseThumb keeps exercise-specific icons for row cards when no a
   }, { intent: "row-card" });
 
   assert.deepEqual(barbellBench, {
-    src: "/exercises/icons/barbell-bench-press.png",
+    src: "/exercises/cards/barbell-bench-press.png",
     mode: "icon",
   });
   assert.deepEqual(lateralRaise, {
-    src: "/exercises/icons/lateral-raise.png",
+    src: "/exercises/cards/lateral-raise.png",
     mode: "icon",
   });
 });
@@ -174,7 +188,7 @@ test("resolveExerciseThumb ignores untrusted thumbnails for row cards and keeps 
   }, { intent: "row-card" });
 
   assert.deepEqual(resolved, {
-    src: "/exercises/icons/incline-dumbbell-bench-press.png",
+    src: "/exercises/cards/incline-dumbbell-bench-press.png",
     mode: "icon",
   });
 });

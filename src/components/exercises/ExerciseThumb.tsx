@@ -11,6 +11,7 @@ import {
 type ExerciseThumbProps = {
   exercise: {
     name?: string | null;
+    cardSrc?: string | null;
     slug?: string | null;
     image_path?: string | null;
     image_icon_path?: string | null;

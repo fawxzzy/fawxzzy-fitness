@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { InstallabilityBootstrap } from "@/components/install/InstallabilityBootstrap";
 import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
+import { PersistentAppChrome } from "@/components/ui/app/PersistentAppChrome";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
 import "./globals.css";
@@ -46,6 +47,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="relative overflow-x-hidden">
+        <PersistentAppChrome />
         <ToastProvider>
           <InstallabilityBootstrap />
           <GlassEffectsBootstrap />

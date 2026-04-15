@@ -1,4 +1,9 @@
-import { EXERCISE_ICON_EXT_BY_SLUG, EXERCISE_ICON_SLUGS } from "@/generated/exerciseIconManifest";
+import {
+  EXERCISE_CARD_SLUGS,
+  EXERCISE_CARD_SRC_BY_SLUG,
+  EXERCISE_ICON_EXT_BY_SLUG,
+  EXERCISE_ICON_SLUGS,
+} from "@/generated/exerciseIconManifest";
 
 export type ExerciseThumbSourceKind =
   | "custom-upload"
@@ -10,6 +15,7 @@ export type ExerciseThumbSourceKind =
   | "unknown";
 
 export type ExerciseImageSource = {
+  cardSrc?: string | null;
   slug?: string | null;
   name?: string | null;
   image_path?: string | null;
@@ -28,7 +34,6 @@ export type ExerciseCardThumbSource = ExerciseThumbSpec;
 export type ExerciseThumbIntent = "default" | "row-card";
 
 type ExerciseThumbInput = ExerciseImageSource & {
-  cardIconSrc?: string | null;
   iconSrc?: string | null;
   imageUrl?: string | null;
 };
@@ -111,22 +116,47 @@ function resolveManifestIconPath(exercise: ExerciseThumbInput): string | null {
   return nameSlug ? getManifestIconPath(nameSlug) : null;
 }
 
+function getManifestCardPath(slug?: string | null): string | null {
+  const normalizedSlug = slug?.trim();
+  if (!normalizedSlug || !EXERCISE_CARD_SLUGS.has(normalizedSlug)) {
+    return null;
+  }
+
+  return EXERCISE_CARD_SRC_BY_SLUG[normalizedSlug] ?? null;
+}
+
+function resolveManifestCardPath(exercise: ExerciseThumbInput): string | null {
+  const slugCardPath = getManifestCardPath(exercise.slug);
+  if (slugCardPath) {
+    return slugCardPath;
+  }
+
+  const nameSlug = getExerciseNameSlug(exercise);
+  return nameSlug ? getManifestCardPath(nameSlug) : null;
+}
+
 export function resolveExerciseThumb(
   exercise: ExerciseThumbInput,
   options: ResolveExerciseThumbOptions = {},
 ): ExerciseThumbSpec {
   const intent = options.intent ?? "default";
-  const explicitIconPath = getLocalImagePath(exercise.cardIconSrc)
-    ?? getLocalImagePath(exercise.iconSrc)
+  const explicitCardPath = getLocalImagePath(exercise.cardSrc);
+  const explicitIconPath = getLocalImagePath(exercise.iconSrc)
     ?? getLocalImagePath(exercise.image_icon_path);
   const thumbnailPath = getLocalImagePath(exercise.thumbnailUrl);
   const legacyImagePath = getLocalImagePath(exercise.imageUrl)
     ?? getLocalImagePath(exercise.image_path);
+  const manifestCardPath = resolveManifestCardPath(exercise);
   const manifestIconPath = resolveManifestIconPath(exercise);
+  const cardPath = explicitCardPath ?? manifestCardPath;
   const iconPath = explicitIconPath ?? manifestIconPath;
   const trustedRowPhoto = getTrustedRowPhoto(exercise);
 
   if (intent === "row-card") {
+    if (cardPath) {
+      return { src: cardPath, mode: "icon" };
+    }
+
     if (trustedRowPhoto) {
       return { src: trustedRowPhoto, mode: "photo" };
     }
