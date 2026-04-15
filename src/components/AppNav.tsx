@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { SVGProps } from "react";
-import { useEffect } from "react";
+import type { MouseEvent, SVGProps } from "react";
+import { useEffect, useState } from "react";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { Glass } from "@/components/ui/Glass";
 
@@ -16,6 +16,8 @@ type NavLink = {
 type AppNavProps = {
   mode?: "fixed" | "topChrome";
 };
+
+const NAV_PENDING_HINT_DELAY_MS = 140;
 
 const links: NavLink[] = [
   {
@@ -72,6 +74,8 @@ const links: NavLink[] = [
 export function AppNav({ mode = "fixed" }: AppNavProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [showPendingHint, setShowPendingHint] = useState(false);
   const activeLink = links.find((link) => pathname === link.href || pathname.startsWith(`${link.href}/`));
 
   useEffect(() => {
@@ -83,6 +87,43 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
       router.prefetch(link.href);
     }
   }, [pathname, router]);
+
+  useEffect(() => {
+    setPendingHref(null);
+    setShowPendingHint(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!pendingHref) {
+      return;
+    }
+
+    setShowPendingHint(false);
+
+    const timer = window.setTimeout(() => {
+      setShowPendingHint(true);
+    }, NAV_PENDING_HINT_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [pendingHref]);
+
+  function handleNavClick(event: MouseEvent<HTMLAnchorElement>, href: string, isActive: boolean) {
+    if (
+      isActive ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    setPendingHref(href);
+  }
 
   return (
     <div
@@ -103,6 +144,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
             <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
               {links.map((link) => {
                 const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                const isPending = !isActive && pendingHref === link.href && showPendingHint;
                 const Icon = link.Icon;
 
                 return (
@@ -111,7 +153,9 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
                     href={link.href}
                     prefetch
                     aria-current={isActive ? "page" : undefined}
-                    className={`group relative flex min-h-11 items-center justify-center rounded-[10px] px-2 py-1 transition-colors ${
+                    aria-busy={isPending ? true : undefined}
+                    onClick={(event) => handleNavClick(event, link.href, isActive)}
+                    className={`group relative flex min-h-11 items-center justify-center rounded-[10px] px-2 py-1 transition-[transform,filter,background-color,color,box-shadow] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985] active:brightness-[0.98] ${
                       isActive
                         ? "bg-accent/28 font-semibold text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.28),0_0_16px_rgb(var(--accent-rgb)/0.18)]"
                         : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"
@@ -121,6 +165,12 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
                       <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-[rgb(var(--accent-rgb)/1)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
                       <span>{link.label}</span>
                     </span>
+                    {isPending ? (
+                      <span
+                        aria-hidden="true"
+                        className="absolute right-2 top-2 h-1.5 w-1.5 animate-pulse rounded-full bg-[rgb(var(--accent)/0.88)] shadow-[0_0_10px_rgb(var(--accent)/0.4)]"
+                      />
+                    ) : null}
                     {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.5)]" aria-hidden="true" /> : null}
                   </Link>
                 );
