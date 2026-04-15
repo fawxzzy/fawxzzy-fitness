@@ -16,6 +16,8 @@ import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
+const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
+
 type ExerciseBrowserClientProps = {
   rows?: ExerciseBrowserRow[];
 };
@@ -116,13 +118,18 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
 export function ExerciseBrowserClient({
   rows = [],
   inlineHeaderControls = false,
-  initialViewMode = "detailed",
+  initialViewMode = "compact",
 }: ExerciseBrowserClientProps & { inlineHeaderControls?: boolean; initialViewMode?: "compact" | "detailed" }) {
   const [query, setQuery] = useState("");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
   const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
+
+  const applyViewMode = (nextMode: "compact" | "detailed") => {
+    setViewMode(nextMode);
+    document.cookie = `${HISTORY_EXERCISE_VIEW_MODE_COOKIE}=${nextMode}; Max-Age=31536000; Path=/; SameSite=Lax`;
+  };
 
   const exerciseTagsById = useMemo(() => {
     const tagsById = new Map<string, Set<string>>();
@@ -194,7 +201,7 @@ export function ExerciseBrowserClient({
         <HistoryTitleControlShell
           caption={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"} shown`}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={applyViewMode}
           showViewModeToggle={false}
         >
           <ExerciseSearchFilters
@@ -212,7 +219,7 @@ export function ExerciseBrowserClient({
             <HistoryTitleControlShell
               caption={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"} shown`}
               viewMode={viewMode}
-              onViewModeChange={setViewMode}
+              onViewModeChange={applyViewMode}
               showViewModeToggle={false}
             >
               <ExerciseSearchFilters
@@ -259,7 +266,7 @@ export function ExerciseBrowserClient({
             <BottomDockButton
               type="button"
               intent="info"
-              onClick={() => setViewMode((current) => (current === "compact" ? "detailed" : "compact"))}
+              onClick={() => applyViewMode(viewMode === "compact" ? "detailed" : "compact")}
             >
               {nextViewModeLabel}
             </BottomDockButton>

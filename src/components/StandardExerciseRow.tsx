@@ -9,6 +9,7 @@ import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
 type StandardExerciseRowProps = {
   exercise: {
     name: string;
+    cardSrc?: string | null;
     slug?: string | null;
     image_path?: string | null;
     image_icon_path?: string | null;

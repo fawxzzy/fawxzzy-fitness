@@ -1,5 +1,6 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
+import { cookies } from "next/headers";
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
@@ -9,6 +10,12 @@ import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
 
 export const dynamic = "force-dynamic";
+const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
+
+function resolveInitialViewMode() {
+  const cookieValue = cookies().get(HISTORY_EXERCISE_VIEW_MODE_COOKIE)?.value;
+  return cookieValue === "detailed" ? "detailed" : "compact";
+}
 
 function ExercisesBrowserError() {
   return (
@@ -20,6 +27,8 @@ function ExercisesBrowserError() {
 }
 
 export default async function HistoryExercisesPage() {
+  const initialViewMode = resolveInitialViewMode();
+
   try {
     const rows = await getExercisesWithStatsForUser();
 
@@ -30,7 +39,7 @@ export default async function HistoryExercisesPage() {
           floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
         >
           <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-            <ExerciseBrowserClient rows={rows} />
+            <ExerciseBrowserClient rows={rows} initialViewMode={initialViewMode} />
           </ContentRail>
         </ScrollScreenWithBottomActions>
       </MainTabScreen>

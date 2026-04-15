@@ -54,13 +54,13 @@ export function resolveWorkoutCardSurfacePolicy(
       };
     case "history-browser":
       return {
-        showMedia: density === "compact",
+        showMedia: true,
         showIdentityChips: true,
         showDetailedMetrics: density === "detailed",
       };
     case "history-detail":
       return {
-        showMedia: false,
+        showMedia: true,
         showIdentityChips: false,
         showDetailedMetrics: false,
       };

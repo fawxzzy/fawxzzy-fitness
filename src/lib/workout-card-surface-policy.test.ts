@@ -19,16 +19,24 @@ test("today cards stay text-first while detailed mode keeps the richer metric ro
   });
 });
 
-test("history browser keeps detailed mode text-first while compact browsing can still show media", () => {
+test("history browser keeps the shared media rail in both densities", () => {
   assert.deepEqual(resolveWorkoutCardSurfacePolicy("history-browser", "compact"), {
     showMedia: true,
     showIdentityChips: true,
     showDetailedMetrics: false,
   });
   assert.deepEqual(resolveWorkoutCardSurfacePolicy("history-browser", "detailed"), {
-    showMedia: false,
+    showMedia: true,
     showIdentityChips: true,
     showDetailedMetrics: true,
+  });
+});
+
+test("history detail rows keep media active for logged-set cards", () => {
+  assert.deepEqual(resolveWorkoutCardSurfacePolicy("history-detail", "compact"), {
+    showMedia: true,
+    showIdentityChips: false,
+    showDetailedMetrics: false,
   });
 });
 
