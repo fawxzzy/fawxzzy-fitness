@@ -203,9 +203,12 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               primary_muscle: canonicalExercise?.primary_muscle ?? null,
               equipment: canonicalExercise?.equipment ?? null,
               movement_pattern: canonicalExercise?.movement_pattern ?? null,
+              image_path: canonicalExercise?.image_path ?? null,
+              image_icon_path: canonicalExercise?.image_icon_path ?? null,
               useIntervalLanguage,
               routineDayExerciseId: exercise.routine_day_exercise_id ?? null,
               image_howto_path: canonicalExercise?.image_howto_path ?? null,
+              slug: canonicalExercise?.slug ?? null,
               planTargetsHash: (() => {
                 const fromPlan = exercise.enabled_metrics;
                 if (!fromPlan) {

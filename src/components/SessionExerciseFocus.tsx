@@ -185,6 +185,10 @@ export function SessionExerciseFocus({
   const toast = useToast();
   const router = useRouter();
   void removeExerciseAction;
+  const visibleExercises = useMemo(
+    () => selectedExerciseId ? exercises.filter((exercise) => exercise.id === selectedExerciseId) : exercises,
+    [exercises, selectedExerciseId],
+  );
 
   useEffect(() => {
     setWarmupDraft(false);
@@ -315,7 +319,7 @@ export function SessionExerciseFocus({
   return (
     <div className="flex flex-col gap-2.5" data-row-interaction={contract.rowInteraction}>
       <ul className="space-y-1.5">
-        {exercises.map((exercise) => {
+        {visibleExercises.map((exercise) => {
           const isRemoving = removingExerciseIds.includes(exercise.id);
           const isExpanded = selectedExerciseId === exercise.id;
           const rowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({

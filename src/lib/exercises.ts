@@ -14,6 +14,17 @@ let hasLoggedMissingExerciseId = false;
 
 const VALID_MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "carry", "rotation"] as const;
 const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight"] as const;
+const EXERCISE_LIST_SELECT =
+  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_icon_path, image_howto_path, slug, how_to_short, created_at";
+const EXERCISE_LIST_SELECT_LEGACY =
+  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, created_at";
+const EXERCISE_OPTIONAL_METADATA_COLUMNS = [
+  "image_path",
+  "image_icon_path",
+  "image_howto_path",
+  "slug",
+  "how_to_short",
+] as const;
 
 const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
 const LEGACY_PLACEHOLDER_IDS = new Set<string>([SENTINEL_EXERCISE_ID, ...EXERCISE_OPTIONS.map((exercise) => exercise.id)]);
@@ -31,6 +42,75 @@ function logExerciseLoaderEvent(event: string, details?: Record<string, unknown>
   logDebugSummary("exercises", event, details);
 }
 
+type ExerciseQueryError = {
+  code?: string;
+  message?: string;
+} | null | undefined;
+
+function isMissingExerciseMetadataColumnError(error: ExerciseQueryError) {
+  const message = error?.message?.toLowerCase() ?? "";
+  if (!message.includes("exercises")) {
+    return false;
+  }
+
+  return EXERCISE_OPTIONAL_METADATA_COLUMNS.some((column) => {
+    const normalizedColumn = column.toLowerCase();
+    return (
+      message.includes(normalizedColumn)
+      && (
+        message.includes("schema cache")
+        || (message.includes("column") && message.includes("does not exist"))
+      )
+    );
+  });
+}
+
+function hydrateExerciseRow(row: Partial<ExerciseRow>): ExerciseRow {
+  return {
+    id: row.id ?? "",
+    name: row.name ?? "",
+    user_id: row.user_id ?? null,
+    is_global: row.is_global ?? false,
+    primary_muscle: row.primary_muscle ?? null,
+    equipment: row.equipment ?? null,
+    movement_pattern: row.movement_pattern ?? null,
+    measurement_type: row.measurement_type ?? "reps",
+    default_unit: row.default_unit ?? null,
+    calories_estimation_method: row.calories_estimation_method ?? null,
+    image_path: row.image_path ?? null,
+    image_icon_path: row.image_icon_path ?? null,
+    image_howto_path: row.image_howto_path ?? null,
+    slug: row.slug ?? null,
+    how_to_short: row.how_to_short ?? null,
+    created_at: row.created_at ?? FALLBACK_CREATED_AT,
+  };
+}
+
+async function readExercisesWithMetadataFallback(args: {
+  query: (columns: string) => Promise<{ data: unknown; error: ExerciseQueryError }>;
+}) {
+  const primaryResult = await args.query(EXERCISE_LIST_SELECT);
+  if (!primaryResult.error) {
+    return {
+      data: (primaryResult.data ?? []) as Partial<ExerciseRow>[],
+      error: null,
+    };
+  }
+
+  if (!isMissingExerciseMetadataColumnError(primaryResult.error)) {
+    return {
+      data: [] as Partial<ExerciseRow>[],
+      error: primaryResult.error,
+    };
+  }
+
+  const fallbackResult = await args.query(EXERCISE_LIST_SELECT_LEGACY);
+  return {
+    data: (fallbackResult.data ?? []) as Partial<ExerciseRow>[],
+    error: fallbackResult.error,
+  };
+}
+
 function fallbackGlobalExercises(): ExerciseRow[] {
   return EXERCISE_OPTIONS.map((exercise) => ({
     id: exercise.id,
@@ -43,7 +123,10 @@ function fallbackGlobalExercises(): ExerciseRow[] {
     measurement_type: "reps",
     default_unit: "reps",
     calories_estimation_method: null,
+    image_path: null,
+    image_icon_path: null,
     image_howto_path: null,
+    slug: null,
     how_to_short: exercise.how_to_short,
     created_at: FALLBACK_CREATED_AT,
   }));
@@ -131,11 +214,13 @@ export async function listExercises() {
 
 async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
   const supabase = supabaseServer();
-  const { data: customData, error: customError } = await supabase
-    .from("exercises")
-    .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_howto_path, how_to_short, created_at")
-    .eq("user_id", userId)
-    .order("name", { ascending: true });
+  const { data: customData, error: customError } = await readExercisesWithMetadataFallback({
+    query: (columns) => supabase
+      .from("exercises")
+      .select(columns)
+      .eq("user_id", userId)
+      .order("name", { ascending: true }),
+  });
 
   if (customError) {
     if (customError.code === "42P01") {
@@ -145,18 +230,20 @@ async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
     throw new Error(customError.message);
   }
 
-  return (customData ?? []) as ExerciseRow[];
+  return customData.map(hydrateExerciseRow);
 }
 
 const listGlobalExercisesCached = unstable_cache(
   async (): Promise<ExerciseRow[]> => {
     const supabase = supabaseServerAnon();
-    const { data, error } = await supabase
-      .from("exercises")
-      .select("id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_howto_path, how_to_short, created_at")
-      .is("user_id", null)
-      .eq("is_global", true)
-      .order("name", { ascending: true });
+    const { data, error } = await readExercisesWithMetadataFallback({
+      query: (columns) => supabase
+        .from("exercises")
+        .select(columns)
+        .is("user_id", null)
+        .eq("is_global", true)
+        .order("name", { ascending: true }),
+    });
 
     if (error) {
       logExerciseLoaderEvent("global-db-query-failed", {
@@ -182,7 +269,7 @@ const listGlobalExercisesCached = unstable_cache(
       return [];
     }
 
-    const rows = (data ?? []) as ExerciseRow[];
+    const rows = data.map(hydrateExerciseRow);
 
     return rows;
   },

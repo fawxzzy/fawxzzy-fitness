@@ -119,7 +119,10 @@ export type ExerciseRow = {
   measurement_type: "reps" | "time" | "distance" | "time_distance";
   default_unit: string | null;
   calories_estimation_method: string | null;
+  image_path?: string | null;
+  image_icon_path?: string | null;
   image_howto_path: string | null;
+  slug?: string | null;
   how_to_short: string | null;
   created_at: string;
 };

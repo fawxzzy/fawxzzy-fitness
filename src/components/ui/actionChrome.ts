@@ -13,7 +13,7 @@ export const ACTION_CHROME_RAIL_CLASS_NAME =
   "action-chrome-rail";
 
 export const ACTION_CHROME_RAIL_GRID_CLASS_NAME =
-  "grid items-stretch gap-[var(--action-chrome-shell-gap)]";
+  "flex items-stretch gap-[var(--action-chrome-shell-gap)]";
 
 export const ACTION_CHROME_CONTROL_CLASS_NAME = [
   "action-chrome",

@@ -8,18 +8,41 @@ type ExerciseRow = {
   id: string;
   exercise_id?: string | null;
   name: string;
+  primary_muscle?: string | null;
+  equipment?: string | null;
+  movement_pattern?: string | null;
+  image_path?: string | null;
+  image_icon_path?: string | null;
+  image_howto_path?: string | null;
   measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
   default_unit?: string | null;
 };
 
-function createSupabaseStub(exercises: ExerciseRow[]) {
+function createSupabaseStub(exercises: ExerciseRow[], selectCalls: string[] = [], missingColumns: string[] = []) {
   return {
     from(table: string) {
       assert.equal(table, "exercises");
       return {
-        select() {
+        select(columns?: string) {
+          if (typeof columns === "string") {
+            selectCalls.push(columns);
+          }
+
           return {
             in(column: string, values: string[]) {
+              if (typeof columns === "string") {
+                const selectedColumns = columns.split(",").map((value) => value.trim());
+                const missingColumn = missingColumns.find((candidate) => selectedColumns.includes(candidate));
+                if (missingColumn) {
+                  return Promise.resolve({
+                    data: null,
+                    error: {
+                      message: `Could not find the '${missingColumn}' column of 'exercises' in the schema cache`,
+                    },
+                  });
+                }
+              }
+
               const filtered = exercises.filter((exercise) => values.includes(column === "id" ? exercise.id : column === "exercise_id" ? (exercise.exercise_id ?? "") : exercise.name));
               return Promise.resolve({ data: filtered, error: null });
             },
@@ -61,6 +84,127 @@ test("loadCanonicalExerciseCatalog resolves legacy placeholder ids by exercise n
   });
 
   assert.equal(canonicalExerciseIdByRawId.get(legacyBenchPressId), canonicalId);
+});
+
+test("loadCanonicalExerciseCatalog does not hard-require exercises.image_path", async () => {
+  const canonicalId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  const selectCalls: string[] = [];
+
+  await loadCanonicalExerciseCatalog({
+    supabase: createSupabaseStub([{ id: canonicalId, name: "Row" }], selectCalls) as never,
+    exercises: [{ exercise_id: canonicalId } as never],
+  });
+
+  assert.ok(selectCalls.length > 0);
+  assert.equal(
+    selectCalls.some((columns) => columns.split(",").map((value) => value.trim()).includes("image_path")),
+    false,
+  );
+});
+
+async function buildSingleExerciseSummary(args: {
+  exercise: ExerciseRow;
+  missingColumns?: string[];
+}) {
+  const routineDay = {
+    id: `day-${args.exercise.id}`,
+    user_id: "user-1",
+    routine_id: "routine-1",
+    day_index: 1,
+    name: "Day 1",
+    is_rest: false,
+    notes: null,
+  } as never;
+  const dayExercise = {
+    id: `row-${args.exercise.id}`,
+    user_id: "user-1",
+    routine_day_id: routineDay.id,
+    exercise_id: args.exercise.id,
+    position: 1,
+    notes: null,
+    target_sets: 3,
+    measurement_type: "reps" as const,
+    default_unit: "reps",
+  } as never;
+  const { buildCanonicalDaySummaries } = await import("./routine-day-loader");
+  const { summaries } = await buildCanonicalDaySummaries({
+    supabase: createSupabaseStub([args.exercise], [], args.missingColumns ?? []) as never,
+    routineDays: [routineDay],
+    allDayExercises: [dayExercise],
+  });
+  const [summary] = summaries;
+
+  assert.ok(summary);
+  assert.equal(summary.runnableExercises.length, 1);
+
+  return summary.runnableExercises[0];
+}
+
+function assertNullableImageValue(value: string | null | undefined) {
+  assert.ok(value === null || typeof value === "string");
+}
+
+test("buildCanonicalDaySummaries keeps a safe nullable image contract across schema variants", async (t) => {
+  const scenarios = [
+    {
+      name: "schema has image columns",
+      exercise: {
+        id: "f1111111-1111-4111-8111-111111111111",
+        name: "Pull Up",
+        image_icon_path: "/images/pull-up-icon.png",
+        image_howto_path: "/images/pull-up-howto.png",
+      },
+      expected: {
+        displayName: "Pull Up",
+        image_icon_path: "/images/pull-up-icon.png",
+        image_howto_path: "/images/pull-up-howto.png",
+      },
+    },
+    {
+      name: "schema lacks image columns",
+      exercise: {
+        id: "f2222222-2222-4222-8222-222222222222",
+        name: "Dip",
+      },
+      missingColumns: ["image_icon_path"],
+      expected: {
+        displayName: "Dip",
+        image_icon_path: null,
+        image_howto_path: null,
+      },
+    },
+    {
+      name: "exercise has no image metadata",
+      exercise: {
+        id: "f3333333-3333-4333-8333-333333333333",
+        name: "Lunge",
+        image_icon_path: null,
+        image_howto_path: null,
+      },
+      expected: {
+        displayName: "Lunge",
+        image_icon_path: null,
+        image_howto_path: null,
+      },
+    },
+  ] as const;
+
+  for (const scenario of scenarios) {
+    await t.test(scenario.name, async () => {
+      const runnableExercise = await buildSingleExerciseSummary({
+        exercise: scenario.exercise,
+        missingColumns: scenario.missingColumns,
+      });
+
+      assert.equal(runnableExercise.displayName, scenario.expected.displayName);
+      assert.ok(runnableExercise.details);
+      assertNullableImageValue(runnableExercise.details.image_path);
+      assertNullableImageValue(runnableExercise.details.image_icon_path);
+      assertNullableImageValue(runnableExercise.details.image_howto_path);
+      assert.equal(runnableExercise.details.image_icon_path, scenario.expected.image_icon_path);
+      assert.equal(runnableExercise.details.image_howto_path, scenario.expected.image_howto_path);
+    });
+  }
 });
 
 test("normalizeRunnableDayExercises keeps valid canonical, alias-resolved, fallback-valid, and custom rows while rejecting sentinel placeholders", async () => {

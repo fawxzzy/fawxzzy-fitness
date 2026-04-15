@@ -6,6 +6,7 @@ import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId
 import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
+import { getExerciseNameMap } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
@@ -60,6 +61,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   const allRoutineDayExercises = (exercises ?? []) as RoutineDayExerciseRow[];
   const dayExercises = allRoutineDayExercises.filter((exercise) => exercise.routine_day_id === params.dayId);
+  const exerciseNameMap = await getExerciseNameMap();
   const { canonicalExerciseIdByRawId, exerciseDetailsById } = await loadCanonicalExerciseCatalog({
     supabase,
     exercises: dayExercises,
@@ -70,6 +72,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const editableExercises = dayExercises.map((exercise) => {
     const canonicalExerciseId = canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id;
     const matchingExercise = exerciseDetailsById.get(canonicalExerciseId) ?? null;
+    const fallbackName = exerciseNameMap.get(canonicalExerciseId) ?? exerciseNameMap.get(exercise.exercise_id.trim()) ?? null;
     const measurementType = exercise.measurement_type ?? matchingExercise?.measurement_type ?? "reps";
     const isCardio = isCardioExercise({
       measurement_type: exercise.measurement_type ?? matchingExercise?.measurement_type ?? null,
@@ -89,6 +92,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
     const name = normalizeExerciseDisplayName({
       exerciseId: canonicalExerciseId,
       name: matchingExercise?.name ?? null,
+      fallbackName,
     });
 
     return {
@@ -104,6 +108,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       type: matchingExercise?.type ?? null,
       tags: matchingExercise?.tags ?? null,
       categories: matchingExercise?.categories ?? null,
+      image_path: matchingExercise?.image_path ?? null,
       image_icon_path: matchingExercise?.image_icon_path ?? null,
       image_howto_path: matchingExercise?.image_howto_path ?? null,
       slug: matchingExercise?.slug ?? null,

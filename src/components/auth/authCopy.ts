@@ -9,14 +9,15 @@ export type AuthModeCopy = {
 
 export type PasswordLoginUiCopy = {
   wordmark: string;
-  progressLabel: string;
   helper: {
     default: string;
+    remembered: string;
     emailValid: string;
     ready: string;
   };
   cta: {
     idle: string;
+    continue: string;
     ready: string;
     pending: string;
   };
@@ -32,7 +33,7 @@ export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
   "password-login": {
     eyebrow: "Training space",
     title: "Welcome back",
-    subtitle: "Pick up where you left off.",
+    subtitle: "",
     helper: "Use Forgot password if you need a reset email.",
   },
   "magic-link": {
@@ -56,18 +57,19 @@ export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
 
 export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
   wordmark: "Fawxzzy Fitness",
-  progressLabel: "Warm-up",
   helper: {
     default: "Log in to continue your routine",
+    remembered: "",
     emailValid: "Good. Now unlock your session",
-    ready: "You're good to go",
+    ready: "",
   },
   cta: {
     idle: "Start",
+    continue: "Continue",
     ready: "Enter Gym",
     pending: "Entering Gym...",
   },
-  returningUserLabel: "Returning athlete",
+  returningUserLabel: "Returning member",
   switchPrompt: "Not you?",
   switchAction: "Switch account",
   forgotPassword: "Forgot password?",

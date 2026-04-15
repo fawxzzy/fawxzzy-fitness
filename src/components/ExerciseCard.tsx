@@ -24,8 +24,10 @@ const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
 
 const densityStyles: Record<ExerciseCardDensity, {
   shell: string;
+  shellWithMedia: string;
+  bodyGridWithMedia: string;
   media: string;
-  mediaFrame: string;
+  mediaRail: string;
   titleClamp: string;
   subtitleClamp: string;
   titleSize: string;
@@ -34,9 +36,11 @@ const densityStyles: Record<ExerciseCardDensity, {
   childrenSpacing: string;
 }> = {
   compact: {
-    shell: "min-h-[var(--exercise-row-min-height-compact)] px-[var(--exercise-row-shell-padding-x)] py-[var(--exercise-row-shell-padding-y-compact)]",
-    media: "grid h-full w-full place-items-center rounded-[calc(var(--exercise-row-media-radius-compact)-0.12rem)] bg-[rgb(var(--surface-1-rgb)/0.44)] p-1.5",
-    mediaFrame: "mr-0.5 mt-0.5 h-[var(--exercise-row-media-size-compact)] w-[var(--exercise-row-media-size-compact)] self-start rounded-[var(--exercise-row-media-radius-compact)]",
+    shell: "min-h-[var(--exercise-row-min-height-compact)] py-[var(--exercise-row-shell-padding-y-compact)] pr-[var(--exercise-row-shell-padding-x)]",
+    shellWithMedia: "pl-0",
+    bodyGridWithMedia: "grid-cols-[var(--exercise-row-media-width-compact)_minmax(0,1fr)_auto]",
+    media: "grid h-full w-full place-items-center",
+    mediaRail: "-my-[var(--exercise-row-shell-padding-y-compact)] min-h-[calc(var(--exercise-row-media-min-height-compact)+(var(--exercise-row-shell-padding-y-compact)*2))] self-stretch overflow-hidden border-r border-[rgb(var(--border-strong)/0.14)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-2",
     titleSize: "text-[0.98rem]",
@@ -45,9 +49,11 @@ const densityStyles: Record<ExerciseCardDensity, {
     childrenSpacing: "mt-1.5",
   },
   detailed: {
-    shell: "min-h-[var(--exercise-row-min-height-detailed)] px-[var(--exercise-row-shell-padding-x)] py-[var(--exercise-row-shell-padding-y-detailed)]",
-    media: "grid h-full w-full place-items-center rounded-[calc(var(--exercise-row-media-radius-detailed)-0.12rem)] bg-[rgb(var(--surface-1-rgb)/0.46)] p-2",
-    mediaFrame: "mr-0.5 mt-0.5 h-[var(--exercise-row-media-size-detailed)] w-[var(--exercise-row-media-size-detailed)] self-start rounded-[var(--exercise-row-media-radius-detailed)]",
+    shell: "min-h-[var(--exercise-row-min-height-detailed)] py-[var(--exercise-row-shell-padding-y-detailed)] pr-[var(--exercise-row-shell-padding-x)]",
+    shellWithMedia: "pl-0",
+    bodyGridWithMedia: "grid-cols-[var(--exercise-row-media-width-detailed)_minmax(0,1fr)_auto]",
+    media: "grid h-full w-full place-items-center",
+    mediaRail: "-my-[var(--exercise-row-shell-padding-y-detailed)] min-h-[calc(var(--exercise-row-media-min-height-detailed)+(var(--exercise-row-shell-padding-y-detailed)*2))] self-stretch overflow-hidden border-r border-[rgb(var(--border-strong)/0.14)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
@@ -172,15 +178,10 @@ export function ExerciseCard({
   const styles = densityStyles[resolvedDensity];
   const resolvedSemanticTone = semanticTone ?? resolveDefaultSemanticTone(state);
   const bodyGridClassName = leadingVisual
-    ? "grid-cols-[auto_minmax(0,1fr)_auto]"
+    ? styles.bodyGridWithMedia
     : "grid-cols-[minmax(0,1fr)_auto]";
-  const hasBadge = Boolean(badgeText);
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
-  const trailingStackLayoutClassName = hasBadge && hasRightIcon
-    ? "min-h-full flex-col justify-between"
-    : hasBadge
-      ? "min-h-full flex-col justify-start"
-      : "items-center justify-center";
+  const hasSupportingContent = Boolean(subtitle) || Boolean(children);
 
   const bodyContent = (
     <div
@@ -188,6 +189,7 @@ export function ExerciseCard({
         "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-hidden",
         bodyGridClassName,
         styles.shell,
+        leadingVisual ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
         bodyClassName,
       )}
     >
@@ -201,8 +203,8 @@ export function ExerciseCard({
       {leadingVisual ? (
         <div
           className={cn(
-            "relative shrink-0 overflow-hidden border p-0 transition-colors",
-            styles.mediaFrame,
+            "relative shrink-0 transition-colors",
+            styles.mediaRail,
             thumbStateClassNames[state],
             cardMediaToneClassNames[resolvedSemanticTone],
             mediaClassName,
@@ -213,7 +215,14 @@ export function ExerciseCard({
       ) : null}
 
       <div className={cn("min-w-0 self-stretch py-0.5", contentClassName)}>
-        <div className={cn("flex min-h-full min-w-0 flex-col justify-center", styles.contentGap, titleContainerClassName)}>
+        <div
+          className={cn(
+            "flex min-h-full min-w-0 flex-col",
+            hasSupportingContent ? "justify-start" : "justify-center",
+            styles.contentGap,
+            titleContainerClassName,
+          )}
+        >
           <p
             className={cn(
               "text-safe-wrap min-w-0 leading-tight [text-wrap:pretty]",
@@ -255,31 +264,32 @@ export function ExerciseCard({
 
       <div
         className={cn(
-          "flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-stretch justify-end self-stretch",
+          "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-center justify-end self-stretch",
           trailingClassName,
           rightRailClassName,
         )}
       >
-        <div
-          className={cn(
-            "flex h-full min-w-[var(--exercise-row-trailing-min-width)] items-start gap-[var(--exercise-row-badge-gap)] pt-0.5",
-            trailingStackLayoutClassName,
-            trailingStackClassName,
-          )}
-        >
-          {badgeText ? (
-            <span
-              className={cn(
-                "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
-                badgeStateClassNames[state],
-                cardBadgeToneClassNames[resolvedSemanticTone],
-              )}
-            >
-              {badgeText}
-            </span>
-          ) : null}
-          {hasRightIcon ? <div className="flex min-h-10 items-center justify-end">{rightIcon}</div> : null}
-        </div>
+        {badgeText ? (
+          <span
+            className={cn(
+              "pointer-events-none absolute right-0 top-0 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
+              badgeStateClassNames[state],
+              cardBadgeToneClassNames[resolvedSemanticTone],
+            )}
+          >
+            {badgeText}
+          </span>
+        ) : null}
+        {hasRightIcon ? (
+          <div
+            className={cn(
+              "flex h-full min-h-10 items-center justify-end",
+              trailingStackClassName,
+            )}
+          >
+            {rightIcon}
+          </div>
+        ) : null}
       </div>
     </div>
   );

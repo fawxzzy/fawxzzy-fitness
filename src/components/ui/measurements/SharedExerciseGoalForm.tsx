@@ -29,8 +29,8 @@ export function inferGoalModeFromState(state: ExerciseGoalFormState): GoalModali
     distance: state.distance,
     calories: state.calories,
   });
-  const hasTime = selections.includes("time");
-  const hasDistance = selections.includes("distance");
+  const hasTime = state.measurements.includes("time") || selections.includes("time");
+  const hasDistance = state.measurements.includes("distance") || selections.includes("distance");
   if (hasTime && hasDistance) return "cardio_time_distance";
   if (hasDistance) return "cardio_distance";
   return "cardio_time";

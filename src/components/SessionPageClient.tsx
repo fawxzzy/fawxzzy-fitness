@@ -221,7 +221,7 @@ export function SessionPageClient({
           data-section-chrome={sessionRecipe.sectionChrome}
           data-footer-dock={sessionRecipe.footerDock}
           data-row-interaction={sessionRecipe.rowInteraction}
-          className="flex flex-col gap-3 bg-[rgb(var(--bg))]"
+          className="flex flex-col gap-3"
         >
           {!isExerciseOpen ? (
             <div className="flex justify-end">
