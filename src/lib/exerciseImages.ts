@@ -14,6 +14,7 @@ export type ExerciseThumbSpec = {
 };
 
 export type ExerciseCardThumbSource = ExerciseThumbSpec;
+export type ExerciseThumbIntent = "default" | "row-card";
 
 type ExerciseThumbInput = ExerciseImageSource & {
   cardIconSrc?: string | null;
@@ -22,9 +23,21 @@ type ExerciseThumbInput = ExerciseImageSource & {
   imageUrl?: string | null;
 };
 
+type ResolveExerciseThumbOptions = {
+  intent?: ExerciseThumbIntent;
+};
+
 const PLACEHOLDER_ICON_SRC = "/exercises/icons/_placeholder.svg";
 const HOWTO_PLACEHOLDER_PATHS = new Set(["/exercises/placeholders/howto.svg"]);
 const missingIconSlugLogCache = new Set<string>();
+const ROW_CARD_UNSAFE_ICON_SLUGS = new Set([
+  "barbell-bench-press",
+  "incline-walk",
+  "lateral-raise",
+  "single-arm-lat-pulldown",
+  "treadmill-run",
+  "weighted-pull-up",
+]);
 
 export function slugifyExerciseName(name: string): string {
   return name
@@ -65,35 +78,74 @@ function getManifestIconPath(slug?: string | null): string | null {
   return `/exercises/icons/${normalizedSlug}.${extension}`;
 }
 
-export function resolveExerciseThumb(exercise: ExerciseThumbInput): ExerciseThumbSpec {
+function getExerciseNameSlug(exercise: ExerciseThumbInput): string | null {
+  const trimmedName = exercise.name?.trim();
+  return trimmedName ? slugifyExerciseName(trimmedName) : null;
+}
+
+function isCardSafeGlyph(exercise: ExerciseThumbInput, intent: ExerciseThumbIntent): boolean {
+  if (intent !== "row-card") {
+    return true;
+  }
+
+  const slug = exercise.slug?.trim();
+  const nameSlug = getExerciseNameSlug(exercise);
+
+  return !(
+    (slug && ROW_CARD_UNSAFE_ICON_SLUGS.has(slug))
+    || (nameSlug && ROW_CARD_UNSAFE_ICON_SLUGS.has(nameSlug))
+  );
+}
+
+function resolveManifestIconPath(exercise: ExerciseThumbInput): string | null {
+  const slugIconPath = getManifestIconPath(exercise.slug);
+  if (slugIconPath) {
+    return slugIconPath;
+  }
+
+  const nameSlug = getExerciseNameSlug(exercise);
+  return nameSlug ? getManifestIconPath(nameSlug) : null;
+}
+
+export function resolveExerciseThumb(
+  exercise: ExerciseThumbInput,
+  options: ResolveExerciseThumbOptions = {},
+): ExerciseThumbSpec {
+  const intent = options.intent ?? "default";
   const explicitIconPath = getLocalImagePath(exercise.cardIconSrc)
     ?? getLocalImagePath(exercise.iconSrc)
     ?? getLocalImagePath(exercise.image_icon_path);
-  if (explicitIconPath) {
-    return { src: explicitIconPath, mode: "icon" };
-  }
-
-  const slugIconPath = getManifestIconPath(exercise.slug);
-  if (slugIconPath) {
-    return { src: slugIconPath, mode: "icon" };
-  }
-
-  const trimmedName = exercise.name?.trim();
-  if (trimmedName) {
-    const nameSlug = slugifyExerciseName(trimmedName);
-    const nameIconPath = getManifestIconPath(nameSlug);
-    if (nameIconPath) {
-      return { src: nameIconPath, mode: "icon" };
-    }
-  }
-
   const thumbnailPath = getLocalImagePath(exercise.thumbnailUrl);
+  const legacyImagePath = getLocalImagePath(exercise.imageUrl)
+    ?? getLocalImagePath(exercise.image_path);
+  const manifestIconPath = resolveManifestIconPath(exercise);
+  const iconPath = explicitIconPath ?? manifestIconPath;
+  const safeIconPath = isCardSafeGlyph(exercise, intent) ? iconPath : null;
+
+  if (intent === "row-card") {
+    if (thumbnailPath) {
+      return { src: thumbnailPath, mode: "photo" };
+    }
+
+    if (legacyImagePath) {
+      return { src: legacyImagePath, mode: "legacy-composite" };
+    }
+
+    if (safeIconPath) {
+      return { src: safeIconPath, mode: "icon" };
+    }
+
+    return { src: PLACEHOLDER_ICON_SRC, mode: "fallback" };
+  }
+
+  if (iconPath) {
+    return { src: iconPath, mode: "icon" };
+  }
+
   if (thumbnailPath) {
     return { src: thumbnailPath, mode: "photo" };
   }
 
-  const legacyImagePath = getLocalImagePath(exercise.imageUrl)
-    ?? getLocalImagePath(exercise.image_path);
   if (legacyImagePath) {
     return { src: legacyImagePath, mode: "legacy-composite" };
   }
@@ -102,7 +154,7 @@ export function resolveExerciseThumb(exercise: ExerciseThumbInput): ExerciseThum
 }
 
 export function resolveExerciseCardThumbSource(exercise: ExerciseImageSource): ExerciseCardThumbSource {
-  return resolveExerciseThumb(exercise);
+  return resolveExerciseThumb(exercise, { intent: "row-card" });
 }
 
 export function getExerciseIconSrc(exercise: ExerciseImageSource): string {

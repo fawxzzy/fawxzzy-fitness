@@ -53,6 +53,18 @@ test("resolveExerciseThumb prefers generated manifest icons before legacy image 
   });
 });
 
+test("resolveExerciseThumb uses legacy composite art for row cards when a known-bad icon is also present", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Lateral Raise",
+    imageUrl: "/images/lateral-raise-composite.png",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(resolved, {
+    src: "/images/lateral-raise-composite.png",
+    mode: "legacy-composite",
+  });
+});
+
 test("resolveExerciseThumb normalizes punctuation-heavy names to manifest icon slugs", () => {
   const resolved = resolveExerciseThumb({
     name: "Dips (Triceps)",
