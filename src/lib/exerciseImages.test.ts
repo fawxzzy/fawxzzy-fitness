@@ -65,6 +65,24 @@ test("resolveExerciseThumb uses legacy composite art for row cards when a known-
   });
 });
 
+test("resolveExerciseThumb keeps exercise-specific icons for row cards when no alternate media exists", () => {
+  const barbellBench = resolveExerciseThumb({
+    name: "Barbell Bench Press",
+  }, { intent: "row-card" });
+  const lateralRaise = resolveExerciseThumb({
+    name: "Lateral Raise",
+  }, { intent: "row-card" });
+
+  assert.deepEqual(barbellBench, {
+    src: "/exercises/icons/barbell-bench-press.png",
+    mode: "icon",
+  });
+  assert.deepEqual(lateralRaise, {
+    src: "/exercises/icons/lateral-raise.png",
+    mode: "icon",
+  });
+});
+
 test("resolveExerciseThumb normalizes punctuation-heavy names to manifest icon slugs", () => {
   const resolved = resolveExerciseThumb({
     name: "Dips (Triceps)",

@@ -83,8 +83,16 @@ function getExerciseNameSlug(exercise: ExerciseThumbInput): string | null {
   return trimmedName ? slugifyExerciseName(trimmedName) : null;
 }
 
-function isCardSafeGlyph(exercise: ExerciseThumbInput, intent: ExerciseThumbIntent): boolean {
+function isCardSafeGlyph(
+  exercise: ExerciseThumbInput,
+  intent: ExerciseThumbIntent,
+  options?: { hasAlternateMedia?: boolean },
+): boolean {
   if (intent !== "row-card") {
+    return true;
+  }
+
+  if (!options?.hasAlternateMedia) {
     return true;
   }
 
@@ -120,7 +128,8 @@ export function resolveExerciseThumb(
     ?? getLocalImagePath(exercise.image_path);
   const manifestIconPath = resolveManifestIconPath(exercise);
   const iconPath = explicitIconPath ?? manifestIconPath;
-  const safeIconPath = isCardSafeGlyph(exercise, intent) ? iconPath : null;
+  const hasAlternateMedia = Boolean(thumbnailPath || legacyImagePath);
+  const safeIconPath = isCardSafeGlyph(exercise, intent, { hasAlternateMedia }) ? iconPath : null;
 
   if (intent === "row-card") {
     if (thumbnailPath) {

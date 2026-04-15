@@ -22,11 +22,11 @@ type ExerciseThumbProps = {
 
 function ThumbFallback() {
   return (
-    <div className="grid h-full w-full place-items-center bg-white/5 text-[rgb(var(--text)/0.35)]">
+    <div className="grid h-full w-full place-items-center rounded-md border border-dashed border-white/10 bg-transparent text-[rgb(var(--text)/0.42)]">
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className="h-6 w-6"
+        className="h-7 w-7"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.8"
@@ -54,6 +54,14 @@ export function ExerciseThumb({
 }: ExerciseThumbProps) {
   const thumb = resolveExerciseThumb(exercise, { intent });
 
+  if (thumb.mode === "fallback") {
+    return (
+      <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
+        <ThumbFallback />
+      </div>
+    );
+  }
+
   return (
     <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
       <ExerciseAssetImage
@@ -61,7 +69,7 @@ export function ExerciseThumb({
         alt={alt ?? ""}
         className="h-full w-full rounded-md border border-white/10 bg-black/20"
         imageClassName={cn(
-          thumb.mode === "icon" || thumb.mode === "fallback"
+          thumb.mode === "icon"
             ? "object-contain object-center p-1.5"
             : thumb.mode === "legacy-composite"
               ? "origin-top scale-[1.08] object-cover object-top"
