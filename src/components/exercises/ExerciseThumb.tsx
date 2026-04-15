@@ -2,11 +2,11 @@
 
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { cn } from "@/lib/cn";
-import { resolveExerciseCardThumbSource } from "@/lib/exerciseImages";
+import { resolveExerciseThumb } from "@/lib/exerciseImages";
 
 type ExerciseThumbProps = {
   exercise: {
-    name: string;
+    name?: string | null;
     slug?: string | null;
     image_path?: string | null;
     image_icon_path?: string | null;
@@ -16,6 +16,7 @@ type ExerciseThumbProps = {
   className?: string;
   imageClassName?: string;
   sizes?: string;
+  size?: number;
 };
 
 function ThumbFallback() {
@@ -46,31 +47,28 @@ export function ExerciseThumb({
   alt,
   className,
   imageClassName,
-  sizes = "(max-width: 768px) 40vw, 160px",
+  sizes,
+  size = 56,
 }: ExerciseThumbProps) {
-  const thumb = resolveExerciseCardThumbSource(exercise);
-
-  if (thumb.mode === "placeholder") {
-    return (
-      <div className={cn("relative block shrink-0 overflow-hidden bg-transparent", "h-full w-full", className)}>
-        <ThumbFallback />
-      </div>
-    );
-  }
+  const thumb = resolveExerciseThumb(exercise);
 
   return (
-    <ExerciseAssetImage
-      src={thumb.src}
-      alt={alt ?? `${exercise.name} icon`}
-      className={cn("h-full w-full", className)}
-      imageClassName={cn(
-        thumb.mode === "sprite"
-          ? "object-cover object-top"
-          : "object-contain object-center p-2",
-        imageClassName,
-      )}
-      sizes={sizes}
-      fallback={<ThumbFallback />}
-    />
+    <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
+      <ExerciseAssetImage
+        src={thumb.src}
+        alt={alt ?? ""}
+        className="h-full w-full rounded-md border border-white/10 bg-black/20"
+        imageClassName={cn(
+          thumb.mode === "icon" || thumb.mode === "fallback"
+            ? "object-contain object-center p-1.5"
+            : thumb.mode === "legacy-composite"
+              ? "object-cover object-top"
+              : "object-cover object-center",
+          imageClassName,
+        )}
+        sizes={sizes ?? `${size}px`}
+        fallback={<ThumbFallback />}
+      />
+    </div>
   );
 }

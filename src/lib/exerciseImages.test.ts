@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveExerciseCardThumbSource } from "./exerciseImages.ts";
+import { resolveExerciseThumb } from "./exerciseImages.ts";
 
 function withSuppressedMissingIconWarnings<T>(callback: () => T): T {
   const originalWarn = console.warn;
@@ -14,21 +14,34 @@ function withSuppressedMissingIconWarnings<T>(callback: () => T): T {
   }
 }
 
-test("resolveExerciseCardThumbSource prefers dedicated icon paths over legacy image paths", () => {
-  const resolved = resolveExerciseCardThumbSource({
-    name: "Bench Press",
-    image_icon_path: "/images/bench-icon.png",
-    image_path: "/images/bench-instructions.png",
+test("resolveExerciseThumb prefers icon sources over legacy image paths", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Barbell Bench Press",
+    iconSrc: "/icons/barbell-bench-press.png",
+    imageUrl: "/legacy/bench-press.png",
   });
 
   assert.deepEqual(resolved, {
-    src: "/images/bench-icon.png",
+    src: "/icons/barbell-bench-press.png",
     mode: "icon",
   });
 });
 
-test("resolveExerciseCardThumbSource prefers generated manifest icons before legacy image paths", () => {
-  const resolved = resolveExerciseCardThumbSource({
+test("resolveExerciseThumb prefers explicit card icons over repo legacy image paths", () => {
+  const resolved = resolveExerciseThumb({
+    name: "Incline Dumbbell Bench Press",
+    cardIconSrc: "/images/custom-incline-thumb.png",
+    image_path: "/images/legacy-incline-howto.png",
+  });
+
+  assert.deepEqual(resolved, {
+    src: "/images/custom-incline-thumb.png",
+    mode: "icon",
+  });
+});
+
+test("resolveExerciseThumb prefers generated manifest icons before legacy image paths", () => {
+  const resolved = resolveExerciseThumb({
     name: "Ignore Me",
     slug: "back-squat",
     image_path: "/images/back-squat-howto.png",
@@ -40,8 +53,8 @@ test("resolveExerciseCardThumbSource prefers generated manifest icons before leg
   });
 });
 
-test("resolveExerciseCardThumbSource normalizes punctuation-heavy names to manifest icon slugs", () => {
-  const resolved = resolveExerciseCardThumbSource({
+test("resolveExerciseThumb normalizes punctuation-heavy names to manifest icon slugs", () => {
+  const resolved = resolveExerciseThumb({
     name: "Dips (Triceps)",
   });
 
@@ -49,10 +62,18 @@ test("resolveExerciseCardThumbSource normalizes punctuation-heavy names to manif
     src: "/exercises/icons/dips-triceps.png",
     mode: "icon",
   });
+  const lateralRaise = resolveExerciseThumb({
+    name: "Lateral Raise",
+  });
+
+  assert.deepEqual(lateralRaise, {
+    src: "/exercises/icons/lateral-raise.png",
+    mode: "icon",
+  });
 });
 
-test("resolveExerciseCardThumbSource normalizes hyphenated names to manifest icon slugs", () => {
-  const resolved = resolveExerciseCardThumbSource({
+test("resolveExerciseThumb normalizes hyphenated names to manifest icon slugs", () => {
+  const resolved = resolveExerciseThumb({
     name: "Single-Arm Lat Pulldown",
   });
 
@@ -60,13 +81,21 @@ test("resolveExerciseCardThumbSource normalizes hyphenated names to manifest ico
     src: "/exercises/icons/single-arm-lat-pulldown.png",
     mode: "icon",
   });
+  const abWheelRollout = resolveExerciseThumb({
+    name: "Ab Wheel Rollout",
+  });
+
+  assert.deepEqual(abWheelRollout, {
+    src: "/exercises/icons/ab-wheel-rollout.png",
+    mode: "icon",
+  });
 });
 
-test("resolveExerciseCardThumbSource resolves cardio exercise names through the shared manifest", () => {
-  const treadmillRun = resolveExerciseCardThumbSource({
+test("resolveExerciseThumb resolves cardio exercise names through the shared manifest", () => {
+  const treadmillRun = resolveExerciseThumb({
     name: "Treadmill Run",
   });
-  const inclineWalk = resolveExerciseCardThumbSource({
+  const inclineWalk = resolveExerciseThumb({
     name: "Incline Walk",
   });
 
@@ -80,8 +109,8 @@ test("resolveExerciseCardThumbSource resolves cardio exercise names through the 
   });
 });
 
-test("resolveExerciseCardThumbSource keeps explicit custom thumbnails ahead of library defaults", () => {
-  const resolved = resolveExerciseCardThumbSource({
+test("resolveExerciseThumb keeps explicit custom icons ahead of library defaults", () => {
+  const resolved = resolveExerciseThumb({
     name: "Barbell Bench Press",
     image_icon_path: "/images/custom-bench-thumb.png",
     image_path: "/images/legacy-bench-howto.png",
@@ -93,25 +122,38 @@ test("resolveExerciseCardThumbSource keeps explicit custom thumbnails ahead of l
   });
 });
 
-test("resolveExerciseCardThumbSource falls back to the legacy image path as a sprite when no icon exists", () => {
-  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseCardThumbSource({
+test("resolveExerciseThumb prefers thumbnail photos over legacy composite art", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
+    name: "Photo Exercise",
+    thumbnailUrl: "/images/photo-thumb.png",
+    imageUrl: "/images/legacy-composite.png",
+  }));
+
+  assert.deepEqual(resolved, {
+    src: "/images/photo-thumb.png",
+    mode: "photo",
+  });
+});
+
+test("resolveExerciseThumb marks legacy-only image paths as composite", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
     name: "Custom Exercise",
     image_path: "/images/custom-howto.png",
   }));
 
   assert.deepEqual(resolved, {
     src: "/images/custom-howto.png",
-    mode: "sprite",
+    mode: "legacy-composite",
   });
 });
 
-test("resolveExerciseCardThumbSource falls back to the placeholder when the manifest and legacy image are both missing", () => {
-  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseCardThumbSource({
+test("resolveExerciseThumb marks fallback art when no icon or legacy image exists", () => {
+  const resolved = withSuppressedMissingIconWarnings(() => resolveExerciseThumb({
     name: "Missing Exercise",
   }));
 
   assert.deepEqual(resolved, {
     src: "/exercises/icons/_placeholder.svg",
-    mode: "placeholder",
+    mode: "fallback",
   });
 });

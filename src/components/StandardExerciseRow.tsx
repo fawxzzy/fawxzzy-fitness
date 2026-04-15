@@ -72,12 +72,12 @@ export function StandardExerciseRow({
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
-  const resolvedThumbClassName = density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
-    ? "h-[var(--exercise-row-media-size-compact)] w-[var(--exercise-row-media-size-compact)]"
-    : "h-[var(--exercise-row-media-size-detailed)] w-[var(--exercise-row-media-size-detailed)]";
+  const resolvedThumbSize = density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
+    ? 56
+    : 64;
   const resolvedImageSizes = imageSizes ?? (density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
-    ? "(max-width: 768px) 88px, 104px"
-    : "(max-width: 768px) 96px, 112px");
+    ? "56px"
+    : "64px");
 
   return (
     <ExerciseCard
@@ -88,7 +88,7 @@ export function StandardExerciseRow({
       density={density}
       semanticTone={semanticTone}
       leadingVisual={leadingVisual ?? (showLeadingVisual ? (
-        <ExerciseThumb exercise={exercise} className={resolvedThumbClassName} sizes={resolvedImageSizes} />
+        <ExerciseThumb exercise={exercise} size={resolvedThumbSize} sizes={resolvedImageSizes} />
       ) : undefined)}
       badgeText={badgeText}
       onPress={onPress}
