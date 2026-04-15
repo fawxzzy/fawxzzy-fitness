@@ -72,6 +72,9 @@ export function StandardExerciseRow({
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
+  const resolvedThumbClassName = density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
+    ? "h-[var(--exercise-row-media-size-compact)] w-[var(--exercise-row-media-size-compact)]"
+    : "h-[var(--exercise-row-media-size-detailed)] w-[var(--exercise-row-media-size-detailed)]";
   const resolvedImageSizes = imageSizes ?? (density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder"
     ? "(max-width: 768px) 88px, 104px"
     : "(max-width: 768px) 96px, 112px");
@@ -85,7 +88,7 @@ export function StandardExerciseRow({
       density={density}
       semanticTone={semanticTone}
       leadingVisual={leadingVisual ?? (showLeadingVisual ? (
-        <ExerciseThumb exercise={exercise} sizes={resolvedImageSizes} />
+        <ExerciseThumb exercise={exercise} className={resolvedThumbClassName} sizes={resolvedImageSizes} />
       ) : undefined)}
       badgeText={badgeText}
       onPress={onPress}
