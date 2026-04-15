@@ -47,6 +47,18 @@ type ExerciseDetailsQueryError = {
   message?: string;
 } | null | undefined;
 
+type ExerciseDetailsQueryResult<T> = {
+  data: T | null;
+  error: ExerciseDetailsQueryError;
+};
+
+type ExerciseDetailsQueryRawResult = {
+  data: unknown;
+  error: ExerciseDetailsQueryError;
+};
+
+type ExerciseDetailsQueryFn = (columns: string) => PromiseLike<ExerciseDetailsQueryRawResult>;
+
 function isMissingExerciseDetailsColumnError(error: ExerciseDetailsQueryError) {
   const message = error?.message?.toLowerCase() ?? "";
   if (!message.includes("exercises")) {
@@ -87,10 +99,17 @@ function hydrateExerciseDetailsRow(row: Partial<ExerciseDetailsRow> & Pick<Exerc
   };
 }
 
-async function readExerciseDetailsWithMetadataFallback(args: {
-  query: (columns: string) => Promise<{ data: unknown; error: ExerciseDetailsQueryError }>;
-}) {
-  const primaryResult = await args.query(EXERCISE_DETAILS_SELECT);
+async function runExerciseDetailsQuery(
+  query: ExerciseDetailsQueryFn,
+  columns: string,
+): Promise<ExerciseDetailsQueryRawResult> {
+  return await Promise.resolve(query(columns));
+}
+
+async function readExerciseDetailsWithMetadataFallback<T>(args: {
+  query: ExerciseDetailsQueryFn;
+}): Promise<ExerciseDetailsRow[]> {
+  const primaryResult = await runExerciseDetailsQuery(args.query, EXERCISE_DETAILS_SELECT);
   if (!primaryResult.error) {
     return (primaryResult.data ?? []) as ExerciseDetailsRow[];
   }
@@ -99,7 +118,7 @@ async function readExerciseDetailsWithMetadataFallback(args: {
     return [];
   }
 
-  const fallbackResult = await args.query(EXERCISE_DETAILS_SELECT_LEGACY);
+  const fallbackResult = await runExerciseDetailsQuery(args.query, EXERCISE_DETAILS_SELECT_LEGACY);
   if (fallbackResult.error) {
     return [];
   }

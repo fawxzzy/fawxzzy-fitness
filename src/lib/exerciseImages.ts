@@ -8,6 +8,11 @@ export type ExerciseImageSource = {
   image_howto_path?: string | null;
 };
 
+export type ExerciseCardThumbSource = {
+  src: string;
+  mode: "icon" | "sprite" | "placeholder";
+};
+
 const PLACEHOLDER_ICON_SRC = "/exercises/icons/_placeholder.svg";
 const HOWTO_PLACEHOLDER_PATHS = new Set(["/exercises/placeholders/howto.svg"]);
 const missingIconSlugLogCache = new Set<string>();
@@ -51,24 +56,33 @@ function getManifestIconPath(slug?: string | null): string | null {
   return `/exercises/icons/${normalizedSlug}.${extension}`;
 }
 
-export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
-  const explicitPath = getLocalImagePath(exercise.image_path) ?? getLocalImagePath(exercise.image_icon_path);
-  if (explicitPath) {
-    return explicitPath;
+export function resolveExerciseCardThumbSource(exercise: ExerciseImageSource): ExerciseCardThumbSource {
+  const explicitIconPath = getLocalImagePath(exercise.image_icon_path);
+  if (explicitIconPath) {
+    return { src: explicitIconPath, mode: "icon" };
   }
 
   const slugIconPath = getManifestIconPath(exercise.slug);
   if (slugIconPath) {
-    return slugIconPath;
+    return { src: slugIconPath, mode: "icon" };
   }
 
   const nameSlug = slugifyExerciseName(exercise.name);
   const nameIconPath = getManifestIconPath(nameSlug);
   if (nameIconPath) {
-    return nameIconPath;
+    return { src: nameIconPath, mode: "icon" };
   }
 
-  return PLACEHOLDER_ICON_SRC;
+  const legacyImagePath = getLocalImagePath(exercise.image_path);
+  if (legacyImagePath) {
+    return { src: legacyImagePath, mode: "sprite" };
+  }
+
+  return { src: PLACEHOLDER_ICON_SRC, mode: "placeholder" };
+}
+
+export function getExerciseIconSrc(exercise: ExerciseImageSource): string {
+  return resolveExerciseCardThumbSource(exercise).src;
 }
 
 export function isPlaceholderExerciseIconSrc(src: string | null | undefined) {

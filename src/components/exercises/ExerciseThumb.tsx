@@ -2,7 +2,7 @@
 
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { cn } from "@/lib/cn";
-import { getExerciseIconSrc, isPlaceholderExerciseIconSrc } from "@/lib/exerciseImages";
+import { resolveExerciseCardThumbSource } from "@/lib/exerciseImages";
 
 type ExerciseThumbProps = {
   exercise: {
@@ -48,18 +48,27 @@ export function ExerciseThumb({
   imageClassName,
   sizes = "(max-width: 768px) 40vw, 160px",
 }: ExerciseThumbProps) {
-  const iconSrc = getExerciseIconSrc(exercise);
+  const thumb = resolveExerciseCardThumbSource(exercise);
 
-  if (isPlaceholderExerciseIconSrc(iconSrc)) {
-    return <ThumbFallback />;
+  if (thumb.mode === "placeholder") {
+    return (
+      <div className={cn("relative block shrink-0 overflow-hidden bg-transparent", "h-full w-full", className)}>
+        <ThumbFallback />
+      </div>
+    );
   }
 
   return (
     <ExerciseAssetImage
-      src={iconSrc}
+      src={thumb.src}
       alt={alt ?? `${exercise.name} icon`}
       className={cn("h-full w-full", className)}
-      imageClassName={cn("object-contain object-center p-2", imageClassName)}
+      imageClassName={cn(
+        thumb.mode === "sprite"
+          ? "object-cover object-top"
+          : "object-contain object-center p-2",
+        imageClassName,
+      )}
       sizes={sizes}
       fallback={<ThumbFallback />}
     />

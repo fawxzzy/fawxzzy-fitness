@@ -47,6 +47,18 @@ type ExerciseQueryError = {
   message?: string;
 } | null | undefined;
 
+type ExerciseQueryResult<T> = {
+  data: T;
+  error: ExerciseQueryError;
+};
+
+type ExerciseQueryRawResult = {
+  data: unknown;
+  error: ExerciseQueryError;
+};
+
+type ExerciseQueryFn = (columns: string) => PromiseLike<ExerciseQueryRawResult>;
+
 function isMissingExerciseMetadataColumnError(error: ExerciseQueryError) {
   const message = error?.message?.toLowerCase() ?? "";
   if (!message.includes("exercises")) {
@@ -86,27 +98,34 @@ function hydrateExerciseRow(row: Partial<ExerciseRow>): ExerciseRow {
   };
 }
 
-async function readExercisesWithMetadataFallback(args: {
-  query: (columns: string) => Promise<{ data: unknown; error: ExerciseQueryError }>;
-}) {
-  const primaryResult = await args.query(EXERCISE_LIST_SELECT);
+async function runExerciseQuery(
+  query: ExerciseQueryFn,
+  columns: string,
+): Promise<ExerciseQueryRawResult> {
+  return await Promise.resolve(query(columns));
+}
+
+async function readExercisesWithMetadataFallback<T>(args: {
+  query: ExerciseQueryFn;
+}): Promise<ExerciseQueryResult<T>> {
+  const primaryResult = await runExerciseQuery(args.query, EXERCISE_LIST_SELECT);
   if (!primaryResult.error) {
     return {
-      data: (primaryResult.data ?? []) as Partial<ExerciseRow>[],
+      data: (primaryResult.data ?? []) as T,
       error: null,
     };
   }
 
   if (!isMissingExerciseMetadataColumnError(primaryResult.error)) {
     return {
-      data: [] as Partial<ExerciseRow>[],
+      data: [] as T,
       error: primaryResult.error,
     };
   }
 
-  const fallbackResult = await args.query(EXERCISE_LIST_SELECT_LEGACY);
+  const fallbackResult = await runExerciseQuery(args.query, EXERCISE_LIST_SELECT_LEGACY);
   return {
-    data: (fallbackResult.data ?? []) as Partial<ExerciseRow>[],
+    data: (fallbackResult.data ?? []) as T,
     error: fallbackResult.error,
   };
 }
@@ -214,7 +233,7 @@ export async function listExercises() {
 
 async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
   const supabase = supabaseServer();
-  const { data: customData, error: customError } = await readExercisesWithMetadataFallback({
+  const { data: customData, error: customError } = await readExercisesWithMetadataFallback<Partial<ExerciseRow>[]>({
     query: (columns) => supabase
       .from("exercises")
       .select(columns)
@@ -236,7 +255,7 @@ async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
 const listGlobalExercisesCached = unstable_cache(
   async (): Promise<ExerciseRow[]> => {
     const supabase = supabaseServerAnon();
-    const { data, error } = await readExercisesWithMetadataFallback({
+    const { data, error } = await readExercisesWithMetadataFallback<Partial<ExerciseRow>[]>({
       query: (columns) => supabase
         .from("exercises")
         .select(columns)
