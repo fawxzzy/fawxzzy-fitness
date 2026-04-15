@@ -70,64 +70,10 @@ function getRememberedIdentity(email: string) {
   const localPart = normalizeEmail(email).split("@")[0] ?? "";
   const segments = localPart.split(/[._-]+/).filter(Boolean);
   const primarySegment = segments[0] ?? localPart;
-  const initialsSource = segments.length > 0 ? segments : [localPart];
 
   return {
     firstName: toTitleCaseSegment(primarySegment) || "Athlete",
-    initials:
-      initialsSource
-        .slice(0, 2)
-        .map((segment) => segment.charAt(0).toUpperCase())
-        .join("")
-        .slice(0, 2) || "FF",
   };
-}
-
-function WarmUpProgress({ progress, isSubmitting }: { progress: number; isSubmitting: boolean }) {
-  const radius = 16;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference - ((circumference * progress) / 100);
-
-  return (
-    <div className="flex shrink-0 self-start items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-3 py-2.5">
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/20">
-        <svg aria-hidden="true" className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 40 40">
-          <circle cx="20" cy="20" r={radius} fill="none" stroke="currentColor" strokeWidth="3" className="text-white/10" />
-          <circle
-            cx="20"
-            cy="20"
-            r={radius}
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="3"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            className={cn(
-              "transition-[stroke,stroke-dashoffset] duration-200 ease-out motion-reduce:transition-none",
-              progress === 100 || isSubmitting
-                ? "text-emerald-300"
-                : progress === 50
-                  ? "text-emerald-400/80"
-                  : "text-slate-500/70",
-            )}
-          />
-        </svg>
-        <span className="text-[9px] font-semibold tracking-[0.08em] text-slate-200">{progress}</span>
-      </div>
-
-      <div className="space-y-0.5 text-right">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-          {PASSWORD_LOGIN_UI_COPY.progressLabel}
-        </p>
-        <p className="text-sm font-semibold text-white">{progress === 100 ? "Ready" : `${progress}%`}</p>
-      </div>
-
-      <progress className="sr-only" max={100} value={progress}>
-        {progress}%
-      </progress>
-    </div>
-  );
 }
 
 export function LoginScreen({ error, info }: { error?: string; info?: string }) {
@@ -138,6 +84,7 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
   const [formSeed, setFormSeed] = useState(0);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCredentialStep, setShowCredentialStep] = useState(false);
 
   useEffect(() => {
     const storedEmail = readRememberedEmail();
@@ -161,11 +108,11 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
     };
 
     const frameId = window.requestAnimationFrame(syncFormValues);
-    const timeoutId = window.setTimeout(syncFormValues, 160);
+    const timeoutIds = [160, 520, 1100].map((delay) => window.setTimeout(syncFormValues, delay));
 
     return () => {
       window.cancelAnimationFrame(frameId);
-      window.clearTimeout(timeoutId);
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
   }, [formSeed]);
 
@@ -173,19 +120,22 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
   const emailValid = EMAIL_PATTERN.test(normalizedEmail);
   const passwordValid = password.length >= 6;
   const formReady = emailValid && passwordValid;
-  const progress = formReady ? 100 : emailValid ? 50 : 0;
   const rememberedIdentity = rememberedEmail ? getRememberedIdentity(rememberedEmail) : null;
+  const hasRememberedAccount = hasHydrated && Boolean(rememberedEmail) && Boolean(rememberedIdentity);
   const showRememberedIdentity =
-    hasHydrated
-    && Boolean(rememberedEmail)
-    && Boolean(rememberedIdentity)
+    hasRememberedAccount
+    && !showCredentialStep
     && (normalizedEmail === "" || normalizedEmail === normalizeEmail(rememberedEmail ?? ""));
+  const showRememberedAccountCard = showRememberedIdentity && Boolean(rememberedEmail) && Boolean(rememberedIdentity);
+  const showManualAuth = !showRememberedAccountCard;
 
-  const helperText = formReady
-    ? PASSWORD_LOGIN_UI_COPY.helper.ready
-    : emailValid
-      ? PASSWORD_LOGIN_UI_COPY.helper.emailValid
-      : PASSWORD_LOGIN_UI_COPY.helper.default;
+  const helperText = showRememberedAccountCard
+    ? (formReady ? PASSWORD_LOGIN_UI_COPY.helper.ready : PASSWORD_LOGIN_UI_COPY.helper.remembered)
+    : formReady
+      ? PASSWORD_LOGIN_UI_COPY.helper.ready
+      : emailValid
+        ? PASSWORD_LOGIN_UI_COPY.helper.emailValid
+        : PASSWORD_LOGIN_UI_COPY.helper.default;
 
   const headline = showRememberedIdentity && rememberedIdentity
     ? `${copy.title}, ${rememberedIdentity.firstName}`
@@ -193,9 +143,11 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
 
   const ctaLabel = isSubmitting
     ? PASSWORD_LOGIN_UI_COPY.cta.pending
-    : formReady
+    : showRememberedAccountCard
       ? PASSWORD_LOGIN_UI_COPY.cta.ready
-      : PASSWORD_LOGIN_UI_COPY.cta.idle;
+      : formReady
+        ? PASSWORD_LOGIN_UI_COPY.cta.ready
+        : PASSWORD_LOGIN_UI_COPY.cta.idle;
 
   function handleSwitchAccount() {
     clearRememberedEmail();
@@ -203,11 +155,22 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
     setEmail("");
     setPassword("");
     setIsSubmitting(false);
+    setShowCredentialStep(false);
     setFormSeed((current) => current + 1);
 
     window.setTimeout(() => {
       const emailInput = document.getElementById(EMAIL_INPUT_ID) as HTMLInputElement | null;
       emailInput?.focus();
+    }, 30);
+  }
+
+  function handleContinueWithRememberedAccount() {
+    setShowCredentialStep(true);
+    setFormSeed((current) => current + 1);
+
+    window.setTimeout(() => {
+      const passwordInput = document.getElementById(PASSWORD_INPUT_ID) as HTMLInputElement | null;
+      passwordInput?.focus();
     }, 30);
   }
 
@@ -238,42 +201,56 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
       >
         <form action={login} className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-accent/90">
-                  {PASSWORD_LOGIN_UI_COPY.wordmark}
-                </p>
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
-                  <span>{copy.eyebrow}</span>
-                </div>
-                <p className="text-sm leading-6 text-slate-400">{copy.subtitle}</p>
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-accent/90">
+                {PASSWORD_LOGIN_UI_COPY.wordmark}
+              </p>
+              <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
+                <span>{copy.eyebrow}</span>
               </div>
-
-              <WarmUpProgress progress={progress} isSubmitting={isSubmitting} />
+              <h1 className="text-[clamp(2rem,8vw,2.55rem)] font-semibold tracking-[-0.04em] text-white">{headline}</h1>
+              {copy.subtitle ? <p className="text-sm leading-6 text-slate-400">{copy.subtitle}</p> : null}
+              {helperText ? (
+                <p aria-live="polite" className="max-w-sm text-sm leading-6 text-slate-300">
+                  {helperText}
+                </p>
+              ) : null}
             </div>
 
-            {showRememberedIdentity && rememberedEmail && rememberedIdentity ? (
-              <div className="flex flex-col gap-4 rounded-[1.35rem] border border-white/10 bg-white/[0.03] px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-400/12 text-sm font-semibold text-emerald-50">
-                    {rememberedIdentity.initials}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      {PASSWORD_LOGIN_UI_COPY.returningUserLabel}
-                    </p>
-                    <p className="truncate text-sm font-medium text-slate-100">{rememberedEmail}</p>
+            {showRememberedAccountCard && rememberedEmail && rememberedIdentity ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-300">
+                    <span className="font-medium text-slate-100">{PASSWORD_LOGIN_UI_COPY.returningUserLabel}</span>
+                    <span aria-hidden="true" className="text-slate-500">&middot;</span>
+                    <span className="truncate">{rememberedEmail}</span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 text-sm font-medium text-emerald-100">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
+                    <span>Ready</span>
                   </div>
                 </div>
 
-                <div className="shrink-0 text-left sm:text-right">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    {PASSWORD_LOGIN_UI_COPY.switchPrompt}
-                  </p>
+                <PrimaryButton
+                  type={formReady ? "submit" : "button"}
+                  fullWidth
+                  disabled={isSubmitting}
+                  onClick={formReady ? undefined : handleContinueWithRememberedAccount}
+                  className={cn(
+                    "min-h-[3.35rem] rounded-[1.1rem] text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none",
+                    formReady ? "shadow-[0_18px_38px_rgba(16,185,129,0.18)]" : "shadow-[0_14px_30px_rgba(15,23,42,0.18)]",
+                    isSubmitting ? "scale-[0.985]" : "",
+                  )}
+                >
+                  {ctaLabel}
+                </PrimaryButton>
+
+                <div className="flex flex-wrap items-center gap-1.5 text-sm text-slate-400">
+                  <span>{PASSWORD_LOGIN_UI_COPY.switchPrompt}</span>
                   <button
                     type="button"
-                    className="text-xs font-medium text-slate-300 transition-colors hover:text-white"
+                    className="font-medium text-slate-200 transition-colors hover:text-white"
                     onClick={handleSwitchAccount}
                   >
                     {PASSWORD_LOGIN_UI_COPY.switchAction}
@@ -281,16 +258,18 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
                 </div>
               </div>
             ) : null}
-
-            <div className="space-y-2">
-              <h1 className="text-[clamp(2rem,8vw,2.55rem)] font-semibold tracking-[-0.04em] text-white">{headline}</h1>
-              <p aria-live="polite" className="max-w-sm text-sm leading-6 text-slate-300">
-                {helperText}
-              </p>
-            </div>
           </div>
 
-          <div key={formSeed} className="space-y-4">
+          <div
+            key={formSeed}
+            aria-hidden={!showManualAuth}
+            className={cn(
+              "space-y-4 transition-[max-height,opacity] duration-200 ease-out motion-reduce:transition-none",
+              showManualAuth
+                ? "max-h-[32rem] opacity-100"
+                : "pointer-events-none max-h-0 overflow-hidden opacity-0",
+            )}
+          >
             <AuthField label="Email">
               <Input
                 id={EMAIL_INPUT_ID}
@@ -300,6 +279,7 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
                 autoComplete="email"
                 defaultValue={rememberedEmail ?? undefined}
                 placeholder="you@example.com"
+                tabIndex={showManualAuth ? undefined : -1}
                 className={cn(
                   "h-14 rounded-[1.15rem] border-white/10 bg-black/20 text-base text-white placeholder:text-slate-500 transition-[border-color,background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
                   emailValid ? "border-emerald-400/20 bg-emerald-500/[0.05]" : "",
@@ -318,6 +298,7 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
                   required
                   autoComplete="current-password"
                   placeholder="Enter your password"
+                  tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     "h-14 rounded-[1.15rem] border-white/10 bg-black/20 text-base text-white placeholder:text-slate-500 transition-[border-color,background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
                     passwordValid ? "border-emerald-400/20 bg-emerald-500/[0.05]" : "",
@@ -325,43 +306,49 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
                   onChange={(event) => setPassword(event.target.value)}
                 />
               </AuthField>
-
-              <div className="flex justify-end">
-                <Link
-                  className="text-sm font-medium text-accent underline-offset-4 transition-colors hover:text-emerald-200 hover:underline"
-                  href="/forgot-password"
-                >
-                  {PASSWORD_LOGIN_UI_COPY.forgotPassword}
-                </Link>
-              </div>
             </div>
           </div>
+
+          {showManualAuth ? (
+            <div className="flex justify-end">
+              <Link
+                className="text-sm font-medium text-accent underline-offset-4 transition-colors hover:text-emerald-200 hover:underline"
+                href="/forgot-password"
+              >
+                {PASSWORD_LOGIN_UI_COPY.forgotPassword}
+              </Link>
+            </div>
+          ) : null}
 
           {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
           {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
 
-          <PrimaryButton
-            type="submit"
-            fullWidth
-            disabled={!formReady || isSubmitting}
-            className={cn(
-              "min-h-[3.35rem] rounded-[1.1rem] text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none",
-              formReady ? "shadow-[0_18px_38px_rgba(16,185,129,0.18)]" : "opacity-80",
-              isSubmitting ? "scale-[0.985]" : "",
-            )}
-          >
-            {ctaLabel}
-          </PrimaryButton>
+          {showManualAuth ? (
+            <PrimaryButton
+              type="submit"
+              fullWidth
+              disabled={!formReady || isSubmitting}
+              className={cn(
+                "min-h-[3.35rem] rounded-[1.1rem] text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none",
+                formReady ? "shadow-[0_18px_38px_rgba(16,185,129,0.18)]" : "opacity-80",
+                isSubmitting ? "scale-[0.985]" : "",
+              )}
+            >
+              {ctaLabel}
+            </PrimaryButton>
+          ) : null}
         </form>
 
-        <AuthFooter>
-          <p className="text-center leading-6 text-slate-300">
-            {PASSWORD_LOGIN_UI_COPY.createAccountPrefix}{" "}
-            <Link href="/signup" className="font-medium text-accent underline-offset-4 transition-colors hover:text-emerald-200 hover:underline">
-              {PASSWORD_LOGIN_UI_COPY.createAccountAction}
-            </Link>
-          </p>
-        </AuthFooter>
+        {showManualAuth && !hasRememberedAccount ? (
+          <AuthFooter>
+            <p className="text-center leading-6 text-slate-300">
+              {PASSWORD_LOGIN_UI_COPY.createAccountPrefix}{" "}
+              <Link href="/signup" className="font-medium text-accent underline-offset-4 transition-colors hover:text-emerald-200 hover:underline">
+                {PASSWORD_LOGIN_UI_COPY.createAccountAction}
+              </Link>
+            </p>
+          </AuthFooter>
+        ) : null}
       </AuthCard>
     </AuthShell>
   );

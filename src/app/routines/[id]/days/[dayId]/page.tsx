@@ -153,6 +153,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                   type: exercise.details?.type ?? null,
                   tags: exercise.details?.tags ?? null,
                   categories: exercise.details?.categories ?? null,
+                  image_path: exercise.details?.image_path ?? null,
                   image_icon_path: exercise.details?.image_icon_path ?? null,
                   image_howto_path: exercise.details?.image_howto_path ?? null,
                   slug: exercise.details?.slug ?? null,

@@ -22,6 +22,8 @@ type ExerciseCatalogRow = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
+  image_path: string | null;
+  image_icon_path: string | null;
   image_howto_path: string | null;
   how_to_short: string | null;
   measurement_type: string | null;
@@ -211,6 +213,8 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
       primary_muscle: row.primary_muscle ?? null,
       equipment: row.equipment ?? null,
       movement_pattern: row.movement_pattern ?? null,
+      image_path: "image_path" in row ? row.image_path ?? null : null,
+      image_icon_path: "image_icon_path" in row ? row.image_icon_path ?? null : null,
       image_howto_path: row.image_howto_path ?? null,
       how_to_short: row.how_to_short ?? null,
       measurement_type: row.measurement_type ?? null,
@@ -392,8 +396,8 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         exerciseId,
         name: exercise.name,
         slug: exercise.slug,
-        image_path: null,
-        image_icon_path: null,
+        image_path: exercise.image_path,
+        image_icon_path: exercise.image_icon_path,
         image_howto_path: exercise.image_howto_path,
         how_to_short: exercise.how_to_short,
         primary_muscle: exercise.primary_muscle,

@@ -5265,6 +5265,8 @@ WHY:
 ## Unreleased
 
 ### Changed
+- Fixed remembered-user login so the primary CTA now reveals the real credential step when no password or autofill is present, instead of hiding the form behind a disabled `Enter Gym` button.
+- Completed the shared segmented-control keyboard contract with roving focus plus Arrow, Home, and End navigation for both stateful and link-backed variants.
 - Hardened `scripts/playbook-runtime.mjs` on Windows by enabling shell execution only for resolved `.cmd`/`.bat` Playbook wrappers, which fixes `npm run verify` when the bridge resolves to `.playbook/runtime/node_modules/.bin/playbook.cmd`.
 - Added a targeted Playbook runtime regression test that locks the Windows batch-wrapper launch contract without changing non-Windows entrypoint behavior.
 - Added explicit mobile-regression review-family metadata to the deterministic scenario inventory so review boards no longer infer buckets from screenshot filename prefixes.
@@ -5305,6 +5307,8 @@ WHY:
 - Added a destructive-dialog pattern note to `docs/UI_NORMALIZATION_AUDIT.md` to document hierarchy, spacing, and safe-area ownership for this modal family.
 
 ### Why
+- The remembered-account login state had the right visual shape, but it could strand people behind hidden credentials unless the browser happened to autofill the password field.
+- The segmented control now sits in enough shared surfaces that incomplete keyboard behavior would replicate the same accessibility gap anywhere it was reused.
 - Session/logging review was being weakened by bucket drift, because the board step could silently reclassify screenshots based on loose prefixes instead of the same inventory metadata that defines the regression suite.
 - Writing a manifest at capture time and consuming it during board generation makes the review shape deterministic and keeps future scenario naming changes from breaking the QA boards.
 - Keeping the board builder tracked and documented reduces local-only QA drift and makes the final symmetry pass repeatable.

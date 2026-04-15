@@ -29,8 +29,23 @@ export function resolveWorkoutCardSurfacePolicy(
         showDetailedMetrics: density === "detailed",
       };
     case "current-session":
+      return {
+        showMedia: true,
+        showIdentityChips: false,
+        showDetailedMetrics: false,
+      };
     case "view-day":
+      return {
+        showMedia: false,
+        showIdentityChips: false,
+        showDetailedMetrics: false,
+      };
     case "edit-day":
+      return {
+        showMedia: true,
+        showIdentityChips: false,
+        showDetailedMetrics: false,
+      };
     case "reorder":
       return {
         showMedia: false,
