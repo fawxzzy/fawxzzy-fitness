@@ -3,14 +3,14 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import type { ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { Input } from "@/components/ui/Input";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
@@ -63,6 +63,56 @@ function formatTagLabel(tag: string) {
     .filter(Boolean)
     .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
+}
+
+function HistoryExerciseFilters({
+  countLabel,
+  query,
+  onQueryChange,
+  selectedTags,
+  onTagsChange,
+  groups,
+}: {
+  countLabel: string;
+  query: string;
+  onQueryChange: (next: string) => void;
+  selectedTags: string[];
+  onTagsChange: (next: string[]) => void;
+  groups: ExerciseTagGroup[];
+}) {
+  return (
+    <div className="space-y-1.5">
+      <ExerciseTagFilterControl
+        selectedTags={selectedTags}
+        onChange={onTagsChange}
+        groups={groups}
+        countDisplayMode="never"
+        headerLabel={`${countLabel} • Filters`}
+        variant="compact"
+        className="space-y-1.5"
+        buttonClassName="min-h-9 rounded-[1rem] px-3.5 py-2 text-[13px] font-semibold"
+        panelClassName="space-y-1.5 rounded-[1rem] px-2.5 py-2"
+      />
+      <div className="relative">
+        <Input
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="Search exercises"
+          className="h-10 rounded-[1rem] pr-9 text-[14px]"
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => onQueryChange("")}
+            aria-label="Clear exercise search"
+            className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+          >
+            ×
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
@@ -201,37 +251,33 @@ export function ExerciseBrowserClient({
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {inlineHeaderControls ? (
         <HistoryTitleControlShell
-          caption={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"} shown`}
           viewMode={viewMode}
           onViewModeChange={applyViewMode}
           showViewModeToggle={false}
         >
-          <ExerciseSearchFilters
+          <HistoryExerciseFilters
+            countLabel={`${filteredRows.length} shown`}
             query={query}
             onQueryChange={setQuery}
             selectedTags={selectedTags}
             onTagsChange={setSelectedTags}
             groups={availableTagGroups}
-            className="space-y-1.5"
-            filterClassName="space-y-1"
           />
         </HistoryTitleControlShell>
       ) : floatingHeaderContainer
         ? createPortal(
             <HistoryTitleControlShell
-              caption={`${filteredRows.length} ${filteredRows.length === 1 ? "exercise" : "exercises"} shown`}
               viewMode={viewMode}
               onViewModeChange={applyViewMode}
               showViewModeToggle={false}
             >
-              <ExerciseSearchFilters
+              <HistoryExerciseFilters
+                countLabel={`${filteredRows.length} shown`}
                 query={query}
                 onQueryChange={setQuery}
                 selectedTags={selectedTags}
                 onTagsChange={setSelectedTags}
                 groups={availableTagGroups}
-                className="space-y-1.5"
-                filterClassName="space-y-1"
               />
             </HistoryTitleControlShell>,
             floatingHeaderContainer,
@@ -239,14 +285,14 @@ export function ExerciseBrowserClient({
         : null}
 
       <div className="relative min-h-0">
-        <ul className="space-y-1.5 scroll-py-2">
+        <ul className="space-y-1 scroll-py-2">
           {filteredRows.map((row) => (
             <li key={row.exerciseId}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
             </li>
           ))}
         </ul>
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
       </div>
 
       <ExerciseInfo

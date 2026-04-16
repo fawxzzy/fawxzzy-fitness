@@ -6,37 +6,44 @@ import sharp from "sharp";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
-const iconSourcePath = path.join(rootDir, "public", "icon-source.svg");
-const iconsOutputDir = path.join(rootDir, "public", "icons");
+const iconSourcePath = path.join(rootDir, "public", "brand", "atlas-sigil-master.png");
 
 const outputs = [
-  { fileName: "icon-512.png", size: 512 },
-  { fileName: "icon-192.png", size: 192 },
-  { fileName: "apple-touch-icon.png", size: 180 },
+  { relativePath: path.join("public", "icons", "icon-512.png"), size: 512 },
+  { relativePath: path.join("public", "icons", "icon-192.png"), size: 192 },
+  { relativePath: path.join("public", "icons", "apple-touch-icon.png"), size: 180 },
+  { relativePath: path.join("public", "app", "icon-512.png"), size: 512 },
+  { relativePath: path.join("public", "app", "icon-192.png"), size: 192 },
+  { relativePath: path.join("public", "favicon-32x32.png"), size: 32 },
+  { relativePath: path.join("public", "favicon-16x16.png"), size: 16 },
 ];
 
 async function main() {
-  await fs.mkdir(iconsOutputDir, { recursive: true });
-
-  let sourceSvg;
+  let sourcePng;
   try {
-    sourceSvg = await fs.readFile(iconSourcePath);
+    sourcePng = await fs.readFile(iconSourcePath);
   } catch (error) {
-    throw new Error(`Unable to read icon source at ${iconSourcePath}: ${error.message}`);
+    throw new Error(
+      `Unable to read synced brand master at ${iconSourcePath}: ${error.message}. Run the ATLAS brand sync before building Fitness.`,
+    );
   }
 
   await Promise.all(
-    outputs.map(({ fileName, size }) => {
-      const outputPath = path.join(iconsOutputDir, fileName);
+    outputs.map(async ({ relativePath, size }) => {
+      const outputPath = path.join(rootDir, relativePath);
+      await fs.mkdir(path.dirname(outputPath), { recursive: true });
 
-      return sharp(sourceSvg)
-        .resize(size, size, { fit: "cover" })
+      return sharp(sourcePng)
+        .resize(size, size, {
+          fit: "contain",
+          background: { r: 0, g: 0, b: 0, alpha: 1 },
+        })
         .png({ quality: 100, compressionLevel: 9 })
         .toFile(outputPath);
     }),
   );
 
-  console.log(`Generated ${outputs.length} icons in ${iconsOutputDir}`);
+  console.log(`Generated ${outputs.length} ATLAS brand icons from ${iconSourcePath}`);
 }
 
 main().catch((error) => {

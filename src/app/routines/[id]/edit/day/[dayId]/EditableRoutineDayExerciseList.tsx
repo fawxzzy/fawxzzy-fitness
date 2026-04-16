@@ -30,6 +30,7 @@ import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
+import { publishScreenFocusMode } from "@/lib/screen-focus-mode";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
@@ -426,6 +427,13 @@ export function EditableRoutineDayExerciseList({
     if (!editModeActive || !expandedId) return items;
     return items.filter((exercise) => exercise.id === expandedId);
   }, [editModeActive, expandedId, items]);
+
+  useEffect(() => {
+    publishScreenFocusMode({ screen: "edit-day", active: editModeActive });
+    return () => {
+      publishScreenFocusMode({ screen: "edit-day", active: false });
+    };
+  }, [editModeActive]);
 
   const [headerActionTarget, setHeaderActionTarget] = useState<HTMLElement | null>(null);
 

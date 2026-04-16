@@ -86,7 +86,7 @@ export function HistorySection({
 }
 
 export function HistoryControlPanel({ children, className }: { children: ReactNode; className?: string }) {
-  return <AppPanel className={cn("space-y-2.5 p-[0.875rem]", className)}>{children}</AppPanel>;
+  return <AppPanel className={cn("space-y-2 p-3 max-md:space-y-1.5", className)}>{children}</AppPanel>;
 }
 
 export function HistoryTitleControlShell({
@@ -107,13 +107,13 @@ export function HistoryTitleControlShell({
   className?: string;
 }) {
   return (
-    <HistoryControlPanel className={cn("space-y-2", className)}>
+    <HistoryControlPanel className={cn("space-y-1.5", className)}>
       {(label || caption || showViewModeToggle) ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           {(label || caption) ? (
             <div className="min-w-0">
               {label ? <p className="text-sm font-semibold text-slate-100">{label}</p> : null}
-              {caption ? <p className="mt-0.5 text-[11px] leading-[1.35] text-[rgb(var(--text-muted)/0.9)]">{caption}</p> : null}
+              {caption ? <p className="mt-0.25 text-[10px] leading-[1.3] text-[rgb(var(--text-muted)/0.9)]">{caption}</p> : null}
             </div>
           ) : null}
           {showViewModeToggle ? (

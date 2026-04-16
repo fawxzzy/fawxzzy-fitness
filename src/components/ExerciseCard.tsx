@@ -38,10 +38,10 @@ const densityStyles: Record<ExerciseCardDensity, {
     shellWithMedia: "pl-0",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-2",
-    titleSize: "text-[0.98rem]",
-    contentGap: "gap-1.5",
-    goalRow: "rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-2.5 py-2",
-    childrenSpacing: "mt-1.5",
+    titleSize: "text-[0.95rem]",
+    contentGap: "gap-1",
+    goalRow: "rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-2.5 py-1.5",
+    childrenSpacing: "mt-1",
   },
   detailed: {
     shell: "min-h-[var(--exercise-row-min-height-detailed)] py-[var(--exercise-row-shell-padding-y-detailed)] pr-[var(--exercise-row-shell-padding-x)]",
@@ -49,9 +49,9 @@ const densityStyles: Record<ExerciseCardDensity, {
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
-    contentGap: "gap-2",
-    goalRow: "rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.56)] px-3 py-2.5",
-    childrenSpacing: "mt-2",
+    contentGap: "gap-1.5",
+    goalRow: "rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.56)] px-3 py-2",
+    childrenSpacing: "mt-1.5",
   },
 };
 
@@ -249,13 +249,13 @@ export function ExerciseCard({
             {subtitle ? (
               <div className={cn("min-w-0", styles.goalRow)}>
                 {subtitleLabel ? (
-                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.84)]">
+                  <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.84)]">
                     {subtitleLabel}
                   </p>
                 ) : null}
                 <div
                   className={cn(
-                    "text-safe-wrap pr-1 text-xs leading-[1.35] [text-wrap:pretty]",
+                    "text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]",
                     styles.subtitleClamp,
                     subtitleStateClassNames[state],
                     subtitleClassName,

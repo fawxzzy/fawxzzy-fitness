@@ -23,14 +23,14 @@ export function WorkoutCardChipRow({
   }
 
   return (
-    <div className={cn("flex flex-wrap gap-1.5", density === "compact" ? "pt-0.5" : "pt-1", className)}>
+    <div className={cn("flex flex-wrap gap-1", density === "compact" ? "pt-0" : "pt-0.5", className)}>
       {chips.map((chip) => (
         <Pill
           key={chip.label}
           tone={toneMap[chip.tone ?? "default"]}
           className={cn(
             "normal-case tracking-[0.01em]",
-            density === "compact" ? "px-2.5 py-1 text-[10px]" : "px-2.5 py-1 text-[10px]",
+            density === "compact" ? "px-2.25 py-0.75 text-[9px]" : "px-2.5 py-1 text-[10px]",
           )}
         >
           {chip.label}

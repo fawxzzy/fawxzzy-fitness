@@ -76,13 +76,13 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 };
 
 const pickerRowMobileDensityClassNames = {
-  body: "max-md:gap-2",
-  title: "max-md:text-[0.92rem] max-md:leading-[1.24] max-md:line-clamp-2",
+  body: "max-md:gap-1.5",
+  title: "max-md:text-[0.9rem] max-md:leading-[1.2] max-md:line-clamp-2",
   titleContainer: "max-md:space-y-0.5",
-  subtitle: "max-md:text-[11px] max-md:leading-[1.2] max-md:line-clamp-2",
+  subtitle: "max-md:text-[10px] max-md:leading-[1.2] max-md:line-clamp-2",
   content: "max-md:space-y-0.5",
-  trailing: "max-md:min-w-[5.1rem]",
-  selectPill: "max-md:min-h-6 max-md:min-w-[3.6rem] max-md:px-2 max-md:text-[10px]",
+  trailing: "max-md:min-w-[4.7rem]",
+  selectPill: "max-md:min-h-[1.8rem] max-md:min-w-[3.4rem] max-md:px-2 max-md:text-[10px]",
 } as const;
 
 function toTagArray(value: string[] | string | null | undefined) {
@@ -485,19 +485,21 @@ export function ExercisePicker({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
-      <section className="space-y-3.5 rounded-none border-0 bg-transparent p-0 shadow-none md:rounded-[1.35rem] md:border md:border-white/14 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] md:p-3.5 md:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] lg:p-4">
+      <section className="space-y-2.5 rounded-none border-0 bg-transparent p-0 shadow-none md:rounded-[1.35rem] md:border md:border-white/14 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] md:p-3.5 md:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] lg:p-4">
         <ExerciseSearchFilters
           query={search}
           onQueryChange={setSearch}
           selectedTags={selectedTags}
           onTagsChange={setSelectedTags}
           groups={availableTagGroups}
+          className="space-y-1.5"
+          filterClassName="space-y-1"
         />
 
-        <section className="scroll-mb-24 space-y-2 px-1 md:px-0">
+        <section className="scroll-mb-24 space-y-1.5 px-1 md:px-0">
           <div className="flex items-center justify-between gap-2 px-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercise Library</p>
             <p className="text-xs text-muted">{filteredExercises.length} shown</p>
@@ -517,7 +519,7 @@ export function ExercisePicker({
       </section>
 
       {routineTargetConfig && selectedExercise ? (
-        <section className="scroll-mb-24 space-y-2.5 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.46)] p-4 max-md:space-y-2 max-md:px-3 max-md:py-3.5">
+        <section className="scroll-mb-24 space-y-2 rounded-[1.2rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.46)] p-4 max-md:space-y-1.5 max-md:px-3 max-md:py-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Configure goal</p>
           {selectedStats && (hasLast || hasPR) ? (
             <div className={cn("space-y-1 px-0.5 text-xs text-muted max-md:space-y-0.75 max-md:text-[11px]", didApplyLast ? "text-[rgb(var(--text)/0.9)]" : undefined)}>
