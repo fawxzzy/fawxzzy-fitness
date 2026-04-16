@@ -100,8 +100,8 @@ export function ExerciseThumb({
       <ExerciseAssetImage
         src={thumb.src}
         alt={alt ?? ""}
-        className={isRail ? "absolute inset-0 h-full w-full" : "h-full w-full"}
-        imageClassName={cn(isRail ? "h-full w-full object-contain object-center" : undefined, imageClassName)}
+        className={isRail ? "absolute inset-0" : "h-full w-full"}
+        imageClassName={cn(isRail ? "absolute inset-0 h-full w-full object-contain object-center" : undefined, imageClassName)}
         sizes={sizes ?? (isRail ? `${railWidth}px` : `${size}px`)}
         fit="contain"
         fallback={<ThumbFallback glyphClassName={fallbackGlyphClassName} />}

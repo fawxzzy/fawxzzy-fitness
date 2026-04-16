@@ -83,6 +83,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     chips: viewModel.chips,
     detailedMetrics: viewModel.detailedMetrics,
   });
+  const showMedia = viewMode !== "detailed" && policy.showMedia;
   const primaryLine = row.lastSummary
     ? `${lastDate ? `${lastDate} | ` : ""}${viewModel.summary}`
     : viewModel.summary;
@@ -105,7 +106,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
       semanticTone={viewModel.semanticTone}
       className="shadow-none"
       surface="history-browser"
-      showLeadingVisual={policy.showMedia}
+      showLeadingVisual={showMedia}
     >
       <WorkoutExerciseCardDetails
         density={viewMode}

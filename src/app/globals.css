@@ -99,8 +99,8 @@
   --button-destructive-border: 255 111 131 / 0.4;
 
   --button-focus-ring: rgb(var(--accent) / 0.32);
-  --button-transition: 160ms cubic-bezier(0.22, 1, 0.36, 1);
-  --button-press-scale: 0.98;
+  --button-transition: 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  --button-press-scale: 0.992;
 
   --action-chrome-shell-radius: 1.5rem;
   --action-chrome-segment-radius: 1.25rem;
@@ -1246,6 +1246,7 @@ button,
 
 .app-button:active {
   transform: scale(var(--button-press-scale));
+  filter: brightness(1.02);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1299,7 +1300,8 @@ button,
     border-color var(--action-chrome-transition),
     color var(--action-chrome-transition),
     box-shadow var(--action-chrome-transition),
-    transform 120ms ease;
+    filter 75ms ease-out,
+    transform 75ms ease-out;
 }
 
 .action-chrome::before,
@@ -1335,7 +1337,8 @@ button,
 }
 
 .action-chrome:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.992);
+  filter: brightness(1.02);
   box-shadow: var(--action-chrome-shadow-active);
 }
 
@@ -1482,8 +1485,8 @@ a:focus-visible {
   color: rgb(var(--text-secondary) / 0.96);
   box-shadow: none;
   transition:
-    transform 120ms ease,
-    filter 120ms ease,
+    transform 75ms ease-out,
+    filter 75ms ease-out,
     background-color 120ms ease,
     border-color 120ms ease,
     color 120ms ease,
@@ -1526,8 +1529,8 @@ a:focus-visible {
 }
 
 .bottom-action:active:not(:disabled) {
-  transform: scale(0.985);
-  filter: brightness(0.96);
+  transform: scale(0.992);
+  filter: brightness(1.02);
 }
 
 .bottom-action:focus-visible {
@@ -1588,7 +1591,7 @@ a:focus-visible {
   }
 
   .glass-interactive {
-    transition: border-color 160ms ease, background-color 160ms ease, transform 120ms ease;
+    transition: border-color 160ms ease, background-color 160ms ease, filter 75ms ease-out, transform 75ms ease-out;
   }
 
   .glass-interactive:hover {
@@ -1596,7 +1599,8 @@ a:focus-visible {
   }
 
   .glass-interactive:active {
-    transform: scale(0.99);
+    transform: scale(0.992);
+    filter: brightness(1.02);
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -2,7 +2,7 @@ export const appTokens = {
   panelBase: "relative isolate overflow-hidden rounded-[var(--radius-lg)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)] p-4 shadow-[var(--glass-shadow-base)] backdrop-blur-[10px]",
   panelMuted: "rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2)/0.72)] p-4",
   rowBase: "rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2)/0.84)] px-3.5 py-3",
-  rowInteractive: "transition duration-150 active:scale-[0.99]",
+  rowInteractive: "transition-[transform,filter] duration-75 ease-out active:scale-[0.992] active:brightness-[1.02]",
   rowAccent: "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.1)]",
   rowDefault: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2)/0.84)] hover:border-[rgb(var(--border-strong)/0.28)] hover:bg-[rgb(var(--surface-3-rgb)/0.94)]",
   accentText: "text-[rgb(var(--accent))]",
