@@ -908,9 +908,10 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
 function renderSessionScenario(scenario: MobileFixtureScenario) {
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
-      <RegressionMarker scenario={scenario} />
-      <SessionPageClient
-        sessionId="dev-session"
+        <RegressionMarker scenario={scenario} />
+        <SessionPageClient
+          userId="dev-user"
+          sessionId="dev-session"
         initialDurationSeconds={1865}
         performedAt="2026-04-10T12:00:00.000Z"
         routineName="Lower Rotation"

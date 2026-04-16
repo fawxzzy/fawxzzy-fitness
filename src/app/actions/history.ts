@@ -8,6 +8,7 @@ import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getHistoryDetailPath, revalidateHistoryViews } from "@/lib/revalidation";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
+import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
 import type { SetRow } from "@/types/db";
 
 type ActionResult = {
@@ -342,24 +343,22 @@ export async function addLogExerciseAction(payload: { logId: string; exerciseId:
     return { ok: false, error: "Log not found." };
   }
 
-  const { count } = await supabase
-    .from("session_exercises")
-    .select("id", { head: true, count: "exact" })
-    .eq("session_id", logId)
-    .eq("user_id", user.id);
-
   const measurementType = resolveSessionExerciseMeasurementType(resolvedExercise.measurementType);
   const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
   warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "addLogExerciseAction" });
 
-  const { error } = await supabase.from("session_exercises").insert({
-    session_id: logId,
-    user_id: user.id,
-    exercise_id: resolvedExercise.id,
-    position: count ?? 0,
-    is_skipped: false,
-    measurement_type: measurementType,
-    default_unit: defaultUnit,
+  const { error } = await insertSessionExerciseAtEnd({
+    supabase,
+    sessionId: logId,
+    userId: user.id,
+    values: {
+      session_id: logId,
+      user_id: user.id,
+      exercise_id: resolvedExercise.id,
+      is_skipped: false,
+      measurement_type: measurementType,
+      default_unit: defaultUnit,
+    },
   });
 
   if (error) {

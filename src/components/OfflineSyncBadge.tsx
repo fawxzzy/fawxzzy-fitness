@@ -8,7 +8,7 @@ type BadgeState = "offline" | "saved-local" | "syncing" | "synced" | "hidden";
 const POLL_MS = 1200;
 const SYNCED_VISIBLE_MS = 3000;
 
-export function OfflineSyncBadge() {
+export function OfflineSyncBadge({ userId }: { userId: string }) {
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [badgeState, setBadgeState] = useState<BadgeState>("hidden");
   const prevHadPendingRef = useRef(false);
@@ -20,7 +20,7 @@ export function OfflineSyncBadge() {
         const online = typeof navigator === "undefined" ? true : navigator.onLine;
         setIsOnline(online);
 
-        const pendingItems = await readPendingSetLogs();
+        const pendingItems = await readPendingSetLogs(userId);
         const hasPending = pendingItems.length > 0;
         const hasSyncing = pendingItems.some((item) => item.status === "syncing");
 
@@ -76,7 +76,7 @@ export function OfflineSyncBadge() {
         window.clearTimeout(syncedTimeoutRef.current);
       }
     };
-  }, []);
+  }, [userId]);
 
   if (badgeState === "hidden") {
     return null;

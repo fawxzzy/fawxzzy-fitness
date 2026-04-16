@@ -18,6 +18,7 @@ import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
+import { createStableSetId } from "@/lib/offline/set-log-reconciliation";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -33,6 +34,7 @@ type AddSetPayload = {
   rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
+  clientLogId: string;
 };
 
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
@@ -125,6 +127,7 @@ function resolveSessionExerciseTone(args: {
 }
 
 export function SessionExerciseFocus({
+  userId,
   sessionId,
   unitLabel,
   exercises,
@@ -136,6 +139,7 @@ export function SessionExerciseFocus({
   removeExerciseAction,
   deleteSetAction,
 }: {
+  userId: string;
   sessionId: string;
   unitLabel: string;
   exercises: SessionExerciseFocusItem[];
@@ -402,6 +406,7 @@ export function SessionExerciseFocus({
                       ) : null}
 
                       <SetLoggerCard
+                        userId={userId}
                         sessionId={sessionId}
                         sessionExerciseId={exercise.id}
                         addSetAction={addSetAction}
@@ -474,6 +479,7 @@ export function SessionExerciseFocus({
                               isWarmup: false,
                               rpe: null,
                               notes: null,
+                              clientLogId: createStableSetId(),
                             });
 
                             toastActionResult(toast, result, {

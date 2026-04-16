@@ -4,11 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SetRow } from "@/types/db";
 import {
   enqueueSetLog,
-  readQueuedSetLogsBySessionExerciseId,
+  readQueuedSetLogsBySessionExerciseIdForUser,
   removeSetLogQueueItem,
   type SetLogQueueItem,
 } from "@/lib/offline/set-log-queue";
 import { createSetLogSyncEngine } from "@/lib/offline/sync-engine";
+import {
+  createStableSetId,
+  mergeByStableSetId,
+  resolveStableSetId,
+  sortSetsByIndex,
+  toRestorableQueueSet,
+} from "@/lib/offline/set-log-reconciliation";
+import { buildSessionDraftStorageKey, isOfflineSnapshotStale } from "@/lib/offline/client-storage";
 import { useToast } from "@/components/ui/ToastProvider";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
@@ -38,7 +46,7 @@ type AddSetPayload = {
   rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
-  clientLogId?: string;
+  clientLogId: string;
 };
 
 type AddSetActionResult = ActionResult<{ set: SetRow }>;
@@ -74,30 +82,27 @@ function formatDurationInput(durationSeconds: number | null) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-type DisplaySet = SetRow & { pending?: boolean; queueStatus?: SetLogQueueItem["status"] };
+type DisplaySet = SetRow & {
+  stableId: string;
+  queueItemId?: string;
+  pending?: boolean;
+  queueStatus?: SetLogQueueItem["status"];
+};
 type AnimatedDisplaySet = DisplaySet & { isLeaving?: boolean };
 
 function mergeDisplaySets(baseSets: DisplaySet[], incomingSets: DisplaySet[]) {
-  const merged = new Map<string, DisplaySet>();
+  return sortSetsByIndex(mergeByStableSetId(incomingSets, baseSets));
+}
 
-  for (const set of baseSets) {
-    merged.set(set.id, set);
-  }
-
-  for (const set of incomingSets) {
-    const current = merged.get(set.id);
-    if (!current) {
-      merged.set(set.id, set);
-      continue;
-    }
-
-    merged.set(set.id, { ...current, ...set });
-  }
-
-  return Array.from(merged.values()).sort((left, right) => left.set_index - right.set_index);
+function toDisplaySet(set: SetRow): DisplaySet {
+  return {
+    ...set,
+    stableId: resolveStableSetId(set),
+  };
 }
 
 export function SetLoggerCard({
+  userId,
   sessionId,
   sessionExerciseId,
   addSetAction,
@@ -119,6 +124,7 @@ export function SetLoggerCard({
   warmupValue,
   onWarmupValueChange,
 }: {
+  userId: string;
   sessionId: string;
   sessionExerciseId: string;
   addSetAction: (payload: AddSetPayload) => Promise<AddSetActionResult>;
@@ -181,9 +187,9 @@ export function SetLoggerCard({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSecondaryPending, setIsSecondaryPending] = useState(false);
-  const [sets, setSets] = useState<DisplaySet[]>(initialSets);
+  const [sets, setSets] = useState<DisplaySet[]>(() => initialSets.map(toDisplaySet));
   const [visibleMetrics, setVisibleMetrics] = useState(initialEnabledMetrics);
-  const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(initialSets);
+  const [animatedSets, setAnimatedSets] = useState<AnimatedDisplaySet[]>(() => initialSets.map(toDisplaySet));
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState(false);
   const lastPublishedSetCountRef = useRef<number | null>(initialSets.length);
@@ -212,8 +218,9 @@ export function SetLoggerCard({
     setRpe("");
     setWarmupValue(false);
     setError(null);
-    setSets(initialSets);
-    setAnimatedSets(initialSets);
+    const nextDisplaySets = initialSets.map(toDisplaySet);
+    setSets(nextDisplaySets);
+    setAnimatedSets(nextDisplaySets);
     lastPublishedSetCountRef.current = initialSets.length;
   }, [defaultDistanceUnit, initialSets, prefill, sessionExerciseId, setWarmupValue, unitLabel]);
 
@@ -232,7 +239,7 @@ export function SetLoggerCard({
   }, [onSetCountChange, sets.length]);
 
   useEffect(() => {
-    const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
+    const storageKey = buildSessionDraftStorageKey(userId, sessionId, sessionExerciseId);
     const raw = window.localStorage.getItem(storageKey);
     if (!raw) {
       return;
@@ -244,8 +251,17 @@ export function SetLoggerCard({
         form?: { weight?: string; reps?: string; durationSeconds?: string; distance?: string; distanceUnit?: "mi" | "km" | "m"; calories?: string; rpe?: string; isWarmup?: boolean; selectedWeightUnit?: "lbs" | "kg" };
       };
 
+      if (isOfflineSnapshotStale((parsed as { updatedAt?: number | string }).updatedAt)) {
+        window.localStorage.removeItem(storageKey);
+        return;
+      }
+
       if (Array.isArray(parsed.sets)) {
-        setSets(mergeDisplaySets(initialSets, parsed.sets));
+        const storedSets = parsed.sets.map((set) => ({
+          ...set,
+          stableId: resolveStableSetId(set),
+        })) as DisplaySet[];
+        setSets(mergeDisplaySets(initialSets.map(toDisplaySet), storedSets));
       }
 
       if (parsed.form) {
@@ -278,10 +294,10 @@ export function SetLoggerCard({
     } catch {
       window.localStorage.removeItem(storageKey);
     }
-  }, [initialSets, sessionExerciseId, sessionId, setWarmupValue]);
+  }, [initialSets, sessionExerciseId, sessionId, setWarmupValue, userId]);
 
   useEffect(() => {
-    const storageKey = `session-sets:${sessionId}:${sessionExerciseId}`;
+    const storageKey = buildSessionDraftStorageKey(userId, sessionId, sessionExerciseId);
     const sanitizedForm = sanitizeEnabledMeasurementValues(deriveMeasurementPresenceFromValues({
       reps,
       weight,
@@ -312,7 +328,7 @@ export function SetLoggerCard({
     });
 
     window.localStorage.setItem(storageKey, payload);
-  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, weight]);
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, sessionExerciseId, sessionId, sets, userId, weight]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -324,14 +340,14 @@ export function SetLoggerCard({
 
   useEffect(() => {
     setAnimatedSets((current) => {
-      const nextIds = new Set(sets.map((set) => set.id));
+      const nextIds = new Set(sets.map((set) => set.stableId));
       const removed = current
-        .filter((set) => !nextIds.has(set.id))
+        .filter((set) => !nextIds.has(set.stableId))
         .map((set) => ({ ...set, isLeaving: true }));
       const merged = [...sets, ...removed];
       const uniqueById = new Map<string, AnimatedDisplaySet>();
       for (const set of merged) {
-        uniqueById.set(set.id, set);
+        uniqueById.set(set.stableId, set);
       }
       return Array.from(uniqueById.values());
     });
@@ -353,17 +369,43 @@ export function SetLoggerCard({
 
   useEffect(() => {
     const engine = createSetLogSyncEngine({
+      userId,
       syncSetLogsAction: syncQueuedSetLogsAction,
+      onItemSynced: ({ item, serverSetId }) => {
+        setSets((current) =>
+          current.map((set) => (
+            set.stableId === item.clientLogId
+              ? {
+                  ...set,
+                  id: serverSetId ?? set.id,
+                  client_log_id: item.clientLogId,
+                  pending: false,
+                  queueItemId: undefined,
+                  queueStatus: undefined,
+                  user_id: userId,
+                }
+              : set
+          )),
+        );
+      },
       onQueueUpdate: () => {
-        void readQueuedSetLogsBySessionExerciseId(sessionExerciseId).then((queued) => {
+        void readQueuedSetLogsBySessionExerciseIdForUser(userId, sessionExerciseId).then((queued) => {
           setSets((current) =>
             current.map((set) => {
-              const queuedMatch = queued.find((item) => item.id === set.id);
+              const queuedMatch = queued.find((item) => item.clientLogId === set.stableId);
               if (!queuedMatch) {
-                return set;
+                return set.queueStatus || set.pending
+                  ? {
+                      ...set,
+                      pending: false,
+                      queueStatus: undefined,
+                    }
+                  : set;
               }
               return {
                 ...set,
+                queueItemId: queuedMatch.id,
+                pending: true,
                 queueStatus: queuedMatch.status,
               };
             }),
@@ -374,42 +416,46 @@ export function SetLoggerCard({
 
     engine.start();
     return () => engine.stop();
-  }, [sessionExerciseId, syncQueuedSetLogsAction]);
+  }, [sessionExerciseId, syncQueuedSetLogsAction, userId]);
 
   useEffect(() => {
     let isCancelled = false;
 
     async function restoreQueuedSets() {
       try {
-        const queued = await readQueuedSetLogsBySessionExerciseId(sessionExerciseId);
+        const queued = await readQueuedSetLogsBySessionExerciseIdForUser(userId, sessionExerciseId);
         if (isCancelled || queued.length === 0) {
           return;
         }
 
         setSets((current) => {
-          const existingIds = new Set(current.map((set) => set.id));
+          const existingIds = new Set(current.map((set) => set.stableId));
+          const nextSetIndex = current.reduce((max, set) => Math.max(max, set.set_index), -1) + 1;
           const restored = queued
-            .filter((item) => !existingIds.has(item.id))
-            .map(
-              (item, index): DisplaySet => ({
-                id: item.id,
-                session_exercise_id: item.sessionExerciseId,
-                user_id: "queued",
-                set_index: current.length + index,
-                weight: item.payload.weight,
-                reps: item.payload.reps,
-                duration_seconds: item.payload.durationSeconds,
-                distance: item.payload.distance,
-                distance_unit: item.payload.distanceUnit,
-                calories: item.payload.calories,
-                is_warmup: item.payload.isWarmup,
-                notes: item.payload.notes,
-                rpe: item.payload.rpe,
-                weight_unit: item.payload.weightUnit,
-                pending: true,
-                queueStatus: item.status,
-              }),
-            );
+            .map(toRestorableQueueSet)
+            .filter((item): item is NonNullable<ReturnType<typeof toRestorableQueueSet>> => Boolean(item))
+            .filter((item) => !existingIds.has(item.stableId))
+            .map((item, index): DisplaySet => ({
+              id: item.stableId,
+              client_log_id: item.stableId,
+              stableId: item.stableId,
+              queueItemId: item.queueItemId,
+              session_exercise_id: item.sessionExerciseId,
+              user_id: "queued",
+              set_index: nextSetIndex + index,
+              weight: item.payload.weight,
+              reps: item.payload.reps,
+              duration_seconds: item.payload.durationSeconds,
+              distance: item.payload.distance,
+              distance_unit: item.payload.distanceUnit,
+              calories: item.payload.calories,
+              is_warmup: item.payload.isWarmup,
+              notes: item.payload.notes,
+              rpe: item.payload.rpe,
+              weight_unit: item.payload.weightUnit,
+              pending: true,
+              queueStatus: item.status,
+            }));
 
           if (restored.length === 0) {
             return current;
@@ -427,7 +473,7 @@ export function SetLoggerCard({
     return () => {
       isCancelled = true;
     };
-  }, [sessionExerciseId]);
+  }, [sessionExerciseId, userId]);
 
 
   const isSaveDisabled = isSubmitting;
@@ -514,10 +560,12 @@ export function SetLoggerCard({
     setError(null);
     setIsSubmitting(true);
 
-    const pendingId = `pending-${Date.now()}`;
-    const nextSetIndex = sets.length;
+    const clientLogId = createStableSetId();
+    const nextSetIndex = sets.reduce((max, set) => Math.max(max, set.set_index), -1) + 1;
     const optimisticSet: DisplaySet = {
-      id: pendingId,
+      id: clientLogId,
+      client_log_id: clientLogId,
+      stableId: clientLogId,
       session_exercise_id: sessionExerciseId,
       user_id: "pending",
       set_index: nextSetIndex,
@@ -540,8 +588,10 @@ export function SetLoggerCard({
 
     if (isOffline) {
       const queued = await enqueueSetLog({
+        userId,
         sessionId,
         sessionExerciseId,
+        clientLogId,
         payload: {
           weight: parsedWeight,
           reps: parsedReps,
@@ -558,10 +608,10 @@ export function SetLoggerCard({
 
       setSets((current) =>
         current.map((item) =>
-          item.id === pendingId
+          item.stableId === clientLogId
             ? {
                 ...item,
-                id: queued?.id ?? item.id,
+                queueItemId: queued?.id ?? item.queueItemId,
                 pending: true,
                 queueStatus: "queued",
                 user_id: "queued",
@@ -594,12 +644,15 @@ export function SetLoggerCard({
         rpe: parsedRpe,
         notes: null,
         weightUnit: selectedWeightUnit,
+        clientLogId,
       });
 
       if (!result.ok || !result.data?.set) {
         const queued = await enqueueSetLog({
+          userId,
           sessionId,
           sessionExerciseId,
+          clientLogId,
           payload: {
             weight: parsedWeight,
             reps: parsedReps,
@@ -616,10 +669,10 @@ export function SetLoggerCard({
 
         setSets((current) =>
           current.map((item) =>
-            item.id === pendingId
+            item.stableId === clientLogId
               ? {
                   ...item,
-                  id: queued?.id ?? item.id,
+                  queueItemId: queued?.id ?? item.queueItemId,
                   pending: true,
                   queueStatus: "queued",
                   user_id: "queued",
@@ -638,12 +691,14 @@ export function SetLoggerCard({
         return;
       }
 
-      setSets((current) => current.map((item) => (item.id === pendingId ? result.data!.set : item)));
+      setSets((current) => current.map((item) => (item.stableId === clientLogId ? toDisplaySet(result.data!.set) : item)));
       toast.success("Set logged.");
     } catch {
       const queued = await enqueueSetLog({
+        userId,
         sessionId,
         sessionExerciseId,
+        clientLogId,
         payload: {
           weight: parsedWeight,
           reps: parsedReps,
@@ -659,10 +714,10 @@ export function SetLoggerCard({
       });
       setSets((current) =>
         current.map((item) =>
-          item.id === pendingId
+          item.stableId === clientLogId
             ? {
                 ...item,
-                id: queued?.id ?? item.id,
+                queueItemId: queued?.id ?? item.queueItemId,
                 pending: true,
                 queueStatus: "queued",
                 user_id: "queued",
@@ -702,8 +757,9 @@ export function SetLoggerCard({
     sessionId,
     setSets,
     setWarmupValue,
-    sets.length,
+    sets,
     toast,
+    userId,
     weight,
     addSetAction,
   ]);
@@ -759,22 +815,24 @@ export function SetLoggerCard({
 
   async function handleDeleteSet(set: DisplaySet) {
     if (set.pending || set.queueStatus) {
-      await removeSetLogQueueItem(set.id);
-      setSets((current) => current.filter((item) => item.id !== set.id));
+      if (set.queueItemId) {
+        await removeSetLogQueueItem(set.queueItemId);
+      }
+      setSets((current) => current.filter((item) => item.stableId !== set.stableId));
       toast.success("Queued set removed.");
       return;
     }
 
-    const removalIndex = sets.findIndex((item) => item.id === set.id);
+    const removalIndex = sets.findIndex((item) => item.stableId === set.stableId);
     if (removalIndex === -1) return;
 
-    setSets((current) => current.filter((item) => item.id !== set.id));
+    setSets((current) => current.filter((item) => item.stableId !== set.stableId));
 
     queueUndo({
       message: "Removed set",
       onUndo: () => {
         setSets((current) => {
-          if (current.some((item) => item.id === set.id)) return current;
+          if (current.some((item) => item.stableId === set.stableId)) return current;
           const next = [...current];
           next.splice(removalIndex, 0, set);
           return next;
@@ -789,7 +847,7 @@ export function SetLoggerCard({
 
         if (!result.ok) {
           setSets((current) => {
-            if (current.some((item) => item.id === set.id)) return current;
+            if (current.some((item) => item.stableId === set.stableId)) return current;
             const next = [...current];
             next.splice(removalIndex, 0, set);
             return next;
@@ -885,7 +943,7 @@ export function SetLoggerCard({
                 <ul className="space-y-1.5 text-sm">
                   {animatedSets.map((set, index) => (
                     <li
-                      key={set.id}
+                      key={set.stableId}
                       className={[
                         "origin-top transition-all duration-150 motion-reduce:transition-none",
                         set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",

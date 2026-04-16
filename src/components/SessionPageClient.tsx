@@ -32,6 +32,7 @@ type AddSetPayload = {
   rpe: number | null;
   notes: string | null;
   weightUnit: "lbs" | "kg";
+  clientLogId: string;
 };
 
 type SyncQueuedSetLogsAction = (payload: {
@@ -75,6 +76,7 @@ function getElapsedDuration(baseDurationSeconds: number, performedAt: string) {
 }
 
 export function SessionPageClient({
+  userId,
   sessionId,
   initialDurationSeconds,
   performedAt,
@@ -94,6 +96,7 @@ export function SessionPageClient({
   removeExerciseAction,
   deleteSetAction,
 }: {
+  userId: string;
   sessionId: string;
   initialDurationSeconds: number | null;
   performedAt: string;
@@ -225,7 +228,7 @@ export function SessionPageClient({
         >
           {!isExerciseOpen ? (
             <div className="flex justify-end">
-              <OfflineSyncBadge />
+              <OfflineSyncBadge userId={userId} />
             </div>
           ) : null}
           {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
@@ -233,6 +236,7 @@ export function SessionPageClient({
 
           {hasExercises ? (
             <SessionExerciseFocus
+              userId={userId}
               sessionId={sessionId}
               unitLabel={unitLabel}
               exercises={exercises}

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { clearPersistedWorkoutClientState } from "@/lib/offline/client-storage";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const AUTH_ENTRY_PATH = "/login";
@@ -11,6 +12,7 @@ export function SignOutButton() {
   const supabase = createBrowserSupabase();
 
   const handleSignOut = async () => {
+    clearPersistedWorkoutClientState();
     await supabase.auth.signOut();
     document.cookie = "sb-access-token=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     router.replace(AUTH_ENTRY_PATH);

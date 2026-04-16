@@ -31,8 +31,44 @@ import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput }
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
 import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
+import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 
 export const dynamic = "force-dynamic";
+
+function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabaseServer>) {
+  return {
+    async readSession(sessionId: string) {
+      const { data } = await supabase
+        .from("sessions")
+        .select("id, user_id, status")
+        .eq("id", sessionId)
+        .maybeSingle();
+
+      return data
+        ? {
+            id: data.id,
+            userId: data.user_id,
+            status: data.status,
+          }
+        : null;
+    },
+    async readSessionExercise(sessionExerciseId: string) {
+      const { data } = await supabase
+        .from("session_exercises")
+        .select("id, session_id, user_id")
+        .eq("id", sessionExerciseId)
+        .maybeSingle();
+
+      return data
+        ? {
+            id: data.id,
+            sessionId: data.session_id,
+            userId: data.user_id,
+          }
+        : null;
+    },
+  };
+}
 
 
 
@@ -49,19 +85,12 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
     redirect(`/today?error=${encodeURIComponent(safeError)}`);
   }
 
-  const { data: session, error: sessionError } = await supabase
-    .from("sessions")
-    .select("id")
-    .eq("id", sessionId)
-    .eq("user_id", user.id)
-    .eq("status", "in_progress")
-    .maybeSingle();
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+  });
 
-  if (sessionError) {
-    redirect(`/today?error=${encodeURIComponent(safeError)}`);
-  }
-
-  if (!session) {
+  if (!liveSession.ok) {
     redirect(`/today?error=${encodeURIComponent(safeError)}`);
   }
 
@@ -377,8 +406,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   const todaySnapshot: TodayCacheSnapshot | null =
     todayPayload.routine === null
       ? null
-      : {
+        : {
           schemaVersion: TODAY_CACHE_SCHEMA_VERSION,
+          userId: user.id,
           capturedAt: new Date().toISOString(),
           routine: todayPayload.routine,
           exercises: todayPayload.exercises,
@@ -438,7 +468,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
             <ContentRail className="space-y-3">
-              <OfflineSyncBadge />
+              <OfflineSyncBadge userId={user.id} />
               {todayPayload.inProgressSessionId ? (
                 <ScreenScaffold recipe="todayOverview" className="w-full">
                   <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
@@ -501,7 +531,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 )}
             </ContentRail>
           ) : (
-            <TodayClientShell payload={todayPayload} fetchFailed={fetchFailed} />
+            <TodayClientShell userId={user.id} payload={todayPayload} fetchFailed={fetchFailed} />
           )}
 
           {todayPayload.routine && todayPayload.inProgressSessionId && !fetchFailed ? (

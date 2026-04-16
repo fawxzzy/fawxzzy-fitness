@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { getExerciseIdsForSession, recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { getExerciseIdsForSession } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import { revalidateHistoryViews, revalidateSessionViews } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToSessionColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
@@ -10,10 +10,46 @@ import { resolveCanonicalExercise } from "@/lib/exercise-resolution";
 import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType, warnOnSessionExerciseUnitMismatch } from "@/lib/session-exercise-measurement";
 import type { ActionResult } from "@/lib/action-result";
 import type { SetRow } from "@/types/db";
-import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
-import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
+import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
+import { insertSessionExerciseAtEnd } from "@/lib/ordered-position-insert";
+import { processSessionFollowUpJobs } from "@/lib/session-follow-up-jobs";
 
 const SHOULD_DEBUG_CANONICAL_LINKING = process.env.NODE_ENV === "development";
+
+function createLiveSessionMutationRepository(supabase: ReturnType<typeof supabaseServer>) {
+  return {
+    async readSession(sessionId: string) {
+      const { data } = await supabase
+        .from("sessions")
+        .select("id, user_id, status")
+        .eq("id", sessionId)
+        .maybeSingle();
+
+      return data
+        ? {
+            id: data.id,
+            userId: data.user_id,
+            status: data.status,
+          }
+        : null;
+    },
+    async readSessionExercise(sessionExerciseId: string) {
+      const { data } = await supabase
+        .from("session_exercises")
+        .select("id, session_id, user_id")
+        .eq("id", sessionExerciseId)
+        .maybeSingle();
+
+      return data
+        ? {
+            id: data.id,
+            sessionId: data.session_id,
+            userId: data.user_id,
+          }
+        : null;
+    },
+  };
+}
 
 async function ensurePerformedIndex(payload: {
   sessionId: string;
@@ -106,10 +142,20 @@ export async function addSetAction(payload: {
     return { ok: false, error: "Calories must be 0 or greater" };
   }
 
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+    sessionExerciseId,
+  });
+
+  if (!liveSession.ok) {
+    return liveSession;
+  }
+
   if (clientLogId) {
     const { data: existingByClientLogId, error: existingByClientLogIdError } = await supabase
       .from("sets")
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
+      .select("id, client_log_id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
       .eq("session_exercise_id", sessionExerciseId)
       .eq("user_id", user.id)
       .eq("client_log_id", clientLogId)
@@ -172,7 +218,7 @@ export async function addSetAction(payload: {
     const { data: insertedSet, error } = await supabase
       .from("sets")
       .insert(insertPayload)
-      .select("id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
+      .select("id, client_log_id, session_exercise_id, user_id, set_index, weight, reps, is_warmup, notes, duration_seconds, distance, distance_unit, calories, rpe, weight_unit")
       .single();
 
     if (!error && insertedSet) {
@@ -268,15 +314,14 @@ export async function deleteSetAction(payload: {
     return { ok: false, error: "Missing set details" };
   }
 
-  const { data: session } = await supabase
-    .from("sessions")
-    .select("id, status")
-    .eq("id", sessionId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+    sessionExerciseId,
+  });
 
-  if (!session || session.status !== "in_progress") {
-    return { ok: false, error: "Can only remove sets from an active session" };
+  if (!liveSession.ok) {
+    return liveSession;
   }
 
   const { error } = await supabase
@@ -304,6 +349,16 @@ export async function toggleSkipAction(formData: FormData): Promise<ActionResult
 
   if (!sessionId || !sessionExerciseId) {
     return { ok: false, error: "Missing skip info" };
+  }
+
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+    sessionExerciseId,
+  });
+
+  if (!liveSession.ok) {
+    return liveSession;
   }
 
   const { error } = await supabase
@@ -341,15 +396,13 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
     }
   }
 
-  const { data: session } = await supabase
-    .from("sessions")
-    .select("id, status")
-    .eq("id", sessionId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+  });
 
-  if (!session || session.status !== "in_progress") {
-    return { ok: false, error: "Can only add exercises to an active session" };
+  if (!liveSession.ok) {
+    return liveSession;
   }
 
   const resolvedExercise = await resolveCanonicalExercise({
@@ -360,16 +413,6 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
     return { ok: false, error: "Exercise must map to a canonical exercise before logging." };
   }
 
-  const { data: lastPositionRow } = await supabase
-    .from("session_exercises")
-    .select("position")
-    .eq("session_id", sessionId)
-    .eq("user_id", user.id)
-    .order("position", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const nextPosition = typeof lastPositionRow?.position === "number" ? lastPositionRow.position + 1 : 0;
   const canonicalExerciseId = resolvedExercise.id;
   if (!canonicalExerciseId) {
     throw new Error("Session exercise invariant failed: missing canonical exercise id.");
@@ -379,16 +422,21 @@ export async function quickAddExerciseAction(formData: FormData): Promise<Action
   const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
   warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "addExerciseBySearchAction" });
 
-  const { data: insertedExercise, error } = await supabase.from("session_exercises").insert({
-    session_id: sessionId,
-    user_id: user.id,
-    exercise_id: canonicalExerciseId,
-    routine_day_exercise_id: null,
-    position: nextPosition,
-    is_skipped: false,
-    measurement_type: measurementType,
-    default_unit: defaultUnit,
-  }).select("id, exercise_id").single();
+  const { data: insertedExercise, error } = await insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
+    supabase,
+    sessionId,
+    userId: user.id,
+    values: {
+      session_id: sessionId,
+      user_id: user.id,
+      exercise_id: canonicalExerciseId,
+      routine_day_exercise_id: null,
+      is_skipped: false,
+      measurement_type: measurementType,
+      default_unit: defaultUnit,
+    },
+    select: "id, exercise_id",
+  });
 
   if (error) {
     return { ok: false, error: error.message };
@@ -422,6 +470,15 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
 
   if (!sessionId || !exerciseIdentifier) {
     return { ok: false, error: "Missing exercise info" };
+  }
+
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+  });
+
+  if (!liveSession.ok) {
+    return liveSession;
   }
 
   const resolvedExercise = await resolveCanonicalExercise({
@@ -475,12 +532,6 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
     }
   }
 
-  const { count } = await supabase
-    .from("session_exercises")
-    .select("id", { head: true, count: "exact" })
-    .eq("session_id", sessionId)
-    .eq("user_id", user.id);
-
   const parsedGoals = parseExerciseGoalPayload(formData, { requireSets: false });
   if (!parsedGoals.ok) {
     return { ok: false, error: parsedGoals.error };
@@ -491,17 +542,22 @@ export async function addExerciseAction(formData: FormData): Promise<ActionResul
   const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
   warnOnSessionExerciseUnitMismatch({ measurementType, defaultUnit, context: "addExerciseAction" });
 
-  const { data: insertedExercise, error } = await supabase.from("session_exercises").insert({
-    session_id: sessionId,
-    user_id: user.id,
-    exercise_id: canonicalExerciseId,
-    routine_day_exercise_id: routineDayExerciseId,
-    position: count ?? 0,
-    is_skipped: false,
-    ...mappedGoalColumns,
-    measurement_type: measurementType,
-    default_unit: defaultUnit,
-  }).select("id, exercise_id").single();
+  const { data: insertedExercise, error } = await insertSessionExerciseAtEnd<{ id: string; exercise_id: string }>({
+    supabase,
+    sessionId,
+    userId: user.id,
+    values: {
+      session_id: sessionId,
+      user_id: user.id,
+      exercise_id: canonicalExerciseId,
+      routine_day_exercise_id: routineDayExerciseId,
+      is_skipped: false,
+      ...mappedGoalColumns,
+      measurement_type: measurementType,
+      default_unit: defaultUnit,
+    },
+    select: "id, exercise_id",
+  });
 
   if (error) {
     return { ok: false, error: error.message };
@@ -535,6 +591,16 @@ export async function removeExerciseAction(formData: FormData): Promise<ActionRe
     return { ok: false, error: "Missing remove info" };
   }
 
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+    sessionExerciseId,
+  });
+
+  if (!liveSession.ok) {
+    return liveSession;
+  }
+
   const { error } = await supabase
     .from("session_exercises")
     .delete()
@@ -559,6 +625,15 @@ export async function discardSessionAction(formData: FormData): Promise<ActionRe
 
   if (!sessionId) {
     return { ok: false, error: "Missing session info" };
+  }
+
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+  });
+
+  if (!liveSession.ok) {
+    return liveSession;
   }
 
   const { data: sessionExerciseRows, error: sessionExerciseReadError } = await supabase
@@ -626,6 +701,15 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
     return { ok: false, error: "Session time must be an integer in seconds" };
   }
 
+  const liveSession = await guardLiveSessionMutation(createLiveSessionMutationRepository(supabase), {
+    userId: user.id,
+    sessionId,
+  });
+
+  if (!liveSession.ok) {
+    return liveSession;
+  }
+
   const { error } = await supabase
     .from("sessions")
     .update({ duration_seconds: durationSeconds, status: "completed" })
@@ -637,29 +721,29 @@ export async function saveSessionAction(formData: FormData): Promise<ActionResul
   }
 
   const affectedExerciseIds = await getExerciseIdsForSession(user.id, sessionId);
-  await recomputeExerciseStatsForExercises(user.id, affectedExerciseIds);
 
-  const now = new Date();
-
-  fitnessIntegrationClient.packageSignal({
-    memberId: user.id,
-    signalType: "workout_completed",
-    reason: "session_completed",
-    emittedAt: now,
-    payload: {
-      memberId: user.id,
+  try {
+    const followUp = await processSessionFollowUpJobs({
       sessionId,
-      completedAt: now.toISOString(),
-      durationMinutes: Math.max(0, Math.round((durationSeconds ?? 0) / 60)),
-      completionRate: 1,
-    },
-  });
+      userId: user.id,
+      durationSeconds,
+      affectedExerciseIds,
+    });
 
-  await publishFitnessIntegrationStateForMember({
-    memberId: user.id,
-    reason: "session_completed",
-    now,
-  });
+    if (followUp.hadFailures) {
+      console.error("[session-follow-up] derived work failed after raw session save", {
+        sessionId,
+        userId: user.id,
+        results: followUp.results,
+      });
+    }
+  } catch (error) {
+    console.error("[session-follow-up] unable to process derived work", {
+      sessionId,
+      userId: user.id,
+      error: error instanceof Error ? error.message : "Unknown follow-up error",
+    });
+  }
 
   revalidatePath("/today");
   revalidateHistoryViews();
