@@ -26,9 +26,6 @@ const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
 const densityStyles: Record<ExerciseCardDensity, {
   shell: string;
   shellWithMedia: string;
-  bodyGridWithMedia: string;
-  media: string;
-  mediaRail: string;
   titleClamp: string;
   subtitleClamp: string;
   titleSize: string;
@@ -39,9 +36,6 @@ const densityStyles: Record<ExerciseCardDensity, {
   compact: {
     shell: "min-h-[var(--exercise-row-min-height-compact)] py-[var(--exercise-row-shell-padding-y-compact)] pr-[var(--exercise-row-shell-padding-x)]",
     shellWithMedia: "pl-0",
-    bodyGridWithMedia: "grid-cols-[var(--exercise-row-media-width-compact)_minmax(0,1fr)_auto]",
-    media: "flex h-full w-full self-stretch items-stretch",
-    mediaRail: "-my-[var(--exercise-row-shell-padding-y-compact)] min-h-[calc(var(--exercise-row-media-min-height-compact)+(var(--exercise-row-shell-padding-y-compact)*2))] self-stretch overflow-hidden rounded-l-[inherit] border-r border-[rgb(var(--border-strong)/0.14)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-2",
     titleSize: "text-[0.98rem]",
@@ -52,9 +46,6 @@ const densityStyles: Record<ExerciseCardDensity, {
   detailed: {
     shell: "min-h-[var(--exercise-row-min-height-detailed)] py-[var(--exercise-row-shell-padding-y-detailed)] pr-[var(--exercise-row-shell-padding-x)]",
     shellWithMedia: "pl-0",
-    bodyGridWithMedia: "grid-cols-[var(--exercise-row-media-width-detailed)_minmax(0,1fr)_auto]",
-    media: "flex h-full w-full self-stretch items-stretch",
-    mediaRail: "-my-[var(--exercise-row-shell-padding-y-detailed)] min-h-[calc(var(--exercise-row-media-min-height-detailed)+(var(--exercise-row-shell-padding-y-detailed)*2))] self-stretch overflow-hidden rounded-l-[inherit] border-r border-[rgb(var(--border-strong)/0.14)]",
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
@@ -105,6 +96,7 @@ const badgeStateClassNames: Record<ExerciseCardState, string> = {
 };
 
 const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />;
+const cardPressClassName = "transition-[transform,filter] duration-75 ease-out active:scale-[0.992] active:brightness-[1.02] motion-reduce:transform-none motion-reduce:transition-none";
 
 function resolveDefaultSemanticTone(state: ExerciseCardState): CardSemanticTone {
   if (state === "selected" || state === "active") {
@@ -184,25 +176,20 @@ export function ExerciseCard({
   const resolvedSemanticTone = semanticTone ?? resolveDefaultSemanticTone(state);
   const usesRailMedia = Boolean(leadingVisual) && mediaLayout === "rail";
   const usesInlineMedia = Boolean(leadingVisual) && mediaLayout === "inline";
-  const bodyGridClassName = usesRailMedia
-    ? styles.bodyGridWithMedia
-    : usesInlineMedia
-      ? "grid-cols-[auto_minmax(0,1fr)_auto]"
-    : "grid-cols-[minmax(0,1fr)_auto]";
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
   const hasSupportingContent = Boolean(subtitle) || Boolean(children);
-  const bodyGridStyle = usesRailMedia && mediaRailWidth
-    ? { gridTemplateColumns: `${mediaRailWidth}px minmax(0,1fr) auto` } satisfies CSSProperties
-    : undefined;
-  const mediaRailStyle = usesRailMedia && mediaRailWidth
-    ? { width: mediaRailWidth, minWidth: mediaRailWidth } satisfies CSSProperties
-    : undefined;
+  const resolvedMediaRailWidth = mediaRailWidth ?? (resolvedDensity === "detailed" ? 76 : 72);
+  const bodyGridStyle = { gridTemplateColumns: hasRightIcon || badgeText ? "minmax(0,1fr) auto" : "minmax(0,1fr)" } satisfies CSSProperties;
+  const mediaColumnStyle = usesRailMedia
+    ? { gridTemplateColumns: `${resolvedMediaRailWidth}px minmax(0,1fr)` } satisfies CSSProperties
+    : usesInlineMedia
+      ? { gridTemplateColumns: "auto minmax(0,1fr)" } satisfies CSSProperties
+      : undefined;
 
   const bodyContent = (
     <div
       className={cn(
         "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-hidden",
-        bodyGridClassName,
         styles.shell,
         usesRailMedia ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
         bodyClassName,
@@ -216,103 +203,107 @@ export function ExerciseCard({
           cardAccentRailClassNames[resolvedSemanticTone],
         )}
       />
-      {usesRailMedia ? (
-        <div
-          className={cn(
-            "relative shrink-0 transition-colors",
-            styles.mediaRail,
-            thumbStateClassNames[state],
-            cardMediaToneClassNames[resolvedSemanticTone],
-            mediaClassName,
-          )}
-          style={mediaRailStyle}
-        >
-          <div className={styles.media}>{leadingVisual}</div>
-        </div>
-      ) : null}
-      {usesInlineMedia ? (
-        <div className={cn("relative flex shrink-0 items-center justify-center self-center", mediaClassName)}>
-          {leadingVisual}
-        </div>
-      ) : null}
-
-      <div className={cn("min-w-0 self-stretch py-0.5", contentClassName)}>
-        <div
-          className={cn(
-            "flex min-h-full min-w-0 flex-col",
-            hasSupportingContent ? "justify-start" : "justify-center",
-            styles.contentGap,
-            titleContainerClassName,
-          )}
-        >
-          <p
-            className={cn(
-              "text-safe-wrap min-w-0 leading-tight [text-wrap:pretty]",
-              styles.titleClamp,
-              styles.titleSize,
-              "font-semibold",
-              titleStateClassNames[state],
-              titleClassName,
-            )}
-          >
-            {title}
-          </p>
-          {subtitle ? (
-            <div className={cn("min-w-0", styles.goalRow)}>
-              {subtitleLabel ? (
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.84)]">
-                  {subtitleLabel}
-                </p>
-              ) : null}
-              <div
-                className={cn(
-                  "text-safe-wrap pr-1 text-xs leading-[1.35] [text-wrap:pretty]",
-                  styles.subtitleClamp,
-                  subtitleStateClassNames[state],
-                  subtitleClassName,
-                )}
-              >
-                {subtitle}
-              </div>
-            </div>
-          ) : null}
-          {children ? (
-            <div className={cn("min-w-0", styles.childrenSpacing)}>
-              {children}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-center justify-end self-stretch",
-          trailingClassName,
-          rightRailClassName,
-        )}
-      >
-        {badgeText ? (
-          <span
-            className={cn(
-              "pointer-events-none absolute right-0 top-0 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
-              badgeStateClassNames[state],
-              cardBadgeToneClassNames[resolvedSemanticTone],
-            )}
-          >
-            {badgeText}
-          </span>
-        ) : null}
-        {hasRightIcon ? (
+      <div className="grid min-w-0 items-stretch" style={mediaColumnStyle}>
+        {usesRailMedia ? (
           <div
             className={cn(
-              "flex h-full min-h-10 items-center justify-end",
-              trailingStackClassName,
+              "relative -my-[var(--exercise-row-shell-padding-y-compact)] min-h-[calc(var(--exercise-row-media-min-height-compact)+(var(--exercise-row-shell-padding-y-compact)*2))] self-stretch overflow-hidden rounded-l-[inherit] border-r border-[rgb(var(--border-strong)/0.14)] transition-colors",
+              resolvedDensity === "detailed"
+                ? "-my-[var(--exercise-row-shell-padding-y-detailed)] min-h-[calc(var(--exercise-row-media-min-height-detailed)+(var(--exercise-row-shell-padding-y-detailed)*2))]"
+                : undefined,
+              thumbStateClassNames[state],
+              cardMediaToneClassNames[resolvedSemanticTone],
+              mediaClassName,
             )}
           >
-            {rightIcon}
+            {leadingVisual}
+          </div>
+        ) : usesInlineMedia ? (
+          <div className={cn("relative flex shrink-0 items-center justify-center self-center", mediaClassName)}>
+            {leadingVisual}
           </div>
         ) : null}
+
+        <div className={cn("min-w-0 self-stretch py-0.5", contentClassName)}>
+          <div
+            className={cn(
+              "flex min-h-full min-w-0 flex-col",
+              hasSupportingContent ? "justify-start" : "justify-center",
+              styles.contentGap,
+              titleContainerClassName,
+            )}
+          >
+            <p
+              className={cn(
+                "text-safe-wrap min-w-0 leading-tight [text-wrap:pretty]",
+                styles.titleClamp,
+                styles.titleSize,
+                "font-semibold",
+                titleStateClassNames[state],
+                titleClassName,
+              )}
+            >
+              {title}
+            </p>
+            {subtitle ? (
+              <div className={cn("min-w-0", styles.goalRow)}>
+                {subtitleLabel ? (
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.84)]">
+                    {subtitleLabel}
+                  </p>
+                ) : null}
+                <div
+                  className={cn(
+                    "text-safe-wrap pr-1 text-xs leading-[1.35] [text-wrap:pretty]",
+                    styles.subtitleClamp,
+                    subtitleStateClassNames[state],
+                    subtitleClassName,
+                  )}
+                >
+                  {subtitle}
+                </div>
+              </div>
+            ) : null}
+            {children ? (
+              <div className={cn("min-w-0", styles.childrenSpacing)}>
+                {children}
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
+
+      {hasRightIcon || badgeText ? (
+        <div
+          className={cn(
+            "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-center justify-end self-stretch",
+            trailingClassName,
+            rightRailClassName,
+          )}
+        >
+          {badgeText ? (
+            <span
+              className={cn(
+                "pointer-events-none absolute right-0 top-0 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
+                badgeStateClassNames[state],
+                cardBadgeToneClassNames[resolvedSemanticTone],
+              )}
+            >
+              {badgeText}
+            </span>
+          ) : null}
+          {hasRightIcon ? (
+            <div
+              className={cn(
+                "flex h-full min-h-10 items-center justify-end",
+                trailingStackClassName,
+              )}
+            >
+              {rightIcon}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 
@@ -332,7 +323,7 @@ export function ExerciseCard({
             <button
               type="button"
               {...buttonProps}
-              className="min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]"
+              className={cn("min-w-0 flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", cardPressClassName)}
               onClick={onPress}
               disabled={disabled}
             >
@@ -353,7 +344,7 @@ export function ExerciseCard({
         <button
           type="button"
           {...buttonProps}
-          className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]"
+          className={cn("block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent-blue)/0.22)]", cardPressClassName)}
           onClick={onPress}
           disabled={disabled}
         >

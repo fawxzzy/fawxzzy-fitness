@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { ContentRail } from "@/components/layout/ContentRail";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -14,6 +13,7 @@ import { buildSessionSummary } from "../session-summary";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
 
 export const dynamic = "force-dynamic";
+const HISTORY_DETAIL_SHELL_CLASSNAME = "mx-auto w-full max-w-[720px] px-4";
 
 type PageProps = {
   params: { sessionId: string };
@@ -27,11 +27,11 @@ function HistoryDetailContentShell({
   className?: string;
 }) {
   return (
-    <ContentRail>
+    <div className={HISTORY_DETAIL_SHELL_CLASSNAME}>
       <ScreenScaffold recipe="historyDetail" className={className}>
         {children}
       </ScreenScaffold>
-    </ContentRail>
+    </div>
   );
 }
 
@@ -173,9 +173,9 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
             <div id="history-log-floating-header" />
           </HistoryDetailContentShell>
         )}
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-4"
       >
-        <HistoryDetailContentShell className="space-y-2">
+        <HistoryDetailContentShell className="space-y-4">
           <HistoryLogPageClient
             logId={sessionRow.id}
             initialDayName={effectiveDayName}

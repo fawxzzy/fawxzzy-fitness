@@ -5,6 +5,7 @@ export default function AppLoading() {
     <RouteLoading
       label="Opening FawxzzyFitness"
       detail="Preparing your install-aware start screen."
+      variant="boot"
     />
   );
 }

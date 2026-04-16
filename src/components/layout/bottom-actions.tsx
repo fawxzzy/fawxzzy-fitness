@@ -3,7 +3,8 @@
 import { createContext, useContext, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
-import { ContentRail } from "@/components/layout/ContentRail";
+
+const BOTTOM_ACTION_SHELL_CLASSNAME = "mx-auto w-full max-w-[720px] px-4";
 
 type BottomActionRegistration = symbol;
 
@@ -177,11 +178,11 @@ export function BottomActionsSlot() {
 
   return (
     <div ref={slotRef} className="pointer-events-none">
-      <ContentRail className="pointer-events-auto">
+      <div className={`${BOTTOM_ACTION_SHELL_CLASSNAME} pointer-events-auto`}>
         <div className={BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME}>
           {published.node}
         </div>
-      </ContentRail>
+      </div>
     </div>
   );
 }

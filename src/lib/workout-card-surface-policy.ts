@@ -23,15 +23,17 @@ const DEFAULT_MEDIA_RAIL_WIDTH = 72;
 export function resolveWorkoutCardMediaRailWidth(surface: WorkoutCardSurface): number {
   switch (surface) {
     case "current-session":
-      return 80;
+      return 100;
+    case "history-browser":
+      return 92;
     case "history-detail":
-      return 76;
+      return 96;
+    case "exercise-picker":
+      return 88;
     case "today":
     case "view-day":
     case "edit-day":
     case "reorder":
-    case "history-browser":
-    case "exercise-picker":
     default:
       return DEFAULT_MEDIA_RAIL_WIDTH;
   }
