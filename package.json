@@ -12,6 +12,8 @@
     "qa:ui-pass": "node scripts/qa-ui-pass.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
     "qa:boards": "python scripts/build-mobile-regression-boards.py",
+    "migration:validate": "node scripts/migration/validate-supabase-chain.mjs",
+    "migration:parity": "node scripts/migration/parity-report.mjs",
     "lint": "next lint",
     "prebuild": "npm run gen:exercise-icons && node scripts/generate-icons.mjs",
     "dev:assets": "node scripts/generate-icons.mjs",

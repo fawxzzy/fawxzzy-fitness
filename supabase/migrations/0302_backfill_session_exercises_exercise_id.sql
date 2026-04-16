@@ -1,4 +1,4 @@
--- 030_backfill_session_exercises_exercise_id.sql
+-- 0302_backfill_session_exercises_exercise_id.sql
 -- Backfill orphaned session_exercises.exercise_id values when routine_day_exercise_id points to a canonical routine_day_exercises row.
 
 UPDATE public.session_exercises AS se
