@@ -74,7 +74,7 @@ export function resolveWorkoutCardSurfacePolicy(
       };
     case "reorder":
       return {
-        showMedia: false,
+        showMedia: true,
         showIdentityChips: false,
         showDetailedMetrics: false,
         mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
