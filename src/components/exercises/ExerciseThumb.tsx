@@ -60,11 +60,12 @@ export function ExerciseThumb({
   imageClassName,
   sizes,
   size = 56,
-  railWidth = detailed ? 76 : 72,
   detailed = false,
+  railWidth,
   layout = "inline",
   intent = "default",
 }: ExerciseThumbProps) {
+  const resolvedRailWidth = railWidth ?? (detailed ? 76 : 72);
   const thumb = resolveExerciseThumb(exercise, { intent });
   const isRail = layout === "rail";
   const wrapperClassName = cn(
@@ -102,7 +103,7 @@ export function ExerciseThumb({
           alt={alt ?? ""}
           className="h-full w-full"
           imageClassName={cn("absolute inset-0 h-full w-full object-contain object-center", imageClassName)}
-          sizes={sizes ?? (isRail ? `${railWidth}px` : `${size}px`)}
+          sizes={sizes ?? (isRail ? `${resolvedRailWidth}px` : `${size}px`)}
           fit="contain"
           fallback={<ThumbFallback glyphClassName={fallbackGlyphClassName} />}
         />
