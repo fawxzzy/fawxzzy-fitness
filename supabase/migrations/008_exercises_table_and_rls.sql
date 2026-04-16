@@ -36,15 +36,24 @@ create unique index if not exists exercises_user_name_uq
   on public.exercises (user_id, (lower(btrim(name))))
   where user_id is not null;
 
+with seed_rows (name, user_id, is_global, primary_muscle, equipment) as (
+  values
+    ('Bench Press', null::uuid, true, 'Chest', 'Barbell'),
+    ('Back Squat', null::uuid, true, 'Legs', 'Barbell'),
+    ('Deadlift', null::uuid, true, 'Back', 'Barbell'),
+    ('Barbell Row', null::uuid, true, 'Back', 'Barbell'),
+    ('Overhead Press', null::uuid, true, 'Shoulders', 'Barbell'),
+    ('Pull-Up', null::uuid, true, 'Back', 'Bodyweight')
+)
 insert into public.exercises (name, user_id, is_global, primary_muscle, equipment)
-values
-  ('Bench Press', null, true, 'Chest', 'Barbell'),
-  ('Back Squat', null, true, 'Legs', 'Barbell'),
-  ('Deadlift', null, true, 'Back', 'Barbell'),
-  ('Barbell Row', null, true, 'Back', 'Barbell'),
-  ('Overhead Press', null, true, 'Shoulders', 'Barbell'),
-  ('Pull-Up', null, true, 'Back', 'Bodyweight')
-on conflict (name) where user_id is null do nothing;
+select seed.name, seed.user_id, seed.is_global, seed.primary_muscle, seed.equipment
+from seed_rows as seed
+where not exists (
+  select 1
+  from public.exercises as existing
+  where existing.user_id is null
+    and lower(btrim(existing.name)) = lower(btrim(seed.name))
+);
 
 alter table public.exercises enable row level security;
 

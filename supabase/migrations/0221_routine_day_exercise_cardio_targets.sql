@@ -1,4 +1,4 @@
--- 022_routine_day_exercise_cardio_targets.sql
+-- 0221_routine_day_exercise_cardio_targets.sql
 -- Add optional cardio-oriented routine targets.
 
 ALTER TABLE public.routine_day_exercises

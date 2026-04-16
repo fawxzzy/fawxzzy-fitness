@@ -1,4 +1,4 @@
--- 030_session_exercises_target_sets_range_columns.sql
+-- 0301_session_exercises_target_sets_range_columns.sql
 -- Add nullable set-range columns for session_exercises as additive-only schema evolution.
 
 ALTER TABLE public.session_exercises
