@@ -146,7 +146,7 @@ export function SessionPageClient({
 
   const isExerciseOpen = selectedExerciseId !== null;
   const hasExercises = exercises.length > 0;
-  const topChrome = (
+  const topChrome = !isExerciseOpen ? (
     <ContentRail className="py-1">
       <SessionHeaderControls
         routineName={routineName}
@@ -155,7 +155,7 @@ export function SessionPageClient({
         backHref={fallbackReturnHref ?? "/today"}
       />
     </ContentRail>
-  );
+  ) : null;
 
   const emptyState = useMemo(
     () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises yet.</p>),
@@ -186,7 +186,7 @@ export function SessionPageClient({
           secondary={quickAddAction}
           tertiary={(
             <div
-              className="inline-flex min-h-[46px] items-center justify-center rounded-full border border-[rgb(var(--border-subtle)/0.18)] bg-[rgb(var(--surface-muted)/0.92)] px-3.5 py-2 text-[0.9375rem] font-semibold tabular-nums text-[rgb(var(--text-secondary)/0.96)]"
+              className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-[rgb(var(--border-subtle)/0.18)] bg-[rgb(var(--surface-muted)/0.92)] px-3.25 py-1.5 text-[0.925rem] font-semibold tabular-nums text-[rgb(var(--text-secondary)/0.96)]"
               suppressHydrationWarning
               aria-live={hasMountedTimer ? "off" : undefined}
             >

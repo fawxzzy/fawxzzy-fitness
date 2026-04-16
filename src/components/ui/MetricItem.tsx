@@ -99,7 +99,7 @@ export function MetricStrip({
   return (
     <div className={cn("flex flex-wrap gap-1.5", className)}>
       {items.map((item) => (
-        <MetricChrome key={`${item.label}-${item.value}`} className="min-w-[7.25rem] flex-1 px-2.5 py-2">
+        <MetricChrome key={`${item.label}-${item.value}`} className="min-w-[8.35rem] basis-[calc(50%-0.375rem)] flex-1 px-3 py-2">
           <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.86)]">
             {item.label}
           </p>

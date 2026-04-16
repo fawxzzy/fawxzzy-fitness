@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-3 pb-[calc(var(--app-safe-bottom)+10px)]";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-2 pb-[calc(var(--app-safe-bottom)+8px)]";
 
 const BOTTOM_ACTION_ARIA_LABEL = "Bottom actions";
-const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-3";
+const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-2.5";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = BOTTOM_ACTION_GROUP_CLASSNAME;
 
 const CONTROL_LABEL_CLASSNAME = cn(
@@ -61,7 +61,7 @@ function BottomActionUtilityRow({ children, className }: { children: ReactNode; 
   return (
     <div
       className={cn(
-        "flex flex-wrap items-stretch gap-3 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-0",
+        "flex flex-wrap items-stretch gap-2.5 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:basis-0",
         itemBaseClassName,
         className,
       )}
@@ -169,7 +169,7 @@ export function BottomActionStackedPrimary({ utility, primary, className }: { ut
       role="group"
       aria-label={BOTTOM_ACTION_ARIA_LABEL}
       data-layout="stacked"
-      className={cn("grid items-stretch gap-3", className)}
+      className={cn("grid items-stretch gap-2.5", className)}
     >
       {utility ? <BottomActionUtilityRow>{utility}</BottomActionUtilityRow> : null}
       <div className={cn(BOTTOM_ACTION_GROUP_CLASSNAME, "grid-cols-1", itemBaseClassName)}>{primary}</div>

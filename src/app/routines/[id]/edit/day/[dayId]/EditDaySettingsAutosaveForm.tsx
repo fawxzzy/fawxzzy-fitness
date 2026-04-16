@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
+import { subscribeScreenFocusMode } from "@/lib/screen-focus-mode";
 
 type Props = {
   routineId: string;
@@ -43,6 +44,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
   const pendingSnapshotRef = useRef<{ name: string; isRest: boolean } | null>(null);
   const lastSubmittedRef = useRef(initialSnapshot);
   const [draft, setDraft] = useState({ name: name ?? "", isRest });
+  const [isFocusModeActive, setIsFocusModeActive] = useState(false);
   const [restToggleSlot, setRestToggleSlot] = useState<HTMLElement | null>(null);
   const [floatingHeaderSlot, setFloatingHeaderSlot] = useState<HTMLElement | null>(null);
   const [, startTransition] = useTransition();
@@ -74,6 +76,8 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
       window.removeEventListener("resize", syncSlot);
     };
   }, [floatingHeaderSlotId]);
+
+  useEffect(() => subscribeScreenFocusMode("edit-day", setIsFocusModeActive), []);
 
   const submitAutosave = useCallback(() => {
     const form = formRef.current;
@@ -161,7 +165,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
       <input type="hidden" name="routineId" value={routineId} />
       <input type="hidden" name="routineDayId" value={routineDayId} />
       <NavigationReturnInput fallbackHref={getRoutineDayViewHref(routineId, routineDayId)} value={backHref} />
-      {floatingHeaderSlot ? createPortal(headerNode, floatingHeaderSlot) : headerNode}
+      {!isFocusModeActive ? (floatingHeaderSlot ? createPortal(headerNode, floatingHeaderSlot) : headerNode) : null}
       {restToggleSlot ? createPortal(restToggleButton, restToggleSlot) : null}
     </form>
   );

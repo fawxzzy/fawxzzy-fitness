@@ -21,6 +21,9 @@ type ExerciseTagFilterControlProps = {
   headerLabel?: string;
   className?: string;
   variant?: "default" | "compact";
+  buttonClassName?: string;
+  panelClassName?: string;
+  summaryClassName?: string;
 };
 
 function formatTagLabel(tag: string) {
@@ -40,6 +43,9 @@ export function ExerciseTagFilterControl({
   headerLabel = "Filters",
   className,
   variant = "default",
+  buttonClassName,
+  panelClassName,
+  summaryClassName,
 }: ExerciseTagFilterControlProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -63,9 +69,12 @@ export function ExerciseTagFilterControl({
         variant={compact ? "secondary" : "ghost"}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
-        className={compact
-          ? "min-h-10 w-full justify-between rounded-lg border border-border/45 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-sm font-medium [-webkit-tap-highlight-color:transparent]"
-          : "w-full justify-between rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] [-webkit-tap-highlight-color:transparent]"}
+        className={cn(
+          compact
+            ? "min-h-[2.625rem] w-full justify-between rounded-lg border border-border/45 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-sm font-medium [-webkit-tap-highlight-color:transparent]"
+            : "w-full justify-between rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] [-webkit-tap-highlight-color:transparent]",
+          buttonClassName,
+        )}
       >
         <span className="inline-flex items-center gap-2">
           <span>{headerLabel}</span>
@@ -79,10 +88,10 @@ export function ExerciseTagFilterControl({
         </span>
       </Button>
 
-      {shouldShowSummary ? <p className={compact ? "px-1 text-[11px] text-muted" : "text-xs text-muted"}>{selectedSummary}</p> : null}
+      {shouldShowSummary ? <p className={cn(compact ? "px-1 text-[11px] text-muted" : "text-xs text-muted", summaryClassName)}>{selectedSummary}</p> : null}
 
       {isOpen ? (
-        <div className={compact ? "space-y-2 rounded-lg border border-border/35 bg-[rgb(var(--bg)/0.16)] p-2.5" : "space-y-2"}>
+        <div className={cn(compact ? "space-y-2 rounded-lg border border-border/35 bg-[rgb(var(--bg)/0.16)] p-2.5" : "space-y-2", panelClassName)}>
           <div className="flex items-center justify-end">
             {selectedTags.length > 0 ? (
               <button
