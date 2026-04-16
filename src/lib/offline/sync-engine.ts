@@ -1,5 +1,10 @@
 import type { ActionResult } from "@/lib/action-result";
-import { readPendingSetLogs, updateSetLogQueueItem, type SetLogQueueItem } from "@/lib/offline/set-log-queue";
+import {
+  readPendingSetLogs,
+  removeSetLogQueueItem,
+  updateSetLogQueueItem,
+  type SetLogQueueItem,
+} from "@/lib/offline/set-log-queue";
 
 type SyncSetLogResult = {
   queueItemId: string;
@@ -12,11 +17,13 @@ const BASE_DELAY_MS = 2000;
 const MAX_DELAY_MS = 30000;
 
 type SetLogSyncEngineOptions = {
+  userId: string;
   syncSetLogsAction: (payload: { items: SetLogQueueItem[] }) => Promise<ActionResult<{ results: SyncSetLogResult[] }>>;
   onQueueUpdate?: () => void;
+  onItemSynced?: (payload: { item: SetLogQueueItem; serverSetId?: string }) => void;
 };
 
-export function createSetLogSyncEngine({ syncSetLogsAction, onQueueUpdate }: SetLogSyncEngineOptions) {
+export function createSetLogSyncEngine({ userId, syncSetLogsAction, onQueueUpdate, onItemSynced }: SetLogSyncEngineOptions) {
   let timer: number | null = null;
   let isRunning = false;
 
@@ -40,13 +47,8 @@ export function createSetLogSyncEngine({ syncSetLogsAction, onQueueUpdate }: Set
     const result = response.ok ? response.data?.results[0] : undefined;
 
     if (response.ok && result?.ok) {
-      await updateSetLogQueueItem({
-        ...item,
-        status: "synced",
-        serverSetId: result.serverSetId,
-        syncedAt: new Date().toISOString(),
-        lastError: undefined,
-      });
+      onItemSynced?.({ item, serverSetId: result.serverSetId });
+      await removeSetLogQueueItem(item.id);
       onQueueUpdate?.();
       return true;
     }
@@ -72,7 +74,7 @@ export function createSetLogSyncEngine({ syncSetLogsAction, onQueueUpdate }: Set
 
     isRunning = true;
     try {
-      const items = await readPendingSetLogs();
+      const items = await readPendingSetLogs(userId);
       for (const item of items) {
         if (item.nextRetryAt && new Date(item.nextRetryAt).getTime() > Date.now()) {
           continue;

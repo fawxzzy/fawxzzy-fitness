@@ -50,9 +50,11 @@ type TodayPayload = {
 };
 
 export function TodayClientShell({
+  userId,
   payload,
   fetchFailed,
 }: {
+  userId: string;
   payload: TodayPayload;
   fetchFailed: boolean;
 }) {
@@ -64,10 +66,10 @@ export function TodayClientShell({
       return;
     }
 
-    void readTodayCache().then((snapshot) => {
+    void readTodayCache(userId).then((snapshot) => {
       setCachedSnapshot(snapshot);
     });
-  }, [fetchFailed]);
+  }, [fetchFailed, userId]);
 
   useEffect(() => {
     const syncActiveSessionHint = () => {
@@ -133,9 +135,9 @@ export function TodayClientShell({
 
   return (
     <ContentRail>
-      <ScreenScaffold recipe="todayOverview" className="w-full">
-        <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
-          <OfflineSyncBadge />
+        <ScreenScaffold recipe="todayOverview" className="w-full">
+          <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+            <OfflineSyncBadge userId={userId} />
           {display.staleAt ? (
             <AccentSubtitleText className="rounded-md border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] px-3 py-2 text-xs text-[rgb(var(--accent-yellow-on))]">
               Offline snapshot - stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}

@@ -6,6 +6,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRoutineEditDayPath, getRoutineEditPath, getTodayPath } from "@/lib/revalidation";
 import { mapExerciseGoalPayloadToRoutineDayColumns, parseExerciseGoalPayload } from "@/lib/exercise-goal-payload";
+import { insertRoutineDayExerciseAtEnd } from "@/lib/ordered-position-insert";
 
 function revalidateRoutineEditPaths(routineId: string, dayId: string) {
   revalidatePath(getRoutineEditPath(routineId));
@@ -82,24 +83,22 @@ export async function addRoutineDayExerciseAction(formData: FormData): Promise<A
     return { ok: false, error: parsedPayload.error };
   }
 
-  const { count } = await supabase
-    .from("routine_day_exercises")
-    .select("id", { head: true, count: "exact" })
-    .eq("routine_day_id", routineDayId)
-    .eq("user_id", user.id);
-
   // Manual QA checklist:
   // - Create strength routine -> add reps + weight -> measurement_type = 'reps'
   // - Create cardio routine -> add time only -> measurement_type = 'time'
   // - Add time + distance -> measurement_type = 'time_distance'
   // - Create Open workout (Sets only) -> measurement_type defaults to 'reps'
   // - Ensure distance unit defaults to 'mi'
-  const { error } = await supabase.from("routine_day_exercises").insert({
-    user_id: user.id,
-    routine_day_id: routineDayId,
-    exercise_id: exerciseId,
-    position: count ?? 0,
-    ...parsedPayload.payload,
+  const { error } = await insertRoutineDayExerciseAtEnd({
+    supabase,
+    routineDayId,
+    userId: user.id,
+    values: {
+      user_id: user.id,
+      routine_day_id: routineDayId,
+      exercise_id: exerciseId,
+      ...parsedPayload.payload,
+    },
   });
 
   if (error) {
@@ -174,17 +173,14 @@ export async function reorderRoutineDayExercisesAction(formData: FormData): Prom
     return { ok: false, error: "Invalid reorder payload" };
   }
 
-  for (const [position, exerciseRowId] of orderedExerciseRowIds.entries()) {
-    const { error } = await supabase
-      .from("routine_day_exercises")
-      .update({ position })
-      .eq("id", exerciseRowId)
-      .eq("routine_day_id", routineDayId)
-      .eq("user_id", user.id);
+  const { error } = await supabase.rpc("reorder_routine_day_exercises", {
+    target_routine_day_id: routineDayId,
+    target_user_id: user.id,
+    ordered_exercise_row_ids: orderedExerciseRowIds,
+  });
 
-    if (error) {
-      return { ok: false, error: error.message };
-    }
+  if (error) {
+    return { ok: false, error: error.message };
   }
 
   revalidateRoutineEditPaths(routineId, routineDayId);

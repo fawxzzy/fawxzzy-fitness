@@ -1,9 +1,10 @@
 import "client-only";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
+import { clearPersistedWorkoutClientState, pruneStaleSessionDrafts } from "@/lib/offline/client-storage";
 
 let browserSupabase: ReturnType<typeof createClient> | null = null;
-let hasDevAuthLogging = false;
+let hasAuthStateListener = false;
 
 export function createBrowserSupabase() {
   if (!browserSupabase) {
@@ -17,15 +18,22 @@ export function createBrowserSupabase() {
     });
   }
 
-  if (process.env.NODE_ENV !== "production" && !hasDevAuthLogging) {
-    hasDevAuthLogging = true;
+  if (!hasAuthStateListener) {
+    hasAuthStateListener = true;
     browserSupabase.auth.onAuthStateChange((event, session) => {
-      if (event === "TOKEN_REFRESHED") {
+      if (process.env.NODE_ENV !== "production" && event === "TOKEN_REFRESHED") {
         console.debug("[supabase-auth] token refreshed", { hasSession: Boolean(session) });
       }
 
       if (event === "SIGNED_OUT") {
-        console.warn("[supabase-auth] signed out", { hasSession: Boolean(session) });
+        clearPersistedWorkoutClientState();
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[supabase-auth] signed out", { hasSession: Boolean(session) });
+        }
+      }
+
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") {
+        pruneStaleSessionDrafts();
       }
     });
   }

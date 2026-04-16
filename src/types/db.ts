@@ -42,6 +42,7 @@ export type SessionExerciseRow = {
 
 export type SetRow = {
   id: string;
+  client_log_id?: string | null;
   session_exercise_id: string;
   user_id: string;
   set_index: number;

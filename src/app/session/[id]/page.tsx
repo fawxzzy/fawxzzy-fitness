@@ -171,6 +171,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
         <SessionPageClient
+          userId={sessionRow.user_id}
           sessionId={params.id}
           initialDurationSeconds={sessionRow.duration_seconds}
           performedAt={sessionRow.performed_at}
