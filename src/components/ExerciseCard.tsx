@@ -174,8 +174,9 @@ export function ExerciseCard({
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
   const resolvedSemanticTone = semanticTone ?? resolveDefaultSemanticTone(state);
-  const usesRailMedia = Boolean(leadingVisual) && mediaLayout === "rail";
-  const usesInlineMedia = Boolean(leadingVisual) && mediaLayout === "inline";
+  const hasLeadingVisual = leadingVisual !== null && leadingVisual !== undefined && leadingVisual !== false;
+  const usesRailMedia = hasLeadingVisual && mediaLayout === "rail";
+  const usesInlineMedia = hasLeadingVisual && mediaLayout === "inline";
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
   const hasSupportingContent = Boolean(subtitle) || Boolean(children);
   const resolvedMediaRailWidth = mediaRailWidth ?? (resolvedDensity === "detailed" ? 76 : 72);

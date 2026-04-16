@@ -67,6 +67,10 @@ export function ExerciseThumb({
 }: ExerciseThumbProps) {
   const thumb = resolveExerciseThumb(exercise, { intent });
   const isRail = layout === "rail";
+  const wrapperClassName = cn(
+    isRail ? "relative h-full w-full self-stretch overflow-hidden rounded-l-[inherit]" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
+    className,
+  );
   const fallbackGlyphClassName = isRail
     ? detailed
       ? "h-9 w-9"
@@ -74,14 +78,12 @@ export function ExerciseThumb({
     : size <= 48
       ? "h-6 w-6"
       : "h-7 w-7";
+  const hasRenderableAsset = thumb.mode !== "fallback" && thumb.src.trim().length > 0;
 
-  if (thumb.mode === "fallback") {
+  if (!hasRenderableAsset) {
     return (
       <div
-        className={cn(
-          isRail ? "relative h-full w-full self-stretch overflow-hidden rounded-l-[inherit]" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
-          className,
-        )}
+        className={wrapperClassName}
         style={isRail ? undefined : { width: size, height: size }}
       >
         <ThumbFallback glyphClassName={fallbackGlyphClassName} />
@@ -91,21 +93,20 @@ export function ExerciseThumb({
 
   return (
     <div
-      className={cn(
-        isRail ? "relative h-full w-full self-stretch overflow-hidden rounded-l-[inherit]" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
-        className,
-      )}
+      className={wrapperClassName}
       style={isRail ? undefined : { width: size, height: size }}
     >
-      <ExerciseAssetImage
-        src={thumb.src}
-        alt={alt ?? ""}
-        className={isRail ? "absolute inset-0" : "h-full w-full"}
-        imageClassName={cn(isRail ? "absolute inset-0 h-full w-full object-contain object-center" : undefined, imageClassName)}
-        sizes={sizes ?? (isRail ? `${railWidth}px` : `${size}px`)}
-        fit="contain"
-        fallback={<ThumbFallback glyphClassName={fallbackGlyphClassName} />}
-      />
+      <div className="relative h-full w-full">
+        <ExerciseAssetImage
+          src={thumb.src}
+          alt={alt ?? ""}
+          className="h-full w-full"
+          imageClassName={cn("absolute inset-0 h-full w-full object-contain object-center", imageClassName)}
+          sizes={sizes ?? (isRail ? `${railWidth}px` : `${size}px`)}
+          fit="contain"
+          fallback={<ThumbFallback glyphClassName={fallbackGlyphClassName} />}
+        />
+      </div>
     </div>
   );
 }

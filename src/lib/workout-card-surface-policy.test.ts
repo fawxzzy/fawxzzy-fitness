@@ -58,6 +58,12 @@ test("current session and edit day keep shared compact media rails without re-en
     showDetailedMetrics: false,
     mediaRailWidth: 72,
   });
+  assert.deepEqual(resolveWorkoutCardSurfacePolicy("reorder", "compact"), {
+    showMedia: true,
+    showIdentityChips: false,
+    showDetailedMetrics: false,
+    mediaRailWidth: 72,
+  });
 });
 
 test("surface policy strips low-value chips from dense session and day cards", () => {
