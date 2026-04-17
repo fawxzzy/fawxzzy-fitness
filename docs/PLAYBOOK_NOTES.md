@@ -62,6 +62,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-16 â€” Same-app migrations should preserve legacy entity IDs and gate imports on blank-account parity
+- Type: Pattern
+- Summary: Same-app legacy migration bridges should export one canonical user snapshot, preserve legacy UUIDs for user-scoped rows during import, and block default imports when the destination account already contains unrelated user-owned data.
+- Suggested Playbook File: docs/PATTERNS/same-app-account-migration.md
+- Rationale: Prevents "successful" blank-account migrations from duplicating rows, losing relationship edges, or silently mixing newly-created data with imported history before parity can be trusted.
+- Evidence: src/lib/migration/fitness-legacy-contract.ts, src/lib/migration/fitness-legacy-bridge.ts, src/app/api/migration/export/route.ts, src/app/api/migration/import/route.ts, src/app/api/migration/parity/route.ts, src/app/settings/page.tsx, src/components/settings/LegacyMigrationSettings.tsx, docs/ops/fitness-legacy-migration-plan.md
+- Status: Proposed
 ## 2026-03-21 — Settings screens should compose DetailHeader and DetailSection
 - Type: Pattern
 - Summary: Section-heavy settings surfaces should use the shared detail header, metadata row, and section primitives instead of route-local summary cards or custom grouping wrappers.
