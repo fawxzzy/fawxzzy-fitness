@@ -48,6 +48,7 @@
     "verify": "node scripts/playbook-runtime.mjs verify",
     "verify:strict": "npm run lint && npm run build",
     "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs",
+    "test:playbook-adoption": "node --test tests/playbook-adoption-evidence.test.mjs",
     "test:session-set-count": "node --test src/components/session/setCountSync.test.ts",
     "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-disclosure.test.ts src/lib/workout-card-surface-policy.test.ts src/lib/workout-card-view-models.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts"
   },

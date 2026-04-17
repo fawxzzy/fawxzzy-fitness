@@ -5,12 +5,13 @@ const LEGACY_SUPABASE_URL_ENV = "LEGACY_SUPABASE_URL";
 const LEGACY_SUPABASE_ANON_KEY_ENV = "LEGACY_SUPABASE_ANON_KEY";
 
 export function mustGetEnv(name: string): string {
-  const value =
+  const rawValue =
     name === SUPABASE_URL_ENV
       ? process.env.NEXT_PUBLIC_SUPABASE_URL
       : name === SUPABASE_ANON_KEY_ENV
         ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
         : process.env[name];
+  const value = rawValue?.trim();
 
   if (!value) {
     throw new Error(
@@ -38,7 +39,8 @@ export function LEGACY_SUPABASE_ANON_KEY(): string {
 }
 
 export function optionalEnv(name: string): string | null {
-  return process.env[name] ?? null;
+  const value = process.env[name]?.trim();
+  return value && value.length > 0 ? value : null;
 }
 
 export function SUPABASE_SERVICE_ROLE_KEY(): string {
