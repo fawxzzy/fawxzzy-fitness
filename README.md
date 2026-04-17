@@ -12,6 +12,7 @@ Canonical model:
 - shared Playbook core runtime
 - repo-local state in `.playbook/`
 - one documented operator path in repo scripts/docs
+- repo-local adoption evidence in `exports/fitness.playbook.adoption.evidence.v1.json` and `docs/ops/FITNESS-PLAYBOOK-ADOPTION.md`
 
 ## Playbook runtime setup
 

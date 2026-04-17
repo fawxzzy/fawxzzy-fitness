@@ -38,6 +38,7 @@ npm run
 | `npm run sanity` | Full local check (`lint` + `build`). |
 | `npm run verify` | Run the Playbook repo verification workflow. |
 | `npm run verify:strict` | Alias for full local check (`lint` + `build`). |
+| `npm run test:playbook-adoption` | Validate the repo-local Playbook adoption export against the local schema and owner contract ids. |
 
 ## Release
 

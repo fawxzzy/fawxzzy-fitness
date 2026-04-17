@@ -82,6 +82,13 @@ type ImportExerciseResolution = {
   importedUserOwnedExercises: number;
 };
 
+type ExistingExerciseLookupRow = {
+  id: string | null;
+  name: string | null;
+  user_id: string | null;
+  is_global?: boolean | null;
+};
+
 const LEGACY_EXERCISE_OPTION_BY_ID = new Map<string, (typeof EXERCISE_OPTIONS)[number]>(
   EXERCISE_OPTIONS.map((exercise) => [exercise.id, exercise]),
 );
@@ -91,6 +98,14 @@ function normalizeName(value: string | null | undefined) {
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();
+}
+
+function isGlobalExerciseRow(row: ExistingExerciseLookupRow | JsonRecord | null | undefined) {
+  if (!row) {
+    return false;
+  }
+
+  return row.user_id === null || asBoolean(row.is_global);
 }
 
 function asString(value: unknown): string | null {
@@ -745,6 +760,46 @@ export function hasImportConflicts(conflicts: FitnessLegacyImportConflictSummary
   return Object.values(conflicts).some((rows) => rows.length > 0);
 }
 
+async function deleteExistingUserRowsByIds(args: {
+  admin: SupabaseLikeClient;
+  table: string;
+  userId: string;
+  ids: string[];
+}) {
+  if (args.ids.length === 0) {
+    return;
+  }
+
+  const { error } = await args.admin
+    .from(args.table)
+    .delete()
+    .eq("user_id", args.userId)
+    .in("id", args.ids);
+
+  if (error) {
+    throw new Error(`${args.table}: ${error.message}`);
+  }
+}
+
+function normalizeOrderedGroupPositions<T>(args: {
+  rows: T[];
+  getGroupId: (row: T) => string;
+  getPosition: (row: T) => number;
+  withPosition: (row: T, position: number) => T;
+}) {
+  const nextPositionByGroup = new Map<string, number>();
+
+  return args.rows.map((row) => {
+    const groupId = args.getGroupId(row);
+    const nextPosition = nextPositionByGroup.get(groupId) ?? 0;
+    nextPositionByGroup.set(groupId, nextPosition + 1);
+
+    return args.getPosition(row) === nextPosition
+      ? row
+      : args.withPosition(row, nextPosition);
+  });
+}
+
 async function resolveExerciseImports(args: {
   admin: SupabaseLikeClient;
   newUserId: string;
@@ -817,19 +872,30 @@ async function resolveExerciseImports(args: {
       throw new Error(`exercises lookup: ${existingByIdError.message}`);
     }
 
-    const existingById = new Map<string, JsonRecord>();
-    const existingGlobalByNormalizedName = new Map<string, JsonRecord>();
+    const { data: existingGlobalRows, error: existingGlobalError } = await args.admin
+      .from("exercises")
+      .select("id, name, user_id, is_global")
+      .or("user_id.is.null,is_global.eq.true");
 
-    for (const row of (existingByIdRows ?? []) as JsonRecord[]) {
+    if (existingGlobalError) {
+      throw new Error(`global exercises lookup: ${existingGlobalError.message}`);
+    }
+
+    const existingById = new Map<string, ExistingExerciseLookupRow>();
+    const existingGlobalByNormalizedName = new Map<string, ExistingExerciseLookupRow>();
+
+    for (const row of (existingByIdRows ?? []) as ExistingExerciseLookupRow[]) {
       const id = asString(row.id);
       const normalizedName = normalizeName(asString(row.name));
-      const isGlobal = row.user_id === null || asBoolean(row.is_global);
 
       if (id) {
         existingById.set(id, row);
       }
+    }
 
-      if (isGlobal && normalizedName) {
+    for (const row of (existingGlobalRows ?? []) as ExistingExerciseLookupRow[]) {
+      const normalizedName = normalizeName(asString(row.name));
+      if (isGlobalExerciseRow(row) && normalizedName) {
         existingGlobalByNormalizedName.set(normalizedName, row);
       }
     }
@@ -837,10 +903,17 @@ async function resolveExerciseImports(args: {
     for (const exercise of globalExercises) {
       const canonicalId = resolveCanonicalExerciseId(exercise.legacy_exercise_id);
       const normalizedName = exercise.normalized_name || normalizeName(exercise.name);
+      const existingByCanonicalId = existingById.get(canonicalId);
+      const existingByLegacyId = existingById.get(exercise.legacy_exercise_id);
+      const existingByName = existingGlobalByNormalizedName.get(normalizedName);
       const existingMatch =
-        existingById.get(canonicalId)
-        ?? existingById.get(exercise.legacy_exercise_id)
-        ?? existingGlobalByNormalizedName.get(normalizedName);
+        (existingByCanonicalId && isGlobalExerciseRow(existingByCanonicalId)
+          ? existingByCanonicalId
+          : null)
+        ?? (existingByLegacyId && isGlobalExerciseRow(existingByLegacyId)
+          ? existingByLegacyId
+          : null)
+        ?? existingByName;
 
       if (existingMatch) {
         const existingId = asString(existingMatch.id);
@@ -923,6 +996,45 @@ export async function importFitnessLegacySnapshot(args: {
   const legacyToTargetExerciseId = exerciseResolution.legacyToTargetExerciseId;
   const profile = args.snapshot.profile;
   const fallbackWeightUnit = profile?.preferred_weight_unit ?? "lbs";
+  const normalizedRoutineDayExercises = normalizeOrderedGroupPositions({
+    rows: args.snapshot.routine_day_exercises,
+    getGroupId: (exercise) => exercise.legacy_routine_day_id,
+    getPosition: (exercise) => exercise.position,
+    withPosition: (exercise, position) => ({
+      ...exercise,
+      position,
+    }),
+  });
+  const normalizedSessionExercises = normalizeOrderedGroupPositions({
+    rows: args.snapshot.session_exercises,
+    getGroupId: (exercise) => exercise.legacy_session_id,
+    getPosition: (exercise) => exercise.position,
+    withPosition: (exercise, position) => ({
+      ...exercise,
+      position,
+    }),
+  });
+
+  if (args.allowMerge) {
+    await deleteExistingUserRowsByIds({
+      admin: args.admin,
+      table: "sets",
+      userId: args.newUserId,
+      ids: args.snapshot.sets.map((set) => set.legacy_set_id),
+    });
+    await deleteExistingUserRowsByIds({
+      admin: args.admin,
+      table: "session_exercises",
+      userId: args.newUserId,
+      ids: normalizedSessionExercises.map((exercise) => exercise.legacy_session_exercise_id),
+    });
+    await deleteExistingUserRowsByIds({
+      admin: args.admin,
+      table: "routine_day_exercises",
+      userId: args.newUserId,
+      ids: normalizedRoutineDayExercises.map((exercise) => exercise.legacy_routine_day_exercise_id),
+    });
+  }
 
   if (args.snapshot.routines.length > 0) {
     const { error } = await args.admin
@@ -971,11 +1083,11 @@ export async function importFitnessLegacySnapshot(args: {
     }
   }
 
-  if (args.snapshot.routine_day_exercises.length > 0) {
+  if (normalizedRoutineDayExercises.length > 0) {
     const { error } = await args.admin
       .from("routine_day_exercises")
       .upsert(
-        args.snapshot.routine_day_exercises.map((exercise) => {
+        normalizedRoutineDayExercises.map((exercise) => {
           const exerciseId = legacyToTargetExerciseId.get(exercise.legacy_exercise_id);
           if (!exerciseId) {
             throw new Error(
@@ -1038,11 +1150,11 @@ export async function importFitnessLegacySnapshot(args: {
     }
   }
 
-  if (args.snapshot.session_exercises.length > 0) {
+  if (normalizedSessionExercises.length > 0) {
     const { error } = await args.admin
       .from("session_exercises")
       .upsert(
-        args.snapshot.session_exercises.map((exercise) => {
+        normalizedSessionExercises.map((exercise) => {
           const exerciseId = legacyToTargetExerciseId.get(exercise.legacy_exercise_id);
           if (!exerciseId) {
             throw new Error(

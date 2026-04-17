@@ -5408,3 +5408,17 @@ WHY:
 * The previous card system was trying to show too many optional ingredients on every surface, which made dense workout lists feel cramped and inconsistent.
 * Media only helps when it is intentional and readable; contained tiles plus surface gating are safer than cropped thumbnails on utility-first workout rows.
 * Disclosure, taxonomy, and card-density behavior need to come from shared contracts so View/Edit Day and Current Session cannot drift independently on future UI passes.
+## [v0.4.37] - Governance: add repo-local Playbook adoption evidence surface
+
+### WHAT
+
+* Added a repo-local Playbook adoption evidence schema at `exports/repo.playbook.adoption.evidence.schema.v1.json`.
+* Added the first Fitness-owned adoption export at `exports/fitness.playbook.adoption.evidence.v1.json`.
+* Added `docs/ops/FITNESS-PLAYBOOK-ADOPTION.md` to document the claimed Playbook contract version, implemented patterns, not-applicable checks, and continuity posture without copying owner truth locally.
+* Added `tests/playbook-adoption-evidence.test.mjs` and wired it to `npm run test:playbook-adoption` so the export is checked against the local schema and the live Playbook contract ids.
+* Cross-linked the repo-local adoption surface from `README.md` and `docs/COMMANDS.md`.
+
+### WHY
+
+* Fitness is the first vertical owner repo in the current ATLAS rollout and needed one stable repo-owned adoption surface ATLAS root can ingest later without repo-specific scraping.
+* This keeps owner truth in Playbook, keeps repo truth in Fitness, and makes continuity and trust posture explicit instead of implied by repo visibility.
