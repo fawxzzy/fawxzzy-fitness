@@ -66,6 +66,93 @@ Contract rules:
 - Do not infer import behavior from raw vendor tables at import time.
 - Recompute derived data after import instead of treating it as source-of-truth payload.
 
+## Bridge Implementation
+
+The repo now exposes three migration routes:
+
+- `POST /api/migration/export`
+- `POST /api/migration/import`
+- `POST /api/migration/parity`
+
+And a preview/dev operator surface under:
+
+- `/settings` -> `Legacy Migration`
+
+### Required legacy bridge env
+
+The new-project app still uses the normal primary Supabase envs:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+The legacy exporter requires these additional envs:
+
+- `LEGACY_SUPABASE_URL`
+- `LEGACY_SUPABASE_ANON_KEY`
+
+The exporter signs into the old project with user credentials or accepts a legacy access token, then reads the canonical tables through legacy-project auth context. It does not require a legacy service-role key for the user-scoped bridge.
+
+### Export flow
+
+1. Authenticate against the old project.
+2. Read canonical user rows from:
+   - `profiles`
+   - `exercises` referenced by the user's routines/sessions
+   - `routines`
+   - `routine_days`
+   - `routine_day_exercises`
+   - `sessions`
+   - `session_exercises`
+   - `sets`
+3. Emit one `fitness-legacy-v1` snapshot payload.
+4. Return hard-signoff counts using the existing contract helper.
+
+Export notes:
+
+- The exporter preserves legacy IDs in the snapshot.
+- If a referenced exercise row is missing from `public.exercises` but the ID matches a known built-in legacy exercise option, the exporter synthesizes a minimal global exercise snapshot so the import can continue.
+- If a referenced exercise cannot be resolved at all, export fails instead of producing a silently incomplete snapshot.
+
+### Import flow
+
+1. Require the current signed-in new-project user.
+2. Reject the import by default if the current account already contains user-owned canonical rows outside the incoming snapshot.
+3. Preserve legacy UUIDs for imported user-scoped rows so retries remain idempotent.
+4. Map the old auth user ID to the current new auth user ID at import time.
+5. Resolve global exercises by:
+   - canonical legacy alias ID when available
+   - normalized name match in the new project
+   - create-missing fallback only when no matching global row exists
+6. Upsert canonical tables in dependency order:
+   - `exercises` (user-owned first, then missing globals)
+   - `routines`
+   - `routine_days`
+   - `routine_day_exercises`
+   - `sessions`
+   - `session_exercises`
+   - `sets`
+   - `profiles`
+7. Recompute `exercise_stats` from imported history instead of copying excluded derived tables.
+8. Revalidate `/today`, `/routines`, `/history`, `/session`, and `/settings`.
+
+Import notes:
+
+- User-owned exercise IDs, routine IDs, day IDs, session IDs, and set IDs are preserved directly in the new project.
+- `profiles.id` cannot preserve the old auth UUID because it must reference `auth.users(id)` in the new project, so the bridge keeps an explicit old-user -> new-user mapping in the import result.
+- `exercise_stats` and `session_follow_up_jobs` remain excluded from hard signoff and are not imported as source-of-truth data.
+
+### Settings operator flow
+
+The `/settings` migration card is intentionally minimal:
+
+1. Enter legacy email/password and export a snapshot.
+2. Review or edit the snapshot JSON in place if needed.
+3. Import the snapshot into the current new-project account.
+4. Run parity against the same snapshot.
+
+This surface is meant for dev/preview migration testing and real-user rehearsal before cutover. It is not a replacement for an admin bulk backfill path.
+
 ## Migration Authoring Caveat
 
 Expression-based or partial unique indexes are not valid plain-column `ON CONFLICT` targets. Replayable seed migrations must use a normalized `WHERE NOT EXISTS` pattern or target a real named unique constraint that exactly matches the uniqueness rule.
@@ -203,6 +290,10 @@ The route returns canonical signoff counts for the authenticated new-project use
 5. Run the parity report for at least one migrated user.
 6. Smoke-test `/today`, `/routines`, `/history`, `/settings`, session start, session resume, and session detail on preview.
 7. Flip production only after schema readiness, parity counts, and preview auth flows all pass.
+
+Additional cutover gate:
+
+- Confirm the new account is no longer blank because its old user snapshot was actually imported and parity matched on the hard-signoff tables.
 
 ## Operational Rules
 

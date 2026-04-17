@@ -1,6 +1,8 @@
 const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const SUPABASE_ANON_KEY_ENV = "NEXT_PUBLIC_SUPABASE_ANON_KEY";
 const SUPABASE_SERVICE_ROLE_KEY_ENV = "SUPABASE_SERVICE_ROLE_KEY";
+const LEGACY_SUPABASE_URL_ENV = "LEGACY_SUPABASE_URL";
+const LEGACY_SUPABASE_ANON_KEY_ENV = "LEGACY_SUPABASE_ANON_KEY";
 
 export function mustGetEnv(name: string): string {
   const value =
@@ -25,6 +27,14 @@ export function SUPABASE_URL(): string {
 
 export function SUPABASE_ANON_KEY(): string {
   return mustGetEnv(SUPABASE_ANON_KEY_ENV);
+}
+
+export function LEGACY_SUPABASE_URL(): string {
+  return mustGetEnv(LEGACY_SUPABASE_URL_ENV);
+}
+
+export function LEGACY_SUPABASE_ANON_KEY(): string {
+  return mustGetEnv(LEGACY_SUPABASE_ANON_KEY_ENV);
 }
 
 export function optionalEnv(name: string): string | null {
