@@ -46,13 +46,17 @@ export default async function SettingsPage() {
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <SurfaceCard>
             <AppHeader
-              title="Profile"
-              meta="Keep your sign-in email current for recovery and verification flows."
+              title="Data & Account"
+              meta="Keep your sign-in email current, and import legacy data only if you still need the old project moved over."
               titleAs="h2"
               className={CARD_HEADER_CLASS_NAME}
               titleClassName={SECTION_TITLE_CLASS_NAME}
             />
             <AccountSettingsForm email={user.email ?? ""} />
+            <LegacyMigrationSettings
+              legacyBridgeConfigured={legacyBridgeConfigured}
+              defaultLegacyEmail={user.email ?? ""}
+            />
           </SurfaceCard>
 
           <SurfaceCard>
@@ -67,17 +71,6 @@ export default async function SettingsPage() {
               preferredWeightUnit={profile.preferred_weight_unit ?? "lbs"}
               preferredDistanceUnit={profile.preferred_distance_unit ?? "mi"}
             />
-          </SurfaceCard>
-
-          <SurfaceCard>
-            <AppHeader
-              title="Legacy Migration"
-              meta="Preview/dev bridge for exporting old-project data into the current Supabase account and checking parity."
-              titleAs="h2"
-              className={CARD_HEADER_CLASS_NAME}
-              titleClassName={SECTION_TITLE_CLASS_NAME}
-            />
-            <LegacyMigrationSettings legacyBridgeConfigured={legacyBridgeConfigured} />
           </SurfaceCard>
         </ContentRail>
 

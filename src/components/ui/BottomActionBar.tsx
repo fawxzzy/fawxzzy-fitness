@@ -5,9 +5,9 @@ import { createPortal } from "react-dom";
 import { BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 import { cn } from "@/lib/cn";
 
-export const BOTTOM_ACTION_BAR_HEIGHT_PX = 120;
+export const BOTTOM_ACTION_BAR_HEIGHT_PX = 104;
 export const FIXED_CTA_RESERVE_CLASS =
-  "pb-[calc(var(--app-bottom-action-bar-height,120px)+var(--app-safe-bottom)+12px)]";
+  "pb-[calc(var(--app-bottom-action-bar-height,104px)+var(--app-fixed-bottom-bar-clearance-gap,8px))]";
 export const BOTTOM_ACTION_BAR_CONTENT_RESERVE_CLASS = FIXED_CTA_RESERVE_CLASS;
 
 const BOTTOM_ACTION_BAR_ROOT_ID = "app-bottom-action-bar-root";

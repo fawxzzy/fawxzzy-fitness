@@ -8,8 +8,14 @@ import { AuthCard, AuthField, AuthFooter, AuthMessage, AuthShell } from "@/compo
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
+import {
+  clearRememberedLoginState,
+  deriveRememberedLoginFirstName,
+  readRememberedLoginState,
+  writeRememberedLoginState,
+  type RememberedLoginState,
+} from "@/lib/remembered-login";
 
-const REMEMBERED_LOGIN_KEY = "fawxzzy:remembered-login";
 const EMAIL_INPUT_ID = "login-email";
 const PASSWORD_INPUT_ID = "login-password";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -18,87 +24,49 @@ function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
-function readRememberedEmail() {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  try {
-    const raw = window.localStorage.getItem(REMEMBERED_LOGIN_KEY);
-    if (!raw) {
-      return "";
-    }
-
-    const parsed = JSON.parse(raw) as { email?: string } | string;
-    const candidate = typeof parsed === "string" ? parsed : parsed.email ?? "";
-    return normalizeEmail(candidate);
-  } catch {
-    return "";
-  }
-}
-
-function writeRememberedEmail(email: string) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(REMEMBERED_LOGIN_KEY, JSON.stringify({ email }));
-  } catch {}
-}
-
-function clearRememberedEmail() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.removeItem(REMEMBERED_LOGIN_KEY);
-  } catch {}
-}
-
-function toTitleCaseSegment(value: string) {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) {
-    return "";
-  }
-
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-}
-
-function getRememberedIdentity(email: string) {
-  const localPart = normalizeEmail(email).split("@")[0] ?? "";
-  const segments = localPart.split(/[._-]+/).filter(Boolean);
-  const primarySegment = segments[0] ?? localPart;
-
-  return {
-    firstName: toTitleCaseSegment(primarySegment) || "Athlete",
-  };
-}
-
-export function LoginScreen({ error, info }: { error?: string; info?: string }) {
+export function LoginScreen({
+  error,
+  info,
+  requiresReauth = false,
+}: {
+  error?: string;
+  info?: string;
+  requiresReauth?: boolean;
+}) {
   const copy = AUTH_MODE_COPY["password-login"];
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberedEmail, setRememberedEmail] = useState<string | null>(null);
+  const [rememberedLogin, setRememberedLogin] = useState<RememberedLoginState | null>(null);
   const [formSeed, setFormSeed] = useState(0);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showCredentialStep, setShowCredentialStep] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [showCredentialStep, setShowCredentialStep] = useState(requiresReauth);
 
   useEffect(() => {
-    const storedEmail = readRememberedEmail();
+    const storedLogin = readRememberedLoginState();
 
-    if (storedEmail) {
-      setRememberedEmail(storedEmail);
-      setEmail(storedEmail);
+    if (storedLogin?.email) {
+      const nextLogin = requiresReauth
+        ? { ...storedLogin, sessionState: "reauth-required" as const }
+        : storedLogin;
+      setRememberedLogin(nextLogin);
+      setEmail(nextLogin.email);
       setFormSeed((current) => current + 1);
+      if (nextLogin.sessionState === "reauth-required") {
+        writeRememberedLoginState(nextLogin);
+        setShowCredentialStep(true);
+      }
     }
 
     setHasHydrated(true);
-  }, []);
+  }, [requiresReauth]);
 
   useEffect(() => {
+    if (!showCredentialStep) {
+      return;
+    }
+
     const syncFormValues = () => {
       const emailInput = document.getElementById(EMAIL_INPUT_ID) as HTMLInputElement | null;
       const passwordInput = document.getElementById(PASSWORD_INPUT_ID) as HTMLInputElement | null;
@@ -114,47 +82,56 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
       window.cancelAnimationFrame(frameId);
       timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
-  }, [formSeed]);
+  }, [formSeed, showCredentialStep]);
 
   const normalizedEmail = normalizeEmail(email);
   const emailValid = EMAIL_PATTERN.test(normalizedEmail);
   const passwordValid = password.length >= 6;
   const formReady = emailValid && passwordValid;
-  const rememberedIdentity = rememberedEmail ? getRememberedIdentity(rememberedEmail) : null;
+  const rememberedEmail = rememberedLogin?.email ?? null;
+  const rememberedIdentity = rememberedLogin
+    ? { firstName: rememberedLogin.firstName || deriveRememberedLoginFirstName(rememberedLogin.email) }
+    : null;
   const hasRememberedAccount = hasHydrated && Boolean(rememberedEmail) && Boolean(rememberedIdentity);
-  const showRememberedIdentity =
-    hasRememberedAccount
-    && !showCredentialStep
-    && (normalizedEmail === "" || normalizedEmail === normalizeEmail(rememberedEmail ?? ""));
-  const showRememberedAccountCard = showRememberedIdentity && Boolean(rememberedEmail) && Boolean(rememberedIdentity);
-  const showManualAuth = !showRememberedAccountCard;
+  const showRememberedAccountCard = hasRememberedAccount;
+  const requiresCredentialStep = showCredentialStep || !hasRememberedAccount;
+  const isReauthFlow = Boolean(hasRememberedAccount && showCredentialStep);
+  const showManualAuth = requiresCredentialStep;
+  const showEmailField = !hasRememberedAccount;
 
-  const helperText = showRememberedAccountCard
-    ? (formReady ? PASSWORD_LOGIN_UI_COPY.helper.ready : PASSWORD_LOGIN_UI_COPY.helper.remembered)
-    : formReady
+  const helperText = isReauthFlow
+    ? PASSWORD_LOGIN_UI_COPY.helper.reauth
+    : showRememberedAccountCard && !showCredentialStep
+      ? PASSWORD_LOGIN_UI_COPY.helper.remembered
+      : formReady
       ? PASSWORD_LOGIN_UI_COPY.helper.ready
       : emailValid
         ? PASSWORD_LOGIN_UI_COPY.helper.emailValid
         : PASSWORD_LOGIN_UI_COPY.helper.default;
 
-  const headline = showRememberedIdentity && rememberedIdentity
+  const headline = showRememberedAccountCard && rememberedIdentity
     ? `${copy.title}, ${rememberedIdentity.firstName}`
     : copy.title;
 
-  const ctaLabel = isSubmitting
+  const ctaLabel = isRestoring
+    ? PASSWORD_LOGIN_UI_COPY.cta.restoring
+    : isSubmitting
     ? PASSWORD_LOGIN_UI_COPY.cta.pending
-    : showRememberedAccountCard
+    : isReauthFlow
+      ? PASSWORD_LOGIN_UI_COPY.cta.reauth
+      : showRememberedAccountCard && !showCredentialStep
       ? PASSWORD_LOGIN_UI_COPY.cta.ready
       : formReady
         ? PASSWORD_LOGIN_UI_COPY.cta.ready
         : PASSWORD_LOGIN_UI_COPY.cta.idle;
 
   function handleSwitchAccount() {
-    clearRememberedEmail();
-    setRememberedEmail(null);
+    clearRememberedLoginState();
+    setRememberedLogin(null);
     setEmail("");
     setPassword("");
     setIsSubmitting(false);
+    setIsRestoring(false);
     setShowCredentialStep(false);
     setFormSeed((current) => current + 1);
 
@@ -164,19 +141,18 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
     }, 30);
   }
 
-  function handleContinueWithRememberedAccount() {
-    setShowCredentialStep(true);
-    setFormSeed((current) => current + 1);
+  function handleEnterGym() {
+    if (!rememberedEmail || isRestoring) {
+      return;
+    }
 
-    window.setTimeout(() => {
-      const passwordInput = document.getElementById(PASSWORD_INPUT_ID) as HTMLInputElement | null;
-      passwordInput?.focus();
-    }, 30);
+    setIsRestoring(true);
+    window.location.assign("/entry");
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const formData = new FormData(event.currentTarget);
-    const submittedEmail = normalizeEmail(String(formData.get("email") ?? ""));
+    const submittedEmail = normalizeEmail(String(formData.get("email") ?? rememberedEmail ?? ""));
     const submittedPassword = String(formData.get("password") ?? "");
 
     if (!EMAIL_PATTERN.test(submittedEmail) || submittedPassword.length < 6) {
@@ -184,9 +160,19 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
       return;
     }
 
-    writeRememberedEmail(submittedEmail);
-    setRememberedEmail(submittedEmail);
+    writeRememberedLoginState({
+      email: submittedEmail,
+      firstName: rememberedIdentity?.firstName ?? deriveRememberedLoginFirstName(submittedEmail),
+      sessionState: "ready",
+    });
+    setRememberedLogin({
+      email: submittedEmail,
+      firstName: rememberedIdentity?.firstName ?? deriveRememberedLoginFirstName(submittedEmail),
+      sessionState: "ready",
+      updatedAt: new Date().toISOString(),
+    });
     setIsSubmitting(true);
+    setIsRestoring(false);
   }
 
   return (
@@ -200,14 +186,30 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
         )}
       >
         <form action={login} className="space-y-5" onSubmit={handleSubmit}>
+          {showRememberedAccountCard && rememberedEmail ? (
+            <input type="hidden" name="email" value={rememberedEmail} />
+          ) : null}
           <div className="space-y-5">
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-accent/90">
-                {PASSWORD_LOGIN_UI_COPY.wordmark}
-              </p>
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
-                <span>{copy.eyebrow}</span>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-accent/90">
+                    {PASSWORD_LOGIN_UI_COPY.wordmark}
+                  </p>
+                  <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
+                    <span>{copy.eyebrow}</span>
+                  </div>
+                </div>
+                {showRememberedAccountCard ? (
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300 transition-colors hover:border-white/20 hover:text-white"
+                    onClick={handleSwitchAccount}
+                  >
+                    {PASSWORD_LOGIN_UI_COPY.switchAction}
+                  </button>
+                ) : null}
               </div>
               <h1 className="text-[clamp(2rem,8vw,2.55rem)] font-semibold tracking-[-0.04em] text-white">{headline}</h1>
               {copy.subtitle ? <p className="text-sm leading-6 text-slate-400">{copy.subtitle}</p> : null}
@@ -220,7 +222,7 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
 
             {showRememberedAccountCard && rememberedEmail && rememberedIdentity ? (
               <div className="space-y-4">
-                <div className="space-y-2">
+                <div className="rounded-[1.15rem] border border-white/10 bg-black/15 px-4 py-3">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-300">
                     <span className="font-medium text-slate-100">{PASSWORD_LOGIN_UI_COPY.returningUserLabel}</span>
                     <span aria-hidden="true" className="text-slate-500">&middot;</span>
@@ -228,34 +230,25 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
                   </div>
                   <div className="inline-flex items-center gap-2 text-sm font-medium text-emerald-100">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
-                    <span>Ready</span>
+                    <span>{isReauthFlow ? "Re-auth required" : "Ready"}</span>
                   </div>
                 </div>
 
-                <PrimaryButton
-                  type={formReady ? "submit" : "button"}
-                  fullWidth
-                  disabled={isSubmitting}
-                  onClick={formReady ? undefined : handleContinueWithRememberedAccount}
-                  className={cn(
-                    "min-h-[3.35rem] rounded-[1.1rem] text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none",
-                    formReady ? "shadow-[0_18px_38px_rgba(16,185,129,0.18)]" : "shadow-[0_14px_30px_rgba(15,23,42,0.18)]",
-                    isSubmitting ? "scale-[0.985]" : "",
-                  )}
-                >
-                  {ctaLabel}
-                </PrimaryButton>
-
-                <div className="flex flex-wrap items-center gap-1.5 text-sm text-slate-400">
-                  <span>{PASSWORD_LOGIN_UI_COPY.switchPrompt}</span>
-                  <button
+                {!showCredentialStep ? (
+                  <PrimaryButton
                     type="button"
-                    className="font-medium text-slate-200 transition-colors hover:text-white"
-                    onClick={handleSwitchAccount}
+                    fullWidth
+                    disabled={isSubmitting || isRestoring}
+                    onClick={handleEnterGym}
+                    className={cn(
+                      "min-h-[3.35rem] rounded-[1.1rem] text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none",
+                      "shadow-[0_18px_38px_rgba(16,185,129,0.18)]",
+                      isRestoring ? "scale-[0.985]" : "",
+                    )}
                   >
-                    {PASSWORD_LOGIN_UI_COPY.switchAction}
-                  </button>
-                </div>
+                    {ctaLabel}
+                  </PrimaryButton>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -270,26 +263,33 @@ export function LoginScreen({ error, info }: { error?: string; info?: string }) 
                 : "pointer-events-none max-h-0 overflow-hidden opacity-0",
             )}
           >
-            <AuthField label="Email">
-              <Input
-                id={EMAIL_INPUT_ID}
-                type="email"
-                name="email"
-                required
-                autoComplete="email"
-                defaultValue={rememberedEmail ?? undefined}
-                placeholder="you@example.com"
-                tabIndex={showManualAuth ? undefined : -1}
-                className={cn(
-                  "h-14 rounded-[1.15rem] border-white/10 bg-black/20 text-base text-white placeholder:text-slate-500 transition-[border-color,background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
-                  emailValid ? "border-emerald-400/20 bg-emerald-500/[0.05]" : "",
-                )}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </AuthField>
+            {showEmailField ? (
+              <AuthField label="Email">
+                <Input
+                  id={EMAIL_INPUT_ID}
+                  type="email"
+                  name="email"
+                  required
+                  autoComplete="email"
+                  defaultValue={rememberedEmail ?? undefined}
+                  placeholder="you@example.com"
+                  tabIndex={showManualAuth ? undefined : -1}
+                  className={cn(
+                    "h-14 rounded-[1.15rem] border-white/10 bg-black/20 text-base text-white placeholder:text-slate-500 transition-[border-color,background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+                    emailValid ? "border-emerald-400/20 bg-emerald-500/[0.05]" : "",
+                  )}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </AuthField>
+            ) : (
+              <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Account</p>
+                <p className="mt-1 text-sm font-medium text-slate-100">{rememberedEmail}</p>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <AuthField label="Password">
+              <AuthField label={isReauthFlow ? "Password" : "Password"}>
                 <Input
                   id={PASSWORD_INPUT_ID}
                   type="password"

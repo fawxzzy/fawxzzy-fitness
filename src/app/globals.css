@@ -164,26 +164,30 @@
   --app-header-offset: var(--header-h);
   --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset));
   --app-bottom-inset: var(--app-safe-bottom);
-  --app-bottom-gap: 3px;
+  --app-bottom-gap-size: 3px;
+  --app-bottom-gap: var(--app-bottom-gap-size);
+  --app-dock-clearance-gap: 6px;
+  --app-bottom-action-safe-area-extra: 4px;
+  --app-fixed-bottom-bar-clearance-gap: 8px;
   --screen-gutter: 16px;
   --content-max: 430px;
   --section-gap: 12px;
   --card-radius: 24px;
   --exercise-row-shell-padding-x: 0.9375rem;
-  --exercise-row-shell-padding-y-compact: 0.75rem;
-  --exercise-row-shell-padding-y-detailed: 0.9375rem;
-  --exercise-row-min-height-compact: 5.75rem;
-  --exercise-row-min-height-detailed: 7rem;
+  --exercise-row-shell-padding-y-compact: 0.625rem;
+  --exercise-row-shell-padding-y-detailed: 0.8125rem;
+  --exercise-row-min-height-compact: 5.1rem;
+  --exercise-row-min-height-detailed: 5.85rem;
   --exercise-row-media-size-compact: 3.75rem;
   --exercise-row-media-size-detailed: 4.5rem;
   --exercise-row-media-width-compact: 3.5rem;
   --exercise-row-media-width-detailed: 4.1rem;
-  --exercise-row-media-min-height-compact: 4.15rem;
-  --exercise-row-media-min-height-detailed: 4.7rem;
+  --exercise-row-media-min-height-compact: 3.8rem;
+  --exercise-row-media-min-height-detailed: 4.05rem;
   --exercise-row-media-radius-compact: 0.95rem;
   --exercise-row-media-radius-detailed: 1.05rem;
   --exercise-row-trailing-min-width: 2.35rem;
-  --exercise-row-gap: 0.75rem;
+  --exercise-row-gap: 0.625rem;
   --exercise-row-badge-gap: 0.5rem;
   --bottom-nav-h: 92px;
 }
@@ -206,14 +210,30 @@
   :root {
     --card-radius: 22px;
     --exercise-row-shell-padding-x: 0.8125rem;
-    --exercise-row-shell-padding-y-compact: 0.625rem;
-    --exercise-row-shell-padding-y-detailed: 0.8125rem;
-    --exercise-row-min-height-compact: 4.95rem;
-    --exercise-row-min-height-detailed: 6.2rem;
-    --exercise-row-media-min-height-compact: 3.78rem;
-    --exercise-row-media-min-height-detailed: 4.2rem;
-    --exercise-row-trailing-min-width: 1.95rem;
-    --exercise-row-gap: 0.625rem;
+    --exercise-row-shell-padding-y-compact: 0.5rem;
+    --exercise-row-shell-padding-y-detailed: 0.6875rem;
+    --exercise-row-min-height-compact: 4.2rem;
+    --exercise-row-min-height-detailed: 5.05rem;
+    --exercise-row-media-min-height-compact: 3.3rem;
+    --exercise-row-media-min-height-detailed: 3.55rem;
+    --exercise-row-trailing-min-width: 1.75rem;
+    --exercise-row-gap: 0.5rem;
+  }
+}
+
+:root[data-display-mode="standalone"] {
+  --app-bottom-gap-size: 2px;
+  --app-dock-clearance-gap: 2px;
+  --app-bottom-action-safe-area-extra: 2px;
+  --app-fixed-bottom-bar-clearance-gap: 2px;
+}
+
+@media (display-mode: standalone) {
+  :root {
+    --app-bottom-gap-size: 2px;
+    --app-dock-clearance-gap: 2px;
+    --app-bottom-action-safe-area-extra: 2px;
+    --app-fixed-bottom-bar-clearance-gap: 2px;
   }
 }
 

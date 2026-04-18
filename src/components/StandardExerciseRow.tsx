@@ -80,9 +80,7 @@ export function StandardExerciseRow({
   const resolvedSummary = summary ?? subtitle;
   const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
   const usesCompactDensity = density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder";
-  const mediaRailWidth = surface === "history-browser"
-    ? (usesCompactDensity ? 82 : 74)
-    : resolveWorkoutCardMediaRailWidth(surface);
+  const mediaRailWidth = resolveWorkoutCardMediaRailWidth(surface);
   const resolvedImageSizes = imageSizes ?? `${mediaRailWidth}px`;
 
   return (

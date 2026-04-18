@@ -12,6 +12,7 @@ export type PasswordLoginUiCopy = {
   helper: {
     default: string;
     remembered: string;
+    reauth: string;
     emailValid: string;
     ready: string;
   };
@@ -19,10 +20,11 @@ export type PasswordLoginUiCopy = {
     idle: string;
     continue: string;
     ready: string;
+    reauth: string;
     pending: string;
+    restoring: string;
   };
   returningUserLabel: string;
-  switchPrompt: string;
   switchAction: string;
   forgotPassword: string;
   createAccountPrefix: string;
@@ -59,7 +61,8 @@ export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
   wordmark: "Fawxzzy Fitness",
   helper: {
     default: "Log in to continue your routine",
-    remembered: "",
+    remembered: "Enter Gym to restore your session.",
+    reauth: "Session refresh failed. Re-enter your password to continue.",
     emailValid: "Good. Now unlock your session",
     ready: "",
   },
@@ -67,10 +70,11 @@ export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
     idle: "Start",
     continue: "Continue",
     ready: "Enter Gym",
+    reauth: "Re-enter password",
     pending: "Entering Gym...",
+    restoring: "Restoring session...",
   },
   returningUserLabel: "Returning member",
-  switchPrompt: "Not you?",
   switchAction: "Switch account",
   forgotPassword: "Forgot password?",
   createAccountPrefix: "New here?",

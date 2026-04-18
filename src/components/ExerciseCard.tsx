@@ -39,8 +39,8 @@ const densityStyles: Record<ExerciseCardDensity, {
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-2",
     titleSize: "text-[0.95rem]",
-    contentGap: "gap-1",
-    goalRow: "rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-2.5 py-1.5",
+    contentGap: "gap-0.75",
+    goalRow: "rounded-[0.82rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-2.25 py-1.25",
     childrenSpacing: "mt-1",
   },
   detailed: {
@@ -49,9 +49,9 @@ const densityStyles: Record<ExerciseCardDensity, {
     titleClamp: "line-clamp-2",
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
-    contentGap: "gap-1.5",
-    goalRow: "rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.56)] px-3 py-2",
-    childrenSpacing: "mt-1.5",
+    contentGap: "gap-1",
+    goalRow: "rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.56)] px-2.5 py-1.5",
+    childrenSpacing: "mt-1.25",
   },
 };
 

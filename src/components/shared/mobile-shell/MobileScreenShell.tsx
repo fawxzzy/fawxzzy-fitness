@@ -88,7 +88,7 @@ export function MobileScreenShell({
           style={{
             "--bottom-actions-height": `${dockHeight}px`,
             "--app-mobile-bottom-dock-height": `${dockHeight}px`,
-            "--app-mobile-dock-clearance-gap": dockHeight > 0 ? "12px" : "0px",
+            "--app-mobile-dock-clearance-gap": dockHeight > 0 ? "var(--app-dock-clearance-gap, 6px)" : "0px",
             paddingBottom: "calc(var(--app-mobile-bottom-dock-height,0px) + var(--app-mobile-dock-clearance-gap,0px))",
           } as CSSProperties}
         >
@@ -105,7 +105,7 @@ export function MobileScreenShell({
 
         <div
           ref={dockRef}
-          className="z-40 flex-none border-t border-white/6 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.82)_0%,rgba(var(--bg-app),0.95)_22%,rgba(var(--bg-app),0.995)_100%)] shadow-[0_-10px_24px_rgba(0,0,0,0.22)] backdrop-blur-[12px]"
+          className="z-40 flex-none border-t border-white/6 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.82)_0%,rgba(var(--bg-app),0.95)_18%,rgba(var(--bg-app),0.995)_100%)] shadow-[0_-8px_20px_rgba(0,0,0,0.18)] backdrop-blur-[12px]"
         >
           {bottomDock ? bottomDock : <BottomActionsSlot />}
         </div>

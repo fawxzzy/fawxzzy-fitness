@@ -62,11 +62,21 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-17 - Server-only auth confirm routes cannot consume fragment recovery payloads
+- Type: Guardrail
+- Summary: Password recovery links that deliver auth state in the browser fragment must terminate in a client-capable handoff step before any server-only confirm or reset flow expects a session.
+- Suggested Playbook File: docs/GUARDRAILS/auth-fragment-handoff.md
+- Rationale: Prevents the false-positive failure mode where reset email delivery succeeds but confirm always fails because the server looks for `token_hash` or `code` in query params that never contain the fragment payload.
+- Evidence: src/app/auth/confirm/route.ts, src/app/auth/actions.ts, src/app/reset-password/page.tsx, src/app/reset-password/RecoverySessionBridge.tsx, src/app/reset-password/actions.ts
+- Status: Proposed
 ## 2026-04-16 â€” Same-app migrations should preserve legacy entity IDs and gate imports on blank-account parity
 - Type: Pattern
 - Summary: Same-app legacy migration bridges should export one canonical user snapshot, preserve legacy UUIDs for user-scoped rows during import, and block default imports when the destination account already contains unrelated user-owned data.
 - Suggested Playbook File: docs/PATTERNS/same-app-account-migration.md
 - Rationale: Prevents "successful" blank-account migrations from duplicating rows, losing relationship edges, or silently mixing newly-created data with imported history before parity can be trusted.
+- Rule: Backend replacement is an identity-and-data migration, not just an infra swap.
+- Pattern: Clean preview rehearsal -> parity -> prod cutover -> grace-window bridge -> explicit bridge removal.
+- Failure Mode: Dirty preview proof and undocumented env/auth assumptions create false confidence before the switch.
 - Evidence: src/lib/migration/fitness-legacy-contract.ts, src/lib/migration/fitness-legacy-bridge.ts, src/app/api/migration/export/route.ts, src/app/api/migration/import/route.ts, src/app/api/migration/parity/route.ts, src/app/settings/page.tsx, src/components/settings/LegacyMigrationSettings.tsx, docs/ops/fitness-legacy-migration-plan.md
 - Status: Proposed
 ## 2026-03-21 — Settings screens should compose DetailHeader and DetailSection

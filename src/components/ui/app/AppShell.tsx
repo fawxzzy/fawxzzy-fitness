@@ -35,7 +35,7 @@ export function AppShell({
     "--app-standalone-safe-top": topNavMode === "none" ? "max(var(--app-safe-top), var(--vv-top, 0px))" : "0px",
     "--app-top-offset": "calc(var(--app-top-inset) + var(--app-header-offset) + var(--app-header-gap))",
     "--app-bottom-inset": "var(--app-safe-bottom)",
-    "--app-bottom-gap": "3px",
+    "--app-bottom-gap": "var(--app-bottom-gap-size, 3px)",
     "--app-top-chrome-content-gap": "12px",
     "--app-mobile-dock-clearance-gap": "0px",
   } as CSSProperties);
