@@ -934,6 +934,13 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderRoutinesScenario(scenario: MobileFixtureScenario) {
+  const activeRoutine = {
+    id: "routine-1",
+    name: "Lower Rotation",
+    summary: "5 days \u2022 4 training \u2022 1 rest \u2022 16 exercises",
+  } as const;
+  const isListView = scenario.id === "routines-list-view";
+
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <RegressionMarker scenario={scenario} />
@@ -951,10 +958,12 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail className="space-y-3">
           <RoutinesPageClient
-            activeRoutineId="routine-1"
-            activeRoutineEditHref="/routines/routine-1/edit"
+            activeRoutineId={isListView ? null : activeRoutine.id}
+            activeRoutineName={isListView ? null : activeRoutine.name}
+            activeRoutineSummary={isListView ? null : activeRoutine.summary}
+            activeRoutineEditHref={isListView ? null : `/routines/${activeRoutine.id}/edit`}
             newRoutineHref="/routines/new"
-            initialRoutineListOpen={scenario.id === "routines-list-view"}
+            initialRoutineListOpen={isListView}
             setActiveRoutineAction={noopRoutineSwitchAction}
             routines={[
               { id: "routine-1", name: "Lower Rotation", summary: "5 days • 4 training • 1 rest • 16 exercises" },
@@ -1301,7 +1310,7 @@ function renderSettingsScenario(scenario: MobileFixtureScenario) {
               titleClassName={SECTION_TITLE_CLASS_NAME}
             />
             <div className="pointer-events-none">
-              <AccountSettingsForm email="dev-regression@example.com" />
+              <AccountSettingsForm email="dev-regression@example.com" username="dev-regression" />
             </div>
           </SurfaceCard>
 
