@@ -171,6 +171,7 @@ export function resolveExerciseThumb(
   const thumbnailPath = getLocalImagePath(exercise.thumbnailUrl);
   const legacyImagePath = getLocalImagePath(exercise.imageUrl)
     ?? getLocalImagePath(exercise.image_path);
+  const howToPath = getLocalHowToPath(exercise.image_howto_path);
   const manifestCardPath = resolveManifestCardPath(exercise);
   const manifestIconPath = resolveManifestIconPath(exercise);
   const cardPath = explicitCardPath ?? manifestCardPath;
@@ -178,20 +179,24 @@ export function resolveExerciseThumb(
   const trustedRowPhoto = getTrustedRowPhoto(exercise);
 
   if (intent === "row-card") {
-    if (cardPath) {
-      return { src: cardPath, mode: "icon" };
-    }
-
     if (trustedRowPhoto) {
       return { src: trustedRowPhoto, mode: "photo" };
     }
 
-    if (iconPath) {
-      return { src: iconPath, mode: "icon" };
+    if (cardPath) {
+      return { src: cardPath, mode: "icon" };
+    }
+
+    if (howToPath) {
+      return { src: howToPath, mode: "legacy-composite" };
     }
 
     if (legacyImagePath) {
       return { src: legacyImagePath, mode: "legacy-composite" };
+    }
+
+    if (iconPath) {
+      return { src: iconPath, mode: "icon" };
     }
 
     return { src: PLACEHOLDER_ICON_SRC, mode: "fallback" };
@@ -240,7 +245,6 @@ export function resolveExerciseThumbRailSpec(
   exercise: ExerciseThumbInput,
   options: ResolveExerciseThumbOptions = {},
 ): ExerciseThumbRailSpec {
-  const intent = options.intent ?? "default";
   const primary = resolveExerciseThumb(exercise, options);
 
   if (primary.mode === "fallback") {
@@ -253,65 +257,21 @@ export function resolveExerciseThumbRailSpec(
   const explicitCardPath = getLocalImagePath(exercise.cardSrc);
   const explicitIconPath = getLocalImagePath(exercise.iconSrc)
     ?? getLocalImagePath(exercise.image_icon_path);
-  const thumbnailPath = getLocalImagePath(exercise.thumbnailUrl);
-  const trustedRowPhoto = getTrustedRowPhoto(exercise);
-  const legacyImagePath = getLocalImagePath(exercise.imageUrl)
-    ?? getLocalImagePath(exercise.image_path);
-  const howToPath = getLocalHowToPath(exercise.image_howto_path);
   const manifestCardPath = resolveManifestCardPath(exercise);
   const manifestIconPath = resolveManifestIconPath(exercise);
   const cardPath = explicitCardPath ?? manifestCardPath;
   const iconPath = explicitIconPath ?? manifestIconPath;
   const assets: ExerciseThumbRailAsset[] = [];
-
-  const primaryFit = primary.mode === "icon" && primary.src !== iconPath ? "cover" : undefined;
-  pushRailAsset(assets, toRailAsset({
-    src: primary.src,
-    mode: primary.mode,
-    fit: primaryFit,
-  }));
-
-  if (intent !== "row-card") {
-    return {
-      layout: "single",
-      assets: assets.slice(0, 1),
-    };
-  }
-
-  pushRailAsset(assets, toRailAsset({
-    src: trustedRowPhoto,
-    mode: "photo",
-    fit: "cover",
-  }));
-  pushRailAsset(assets, toRailAsset({
-    src: cardPath && cardPath !== primary.src ? cardPath : null,
-    mode: "icon",
-    fit: "cover",
-  }));
-  pushRailAsset(assets, toRailAsset({
-    src: howToPath,
-    mode: "legacy-composite",
-    fit: "cover",
-  }));
-  pushRailAsset(assets, toRailAsset({
-    src: iconPath,
-    mode: "icon",
-    fit: "contain",
-  }));
-  pushRailAsset(assets, toRailAsset({
-    src: thumbnailPath,
-    mode: "photo",
-    fit: "cover",
-  }));
-  pushRailAsset(assets, toRailAsset({
-    src: legacyImagePath,
-    mode: "legacy-composite",
-    fit: "cover",
-  }));
+  const primaryFit = primary.mode === "icon" && primary.src !== iconPath && primary.src === cardPath
+    ? "cover"
+    : primary.mode === "icon"
+      ? "contain"
+      : "cover";
+  pushRailAsset(assets, toRailAsset({ src: primary.src, mode: primary.mode, fit: primaryFit }));
 
   return {
-    layout: assets.length > 1 ? "dual" : "single",
-    assets: assets.slice(0, Math.min(assets.length, 2)),
+    layout: "single",
+    assets: assets.slice(0, 1),
   };
 }
 

@@ -33,7 +33,7 @@ export type PasswordLoginUiCopy = {
 
 export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
   "password-login": {
-    eyebrow: "Training space",
+    eyebrow: "",
     title: "Welcome back",
     subtitle: "",
     helper: "Use Forgot password if you need a reset email.",
@@ -53,17 +53,17 @@ export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
   "create-account": {
     eyebrow: "Get started",
     title: "Create your account",
-    subtitle: "Create your login to start tracking routines, workouts, and progression.",
+    subtitle: "Pick your username, create your login, and start tracking routines, workouts, and progression.",
   },
 };
 
 export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
   wordmark: "Fawxzzy Fitness",
   helper: {
-    default: "Log in to continue your routine",
-    remembered: "Enter Gym to restore your session.",
+    default: "Log in to continue your routine.",
+    remembered: "",
     reauth: "Session refresh failed. Re-enter your password to continue.",
-    emailValid: "Good. Now unlock your session",
+    emailValid: "",
     ready: "",
   },
   cta: {
@@ -74,7 +74,7 @@ export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
     pending: "Entering Gym...",
     restoring: "Restoring session...",
   },
-  returningUserLabel: "Returning member",
+  returningUserLabel: "Account",
   switchAction: "Switch account",
   forgotPassword: "Forgot password?",
   createAccountPrefix: "New here?",

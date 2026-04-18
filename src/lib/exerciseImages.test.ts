@@ -40,7 +40,7 @@ test("resolveExerciseThumb prefers explicit card art over repo legacy image path
   });
 });
 
-test("resolveExerciseThumb prefers explicit card art before trusted thumbnails on row cards", () => {
+test("resolveExerciseThumb prefers trusted thumbnails before card art on row cards", () => {
   const resolved = resolveExerciseThumb({
     name: "Incline Dumbbell Bench Press",
     cardSrc: "/images/custom-incline-card.png",
@@ -49,8 +49,8 @@ test("resolveExerciseThumb prefers explicit card art before trusted thumbnails o
   }, { intent: "row-card" });
 
   assert.deepEqual(resolved, {
-    src: "/images/custom-incline-card.png",
-    mode: "icon",
+    src: "/images/session-photo-thumb.png",
+    mode: "photo",
   });
 });
 
@@ -67,9 +67,10 @@ test("resolveExerciseThumb prefers generated manifest icons before legacy image 
   });
 });
 
-test("resolveExerciseThumb prefers icons over legacy composite art for row cards", () => {
+test("resolveExerciseThumb keeps manifest card art ahead of legacy row art on row cards", () => {
   const resolved = resolveExerciseThumb({
     name: "Lateral Raise",
+    image_howto_path: "/images/lateral-raise-row-art.png",
     imageUrl: "/images/lateral-raise-composite.png",
   }, { intent: "row-card" });
 
@@ -179,7 +180,7 @@ test("resolveExerciseThumb prefers thumbnail photos over legacy composite art", 
   });
 });
 
-test("resolveExerciseThumb ignores untrusted thumbnails for row cards and keeps icons ahead of legacy art", () => {
+test("resolveExerciseThumb ignores untrusted thumbnails for row cards and keeps card art ahead of legacy composites", () => {
   const resolved = resolveExerciseThumb({
     name: "Incline Dumbbell Bench Press",
     thumbnailUrl: "/images/catalog-incline-thumb.png",

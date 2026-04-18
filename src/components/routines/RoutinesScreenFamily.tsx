@@ -38,6 +38,27 @@ export function ActiveRoutineSummaryCard({
   );
 }
 
+export function RoutinesRouteHeaderCard({
+  title,
+  subtitle,
+  action,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <SurfaceCard dense>
+      <AppHeader
+        title={title}
+        subtitle={subtitle}
+        action={action}
+        className={CARD_HEADER_CLASS_NAME}
+      />
+    </SurfaceCard>
+  );
+}
+
 export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {
   return active ? <Chip tone="success">ACTIVE</Chip> : null;
 }
@@ -81,15 +102,11 @@ export function RoutinesListEmpty({ children }: { children: ReactNode }) {
 }
 
 export function SharedDayListSection({
-  title = "Days",
-  meta,
   children,
 }: {
-  title?: ReactNode;
-  meta?: ReactNode;
   children: ReactNode;
 }) {
-  return <RoutinesSectionCard title={title} meta={meta}>{children}</RoutinesSectionCard>;
+  return <div className="space-y-2">{children}</div>;
 }
 
 

@@ -38,7 +38,7 @@ export function PickerListViewport({
         className={cn(
           "picker-scroll-viewport",
           plainOnMobile ? "overflow-visible pr-0 md:overflow-y-auto md:overscroll-contain md:pr-1" : "pr-1",
-          mobileTray ? "max-md:max-h-[20.5rem] max-md:overflow-y-auto max-md:overscroll-contain max-md:pr-0.5" : undefined,
+          mobileTray ? "max-md:max-h-[12.75rem] max-md:overflow-y-auto max-md:overscroll-contain max-md:pr-0.5" : undefined,
           constrainOnDesktop ? "md:max-h-[19rem] md:overflow-y-auto md:overscroll-contain" : undefined,
           viewportClassName,
         )}
@@ -49,11 +49,11 @@ export function PickerListViewport({
         <>
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-1.5 top-1.25 z-10 h-5 rounded-t-[0.8rem] bg-gradient-to-b from-[rgb(var(--surface-rgb)/0.8)] via-[rgb(var(--surface-rgb)/0.28)] to-transparent md:hidden"
+            className="pointer-events-none absolute inset-x-1.5 top-1.25 z-10 h-4 rounded-t-[0.8rem] bg-gradient-to-b from-[rgb(var(--surface-rgb)/0.74)] via-[rgb(var(--surface-rgb)/0.22)] to-transparent md:hidden"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-1.5 bottom-1.25 z-10 h-7 rounded-b-[0.8rem] bg-gradient-to-t from-[rgb(var(--surface-rgb)/0.88)] via-[rgb(var(--surface-rgb)/0.5)] to-transparent md:hidden"
+            className="pointer-events-none absolute inset-x-1.5 bottom-1.25 z-10 h-5 rounded-b-[0.8rem] bg-gradient-to-t from-[rgb(var(--surface-rgb)/0.82)] via-[rgb(var(--surface-rgb)/0.38)] to-transparent md:hidden"
           />
         </>
       ) : null}

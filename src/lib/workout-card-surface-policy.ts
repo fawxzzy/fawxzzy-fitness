@@ -23,19 +23,19 @@ const DEFAULT_MEDIA_RAIL_WIDTH = 72;
 export function resolveWorkoutCardMediaRailWidth(surface: WorkoutCardSurface): number {
   switch (surface) {
     case "current-session":
-      return 84;
+      return 74;
     case "history-browser":
-      return 80;
+      return 0;
     case "history-detail":
-      return 82;
+      return 72;
     case "exercise-picker":
-      return 78;
+      return 60;
     case "today":
     case "view-day":
     case "edit-day":
     case "reorder":
     default:
-      return 64;
+      return 56;
   }
 }
 
@@ -81,7 +81,7 @@ export function resolveWorkoutCardSurfacePolicy(
       };
     case "history-browser":
       return {
-        showMedia: true,
+        showMedia: false,
         showIdentityChips: true,
         showDetailedMetrics: density === "detailed",
         mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),

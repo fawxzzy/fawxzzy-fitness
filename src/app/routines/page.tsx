@@ -6,7 +6,6 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
-import { ActiveRoutineStatusBadge, ActiveRoutineSummaryCard } from "@/components/routines/RoutinesScreenFamily";
 import { requireUser } from "@/lib/auth";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
@@ -256,11 +255,7 @@ export default async function RoutinesPage({
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
           <ContentRail>
-            <ActiveRoutineSummaryCard
-              title={activeRoutine?.name ?? "Select routine"}
-              metadata={cycleSummary}
-              status={<ActiveRoutineStatusBadge active={Boolean(activeRoutine?.id)} />}
-            />
+            <div id="routines-floating-header" />
           </ContentRail>
         )}
       >
@@ -281,6 +276,8 @@ export default async function RoutinesPage({
           ) : (
             <RoutinesPageClient
               activeRoutineId={activeRoutine?.id ?? null}
+              activeRoutineName={activeRoutine?.name ?? null}
+              activeRoutineSummary={cycleSummary ?? null}
               activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
               newRoutineHref="/routines/new"
               routines={routines.map((routine) => ({

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import {
   clearRememberedLoginState,
-  deriveRememberedLoginFirstName,
+  deriveRememberedLoginDisplayName,
   readRememberedLoginState,
   writeRememberedLoginState,
   type RememberedLoginState,
@@ -90,7 +90,7 @@ export function LoginScreen({
   const formReady = emailValid && passwordValid;
   const rememberedEmail = rememberedLogin?.email ?? null;
   const rememberedIdentity = rememberedLogin
-    ? { firstName: rememberedLogin.firstName || deriveRememberedLoginFirstName(rememberedLogin.email) }
+    ? { displayName: rememberedLogin.displayName || deriveRememberedLoginDisplayName(rememberedLogin.email) }
     : null;
   const hasRememberedAccount = hasHydrated && Boolean(rememberedEmail) && Boolean(rememberedIdentity);
   const showRememberedAccountCard = hasRememberedAccount;
@@ -98,20 +98,7 @@ export function LoginScreen({
   const isReauthFlow = Boolean(hasRememberedAccount && showCredentialStep);
   const showManualAuth = requiresCredentialStep;
   const showEmailField = !hasRememberedAccount;
-
-  const helperText = isReauthFlow
-    ? PASSWORD_LOGIN_UI_COPY.helper.reauth
-    : showRememberedAccountCard && !showCredentialStep
-      ? PASSWORD_LOGIN_UI_COPY.helper.remembered
-      : formReady
-      ? PASSWORD_LOGIN_UI_COPY.helper.ready
-      : emailValid
-        ? PASSWORD_LOGIN_UI_COPY.helper.emailValid
-        : PASSWORD_LOGIN_UI_COPY.helper.default;
-
-  const headline = showRememberedAccountCard && rememberedIdentity
-    ? `${copy.title}, ${rememberedIdentity.firstName}`
-    : copy.title;
+  const rememberedDisplayName = rememberedIdentity?.displayName ?? null;
 
   const ctaLabel = isRestoring
     ? PASSWORD_LOGIN_UI_COPY.cta.restoring
@@ -162,12 +149,12 @@ export function LoginScreen({
 
     writeRememberedLoginState({
       email: submittedEmail,
-      firstName: rememberedIdentity?.firstName ?? deriveRememberedLoginFirstName(submittedEmail),
+      displayName: rememberedDisplayName ?? deriveRememberedLoginDisplayName(submittedEmail),
       sessionState: "ready",
     });
     setRememberedLogin({
       email: submittedEmail,
-      firstName: rememberedIdentity?.firstName ?? deriveRememberedLoginFirstName(submittedEmail),
+      displayName: rememberedDisplayName ?? deriveRememberedLoginDisplayName(submittedEmail),
       sessionState: "ready",
       updatedAt: new Date().toISOString(),
     });
@@ -190,17 +177,13 @@ export function LoginScreen({
             <input type="hidden" name="email" value={rememberedEmail} />
           ) : null}
           <div className="space-y-5">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-3">
+            <div className="space-y-4">
+              <div className={cn("flex min-h-8", showRememberedAccountCard ? "justify-end" : "items-start justify-between gap-4")}>
+                {!showRememberedAccountCard ? (
                   <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-accent/90">
                     {PASSWORD_LOGIN_UI_COPY.wordmark}
                   </p>
-                  <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
-                    <span>{copy.eyebrow}</span>
-                  </div>
-                </div>
+                ) : null}
                 {showRememberedAccountCard ? (
                   <button
                     type="button"
@@ -211,27 +194,33 @@ export function LoginScreen({
                   </button>
                 ) : null}
               </div>
-              <h1 className="text-[clamp(2rem,8vw,2.55rem)] font-semibold tracking-[-0.04em] text-white">{headline}</h1>
-              {copy.subtitle ? <p className="text-sm leading-6 text-slate-400">{copy.subtitle}</p> : null}
-              {helperText ? (
-                <p aria-live="polite" className="max-w-sm text-sm leading-6 text-slate-300">
-                  {helperText}
-                </p>
-              ) : null}
+              <div className={cn("space-y-2", showRememberedAccountCard ? "text-center" : "text-left")}>
+                <h1 className="text-[clamp(2rem,8vw,2.55rem)] font-semibold tracking-[-0.04em] text-white">{copy.title}</h1>
+                {rememberedDisplayName ? (
+                  <p className="text-[clamp(1.75rem,7vw,2.3rem)] font-semibold tracking-[-0.04em] text-slate-100">
+                    {rememberedDisplayName}
+                  </p>
+                ) : null}
+                {isReauthFlow ? (
+                  <p aria-live="polite" className={cn("text-sm leading-6 text-slate-300", showRememberedAccountCard ? "mx-auto max-w-xs text-center" : "max-w-sm")}>
+                    {PASSWORD_LOGIN_UI_COPY.helper.reauth}
+                  </p>
+                ) : !showRememberedAccountCard && PASSWORD_LOGIN_UI_COPY.helper.default ? (
+                  <p aria-live="polite" className="max-w-sm text-sm leading-6 text-slate-300">
+                    {PASSWORD_LOGIN_UI_COPY.helper.default}
+                  </p>
+                ) : null}
+              </div>
+              {!showRememberedAccountCard && copy.subtitle ? <p className="text-sm leading-6 text-slate-400">{copy.subtitle}</p> : null}
             </div>
 
             {showRememberedAccountCard && rememberedEmail && rememberedIdentity ? (
               <div className="space-y-4">
-                <div className="rounded-[1.15rem] border border-white/10 bg-black/15 px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-300">
-                    <span className="font-medium text-slate-100">{PASSWORD_LOGIN_UI_COPY.returningUserLabel}</span>
-                    <span aria-hidden="true" className="text-slate-500">&middot;</span>
-                    <span className="truncate">{rememberedEmail}</span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 text-sm font-medium text-emerald-100">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
-                    <span>{isReauthFlow ? "Re-auth required" : "Ready"}</span>
-                  </div>
+                <div className="rounded-[1.15rem] border border-white/10 bg-black/15 px-4 py-3 text-center">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {PASSWORD_LOGIN_UI_COPY.returningUserLabel}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-100">{rememberedEmail}</p>
                 </div>
 
                 {!showCredentialStep ? (

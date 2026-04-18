@@ -221,7 +221,11 @@ export default async function HistoryPage({
     <MainTabScreen topNavMode="none" ambientPreset="history">
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<ContentRail><HistoryPageHeader title={`Logged Sessions: ${sessionItems.length}`} /></ContentRail>}
+        floatingHeader={(
+          <ContentRail>
+            <HistoryPageHeader title="History" subtitle={`${sessionItems.length} logged sessions`} />
+          </ContentRail>
+        )}
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient sessions={sessionItems} selectedSessionId={searchParams?.selected} />
