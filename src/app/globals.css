@@ -173,6 +173,7 @@
   --content-max: 430px;
   --section-gap: 12px;
   --card-radius: 24px;
+  --exercise-picker-mobile-tray-max-h: 11rem;
   --exercise-row-shell-padding-x: 0.875rem;
   --exercise-row-shell-padding-y-compact: 0.5625rem;
   --exercise-row-shell-padding-y-detailed: 0.75rem;
