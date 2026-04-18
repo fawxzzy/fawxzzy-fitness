@@ -38,7 +38,7 @@ export function PickerListViewport({
         className={cn(
           "picker-scroll-viewport",
           plainOnMobile ? "overflow-visible pr-0 md:overflow-y-auto md:overscroll-contain md:pr-1" : "pr-1",
-          mobileTray ? "max-md:max-h-[12.75rem] max-md:overflow-y-auto max-md:overscroll-contain max-md:pr-0.5" : undefined,
+          mobileTray ? "max-md:max-h-[var(--picker-mobile-tray-max-h,12.75rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:pr-0.5" : undefined,
           constrainOnDesktop ? "md:max-h-[19rem] md:overflow-y-auto md:overscroll-contain" : undefined,
           viewportClassName,
         )}

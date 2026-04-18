@@ -69,6 +69,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents the false-positive failure mode where reset email delivery succeeds but confirm always fails because the server looks for `token_hash` or `code` in query params that never contain the fragment payload.
 - Evidence: src/app/auth/confirm/route.ts, src/app/auth/actions.ts, src/app/reset-password/page.tsx, src/app/reset-password/RecoverySessionBridge.tsx, src/app/reset-password/actions.ts
 - Status: Proposed
+
+## 2026-04-18 - Add Exercise picker viewport caps should tune the tray, not the row
+- Type: Pattern
+- Summary: When the Add Exercise mobile picker shows too much of the next card, tighten the tray viewport cap first and keep the shared compact row density, filters, library header, and bottom dock unchanged.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Preserves the canonical dense exercise-row language while solving the remaining viewport peek issue with one scoped height token instead of reopening card sizing or dock spacing work.
+- Evidence: src/components/ExercisePicker.tsx, src/components/ui/PickerListViewport.tsx, src/app/globals.css
+- Status: Proposed
 ## 2026-04-16 â€” Same-app migrations should preserve legacy entity IDs and gate imports on blank-account parity
 - Type: Pattern
 - Summary: Same-app legacy migration bridges should export one canonical user snapshot, preserve legacy UUIDs for user-scoped rows during import, and block default imports when the destination account already contains unrelated user-owned data.

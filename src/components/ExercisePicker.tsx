@@ -507,7 +507,7 @@ export function ExercisePicker({
         </section>
 
         <PickerListViewport
-          className="border-0 bg-transparent p-0 md:border-white/10 md:bg-[rgb(var(--surface-rgb)/0.3)]"
+          className="[--picker-mobile-tray-max-h:var(--exercise-picker-mobile-tray-max-h)] border-0 bg-transparent p-0 md:border-white/10 md:bg-[rgb(var(--surface-rgb)/0.3)]"
           viewportClassName="pr-0 md:pr-1"
           showFade
           plainOnMobile
