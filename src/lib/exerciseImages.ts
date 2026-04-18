@@ -30,6 +30,22 @@ export type ExerciseThumbSpec = {
   mode: "icon" | "photo" | "legacy-composite" | "fallback";
 };
 
+export type ExerciseThumbRailAsset = {
+  src: string;
+  mode: Exclude<ExerciseThumbSpec["mode"], "fallback">;
+  fit: "cover" | "contain";
+};
+
+export type ExerciseThumbRailSpec =
+  | {
+    layout: "fallback";
+    assets: [];
+  }
+  | {
+    layout: "single" | "dual";
+    assets: ExerciseThumbRailAsset[];
+  };
+
 export type ExerciseCardThumbSource = ExerciseThumbSpec;
 export type ExerciseThumbIntent = "default" | "row-card";
 
@@ -65,6 +81,15 @@ export function slugifyExerciseName(name: string): string {
 function getLocalImagePath(pathValue?: string | null): string | null {
   const trimmedPath = pathValue?.trim();
   return trimmedPath?.startsWith("/") ? trimmedPath : null;
+}
+
+function getLocalHowToPath(pathValue?: string | null): string | null {
+  const localPath = getLocalImagePath(pathValue);
+  if (!localPath || HOWTO_PLACEHOLDER_PATHS.has(localPath)) {
+    return null;
+  }
+
+  return localPath;
 }
 
 function getManifestIconPath(slug?: string | null): string | null {
@@ -185,6 +210,109 @@ export function resolveExerciseThumb(
   }
 
   return { src: PLACEHOLDER_ICON_SRC, mode: "fallback" };
+}
+
+function pushRailAsset(assets: ExerciseThumbRailAsset[], nextAsset: ExerciseThumbRailAsset | null) {
+  if (!nextAsset || assets.some((asset) => asset.src === nextAsset.src)) {
+    return;
+  }
+
+  assets.push(nextAsset);
+}
+
+function toRailAsset(args: {
+  src: string | null;
+  mode: Exclude<ExerciseThumbSpec["mode"], "fallback">;
+  fit?: "cover" | "contain";
+}): ExerciseThumbRailAsset | null {
+  if (!args.src) {
+    return null;
+  }
+
+  return {
+    src: args.src,
+    mode: args.mode,
+    fit: args.fit ?? (args.mode === "icon" ? "contain" : "cover"),
+  };
+}
+
+export function resolveExerciseThumbRailSpec(
+  exercise: ExerciseThumbInput,
+  options: ResolveExerciseThumbOptions = {},
+): ExerciseThumbRailSpec {
+  const intent = options.intent ?? "default";
+  const primary = resolveExerciseThumb(exercise, options);
+
+  if (primary.mode === "fallback") {
+    return {
+      layout: "fallback",
+      assets: [],
+    };
+  }
+
+  const explicitCardPath = getLocalImagePath(exercise.cardSrc);
+  const explicitIconPath = getLocalImagePath(exercise.iconSrc)
+    ?? getLocalImagePath(exercise.image_icon_path);
+  const thumbnailPath = getLocalImagePath(exercise.thumbnailUrl);
+  const trustedRowPhoto = getTrustedRowPhoto(exercise);
+  const legacyImagePath = getLocalImagePath(exercise.imageUrl)
+    ?? getLocalImagePath(exercise.image_path);
+  const howToPath = getLocalHowToPath(exercise.image_howto_path);
+  const manifestCardPath = resolveManifestCardPath(exercise);
+  const manifestIconPath = resolveManifestIconPath(exercise);
+  const cardPath = explicitCardPath ?? manifestCardPath;
+  const iconPath = explicitIconPath ?? manifestIconPath;
+  const assets: ExerciseThumbRailAsset[] = [];
+
+  const primaryFit = primary.mode === "icon" && primary.src !== iconPath ? "cover" : undefined;
+  pushRailAsset(assets, toRailAsset({
+    src: primary.src,
+    mode: primary.mode,
+    fit: primaryFit,
+  }));
+
+  if (intent !== "row-card") {
+    return {
+      layout: "single",
+      assets: assets.slice(0, 1),
+    };
+  }
+
+  pushRailAsset(assets, toRailAsset({
+    src: trustedRowPhoto,
+    mode: "photo",
+    fit: "cover",
+  }));
+  pushRailAsset(assets, toRailAsset({
+    src: cardPath && cardPath !== primary.src ? cardPath : null,
+    mode: "icon",
+    fit: "cover",
+  }));
+  pushRailAsset(assets, toRailAsset({
+    src: howToPath,
+    mode: "legacy-composite",
+    fit: "cover",
+  }));
+  pushRailAsset(assets, toRailAsset({
+    src: iconPath,
+    mode: "icon",
+    fit: "contain",
+  }));
+  pushRailAsset(assets, toRailAsset({
+    src: thumbnailPath,
+    mode: "photo",
+    fit: "cover",
+  }));
+  pushRailAsset(assets, toRailAsset({
+    src: legacyImagePath,
+    mode: "legacy-composite",
+    fit: "cover",
+  }));
+
+  return {
+    layout: assets.length > 1 ? "dual" : "single",
+    assets: assets.slice(0, Math.min(assets.length, 2)),
+  };
 }
 
 export function resolveExerciseCardThumbSource(exercise: ExerciseImageSource): ExerciseCardThumbSource {

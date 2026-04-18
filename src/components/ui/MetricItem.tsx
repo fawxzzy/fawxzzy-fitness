@@ -19,7 +19,7 @@ function MetricChrome({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-3 py-2.5",
+        "min-w-0 rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-2.75 py-2",
         className,
       )}
     >
@@ -44,7 +44,7 @@ export function MetricItem({
       <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.9)]">
         {item.label}
       </p>
-      <p className={cn("mt-1 min-w-0 text-sm font-semibold leading-[1.2] text-[rgb(var(--text-primary)/0.98)] [text-wrap:pretty]", valueClassName)}>
+      <p className={cn("mt-0.75 min-w-0 text-sm font-semibold leading-[1.16] text-[rgb(var(--text-primary)/0.98)] [text-wrap:pretty]", valueClassName)}>
         {item.value}
       </p>
       {metaParts.length > 0 ? (
@@ -71,7 +71,7 @@ export function MetricGrid({
     <div
       className={cn(
         "grid gap-2",
-        compact ? "grid-cols-2" : "grid-cols-2",
+        "grid-cols-2",
         className,
       )}
     >
@@ -79,7 +79,7 @@ export function MetricGrid({
         <MetricItem
           key={`${item.label}-${item.value}`}
           item={item}
-          className={compact ? "px-2.5 py-2" : undefined}
+          className={compact ? "px-2.25 py-1.75" : undefined}
           valueClassName={compact ? "text-[13px]" : undefined}
         />
       ))}
@@ -97,7 +97,7 @@ export function MetricStrip({
   if (items.length === 0) return null;
 
   return (
-    <div className={cn("flex flex-wrap gap-1.5", className)}>
+    <div className={cn("flex flex-wrap gap-1.25", className)}>
       {items.map((item) => (
         <MetricChrome key={`${item.label}-${item.value}`} className="min-w-[8.35rem] basis-[calc(50%-0.375rem)] flex-1 px-3 py-2">
           <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.86)]">

@@ -4,6 +4,39 @@ import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+function renderRecoveryFragmentBridge(request: NextRequest) {
+  const recoveryRedirect = new URL("/reset-password?recovery=1", request.url).toString();
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Redirecting...</title>
+  </head>
+  <body>
+    <script>
+      const target = new URL(${JSON.stringify(recoveryRedirect)});
+      if (window.location.hash) {
+        target.hash = window.location.hash;
+      }
+      window.location.replace(target.toString());
+    </script>
+    <noscript>
+      <p>Password reset links require JavaScript to finish signing you in.</p>
+      <p><a href="${recoveryRedirect}">Continue to reset password</a></p>
+    </noscript>
+  </body>
+</html>`;
+
+  return new NextResponse(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const tokenHash = url.searchParams.get("token_hash");
@@ -52,6 +85,8 @@ export async function GET(request: NextRequest) {
     }
 
     session = data.session;
+  } else if (isRecoveryFlow) {
+    return renderRecoveryFragmentBridge(request);
   } else {
     return NextResponse.redirect(failureRedirect);
   }

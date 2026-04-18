@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { AppRow } from "@/components/ui/app/AppRow";
 import { AppButton } from "@/components/ui/AppButton";
 import { Chip } from "@/components/ui/Chip";
 import { Input } from "@/components/ui/Input";
@@ -38,6 +39,12 @@ type ParityResponse = {
 };
 
 const DEFAULT_SNAPSHOT_TEXT = "";
+const LEGACY_MIGRATION_STATUS_KEY = "fawxzzy:legacy-migration-status";
+
+type LegacyMigrationStatus = {
+  state: "not-migrated" | "imported";
+  importedAt?: string;
+};
 
 function formatCounts(counts: SnapshotCountMap) {
   return [
@@ -52,18 +59,74 @@ function formatCounts(counts: SnapshotCountMap) {
   ].join(" | ");
 }
 
+function readLegacyMigrationStatus(): LegacyMigrationStatus {
+  if (typeof window === "undefined") {
+    return { state: "not-migrated" };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(LEGACY_MIGRATION_STATUS_KEY);
+    if (!raw) {
+      return { state: "not-migrated" };
+    }
+
+    const parsed = JSON.parse(raw) as LegacyMigrationStatus;
+    if (parsed.state !== "imported") {
+      return { state: "not-migrated" };
+    }
+
+    return {
+      state: "imported",
+      importedAt: parsed.importedAt,
+    };
+  } catch {
+    return { state: "not-migrated" };
+  }
+}
+
+function writeLegacyMigrationStatus(status: LegacyMigrationStatus) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(LEGACY_MIGRATION_STATUS_KEY, JSON.stringify(status));
+  } catch {}
+}
+
+function formatMigrationStatus(status: LegacyMigrationStatus) {
+  if (status.state !== "imported") {
+    return "Not migrated";
+  }
+
+  if (!status.importedAt) {
+    return "Imported";
+  }
+
+  const parsedDate = new Date(status.importedAt);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Imported";
+  }
+
+  return `Imported on ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(parsedDate)}`;
+}
+
 export function LegacyMigrationSettings({
   legacyBridgeConfigured,
+  defaultLegacyEmail = "",
 }: {
   legacyBridgeConfigured: boolean;
+  defaultLegacyEmail?: string;
 }) {
-  const [legacyEmail, setLegacyEmail] = useState("");
+  const [legacyEmail, setLegacyEmail] = useState(defaultLegacyEmail);
   const [legacyPassword, setLegacyPassword] = useState("");
   const [snapshotText, setSnapshotText] = useState(DEFAULT_SNAPSHOT_TEXT);
   const [status, setStatus] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [exportCounts, setExportCounts] = useState<SnapshotCountMap | null>(null);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const [parity, setParity] = useState<ParityResponse | null>(null);
+  const [migrationStatus, setMigrationStatus] = useState<LegacyMigrationStatus>({ state: "not-migrated" });
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const statusClassName = useMemo(() => {
@@ -73,6 +136,11 @@ export function LegacyMigrationSettings({
 
     return "text-[rgb(var(--text-secondary)/0.92)]";
   }, [status]);
+  const migrationStatusLabel = useMemo(() => formatMigrationStatus(migrationStatus), [migrationStatus]);
+
+  useEffect(() => {
+    setMigrationStatus(readLegacyMigrationStatus());
+  }, []);
 
   function parseSnapshotText() {
     try {
@@ -143,6 +211,9 @@ export function LegacyMigrationSettings({
         }
 
         setImportSummary(result.data);
+        const nextStatus = { state: "imported" as const, importedAt: new Date().toISOString() };
+        writeLegacyMigrationStatus(nextStatus);
+        setMigrationStatus(nextStatus);
         setStatus({
           tone: "success",
           text: "Legacy snapshot imported into the current account.",
@@ -193,114 +264,131 @@ export function LegacyMigrationSettings({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip tone={legacyBridgeConfigured ? "success" : "warning"}>
-          {legacyBridgeConfigured ? "Legacy bridge ready" : "Legacy env missing"}
-        </Chip>
-        <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
-          Export from the old Supabase project, import into the current signed-in account, then run parity from the same snapshot.
-        </p>
-      </div>
+    <div className="space-y-3 border-t border-white/8 pt-3">
+      <AppRow
+        leftTop="Import legacy data"
+        leftBottom={migrationStatusLabel}
+        rightTop={(
+          <Chip tone={migrationStatus.state === "imported" ? "success" : legacyBridgeConfigured ? "warning" : "default"}>
+            {migrationStatus.state === "imported" ? "Imported" : legacyBridgeConfigured ? "Available" : "Unavailable"}
+          </Chip>
+        )}
+        rightBottom={isExpanded ? "Hide" : "Open"}
+        onClick={() => setIsExpanded((current) => !current)}
+        className="rounded-[1.1rem] border border-white/8 bg-white/[0.02]"
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor="legacy-email" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
-            Legacy email
-          </label>
-          <Input
-            id="legacy-email"
-            type="email"
-            autoComplete="email"
-            value={legacyEmail}
-            onChange={(event) => setLegacyEmail(event.target.value)}
-            placeholder="legacy@email.com"
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="legacy-password" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
-            Legacy password
-          </label>
-          <Input
-            id="legacy-password"
-            type="password"
-            autoComplete="current-password"
-            value={legacyPassword}
-            onChange={(event) => setLegacyPassword(event.target.value)}
-            placeholder="Required for export"
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <AppButton
-          type="button"
-          variant="secondary"
-          onClick={handleExport}
-          loading={isPending}
-          disabled={!legacyBridgeConfigured || !legacyEmail.trim() || !legacyPassword}
-        >
-          Export legacy snapshot
-        </AppButton>
-        <AppButton
-          type="button"
-          variant="primary"
-          onClick={handleImport}
-          loading={isPending}
-          disabled={!snapshotText.trim()}
-        >
-          Import into this account
-        </AppButton>
-        <AppButton
-          type="button"
-          variant="secondary"
-          onClick={handleParity}
-          loading={isPending}
-          disabled={!snapshotText.trim()}
-        >
-          Run parity
-        </AppButton>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="legacy-snapshot" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
-          Snapshot JSON
-        </label>
-        <textarea
-          id="legacy-snapshot"
-          value={snapshotText}
-          onChange={(event) => setSnapshotText(event.target.value)}
-          rows={12}
-          spellCheck={false}
-          className="min-h-[16rem] w-full rounded-[var(--radius-md)] border border-[rgb(var(--border)/0.22)] bg-[rgb(var(--surface-2)/0.92)] px-4 py-3 font-mono text-[13px] leading-5 text-[rgb(var(--text-primary))] placeholder:text-[rgb(var(--text-muted)/0.92)] focus-visible:border-[rgb(var(--accent)/0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]"
-          placeholder='{"metadata":{"snapshot_version":"fitness-legacy-v1"}}'
-        />
-      </div>
-
-      <div className="space-y-2">
-        {exportCounts ? (
-          <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
-            Export counts: {formatCounts(exportCounts)}
-          </p>
-        ) : null}
-        {importSummary ? (
-          <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
-            Imported {formatCounts(importSummary.importedCounts)}. Global exercises resolved {importSummary.resolvedGlobalExercises}; created {importSummary.createdGlobalExercises}.
-          </p>
-        ) : null}
-        {parity ? (
-          <div className="space-y-1 text-sm text-[rgb(var(--text-secondary)/0.92)]">
-            {parity.counts.map((count) => (
-              <p key={count.metric}>
-                {count.metric}: snapshot {count.snapshot} / database {count.database} / {count.matches ? "match" : "mismatch"}
-              </p>
-            ))}
+      {isExpanded ? (
+        <div className="space-y-4 rounded-[1.1rem] border border-white/8 bg-black/[0.08] px-4 py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Chip tone={legacyBridgeConfigured ? "success" : "warning"}>
+              {legacyBridgeConfigured ? "Legacy bridge ready" : "Legacy env missing"}
+            </Chip>
+            <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
+              Export from the old Supabase project, import into the current account, then run parity from that same snapshot.
+            </p>
           </div>
-        ) : null}
-        <p className={`text-sm leading-5 ${statusClassName}`}>
-          {status?.text ?? "This is a preview/dev migration tool. Import assumes the current account is blank or already contains only this snapshot."}
-        </p>
-      </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="legacy-email" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+                Legacy email
+              </label>
+              <Input
+                id="legacy-email"
+                type="email"
+                autoComplete="email"
+                value={legacyEmail}
+                onChange={(event) => setLegacyEmail(event.target.value)}
+                placeholder="legacy@email.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="legacy-password" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+                Legacy password
+              </label>
+              <Input
+                id="legacy-password"
+                type="password"
+                autoComplete="current-password"
+                value={legacyPassword}
+                onChange={(event) => setLegacyPassword(event.target.value)}
+                placeholder="Required for export"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <AppButton
+              type="button"
+              variant="secondary"
+              onClick={handleExport}
+              loading={isPending}
+              disabled={!legacyBridgeConfigured || !legacyEmail.trim() || !legacyPassword}
+            >
+              Export legacy snapshot
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="primary"
+              onClick={handleImport}
+              loading={isPending}
+              disabled={!snapshotText.trim()}
+            >
+              Import into this account
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="secondary"
+              onClick={handleParity}
+              loading={isPending}
+              disabled={!snapshotText.trim()}
+            >
+              Run parity
+            </AppButton>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="legacy-snapshot" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+              Snapshot JSON
+            </label>
+            <textarea
+              id="legacy-snapshot"
+              value={snapshotText}
+              onChange={(event) => setSnapshotText(event.target.value)}
+              rows={12}
+              spellCheck={false}
+              className="min-h-[16rem] w-full rounded-[var(--radius-md)] border border-[rgb(var(--border)/0.22)] bg-[rgb(var(--surface-2)/0.92)] px-4 py-3 font-mono text-[13px] leading-5 text-[rgb(var(--text-primary))] placeholder:text-[rgb(var(--text-muted)/0.92)] focus-visible:border-[rgb(var(--accent)/0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]"
+              placeholder='{"metadata":{"snapshot_version":"fitness-legacy-v1"}}'
+            />
+          </div>
+
+          <div className="space-y-2">
+            {exportCounts ? (
+              <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
+                Export counts: {formatCounts(exportCounts)}
+              </p>
+            ) : null}
+            {importSummary ? (
+              <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
+                Imported {formatCounts(importSummary.importedCounts)}. Global exercises resolved {importSummary.resolvedGlobalExercises}; created {importSummary.createdGlobalExercises}.
+              </p>
+            ) : null}
+            {parity ? (
+              <div className="space-y-1 text-sm text-[rgb(var(--text-secondary)/0.92)]">
+                {parity.counts.map((count) => (
+                  <p key={count.metric}>
+                    {count.metric}: snapshot {count.snapshot} / database {count.database} / {count.matches ? "match" : "mismatch"}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            <p className={`text-sm leading-5 ${statusClassName}`}>
+              {status?.text ?? "Import assumes the current account is blank or already contains only this snapshot."}
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

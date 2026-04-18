@@ -133,7 +133,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
     chips: viewModel.chips,
     detailedMetrics: viewModel.detailedMetrics,
   });
-  const showMedia = viewMode !== "detailed" && policy.showMedia;
+  const showMedia = policy.showMedia;
   const primaryLine = row.lastSummary
     ? `${lastDate ? `${lastDate} | ` : ""}${viewModel.summary}`
     : viewModel.summary;

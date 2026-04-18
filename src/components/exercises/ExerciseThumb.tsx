@@ -3,8 +3,10 @@
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { cn } from "@/lib/cn";
 import {
+  resolveExerciseThumbRailSpec,
   resolveExerciseThumb,
   type ExerciseThumbIntent,
+  type ExerciseThumbRailAsset,
   type ExerciseThumbSourceKind,
 } from "@/lib/exerciseImages";
 
@@ -32,7 +34,7 @@ type ExerciseThumbProps = {
 
 function ThumbFallback({ glyphClassName }: { glyphClassName: string }) {
   return (
-    <div className="grid h-full w-full place-items-center bg-transparent text-[rgb(var(--text)/0.42)]">
+    <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.14),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(7,14,21,0.18))] text-[rgb(var(--text)/0.42)]">
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
@@ -53,6 +55,44 @@ function ThumbFallback({ glyphClassName }: { glyphClassName: string }) {
   );
 }
 
+function RailAssetPanel({
+  asset,
+  alt,
+  sizes,
+  className,
+}: {
+  asset: ExerciseThumbRailAsset;
+  alt: string;
+  sizes: string;
+  className?: string;
+}) {
+  const usesCover = asset.fit === "cover";
+
+  return (
+    <div
+      className={cn(
+        "relative h-full w-full overflow-hidden",
+        "bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.14),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(10,18,28,0.2))]",
+        className,
+      )}
+    >
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,8,12,0.03),rgba(4,8,12,0.2))]" aria-hidden="true" />
+      <ExerciseAssetImage
+        src={asset.src}
+        alt={alt}
+        className="h-full w-full"
+        imageClassName={cn(
+          "absolute inset-0 h-full w-full object-center",
+          usesCover ? "object-cover" : "object-contain p-[12%]",
+        )}
+        sizes={sizes}
+        fit={asset.fit}
+        fallback={<ThumbFallback glyphClassName="h-8 w-8" />}
+      />
+    </div>
+  );
+}
+
 export function ExerciseThumb({
   exercise,
   alt,
@@ -67,6 +107,7 @@ export function ExerciseThumb({
 }: ExerciseThumbProps) {
   const resolvedRailWidth = railWidth ?? (detailed ? 76 : 72);
   const thumb = resolveExerciseThumb(exercise, { intent });
+  const railSpec = resolveExerciseThumbRailSpec(exercise, { intent });
   const isRail = layout === "rail";
   const wrapperClassName = cn(
     isRail ? "relative h-full w-full self-stretch overflow-hidden rounded-l-[inherit]" : "relative shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/20",
@@ -88,6 +129,36 @@ export function ExerciseThumb({
         style={isRail ? undefined : { width: size, height: size }}
       >
         <ThumbFallback glyphClassName={fallbackGlyphClassName} />
+      </div>
+    );
+  }
+
+  if (isRail) {
+    if (railSpec.layout === "fallback" || railSpec.assets.length === 0) {
+      return (
+        <div className={wrapperClassName}>
+          <ThumbFallback glyphClassName={fallbackGlyphClassName} />
+        </div>
+      );
+    }
+
+    if (railSpec.layout === "dual" && railSpec.assets.length > 1) {
+      return (
+        <div className={cn(wrapperClassName, "grid grid-rows-2 bg-[rgb(var(--surface-2-rgb)/0.92)]")}>
+          <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} />
+          <RailAssetPanel
+            asset={railSpec.assets[1]}
+            alt={alt ?? ""}
+            sizes={sizes ?? `${resolvedRailWidth}px`}
+            className="border-t border-white/8"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className={cn(wrapperClassName, "bg-[rgb(var(--surface-2-rgb)/0.92)]")}>
+        <RailAssetPanel asset={railSpec.assets[0]} alt={alt ?? ""} sizes={sizes ?? `${resolvedRailWidth}px`} />
       </div>
     );
   }

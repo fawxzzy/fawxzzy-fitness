@@ -152,6 +152,7 @@ The `/settings` migration card is intentionally minimal:
 4. Run parity against the same snapshot.
 
 This surface is meant for dev/preview migration testing and real-user rehearsal before cutover. It is not a replacement for an admin bulk backfill path.
+The operator-safe UX work that remains during the grace window is tracked below.
 
 ## Migration Authoring Caveat
 
@@ -294,6 +295,19 @@ The route returns canonical signoff counts for the authenticated new-project use
 Additional cutover gate:
 
 - Confirm the new account is no longer blank because its old user snapshot was actually imported and parity matched on the hard-signoff tables.
+
+## Follow-up Backlog
+
+Track these items as the remaining grace-window work before the legacy bridge is removed:
+
+- Add a visible migration checklist in the UI for sign-in, export, import, parity, and post-import verification.
+- Persist migration receipts with timestamps, old user id, new user id, hard-signoff counts, and final import status.
+- Show a migrated-state indicator in settings so operators can see whether the current account has already been migrated.
+- Keep the blank-account guardrail explicit in the UI copy, including any supported merge behavior and any excluded non-blocking tables.
+- Add a post-import verification helper that links directly to `/today`, `/routines`, `/history`, and `/settings`.
+- Add rerun and idempotency coverage for duplicate `session_exercise` positions, global exercise resolution, repeat imports, and auth reset/recovery paths.
+- Keep `exercise_stats` and `session_follow_up_jobs` labeled as derived or non-blocking data rather than hard-signoff tables.
+- Remove the legacy bridge only after the grace window closes and the receipt/parity trail shows no remaining users on the old backend.
 
 ## Operational Rules
 

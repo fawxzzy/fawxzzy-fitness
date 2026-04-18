@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { InstallabilityBootstrap } from "@/components/install/InstallabilityBootstrap";
 import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
+import { DisplayModeBootstrap } from "@/components/ui/app/DisplayModeBootstrap";
 import { PersistentAppChrome } from "@/components/ui/app/PersistentAppChrome";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
@@ -51,6 +52,7 @@ export default function RootLayout({
         <ToastProvider>
           <InstallabilityBootstrap />
           <GlassEffectsBootstrap />
+          <DisplayModeBootstrap />
           <MobileViewportGuard />
           <main className="safe-area-main relative z-10 flex min-h-[100dvh] w-full flex-col overflow-hidden">
             {children}
