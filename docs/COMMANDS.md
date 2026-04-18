@@ -39,6 +39,7 @@ npm run
 | `npm run verify` | Run the Playbook repo verification workflow. |
 | `npm run verify:strict` | Alias for full local check (`lint` + `build`). |
 | `npm run test:playbook-adoption` | Validate the repo-local Playbook adoption export against the local schema and owner contract ids. |
+| `npm run test:playbook-verification` | Validate the repo-local Playbook verification report against the ATLAS root schema and live command surface. |
 
 ## Release
 

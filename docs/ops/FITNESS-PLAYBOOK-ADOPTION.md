@@ -7,15 +7,21 @@ It does not copy the Playbook contract locally. Repo-owned evidence for this tra
 - `exports/repo.playbook.adoption.evidence.schema.v1.json`
 - `exports/fitness.playbook.adoption.evidence.v1.json`
 - `tests/playbook-adoption-evidence.test.mjs`
+- `exports/fitness.playbook.verification.report.v1.json`
+- `tests/playbook-verification-report.test.mjs`
+- `docs/ops/FITNESS-PLAYBOOK-VERIFICATION.md`
 
 ## Current Status
 
 - adoption status: `adopted`
 - verification state: `targeted`
+- verification report status: `verified`
 - continuity status: `structured`
 - drift status: `none_detected`
 
 The repo is intentionally conservative about what it claims. This tranche proves the repo can declare its contract version, export repo-local adoption evidence, and validate that evidence against the owner contract ids and local schema. It does not claim to own stack-level approval or execution boundaries that belong elsewhere.
+
+Verified promotion is now carried by the separate repo-owned verification report. That keeps the adoption export honest about scope while still allowing ATLAS root to project `verification_status=verified` when the repo-owned gate is green.
 
 ## Implemented Patterns
 
@@ -78,6 +84,7 @@ Evidence for this slice should stay stable and repo-owned:
 - repo identity and role: `exports/fitness.playbook.adoption.evidence.v1.json`
 - local Playbook runtime and bootstrap posture: `README.md`, `docs/PROJECT_GOVERNANCE.md`
 - targeted validation: `tests/playbook-adoption-evidence.test.mjs`
+- verified-gate evidence: `exports/fitness.playbook.verification.report.v1.json`, `tests/playbook-verification-report.test.mjs`, `docs/ops/FITNESS-PLAYBOOK-VERIFICATION.md`
 - stack-facing receipt or action posture: `.lifeline/fitness.lifeline.yml`, `truth-pack/fitness/actions-and-receipts.json`
 
 ## Out Of Scope
