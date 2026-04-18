@@ -15,10 +15,10 @@ type Props = {
 };
 
 export function DayTaxonomyHeaderSummary({ dayName, summary, isRest }: Props) {
-  const [compactFits, setCompactFits] = useState(true);
+  const [summaryFits, setSummaryFits] = useState(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLSpanElement | null>(null);
-  const { dayName: safeDayName, countsSummary, compactSummary } = getDayTaxonomyHeaderSummaryParts({
+  const { countsSummary } = getDayTaxonomyHeaderSummaryParts({
     dayName,
     summary,
     isRest,
@@ -31,34 +31,29 @@ export function DayTaxonomyHeaderSummary({ dayName, summary, isRest }: Props) {
 
     const recalculate = () => {
       const availableWidth = container.clientWidth;
-      const compactWidth = measure.scrollWidth;
-      setCompactFits(compactWidth <= availableWidth);
+      const summaryWidth = measure.scrollWidth;
+      setSummaryFits(summaryWidth <= availableWidth);
     };
 
     recalculate();
     const observer = new ResizeObserver(recalculate);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [compactSummary]);
+  }, [countsSummary]);
 
   return (
     <div ref={containerRef} className="relative min-w-0">
       <span ref={measureRef} aria-hidden className="pointer-events-none absolute -left-[9999px] top-0 whitespace-nowrap text-sm">
-        {compactSummary}
+        {countsSummary}
       </span>
-      {compactFits ? (
+      {summaryFits ? (
         <SubtitleText as="p" className="overflow-hidden text-ellipsis whitespace-nowrap">
-          {compactSummary}
+          {countsSummary}
         </SubtitleText>
       ) : (
-        <div className="space-y-0.5">
-          <SubtitleText as="p" className="overflow-hidden text-ellipsis whitespace-nowrap">
-            {safeDayName}
-          </SubtitleText>
-          <SubtitleText as="p" className="overflow-hidden text-ellipsis whitespace-nowrap">
-            {countsSummary}
-          </SubtitleText>
-        </div>
+        <SubtitleText as="p" className="text-[13px] leading-[1.35] [text-wrap:pretty]">
+          {countsSummary}
+        </SubtitleText>
       )}
     </div>
   );

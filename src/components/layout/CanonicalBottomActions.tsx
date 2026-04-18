@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-1 pb-[calc(var(--app-safe-bottom)+var(--app-bottom-action-safe-area-extra,4px))]";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-0.5 pb-[calc(var(--app-safe-bottom)+var(--app-bottom-action-safe-area-extra,2px))]";
 
 const BOTTOM_ACTION_ARIA_LABEL = "Bottom actions";
-const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-2";
+const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-1.5";
 export const BOTTOM_ACTION_SURFACE_INNER_CLASSNAME = BOTTOM_ACTION_GROUP_CLASSNAME;
 
 const CONTROL_LABEL_CLASSNAME = cn(

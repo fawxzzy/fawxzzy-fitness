@@ -4,17 +4,14 @@ import { memo, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { Input } from "@/components/ui/Input";
-import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
-import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
 const HISTORY_EXERCISE_VIEW_MODE_COOKIE = "history-exercises-view-mode";
 
@@ -127,43 +124,22 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const displayName = getExerciseDisplayName(row);
   const lastDate = formatShortDate(row.last_performed_at);
   const viewModel = buildHistoryExerciseCardViewModel(row);
-  const { policy, chips, detailedMetrics } = applyWorkoutCardSurfacePolicy({
-    surface: "history-browser",
-    density: viewMode,
-    chips: viewModel.chips,
-    detailedMetrics: viewModel.detailedMetrics,
-  });
-  const showMedia = policy.showMedia;
-  const primaryLine = row.lastSummary
-    ? `${lastDate ? `${lastDate} | ` : ""}${viewModel.summary}`
-    : viewModel.summary;
+  const primaryLine = row.lastSummary ? `${lastDate ? `${lastDate} | ` : ""}${viewModel.summary}` : viewModel.summary;
+  const metadata = viewModel.chips.map((chip) => chip.label).join(" • ");
+  const badgeText = row.prCount > 0 ? `${row.prCount} PR` : undefined;
 
   return (
-    <StandardExerciseRow
-      exercise={{ name: displayName, slug: row.slug, image_path: row.image_path, image_icon_path: row.image_icon_path, image_howto_path: row.image_howto_path }}
-      summary={primaryLine}
+    <HistoryExerciseCard
+      title={displayName}
       summaryLabel={viewModel.summaryLabel}
-      variant="interactive"
+      summary={primaryLine}
+      metadata={metadata || undefined}
+      badgeText={badgeText}
+      metrics={viewModel.detailedMetrics}
       density={viewMode}
-      onPress={() => {
-        if (process.env.NODE_ENV === "development") {
-          console.debug("[ExerciseInfo:open] HistoryExercises", { exerciseId: row.exerciseId, row });
-        }
-        onOpen(row.exerciseId);
-      }}
-      rightIcon={<ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-      state="default"
-      semanticTone={viewModel.semanticTone}
-      className="shadow-none"
-      surface="history-browser"
-      showLeadingVisual={showMedia}
-    >
-      <WorkoutExerciseCardDetails
-        density={viewMode}
-        chips={chips}
-        detailedMetrics={detailedMetrics}
-      />
-    </StandardExerciseRow>
+      tone={viewModel.semanticTone}
+      onPress={() => onOpen(row.exerciseId)}
+    />
   );
 });
 
@@ -285,14 +261,13 @@ export function ExerciseBrowserClient({
         : null}
 
       <div className="relative min-h-0">
-        <ul className="space-y-1 scroll-py-2">
+        <ul className="space-y-2 scroll-py-2">
           {filteredRows.map((row) => (
             <li key={row.exerciseId}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
             </li>
           ))}
         </ul>
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[rgb(var(--surface-2-soft)/0.98)] to-transparent" aria-hidden="true" />
       </div>
 
       <ExerciseInfo

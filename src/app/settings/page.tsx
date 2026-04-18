@@ -21,6 +21,14 @@ const SECTION_TITLE_CLASS_NAME = "text-[1.3125rem] font-semibold leading-[1.04] 
 export default async function SettingsPage() {
   const user = await requireUser();
   const profile = await ensureProfile(user.id);
+  const rawMetadata = user.user_metadata && typeof user.user_metadata === "object" && !Array.isArray(user.user_metadata)
+    ? user.user_metadata as Record<string, unknown>
+    : {};
+  const username = typeof rawMetadata.username === "string"
+    ? rawMetadata.username.trim()
+    : typeof rawMetadata.display_name === "string"
+      ? rawMetadata.display_name.trim()
+      : "";
   const legacyBridgeConfigured = Boolean(
     optionalEnv("LEGACY_SUPABASE_URL") && optionalEnv("LEGACY_SUPABASE_ANON_KEY"),
   );
@@ -52,7 +60,7 @@ export default async function SettingsPage() {
               className={CARD_HEADER_CLASS_NAME}
               titleClassName={SECTION_TITLE_CLASS_NAME}
             />
-            <AccountSettingsForm email={user.email ?? ""} />
+            <AccountSettingsForm email={user.email ?? ""} username={username} />
             <LegacyMigrationSettings
               legacyBridgeConfigured={legacyBridgeConfigured}
               defaultLegacyEmail={user.email ?? ""}

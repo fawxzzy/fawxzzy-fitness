@@ -76,13 +76,13 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 };
 
 const pickerRowMobileDensityClassNames = {
-  body: "max-md:gap-1.5",
-  title: "max-md:text-[0.9rem] max-md:leading-[1.2] max-md:line-clamp-2",
-  titleContainer: "max-md:space-y-0.5",
-  subtitle: "max-md:text-[10px] max-md:leading-[1.2] max-md:line-clamp-2",
-  content: "max-md:space-y-0.5",
-  trailing: "max-md:min-w-[4.7rem]",
-  selectPill: "max-md:min-h-[1.8rem] max-md:min-w-[3.4rem] max-md:px-2 max-md:text-[10px]",
+  body: "max-md:gap-1",
+  title: "max-md:text-[0.86rem] max-md:leading-[1.15] max-md:line-clamp-2",
+  titleContainer: "max-md:space-y-0.25",
+  subtitle: "max-md:text-[9px] max-md:leading-[1.15] max-md:line-clamp-2",
+  content: "max-md:space-y-0.25",
+  trailing: "max-md:min-w-[4.3rem]",
+  selectPill: "max-md:min-h-[1.65rem] max-md:min-w-[3rem] max-md:px-1.75 max-md:text-[9px]",
 } as const;
 
 function toTagArray(value: string[] | string | null | undefined) {
@@ -485,10 +485,10 @@ export function ExercisePicker({
   );
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-3">
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
-      <section className="space-y-2.5 rounded-none border-0 bg-transparent p-0 shadow-none md:rounded-[1.35rem] md:border md:border-white/14 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] md:p-3.5 md:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] lg:p-4">
+      <section className="space-y-2 rounded-none border-0 bg-transparent p-0 shadow-none md:rounded-[1.35rem] md:border md:border-white/14 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] md:p-3.5 md:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.92)] lg:p-4">
         <ExerciseSearchFilters
           query={search}
           onQueryChange={setSearch}
@@ -499,7 +499,7 @@ export function ExercisePicker({
           filterClassName="space-y-1"
         />
 
-        <section className="scroll-mb-24 space-y-1.5 px-1 md:px-0">
+        <section className="scroll-mb-24 space-y-1 px-1 md:px-0">
           <div className="flex items-center justify-between gap-2 px-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Exercise Library</p>
             <p className="text-xs text-muted">{filteredExercises.length} shown</p>

@@ -4,7 +4,7 @@ export type RememberedLoginSessionState = "ready" | "reauth-required";
 
 export type RememberedLoginState = {
   email: string;
-  firstName: string;
+  displayName: string;
   sessionState: RememberedLoginSessionState;
   updatedAt: string;
 };
@@ -24,12 +24,16 @@ function toTitleCaseSegment(value: string) {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
-export function deriveRememberedLoginFirstName(email: string) {
+export function deriveRememberedLoginDisplayName(email: string) {
   const localPart = normalizeEmail(email).split("@")[0] ?? "";
   const segments = localPart.split(/[._-]+/).filter(Boolean);
   const primarySegment = segments[0] ?? localPart;
 
   return toTitleCaseSegment(primarySegment) || "Athlete";
+}
+
+export function deriveRememberedLoginFirstName(email: string) {
+  return deriveRememberedLoginDisplayName(email);
 }
 
 export function readRememberedLoginState(): RememberedLoginState | null {
@@ -48,6 +52,7 @@ export function readRememberedLoginState(): RememberedLoginState | null {
       | {
         email?: string;
         firstName?: string;
+        displayName?: string;
         sessionState?: RememberedLoginSessionState;
         updatedAt?: string;
       };
@@ -58,9 +63,9 @@ export function readRememberedLoginState(): RememberedLoginState | null {
 
     return {
       email,
-      firstName: typeof parsed === "string"
-        ? deriveRememberedLoginFirstName(email)
-        : (parsed.firstName?.trim() || deriveRememberedLoginFirstName(email)),
+      displayName: typeof parsed === "string"
+        ? deriveRememberedLoginDisplayName(email)
+        : (parsed.displayName?.trim() || parsed.firstName?.trim() || deriveRememberedLoginDisplayName(email)),
       sessionState: typeof parsed === "string" ? "ready" : (parsed.sessionState ?? "ready"),
       updatedAt: typeof parsed === "string" ? "" : (parsed.updatedAt ?? ""),
     };
@@ -71,6 +76,7 @@ export function readRememberedLoginState(): RememberedLoginState | null {
 
 export function writeRememberedLoginState(input: {
   email: string;
+  displayName?: string;
   firstName?: string;
   sessionState?: RememberedLoginSessionState;
 }) {
@@ -86,7 +92,7 @@ export function writeRememberedLoginState(input: {
   try {
     window.localStorage.setItem(REMEMBERED_LOGIN_KEY, JSON.stringify({
       email,
-      firstName: input.firstName?.trim() || deriveRememberedLoginFirstName(email),
+      displayName: input.displayName?.trim() || input.firstName?.trim() || deriveRememberedLoginDisplayName(email),
       sessionState: input.sessionState ?? "ready",
       updatedAt: new Date().toISOString(),
     } satisfies RememberedLoginState));

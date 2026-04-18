@@ -80,6 +80,7 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
+  const username = String(formData.get("username") ?? "").trim();
 
   const supabase = supabaseServer();
   const { data, error } = await supabase.auth.signUp({
@@ -87,6 +88,12 @@ export async function signup(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${getAppOrigin()}/auth/confirm`,
+      data: username
+        ? {
+          username,
+          display_name: username,
+        }
+        : undefined,
     },
   });
 

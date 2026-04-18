@@ -1,27 +1,29 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
-import {
-  RoutinesCardList,
-  RoutinesListItem,
-  RoutinesPageScaffold,
-  RoutinesSectionCard,
-  SharedDayListSection,
-} from "@/components/routines/RoutinesScreenFamily";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import {
   DayCard,
   DayList,
+  REST_DAY_CARD_COPY,
   formatLoggedSetCount,
   resolveDayCardBadgeText,
   resolveDayCardState,
-  REST_DAY_CARD_COPY,
 } from "@/components/day-list/DayList";
-import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import {
+  ActiveRoutineStatusBadge,
+  RoutinesCardList,
+  RoutinesListItem,
+  RoutinesPageScaffold,
+  RoutinesRouteHeaderCard,
+  SharedDayListSection,
+} from "@/components/routines/RoutinesScreenFamily";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 
@@ -46,13 +48,11 @@ export type RoutineDayCardItem = {
 };
 
 const ROUTINES_IA_COPY = {
-  routineDays: {
-    title: "Routine days",
-    empty: "No routine days yet.",
-  },
   allRoutines: {
-    title: "All routines",
     listAriaLabel: "All routines list",
+  },
+  selectedRoutine: {
+    empty: "No routine days yet.",
   },
 } as const;
 
@@ -60,12 +60,10 @@ function formatRoutineCount(count: number) {
   return `${count} ${count === 1 ? "routine" : "routines"} total`;
 }
 
-function formatRoutineDayCount(count: number) {
-  return `${count} ${count === 1 ? "day" : "days"}`;
-}
-
 export function RoutinesPageClient({
   activeRoutineId,
+  activeRoutineName,
+  activeRoutineSummary,
   activeRoutineEditHref,
   newRoutineHref,
   routines,
@@ -74,6 +72,8 @@ export function RoutinesPageClient({
   initialRoutineListOpen = false,
 }: {
   activeRoutineId: string | null;
+  activeRoutineName: string | null;
+  activeRoutineSummary: string | null;
   activeRoutineEditHref: string | null;
   newRoutineHref: string;
   routines: RoutineSwitcherItem[];
@@ -84,6 +84,11 @@ export function RoutinesPageClient({
   const router = useRouter();
   const [isRoutineListOpen, setIsRoutineListOpen] = useState(initialRoutineListOpen);
   const [isPending, startTransition] = useTransition();
+  const [floatingHeaderSlot, setFloatingHeaderSlot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setFloatingHeaderSlot(document.getElementById("routines-floating-header"));
+  }, []);
 
   const handleToggleRoutineList = useCallback(() => {
     setIsRoutineListOpen((previous) => !previous);
@@ -108,7 +113,7 @@ export function RoutinesPageClient({
     : activeRoutineId
       ? "selected-routine-days"
       : "summary";
-  const allRoutinesMeta = !isRoutineListOpen && !activeRoutineId ? formatRoutineCount(routines.length) : undefined;
+  const allRoutinesMeta = formatRoutineCount(routines.length);
 
   const actionsNode = useMemo(() => {
     const toggleButton = (
@@ -124,10 +129,7 @@ export function RoutinesPageClient({
     );
 
     const editRoutineAction = activeRoutineEditHref ? (
-      <BottomDockLink
-        href={activeRoutineEditHref}
-        intent="positive"
-      >
+      <BottomDockLink href={activeRoutineEditHref} intent="positive">
         Edit
       </BottomDockLink>
     ) : (
@@ -139,10 +141,7 @@ export function RoutinesPageClient({
         <BottomActionSplit
           secondary={toggleButton}
           primary={(
-            <BottomDockLink
-              href={newRoutineHref}
-              intent="positive"
-            >
+            <BottomDockLink href={newRoutineHref} intent="positive">
               New
             </BottomDockLink>
           )}
@@ -150,57 +149,51 @@ export function RoutinesPageClient({
       );
     }
 
-    return (
-      <BottomActionSplit
-        secondary={toggleButton}
-        primary={editRoutineAction}
-      />
-    );
+    return <BottomActionSplit secondary={toggleButton} primary={editRoutineAction} />;
   }, [activeRoutineEditHref, handleToggleRoutineList, isRoutineListOpen, newRoutineHref]);
 
   usePublishBottomActions(actionsNode);
 
+  const floatingHeader = (
+    <RoutinesRouteHeaderCard
+      title={screenMode === "browse-routines" ? "All Routines" : (activeRoutineName ?? "Routine Selection")}
+      subtitle={screenMode === "browse-routines" ? allRoutinesMeta : activeRoutineSummary}
+      action={screenMode === "browse-routines" ? undefined : <ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
+    />
+  );
+
   return (
     <RoutinesPageScaffold>
+      {floatingHeaderSlot ? createPortal(floatingHeader, floatingHeaderSlot) : floatingHeader}
+
       {screenMode === "browse-routines" ? (
-        <RoutinesSectionCard
-          title={ROUTINES_IA_COPY.allRoutines.title}
-          meta={allRoutinesMeta}
-        >
-          <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel}>
-            <RoutinesCardList>
-              {routines.map((routine) => {
-                const isCurrent = routine.id === activeRoutineId;
-                return (
-                  <RoutinesListItem key={routine.id}>
-                    <StandardExerciseRow
-                      exercise={{ name: routine.name }}
-                      summary={routine.summary}
-                      variant="standard"
-                      density="compact"
-                      onPress={() => handleSwitchRoutine(routine.id)}
-                      showLeadingVisual={false}
-                      state={isCurrent ? "selected" : "default"}
-                      badgeText={isCurrent ? "ACTIVE" : undefined}
-                      rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating…</span> : undefined}
-                      className="shadow-none"
-                    />
-                  </RoutinesListItem>
-                );
-              })}
-            </RoutinesCardList>
-          </div>
-        </RoutinesSectionCard>
-      ) : allRoutinesMeta ? (
-        <RoutinesSectionCard
-          title={ROUTINES_IA_COPY.allRoutines.title}
-          meta={allRoutinesMeta}
-        >
-          <div />
-        </RoutinesSectionCard>
+        <div id="routines-switch-list" aria-label={ROUTINES_IA_COPY.allRoutines.listAriaLabel}>
+          <RoutinesCardList>
+            {routines.map((routine) => {
+              const isCurrent = routine.id === activeRoutineId;
+              return (
+                <RoutinesListItem key={routine.id}>
+                  <StandardExerciseRow
+                    exercise={{ name: routine.name }}
+                    summary={routine.summary}
+                    variant="standard"
+                    density="compact"
+                    onPress={() => handleSwitchRoutine(routine.id)}
+                    showLeadingVisual={false}
+                    state={isCurrent ? "selected" : "default"}
+                    badgeText={isCurrent ? "ACTIVE" : undefined}
+                    rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating...</span> : undefined}
+                    className="shadow-none"
+                  />
+                </RoutinesListItem>
+              );
+            })}
+          </RoutinesCardList>
+        </div>
       ) : null}
+
       {screenMode === "selected-routine-days" ? (
-        <SharedDayListSection title={ROUTINES_IA_COPY.routineDays.title} meta={formatRoutineDayCount(days.length)}>
+        <SharedDayListSection>
           {days.length > 0 ? (
             <DayList>
               {days.map((day) => {
@@ -237,7 +230,7 @@ export function RoutinesPageClient({
           ) : (
             <EmptyState
               title="No routine days"
-              body={ROUTINES_IA_COPY.routineDays.empty}
+              body={ROUTINES_IA_COPY.selectedRoutine.empty}
               action={(
                 <Link href={newRoutineHref} className={getAppButtonClassName({ variant: "secondary", fullWidth: true })}>
                   Create a routine

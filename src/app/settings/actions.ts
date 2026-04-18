@@ -7,9 +7,11 @@ import { supabaseServer } from "@/lib/supabase/server";
 export type EmailUpdateState = {
   status: "idle" | "success" | "error";
   message?: string;
+  updatedDisplayName?: string;
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_REGEX = /^[A-Za-z0-9._-]{2,24}$/;
 const PROFILE_PREFERENCE_COLUMN_MISSING_MESSAGE =
   "Unit preferences require the latest profile migration. Run migrations and try again.";
 
@@ -29,20 +31,53 @@ function isMissingProfilePreferenceColumnError(error: { message?: string } | nul
   );
 }
 
+function toMetadataRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 export async function updateAccountEmailAction(formData: FormData): Promise<EmailUpdateState> {
   const user = await requireUser();
   const supabase = supabaseServer();
   const nextEmail = String(formData.get("email") ?? "").trim().toLowerCase();
+  const nextUsername = String(formData.get("username") ?? "").trim();
+  const currentMetadata = toMetadataRecord(user.user_metadata);
+  const currentUsername = typeof currentMetadata.username === "string"
+    ? currentMetadata.username.trim()
+    : typeof currentMetadata.display_name === "string"
+      ? currentMetadata.display_name.trim()
+      : "";
 
   if (!nextEmail || !EMAIL_REGEX.test(nextEmail)) {
     return { status: "error", message: "Enter a valid email address." };
   }
 
-  if ((user.email ?? "").toLowerCase() === nextEmail) {
-    return { status: "success", message: "Email is already up to date." };
+  if (nextUsername && !USERNAME_REGEX.test(nextUsername)) {
+    return {
+      status: "error",
+      message: "Username must be 2-24 characters and use letters, numbers, periods, underscores, or hyphens.",
+    };
   }
 
-  const { error } = await supabase.auth.updateUser({ email: nextEmail });
+  const emailChanged = (user.email ?? "").toLowerCase() !== nextEmail;
+  const usernameChanged = currentUsername !== nextUsername;
+
+  if (!emailChanged && !usernameChanged) {
+    return { status: "success", message: "Account details are already up to date.", updatedDisplayName: nextUsername };
+  }
+
+  const nextMetadata = {
+    ...currentMetadata,
+    username: nextUsername || null,
+    display_name: nextUsername || null,
+  };
+
+  const { error } = await supabase.auth.updateUser({
+    email: emailChanged ? nextEmail : undefined,
+    data: usernameChanged ? nextMetadata : undefined,
+  });
+
   if (error) {
     return { status: "error", message: error.message || "Unable to update email right now." };
   }
@@ -50,7 +85,10 @@ export async function updateAccountEmailAction(formData: FormData): Promise<Emai
   revalidatePath("/settings");
   return {
     status: "success",
-    message: "Check your inbox to confirm this email change.",
+    message: emailChanged
+      ? "Account updated. Check your inbox to confirm the new email if required."
+      : "Username updated.",
+    updatedDisplayName: nextUsername,
   };
 }
 
