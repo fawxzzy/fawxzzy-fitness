@@ -4,6 +4,7 @@ import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -129,17 +130,44 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const badgeText = row.prCount > 0 ? `${row.prCount} PR` : undefined;
 
   return (
-    <HistoryExerciseCard
-      title={displayName}
-      summaryLabel={viewModel.summaryLabel}
-      summary={primaryLine}
-      metadata={metadata || undefined}
-      badgeText={badgeText}
-      metrics={viewModel.detailedMetrics}
-      density={viewMode}
-      tone={viewModel.semanticTone}
-      onPress={() => onOpen(row.exerciseId)}
-    />
+    viewMode === "compact" ? (
+      <StandardExerciseRow
+        exercise={{
+          name: displayName,
+          slug: row.slug,
+          image_path: row.image_path,
+          image_icon_path: row.image_icon_path,
+          image_howto_path: row.image_howto_path,
+        }}
+        summary={primaryLine}
+        summaryLabel={viewModel.summaryLabel}
+        badgeText={badgeText}
+        variant="interactive"
+        density="compact"
+        semanticTone={viewModel.semanticTone}
+        surface="current-session"
+        showLeadingVisual
+        onPress={() => onOpen(row.exerciseId)}
+      >
+        {metadata ? (
+          <p className="text-[11px] leading-[1.3] text-[rgb(var(--text-muted)/0.88)] [text-wrap:pretty]">
+            {metadata}
+          </p>
+        ) : null}
+      </StandardExerciseRow>
+    ) : (
+      <HistoryExerciseCard
+        title={displayName}
+        summaryLabel={viewModel.summaryLabel}
+        summary={primaryLine}
+        metadata={metadata || undefined}
+        badgeText={badgeText}
+        metrics={viewModel.detailedMetrics}
+        density={viewMode}
+        tone={viewModel.semanticTone}
+        onPress={() => onOpen(row.exerciseId)}
+      />
+    )
   );
 });
 

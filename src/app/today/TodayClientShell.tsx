@@ -8,7 +8,6 @@ import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
@@ -123,11 +122,11 @@ export function TodayClientShell({
     return (
       <ContentRail>
         <ScreenScaffold recipe="todayOverview" className="w-full">
-          <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+          <div className="space-y-2.5">
             <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">
               Go to Routines
             </Link>
-          </SharedSectionShell>
+          </div>
         </ScreenScaffold>
       </ContentRail>
     );
@@ -135,9 +134,9 @@ export function TodayClientShell({
 
   return (
     <ContentRail>
-        <ScreenScaffold recipe="todayOverview" className="w-full">
-          <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
-            <OfflineSyncBadge userId={userId} />
+      <ScreenScaffold recipe="todayOverview" className="w-full">
+        <div className="space-y-2.5">
+          <OfflineSyncBadge userId={userId} />
           {display.staleAt ? (
             <AccentSubtitleText className="rounded-md border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] px-3 py-2 text-xs text-[rgb(var(--accent-yellow-on))]">
               Offline snapshot - stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
@@ -165,7 +164,7 @@ export function TodayClientShell({
               Start session requires a live connection.
             </SubtitleText>
           )}
-        </SharedSectionShell>
+        </div>
       </ScreenScaffold>
     </ContentRail>
   );

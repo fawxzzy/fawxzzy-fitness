@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
@@ -106,7 +105,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
         )}
       >
         {detailSectionVisible ? (
-          <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
+          <div className="space-y-3">
             {hasWarningSummary ? (
               <DayDetailStateCard
                 tone="warning"
@@ -166,7 +165,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                 body="Add exercises to this day to start a workout."
               />
             )}
-          </SharedSectionShell>
+          </div>
         ) : null}
 
         <PublishBottomActions>
