@@ -47,8 +47,10 @@ Define the canonical ownership and public boundary for the extracted mobile-regr
 
 - The canonical fixture suite is the consolidated `tests/mobile-regression/*` set.
 - Docs, tooling, and follow-on edits should reference only the consolidated `tests/mobile-regression/*` suite.
+- Targeted harness parity typechecking lives in `tsconfig.mobile-regression.json`.
 - Repo verification remains `npm run verify`.
 - Mobile-regression fixture verification remains `npm run test:mobile-regression-fixtures`.
+- Mobile-regression harness parity verification remains `npm run verify:mobile-regression`.
 
 ## Non-goals
 

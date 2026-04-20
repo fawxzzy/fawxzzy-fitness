@@ -121,14 +121,15 @@ export function TodayDayPicker({
 
   useEffect(() => {
     if (!floatingHeaderSlotId) return;
-    const syncSlot = () => setFloatingHeaderTarget(document.getElementById(floatingHeaderSlotId));
+    const syncSlot = () => {
+      const nextTarget = document.getElementById(floatingHeaderSlotId);
+      setFloatingHeaderTarget((current) => (current === nextTarget ? current : nextTarget));
+    };
+
     syncSlot();
-    const observer = new MutationObserver(syncSlot);
-    observer.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener("resize", syncSlot);
+    const frameId = window.requestAnimationFrame(syncSlot);
     return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", syncSlot);
+      window.cancelAnimationFrame(frameId);
     };
   }, [floatingHeaderSlotId]);
 

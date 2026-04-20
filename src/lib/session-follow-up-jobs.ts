@@ -36,8 +36,10 @@ export async function processSessionFollowUpJobs(args: {
   affectedExerciseIds: string[];
   now?: Date;
 }) {
-  const { fitnessIntegrationClient } = await import("@/lib/ecosystem/fitness-integration-client");
-  const { publishFitnessIntegrationStateForMember } = await import("@/lib/ecosystem/fitness-integration-server");
+  const {
+    publishFitnessIntegrationStateForMember,
+    recordFitnessSignalForMember,
+  } = await import("@/lib/ecosystem/fitness-integration-server");
   const { recomputeExerciseStatsForExercises } = await import("@/lib/exercise-stats");
   const { supabaseServer } = await import("@/lib/supabase/server");
   const supabase = supabaseServer();
@@ -79,7 +81,7 @@ export async function processSessionFollowUpJobs(args: {
       await recomputeExerciseStatsForExercises(args.userId, args.affectedExerciseIds);
     },
     fitness_integrations: async () => {
-      fitnessIntegrationClient.packageSignal({
+      await recordFitnessSignalForMember({
         memberId: args.userId,
         signalType: "workout_completed",
         reason: "session_completed",

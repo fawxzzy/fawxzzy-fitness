@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas.fitness.funnel-dashboard-pack.schema.v1",
+  "title": "ATLAS/Fitness Funnel Dashboard Pack",
+  "type": "object",
+  "required": [
+    "pack_id",
+    "pack_version",
+    "status",
+    "owner_repo_id",
+    "consumer_of_pack_version",
+    "warehouse_sink",
+    "selected_funnels",
+    "selected_kpis",
+    "dashboard_views",
+    "warehouse_queries",
+    "acceptance_checks"
+  ],
+  "properties": {
+    "pack_id": {
+      "type": "string",
+      "const": "atlas-fitness-funnel-dashboard-pack"
+    },
+    "pack_version": {
+      "type": "string",
+      "const": "atlas.fitness.funnel-dashboard-pack.v1"
+    },
+    "status": {
+      "type": "string"
+    },
+    "owner_repo_id": {
+      "type": "string",
+      "const": "fitness"
+    },
+    "consumer_of_pack_version": {
+      "type": "string",
+      "const": "atlas.fitness.wave-2-metrics-pack.v1"
+    },
+    "warehouse_sink": {
+      "type": "string"
+    },
+    "selected_funnels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "selected_kpis": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "dashboard_views": {
+      "type": "array",
+      "minItems": 1
+    },
+    "warehouse_queries": {
+      "type": "object",
+      "required": [
+        "denominators",
+        "numerators"
+      ]
+    },
+    "acceptance_checks": {
+      "type": "array",
+      "minItems": 1
+    }
+  }
+}

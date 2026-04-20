@@ -1,0 +1,174 @@
+{
+  "pack_id": "atlas-fitness-funnel-dashboard-pack",
+  "pack_version": "atlas.fitness.funnel-dashboard-pack.v1",
+  "status": "owner_candidate",
+  "owner_repo_id": "fitness",
+  "consumer_of_pack_version": "atlas.fitness.wave-2-metrics-pack.v1",
+  "warehouse_sink": "runtime/receipts/events",
+  "selected_funnels": [
+    "weekly_adherence_funnel",
+    "recovery_guardrail_funnel"
+  ],
+  "selected_kpis": [
+    "weekly_goal_hit_rate",
+    "workout_completion_rate",
+    "recovery_warning_rate",
+    "recovery_guardrail_application_rate"
+  ],
+  "dashboard_views": [
+    {
+      "view_id": "weekly-adherence-overview",
+      "label": "Weekly adherence overview",
+      "funnel_id": "weekly_adherence_funnel",
+      "kpi_ids": [
+        "weekly_goal_hit_rate",
+        "workout_completion_rate"
+      ],
+      "default_window": "current_iso_week"
+    },
+    {
+      "view_id": "recovery-guardrail-overview",
+      "label": "Recovery guardrail overview",
+      "funnel_id": "recovery_guardrail_funnel",
+      "kpi_ids": [
+        "recovery_warning_rate",
+        "recovery_guardrail_application_rate"
+      ],
+      "default_window": "rolling_7d"
+    }
+  ],
+  "warehouse_queries": {
+    "denominators": [
+      {
+        "denominator_id": "planned_weekly_member_window",
+        "event_kind": "snapshot",
+        "event_types": [
+          "weekly_progress_state"
+        ],
+        "correlation_keys": [
+          "member_id",
+          "week_start_date"
+        ],
+        "filters": [
+          {
+            "field": "payload.plannedWorkoutCount",
+            "operator": ">",
+            "value": 0
+          }
+        ]
+      },
+      {
+        "denominator_id": "tracked_session_outcome_window",
+        "event_kind": "signal",
+        "event_types": [
+          "workout_completed",
+          "workout_missed"
+        ],
+        "correlation_keys": [
+          "member_id",
+          "session_id"
+        ]
+      },
+      {
+        "denominator_id": "readiness_observation_window",
+        "event_kind": "snapshot",
+        "event_types": [
+          "athlete_readiness_state"
+        ],
+        "correlation_keys": [
+          "member_id",
+          "observed_day"
+        ]
+      },
+      {
+        "denominator_id": "recovery_warning_lineage_window",
+        "event_kind": "signal",
+        "event_types": [
+          "recovery_warning"
+        ],
+        "correlation_keys": [
+          "member_id",
+          "outbound_id"
+        ]
+      }
+    ],
+    "numerators": [
+      {
+        "kpi_id": "weekly_goal_hit_rate",
+        "event_kind": "signal",
+        "event_types": [
+          "weekly_goal_hit"
+        ],
+        "correlation_keys": [
+          "member_id",
+          "week_start_date"
+        ],
+        "denominator_id": "planned_weekly_member_window"
+      },
+      {
+        "kpi_id": "workout_completion_rate",
+        "event_kind": "signal",
+        "event_types": [
+          "workout_completed"
+        ],
+        "correlation_keys": [
+          "member_id",
+          "session_id"
+        ],
+        "denominator_id": "tracked_session_outcome_window"
+      },
+      {
+        "kpi_id": "recovery_warning_rate",
+        "event_kind": "signal",
+        "event_types": [
+          "recovery_warning"
+        ],
+        "correlation_keys": [
+          "member_id",
+          "observed_day"
+        ],
+        "denominator_id": "readiness_observation_window"
+      },
+      {
+        "kpi_id": "recovery_guardrail_application_rate",
+        "event_kind": "receipt",
+        "event_types": [
+          "recovery_guardrail_applied"
+        ],
+        "correlation_keys": [
+          "member_id",
+          "source_outbound_id"
+        ],
+        "denominator_id": "recovery_warning_lineage_window",
+        "requires_lineage_match_to": "recovery_warning"
+      }
+    ]
+  },
+  "acceptance_checks": [
+    {
+      "check_id": "weekly-goal-hit-denominator-match",
+      "metrics_pack_check_id": "weekly-adherence-funnel-uses-frozen-weekly-grain",
+      "description": "Weekly goal hit rate uses the same member/week denominator as weekly_progress_state.",
+      "expected_relations": [
+        "kpi.weekly_goal_hit_rate.denominator == funnel.weekly_adherence_funnel.stage.weekly_progress_state_available"
+      ]
+    },
+    {
+      "check_id": "session-outcome-denominator-match",
+      "metrics_pack_check_id": "session-outcomes-use-session-grain",
+      "description": "Workout completion denominator equals distinct completed-or-missed session outcomes.",
+      "expected_relations": [
+        "kpi.workout_completion_rate.denominator == distinct(signal.workout_completed, signal.workout_missed by member_id + session_id)"
+      ]
+    },
+    {
+      "check_id": "recovery-lineage-match",
+      "metrics_pack_check_id": "recovery-funnel-joins-warning-lineage-to-receipts",
+      "description": "Recovery guardrail conversion only counts receipts whose source_outbound_id matches a recovery_warning outbound_id.",
+      "expected_relations": [
+        "kpi.recovery_guardrail_application_rate.numerator <= kpi.recovery_guardrail_application_rate.denominator",
+        "receipt.recovery_guardrail_applied.source_outbound_id must match signal.recovery_warning.outbound_id"
+      ]
+    }
+  ]
+}

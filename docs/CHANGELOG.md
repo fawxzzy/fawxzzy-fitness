@@ -5422,3 +5422,16 @@ WHY:
 
 * Fitness is the first vertical owner repo in the current ATLAS rollout and needed one stable repo-owned adoption surface ATLAS root can ingest later without repo-specific scraping.
 * This keeps owner truth in Playbook, keeps repo truth in Fitness, and makes continuity and trust posture explicit instead of implied by repo visibility.
+
+## [v0.4.43] - Guardrail: add targeted mobile-regression harness parity verification
+
+### WHAT
+
+* Added `tsconfig.mobile-regression.json` plus `npm run typecheck:mobile-regression-harness` so the dev-only mobile regression route can be typechecked directly against live screen contracts without waiting for a full Next production build.
+* Added `npm run verify:mobile-regression` to pair the targeted harness typecheck with the existing deterministic mobile-regression fixture suite.
+* Promoted the new guard into `verify:strict` and `sanity`, and updated verification/governance docs to treat harness parity as part of the normal release lane.
+
+### WHY
+
+* A recent prod blocker came from regression-harness prop drift on a dev-only route, even though the real product path was healthy.
+* Catching harness contract drift before `next build` shortens the feedback loop and makes the release gate fail for the right reason earlier.

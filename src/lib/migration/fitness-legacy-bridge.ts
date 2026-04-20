@@ -82,6 +82,15 @@ type ImportExerciseResolution = {
   importedUserOwnedExercises: number;
 };
 
+type ImportableRoutineDayExercise = FitnessLegacyRoutineDayExerciseSnapshot & {
+  importedExerciseId: string;
+};
+
+type ImportableSessionExercise = FitnessLegacySessionExerciseSnapshot & {
+  importedExerciseId: string;
+  importedRoutineDayExerciseId: string | null;
+};
+
 type ExistingExerciseLookupRow = {
   id: string | null;
   name: string | null;
@@ -1014,6 +1023,66 @@ export async function importFitnessLegacySnapshot(args: {
       position,
     }),
   });
+  const importableRoutineIds = new Set(args.snapshot.routines.map((routine) => routine.legacy_routine_id));
+  const importableRoutineDays = args.snapshot.routine_days.filter((day) =>
+    importableRoutineIds.has(day.legacy_routine_id),
+  );
+  const importableRoutineDayIds = new Set(
+    importableRoutineDays.map((day) => day.legacy_routine_day_id),
+  );
+  const importableRoutineDayExercises: ImportableRoutineDayExercise[] = normalizedRoutineDayExercises.flatMap((exercise) => {
+    const importedExerciseId = legacyToTargetExerciseId.get(exercise.legacy_exercise_id);
+    if (!importableRoutineDayIds.has(exercise.legacy_routine_day_id) || !importedExerciseId) {
+      return [];
+    }
+
+    return [{
+      ...exercise,
+      importedExerciseId,
+    }];
+  });
+  const importableRoutineDayExerciseIds = new Set(
+    importableRoutineDayExercises.map((exercise) => exercise.legacy_routine_day_exercise_id),
+  );
+  const importableSessions = args.snapshot.sessions.map((session) => ({
+    ...session,
+    legacy_routine_id: session.legacy_routine_id && importableRoutineIds.has(session.legacy_routine_id)
+      ? session.legacy_routine_id
+      : null,
+  }));
+  const importableSessionIds = new Set(
+    importableSessions.map((session) => session.legacy_session_id),
+  );
+  const importableSessionExercises: ImportableSessionExercise[] = normalizedSessionExercises.flatMap((exercise) => {
+    const importedExerciseId = legacyToTargetExerciseId.get(exercise.legacy_exercise_id);
+    if (!importableSessionIds.has(exercise.legacy_session_id) || !importedExerciseId) {
+      return [];
+    }
+
+    return [{
+      ...exercise,
+      importedExerciseId,
+      importedRoutineDayExerciseId:
+        exercise.legacy_routine_day_exercise_id
+        && importableRoutineDayExerciseIds.has(exercise.legacy_routine_day_exercise_id)
+          ? exercise.legacy_routine_day_exercise_id
+          : null,
+    }];
+  });
+  const importableSessionExerciseIds = new Set(
+    importableSessionExercises.map((exercise) => exercise.legacy_session_exercise_id),
+  );
+  const importableSets = args.snapshot.sets.filter((set) =>
+    importableSessionExerciseIds.has(set.legacy_session_exercise_id),
+  );
+  const importedCounts = getFitnessLegacySnapshotSignoffCounts({
+    ...args.snapshot,
+    routine_days: importableRoutineDays,
+    routine_day_exercises: importableRoutineDayExercises,
+    sessions: importableSessions,
+    session_exercises: importableSessionExercises,
+    sets: importableSets,
+  });
 
   if (args.allowMerge) {
     await deleteExistingUserRowsByIds({
@@ -1061,11 +1130,11 @@ export async function importFitnessLegacySnapshot(args: {
     }
   }
 
-  if (args.snapshot.routine_days.length > 0) {
+  if (importableRoutineDays.length > 0) {
     const { error } = await args.admin
       .from("routine_days")
       .upsert(
-        args.snapshot.routine_days.map((day) => ({
+        importableRoutineDays.map((day) => ({
           id: day.legacy_routine_day_id,
           user_id: args.newUserId,
           routine_id: day.legacy_routine_id,
@@ -1083,23 +1152,15 @@ export async function importFitnessLegacySnapshot(args: {
     }
   }
 
-  if (normalizedRoutineDayExercises.length > 0) {
+  if (importableRoutineDayExercises.length > 0) {
     const { error } = await args.admin
       .from("routine_day_exercises")
       .upsert(
-        normalizedRoutineDayExercises.map((exercise) => {
-          const exerciseId = legacyToTargetExerciseId.get(exercise.legacy_exercise_id);
-          if (!exerciseId) {
-            throw new Error(
-              `Missing imported exercise mapping for routine-day exercise ${exercise.legacy_routine_day_exercise_id}.`,
-            );
-          }
-
-          return {
+        importableRoutineDayExercises.map((exercise) => ({
             id: exercise.legacy_routine_day_exercise_id,
             user_id: args.newUserId,
             routine_day_id: exercise.legacy_routine_day_id,
-            exercise_id: exerciseId,
+            exercise_id: exercise.importedExerciseId,
             position: exercise.position,
             target_sets: exercise.target_sets,
             target_reps: exercise.target_reps,
@@ -1115,8 +1176,7 @@ export async function importFitnessLegacySnapshot(args: {
             default_unit: exercise.default_unit,
             notes: exercise.notes,
             created_at: exercise.created_at ?? new Date().toISOString(),
-          };
-        }),
+          })),
         { onConflict: "id" },
       );
 
@@ -1125,11 +1185,11 @@ export async function importFitnessLegacySnapshot(args: {
     }
   }
 
-  if (args.snapshot.sessions.length > 0) {
+  if (importableSessions.length > 0) {
     const { error } = await args.admin
       .from("sessions")
       .upsert(
-        args.snapshot.sessions.map((session) => ({
+        importableSessions.map((session) => ({
           id: session.legacy_session_id,
           user_id: args.newUserId,
           routine_id: session.legacy_routine_id,
@@ -1150,24 +1210,16 @@ export async function importFitnessLegacySnapshot(args: {
     }
   }
 
-  if (normalizedSessionExercises.length > 0) {
+  if (importableSessionExercises.length > 0) {
     const { error } = await args.admin
       .from("session_exercises")
       .upsert(
-        normalizedSessionExercises.map((exercise) => {
-          const exerciseId = legacyToTargetExerciseId.get(exercise.legacy_exercise_id);
-          if (!exerciseId) {
-            throw new Error(
-              `Missing imported exercise mapping for session exercise ${exercise.legacy_session_exercise_id}.`,
-            );
-          }
-
-          return {
+        importableSessionExercises.map((exercise) => ({
             id: exercise.legacy_session_exercise_id,
             session_id: exercise.legacy_session_id,
             user_id: args.newUserId,
-            exercise_id: exerciseId,
-            routine_day_exercise_id: exercise.legacy_routine_day_exercise_id,
+            exercise_id: exercise.importedExerciseId,
+            routine_day_exercise_id: exercise.importedRoutineDayExerciseId,
             position: exercise.position,
             performed_index: exercise.performed_index,
             is_skipped: exercise.is_skipped,
@@ -1193,8 +1245,7 @@ export async function importFitnessLegacySnapshot(args: {
             target_calories: exercise.target_calories,
             target_calories_min: exercise.target_calories_min,
             target_calories_max: exercise.target_calories_max,
-          };
-        }),
+          })),
         { onConflict: "id" },
       );
 
@@ -1203,11 +1254,11 @@ export async function importFitnessLegacySnapshot(args: {
     }
   }
 
-  if (args.snapshot.sets.length > 0) {
+  if (importableSets.length > 0) {
     const { error } = await args.admin
       .from("sets")
       .upsert(
-        args.snapshot.sets.map((set) => ({
+        importableSets.map((set) => ({
           id: set.legacy_set_id,
           client_log_id: set.client_log_id,
           session_exercise_id: set.legacy_session_exercise_id,
@@ -1260,16 +1311,14 @@ export async function importFitnessLegacySnapshot(args: {
   return {
     legacyUserId: args.snapshot.identity.legacy_user_id,
     newUserId: args.newUserId,
-    importedCounts: getFitnessLegacySnapshotSignoffCounts(args.snapshot),
+    importedCounts,
     resolvedGlobalExercises: exerciseResolution.resolvedGlobalExercises,
     createdGlobalExercises: exerciseResolution.createdGlobalExercises,
     importedUserOwnedExercises: exerciseResolution.importedUserOwnedExercises,
     affectedExerciseIds: Array.from(
       new Set(
-        args.snapshot.session_exercises
-          .map((exercise) =>
-            legacyToTargetExerciseId.get(exercise.legacy_exercise_id) ?? null,
-          )
+        importableSessionExercises
+          .map((exercise) => exercise.importedExerciseId)
           .filter((exerciseId): exerciseId is string => Boolean(exerciseId)),
       ),
     ),

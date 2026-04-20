@@ -80,13 +80,9 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
 
   useEffect(() => {
     for (const link of links) {
-      if (pathname === link.href || pathname.startsWith(`${link.href}/`)) {
-        continue;
-      }
-
       router.prefetch(link.href);
     }
-  }, [pathname, router]);
+  }, [router]);
 
   useEffect(() => {
     setPendingHref(null);

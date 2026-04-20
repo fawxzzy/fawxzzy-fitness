@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas.fitness.wave-2-metrics-pack.schema.v1",
+  "title": "ATLAS/Fitness Wave 2 Metrics Pack",
+  "type": "object",
+  "required": [
+    "pack_id",
+    "pack_version",
+    "status",
+    "lane",
+    "owner_repo_id",
+    "doctrine_repo_ids",
+    "consumer_repo_ids",
+    "frozen_fields",
+    "evidence_refs",
+    "shared_nouns",
+    "correlation_keys",
+    "denominators",
+    "funnel_definitions",
+    "kpis",
+    "dashboard_acceptance_checks"
+  ],
+  "properties": {
+    "pack_id": {
+      "type": "string",
+      "const": "atlas-fitness-wave-2-metrics-pack"
+    },
+    "pack_version": {
+      "type": "string",
+      "const": "atlas.fitness.wave-2-metrics-pack.v1"
+    },
+    "status": {
+      "type": "string"
+    },
+    "lane": {
+      "type": "string",
+      "const": "wave_2_metrics"
+    },
+    "owner_repo_id": {
+      "type": "string",
+      "const": "fitness"
+    },
+    "doctrine_repo_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "consumer_repo_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "frozen_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 6
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "shared_nouns": {
+      "type": "array",
+      "minItems": 1
+    },
+    "correlation_keys": {
+      "type": "array",
+      "minItems": 1
+    },
+    "denominators": {
+      "type": "array",
+      "minItems": 1
+    },
+    "funnel_definitions": {
+      "type": "array",
+      "minItems": 1
+    },
+    "kpis": {
+      "type": "array",
+      "minItems": 1
+    },
+    "dashboard_acceptance_checks": {
+      "type": "array",
+      "minItems": 1
+    }
+  }
+}

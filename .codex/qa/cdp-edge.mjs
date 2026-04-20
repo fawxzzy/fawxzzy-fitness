@@ -190,6 +190,43 @@ async function runAction(client, action) {
     return;
   }
 
+  if (action.type === "evaluate") {
+    await client.send("Runtime.evaluate", {
+      expression: String(action.expression ?? ""),
+      returnByValue: true,
+      awaitPromise: true,
+    });
+    return;
+  }
+
+  if (action.type === "typeText") {
+    const selector = JSON.stringify(action.selector);
+    const text = String(action.text ?? "");
+
+    const focused = await client.send("Runtime.evaluate", {
+      expression: `
+        (() => {
+          const element = document.querySelector(${selector});
+          if (!element) return false;
+          element.focus();
+          if ("value" in element) {
+            element.value = "";
+          }
+          return true;
+        })()
+      `,
+      returnByValue: true,
+      awaitPromise: true,
+    });
+
+    if (!focused.result?.value) {
+      throw new Error(`Could not focus selector for typing: ${action.selector}`);
+    }
+
+    await client.send("Input.insertText", { text });
+    return;
+  }
+
   if (action.type === "setValue") {
     const selector = JSON.stringify(action.selector);
     const value = JSON.stringify(action.value);
@@ -286,8 +323,11 @@ async function main() {
   }
 
   const edge = spawn(EDGE_PATH, [
-    "--headless",
+    "--headless=new",
     "--disable-gpu",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--remote-allow-origins=*",
     `--remote-debugging-port=${requestedPort ?? 0}`,
     `--user-data-dir=${profileDir}`,
     "about:blank",

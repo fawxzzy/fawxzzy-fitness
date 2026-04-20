@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/app/dev/mobile-regression/**/*.ts",
+    "src/app/dev/mobile-regression/**/*.tsx",
+    "src/features/mobile-regression/**/*.ts",
+    "src/features/mobile-regression/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

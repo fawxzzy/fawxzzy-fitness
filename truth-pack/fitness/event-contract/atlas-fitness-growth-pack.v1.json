@@ -1,0 +1,264 @@
+{
+  "pack_id": "atlas-fitness-growth-pack",
+  "pack_version": "atlas.fitness.growth-pack.v1",
+  "status": "owner_shadow_candidate",
+  "lane": "wave_2_growth",
+  "owner_repo_id": "fitness",
+  "consumer_of_pack_versions": [
+    "atlas.fitness.wave-2-metrics-pack.v1",
+    "atlas.fitness.funnel-dashboard-pack.v1"
+  ],
+  "frozen_fields": [
+    "eligibility_rules",
+    "suppression_rules",
+    "placement_contract",
+    "attribution_fields",
+    "deep_link_fields",
+    "cohort_flag_behavior",
+    "acceptance_checks"
+  ],
+  "evidence_refs": [
+    "truth-pack/fitness/event-contract/atlas-fitness-wave-2-metrics-pack.v1.json",
+    "truth-pack/fitness/event-contract/atlas-fitness-funnel-dashboard-pack.v1.json",
+    "src/lib/ecosystem/fitness-funnel-dashboard.ts",
+    "src/lib/ecosystem/fitness-shadow-events.ts",
+    "src/lib/ecosystem/fitness-growth-shadow.ts",
+    "docs/architecture/fitness-integration.md"
+  ],
+  "placement_contract": {
+    "placement_id": "recovery_reset_shadow_placement",
+    "label": "Recovery reset follow-up",
+    "mode": "shadow_only",
+    "surface_id": "today_recovery_banner",
+    "surface_family": "today",
+    "trigger": {
+      "funnel_id": "recovery_guardrail_funnel",
+      "stage_id": "recovery_warning",
+      "event_kind": "signal",
+      "event_type": "recovery_warning",
+      "entity_grain": "member_id + outbound_id"
+    },
+    "hypothesis": "Members who meet the frozen recovery-warning and open-week criteria should show higher recovery-guardrail follow-through when a single shadow recovery reset placement is eligible, unsuppressed, and measured against the pinned dashboard pack.",
+    "success_kpi_ids": [
+      "recovery_guardrail_application_rate",
+      "recovery_warning_rate"
+    ],
+    "measurement_window": "rolling_7d"
+  },
+  "eligibility_rules": [
+    {
+      "rule_id": "actionable_recovery_warning",
+      "description": "Candidate must originate from a recovery_warning signal whose warningLevel is warning or critical.",
+      "correlation_keys": [
+        "member_id",
+        "outbound_id",
+        "observed_day"
+      ],
+      "event_refs": [
+        "recovery_warning"
+      ],
+      "criteria": [
+        "Trigger event_kind is signal and event_type is recovery_warning.",
+        "payload.warningLevel is warning or critical.",
+        "member_id and outbound_id are both present."
+      ]
+    },
+    {
+      "rule_id": "open_weekly_progress_window",
+      "description": "Candidate must map onto an open weekly progress window where plannedWorkoutCount is greater than completedWorkoutCount.",
+      "correlation_keys": [
+        "member_id",
+        "week_start_date"
+      ],
+      "event_refs": [
+        "weekly_progress_state"
+      ],
+      "criteria": [
+        "A weekly_progress_state snapshot exists at or before the trigger time for the same member_id + week_start_date.",
+        "plannedWorkoutCount is greater than 0.",
+        "completedWorkoutCount is less than plannedWorkoutCount."
+      ]
+    }
+  ],
+  "suppression_rules": [
+    {
+      "rule_id": "skip_if_recent_recovery_guardrail_exists",
+      "description": "Suppress when the member already has a recovery_guardrail_applied receipt in the prior 72 hours.",
+      "correlation_keys": [
+        "member_id"
+      ],
+      "event_refs": [
+        "recovery_guardrail_applied"
+      ],
+      "window": "prior_72h"
+    },
+    {
+      "rule_id": "skip_if_weekly_goal_already_hit",
+      "description": "Suppress when the member already reached weekly_goal_hit for the same week before the trigger time.",
+      "correlation_keys": [
+        "member_id",
+        "week_start_date"
+      ],
+      "event_refs": [
+        "weekly_goal_hit"
+      ],
+      "window": "same_week_before_trigger"
+    },
+    {
+      "rule_id": "skip_if_recent_schedule_adjustment_exists",
+      "description": "Suppress when the member already received a schedule_adjustment_applied receipt in the prior 7 days.",
+      "correlation_keys": [
+        "member_id"
+      ],
+      "event_refs": [
+        "schedule_adjustment_applied"
+      ],
+      "window": "prior_7d"
+    }
+  ],
+  "attribution_fields": [
+    {
+      "field": "placementId",
+      "required": true,
+      "source": "placement_contract.placement_id"
+    },
+    {
+      "field": "placementVersion",
+      "required": true,
+      "source": "pack_version"
+    },
+    {
+      "field": "memberId",
+      "required": true,
+      "source": "candidate.member_id"
+    },
+    {
+      "field": "sourceOutboundId",
+      "required": true,
+      "source": "candidate.outbound_id"
+    },
+    {
+      "field": "weekStartDate",
+      "required": true,
+      "source": "candidate.week_start_date"
+    },
+    {
+      "field": "cohortId",
+      "required": true,
+      "source": "candidate.cohort_id"
+    },
+    {
+      "field": "experimentArm",
+      "required": true,
+      "source": "candidate.experiment_arm"
+    },
+    {
+      "field": "metricWindow",
+      "required": true,
+      "source": "placement_contract.measurement_window"
+    }
+  ],
+  "deep_link_fields": [
+    {
+      "field": "pathname",
+      "required": true,
+      "value": "/today"
+    },
+    {
+      "field": "memberId",
+      "required": true,
+      "source": "candidate.member_id"
+    },
+    {
+      "field": "sourceOutboundId",
+      "required": true,
+      "source": "candidate.outbound_id"
+    },
+    {
+      "field": "placementId",
+      "required": true,
+      "source": "placement_contract.placement_id"
+    },
+    {
+      "field": "cohortId",
+      "required": true,
+      "source": "candidate.cohort_id"
+    }
+  ],
+  "cohort_flag_behavior": {
+    "flag_key": "fitness_growth_shadow_recovery_reset_v1",
+    "assignment_unit": "member_id + week_start_date",
+    "hash_strategy": "stable_mod_100",
+    "shadow_only": true,
+    "arms": [
+      {
+        "arm_id": "control_shadow",
+        "allocation_percent": 50,
+        "placement_enabled": false
+      },
+      {
+        "arm_id": "treatment_shadow",
+        "allocation_percent": 50,
+        "placement_enabled": true
+      }
+    ]
+  },
+  "acceptance_checks": [
+    {
+      "check_id": "growth-pack-stays-pinned-to-frozen-wave-2-packs",
+      "metrics_pack_check_ids": [
+        "recovery-funnel-joins-warning-lineage-to-receipts"
+      ],
+      "dashboard_pack_check_ids": [
+        "recovery-lineage-match"
+      ],
+      "criteria": [
+        "consumer_of_pack_versions includes the frozen metrics and funnel/dashboard pack versions.",
+        "placement_contract.trigger points at the recovery_warning stage already selected by the dashboard pack.",
+        "No later-lane auth, shared UI, or ML nouns are introduced here."
+      ]
+    },
+    {
+      "check_id": "shadow-placement-stays-inside-recovery-warning-stage",
+      "metrics_pack_check_ids": [
+        "recovery-funnel-joins-warning-lineage-to-receipts"
+      ],
+      "dashboard_pack_check_ids": [
+        "recovery-lineage-match"
+      ],
+      "criteria": [
+        "Placed plus suppressed candidates must never exceed the recovery_warning stage count from the dashboard report.",
+        "Only recovery_warning signals can enter the placement contract.",
+        "Measurement keeps the entity grain on member_id + outbound_id."
+      ]
+    },
+    {
+      "check_id": "suppression-rules-fire-before-shadow-placement",
+      "metrics_pack_check_ids": [
+        "later-lane-surfaces-stay-out-of-this-pack"
+      ],
+      "dashboard_pack_check_ids": [
+        "recovery-lineage-match"
+      ],
+      "criteria": [
+        "Any candidate with one or more suppression rules never reaches shadow_placed status.",
+        "Suppression is evaluated using events at or before the trigger time.",
+        "The placement remains shadow_only even when the candidate qualifies."
+      ]
+    },
+    {
+      "check_id": "attribution-fields-cover-frozen-joins",
+      "metrics_pack_check_ids": [
+        "recovery-funnel-joins-warning-lineage-to-receipts"
+      ],
+      "dashboard_pack_check_ids": [
+        "recovery-lineage-match"
+      ],
+      "criteria": [
+        "Attribution carries memberId, sourceOutboundId, weekStartDate, cohortId, and experimentArm.",
+        "Deep links resolve to /today with the same frozen join fields.",
+        "Attributed recovery_guardrail_applied receipts join by sourceOutboundId after the placement trigger."
+      ]
+    }
+  ]
+}
