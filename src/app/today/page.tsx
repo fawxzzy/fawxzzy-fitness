@@ -14,7 +14,6 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -488,12 +487,12 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               ) : null}
               {todayPayload.inProgressSessionId ? (
                 <ScreenScaffold recipe="todayOverview" className="w-full">
-                  <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+                  <div className="space-y-2.5">
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}
                       emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
                     />
-                  </SharedSectionShell>
+                  </div>
                 </ScreenScaffold>
               ) : (
                 <TodayDayPicker

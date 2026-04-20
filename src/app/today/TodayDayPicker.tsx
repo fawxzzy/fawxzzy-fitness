@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import {
@@ -286,7 +285,7 @@ export function TodayDayPicker({
         {!mode.noRoutine && selectedDay ? (
           <ScreenScaffold recipe="todayOverview" className="w-full">
             {mode.contentShellVisible ? (
-              <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">
+              <div className="space-y-2.5">
                 {mode.dayPickerOpen ? (
                   <DayList>
                     {days.map((day) => {
@@ -372,7 +371,7 @@ export function TodayDayPicker({
                     })}
                   </ul>
                 ) : null}
-              </SharedSectionShell>
+              </div>
             ) : null}
           </ScreenScaffold>
         ) : null}
