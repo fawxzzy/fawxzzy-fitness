@@ -118,7 +118,7 @@ function MobileScreenShellFrame({
         style={{
           "--bottom-actions-height": `${dockHeight}px`,
           "--app-mobile-bottom-dock-height": `${dockHeight}px`,
-          paddingBottom: shouldRenderBottomDock ? "var(--app-mobile-bottom-dock-height,0px)" : undefined,
+          scrollPaddingBottom: shouldRenderBottomDock ? "var(--app-dock-safe-padding-bottom,0px)" : undefined,
         } as CSSProperties}
       >
         <div
