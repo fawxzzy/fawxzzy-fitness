@@ -1,0 +1,281 @@
+{
+  "pack_id": "atlas-fitness-growth-pilot-readiness-pack",
+  "pack_version": "atlas.fitness.growth-pilot-readiness-pack.v1",
+  "status": "owner_candidate",
+  "lane": "wave_2_growth_pilot_gate",
+  "owner_repo_id": "fitness",
+  "consumer_of_pack_versions": [
+    "atlas.fitness.growth-pack.v1",
+    "atlas.fitness.wave-2-metrics-pack.v1",
+    "atlas.fitness.funnel-dashboard-pack.v1"
+  ],
+  "frozen_fields": [
+    "evaluation_scope",
+    "metric_bindings",
+    "thresholds",
+    "pilot_rollout_policy",
+    "stay_shadow_conditions",
+    "rollback_conditions",
+    "acceptance_checks"
+  ],
+  "evidence_refs": [
+    "truth-pack/fitness/event-contract/atlas-fitness-growth-pack.v1.json",
+    "truth-pack/fitness/event-contract/atlas-fitness-wave-2-metrics-pack.v1.json",
+    "truth-pack/fitness/event-contract/atlas-fitness-funnel-dashboard-pack.v1.json",
+    "src/lib/ecosystem/fitness-growth-shadow.ts",
+    "src/lib/ecosystem/fitness-funnel-dashboard.ts",
+    "src/lib/ecosystem/fitness-growth-pilot-readiness.ts",
+    "docs/architecture/fitness-integration.md"
+  ],
+  "evaluation_scope": {
+    "placement_id": "recovery_reset_shadow_placement",
+    "surface_id": "today_recovery_banner",
+    "surface_family": "today",
+    "pilot_app_id": "fitness",
+    "source_growth_pack_version": "atlas.fitness.growth-pack.v1",
+    "source_metrics_pack_version": "atlas.fitness.wave-2-metrics-pack.v1",
+    "source_dashboard_pack_version": "atlas.fitness.funnel-dashboard-pack.v1",
+    "retained_activation_window_days": 7,
+    "decision_target": "Allow one sticky live cohort in one app on one placement only after shadow evidence clears every frozen floor and cap."
+  },
+  "metric_bindings": [
+    {
+      "metric_id": "eligible_population_count",
+      "label": "Eligible population / sample floor",
+      "source_kind": "growth_summary",
+      "source_ref": "summary.eligible_count",
+      "unit": "count",
+      "observability_rule": "Always observable from the growth shadow report."
+    },
+    {
+      "metric_id": "attribution_completeness_rate",
+      "label": "Attribution completeness floor",
+      "source_kind": "growth_candidate_scan",
+      "source_ref": "shadow_placed candidates with all required attribution fields / shadow_placed candidates",
+      "unit": "ratio",
+      "observability_rule": "Requires at least one shadow_placed candidate."
+    },
+    {
+      "metric_id": "shadow_click_through_rate",
+      "label": "Minimum shadow CTR",
+      "source_kind": "warehouse_event",
+      "source_ref": "distinct pilot_shadow_click_logged source_outbound_id / distinct pilot_shadow_impression_logged source_outbound_id",
+      "event_types": [
+        "pilot_shadow_impression_logged",
+        "pilot_shadow_click_logged"
+      ],
+      "correlation_keys": [
+        "source_outbound_id"
+      ],
+      "unit": "ratio",
+      "observability_rule": "Requires imported shadow impression and click evidence keyed by source_outbound_id."
+    },
+    {
+      "metric_id": "attributed_destination_activation_rate",
+      "label": "Minimum attributed destination activation",
+      "source_kind": "warehouse_event",
+      "source_ref": "distinct recovery_guardrail_applied source_outbound_id / distinct pilot_shadow_click_logged source_outbound_id",
+      "event_types": [
+        "pilot_shadow_click_logged",
+        "recovery_guardrail_applied"
+      ],
+      "correlation_keys": [
+        "source_outbound_id"
+      ],
+      "unit": "ratio",
+      "observability_rule": "Requires shadow click evidence and attributed destination activation receipts keyed by source_outbound_id."
+    },
+    {
+      "metric_id": "retained_activation_rate",
+      "label": "Minimum retained activation window",
+      "source_kind": "warehouse_event",
+      "source_ref": "distinct pilot_activation_retained source_outbound_id within retained_activation_window_days / distinct recovery_guardrail_applied source_outbound_id",
+      "event_types": [
+        "recovery_guardrail_applied",
+        "pilot_activation_retained"
+      ],
+      "correlation_keys": [
+        "source_outbound_id"
+      ],
+      "unit": "ratio",
+      "observability_rule": "Requires retained activation evidence keyed by source_outbound_id after attributed destination activation."
+    },
+    {
+      "metric_id": "suppression_miss_rate",
+      "label": "Maximum suppression miss rate",
+      "source_kind": "growth_candidate_scan",
+      "source_ref": "shadow_placed candidates with suppression_rule_ids / summary.eligible_count",
+      "unit": "ratio",
+      "observability_rule": "Requires eligible_count greater than 0."
+    },
+    {
+      "metric_id": "duplicate_exposure_rate",
+      "label": "Maximum duplicate exposure rate",
+      "source_kind": "warehouse_event",
+      "source_ref": "duplicate pilot_shadow_impression_logged events / total pilot_shadow_impression_logged events",
+      "event_types": [
+        "pilot_shadow_impression_logged"
+      ],
+      "correlation_keys": [
+        "source_outbound_id"
+      ],
+      "unit": "ratio",
+      "observability_rule": "Requires shadow impression evidence keyed by source_outbound_id."
+    },
+    {
+      "metric_id": "dismissal_complaint_rate",
+      "label": "Maximum dismissal / complaint rate",
+      "source_kind": "warehouse_event",
+      "source_ref": "distinct pilot_placement_dismissed or pilot_support_complaint_opened source_outbound_id / distinct pilot_shadow_impression_logged source_outbound_id",
+      "event_types": [
+        "pilot_shadow_impression_logged",
+        "pilot_placement_dismissed",
+        "pilot_support_complaint_opened"
+      ],
+      "correlation_keys": [
+        "source_outbound_id"
+      ],
+      "unit": "ratio",
+      "observability_rule": "Requires placement feedback evidence keyed by source_outbound_id."
+    }
+  ],
+  "thresholds": [
+    {
+      "threshold_id": "minimum-eligible-population",
+      "metric_id": "eligible_population_count",
+      "description": "Do not open a live cohort until the shadow lane shows at least one narrow-pilot-sized eligible sample.",
+      "comparator": ">=",
+      "threshold_value": 20,
+      "blocking_mode": "stay_shadow"
+    },
+    {
+      "threshold_id": "attribution-completeness-floor",
+      "metric_id": "attribution_completeness_rate",
+      "description": "Every shadow-placed candidate must carry the frozen attribution join fields before live exposure is allowed.",
+      "comparator": ">=",
+      "threshold_value": 1,
+      "blocking_mode": "stay_shadow"
+    },
+    {
+      "threshold_id": "minimum-shadow-ctr",
+      "metric_id": "shadow_click_through_rate",
+      "description": "The narrow pilot requires positive shadow click-through evidence before a sticky live cohort opens.",
+      "comparator": ">=",
+      "threshold_value": 0.2,
+      "blocking_mode": "stay_shadow"
+    },
+    {
+      "threshold_id": "minimum-attributed-destination-activation",
+      "metric_id": "attributed_destination_activation_rate",
+      "description": "Attributed destination activation must stay positive before the lane graduates from shadow-only.",
+      "comparator": ">=",
+      "threshold_value": 0.4,
+      "blocking_mode": "stay_shadow"
+    },
+    {
+      "threshold_id": "minimum-retained-activation-window",
+      "metric_id": "retained_activation_rate",
+      "description": "Activated members must retain through the frozen post-activation window before widening is considered.",
+      "comparator": ">=",
+      "threshold_value": 0.5,
+      "blocking_mode": "stay_shadow"
+    },
+    {
+      "threshold_id": "maximum-suppression-miss-rate",
+      "metric_id": "suppression_miss_rate",
+      "description": "Any suppression bypass blocks live rollout because it means the guardrail lane is leaking unsafe placements.",
+      "comparator": "<=",
+      "threshold_value": 0,
+      "blocking_mode": "rollback"
+    },
+    {
+      "threshold_id": "maximum-duplicate-exposure-rate",
+      "metric_id": "duplicate_exposure_rate",
+      "description": "Duplicate shadow exposures must stay rare before a sticky pilot is allowed.",
+      "comparator": "<=",
+      "threshold_value": 0.05,
+      "blocking_mode": "rollback"
+    },
+    {
+      "threshold_id": "maximum-dismissal-complaint-rate",
+      "metric_id": "dismissal_complaint_rate",
+      "description": "Negative placement feedback must remain below the frozen cap before or during any live pilot.",
+      "comparator": "<=",
+      "threshold_value": 0.05,
+      "blocking_mode": "rollback"
+    }
+  ],
+  "pilot_rollout_policy": {
+    "pilot_cohort_id": "fitness_growth_live_recovery_reset_v1",
+    "max_live_apps": 1,
+    "max_live_surfaces": 1,
+    "max_live_placements": 1,
+    "max_live_cohort_members": 50,
+    "sticky_rollout_percentage": 10,
+    "sticky_assignment_unit": "member_id + week_start_date",
+    "sticky_hash_strategy": "stable_mod_100",
+    "widen_only_if": [
+      "shadow_click_through_rate stays above the frozen floor for two consecutive evaluation windows",
+      "attributed_destination_activation_rate stays above the frozen floor for two consecutive evaluation windows",
+      "retained_activation_rate stays above the frozen floor for two consecutive evaluation windows",
+      "dismissal_complaint_rate stays at or below the frozen cap during the pilot"
+    ]
+  },
+  "stay_shadow_conditions": [
+    "Any threshold with blocking_mode stay_shadow is unobservable or below its frozen floor.",
+    "Any growth-pack or dashboard-pack acceptance check fails.",
+    "The warehouse does not contain keyed impression, click, activation, retention, and feedback evidence for the placement lineage.",
+    "The live cohort would require more than one app, one surface, or one placement."
+  ],
+  "rollback_conditions": [
+    "suppression_miss_rate exceeds the frozen cap.",
+    "duplicate_exposure_rate exceeds the frozen cap.",
+    "dismissal_complaint_rate exceeds the frozen cap.",
+    "Any downstream activation or retention metric falls below its frozen floor after the live cohort opens."
+  ],
+  "acceptance_checks": [
+    {
+      "check_id": "pilot-pack-stays-pinned-to-owner-growth-and-dashboard-truth",
+      "growth_pack_check_ids": [
+        "growth-pack-stays-pinned-to-frozen-wave-2-packs",
+        "shadow-placement-stays-inside-recovery-warning-stage"
+      ],
+      "dashboard_pack_check_ids": [
+        "recovery-lineage-match"
+      ],
+      "criteria": [
+        "consumer_of_pack_versions includes the pinned growth, metrics, and dashboard packs.",
+        "evaluation_scope placement_id and surface_id match the growth pack placement contract.",
+        "No live cohort is allowed until owner truth evaluates this pack as pass."
+      ]
+    },
+    {
+      "check_id": "pilot-rollout-stays-one-app-one-surface-one-cohort",
+      "growth_pack_check_ids": [
+        "suppression-rules-fire-before-shadow-placement"
+      ],
+      "dashboard_pack_check_ids": [
+        "recovery-lineage-match"
+      ],
+      "criteria": [
+        "pilot_rollout_policy max_live_apps, max_live_surfaces, and max_live_placements all remain 1.",
+        "sticky_rollout_percentage stays narrow and cohort assignment remains sticky on member_id + week_start_date.",
+        "max_live_cohort_members stays at or below the frozen cap."
+      ]
+    },
+    {
+      "check_id": "pilot-gate-requires-observable-click-activation-retention-feedback",
+      "growth_pack_check_ids": [
+        "attribution-fields-cover-frozen-joins"
+      ],
+      "dashboard_pack_check_ids": [
+        "recovery-lineage-match"
+      ],
+      "criteria": [
+        "shadow_click_through_rate, attributed_destination_activation_rate, retained_activation_rate, and dismissal_complaint_rate are all observable before live cohort approval.",
+        "Each observable metric is keyed by source_outbound_id so the growth lineage stays replay-safe.",
+        "Missing observability forces stay_shadow."
+      ]
+    }
+  ]
+}

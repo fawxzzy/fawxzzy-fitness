@@ -33,13 +33,18 @@ npm run
 | Script | What |
 | --- | --- |
 | `npm run lint` | Run linting checks. |
+| `npm run typecheck:mobile-regression-harness` | Run the targeted TypeScript parity check for the dev mobile-regression harness. |
 | `npm run validate:exercise-info-endpoint` | Validate exercise-info API behavior. |
 | `npm run sanity:quick` | Fast local check (`lint`). |
-| `npm run sanity` | Full local check (`lint` + `build`). |
+| `npm run sanity` | Full local check (`verify:strict`). |
+| `npm run verify:mobile-regression` | Run the mobile-regression parity guard (`typecheck:mobile-regression-harness` + fixture suite). |
 | `npm run verify` | Run the Playbook repo verification workflow. |
-| `npm run verify:strict` | Alias for full local check (`lint` + `build`). |
+| `npm run verify:strict` | Full local gate (`lint` + mobile-regression parity guard + `build`). |
 | `npm run test:playbook-adoption` | Validate the repo-local Playbook adoption export against the local schema and owner contract ids. |
 | `npm run test:playbook-verification` | Validate the repo-local Playbook verification report against the ATLAS root schema and live command surface. |
+| `npm run test:fitness-event-contracts` | Validate the Fitness-owned event contract and shadow receipt validators. |
+| `npm run test:fitness-shadow-warehouse` | Prove critical shadow-mode event receipt arrival, KPI denominator math, and funnel/dashboard acceptance checks in a temp ATLAS receipt sink. |
+| `npm run test:mobile-regression-fixtures` | Validate the deterministic mobile-regression fixture inventory, contracts, and board-generation suite. |
 
 ## Release
 

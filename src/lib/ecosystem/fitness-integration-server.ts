@@ -3,8 +3,14 @@ import {
   buildFitnessSnapshotSourceState,
   fitnessIntegrationClient,
   type FitnessOutboundReason,
+  type FitnessOutboundSignal,
   type FitnessSnapshotSourceState,
 } from "./fitness-integration-client";
+import {
+  emitFitnessShadowTelemetryBatch,
+  mergeFitnessShadowTelemetryResults,
+  type FitnessShadowTelemetryResult,
+} from "./fitness-shadow-events";
 
 function dateFromIso(iso: string): string {
   return iso.slice(0, 10);
@@ -164,9 +170,47 @@ export async function publishFitnessIntegrationStateForMember(input: {
     reason: input.reason,
   });
 
+  const shadowTelemetry = await emitFitnessShadowTelemetryBatch({
+    signals: outboundSignals,
+    snapshots: snapshotExport.exported,
+  });
+
   return {
     sourceState,
     outboundSignals,
     snapshotExport,
+    shadowTelemetry,
   };
 }
+
+export async function recordFitnessSignalForMember(input: {
+  memberId: string;
+  signalType: Parameters<typeof fitnessIntegrationClient.packageSignal>[0]["signalType"];
+  payload: Parameters<typeof fitnessIntegrationClient.packageSignal>[0]["payload"];
+  reason: FitnessOutboundReason;
+  emittedAt: Date | string;
+}): Promise<{ signal: FitnessOutboundSignal; shadowTelemetry: FitnessShadowTelemetryResult }> {
+  const signal = fitnessIntegrationClient.packageSignal(input);
+  const shadowTelemetry = await emitFitnessShadowTelemetryBatch({
+    signals: [signal],
+  });
+
+  return {
+    signal,
+    shadowTelemetry,
+  };
+}
+
+export async function recordFitnessReceiptForMember(input: Parameters<typeof fitnessIntegrationClient.ingestReceipt>[0]) {
+  const receipt = fitnessIntegrationClient.ingestReceipt(input);
+  const shadowTelemetry = await emitFitnessShadowTelemetryBatch({
+    receipts: [receipt],
+  });
+
+  return {
+    receipt,
+    shadowTelemetry,
+  };
+}
+
+export { mergeFitnessShadowTelemetryResults };

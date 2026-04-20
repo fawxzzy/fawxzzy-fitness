@@ -16,7 +16,6 @@ import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { BottomActionsSlot } from "@/components/layout/bottom-actions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { requireUser } from "@/lib/auth";
@@ -29,8 +28,12 @@ import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
 import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
-import { fitnessIntegrationClient } from "@/lib/ecosystem/fitness-integration-client";
-import { publishFitnessIntegrationStateForMember } from "@/lib/ecosystem/fitness-integration-server";
+import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
+import {
+  publishFitnessIntegrationStateForMember,
+  recordFitnessSignalForMember,
+} from "@/lib/ecosystem/fitness-integration-server";
+import { prepareTodayRecoveryShadowPlacement } from "@/lib/ecosystem/fitness-shadow-placement";
 import { guardLiveSessionMutation } from "@/lib/session-live-mutation";
 
 export const dynamic = "force-dynamic";
@@ -140,7 +143,7 @@ async function discardInProgressSessionAction(formData: FormData): Promise<void>
 
   const now = new Date();
 
-  fitnessIntegrationClient.packageSignal({
+  await recordFitnessSignalForMember({
     memberId: user.id,
     signalType: "workout_missed",
     reason: "session_discarded",
@@ -418,12 +421,16 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
             recentExerciseIds: (effectiveDaySummary?.runnableExercises ?? []).map((exercise) => exercise.exercise_id),
           },
         };
+  const recoveryShadowPlacement = fetchFailed
+    ? null
+    : await prepareTodayRecoveryShadowPlacement({
+        memberId: user.id,
+      });
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="today">
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
-        bottomDock={<BottomActionsSlot />}
         floatingHeader={todayPayload.routine ? (
           todayPayload.inProgressSessionId ? (
             <ContentRail>
@@ -469,6 +476,16 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           {todayPayload.routine && !fetchFailed ? (
             <ContentRail className="space-y-3">
               <OfflineSyncBadge userId={user.id} />
+              {recoveryShadowPlacement ? (
+                <TodayRecoveryShadowPlacement
+                  placementId={recoveryShadowPlacement.placementId}
+                  surfaceId={recoveryShadowPlacement.surfaceId}
+                  sourceOutboundId={recoveryShadowPlacement.sourceOutboundId}
+                  cohortId={recoveryShadowPlacement.cohortId}
+                  destinationHref={recoveryShadowPlacement.destinationHref}
+                  destinationPath={recoveryShadowPlacement.destinationPath}
+                />
+              ) : null}
               {todayPayload.inProgressSessionId ? (
                 <ScreenScaffold recipe="todayOverview" className="w-full">
                   <SharedSectionShell recipe="todayOverview" bodyClassName="space-y-2.5">

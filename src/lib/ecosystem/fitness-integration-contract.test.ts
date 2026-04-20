@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fitnessSignalFixtures } from "./fixtures/signals/index";
-import { fitnessStateSnapshotFixtures } from "./fixtures/state-snapshots/index";
+import { fitnessSignalFixtures } from "./fixtures/signals/index.ts";
+import { fitnessStateSnapshotFixtures } from "./fixtures/state-snapshots/index.ts";
 import {
   fitnessIntegrationContract,
   validateActionReceiptMappings,
+  validateReceiptFixture,
   validateSignalFixture,
   validateStateSnapshotFixture,
-} from "./fitness-integration-contract";
+} from "./fitness-integration-contract.ts";
 
 test("all deterministic signal fixtures validate against the fitness contract", () => {
   for (const fixture of fitnessSignalFixtures) {
@@ -41,4 +42,20 @@ test("all bounded actions declare valid receipt mappings and playbook constraint
     );
     assert.ok(action.constraints.includes("no_direct_lifeline_bypass"));
   }
+});
+
+test("typed receipts validate against the declared receipt contract", () => {
+  const result = validateReceiptFixture({
+    receiptType: "goal_plan_amended",
+    receiptId: "receipt-1",
+    actionType: "revise_weekly_goal_plan",
+    memberId: "member-1",
+    appliedAt: "2026-03-27T12:00:00.000Z",
+    sourceOutboundId: "out-1",
+    payload: {
+      newWorkoutTarget: 4,
+    },
+  });
+
+  assert.equal(result.ok, true, `Receipt validation failed: ${result.errors.join(", ")}`);
 });

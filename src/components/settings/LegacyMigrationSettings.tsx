@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { AppRow } from "@/components/ui/app/AppRow";
 import { AppButton } from "@/components/ui/AppButton";
 import { Chip } from "@/components/ui/Chip";
@@ -24,6 +25,7 @@ type ImportSummary = {
   createdGlobalExercises: number;
   importedUserOwnedExercises: number;
   importedCounts: SnapshotCountMap;
+  rebuiltExerciseStatsCount?: number;
 };
 
 type ParityCount = {
@@ -118,6 +120,7 @@ export function LegacyMigrationSettings({
   legacyBridgeConfigured: boolean;
   defaultLegacyEmail?: string;
 }) {
+  const router = useRouter();
   const [legacyEmail, setLegacyEmail] = useState(defaultLegacyEmail);
   const [legacyPassword, setLegacyPassword] = useState("");
   const [snapshotText, setSnapshotText] = useState(DEFAULT_SNAPSHOT_TEXT);
@@ -216,8 +219,11 @@ export function LegacyMigrationSettings({
         setMigrationStatus(nextStatus);
         setStatus({
           tone: "success",
-          text: "Legacy snapshot imported into the current account.",
+          text: result.data.rebuiltExerciseStatsCount && result.data.rebuiltExerciseStatsCount > 0
+            ? `Legacy snapshot imported and ${result.data.rebuiltExerciseStatsCount} exercise stat ${result.data.rebuiltExerciseStatsCount === 1 ? "record was" : "records were"} rebuilt from logged sessions.`
+            : "Legacy snapshot imported into the current account.",
         });
+        router.refresh();
       } catch (error) {
         setStatus({
           tone: "error",

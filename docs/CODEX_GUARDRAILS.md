@@ -40,4 +40,4 @@ Run before pushing major changes:
 npm run sanity
 ```
 
-This verifies lint and production build.
+This verifies the targeted mobile-regression parity guard, lint, and production build.

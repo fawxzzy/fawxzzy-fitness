@@ -19,6 +19,7 @@ Primary local sources of truth:
 3. Prefer the smallest clear diff over abstraction-heavy changes.
 4. Run quality gates after implementation:
    - `npm run lint`
+   - `npm run verify:mobile-regression`
    - `npm run build`
 
 ## Enforcement Guardrails

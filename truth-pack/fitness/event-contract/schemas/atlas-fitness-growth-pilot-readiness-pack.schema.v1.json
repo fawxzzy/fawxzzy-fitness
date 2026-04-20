@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Atlas Fitness Growth Pilot Readiness Pack Schema v1",
+  "type": "object",
+  "required": [
+    "pack_id",
+    "pack_version",
+    "status",
+    "lane",
+    "owner_repo_id",
+    "consumer_of_pack_versions",
+    "frozen_fields",
+    "evidence_refs",
+    "evaluation_scope",
+    "metric_bindings",
+    "thresholds",
+    "pilot_rollout_policy",
+    "stay_shadow_conditions",
+    "rollback_conditions",
+    "acceptance_checks"
+  ]
+}

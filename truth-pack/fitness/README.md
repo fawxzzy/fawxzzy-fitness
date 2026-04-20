@@ -9,5 +9,6 @@ This folder is the deterministic, in-repo context pack for Fitness as a governed
 - `signals.json`: canonical signal list, routing metadata, and real app emit points.
 - `state-snapshots.json`: inspectable app truth surfaces and deterministic derivation sources.
 - `actions-and-receipts.json`: bounded action contract, receipt requirements, and app-side receipt handling path.
+- `event-contract/`: versioned Atlas/Fitness event and metrics packs, schemas, and owner-lane notes.
 
 All artifacts are human-readable and intended to be inspected directly in review workflows.

@@ -5,9 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const extensionCandidates = [".ts", ".tsx", ".js", ".mjs", ".cjs"];
 
-function resolveAliasPath(specifier) {
-  const basePath = path.join(repoRoot, "src", specifier.slice(2));
-
+function resolveCandidatePath(basePath) {
   if (fs.existsSync(basePath) && fs.statSync(basePath).isFile()) {
     return basePath;
   }
@@ -29,6 +27,11 @@ function resolveAliasPath(specifier) {
   return null;
 }
 
+function resolveAliasPath(specifier) {
+  const basePath = path.join(repoRoot, "src", specifier.slice(2));
+  return resolveCandidatePath(basePath);
+}
+
 export async function resolve(specifier, context, defaultResolve) {
   if (specifier === "server-only") {
     return {
@@ -47,6 +50,19 @@ export async function resolve(specifier, context, defaultResolve) {
       url: pathToFileURL(resolvedPath).href,
       shortCircuit: true,
     };
+  }
+
+  if ((specifier.startsWith("./") || specifier.startsWith("../")) && context.parentURL?.startsWith("file:")) {
+    const parentPath = fileURLToPath(context.parentURL);
+    const basePath = path.resolve(path.dirname(parentPath), specifier);
+    const resolvedPath = resolveCandidatePath(basePath);
+
+    if (resolvedPath) {
+      return {
+        url: pathToFileURL(resolvedPath).href,
+        shortCircuit: true,
+      };
+    }
   }
 
   return defaultResolve(specifier, context, defaultResolve);

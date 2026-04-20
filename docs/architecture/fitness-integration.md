@@ -42,6 +42,7 @@ Current real app transitions wired to signal emission:
 - Session completion (`saveSessionAction`) emits `workout_completed` and then publishes snapshot-derived evaluations.
 - In-progress session discard on Today (`discardInProgressSessionAction`) emits `workout_missed` and then publishes snapshot-derived evaluations.
 - Snapshot evaluation path can emit `weekly_goal_hit`, `recovery_warning`, and `streak_broken` from deterministic app state.
+- Pilot evidence helpers now emit `pilot_shadow_impression_logged`, `pilot_shadow_click_logged`, `pilot_placement_dismissed`, `pilot_support_complaint_opened`, and `pilot_activation_retained` into the same receipt lane so the frozen pilot gate can measure shadow evidence without bypassing owner truth.
 
 ## Deterministic snapshots
 

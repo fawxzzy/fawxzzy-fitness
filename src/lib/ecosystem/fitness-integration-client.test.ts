@@ -5,7 +5,7 @@ import {
   buildFitnessSnapshotSourceState,
   buildFitnessSnapshots,
   fitnessIntegrationClient,
-} from "./fitness-integration-client";
+} from "./fitness-integration-client.ts";
 
 test("buildFitnessSnapshots derives deterministic readiness/streak/weekly values", () => {
   const snapshots = buildFitnessSnapshots({
@@ -66,6 +66,8 @@ test("client stores signal, snapshots, and receipt for debug inspection", async 
   });
 
   assert.equal(signal?.signalType, "weekly_goal_hit");
+  assert.equal(signal?.outboundId.startsWith("out-"), true);
+  assert.notEqual(signal?.fixtureId, signal?.outboundId);
 
   fitnessIntegrationClient.ingestReceipt({
     receiptType: "goal_plan_amended",
@@ -81,4 +83,59 @@ test("client stores signal, snapshots, and receipt for debug inspection", async 
   assert.equal(debugState.exportedSnapshots.length >= 3, true);
   assert.equal(debugState.emittedSignals.length >= 1, true);
   assert.equal(debugState.receipts.length, 1);
+});
+
+test("packaged signals receive collision-resistant outbound ids", async () => {
+  const source = await buildFitnessSnapshotSourceState({
+    memberId: "member-unique-outbound",
+    now: "2026-03-27T12:00:00.000Z",
+    fetcher: {
+      async getRoutineDayPlanCountForCurrentWeek() {
+        return 4;
+      },
+      async getCompletedWorkoutCountForCurrentWeek() {
+        return 4;
+      },
+      async getCompletedSessions() {
+        return [{ performedAt: "2026-03-26T10:00:00.000Z", durationSeconds: 1800 }];
+      },
+      async getConsecutiveMisses() {
+        return { consecutiveMisses: 0, lastMissedSessionDate: null };
+      },
+      async getInProgressSessionSummary() {
+        return { inProgressSessionId: null, inProgressExerciseCount: 0 };
+      },
+    },
+  });
+
+  const first = fitnessIntegrationClient.packageSignal({
+    memberId: "member-unique-outbound",
+    signalType: "weekly_goal_hit",
+    reason: "manual_debug",
+    emittedAt: source.capturedAt,
+    payload: {
+      memberId: "member-unique-outbound",
+      weekStartDate: source.weekStartDate,
+      workoutsPlanned: 4,
+      workoutsCompleted: 4,
+      achievedAt: source.capturedAt,
+    },
+  });
+  const second = fitnessIntegrationClient.packageSignal({
+    memberId: "member-unique-outbound",
+    signalType: "weekly_goal_hit",
+    reason: "manual_debug",
+    emittedAt: source.capturedAt,
+    payload: {
+      memberId: "member-unique-outbound",
+      weekStartDate: source.weekStartDate,
+      workoutsPlanned: 4,
+      workoutsCompleted: 4,
+      achievedAt: source.capturedAt,
+    },
+  });
+
+  assert.notEqual(first.outboundId, second.outboundId);
+  assert.equal(first.outboundId.startsWith("out-"), true);
+  assert.equal(second.outboundId.startsWith("out-"), true);
 });

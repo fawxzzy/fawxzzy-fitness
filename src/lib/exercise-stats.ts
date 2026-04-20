@@ -22,6 +22,21 @@ function uniqueExerciseIds(exerciseIds: Array<string | null | undefined>): strin
   return Array.from(new Set(exerciseIds.filter((exerciseId): exerciseId is string => Boolean(exerciseId))));
 }
 
+export async function getExerciseIdsForCompletedSessions(userId: string): Promise<string[]> {
+  const supabase = supabaseServer();
+  const { data, error } = await supabase
+    .from("session_exercises")
+    .select("exercise_id, session:sessions!inner(status)")
+    .eq("user_id", userId)
+    .eq("session.status", "completed");
+
+  if (error || !data) {
+    return [];
+  }
+
+  return uniqueExerciseIds(data.map((row) => row.exercise_id));
+}
+
 export async function getExerciseIdsForSession(userId: string, sessionId: string): Promise<string[]> {
   const supabase = supabaseServer();
   const { data, error } = await supabase
@@ -133,6 +148,29 @@ export async function recomputeExerciseStatsForExercises(userId: string, exercis
       .from("exercise_stats")
       .upsert(upserts, { onConflict: "user_id,exercise_id" });
   }
+}
+
+export async function rebuildExerciseStatsFromLoggedSessions(userId: string): Promise<string[]> {
+  const supabase = supabaseServer();
+  const [completedSessionExerciseIds, existingStatsRows] = await Promise.all([
+    getExerciseIdsForCompletedSessions(userId),
+    supabase
+      .from("exercise_stats")
+      .select("exercise_id")
+      .eq("user_id", userId),
+  ]);
+
+  const affectedExerciseIds = uniqueExerciseIds([
+    ...completedSessionExerciseIds,
+    ...((existingStatsRows.data ?? []).map((row) => row.exercise_id)),
+  ]);
+
+  if (!affectedExerciseIds.length) {
+    return [];
+  }
+
+  await recomputeExerciseStatsForExercises(userId, affectedExerciseIds);
+  return affectedExerciseIds;
 }
 
 export async function getExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<Map<string, ExerciseStatsRow>> {

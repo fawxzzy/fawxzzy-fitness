@@ -151,6 +151,8 @@ test("fitness verification report references the live repo command surface", () 
   const commands = report.criteria.verification_path.commands;
 
   assert.deepEqual(commands, [
+    "npm run test:fitness-event-contracts",
+    "npm run test:fitness-shadow-warehouse",
     "npm run test:playbook-verification",
     "npm run verify:strict",
     "npm run verify"

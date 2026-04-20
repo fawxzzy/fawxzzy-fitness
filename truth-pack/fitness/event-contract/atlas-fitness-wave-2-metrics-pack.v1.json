@@ -1,0 +1,527 @@
+{
+  "pack_id": "atlas-fitness-wave-2-metrics-pack",
+  "pack_version": "atlas.fitness.wave-2-metrics-pack.v1",
+  "status": "owner_frozen_candidate",
+  "lane": "wave_2_metrics",
+  "owner_repo_id": "fitness",
+  "doctrine_repo_ids": [
+    "atlas"
+  ],
+  "consumer_repo_ids": [
+    "playbook",
+    "lifeline",
+    "_stack"
+  ],
+  "frozen_fields": [
+    "shared_nouns",
+    "kpis",
+    "funnel_definitions",
+    "denominators",
+    "correlation_keys",
+    "dashboard_acceptance_checks"
+  ],
+  "evidence_refs": [
+    "truth-pack/fitness/signals.json",
+    "truth-pack/fitness/state-snapshots.json",
+    "truth-pack/fitness/actions-and-receipts.json",
+    "docs/architecture/fitness-integration.md",
+    "docs/day-summary-taxonomy-glossary.md",
+    "src/lib/ecosystem/fitness-integration-contract.ts",
+    "src/lib/ecosystem/fitness-shadow-events.ts",
+    "src/lib/session-follow-up-jobs.ts",
+    "../fawxzzy-atlas/docs/ATLAS_UAPI.md",
+    "../fawxzzy-atlas/docs/BOTTOM_ACTION_INTENT_CONTRACT.md"
+  ],
+  "shared_nouns": [
+    {
+      "noun": "member_id",
+      "owner_repo_id": "fitness",
+      "definition": "Stable member identity used as the primary actor join key across Fitness signals, snapshots, and inbound receipts.",
+      "source_fields": [
+        "signal.payload.memberId",
+        "snapshot.snapshot.memberId",
+        "receipt.memberId"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-contract.ts",
+        "src/lib/ecosystem/fitness-shadow-events.ts"
+      ]
+    },
+    {
+      "noun": "session_id",
+      "owner_repo_id": "fitness",
+      "definition": "Stable workout session identifier for completion and miss outcomes.",
+      "source_fields": [
+        "signal.payload.sessionId"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-contract.ts",
+        "src/lib/session-follow-up-jobs.ts",
+        "src/app/today/page.tsx"
+      ]
+    },
+    {
+      "noun": "week_start_date",
+      "owner_repo_id": "fitness",
+      "definition": "ISO week window key used to roll weekly progress, goal, and plan-revision metrics onto the same grain.",
+      "source_fields": [
+        "signal.payload.weekStartDate",
+        "snapshot.snapshot.weekStartDate",
+        "receipt.payload.weekStartDate"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-contract.ts",
+        "src/lib/ecosystem/fitness-integration-client.ts"
+      ]
+    },
+    {
+      "noun": "outbound_id",
+      "owner_repo_id": "fitness",
+      "definition": "Producer-side lineage key stamped on shadow-mode signals and snapshots before any downstream consumer acts on them.",
+      "source_fields": [
+        "signal.outboundId",
+        "snapshot.outboundId"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-client.ts",
+        "src/lib/ecosystem/fitness-shadow-events.ts"
+      ]
+    },
+    {
+      "noun": "source_outbound_id",
+      "owner_repo_id": "fitness",
+      "definition": "Receipt lineage key that points back to the originating outbound event for replay-safe joins.",
+      "source_fields": [
+        "receipt.sourceOutboundId"
+      ],
+      "evidence_refs": [
+        "truth-pack/fitness/actions-and-receipts.json",
+        "src/lib/ecosystem/fitness-integration-contract.ts",
+        "src/lib/ecosystem/fitness-shadow-events.ts"
+      ]
+    },
+    {
+      "noun": "intent",
+      "owner_repo_id": "atlas",
+      "definition": "Atlas-owned semantic action vocabulary for surface meaning; future funnel entry surfaces may use intent labels without changing KPI math or denominator rules.",
+      "source_fields": [
+        "atlas.bottom_action_intent"
+      ],
+      "evidence_refs": [
+        "../fawxzzy-atlas/docs/BOTTOM_ACTION_INTENT_CONTRACT.md"
+      ]
+    }
+  ],
+  "correlation_keys": [
+    {
+      "key": "member_id",
+      "kind": "stable",
+      "definition": "Primary actor join key across all current Atlas/Fitness metrics surfaces.",
+      "source_fields": [
+        "signal.payload.memberId",
+        "snapshot.snapshot.memberId",
+        "receipt.memberId"
+      ],
+      "required_for": [
+        "all_kpis",
+        "weekly_adherence_funnel",
+        "recovery_guardrail_funnel"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-contract.ts",
+        "src/lib/ecosystem/fitness-shadow-events.ts"
+      ]
+    },
+    {
+      "key": "session_id",
+      "kind": "stable",
+      "definition": "Workout outcome join key for session completion versus miss tracking.",
+      "source_fields": [
+        "signal.payload.sessionId"
+      ],
+      "required_for": [
+        "workout_completion_rate"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-contract.ts",
+        "src/app/today/page.tsx",
+        "src/lib/session-follow-up-jobs.ts"
+      ]
+    },
+    {
+      "key": "week_start_date",
+      "kind": "stable",
+      "definition": "Weekly reporting grain for progress snapshots, goal hits, and weekly-plan receipts.",
+      "source_fields": [
+        "signal.payload.weekStartDate",
+        "snapshot.snapshot.weekStartDate",
+        "receipt.payload.weekStartDate"
+      ],
+      "required_for": [
+        "weekly_goal_hit_rate",
+        "weekly_adherence_funnel"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-contract.ts",
+        "src/lib/ecosystem/fitness-integration-client.ts"
+      ]
+    },
+    {
+      "key": "observed_day",
+      "kind": "derived",
+      "definition": "UTC date derived from capturedAt, observedAt, or appliedAt for day-grain recovery and readiness rollups.",
+      "source_fields": [
+        "snapshot.snapshot.capturedAt",
+        "signal.payload.observedAt",
+        "receipt.appliedAt"
+      ],
+      "required_for": [
+        "recovery_warning_rate",
+        "recovery_guardrail_funnel"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-contract.ts",
+        "src/lib/ecosystem/fitness-integration-client.ts"
+      ]
+    },
+    {
+      "key": "outbound_id",
+      "kind": "stable",
+      "definition": "Shadow-mode lineage key used to join warning signals to downstream receipts without counting raw duplicates.",
+      "source_fields": [
+        "signal.outboundId",
+        "snapshot.outboundId"
+      ],
+      "required_for": [
+        "recovery_guardrail_application_rate",
+        "recovery_guardrail_funnel"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-client.ts",
+        "src/lib/ecosystem/fitness-shadow-events.ts"
+      ]
+    },
+    {
+      "key": "source_outbound_id",
+      "kind": "stable",
+      "definition": "Receipt-side pointer back to the originating outbound event; this is the canonical cross-app join between Fitness shadow emissions and downstream receipts.",
+      "source_fields": [
+        "receipt.sourceOutboundId"
+      ],
+      "required_for": [
+        "recovery_guardrail_application_rate",
+        "recovery_guardrail_funnel"
+      ],
+      "evidence_refs": [
+        "truth-pack/fitness/actions-and-receipts.json",
+        "src/lib/ecosystem/fitness-shadow-events.ts"
+      ]
+    }
+  ],
+  "denominators": [
+    {
+      "denominator_id": "planned_weekly_member_window",
+      "grain": "member_id + week_start_date",
+      "definition": "Distinct member/week windows from weekly_progress_state where plannedWorkoutCount > 0.",
+      "correlation_keys": [
+        "member_id",
+        "week_start_date"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-client.ts",
+        "src/lib/ecosystem/fitness-integration-contract.ts"
+      ]
+    },
+    {
+      "denominator_id": "tracked_session_outcome_window",
+      "grain": "member_id + session_id",
+      "definition": "Distinct session outcome windows observed through workout_completed or workout_missed signals.",
+      "correlation_keys": [
+        "member_id",
+        "session_id"
+      ],
+      "evidence_refs": [
+        "src/lib/session-follow-up-jobs.ts",
+        "src/app/today/page.tsx",
+        "src/lib/ecosystem/fitness-integration-contract.ts"
+      ]
+    },
+    {
+      "denominator_id": "readiness_observation_window",
+      "grain": "member_id + observed_day",
+      "definition": "Distinct readiness observations derived from athlete_readiness_state snapshots at day grain.",
+      "correlation_keys": [
+        "member_id",
+        "observed_day"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-client.ts",
+        "src/lib/ecosystem/fitness-integration-contract.ts"
+      ]
+    },
+    {
+      "denominator_id": "recovery_warning_lineage_window",
+      "grain": "member_id + outbound_id",
+      "definition": "Distinct recovery_warning emissions counted at outbound lineage grain before receipt joins.",
+      "correlation_keys": [
+        "member_id",
+        "outbound_id"
+      ],
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-shadow-events.ts",
+        "src/lib/ecosystem/fitness-integration-contract.ts"
+      ]
+    }
+  ],
+  "funnel_definitions": [
+    {
+      "funnel_id": "weekly_adherence_funnel",
+      "label": "Weekly adherence",
+      "entity_grain": "member_id + week_start_date",
+      "stages": [
+        {
+          "stage_id": "weekly_progress_state_available",
+          "event_kind": "snapshot",
+          "event_type": "weekly_progress_state",
+          "status": "contract_backed",
+          "correlation_keys": [
+            "member_id",
+            "week_start_date"
+          ],
+          "denominator_id": "planned_weekly_member_window",
+          "evidence_refs": [
+            "src/lib/ecosystem/fitness-integration-contract.ts",
+            "src/lib/ecosystem/fitness-integration-client.ts"
+          ]
+        },
+        {
+          "stage_id": "workout_completed",
+          "event_kind": "signal",
+          "event_type": "workout_completed",
+          "status": "contract_backed",
+          "correlation_keys": [
+            "member_id",
+            "session_id"
+          ],
+          "denominator_id": "tracked_session_outcome_window",
+          "rollup_rule": "Roll distinct member_id + session_id outcomes into the member_id + week_start_date dashboard window.",
+          "evidence_refs": [
+            "src/lib/session-follow-up-jobs.ts",
+            "src/lib/ecosystem/fitness-integration-contract.ts"
+          ]
+        },
+        {
+          "stage_id": "weekly_goal_hit",
+          "event_kind": "signal",
+          "event_type": "weekly_goal_hit",
+          "status": "contract_backed",
+          "correlation_keys": [
+            "member_id",
+            "week_start_date"
+          ],
+          "denominator_id": "planned_weekly_member_window",
+          "evidence_refs": [
+            "src/lib/ecosystem/fitness-integration-client.ts",
+            "src/lib/ecosystem/fitness-integration-contract.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "funnel_id": "recovery_guardrail_funnel",
+      "label": "Recovery guardrail",
+      "entity_grain": "member_id + outbound lineage",
+      "stages": [
+        {
+          "stage_id": "athlete_readiness_state_available",
+          "event_kind": "snapshot",
+          "event_type": "athlete_readiness_state",
+          "status": "contract_backed",
+          "correlation_keys": [
+            "member_id",
+            "observed_day"
+          ],
+          "denominator_id": "readiness_observation_window",
+          "evidence_refs": [
+            "src/lib/ecosystem/fitness-integration-client.ts",
+            "src/lib/ecosystem/fitness-integration-contract.ts"
+          ]
+        },
+        {
+          "stage_id": "recovery_warning",
+          "event_kind": "signal",
+          "event_type": "recovery_warning",
+          "status": "contract_backed",
+          "correlation_keys": [
+            "member_id",
+            "observed_day",
+            "outbound_id"
+          ],
+          "denominator_id": "readiness_observation_window",
+          "evidence_refs": [
+            "src/lib/ecosystem/fitness-integration-client.ts",
+            "src/lib/ecosystem/fitness-shadow-events.ts",
+            "src/lib/ecosystem/fitness-integration-contract.ts"
+          ]
+        },
+        {
+          "stage_id": "recovery_guardrail_applied",
+          "event_kind": "receipt",
+          "event_type": "recovery_guardrail_applied",
+          "status": "contract_backed",
+          "correlation_keys": [
+            "member_id",
+            "source_outbound_id"
+          ],
+          "denominator_id": "recovery_warning_lineage_window",
+          "join_rule": "Join receipt.sourceOutboundId back to recovery_warning outbound_id before calculating conversion.",
+          "evidence_refs": [
+            "truth-pack/fitness/actions-and-receipts.json",
+            "src/lib/ecosystem/fitness-shadow-events.ts",
+            "src/lib/ecosystem/fitness-integration-contract.ts"
+          ]
+        }
+      ]
+    }
+  ],
+  "kpis": [
+    {
+      "kpi_id": "weekly_goal_hit_rate",
+      "label": "Weekly goal hit rate",
+      "unit": "ratio",
+      "default_window": "current_iso_week",
+      "numerator_definition": "Distinct member_id + week_start_date windows with a weekly_goal_hit signal.",
+      "denominator_id": "planned_weekly_member_window",
+      "correlation_keys": [
+        "member_id",
+        "week_start_date"
+      ],
+      "funnel_id": "weekly_adherence_funnel",
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-client.ts",
+        "src/lib/ecosystem/fitness-integration-contract.ts"
+      ]
+    },
+    {
+      "kpi_id": "workout_completion_rate",
+      "label": "Workout completion rate",
+      "unit": "ratio",
+      "default_window": "rolling_7d",
+      "numerator_definition": "Distinct member_id + session_id windows with a workout_completed signal.",
+      "denominator_id": "tracked_session_outcome_window",
+      "correlation_keys": [
+        "member_id",
+        "session_id"
+      ],
+      "funnel_id": "weekly_adherence_funnel",
+      "evidence_refs": [
+        "src/lib/session-follow-up-jobs.ts",
+        "src/app/today/page.tsx",
+        "src/lib/ecosystem/fitness-integration-contract.ts"
+      ]
+    },
+    {
+      "kpi_id": "recovery_warning_rate",
+      "label": "Recovery warning rate",
+      "unit": "ratio",
+      "default_window": "rolling_7d",
+      "numerator_definition": "Distinct member_id + observed_day observations with a recovery_warning signal.",
+      "denominator_id": "readiness_observation_window",
+      "correlation_keys": [
+        "member_id",
+        "observed_day"
+      ],
+      "funnel_id": "recovery_guardrail_funnel",
+      "evidence_refs": [
+        "src/lib/ecosystem/fitness-integration-client.ts",
+        "src/lib/ecosystem/fitness-integration-contract.ts"
+      ]
+    },
+    {
+      "kpi_id": "recovery_guardrail_application_rate",
+      "label": "Recovery guardrail application rate",
+      "unit": "ratio",
+      "default_window": "rolling_7d",
+      "numerator_definition": "Distinct source_outbound_id receipts with recovery_guardrail_applied after a recovery_warning emission.",
+      "denominator_id": "recovery_warning_lineage_window",
+      "correlation_keys": [
+        "member_id",
+        "outbound_id",
+        "source_outbound_id"
+      ],
+      "funnel_id": "recovery_guardrail_funnel",
+      "evidence_refs": [
+        "truth-pack/fitness/actions-and-receipts.json",
+        "src/lib/ecosystem/fitness-shadow-events.ts",
+        "src/lib/ecosystem/fitness-integration-contract.ts"
+      ]
+    }
+  ],
+  "dashboard_acceptance_checks": [
+    {
+      "check_id": "weekly-adherence-funnel-uses-frozen-weekly-grain",
+      "description": "The dashboard computes weekly adherence using distinct member_id + week_start_date windows, not raw event counts.",
+      "funnel_ids": [
+        "weekly_adherence_funnel"
+      ],
+      "kpi_ids": [
+        "weekly_goal_hit_rate"
+      ],
+      "criteria": [
+        "The weekly adherence funnel starts from weekly_progress_state_available.",
+        "The weekly goal tile shows both numerator and denominator labels.",
+        "Queries exclude weekly windows where plannedWorkoutCount is 0."
+      ]
+    },
+    {
+      "check_id": "session-outcomes-use-session-grain",
+      "description": "Workout completion rate stays on distinct member_id + session_id grain and never treats repeated emits as extra completions.",
+      "funnel_ids": [
+        "weekly_adherence_funnel"
+      ],
+      "kpi_ids": [
+        "workout_completion_rate"
+      ],
+      "criteria": [
+        "Only workout_completed and workout_missed participate in the completion denominator.",
+        "Repeated writes for the same session_id collapse to one denominator row.",
+        "Dashboard labels the window as rolling_7d by default."
+      ]
+    },
+    {
+      "check_id": "recovery-funnel-joins-warning-lineage-to-receipts",
+      "description": "Recovery guardrail conversion uses outbound_id to source_outbound_id lineage instead of member-only joins.",
+      "funnel_ids": [
+        "recovery_guardrail_funnel"
+      ],
+      "kpi_ids": [
+        "recovery_warning_rate",
+        "recovery_guardrail_application_rate"
+      ],
+      "criteria": [
+        "Recovery warning counts start from athlete_readiness_state_available.",
+        "Receipt conversion requires receipt.sourceOutboundId to match recovery_warning outbound_id.",
+        "Rejected or missing receipts do not count as applied guardrails."
+      ]
+    },
+    {
+      "check_id": "later-lane-surfaces-stay-out-of-this-pack",
+      "description": "This dashboard pack does not quietly widen into later auth, shared UI, cross-sell, or ML lanes.",
+      "funnel_ids": [
+        "weekly_adherence_funnel",
+        "recovery_guardrail_funnel"
+      ],
+      "kpi_ids": [
+        "weekly_goal_hit_rate",
+        "workout_completion_rate",
+        "recovery_warning_rate",
+        "recovery_guardrail_application_rate"
+      ],
+      "criteria": [
+        "Only contract-backed Fitness signals, snapshots, and receipts appear in this pack.",
+        "Candidate-only root nouns remain projection-side and do not become dashboard measures here.",
+        "Any new KPI or funnel stage requires a pack version bump."
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
-import { recomputeExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { rebuildExerciseStatsFromLoggedSessions } from "@/lib/exercise-stats";
 import {
   importFitnessLegacySnapshot,
   isFitnessLegacySnapshot,
@@ -43,19 +43,21 @@ export async function POST(request: Request) {
       allowMerge: payload.allowMerge === true,
     });
 
-    if (summary.affectedExerciseIds.length > 0) {
-      await recomputeExerciseStatsForExercises(user.id, summary.affectedExerciseIds);
-    }
+    const rebuiltExerciseIds = await rebuildExerciseStatsFromLoggedSessions(user.id);
 
     revalidatePath("/today");
     revalidatePath("/routines");
     revalidatePath("/history");
+    revalidatePath("/history/exercises");
     revalidatePath("/session");
     revalidatePath("/settings");
 
     return NextResponse.json({
       ok: true,
-      data: summary,
+      data: {
+        ...summary,
+        rebuiltExerciseStatsCount: rebuiltExerciseIds.length,
+      },
     });
   } catch (error) {
     return NextResponse.json(

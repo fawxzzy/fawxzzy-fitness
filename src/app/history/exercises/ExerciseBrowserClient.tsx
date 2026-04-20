@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
@@ -152,6 +152,7 @@ export function ExerciseBrowserClient({
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "detailed">(initialViewMode);
+  const deferredQuery = useDeferredValue(query);
   const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   const applyViewMode = (nextMode: "compact" | "detailed") => {
@@ -192,7 +193,7 @@ export function ExerciseBrowserClient({
   }, [rows]);
 
   const filteredRows = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
 
     return rows.filter((row) => {
       if (selectedTags.length > 0) {
@@ -211,7 +212,7 @@ export function ExerciseBrowserClient({
       const slugMatch = row.slug?.toLowerCase().includes(normalizedQuery) ?? false;
       return nameMatch || slugMatch;
     });
-  }, [exerciseTagsById, query, rows, selectedTags]);
+  }, [deferredQuery, exerciseTagsById, rows, selectedTags]);
 
   const selectedRow = useMemo(
     () => (selectedExerciseId ? rows.find((row) => row.exerciseId === selectedExerciseId) ?? null : null),
