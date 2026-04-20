@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-0.5 pb-[calc(var(--app-safe-bottom)+var(--app-bottom-action-safe-area-extra,2px))]";
+export const BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME = "pt-0.5 pb-[var(--app-dock-safe-padding-bottom)]";
 
 const BOTTOM_ACTION_ARIA_LABEL = "Bottom actions";
 const BOTTOM_ACTION_GROUP_CLASSNAME = "grid items-stretch gap-1.5";

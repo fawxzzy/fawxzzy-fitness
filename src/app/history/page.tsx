@@ -223,7 +223,7 @@ export default async function HistoryPage({
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
           <ContentRail>
-            <HistoryPageHeader title="Sessions" subtitle={`${sessionItems.length} logged sessions`} />
+            <HistoryPageHeader title="Sessions" subtitle={`${sessionItems.length} logged`} />
           </ContentRail>
         )}
       >

@@ -118,10 +118,7 @@ function MobileScreenShellFrame({
         style={{
           "--bottom-actions-height": `${dockHeight}px`,
           "--app-mobile-bottom-dock-height": `${dockHeight}px`,
-          "--app-mobile-dock-clearance-gap": dockHeight > 0 ? "var(--app-dock-clearance-gap, 4px)" : "0px",
-          paddingBottom: shouldRenderBottomDock
-            ? "calc(var(--app-mobile-bottom-dock-height,0px) + var(--app-mobile-dock-clearance-gap,0px))"
-            : undefined,
+          paddingBottom: shouldRenderBottomDock ? "var(--app-mobile-bottom-dock-height,0px)" : undefined,
         } as CSSProperties}
       >
         <div

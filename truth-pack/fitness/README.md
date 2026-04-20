@@ -10,5 +10,6 @@ This folder is the deterministic, in-repo context pack for Fitness as a governed
 - `state-snapshots.json`: inspectable app truth surfaces and deterministic derivation sources.
 - `actions-and-receipts.json`: bounded action contract, receipt requirements, and app-side receipt handling path.
 - `event-contract/`: versioned Atlas/Fitness event and metrics packs, schemas, and owner-lane notes.
+- `design-system/`: frozen token and primitive contracts for the Fitness UI system.
 
 All artifacts are human-readable and intended to be inspected directly in review workflows.

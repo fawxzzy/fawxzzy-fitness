@@ -37,7 +37,6 @@ export function AppShell({
     "--app-bottom-inset": "var(--app-safe-bottom)",
     "--app-bottom-gap": "var(--app-bottom-gap-size, 3px)",
     "--app-top-chrome-content-gap": "12px",
-    "--app-mobile-dock-clearance-gap": "0px",
   } as CSSProperties);
 
   return (

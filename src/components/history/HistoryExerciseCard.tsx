@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import {
+  EXERCISE_CARD_BADGE_CLASS_NAME,
+  EXERCISE_CARD_LABEL_CLASS_NAME,
+  EXERCISE_CARD_SUMMARY_CLASS_NAME,
+  EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME,
+} from "@/components/ExerciseCard";
+import { textRoles } from "@/components/ui/text-roles";
 import { type CardSemanticTone, cardAccentRailClassNames, cardBadgeToneClassNames, cardShellToneClassNames } from "@/components/cardSemanticTones";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import { cn } from "@/lib/cn";
@@ -73,15 +80,17 @@ export function HistoryExerciseCard({
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <p className={cn(
-                  "min-w-0 font-semibold leading-[1.08] tracking-[-0.03em] text-[rgb(var(--text)/0.98)] [text-wrap:pretty]",
-                  density === "compact" ? "text-[1.02rem]" : "text-[1.08rem]",
+                  "min-w-0 font-semibold leading-tight tracking-[-0.02em] [text-wrap:pretty]",
+                  textRoles.title,
+                  density === "compact" ? "text-[0.95rem]" : "text-[1rem]",
                 )}>
                   {title}
                 </p>
                 {badgeText ? (
                   <span
                     className={cn(
-                      "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none text-[rgb(var(--text-primary)/0.9)]",
+                      "shrink-0 text-[rgb(var(--text-primary)/0.9)]",
+                      EXERCISE_CARD_BADGE_CLASS_NAME,
                       "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.92)]",
                       cardBadgeToneClassNames[tone],
                     )}
@@ -92,22 +101,22 @@ export function HistoryExerciseCard({
               </div>
 
               <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.82)]">
+                <p className={EXERCISE_CARD_LABEL_CLASS_NAME}>
                   {summaryLabel}
                 </p>
-                <p className="text-sm leading-[1.3] text-[rgb(var(--text-secondary)/0.98)] [text-wrap:pretty]">
+                <p className={cn(EXERCISE_CARD_SUMMARY_CLASS_NAME, "text-[rgb(var(--text-secondary)/0.98)]")}>
                   {summary}
                 </p>
               </div>
 
               {metadata ? (
-                <p className="text-[11px] leading-[1.3] text-[rgb(var(--text-muted)/0.88)] [text-wrap:pretty]">
+                <p className={EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME}>
                   {metadata}
                 </p>
               ) : null}
             </div>
 
-            <div className="flex shrink-0 items-center pt-1 text-[rgb(var(--text-muted)/0.9)]">
+            <div className="flex shrink-0 self-stretch items-center text-[rgb(var(--text-muted)/0.9)]">
               <ChevronRightIcon className="h-5 w-5" />
             </div>
           </div>

@@ -70,7 +70,7 @@ export function DayDetailExerciseList({
                 summaryLabel="Goal"
                 state={isActive ? "selected" : "default"}
                 badgeText={`ORDER ${item.orderNumber}`}
-                bodyClassName="pt-2"
+                bodyClassName="pt-2.5"
                 showLeadingVisual={policy.showMedia}
               >
                 {renderExpandedContent?.(item)}
@@ -84,7 +84,7 @@ export function DayDetailExerciseList({
                 state="default"
                 onPress={interactive ? () => onSelectItem?.(item) : undefined}
                 badgeText={mode === "editable" ? `ORDER ${item.orderNumber}` : undefined}
-                bodyClassName={mode === "editable" ? "pt-2" : undefined}
+                bodyClassName={mode === "editable" ? "pt-2.5" : undefined}
                 className="w-full shadow-none"
                 showLeadingVisual={policy.showMedia}
               />
