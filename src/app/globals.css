@@ -168,6 +168,7 @@
   --app-bottom-gap: var(--app-bottom-gap-size);
   --app-dock-clearance-gap: 4px;
   --app-bottom-action-safe-area-extra: 2px;
+  --app-dock-safe-padding-bottom: max(var(--app-bottom-gap), min(calc(var(--app-safe-bottom) + var(--app-bottom-action-safe-area-extra, 2px)), 20px));
   --app-fixed-bottom-bar-clearance-gap: 4px;
   --screen-gutter: 16px;
   --content-max: 430px;

@@ -63,6 +63,7 @@ export function ReorderExerciseRow({
         variant="reorder"
         state={isDragging ? "selected" : "default"}
         badgeText={`ORDER ${orderNumber}`}
+        bodyClassName="pt-2.5"
         className={cn("shadow-none", isDragging ? "scale-[0.99] opacity-85" : undefined)}
         trailingStackClassName="gap-2"
         showLeadingVisual={policy.showMedia}

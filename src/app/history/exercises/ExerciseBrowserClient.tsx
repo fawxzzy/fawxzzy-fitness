@@ -3,6 +3,7 @@
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
+import { EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME } from "@/components/ExerciseCard";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
@@ -150,7 +151,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         onPress={() => onOpen(row.exerciseId)}
       >
         {metadata ? (
-          <p className="text-[11px] leading-[1.3] text-[rgb(var(--text-muted)/0.88)] [text-wrap:pretty]">
+          <p className={EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME}>
             {metadata}
           </p>
         ) : null}

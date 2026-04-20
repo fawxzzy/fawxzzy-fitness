@@ -55,6 +55,12 @@ const densityStyles: Record<ExerciseCardDensity, {
   },
 };
 
+export const EXERCISE_CARD_LABEL_CLASS_NAME = "text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.84)]";
+export const EXERCISE_CARD_SUMMARY_CLASS_NAME = "text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]";
+export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = "text-[11px] leading-[1.3] text-[rgb(var(--text-muted)/0.88)] [text-wrap:pretty]";
+export const EXERCISE_CARD_BADGE_CLASS_NAME = "inline-flex min-h-[1.5rem] items-center whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none";
+export const EXERCISE_CARD_TRAILING_ICON_CLASS_NAME = "flex h-full min-h-10 items-center justify-end";
+
 const shellStateClassNames: Record<ExerciseCardState, string> = {
   default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)]",
   selected: "border-[rgb(var(--accent)/0.34)] bg-[linear-gradient(180deg,rgba(71,215,196,0.12),rgba(14,24,38,0.96))] ring-1 ring-[rgb(var(--accent)/0.1)]",
@@ -192,6 +198,7 @@ export function ExerciseCard({
       className={cn(
         "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-hidden",
         styles.shell,
+        badgeText ? (resolvedDensity === "compact" ? "pt-2.5" : "pt-3") : undefined,
         usesRailMedia ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
         bodyClassName,
       )}
@@ -249,13 +256,13 @@ export function ExerciseCard({
             {subtitle ? (
               <div className={cn("min-w-0", styles.goalRow)}>
                 {subtitleLabel ? (
-                  <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.84)]">
+                  <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME)}>
                     {subtitleLabel}
                   </p>
                 ) : null}
                 <div
                   className={cn(
-                    "text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]",
+                    EXERCISE_CARD_SUMMARY_CLASS_NAME,
                     styles.subtitleClamp,
                     subtitleStateClassNames[state],
                     subtitleClassName,
@@ -277,32 +284,36 @@ export function ExerciseCard({
       {hasRightIcon || badgeText ? (
         <div
           className={cn(
-            "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-center justify-end self-stretch",
+            "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 self-stretch justify-end",
             trailingClassName,
             rightRailClassName,
           )}
         >
-          {badgeText ? (
-            <span
-              className={cn(
-                "pointer-events-none absolute right-0 top-0 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none",
-                badgeStateClassNames[state],
-                cardBadgeToneClassNames[resolvedSemanticTone],
-              )}
-            >
-              {badgeText}
-            </span>
-          ) : null}
-          {hasRightIcon ? (
+          <div className={cn("flex min-h-full flex-col items-end", badgeText ? "justify-between gap-2 pt-0.5" : "justify-center")}>
+            {badgeText ? (
+              <span
+                className={cn(
+                  "pointer-events-none shrink-0",
+                  EXERCISE_CARD_BADGE_CLASS_NAME,
+                  badgeStateClassNames[state],
+                  cardBadgeToneClassNames[resolvedSemanticTone],
+                )}
+              >
+                {badgeText}
+              </span>
+            ) : null}
+            {hasRightIcon ? (
             <div
               className={cn(
-                "flex h-full min-h-10 items-center justify-end",
+                EXERCISE_CARD_TRAILING_ICON_CLASS_NAME,
+                badgeText ? "mt-auto" : undefined,
                 trailingStackClassName,
               )}
             >
               {rightIcon}
             </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>

@@ -1,0 +1,233 @@
+{
+  "packId": "fitness.design-system.primitives",
+  "packVersion": "v1",
+  "status": "frozen",
+  "ownerRepoId": "fawxzzy-fitness",
+  "tokensPackRef": "truth-pack/fitness/design-system/tokens.v1.json",
+  "primitiveContracts": [
+    {
+      "id": "header",
+      "variants": [
+        {
+          "id": "shared",
+          "semanticRefs": {
+            "horizontalPadding": "spacing.4",
+            "primaryRowGap": "spacing.2",
+            "actionRailGap": "spacing.2",
+            "trailingSlot": "spacing.12",
+            "title": "typography.title",
+            "titleToSecondaryGap": "spacing.1",
+            "secondaryBlockGap": "spacing.0.5",
+            "contentBottomGap": "spacing.2",
+            "eyebrow": "typography.eyebrow",
+            "subtitle": "typography.subtitle",
+            "textPrimary": "colors.text.primary",
+            "textSecondary": "colors.text.secondary",
+            "textMuted": "colors.text.muted"
+          }
+        },
+        {
+          "id": "standalone",
+          "semanticRefs": {
+            "panelRadius": "radii.xl",
+            "panelShadow": "shadows.glassRaised",
+            "panelPaddingX": "spacing.5",
+            "panelPaddingTop": "spacing.1",
+            "panelPaddingBottom": "spacing.4",
+            "actionButtonSize": "spacing.10",
+            "actionButtonRadius": "radii.pill"
+          }
+        }
+      ],
+      "invariants": [
+        "The header title remains the visual anchor and keeps balanced wrapping.",
+        "The action rail stays shrink-wrapped and never pushes the title column out of flow.",
+        "Subtitle and meta text may merge, but only when there is no right-side subtitle slot.",
+        "The standalone header variant remains visually distinct but still derives from the same title token."
+      ],
+      "sourceSurfaces": [
+        "src/components/ui/app/AppHeader.tsx",
+        "src/components/ui/app/SharedScreenHeader.tsx",
+        "src/components/ui/app/standaloneHeaderFamily.ts"
+      ]
+    },
+    {
+      "id": "card",
+      "variants": [
+        {
+          "id": "panel",
+          "semanticRefs": {
+            "radius": "radii.lg",
+            "shadow": "shadows.glassBase",
+            "surface": "colors.background.card",
+            "border": "colors.border.strong",
+            "padding": "spacing.4"
+          }
+        },
+        {
+          "id": "muted",
+          "semanticRefs": {
+            "radius": "radii.md",
+            "surface": "colors.surface.2",
+            "border": "colors.border.soft",
+            "padding": "spacing.4"
+          }
+        },
+        {
+          "id": "row",
+          "semanticRefs": {
+            "radius": "radii.md",
+            "surface": "colors.surface.2",
+            "border": "colors.border.strong",
+            "paddingX": "spacing.3.5",
+            "paddingY": "spacing.3"
+          }
+        },
+        {
+          "id": "row-interactive",
+          "semanticRefs": {
+            "motion": "transform-and-filter-only",
+            "pressScale": "0.992",
+            "pressBrightness": "1.02"
+          }
+        },
+        {
+          "id": "row-accent",
+          "semanticRefs": {
+            "surface": "colors.accent.base",
+            "surfaceOpacity": "0.1",
+            "border": "colors.accent.base",
+            "borderOpacity": "0.34"
+          }
+        },
+        {
+          "id": "row-default",
+          "semanticRefs": {
+            "surface": "colors.surface.2",
+            "surfaceHover": "colors.surface.3",
+            "border": "colors.border.strong",
+            "borderHover": "rgb(var(--border-strong) / 0.28)"
+          }
+        },
+        {
+          "id": "sticky-bar",
+          "semanticRefs": {
+            "radius": "radii.lg",
+            "shadow": "shadows.glassRaised",
+            "surface": "colors.background.panel",
+            "border": "colors.border.strong",
+            "paddingX": "spacing.2",
+            "paddingY": "spacing.2"
+          }
+        }
+      ],
+      "invariants": [
+        "Card surfaces stay glass-like and use the frozen radius and shadow tokens.",
+        "Interactive row states only adjust transform and filter, not layout.",
+        "Accent and default card variants stay readable against the dark surface stack."
+      ],
+      "sourceSurfaces": [
+        "src/components/ui/app/AppPanel.tsx",
+        "src/components/ui/app/tokens.ts",
+        "src/components/ui/SurfaceCard.tsx"
+      ]
+    },
+    {
+      "id": "badge",
+      "variants": [
+        {
+          "id": "default",
+          "semanticRefs": {
+            "radius": "radii.pill",
+            "text": "typography.badge",
+            "surface": "colors.surface.3",
+            "border": "colors.border.strong"
+          }
+        },
+        {
+          "id": "today",
+          "semanticRefs": {
+            "surface": "colors.accent.base",
+            "surfaceOpacity": "0.14",
+            "border": "colors.accent.base",
+            "borderOpacity": "0.36"
+          }
+        },
+        {
+          "id": "success",
+          "semanticRefs": {
+            "surface": "colors.status.success",
+            "surfaceOpacity": "0.14",
+            "border": "colors.status.success",
+            "borderOpacity": "0.34"
+          }
+        },
+        {
+          "id": "warning",
+          "semanticRefs": {
+            "surface": "colors.status.warning",
+            "surfaceOpacity": "0.14",
+            "border": "colors.status.warning",
+            "borderOpacity": "0.34"
+          }
+        },
+        {
+          "id": "destructive",
+          "semanticRefs": {
+            "surface": "colors.status.danger",
+            "surfaceOpacity": "0.12",
+            "border": "colors.status.danger",
+            "borderOpacity": "0.34"
+          }
+        }
+      ],
+      "invariants": [
+        "Badges remain single-line, pill-shaped status labels.",
+        "Tone changes only affect border and fill color, not sizing or layout rhythm.",
+        "Today and status variants remain visually distinct without introducing a new accent family."
+      ],
+      "sourceSurfaces": [
+        "src/components/ui/app/AppBadge.tsx",
+        "src/components/ui/app/tokens.ts"
+      ]
+    },
+    {
+      "id": "section-layout",
+      "variants": [
+        {
+          "id": "standard",
+          "semanticRefs": {
+            "headerRow": "spacing.3",
+            "shellPadding": "spacing.4",
+            "bodyGap": "spacing.3"
+          }
+        },
+        {
+          "id": "dense",
+          "semanticRefs": {
+            "headerRow": "spacing.3",
+            "shellPadding": "spacing.0",
+            "bodyGap": "spacing.2.5"
+          }
+        },
+        {
+          "id": "spacious",
+          "semanticRefs": {
+            "headerRow": "spacing.4",
+            "shellPadding": "spacing.4",
+            "bodyGap": "spacing.3"
+          }
+        }
+      ],
+      "invariants": [
+        "Section shells keep header, body, summary, footer, and list state in a predictable order.",
+        "Section spacing remains contract-driven rather than screen-local.",
+        "Section layout may vary between compact and spacious recipes, but the body rhythm stays consistent."
+      ],
+      "sourceSurfaces": [
+        "src/components/ui/app/SharedSectionShell.tsx",
+        "src/components/ui/app/screenContract.ts"
+      ]
+    }
+  ]
+}

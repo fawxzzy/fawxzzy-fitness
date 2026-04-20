@@ -1216,7 +1216,7 @@ function renderHistorySessionsScenario(scenario: MobileFixtureScenario) {
       <RegressionMarker scenario={scenario} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={<ContentRail><HistoryPageHeader title={`Logged Sessions: ${mockHistorySessions.length}`} /></ContentRail>}
+        floatingHeader={<ContentRail><HistoryPageHeader title="Sessions" subtitle={`${mockHistorySessions.length} logged`} /></ContentRail>}
       >
         <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
           <HistorySessionsClient
