@@ -430,7 +430,7 @@ export function buildHistoryExerciseCardViewModel(row: ExerciseBrowserRow): Hist
   const basePresentationKind = row.kind === "cardio"
     ? "cardio"
     : resolveStrengthPresentationKind(row);
-  const semanticTone: CardSemanticTone = row.prCount > 0 ? "pr" : row.last_performed_at ? "logged" : "neutral";
+  const semanticTone: CardSemanticTone = row.prCount > 0 ? "pr" : "neutral";
 
   return {
     presentationKind: basePresentationKind,
@@ -567,7 +567,7 @@ export function buildHistorySessionCardViewModel(session: SessionSummary, previo
     progress,
     compactChips: buildSessionCompactChips(session, progress),
     detailedMetrics: buildSessionDetailedMetrics(session, progress),
-    tone: session.prCounts.total > 0 ? "pr" : "completed",
+    tone: session.prCounts.total > 0 ? "pr" : "neutral",
   };
 }
 

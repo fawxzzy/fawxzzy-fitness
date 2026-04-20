@@ -183,6 +183,7 @@ test("buildHistoryExerciseCardViewModel keeps bodyweight history cards on the sh
   }));
 
   assert.equal(viewModel.presentationKind, "bodyweight");
+  assert.equal(viewModel.semanticTone, "pr");
   assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Bodyweight", "Pull Up Bar", "Vertical Pull"]);
   assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Best Reps", "Vs Best", "PRs", "Last"]);
 });
@@ -202,6 +203,7 @@ test("buildHistoryExerciseCardViewModel keeps cardio history cards on the shared
   }));
 
   assert.equal(viewModel.presentationKind, "cardio");
+  assert.equal(viewModel.semanticTone, "neutral");
   assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Cardio", "Treadmill", "Gait"]);
   assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Best", "Vs Best", "Sessions", "Last"]);
 });

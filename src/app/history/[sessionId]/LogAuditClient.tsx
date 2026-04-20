@@ -439,7 +439,7 @@ export function LogAuditClient({
         summary={sessionMeta.summaryLine}
         detail={sessionSummary.prCounts.total > 0 ? sessionSummary.prLabel : undefined}
         badgeText={sessionSummary.prCounts.total > 0 ? `${sessionSummary.prCounts.total} PR` : undefined}
-        tone={sessionSummary.prCounts.total > 0 ? "pr" : "completed"}
+        tone={sessionSummary.prCounts.total > 0 ? "pr" : "neutral"}
         density="detailed"
         rightIcon={null}
       />

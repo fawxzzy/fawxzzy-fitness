@@ -164,12 +164,12 @@
   --app-header-offset: var(--header-h);
   --app-top-offset: calc(var(--app-top-inset) + var(--app-header-offset));
   --app-bottom-inset: var(--app-safe-bottom);
-  --app-bottom-gap-size: 3px;
+  --app-bottom-gap-size: 0px;
   --app-bottom-gap: var(--app-bottom-gap-size);
-  --app-dock-clearance-gap: 4px;
-  --app-bottom-action-safe-area-extra: 2px;
-  --app-dock-safe-padding-bottom: max(var(--app-bottom-gap), min(calc(var(--app-safe-bottom) + var(--app-bottom-action-safe-area-extra, 2px)), 20px));
-  --app-fixed-bottom-bar-clearance-gap: 4px;
+  --app-dock-clearance-gap: 0px;
+  --app-bottom-action-safe-area-extra: 0px;
+  --app-dock-safe-padding-bottom: min(max(var(--app-safe-bottom), 0px), 8px);
+  --app-fixed-bottom-bar-clearance-gap: 0px;
   --screen-gutter: 16px;
   --content-max: 430px;
   --section-gap: 12px;
