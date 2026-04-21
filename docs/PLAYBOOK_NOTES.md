@@ -397,3 +397,34 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents drill-in surfaces from drifting away from the established detail-page family, which weakens scanability and reintroduces bespoke formatting contracts for the same metadata.
 - Evidence: src/components/DetailSurface.tsx, src/components/ExerciseInfoSheet.tsx, src/components/history/HistoryShared.tsx
 - Status: Proposed
+## 2026-04-21 - Shared mobile docks should own bottom safe area while footer geometry stays display-mode agnostic
+- Type: Pattern
+- Summary: Shared mobile workout shells should reserve dock height in one place and own the bottom safe-area inset on the dock container itself, while canonical action groups keep only content spacing and do not branch footer geometry by browser-vs-standalone mode.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents iPhone footer regressions that appear random across launches because safe-area padding is split between shell and action primitives or depends on runtime display-mode state before the document dataset has synchronized.
+- Evidence: src/app/globals.css, src/components/ui/app/AppShell.tsx, src/components/shared/mobile-shell/MobileScreenShell.tsx, src/components/layout/CanonicalBottomActions.tsx, src/components/ui/app/DisplayModeBootstrap.tsx
+- Status: Proposed
+
+## 2026-04-21 - Routine days should store neutral defaults and render cycle-aware labels at display time
+- Type: Pattern
+- Summary: Routine-day records should persist only neutral deterministic defaults for identity, while weekday-aware labels and compact split summaries are derived at render time from the active cycle context and optional bounded custom names.
+- Suggested Playbook File: docs/PATTERNS/routine-day-identity.md
+- Rationale: Prevents saved weekday labels from drifting when cycle settings shift, avoids duplicate labels like `Mon - Monday`, keeps editor/session/history surfaces on one naming rule, and preserves compact mobile cards by separating stored identity from user-facing presentation.
+- Evidence: src/lib/routines.ts, src/lib/day-summary.ts, src/app/routines/page.tsx, src/app/routines/RoutinesPageClient.tsx, src/app/routines/[id]/days/[dayId]/page.tsx, src/app/routines/[id]/edit/day/[dayId]/EditDaySettingsAutosaveForm.tsx, src/lib/start-session.ts
+- Status: Proposed
+
+## 2026-04-21 - Adjacent mobile workout screens should share one top-and-bottom shell contract
+- Type: Pattern
+- Summary: Today, Routines, History, and Session should publish headers, dock height, bottom actions, and positive-status badges through one shared shell contract so spacing rhythm and semantic color meaning stay stable across sibling screens.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents repeated footer dead-band fixes, mixed header block heights, and badge-green drift between header chips and card badges, which otherwise makes closely related workout flows feel visually misaligned even when the data and actions are correct.
+- Evidence: src/components/layout/MobileScreenShell.tsx, src/components/layout/CanonicalBottomActions.tsx, src/components/ExerciseCard.tsx, src/app/history/HistorySessionsClient.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/exercises/page.tsx, src/app/history/page.tsx, src/app/routines/RoutinesPageClient.tsx, src/components/SessionHeaderControls.tsx, src/components/SessionPageClient.tsx
+- Status: Proposed
+
+## 2026-04-21 - Settings screens should publish local rows and panels through the shared token bridge
+- Type: Pattern
+- Summary: Settings surfaces should reuse the shared detail header and section rhythm, and any remaining local rows, expanded panels, dividers, or form copy should be exposed through narrow design-system tokens instead of route-local class literals.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents preferences and migration screens from drifting back into one-off card chrome, label typography, and spacing rules while still allowing settings-only interaction surfaces to stay explicit and narrow.
+- Evidence: src/app/settings/page.tsx, src/components/settings/AccountSettingsForm.tsx, src/components/settings/GlassEffectsSettings.tsx, src/components/settings/LegacyMigrationSettings.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
+- Status: Proposed

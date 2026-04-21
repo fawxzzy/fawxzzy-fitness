@@ -65,6 +65,9 @@ export const fitnessDesignPrimitiveClassNames = {
     workoutMetricCompactClassName: `px-[${toArbitraryValue(fitnessDesignTokens.spacing["2.5"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["1.5"])}]`,
     workoutMetricStripClassName: `min-w-[8.35rem] basis-[calc(50%-0.375rem)] flex-1 px-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
     workoutMetricValueCompactClassName: `text-[13px]`,
+    settingsRowClassName: `rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["2"], "0.2")}]`,
+    settingsExpandedPanelClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.app, "0.12")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}]`,
+    settingsTextareaClassName: `min-h-[16rem] w-full rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["2"], "0.92")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] font-mono text-[13px] leading-5 text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}] placeholder:text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.92")}] focus-visible:border-[${toCompactValue(fitnessDesignTokens.borders.focus)}] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[${toCompactValue(fitnessDesignTokens.borders.focus)}]`,
     stickyBar: `rounded-[${fitnessDesignTokens.radii.lg}] border border-[${toCompactValue(fitnessDesignTokens.borders.strong)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.panel, "0.94")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}] shadow-[${toArbitraryValue(fitnessDesignTokens.shadows.glassRaised)}] backdrop-blur-[10px]`,
   },
   badge: {
@@ -103,5 +106,11 @@ export const fitnessDesignPrimitiveClassNames = {
     workoutMetricMetaClassName: `mt-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] min-w-0 text-[11px] leading-[1.35] text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.86")}] [text-wrap:pretty]`,
     workoutMetricStripMetaClassName: `mt-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] min-w-0 text-[10px] leading-[1.3] text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.82")}] [text-wrap:pretty]`,
     workoutMetricGridClassName: `grid grid-cols-2 gap-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
+    settingsCardHeaderClassName: `-mx-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] -mt-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] pb-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] sm:-mx-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}]`,
+    settingsSectionTitleClassName: `text-[1.3125rem] font-semibold leading-[1.04] tracking-[-0.03em] text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}]`,
+    settingsFieldStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
+    settingsBlockStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}]`,
+    settingsBodyTextClassName: `text-sm leading-5 text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.92")}]`,
+    settingsDividerClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] border-t border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] pt-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}]`,
   },
 } as const;

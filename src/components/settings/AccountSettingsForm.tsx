@@ -3,7 +3,9 @@
 import { type FormEvent, useCallback, useMemo, useState, useTransition } from "react";
 import { updateAccountEmailAction, type EmailUpdateState } from "@/app/settings/actions";
 import { AppButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/cn";
 import { readRememberedLoginState, writeRememberedLoginState } from "@/lib/remembered-login";
 
 const INITIAL_EMAIL_STATE: EmailUpdateState = { status: "idle" };
@@ -43,9 +45,9 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
   }, [emailState.status]);
 
   return (
-    <form onSubmit={submitEmailUpdate} className="space-y-3">
-      <div className="space-y-2">
-        <label htmlFor="settings-username" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+    <form onSubmit={submitEmailUpdate} className={appTokens.settingsBlockStack}>
+      <div className={appTokens.settingsFieldStack}>
+        <label htmlFor="settings-username" className={cn("block", appTokens.measurementLabel)}>
           Username
         </label>
         <Input
@@ -59,8 +61,8 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
           placeholder="Set a username"
         />
       </div>
-      <div className="space-y-2">
-        <label htmlFor="settings-email" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+      <div className={appTokens.settingsFieldStack}>
+        <label htmlFor="settings-email" className={cn("block", appTokens.measurementLabel)}>
           Email
         </label>
         <Input
@@ -72,11 +74,11 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
           required
         />
       </div>
-      <div className="space-y-2">
+      <div className={appTokens.settingsFieldStack}>
         <AppButton type="submit" variant="secondary" fullWidth loading={emailPending}>
           Save account
         </AppButton>
-        <p className={`text-sm leading-5 ${emailMessageTone}`}>
+        <p className={cn(appTokens.settingsBodyText, emailMessageTone)}>
           {emailState.message ?? "Update your username and email from the same place. Email changes may require confirmation."}
         </p>
       </div>

@@ -168,7 +168,7 @@
   --app-bottom-gap: var(--app-bottom-gap-size);
   --app-dock-clearance-gap: 0px;
   --app-bottom-action-safe-area-extra: 0px;
-  --app-dock-safe-padding-bottom: min(max(var(--app-safe-bottom), 0px), 8px);
+  --app-dock-safe-padding-bottom: clamp(2px, var(--app-safe-bottom), 6px);
   --app-fixed-bottom-bar-clearance-gap: 0px;
   --screen-gutter: 16px;
   --content-max: 430px;
@@ -220,22 +220,6 @@
     --exercise-row-media-min-height-detailed: 3.3rem;
     --exercise-row-trailing-min-width: 1.5rem;
     --exercise-row-gap: 0.425rem;
-  }
-}
-
-:root[data-display-mode="standalone"] {
-  --app-bottom-gap-size: 0px;
-  --app-dock-clearance-gap: 0px;
-  --app-bottom-action-safe-area-extra: 0px;
-  --app-fixed-bottom-bar-clearance-gap: 0px;
-}
-
-@media (display-mode: standalone) {
-  :root {
-    --app-bottom-gap-size: 0px;
-    --app-dock-clearance-gap: 0px;
-    --app-bottom-action-safe-area-extra: 0px;
-    --app-fixed-bottom-bar-clearance-gap: 0px;
   }
 }
 

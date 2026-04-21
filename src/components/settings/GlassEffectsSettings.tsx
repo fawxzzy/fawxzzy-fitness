@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { updateUnitPreferencesAction } from "@/app/settings/actions";
 import { AppButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Chip } from "@/components/ui/Chip";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { cn } from "@/lib/cn";
 import { type GlassEffectsMode, useGlassEffects } from "@/lib/useGlassEffects";
 
 const APPEARANCE_OPTIONS: Array<{ value: GlassEffectsMode; label: string; description: string }> = [
@@ -57,9 +59,9 @@ export function GlassEffectsSettings({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">Appearance</p>
+    <div className={appTokens.settingsBlockStack}>
+      <div className={appTokens.settingsFieldStack}>
+        <p className={appTokens.measurementLabel}>Appearance</p>
         <SegmentedControl
           ariaLabel="Appearance mode"
           options={APPEARANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
@@ -68,13 +70,13 @@ export function GlassEffectsSettings({
         />
         <div className="flex items-center gap-2">
           <Chip tone="today">{activeAppearance.label}</Chip>
-          <p className="text-sm text-[rgb(var(--text-secondary)/0.96)]">{activeAppearance.description}</p>
+          <p className={appTokens.settingsBodyText}>{activeAppearance.description}</p>
         </div>
       </div>
 
-      <div className="space-y-4 border-t border-[rgb(var(--border)/0.18)] pt-4">
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">Weight unit</p>
+      <div className={appTokens.settingsDivider}>
+        <div className={appTokens.settingsFieldStack}>
+          <p className={appTokens.measurementLabel}>Weight unit</p>
           <SegmentedControl
             ariaLabel="Weight unit"
             options={WEIGHT_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
@@ -84,8 +86,8 @@ export function GlassEffectsSettings({
           />
         </div>
 
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">Distance unit</p>
+        <div className={appTokens.settingsFieldStack}>
+          <p className={appTokens.measurementLabel}>Distance unit</p>
           <SegmentedControl
             ariaLabel="Distance unit"
             options={DISTANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
@@ -95,11 +97,11 @@ export function GlassEffectsSettings({
           />
         </div>
 
-        <div className="space-y-2">
+        <div className={appTokens.settingsFieldStack}>
           <AppButton type="button" variant="primary" fullWidth disabled={!isDirty} loading={isSaving} onClick={saveUnits}>
             Save preferences
           </AppButton>
-          <p className={`text-sm leading-5 ${message?.tone === "error" ? "text-[rgb(var(--button-destructive-text))]" : "text-[rgb(var(--text-secondary)/0.92)]"}`}>
+          <p className={cn(appTokens.settingsBodyText, message?.tone === "error" ? "text-[rgb(var(--button-destructive-text))]" : undefined)}>
             {message?.text ?? "These defaults apply to logging, summaries, and add-exercise flows."}
           </p>
         </div>

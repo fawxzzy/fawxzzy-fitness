@@ -7,6 +7,7 @@ import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSe
 import { SettingsBottomSignOutAction } from "@/components/settings/SettingsBottomSignOutAction";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppHeader } from "@/components/ui/app/AppHeader";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Chip } from "@/components/ui/Chip";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { requireUser } from "@/lib/auth";
@@ -14,9 +15,6 @@ import { optionalEnv } from "@/lib/env";
 import { ensureProfile } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
-
-const CARD_HEADER_CLASS_NAME = "-mx-4 -mt-1 pb-1 sm:-mx-5";
-const SECTION_TITLE_CLASS_NAME = "text-[1.3125rem] font-semibold leading-[1.04] tracking-[-0.03em]";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -45,7 +43,7 @@ export default async function SettingsPage() {
                 subtitle="Account, defaults, and appearance"
                 meta={user.email ?? "Unknown email"}
                 action={<Chip tone="success">Signed in</Chip>}
-                className={CARD_HEADER_CLASS_NAME}
+                className={appTokens.settingsCardHeader}
               />
             </SurfaceCard>
           </ContentRail>
@@ -57,8 +55,8 @@ export default async function SettingsPage() {
               title="Data & Account"
               meta="Keep your sign-in email current, and import legacy data only if you still need the old project moved over."
               titleAs="h2"
-              className={CARD_HEADER_CLASS_NAME}
-              titleClassName={SECTION_TITLE_CLASS_NAME}
+              className={appTokens.settingsCardHeader}
+              titleClassName={appTokens.settingsSectionTitle}
             />
             <AccountSettingsForm email={user.email ?? ""} username={username} />
             <LegacyMigrationSettings
@@ -72,8 +70,8 @@ export default async function SettingsPage() {
               title="Preferences"
               meta="Tune visual density and default units without changing the rest of the app shell."
               titleAs="h2"
-              className={CARD_HEADER_CLASS_NAME}
-              titleClassName={SECTION_TITLE_CLASS_NAME}
+              className={appTokens.settingsCardHeader}
+              titleClassName={appTokens.settingsSectionTitle}
             />
             <GlassEffectsSettings
               preferredWeightUnit={profile.preferred_weight_unit ?? "lbs"}

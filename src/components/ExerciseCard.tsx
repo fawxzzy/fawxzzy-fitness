@@ -102,6 +102,24 @@ const badgeStateClassNames: Record<ExerciseCardState, string> = {
   empty: "border-[rgb(var(--warning-rgb)/0.32)] bg-[rgb(var(--warning-rgb)/0.14)] text-[rgb(255_242_220)]",
 };
 
+function resolveStatusBadgeClassName(badgeText: string | undefined, state: ExerciseCardState, semanticTone: CardSemanticTone) {
+  const normalizedBadgeText = badgeText?.trim().toUpperCase();
+
+  if (normalizedBadgeText === "ACTIVE" || normalizedBadgeText === "COMPLETED" || normalizedBadgeText === "IN SESSION") {
+    return appTokens.successBadge;
+  }
+
+  if (normalizedBadgeText === "TODAY") {
+    return appTokens.todayBadge;
+  }
+
+  if (normalizedBadgeText === "REST DAY" || normalizedBadgeText === "NEEDS SETUP") {
+    return appTokens.warningBadge;
+  }
+
+  return cn(badgeStateClassNames[state], cardBadgeToneClassNames[semanticTone]);
+}
+
 const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />;
 const cardPressClassName = "transition-[transform,filter] duration-75 ease-out active:scale-[0.992] active:brightness-[1.02] motion-reduce:transform-none motion-reduce:transition-none";
 
@@ -181,6 +199,7 @@ export function ExerciseCard({
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
   const resolvedSemanticTone = semanticTone ?? resolveDefaultSemanticTone(state);
+  const resolvedBadgeClassName = resolveStatusBadgeClassName(badgeText, state, resolvedSemanticTone);
   const hasLeadingVisual = leadingVisual !== null && leadingVisual !== undefined && leadingVisual !== false;
   const usesRailMedia = hasLeadingVisual && mediaLayout === "rail";
   const usesInlineMedia = hasLeadingVisual && mediaLayout === "inline";
@@ -296,8 +315,7 @@ export function ExerciseCard({
                 className={cn(
                   "pointer-events-none shrink-0",
                   EXERCISE_CARD_BADGE_CLASS_NAME,
-                  badgeStateClassNames[state],
-                  cardBadgeToneClassNames[resolvedSemanticTone],
+                  resolvedBadgeClassName,
                 )}
               >
                 {badgeText}
