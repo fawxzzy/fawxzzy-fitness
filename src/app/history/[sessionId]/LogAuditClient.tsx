@@ -450,9 +450,12 @@ export function LogAuditClient({
         </HistorySection>
       ) : null}
 
-      <section className="space-y-2">
+      <HistorySection
+        title="Logged exercises"
+        description={isEditing ? "Expand an exercise to edit sets and notes." : "Expand an exercise to review sets and notes."}
+      >
         {exercises.length === 0 ? (
-          <p className="rounded-[0.95rem] border border-dashed border-border/35 bg-black/10 px-3 py-2.5 text-sm text-[rgb(var(--text-muted)/0.84)]">
+          <p className="rounded-[0.95rem] border border-dashed border-border/35 bg-[rgb(var(--surface-2-soft)/0.42)] px-3 py-2.5 text-sm text-[rgb(var(--text-muted)/0.84)]">
             No exercises logged for this session yet.
           </p>
         ) : null}
@@ -613,7 +616,7 @@ export function LogAuditClient({
                   </ul>
 
                   {setsForExercise.length === 0 ? (
-                    <p className="rounded-[0.95rem] border border-dashed border-border/35 bg-black/10 px-3 py-2.5 text-sm text-[rgb(var(--text-muted)/0.84)]">
+                    <p className="rounded-[0.95rem] border border-dashed border-border/35 bg-[rgb(var(--surface-2-soft)/0.42)] px-3 py-2.5 text-sm text-[rgb(var(--text-muted)/0.84)]">
                       No sets logged yet
                     </p>
                   ) : null}
@@ -639,7 +642,7 @@ export function LogAuditClient({
             </article>
           );
         })}
-      </section>
+      </HistorySection>
 
 
       <ConfirmDestructiveModal

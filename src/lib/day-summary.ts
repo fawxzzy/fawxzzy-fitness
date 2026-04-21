@@ -127,3 +127,17 @@ export function formatDayTaxonomyHeaderSummaryFromCounts(args: {
 }): string {
   return getDayTaxonomyHeaderSummaryParts(args).compactSummary;
 }
+
+export function formatExerciseSplitSummary(summary: Pick<ExerciseCountSummary, "total" | "strength" | "cardio" | "unknown">): string {
+  if (summary.total <= 0) {
+    return EMPTY_EXERCISE_SUMMARY_LABEL;
+  }
+
+  const parts: string[] = [];
+
+  if (summary.strength > 0) parts.push(`Str ${summary.strength}`);
+  if (summary.cardio > 0) parts.push(`Cardio ${summary.cardio}`);
+  if (summary.unknown > 0) parts.push(`Other ${summary.unknown}`);
+
+  return parts.length > 0 ? parts.join(" • ") : EMPTY_EXERCISE_SUMMARY_LABEL;
+}

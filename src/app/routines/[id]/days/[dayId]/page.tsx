@@ -18,6 +18,7 @@ import { isRunnableDayState } from "@/lib/runnable-day";
 import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
+import { formatRoutineDayDisplayName, getRoutineDayEditableName } from "@/lib/routines";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +77,16 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
     allDayExercises: dayExercises,
   });
   const canonicalDay = summaries[0] ?? null;
-  const dayLabel = dayRow.name?.trim() || (dayRow.is_rest ? "Rest" : `Day ${dayRow.day_index}`);
+  const dayLabel = formatRoutineDayDisplayName({
+    name: dayRow.name,
+    dayIndex: dayRow.day_index,
+    startDate: routineRow.start_date,
+  });
+  const editableDayName = getRoutineDayEditableName({
+    name: dayRow.name,
+    dayIndex: dayRow.day_index,
+    startDate: routineRow.start_date,
+  });
   const daySummary = getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(canonicalDay, dayRow.is_rest);
   const isRestState = dayRow.is_rest || canonicalDay?.state === "rest";
   const hasWarningSummary = canonicalDay?.state === "partial";
@@ -175,7 +185,7 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                 routineId={routineRow.id}
                 routineDayId={dayRow.id}
                 initialIsRest={dayRow.is_rest}
-                name={dayRow.name?.trim() || `Day ${dayRow.day_index}`}
+                name={editableDayName}
               />
             )}
             right={(

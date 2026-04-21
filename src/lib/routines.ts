@@ -109,8 +109,8 @@ export function createRoutineDaySeeds(cycleLengthDays: number, userId: string, r
   return createRoutineDaySeedsFromStartDate(cycleLengthDays, userId, routineId, null);
 }
 
-function getWeekdayNameFromUtcDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(date);
+function getWeekdayNameFromUtcDate(date: Date, weekday: "long" | "short" = "long") {
+  return new Intl.DateTimeFormat("en-US", { weekday, timeZone: "UTC" }).format(date);
 }
 
 export function getRoutineStartWeekdayFromDate(startDate: string | null | undefined): RoutineStartWeekday | null {
@@ -179,14 +179,65 @@ export function getRoutineDayNamesFromStartDate(cycleLengthDays: number, startDa
   });
 }
 
-export function createRoutineDaySeedsFromStartDate(cycleLengthDays: number, userId: string, routineId: string, startDate: string | null) {
-  const dayNames = getRoutineDayNamesFromStartDate(cycleLengthDays, startDate);
+export function getRoutineDayWeekdayLabel(dayIndex: number, startDate: string | null | undefined, weekday: "long" | "short" = "short") {
+  if (!Number.isFinite(dayIndex) || dayIndex < 1) {
+    return "Day";
+  }
 
+  const startTimestamp = startDate ? Date.parse(`${startDate}T00:00:00Z`) : Number.NaN;
+  if (!Number.isFinite(startTimestamp)) {
+    return `Day ${dayIndex}`;
+  }
+
+  return getWeekdayNameFromUtcDate(new Date(startTimestamp + ((dayIndex - 1) * MS_PER_DAY)), weekday);
+}
+
+export function isRoutineDayDefaultName(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+}) {
+  const trimmedName = args.name?.trim() ?? "";
+  if (trimmedName.length === 0) {
+    return true;
+  }
+
+  const normalizedName = trimmedName.toLowerCase();
+  const longWeekday = getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "long").toLowerCase();
+  const shortWeekday = getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, "short").toLowerCase();
+
+  return normalizedName === String(args.dayIndex)
+    || normalizedName === `day ${args.dayIndex}`
+    || normalizedName === longWeekday
+    || normalizedName === shortWeekday;
+}
+
+export function getRoutineDayEditableName(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+}) {
+  const trimmedName = args.name?.trim() ?? "";
+  return isRoutineDayDefaultName(args) ? "" : trimmedName;
+}
+
+export function formatRoutineDayDisplayName(args: {
+  name: string | null | undefined;
+  dayIndex: number;
+  startDate: string | null | undefined;
+  weekday?: "long" | "short";
+}) {
+  const weekdayLabel = getRoutineDayWeekdayLabel(args.dayIndex, args.startDate, args.weekday ?? "short");
+  const customName = getRoutineDayEditableName(args);
+  return customName ? `${weekdayLabel} · ${customName}` : weekdayLabel;
+}
+
+export function createRoutineDaySeedsFromStartDate(cycleLengthDays: number, userId: string, routineId: string, _startDate: string | null) {
   return Array.from({ length: cycleLengthDays }, (_, index) => ({
     day_index: index + 1,
     user_id: userId,
     routine_id: routineId,
-    name: dayNames[index],
+    name: String(index + 1),
     is_rest: false,
   }));
 }

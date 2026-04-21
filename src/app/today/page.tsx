@@ -433,47 +433,41 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
         floatingHeader={todayPayload.routine ? (
           todayPayload.inProgressSessionId ? (
             <ContentRail>
-              <ScreenScaffold recipe="todayOverview" className="w-full">
-                <SharedScreenHeader
-                  recipe="todayOverview"
-                  title={todayPayload.routine.name}
-                  subtitle={(
-                    <DayTaxonomyHeaderSummary
-                      dayName={todayPayload.routine.dayName}
-                      summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
-                      isRest={todayPayload.routine.isRest}
-                    />
-                  )}
-                  action={todayPayload.inProgressSessionId
-                    ? <AppBadge tone="success">In Session</AppBadge>
-                    : completedDayIndexes.includes(todayPayload.routine.dayIndex)
-                      ? <AppBadge tone="success">Completed</AppBadge>
-                      : undefined}
-                />
-              </ScreenScaffold>
+              <SharedScreenHeader
+                recipe="todayOverview"
+                title={todayPayload.routine.name}
+                subtitle={(
+                  <DayTaxonomyHeaderSummary
+                    dayName={todayPayload.routine.dayName}
+                    summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
+                    isRest={todayPayload.routine.isRest}
+                  />
+                )}
+                action={todayPayload.inProgressSessionId
+                  ? <AppBadge tone="success">In Session</AppBadge>
+                  : completedDayIndexes.includes(todayPayload.routine.dayIndex)
+                    ? <AppBadge tone="success">Completed</AppBadge>
+                    : undefined}
+              />
             </ContentRail>
           ) : (
             <ContentRail>
-              <ScreenScaffold recipe="todayOverview" className="w-full">
-                <div id="today-floating-header-slot" />
-              </ScreenScaffold>
+              <div id="today-floating-header-slot" className="w-full" />
             </ContentRail>
           )
         ) : !todayPayload.routine ? (
           <ContentRail>
-            <ScreenScaffold recipe="todayOverview" className="w-full">
-              <SharedScreenHeader
-                recipe="todayOverview"
-                title="No active routine"
-                subtitle="Select a routine to plan your session."
-              />
-            </ScreenScaffold>
+            <SharedScreenHeader
+              recipe="todayOverview"
+              title="No active routine"
+              subtitle="Select a routine to plan your session."
+            />
           </ContentRail>
         ) : undefined}
       >
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
-            <ContentRail className="space-y-3">
+          <ContentRail className="flex flex-col gap-[0.75rem]">
               <OfflineSyncBadge userId={user.id} />
               {recoveryShadowPlacement ? (
                 <TodayRecoveryShadowPlacement
@@ -486,8 +480,8 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                 />
               ) : null}
               {todayPayload.inProgressSessionId ? (
-                <ScreenScaffold recipe="todayOverview" className="w-full">
-                  <div className="space-y-2.5">
+              <ScreenScaffold recipe="todayOverview" className="w-full">
+                <div className="flex flex-col gap-[0.625rem]">
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}
                       emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
@@ -581,7 +575,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
           <TodayOfflineBridge snapshot={todaySnapshot} />
 
-          {todayGlobalError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{todayGlobalError}</p> : null}
+          {todayGlobalError ? <p className="rounded-[var(--radius-md)] border border-[rgb(var(--danger-rgb)/0.18)] bg-[rgb(var(--danger-rgb)/0.08)] px-3 py-2 text-sm text-[rgb(var(--danger-rgb))]">{todayGlobalError}</p> : null}
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );

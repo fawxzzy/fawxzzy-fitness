@@ -45,7 +45,7 @@ export function TodayExerciseRows({
 
   return (
     <>
-      <ul className="space-y-1.5">
+      <ul className="flex flex-col gap-[0.375rem]">
         {exercises.map((exercise) => {
           const cardVariantState = deriveReadOnlyExercisePresentation({
             loggedSetCount: exercise.loggedSetCount ?? 0,
@@ -101,7 +101,7 @@ export function TodayExerciseRows({
             </li>
           );
         })}
-        {exercises.length === 0 ? <li className="px-3 py-3 text-muted">{emptyMessage}</li> : null}
+        {exercises.length === 0 ? <li className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-3 text-center text-sm leading-normal text-[rgb(var(--text-muted)/0.96)]">{emptyMessage}</li> : null}
       </ul>
 
       <ExerciseInfo

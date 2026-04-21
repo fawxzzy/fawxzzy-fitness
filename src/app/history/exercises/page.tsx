@@ -4,8 +4,9 @@ import { cookies } from "next/headers";
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShared";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { AppPanel } from "@/components/ui/app/AppPanel";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
 
@@ -19,10 +20,11 @@ function resolveInitialViewMode() {
 
 function ExercisesBrowserError() {
   return (
-    <AppPanel className="space-y-3 p-4">
-      <p className="text-sm font-medium text-slate-100">Unable to load exercise history right now.</p>
-      <p className="text-xs text-slate-300">Please try again in a moment.</p>
-    </AppPanel>
+    <SharedSectionShell
+      recipe="historyDetail"
+      label={<span className="text-sm font-medium text-text">Unable to load exercise history right now.</span>}
+      context={<span className="text-xs text-muted">Please try again in a moment.</span>}
+    />
   );
 }
 
@@ -36,7 +38,16 @@ export default async function HistoryExercisesPage() {
       <MainTabScreen topNavMode="none" ambientPreset="history">
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
+          floatingHeader={(
+            <ContentRail className="py-1">
+              <HistoryPageHeader title="History" subtitle={`${rows.length} tracked exercises`}>
+                <div className="space-y-2">
+                  <HistoryTabs value="exercises" sessionsHref="/history" exercisesHref="/history/exercises" />
+                  <div id="history-exercises-floating-header" />
+                </div>
+              </HistoryPageHeader>
+            </ContentRail>
+          )}
         >
           <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
             <ExerciseBrowserClient rows={rows} initialViewMode={initialViewMode} />
@@ -55,7 +66,16 @@ export default async function HistoryExercisesPage() {
       <MainTabScreen topNavMode="none" ambientPreset="history">
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={<ContentRail className="py-1"><div id="history-exercises-floating-header" /></ContentRail>}
+          floatingHeader={(
+            <ContentRail className="py-1">
+              <HistoryPageHeader title="History" subtitle="Exercise history unavailable">
+                <div className="space-y-2">
+                  <HistoryTabs value="exercises" sessionsHref="/history" exercisesHref="/history/exercises" />
+                  <div id="history-exercises-floating-header" />
+                </div>
+              </HistoryPageHeader>
+            </ContentRail>
+          )}
         >
           <ContentRail className="py-1">
             <ExercisesBrowserError />

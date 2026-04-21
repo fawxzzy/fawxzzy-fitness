@@ -45,29 +45,29 @@ export function AppHeader({
     <header className={cn(headerTokens.horizontalPadding, headerTokens.contentBottomGap, "space-y-0", className)}>
       <div className={cn("flex justify-between", isTitleOnlyHeader ? "items-center" : "items-start", headerTokens.primaryRowGap)}>
         <div className="min-w-0 flex-1">
-          {eyebrow ? <EyebrowText className="block text-left">{eyebrow}</EyebrowText> : null}
-          <TitleText as={titleAs} className={cn("block text-left [text-wrap:balance]", headerTokens.titleClassName, titleClassName)}>{title}</TitleText>
+          {eyebrow ? <EyebrowText className={cn("block text-left", headerTokens.eyebrowClassName)}>{eyebrow}</EyebrowText> : null}
+          <TitleText as={titleAs} className={cn("block text-left [text-wrap:balance]", headerTokens.titleClassName, headerTokens.titleTextClassName, titleClassName)}>{title}</TitleText>
           {hasSubtitleRow || hasMeta ? (
             <div className={cn(headerTokens.titleToSecondaryGap, headerTokens.secondaryBlockGap)}>
               {hasSubtitleRow ? (
                 <div className={cn("flex min-w-0 gap-2", subtitleRight ? "items-start justify-between" : "items-center")}>
                   {shouldMergeSubtitleAndMeta ? (
-                    <p className={cn("min-w-0 text-left text-sm leading-snug text-[rgb(var(--text-secondary)/0.98)] [text-wrap:pretty] break-words", subtitleClassName)}>
+                    <p className={cn("min-w-0 text-left [text-wrap:pretty] break-words", headerTokens.subtitleClassName, subtitleClassName)}>
                       <span className="align-middle">{resolvedSubtitle}</span>
-                      <span className="inline align-middle text-[rgb(var(--text-muted)/0.98)] before:mx-1 before:inline-block before:text-[rgb(var(--text-muted)/0.82)] before:content-['\2022']">
+                      <span className={cn("inline align-middle before:mx-1 before:inline-block before:content-['\\2022']", headerTokens.metaClassName)}>
                         {meta}
                       </span>
                     </p>
                   ) : resolvedSubtitle ? (
-                    <div className={cn("min-w-0 text-left text-sm text-[rgb(var(--text-secondary)/0.98)] [text-wrap:pretty] break-words", subtitleClassName)}>{resolvedSubtitle}</div>
+                    <div className={cn("min-w-0 text-left [text-wrap:pretty] break-words", headerTokens.subtitleClassName, subtitleClassName)}>{resolvedSubtitle}</div>
                   ) : <span />}
                   {subtitleRight ? (
-                    <div className="shrink-0 text-right text-sm text-[rgb(var(--text-muted)/0.98)]">{subtitleRight}</div>
+                    <div className={cn("shrink-0 text-right", headerTokens.metaClassName)}>{subtitleRight}</div>
                   ) : null}
                 </div>
               ) : null}
               {hasMeta && !shouldMergeSubtitleAndMeta ? (
-                <div className="text-left text-sm text-[rgb(var(--text-muted)/0.98)]">{meta}</div>
+                <div className={cn("text-left", headerTokens.metaClassName)}>{meta}</div>
               ) : null}
             </div>
           ) : null}

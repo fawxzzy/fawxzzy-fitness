@@ -961,6 +961,7 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
             activeRoutineId={isListView ? null : activeRoutine.id}
             activeRoutineName={isListView ? null : activeRoutine.name}
             activeRoutineSummary={isListView ? null : activeRoutine.summary}
+            activeRoutineStartDate={isListView ? null : "2026-04-21"}
             activeRoutineEditHref={isListView ? null : `/routines/${activeRoutine.id}/edit`}
             newRoutineHref="/routines/new"
             initialRoutineListOpen={isListView}

@@ -36,7 +36,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
 
   const { data: routine } = await supabase
     .from("routines")
-    .select("id, user_id, name, weight_unit")
+    .select("id, user_id, name, weight_unit, start_date")
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
@@ -167,6 +167,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           routineDayId={params.dayId}
           dayIndex={day.day_index}
           name={(day as RoutineDayRow).name}
+          startDate={(routine as RoutineRow).start_date}
           isRest={(day as RoutineDayRow).is_rest}
           floatingHeaderSlotId="edit-day-floating-header-slot"
           headerActionSlotId="planned-workout-header-action-slot"

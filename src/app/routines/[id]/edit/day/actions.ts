@@ -39,7 +39,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
 
   const { data: existingDay, error: existingDayError } = await supabase
     .from("routine_days")
-    .select("name")
+    .select("name, day_index")
     .eq("id", routineDayId)
     .eq("user_id", user.id)
     .eq("routine_id", routineId)
@@ -49,7 +49,7 @@ export async function updateRoutineDaySettingsAction(formData: FormData): Promis
     return { ok: false, error: existingDayError?.message ?? "Routine day not found" };
   }
 
-  const safeName = name || existingDay.name || null;
+  const safeName = name.slice(0, 15) || String(existingDay.day_index);
 
   const { error } = await supabase
     .from("routine_days")

@@ -159,6 +159,7 @@ export function RoutineEditorTitleInput({
   onChange,
   placeholder,
   ariaLabel,
+  maxLength,
   className,
 }: {
   name: string;
@@ -166,6 +167,7 @@ export function RoutineEditorTitleInput({
   onChange: (nextValue: string) => void;
   placeholder: string;
   ariaLabel: string;
+  maxLength?: number;
   className?: string;
 }) {
   return (
@@ -175,6 +177,7 @@ export function RoutineEditorTitleInput({
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       aria-label={ariaLabel}
+      maxLength={maxLength}
       className={cn(controlClassName, "min-h-11 border-border/55 bg-[rgb(var(--bg)/0.44)] text-base font-semibold", className)}
     />
   );

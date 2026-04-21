@@ -149,8 +149,8 @@ export function SessionPageClient({
 
   const isExerciseOpen = selectedExerciseId !== null;
   const hasExercises = exercises.length > 0;
-  const topChrome = !isExerciseOpen ? (
-    <ContentRail className="py-1">
+  const floatingHeader = !isExerciseOpen ? (
+    <ContentRail>
       <SessionHeaderControls
         routineName={routineName}
         sessionDayName={sessionDayName}
@@ -213,7 +213,7 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip" topChrome={topChrome}>
+    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip" floatingHeader={floatingHeader}>
       {!isExerciseOpen ? (
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}

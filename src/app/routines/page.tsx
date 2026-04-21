@@ -112,7 +112,7 @@ export default async function RoutinesPage({
   }
 
   let activeRoutineDays: RoutineDayRow[] = [];
-  let activeRoutineExerciseSummaries = new Map<string, string>();
+  let activeRoutineExerciseSummaries = new Map<string, ReturnType<typeof getRestDayExerciseCountSummaryFromCanonicalDay>>();
 
   if (activeRoutine) {
     const { data: routineDays } = await supabase
@@ -140,7 +140,7 @@ export default async function RoutinesPage({
       activeRoutineExerciseSummaries = new Map(
         summaries.map((summary) => [
           summary.day.id,
-          getRestDayExerciseCountSummaryFromCanonicalDay(summary).label,
+          getRestDayExerciseCountSummaryFromCanonicalDay(summary),
         ]),
       );
     }
@@ -190,7 +190,6 @@ export default async function RoutinesPage({
 
   let completedDayIndexSet = new Set<number>();
   let inSessionDayIndex: number | null = null;
-  let inSessionLoggedSetCount = 0;
 
   if (activeRoutine) {
     const { startIso, endIso } = getTimeZoneDayWindow(activeRoutine.timezone || profile.timezone);
@@ -222,24 +221,6 @@ export default async function RoutinesPage({
     const resolvedInProgressDayIndex = inProgressSession?.routine_day_index;
     inSessionDayIndex = Number.isFinite(resolvedInProgressDayIndex) ? resolvedInProgressDayIndex : null;
 
-    if (inProgressSession?.id) {
-      const { data: sessionExercises } = await supabase
-        .from("session_exercises")
-        .select("id")
-        .eq("session_id", inProgressSession.id)
-        .eq("user_id", user.id);
-
-      const sessionExerciseIds = (sessionExercises ?? []).map((row) => row.id);
-      if (sessionExerciseIds.length > 0) {
-        const { count: loggedSetCount } = await supabase
-          .from("sets")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .in("session_exercise_id", sessionExerciseIds);
-
-        inSessionLoggedSetCount = loggedSetCount ?? 0;
-      }
-    }
   }
 
   if (process.env.NODE_ENV !== "production" && sortedActiveRoutineDays.length > 0 && sortedActiveRoutineDays[0]?.day_index !== 1) {
@@ -278,6 +259,7 @@ export default async function RoutinesPage({
               activeRoutineId={activeRoutine?.id ?? null}
               activeRoutineName={activeRoutine?.name ?? null}
               activeRoutineSummary={cycleSummary ?? null}
+              activeRoutineStartDate={activeRoutine?.start_date ?? null}
               activeRoutineEditHref={activeRoutine ? `/routines/${activeRoutine.id}/edit` : null}
               newRoutineHref="/routines/new"
               routines={routines.map((routine) => ({
@@ -297,16 +279,14 @@ export default async function RoutinesPage({
                 return {
                   id: day.id,
                   dayIndex: dayNumber,
-                  title: day.name?.trim() || (day.is_rest ? "Rest" : "Training"),
+                  name: day.name ?? null,
                   isRest: Boolean(day.is_rest),
-                  exerciseSummary: activeRoutineExerciseSummaries.get(day.id)
-                    ?? getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(null, Boolean(day.is_rest)).label,
-                  notes: day.notes ?? null,
+                  splitSummary: activeRoutineExerciseSummaries.get(day.id)
+                    ?? getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(null, Boolean(day.is_rest)),
                   href: `/routines/${activeRoutine.id}/days/${day.id}`,
                   isToday: index === todayRowIndex,
                   isCompleted: completedDayIndexSet.has(dayNumber),
                   isInSession: inSessionDayIndex === dayNumber,
-                  loggedSetCount: inSessionDayIndex === dayNumber ? inSessionLoggedSetCount : 0,
                 };
               }) : []}
               setActiveRoutineAction={setActiveRoutineAction}

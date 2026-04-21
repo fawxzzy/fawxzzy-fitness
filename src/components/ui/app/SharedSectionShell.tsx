@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { resolveScreenRecipe, type ScreenContractName } from "@/components/ui/app/screenContract";
 import { SubtitleText } from "@/components/ui/text-roles";
@@ -30,6 +31,7 @@ export function SharedSectionShell({
   bodyClassName?: string;
 }) {
   const screenRecipe = resolveScreenRecipe(recipe);
+  const sectionTokens = fitnessDesignPrimitiveClassNames.sectionLayout;
   const hasSectionHeader = Boolean(label || context || meta || action);
 
   return (
@@ -39,10 +41,10 @@ export function SharedSectionShell({
       className={cn(screenRecipe.sectionShellClassName, className)}
     >
       {hasSectionHeader ? (
-        <div className="flex items-start justify-between gap-3">
+        <div className={sectionTokens.sectionHeaderClassName}>
           <div className="min-w-0 space-y-1">
             {label ? (
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">{label}</p>
+              <p className={sectionTokens.sectionLabelClassName}>{label}</p>
             ) : null}
             {context ? <SubtitleText>{context}</SubtitleText> : null}
             {meta ? <div>{meta}</div> : null}

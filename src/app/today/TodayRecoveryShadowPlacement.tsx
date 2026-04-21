@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { Chip } from "@/components/ui/Chip";
+import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
@@ -131,15 +131,15 @@ export function TodayRecoveryShadowPlacement(props: {
       <SharedSectionShell
         recipe="todayOverview"
         label="Recovery reset follow-up"
-        action={<Chip tone="warning">Shadow only</Chip>}
-        bodyClassName="space-y-3"
+        action={<AppBadge tone="warning">Shadow only</AppBadge>}
+        bodyClassName="flex flex-col gap-[0.75rem]"
         summary={(
           <AccentSubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--warning-rgb)/0.22)] bg-[rgb(var(--warning-rgb)/0.12)] px-3 py-2 text-xs text-[rgb(255_243_225)]">
             This banner is measuring a recovery-reset placement for the current shadow cohort only. No live widening happens here.
           </AccentSubtitleText>
         )}
         footer={(
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-[0.5rem]">
             <button
               type="button"
               className={cn(
@@ -190,13 +190,13 @@ export function TodayRecoveryShadowPlacement(props: {
           </div>
         )}
       >
-        <div className="space-y-2">
+        <div className="flex flex-col gap-[0.5rem]">
           <SubtitleText>
             Today looks like a recovery-risk moment with open weekly progress still available. Keep the placement shadowed and measure whether members choose the recovery reset path before any live pilot.
           </SubtitleText>
-          <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.92)]">
-            <Chip tone="warning">High intent</Chip>
-            <Chip tone="success">{props.cohortId.includes("treatment_shadow") ? "Treatment shadow" : "Shadow cohort"}</Chip>
+          <div className="flex flex-wrap gap-[0.5rem]">
+            <AppBadge tone="warning">High intent</AppBadge>
+            <AppBadge tone="success">{props.cohortId.includes("treatment_shadow") ? "Treatment shadow" : "Shadow cohort"}</AppBadge>
           </div>
         </div>
       </SharedSectionShell>

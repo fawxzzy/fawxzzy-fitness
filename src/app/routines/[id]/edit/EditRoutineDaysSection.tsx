@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppBadge } from "@/components/ui/app/AppBadge";
 import { RoutineEditorDayRow, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 
 type EditRoutineDayItem = {
@@ -50,7 +51,7 @@ export function EditRoutineDaysSection({
                   badgeText={day.isRest ? "Rest Day" : day.needsSetup ? "Needs Setup" : undefined}
                   state={day.isRest || day.needsSetup ? "empty" : "default"}
                   href={day.href}
-                  rightLabel={<span aria-hidden="true" className="text-muted">Edit</span>}
+                  rightLabel={<AppBadge tone="default">Edit</AppBadge>}
                 />
               </li>
             );

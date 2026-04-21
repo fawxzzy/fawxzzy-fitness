@@ -94,6 +94,7 @@ export type DayCardProps = {
   onPress?: () => void;
   title: string;
   subtitle?: string;
+  subtitleLabel?: string;
   badgeText?: string;
   metaText?: string;
   state?: DayListState;
@@ -101,13 +102,14 @@ export type DayCardProps = {
   wrapper?: (child: ReactNode) => ReactNode;
 };
 
-export function DayCard({ onPress, wrapper, state = "default", metaText, subtitle, ...cardProps }: DayCardProps) {
+export function DayCard({ onPress, wrapper, state = "default", metaText, subtitle, subtitleLabel, ...cardProps }: DayCardProps) {
   const resolvedSubtitle = [subtitle, metaText].filter(Boolean).join(" · ") || undefined;
 
   const card = (
     <ExerciseCard
       {...cardProps}
       subtitle={resolvedSubtitle}
+      subtitleLabel={subtitleLabel}
       onPress={onPress}
       state={toExerciseCardState(state)}
       className={cn("shadow-none")}
