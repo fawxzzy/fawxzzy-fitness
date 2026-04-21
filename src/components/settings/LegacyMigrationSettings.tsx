@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AppRow } from "@/components/ui/app/AppRow";
+import { appTokens } from "@/components/ui/app/tokens";
 import { AppButton } from "@/components/ui/AppButton";
 import { Chip } from "@/components/ui/Chip";
 import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/cn";
 
 type SnapshotCountMap = {
   profiles: number;
@@ -270,7 +272,7 @@ export function LegacyMigrationSettings({
   };
 
   return (
-    <div className="space-y-3 border-t border-white/8 pt-3">
+    <div className={cn("space-y-3", appTokens.settingsDivider)}>
       <AppRow
         leftTop="Import legacy data"
         leftBottom={migrationStatusLabel}
@@ -281,23 +283,23 @@ export function LegacyMigrationSettings({
         )}
         rightBottom={isExpanded ? "Hide" : "Open"}
         onClick={() => setIsExpanded((current) => !current)}
-        className="rounded-[1.1rem] border border-white/8 bg-white/[0.02]"
+        className={appTokens.settingsRow}
       />
 
       {isExpanded ? (
-        <div className="space-y-4 rounded-[1.1rem] border border-white/8 bg-black/[0.08] px-4 py-4">
+        <div className={appTokens.settingsExpandedPanel}>
           <div className="flex flex-wrap items-center gap-2">
             <Chip tone={legacyBridgeConfigured ? "success" : "warning"}>
               {legacyBridgeConfigured ? "Legacy bridge ready" : "Legacy env missing"}
             </Chip>
-            <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
+            <p className={appTokens.settingsBodyText}>
               Export from the old Supabase project, import into the current account, then run parity from that same snapshot.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="legacy-email" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+            <div className={appTokens.settingsFieldStack}>
+              <label htmlFor="legacy-email" className={cn("block", appTokens.measurementLabel)}>
                 Legacy email
               </label>
               <Input
@@ -309,8 +311,8 @@ export function LegacyMigrationSettings({
                 placeholder="legacy@email.com"
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="legacy-password" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+            <div className={appTokens.settingsFieldStack}>
+              <label htmlFor="legacy-password" className={cn("block", appTokens.measurementLabel)}>
                 Legacy password
               </label>
               <Input
@@ -354,8 +356,8 @@ export function LegacyMigrationSettings({
             </AppButton>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="legacy-snapshot" className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.98)]">
+          <div className={appTokens.settingsFieldStack}>
+            <label htmlFor="legacy-snapshot" className={cn("block", appTokens.measurementLabel)}>
               Snapshot JSON
             </label>
             <textarea
@@ -364,24 +366,24 @@ export function LegacyMigrationSettings({
               onChange={(event) => setSnapshotText(event.target.value)}
               rows={12}
               spellCheck={false}
-              className="min-h-[16rem] w-full rounded-[var(--radius-md)] border border-[rgb(var(--border)/0.22)] bg-[rgb(var(--surface-2)/0.92)] px-4 py-3 font-mono text-[13px] leading-5 text-[rgb(var(--text-primary))] placeholder:text-[rgb(var(--text-muted)/0.92)] focus-visible:border-[rgb(var(--accent)/0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]"
+              className={appTokens.settingsTextarea}
               placeholder='{"metadata":{"snapshot_version":"fitness-legacy-v1"}}'
             />
           </div>
 
-          <div className="space-y-2">
+          <div className={appTokens.settingsFieldStack}>
             {exportCounts ? (
-              <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
+              <p className={appTokens.settingsBodyText}>
                 Export counts: {formatCounts(exportCounts)}
               </p>
             ) : null}
             {importSummary ? (
-              <p className="text-sm text-[rgb(var(--text-secondary)/0.92)]">
+              <p className={appTokens.settingsBodyText}>
                 Imported {formatCounts(importSummary.importedCounts)}. Global exercises resolved {importSummary.resolvedGlobalExercises}; created {importSummary.createdGlobalExercises}.
               </p>
             ) : null}
             {parity ? (
-              <div className="space-y-1 text-sm text-[rgb(var(--text-secondary)/0.92)]">
+              <div className={cn(appTokens.settingsBodyText, "space-y-1")}>
                 {parity.counts.map((count) => (
                   <p key={count.metric}>
                     {count.metric}: snapshot {count.snapshot} / database {count.database} / {count.matches ? "match" : "mismatch"}
@@ -389,7 +391,7 @@ export function LegacyMigrationSettings({
                 ))}
               </div>
             ) : null}
-            <p className={`text-sm leading-5 ${statusClassName}`}>
+            <p className={cn(appTokens.settingsBodyText, statusClassName)}>
               {status?.text ?? "Import assumes the current account is blank or already contains only this snapshot."}
             </p>
           </div>

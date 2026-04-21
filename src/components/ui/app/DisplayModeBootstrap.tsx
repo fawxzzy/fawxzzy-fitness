@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { getStandaloneState } from "@/lib/install/install-detection";
 
 function syncDisplayMode() {
@@ -12,6 +12,10 @@ function syncDisplayMode() {
 }
 
 export function DisplayModeBootstrap() {
+  useLayoutEffect(() => {
+    syncDisplayMode();
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
@@ -22,7 +26,6 @@ export function DisplayModeBootstrap() {
       syncDisplayMode();
     };
 
-    syncDisplayMode();
     window.addEventListener("pageshow", handleDisplayModeChange);
     window.addEventListener("focus", handleDisplayModeChange);
 
