@@ -436,3 +436,10 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents adjacent detail screens from drifting into slightly different card shells and metadata treatments even when they already share the same detail header and section hierarchy.
 - Evidence: src/components/DetailSurface.tsx, src/components/ExerciseInfoSheet.tsx, src/components/routines/day-detail/DayDetailStateCard.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
 - Status: Proposed
+## 2026-04-21 - Exercise chooser families should publish picker, filter, and goal chrome through shared tokens
+- Type: Pattern
+- Summary: Exercise-addition flows should keep one chooser language by exposing picker panels, filter toggles, helper copy, and goal configuration chrome through the shared token bridge instead of leaving those surfaces as route-local literals inside picker components.
+- Suggested Playbook File: docs/PATTERNS/list-interaction-consistency.md
+- Rationale: Prevents Quick Add, day-editor add-exercise, and adjacent chooser routes from quietly diverging in panel density, filter rhythm, and goal helper treatment even when they already share the same selection workflow.
+- Evidence: src/components/ExercisePicker.tsx, src/components/ExerciseTagFilterControl.tsx, src/components/exercises/ExerciseSearchFilters.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
+- Status: Proposed

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Button } from "@/components/ui/Button";
 import { ChevronDownIcon, ChevronUpIcon } from "@/components/ui/Chevrons";
 import { PillButton } from "@/components/ui/Pill";
@@ -54,7 +55,7 @@ export function ExerciseTagFilterControl({
 
     const labelByValue = new Map(groups.flatMap((group) => group.tags.map((tag) => [tag.value, tag.label] as const)));
     const labels = selectedTags.map((tag) => labelByValue.get(tag) ?? formatTagLabel(tag));
-    return `${selectedTags.length} selected · ${labels.join(", ")}`;
+    return `${selectedTags.length} selected \u00b7 ${labels.join(", ")}`;
   }, [groups, selectedTags]);
 
   const shouldShowSummary =
@@ -71,14 +72,14 @@ export function ExerciseTagFilterControl({
         aria-expanded={isOpen}
         className={cn(
           compact
-            ? "min-h-[2.625rem] w-full justify-between rounded-lg border border-border/45 bg-[rgb(var(--bg)/0.18)] px-3 py-2 text-sm font-medium [-webkit-tap-highlight-color:transparent]"
+            ? appTokens.exercisePickerFilterToggle
             : "w-full justify-between rounded-[1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] [-webkit-tap-highlight-color:transparent]",
           buttonClassName,
         )}
       >
         <span className="inline-flex items-center gap-2">
           <span>{headerLabel}</span>
-          <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.45)] px-1.5 text-[11px] font-semibold text-muted">
+          <span className={appTokens.exercisePickerFilterCountBadge}>
             {selectedTags.length}
           </span>
         </span>
@@ -88,16 +89,20 @@ export function ExerciseTagFilterControl({
         </span>
       </Button>
 
-      {shouldShowSummary ? <p className={cn(compact ? "px-1 text-[11px] text-muted" : "text-xs text-muted", summaryClassName)}>{selectedSummary}</p> : null}
+      {shouldShowSummary ? (
+        <p className={cn(compact ? appTokens.exercisePickerFilterSummary : "text-xs text-muted", summaryClassName)}>
+          {selectedSummary}
+        </p>
+      ) : null}
 
       {isOpen ? (
-        <div className={cn(compact ? "space-y-2 rounded-lg border border-border/35 bg-[rgb(var(--bg)/0.16)] p-2.5" : "space-y-2", panelClassName)}>
+        <div className={cn(compact ? appTokens.exercisePickerFilterPanel : "space-y-2", panelClassName)}>
           <div className="flex items-center justify-end">
             {selectedTags.length > 0 ? (
               <button
                 type="button"
                 onClick={() => onChange([])}
-                className="inline-flex min-h-7 items-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.35)] px-2.5 text-[11px] font-medium uppercase tracking-[0.1em] text-muted transition-colors hover:text-text"
+                className={appTokens.exercisePickerFilterClearButton}
               >
                 Clear
               </button>
@@ -105,7 +110,7 @@ export function ExerciseTagFilterControl({
           </div>
           {groups.map((group) => (
             <div key={group.key} className={compact ? "space-y-1.5" : "space-y-1"}>
-              <p className={compact ? "text-[10px] font-medium uppercase tracking-[0.14em] text-muted/80" : "text-[11px] font-medium uppercase tracking-wide text-muted"}>{group.label}</p>
+              <p className={compact ? appTokens.exercisePickerFilterGroupLabel : "text-[11px] font-medium uppercase tracking-wide text-muted"}>{group.label}</p>
               <div className={compact
                 ? "flex flex-wrap gap-1.5 px-0.5 py-0.5"
                 : "flex flex-wrap gap-1 px-0.5 py-0.5"}
