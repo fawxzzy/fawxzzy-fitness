@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { establishRecoverySession } from "@/app/reset-password/actions";
 import { AuthMessage } from "@/components/auth/AuthShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
@@ -93,16 +94,13 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
   }, [initialError]);
 
   if (isPending) {
-    return <p className="text-sm leading-6 text-slate-600">Finishing your password reset link...</p>;
+    return <p className={appTokens.authPendingText}>Finishing your password reset link...</p>;
   }
 
   return (
     <div className="space-y-4">
       <AuthMessage tone="error">{error ?? RECOVERY_SESSION_ERROR}</AuthMessage>
-      <Link
-        href="/forgot-password"
-        className="inline-flex rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-      >
+      <Link href="/forgot-password" className={appTokens.authInlineAction}>
         Request new reset link
       </Link>
     </div>

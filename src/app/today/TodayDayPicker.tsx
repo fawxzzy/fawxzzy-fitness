@@ -21,10 +21,11 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
-import { AccentSubtitleText } from "@/components/ui/text-roles";
+import { appTokens } from "@/components/ui/app/tokens";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { cn } from "@/lib/cn";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
@@ -162,6 +163,9 @@ export function TodayDayPicker({
   const daySummaryTone = selectedDay ? getTodayDaySummaryTone(selectedDay) : null;
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
+  const selectedDaySummaryToneClassName = daySummaryTone === "blocking"
+    ? "border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
+    : "border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]";
   const selectedDayStateCard = useMemo(() => {
     if (!selectedDay || mode.dayPickerOpen) {
       return null;
@@ -199,20 +203,14 @@ export function TodayDayPicker({
     }
 
     return (
-      <div
-        className={[
-          "rounded-[var(--radius-md)] px-3 py-1.5",
-          daySummaryTone === "blocking"
-            ? "border border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
-            : "border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]",
-        ].join(" ")}
-      >
-        <AccentSubtitleText className={daySummaryTone === "blocking" ? "text-[rgb(var(--button-destructive-text))]" : "text-[rgb(var(--accent-yellow-on))]"}>
+      <div className={cn(appTokens.detailStateCard, selectedDaySummaryToneClassName)}>
+        <p className={cn(appTokens.detailBodyText, "font-medium")}>
           {daySummary}
-        </AccentSubtitleText>
+        </p>
       </div>
     );
-  }, [daySummary, daySummaryTone, mode.summaryVisible, selectedDayStateCard]);
+  }, [daySummary, daySummaryTone, mode.summaryVisible, selectedDayStateCard, selectedDaySummaryToneClassName]);
+  const shouldCenterSelectedDayState = Boolean(!mode.dayPickerOpen && selectedDayStateCard && !hasSelectedDayRows);
 
   const headerNode = selectedDay ? (
     <SharedScreenHeader
@@ -318,7 +316,11 @@ export function TodayDayPicker({
                   </DayList>
                 ) : null}
 
-                {selectedDaySummaryNode}
+                {selectedDaySummaryNode ? (
+                  <div className={shouldCenterSelectedDayState ? appTokens.todaySummaryCenteredShell : undefined}>
+                    {selectedDaySummaryNode}
+                  </div>
+                ) : null}
 
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
                   <ul className="flex flex-col gap-[0.375rem]">

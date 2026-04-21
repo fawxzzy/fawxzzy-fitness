@@ -443,3 +443,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents Quick Add, day-editor add-exercise, and adjacent chooser routes from quietly diverging in panel density, filter rhythm, and goal helper treatment even when they already share the same selection workflow.
 - Evidence: src/components/ExercisePicker.tsx, src/components/ExerciseTagFilterControl.tsx, src/components/exercises/ExerciseSearchFilters.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
 - Status: Proposed
+
+## 2026-04-21 - Auth and recovery surfaces should publish shell, message, and action chrome through shared tokens
+- Type: Pattern
+- Summary: Login, signup, forgot-password, and reset-password routes should reuse one auth shell language by publishing intro copy rhythm, card chrome, messages, links, account panels, and primary action states through the shared token bridge instead of keeping route-local auth literals in each screen.
+- Suggested Playbook File: docs/PATTERNS/mobile-card-hierarchy.md
+- Rationale: Prevents auth and recovery flows from quietly diverging in card density, CTA posture, and helper/message treatment even when they already share the same shell and form structure.
+- Evidence: src/components/auth/AuthShell.tsx, src/app/login/LoginScreen.tsx, src/components/auth/SignupForm.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx, src/app/reset-password/page.tsx, src/app/reset-password/RecoverySessionBridge.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
+- Status: Proposed

@@ -5,6 +5,7 @@ import { type FormEvent } from "react";
 import { signup } from "@/app/auth/actions";
 import { AuthCard, AuthField, AuthFooter, AuthMessage } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { writeRememberedLoginState } from "@/lib/remembered-login";
 
@@ -68,7 +69,7 @@ export function SignupForm({
       <AuthFooter>
         <p className="text-center leading-6 text-slate-300">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-accent underline-offset-4 hover:underline">
+          <Link href="/login" className={appTokens.authInlineLink}>
             Log in
           </Link>
         </p>

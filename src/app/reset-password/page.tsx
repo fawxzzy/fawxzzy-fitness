@@ -4,6 +4,7 @@ import { RecoverySessionBridge } from "@/app/reset-password/RecoverySessionBridg
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -37,7 +38,7 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
           ) : (
             <Link
               href="/forgot-password"
-              className="inline-flex rounded-md bg-accent px-3 py-2 text-sm text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+              className={appTokens.authInlineAction}
             >
               Request new reset link
             </Link>
@@ -66,7 +67,7 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
           </PrimaryButton>
         </form>
         <AuthFooter>
-          <p className="text-xs leading-5 text-slate-500">{copy.helper}</p>
+          <p className={appTokens.authHelperTextMuted}>{copy.helper}</p>
         </AuthFooter>
       </AuthCard>
     </AuthShell>
