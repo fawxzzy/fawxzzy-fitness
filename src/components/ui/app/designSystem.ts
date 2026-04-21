@@ -4,10 +4,10 @@ import primitivesPack from "../../../../truth-pack/fitness/design-system/primiti
 export const fitnessDesignTokens = tokensPack.tokenGroups;
 export const fitnessDesignPrimitiveContracts = primitivesPack.primitiveContracts;
 
-const toArbitraryValue = (value: string) => value.replace(/\s+/g, "_");
-const toCompactValue = (value: string) => value.replace(/\s+/g, "");
-const withOpacity = (value: string, opacity: string) => {
-  const compactValue = toCompactValue(value);
+const toArbitraryValue = (value: string | null | undefined, fallback = "0") => (value ?? fallback).replace(/\s+/g, "_");
+const toCompactValue = (value: string | null | undefined, fallback = "0") => (value ?? fallback).replace(/\s+/g, "");
+const withOpacity = (value: string | null | undefined, opacity: string) => {
+  const compactValue = toCompactValue(value, "transparent");
   return compactValue.endsWith(")") ? `${compactValue.slice(0, -1)}/${opacity})` : compactValue;
 };
 
@@ -31,7 +31,7 @@ export const fitnessDesignPrimitiveClassNames = {
     headerClassName: "",
     titleClassName: fitnessDesignTokens.typography.title,
     actionClassName: "",
-    actionButtonClassName: `h-[${toArbitraryValue(fitnessDesignTokens.spacing["10"])}] w-[${toArbitraryValue(fitnessDesignTokens.spacing["10"])}] rounded-[${fitnessDesignTokens.radii.pill}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.panel, "0.58")}] px-0 shadow-[${toArbitraryValue(fitnessDesignTokens.shadows.glassBase)}] hover:border-[${toCompactValue(fitnessDesignTokens.borders.strong)}] hover:bg-[${withOpacity(fitnessDesignTokens.colors.surface["1"], "0.78")}]`,
+    actionButtonClassName: `h-[2.35rem] w-[2.35rem] rounded-[${fitnessDesignTokens.radii.pill}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.panel, "0.48")}] px-0 shadow-[0_12px_24px_rgba(0,0,0,0.16)] hover:border-[${toCompactValue(fitnessDesignTokens.borders.strong)}] hover:bg-[${withOpacity(fitnessDesignTokens.colors.surface["1"], "0.72")}]`,
     metaClassName: `px-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] pb-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}]`,
     dividerClassName: `px-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] pb-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}]`,
   },
@@ -72,6 +72,7 @@ export const fitnessDesignPrimitiveClassNames = {
     exercisePickerFilterPanelClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}] rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.app, "0.16")}] p-[${toArbitraryValue(fitnessDesignTokens.spacing["2.5"])}]`,
     exercisePickerFilterClearButtonClassName: `inline-flex min-h-[${toArbitraryValue(fitnessDesignTokens.spacing["7"])}] items-center rounded-[${fitnessDesignTokens.radii.pill}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.app, "0.35")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["2.5"])}] text-[11px] font-medium uppercase tracking-[0.1em] text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.96")}] transition-colors hover:text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}]`,
     exercisePickerSearchClearButtonClassName: `absolute right-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}] top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-[${fitnessDesignTokens.radii.pill}] text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.96")}] transition-colors hover:bg-[${withOpacity(fitnessDesignTokens.colors.surface["2"], "0.54")}] hover:text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.25")}]`,
+    todaySummaryCenteredShellClassName: `flex min-h-[clamp(15rem,40vh,20rem)] flex-col justify-center`,
     settingsRowClassName: `rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["2"], "0.2")}]`,
     settingsExpandedPanelClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.app, "0.12")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}]`,
     settingsTextareaClassName: `min-h-[16rem] w-full rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["2"], "0.92")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] font-mono text-[13px] leading-5 text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}] placeholder:text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.92")}] focus-visible:border-[${toCompactValue(fitnessDesignTokens.borders.focus)}] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[${toCompactValue(fitnessDesignTokens.borders.focus)}]`,
@@ -80,6 +81,49 @@ export const fitnessDesignPrimitiveClassNames = {
     detailMediaFrameClassName: `flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["1"], "0.52")}] p-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}]`,
     detailHistoryRowClassName: `min-w-0 rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["1"], "0.52")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["2.5"])}]`,
     stickyBar: `rounded-[${fitnessDesignTokens.radii.lg}] border border-[${toCompactValue(fitnessDesignTokens.borders.strong)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.panel, "0.94")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}] shadow-[${toArbitraryValue(fitnessDesignTokens.shadows.glassRaised)}] backdrop-blur-[10px]`,
+  },
+  auth: {
+    shellContentClassName: `gap-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}]`,
+    introClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}]`,
+    introTitleStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
+    introEyebrowClassName: `text-xs font-semibold uppercase tracking-[0.28em] text-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.9")}]`,
+    introTitleClassName: `text-[clamp(2.2rem,9vw,2.85rem)] font-semibold tracking-[-0.04em] text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "1")}]`,
+    introSubtitleClassName: `max-w-sm text-sm leading-6 text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.96")}]`,
+    cardClassName: `glass-surface glass-sheen relative space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] rounded-[1.65rem] border border-[${toCompactValue(fitnessDesignTokens.borders.strong)}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] shadow-[0_22px_56px_rgba(0,0,0,0.34)]`,
+    interactiveCardClassName: `rounded-[1.85rem] px-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}] transition-[transform,opacity,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none`,
+    interactiveCardEmailValidClassName: `border-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.12")}] shadow-[0_24px_70px_rgba(0,0,0,0.38)]`,
+    interactiveCardReadyClassName: `border-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.2")}] shadow-[0_30px_90px_rgba(0,0,0,0.42)]`,
+    interactiveCardPendingClassName: `-translate-y-1 scale-[0.995] opacity-95`,
+    messageClassName: `rounded-[${fitnessDesignTokens.radii.md}] border px-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] text-sm leading-6`,
+    messageDefaultClassName: `border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["3"], "0.4")}] text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.98")}]`,
+    messageErrorClassName: `border-[${withOpacity(fitnessDesignTokens.colors.status.danger, "0.34")}] bg-[${withOpacity(fitnessDesignTokens.colors.status.danger, "0.12")}] text-[rgb(255_228_233)]`,
+    messageSuccessClassName: `border-[${withOpacity(fitnessDesignTokens.colors.status.success, "0.34")}] bg-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.12")}] text-[rgb(222_255_237)]`,
+    fieldClassName: `block space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
+    fieldLabelClassName: `text-sm font-medium text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.98")}]`,
+    footerClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] border-t border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] pt-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] text-sm text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.96")}]`,
+    statusCardClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] text-center`,
+    statusSpinnerShellClassName: `mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["3"], "0.42")}] text-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.98")}]`,
+    statusTitleClassName: `text-base font-semibold text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "1")}]`,
+    statusDescriptionClassName: `text-sm leading-6 text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.96")}]`,
+    wordmarkClassName: `text-[11px] font-semibold uppercase tracking-[0.32em] text-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.9")}]`,
+    displayNameClassName: `text-[clamp(1.75rem,7vw,2.3rem)] font-semibold tracking-[-0.04em] text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}]`,
+    helperTextClassName: `max-w-sm text-sm leading-6 text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.96")}]`,
+    helperTextCenteredClassName: `mx-auto max-w-xs text-center`,
+    helperTextMutedClassName: `text-xs leading-5 text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.94")}]`,
+    subtitleTextClassName: `text-sm leading-6 text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.96")}]`,
+    inlineLinkClassName: `font-medium text-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.96")}] underline-offset-4 transition-colors hover:text-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.78")}] hover:underline`,
+    utilityActionClassName: `shrink-0 rounded-full border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["1.5"])}] text-[11px] font-semibold uppercase tracking-[0.16em] text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.96")}] transition-colors hover:border-[${toCompactValue(fitnessDesignTokens.borders.strong)}] hover:text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "1")}]`,
+    accountPanelClassName: `rounded-[1.15rem] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.app, "0.22")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] text-center`,
+    accountReadonlyClassName: `rounded-[${fitnessDesignTokens.radii.md}] border border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.surface["3"], "0.22")}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] text-sm text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.96")}]`,
+    accountEyebrowClassName: `text-[11px] font-semibold uppercase tracking-[0.16em] text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.88")}]`,
+    accountValueClassName: `mt-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] text-sm font-medium text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}]`,
+    inputClassName: `h-14 rounded-[1.15rem] border-[${toCompactValue(fitnessDesignTokens.borders.soft)}] bg-[${withOpacity(fitnessDesignTokens.colors.background.app, "0.22")}] text-base text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "1")}] placeholder:text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.92")}] transition-[border-color,background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none`,
+    inputActiveClassName: `border-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.2")}] bg-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.05")}]`,
+    actionButtonClassName: `min-h-[3.35rem] rounded-[1.1rem] text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none`,
+    actionButtonReadyClassName: `shadow-[0_18px_38px_rgba(16,185,129,0.18)]`,
+    actionButtonPendingClassName: `scale-[0.985]`,
+    inlineActionClassName: `inline-flex rounded-[${fitnessDesignTokens.radii.md}] bg-[${toCompactValue(fitnessDesignTokens.colors.accent.base)}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}] text-sm text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "1")}] transition-colors hover:bg-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.88")}] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[${withOpacity(fitnessDesignTokens.colors.accent.base, "0.25")}]`,
+    pendingTextClassName: `text-sm leading-6 text-[${withOpacity(fitnessDesignTokens.colors.text.secondary, "0.92")}]`,
   },
   badge: {
     baseClassName: `inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-[${fitnessDesignTokens.radii.pill}] border px-[${toArbitraryValue(fitnessDesignTokens.spacing["2.5"])}] py-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] ${fitnessDesignTokens.typography.badge}`,
@@ -125,7 +169,7 @@ export const fitnessDesignPrimitiveClassNames = {
     exercisePickerStatsStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] px-[${toArbitraryValue(fitnessDesignTokens.spacing["0.5"])}] text-xs`,
     exercisePickerStatsTextClassName: `text-xs leading-5 text-[${withOpacity(fitnessDesignTokens.colors.text.muted, "0.96")}]`,
     exercisePickerStatsEmphasisClassName: `text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.9")}]`,
-    settingsCardHeaderClassName: `-mx-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] -mt-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] pb-[${toArbitraryValue(fitnessDesignTokens.spacing["1"])}] sm:-mx-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}]`,
+    settingsCardHeaderClassName: `-mx-[${toArbitraryValue(fitnessDesignTokens.spacing["4"])}] pb-[${toArbitraryValue(fitnessDesignTokens.spacing["1.5"])}] sm:-mx-[${toArbitraryValue(fitnessDesignTokens.spacing["5"])}]`,
     settingsSectionTitleClassName: `text-[1.3125rem] font-semibold leading-[1.04] tracking-[-0.03em] text-[${withOpacity(fitnessDesignTokens.colors.text.primary, "0.98")}]`,
     settingsFieldStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["2"])}]`,
     settingsBlockStackClassName: `space-y-[${toArbitraryValue(fitnessDesignTokens.spacing["3"])}]`,

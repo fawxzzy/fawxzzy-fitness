@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 export function AuthShell({ children, className }: { children: ReactNode; className?: string }) {
@@ -18,7 +19,10 @@ export function AuthShell({ children, className }: { children: ReactNode; classN
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
-        <div className={cn("flex flex-1 flex-col justify-center gap-5", className)} data-testid="auth-shell-content">
+        <div
+          className={cn("flex flex-1 flex-col justify-center", appTokens.authShellContent, className)}
+          data-testid="auth-shell-content"
+        >
           {children}
         </div>
       </div>
@@ -28,11 +32,11 @@ export function AuthShell({ children, className }: { children: ReactNode; classN
 
 export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
   return (
-    <header className="space-y-3 px-1" data-testid="auth-intro">
-      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-accent/90">{eyebrow}</p>
-      <div className="space-y-2">
-        <h1 className="text-[clamp(2.2rem,9vw,2.85rem)] font-semibold tracking-[-0.04em] text-white">{title}</h1>
-        <p className="max-w-sm text-sm leading-6 text-slate-300">{subtitle}</p>
+    <header className={appTokens.authIntro} data-testid="auth-intro">
+      <p className={appTokens.authIntroEyebrow}>{eyebrow}</p>
+      <div className={appTokens.authIntroTitleStack}>
+        <h1 className={appTokens.authIntroTitle}>{title}</h1>
+        <p className={appTokens.authIntroSubtitle}>{subtitle}</p>
       </div>
     </header>
   );
@@ -42,7 +46,7 @@ export function AuthCard({ children, className }: { children: ReactNode; classNa
   return (
     <section
       className={cn(
-        "glass-surface glass-sheen relative space-y-5 rounded-[1.65rem] border border-white/10 px-5 py-5 shadow-[0_22px_56px_rgba(0,0,0,0.34)]",
+        appTokens.authCard,
         className,
       )}
       data-testid="auth-card"
@@ -55,25 +59,25 @@ export function AuthCard({ children, className }: { children: ReactNode; classNa
 export function AuthMessage({ tone = "default", children }: { tone?: "default" | "error" | "success"; children: ReactNode }) {
   const toneClassName =
     tone === "error"
-      ? "border-red-400/30 bg-red-500/10 text-red-100"
+      ? appTokens.authMessageError
       : tone === "success"
-        ? "border-accent/40 bg-accent/10 text-emerald-100"
-        : "border-white/10 bg-white/5 text-slate-200";
+        ? appTokens.authMessageSuccess
+        : appTokens.authMessageDefault;
 
-  return <p className={cn("rounded-2xl border px-4 py-3 text-sm leading-6", toneClassName)}>{children}</p>;
+  return <p className={cn(appTokens.authMessage, toneClassName)}>{children}</p>;
 }
 
 export function AuthField({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block space-y-2">
-      <span className="text-sm font-medium text-slate-200">{label}</span>
+    <label className={appTokens.authField}>
+      <span className={appTokens.authFieldLabel}>{label}</span>
       {children}
     </label>
   );
 }
 
 export function AuthFooter({ children }: { children: ReactNode }) {
-  return <div className="space-y-3 border-t border-white/10 pt-4 text-sm text-slate-300">{children}</div>;
+  return <div className={appTokens.authFooter}>{children}</div>;
 }
 
 export function AuthStatusCard({
@@ -86,16 +90,16 @@ export function AuthStatusCard({
   testId?: string;
 }) {
   return (
-    <AuthCard className="space-y-3 text-center" >
+    <AuthCard className={appTokens.authStatusCard}>
       <div
-        className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-accent"
+        className={appTokens.authStatusSpinnerShell}
         aria-hidden="true"
       >
         <span className="h-4 w-4 animate-spin rounded-full border-[1.5px] border-current border-r-transparent motion-reduce:animate-none" />
       </div>
       <div className="space-y-1" data-testid={testId}>
-        <p className="text-base font-semibold text-white">{title}</p>
-        {description ? <p className="text-sm leading-6 text-slate-300">{description}</p> : null}
+        <p className={appTokens.authStatusTitle}>{title}</p>
+        {description ? <p className={appTokens.authStatusDescription}>{description}</p> : null}
       </div>
     </AuthCard>
   );

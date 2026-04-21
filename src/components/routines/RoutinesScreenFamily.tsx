@@ -85,14 +85,7 @@ export function SharedDayListSection({
 }: {
   children: ReactNode;
 }) {
-  return (
-    <SharedSectionShell
-      recipe="routinesOverview"
-      bodyClassName={fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName}
-    >
-      {children}
-    </SharedSectionShell>
-  );
+  return <div className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName}>{children}</div>;
 }
 
 

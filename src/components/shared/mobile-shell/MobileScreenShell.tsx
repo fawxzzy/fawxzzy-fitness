@@ -58,7 +58,9 @@ function MobileScreenShellFrame({
   const shouldRenderBottomDock = Boolean(bottomDock) || hasPublishedBottomActions;
   const shouldApplyTopChromeFloatingHeaderGap = hasTopChrome && hasFloatingHeader;
   const shouldApplyTopChromeContentGap = hasTopChrome && !hasFloatingHeader;
-  const scrollBottomReserve = shouldRenderBottomDock ? "var(--app-mobile-bottom-dock-height)" : undefined;
+  const scrollBottomReserve = shouldRenderBottomDock
+    ? "calc(var(--app-mobile-bottom-dock-height) + 14px)"
+    : undefined;
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production") return;
@@ -137,7 +139,7 @@ function MobileScreenShellFrame({
       {shouldRenderBottomDock ? (
         <div
           ref={dockRef}
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-40 border-t border-white/6 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.86)_0%,rgba(var(--bg-app),0.96)_16%,rgba(var(--bg-app),0.995)_100%)] pb-[var(--app-dock-safe-padding-bottom)] shadow-[0_-6px_16px_rgba(0,0,0,0.16)] backdrop-blur-[10px]"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-40 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.72)_0%,rgba(var(--bg-app),0.9)_14%,rgba(var(--bg-app),0.985)_100%)] backdrop-blur-[14px]"
         >
           {bottomDock ? bottomDock : <BottomActionsSlot />}
         </div>

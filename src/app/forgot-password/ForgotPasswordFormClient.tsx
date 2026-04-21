@@ -7,6 +7,7 @@ import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
 import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { PrimaryButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 
 const COOLDOWN_SECONDS = 60;
@@ -87,14 +88,14 @@ export default function ForgotPasswordFormClient({
       <AuthCard>
         <form action={requestPasswordReset} className="space-y-5">
           <div className="space-y-3">
-            <p className="text-sm leading-6 text-slate-300">Enter your email and we&apos;ll send a reset link.</p>
+            <p className={appTokens.authHelperText}>Enter your email and we&apos;ll send a reset link.</p>
             <AuthField label="Email">
               <Input type="email" name="email" required autoComplete="email" placeholder="you@example.com" />
             </AuthField>
           </div>
           {message}
           <SubmitButton cooldownRemaining={cooldownRemaining} />
-          {copy.helper ? <p className="text-xs leading-5 text-slate-500">{copy.helper}</p> : null}
+          {copy.helper ? <p className={appTokens.authHelperTextMuted}>{copy.helper}</p> : null}
         </form>
 
         <AuthFooter>

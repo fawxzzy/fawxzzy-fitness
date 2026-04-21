@@ -6,6 +6,7 @@ import { login } from "@/app/auth/actions";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import { AuthCard, AuthField, AuthFooter, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import {
@@ -166,10 +167,10 @@ export function LoginScreen({
     <AuthShell>
       <AuthCard
         className={cn(
-          "space-y-6 rounded-[1.85rem] px-5 py-5 transition-[transform,opacity,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
-          emailValid ? "border-emerald-400/12 shadow-[0_24px_70px_rgba(0,0,0,0.38)]" : "",
-          formReady ? "border-emerald-400/20 shadow-[0_30px_90px_rgba(0,0,0,0.42)]" : "",
-          isSubmitting ? "-translate-y-1 scale-[0.995] opacity-95" : "",
+          appTokens.authInteractiveCard,
+          emailValid ? appTokens.authInteractiveCardEmailValid : "",
+          formReady ? appTokens.authInteractiveCardReady : "",
+          isSubmitting ? appTokens.authInteractiveCardPending : "",
         )}
       >
         <form action={login} className="space-y-5" onSubmit={handleSubmit}>
@@ -180,14 +181,12 @@ export function LoginScreen({
             <div className="space-y-4">
               <div className={cn("flex min-h-8", showRememberedAccountCard ? "justify-end" : "items-start justify-between gap-4")}>
                 {!showRememberedAccountCard ? (
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-accent/90">
-                    {PASSWORD_LOGIN_UI_COPY.wordmark}
-                  </p>
+                  <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
                 ) : null}
                 {showRememberedAccountCard ? (
                   <button
                     type="button"
-                    className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300 transition-colors hover:border-white/20 hover:text-white"
+                    className={appTokens.authUtilityAction}
                     onClick={handleSwitchAccount}
                   >
                     {PASSWORD_LOGIN_UI_COPY.switchAction}
@@ -195,32 +194,34 @@ export function LoginScreen({
                 ) : null}
               </div>
               <div className={cn("space-y-2", showRememberedAccountCard ? "text-center" : "text-left")}>
-                <h1 className="text-[clamp(2rem,8vw,2.55rem)] font-semibold tracking-[-0.04em] text-white">{copy.title}</h1>
+                <h1 className={appTokens.authIntroTitle}>{copy.title}</h1>
                 {rememberedDisplayName ? (
-                  <p className="text-[clamp(1.75rem,7vw,2.3rem)] font-semibold tracking-[-0.04em] text-slate-100">
-                    {rememberedDisplayName}
-                  </p>
+                  <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
                 ) : null}
                 {isReauthFlow ? (
-                  <p aria-live="polite" className={cn("text-sm leading-6 text-slate-300", showRememberedAccountCard ? "mx-auto max-w-xs text-center" : "max-w-sm")}>
+                  <p
+                    aria-live="polite"
+                    className={cn(
+                      appTokens.authHelperText,
+                      showRememberedAccountCard ? appTokens.authHelperTextCentered : "",
+                    )}
+                  >
                     {PASSWORD_LOGIN_UI_COPY.helper.reauth}
                   </p>
                 ) : !showRememberedAccountCard && PASSWORD_LOGIN_UI_COPY.helper.default ? (
-                  <p aria-live="polite" className="max-w-sm text-sm leading-6 text-slate-300">
+                  <p aria-live="polite" className={appTokens.authHelperText}>
                     {PASSWORD_LOGIN_UI_COPY.helper.default}
                   </p>
                 ) : null}
               </div>
-              {!showRememberedAccountCard && copy.subtitle ? <p className="text-sm leading-6 text-slate-400">{copy.subtitle}</p> : null}
+              {!showRememberedAccountCard && copy.subtitle ? <p className={appTokens.authSubtitleText}>{copy.subtitle}</p> : null}
             </div>
 
             {showRememberedAccountCard && rememberedEmail && rememberedIdentity ? (
               <div className="space-y-4">
-                <div className="rounded-[1.15rem] border border-white/10 bg-black/15 px-4 py-3 text-center">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    {PASSWORD_LOGIN_UI_COPY.returningUserLabel}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-100">{rememberedEmail}</p>
+                <div className={appTokens.authAccountPanel}>
+                  <p className={appTokens.authAccountEyebrow}>{PASSWORD_LOGIN_UI_COPY.returningUserLabel}</p>
+                  <p className={appTokens.authAccountValue}>{rememberedEmail}</p>
                 </div>
 
                 {!showCredentialStep ? (
@@ -228,11 +229,12 @@ export function LoginScreen({
                     type="button"
                     fullWidth
                     disabled={isSubmitting || isRestoring}
+                    loading={isRestoring}
                     onClick={handleEnterGym}
                     className={cn(
-                      "min-h-[3.35rem] rounded-[1.1rem] text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none",
-                      "shadow-[0_18px_38px_rgba(16,185,129,0.18)]",
-                      isRestoring ? "scale-[0.985]" : "",
+                      appTokens.authActionButton,
+                      appTokens.authActionButtonReady,
+                      isRestoring ? appTokens.authActionButtonPending : "",
                     )}
                   >
                     {ctaLabel}
@@ -264,16 +266,16 @@ export function LoginScreen({
                   placeholder="you@example.com"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
-                    "h-14 rounded-[1.15rem] border-white/10 bg-black/20 text-base text-white placeholder:text-slate-500 transition-[border-color,background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
-                    emailValid ? "border-emerald-400/20 bg-emerald-500/[0.05]" : "",
+                    appTokens.authInput,
+                    emailValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </AuthField>
             ) : (
-              <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Account</p>
-                <p className="mt-1 text-sm font-medium text-slate-100">{rememberedEmail}</p>
+              <div className={appTokens.authAccountReadonly}>
+                <p className={appTokens.authAccountEyebrow}>Account</p>
+                <p className={appTokens.authAccountValue}>{rememberedEmail}</p>
               </div>
             )}
 
@@ -289,8 +291,8 @@ export function LoginScreen({
                   placeholder="Enter your password"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
-                    "h-14 rounded-[1.15rem] border-white/10 bg-black/20 text-base text-white placeholder:text-slate-500 transition-[border-color,background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
-                    passwordValid ? "border-emerald-400/20 bg-emerald-500/[0.05]" : "",
+                    appTokens.authInput,
+                    passwordValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => setPassword(event.target.value)}
                 />
@@ -300,10 +302,7 @@ export function LoginScreen({
 
           {showManualAuth ? (
             <div className="flex justify-end">
-              <Link
-                className="text-sm font-medium text-accent underline-offset-4 transition-colors hover:text-emerald-200 hover:underline"
-                href="/forgot-password"
-              >
+              <Link className={appTokens.authInlineLink} href="/forgot-password">
                 {PASSWORD_LOGIN_UI_COPY.forgotPassword}
               </Link>
             </div>
@@ -317,10 +316,11 @@ export function LoginScreen({
               type="submit"
               fullWidth
               disabled={!formReady || isSubmitting}
+              loading={isSubmitting}
               className={cn(
-                "min-h-[3.35rem] rounded-[1.1rem] text-sm font-semibold tracking-[0.01em] transition-[transform,box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none",
-                formReady ? "shadow-[0_18px_38px_rgba(16,185,129,0.18)]" : "opacity-80",
-                isSubmitting ? "scale-[0.985]" : "",
+                appTokens.authActionButton,
+                formReady ? appTokens.authActionButtonReady : "opacity-80",
+                isSubmitting ? appTokens.authActionButtonPending : "",
               )}
             >
               {ctaLabel}
@@ -332,7 +332,7 @@ export function LoginScreen({
           <AuthFooter>
             <p className="text-center leading-6 text-slate-300">
               {PASSWORD_LOGIN_UI_COPY.createAccountPrefix}{" "}
-              <Link href="/signup" className="font-medium text-accent underline-offset-4 transition-colors hover:text-emerald-200 hover:underline">
+              <Link href="/signup" className={appTokens.authInlineLink}>
                 {PASSWORD_LOGIN_UI_COPY.createAccountAction}
               </Link>
             </p>

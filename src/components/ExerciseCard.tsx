@@ -204,9 +204,10 @@ export function ExerciseCard({
   const usesRailMedia = hasLeadingVisual && mediaLayout === "rail";
   const usesInlineMedia = hasLeadingVisual && mediaLayout === "inline";
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
+  const hasBadgeText = Boolean(badgeText?.trim());
   const hasSupportingContent = Boolean(subtitle) || Boolean(children);
   const resolvedMediaRailWidth = mediaRailWidth ?? (resolvedDensity === "detailed" ? 76 : 72);
-  const bodyGridStyle = { gridTemplateColumns: hasRightIcon || badgeText ? "minmax(0,1fr) auto" : "minmax(0,1fr)" } satisfies CSSProperties;
+  const bodyGridStyle = { gridTemplateColumns: hasRightIcon ? "minmax(0,1fr) auto" : "minmax(0,1fr)" } satisfies CSSProperties;
   const mediaColumnStyle = usesRailMedia
     ? { gridTemplateColumns: `${resolvedMediaRailWidth}px minmax(0,1fr)` } satisfies CSSProperties
     : usesInlineMedia
@@ -218,7 +219,7 @@ export function ExerciseCard({
       className={cn(
         "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-hidden",
         styles.shell,
-        badgeText ? (resolvedDensity === "compact" ? "pt-2.5" : "pt-3") : undefined,
+        hasBadgeText ? (resolvedDensity === "compact" ? "pt-[1.45rem]" : "pt-[1.65rem]") : undefined,
         usesRailMedia ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
         bodyClassName,
       )}
@@ -231,6 +232,17 @@ export function ExerciseCard({
           cardAccentRailClassNames[resolvedSemanticTone],
         )}
       />
+      {hasBadgeText ? (
+        <span
+          className={cn(
+            "pointer-events-none absolute right-[var(--exercise-row-shell-padding-x)] top-2 z-[1] shrink-0",
+            EXERCISE_CARD_BADGE_CLASS_NAME,
+            resolvedBadgeClassName,
+          )}
+        >
+          {badgeText}
+        </span>
+      ) : null}
       <div className="grid min-w-0 items-stretch" style={mediaColumnStyle}>
         {usesRailMedia ? (
           <div
@@ -258,6 +270,7 @@ export function ExerciseCard({
               "flex min-h-full min-w-0 flex-col",
               hasSupportingContent ? "justify-start" : "justify-center",
               styles.contentGap,
+              hasBadgeText ? (resolvedDensity === "compact" ? "pr-[5.2rem]" : "pr-[5.6rem]") : undefined,
               titleContainerClassName,
             )}
           >
@@ -301,38 +314,22 @@ export function ExerciseCard({
         </div>
       </div>
 
-      {hasRightIcon || badgeText ? (
+      {hasRightIcon ? (
         <div
           className={cn(
-            "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 self-stretch justify-end",
+            "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-center self-stretch justify-end",
             trailingClassName,
             rightRailClassName,
           )}
         >
-          <div className={cn("flex min-h-full flex-col items-end", badgeText ? "justify-between gap-2 pt-0.5" : "justify-center")}>
-            {badgeText ? (
-              <span
-                className={cn(
-                  "pointer-events-none shrink-0",
-                  EXERCISE_CARD_BADGE_CLASS_NAME,
-                  resolvedBadgeClassName,
-                )}
-              >
-                {badgeText}
-              </span>
-            ) : null}
-            {hasRightIcon ? (
             <div
               className={cn(
                 EXERCISE_CARD_TRAILING_ICON_CLASS_NAME,
-                badgeText ? "mt-auto" : undefined,
                 trailingStackClassName,
               )}
             >
               {rightIcon}
             </div>
-            ) : null}
-          </div>
         </div>
       ) : null}
     </div>
