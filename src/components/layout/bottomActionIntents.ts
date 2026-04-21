@@ -5,7 +5,7 @@ export type BottomDockButtonVariant = "primary" | "secondary" | "destructive";
 
 export const BOTTOM_ACTION_BUTTON_BASE_CLASS_NAME = [
   "bottom-action",
-  "relative inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-full border px-3 text-center text-[0.9rem] font-semibold leading-[1.08] tracking-[0.01em]",
+  "relative inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full border px-3.5 text-center text-[0.925rem] font-semibold leading-[1.08] tracking-[0.01em]",
   "[-webkit-tap-highlight-color:transparent]",
   "focus-visible:outline-none",
 ].join(" ");

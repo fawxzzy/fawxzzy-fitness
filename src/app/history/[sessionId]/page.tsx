@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/ui/app/AppShell";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
@@ -13,27 +12,9 @@ import { buildSessionSummary } from "../session-summary";
 import { loadHistoryDetailRows, resolveHistoryExerciseName } from "@/lib/history-session-detail-loader";
 
 export const dynamic = "force-dynamic";
-const HISTORY_DETAIL_SHELL_CLASSNAME = "mx-auto w-full max-w-[720px] px-4";
-
 type PageProps = {
   params: { sessionId: string };
 };
-
-function HistoryDetailContentShell({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={HISTORY_DETAIL_SHELL_CLASSNAME}>
-      <ScreenScaffold recipe="historyDetail" className={className}>
-        {children}
-      </ScreenScaffold>
-    </div>
-  );
-}
 
 export default async function HistoryLogDetailsPage({ params }: PageProps) {
   const user = await requireUser();
@@ -167,59 +148,54 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
   });
   return (
     <AppShell className="gap-4" topNavMode="none" ambientPreset="history">
-      <ScrollScreenWithBottomActions
-        floatingHeader={(
-          <HistoryDetailContentShell>
-            <div id="history-log-floating-header" />
-          </HistoryDetailContentShell>
-        )}
-        className="flex flex-col gap-4"
+      <DetailScreenScaffold
+        recipe="historyDetail"
+        floatingHeader={<div className="mx-auto w-full max-w-[720px]"><div id="history-log-floating-header" /></div>}
+        className="mx-auto w-full max-w-[720px] space-y-4"
       >
-        <HistoryDetailContentShell className="space-y-4">
-          <HistoryLogPageClient
-            logId={sessionRow.id}
-            initialDayName={effectiveDayName}
-            initialNotes={sessionRow.notes}
-            unitLabel={unitLabel}
-            exerciseNameMap={exerciseNameRecord}
-            sessionSummary={sessionSummary}
-            backHref={backHref}
-            exercises={orderedSessionExercises.map((exercise) => {
-              const exerciseId = String(exercise.exercise_id);
-              const metadata = exerciseMetadataById.get(exerciseId);
-              const resolvedExerciseName = resolveHistoryExerciseName({
-                metadataName: metadata?.name,
-                rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
-                rowName: (exercise as { name?: string | null }).name,
-                mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
-              });
-              return ({
-                id: exercise.id,
-                exercise_id: exerciseId,
-                exercise_name: resolvedExerciseName,
-                exercise_slug: metadata?.slug ?? null,
-                exercise_image_path: metadata?.image_path ?? null,
-                exercise_image_icon_path: metadata?.image_icon_path ?? null,
-                exercise_image_howto_path: metadata?.image_howto_path ?? null,
-                notes: exercise.notes,
-                measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
-                default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
-                sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
-                  id: set.id,
-                  set_index: set.set_index,
-                  weight: set.weight,
-                  reps: set.reps,
-                  duration_seconds: set.duration_seconds,
-                  distance: set.distance,
-                  distance_unit: set.distance_unit,
-                  calories: set.calories,
-                  weight_unit: set.weight_unit,
-                })),
-              });
-            })}
-          />
-        </HistoryDetailContentShell>
-      </ScrollScreenWithBottomActions>
+        <HistoryLogPageClient
+          logId={sessionRow.id}
+          initialDayName={effectiveDayName}
+          initialNotes={sessionRow.notes}
+          unitLabel={unitLabel}
+          exerciseNameMap={exerciseNameRecord}
+          sessionSummary={sessionSummary}
+          backHref={backHref}
+          exercises={orderedSessionExercises.map((exercise) => {
+            const exerciseId = String(exercise.exercise_id);
+            const metadata = exerciseMetadataById.get(exerciseId);
+            const resolvedExerciseName = resolveHistoryExerciseName({
+              metadataName: metadata?.name,
+              rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
+              rowName: (exercise as { name?: string | null }).name,
+              mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
+            });
+            return ({
+              id: exercise.id,
+              exercise_id: exerciseId,
+              exercise_name: resolvedExerciseName,
+              exercise_slug: metadata?.slug ?? null,
+              exercise_image_path: metadata?.image_path ?? null,
+              exercise_image_icon_path: metadata?.image_icon_path ?? null,
+              exercise_image_howto_path: metadata?.image_howto_path ?? null,
+              notes: exercise.notes,
+              measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
+              default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
+              sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
+                id: set.id,
+                set_index: set.set_index,
+                weight: set.weight,
+                reps: set.reps,
+                duration_seconds: set.duration_seconds,
+                distance: set.distance,
+                distance_unit: set.distance_unit,
+                calories: set.calories,
+                weight_unit: set.weight_unit,
+              })),
+            });
+          })}
+        />
+      </DetailScreenScaffold>
     </AppShell>
   );
 }

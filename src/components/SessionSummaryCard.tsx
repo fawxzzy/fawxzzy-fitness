@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { appTokens } from "@/components/ui/app/tokens";
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 
@@ -8,15 +9,15 @@ const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text
 
 const densityStyles = {
   compact: {
-    content: "space-y-2",
-    summary: "text-sm leading-snug text-[rgb(var(--text)/0.86)]",
-    detail: "text-[11px] leading-[1.45] text-[rgb(var(--text-muted)/0.94)]",
+    content: appTokens.workoutCardContentCompact,
+    summary: appTokens.workoutCardSummaryCompact,
+    detail: appTokens.workoutCardDetailCompact,
     variant: "list" as const,
   },
   detailed: {
-    content: "space-y-2.5",
-    summary: "text-[0.95rem] leading-[1.45] text-[rgb(var(--text)/0.9)]",
-    detail: "text-xs leading-[1.5] text-[rgb(var(--text-secondary)/0.9)]",
+    content: appTokens.workoutCardContentDetailed,
+    summary: appTokens.workoutCardSummaryDetailed,
+    detail: appTokens.workoutCardDetailDetailed,
     variant: "standard" as const,
   },
 } as const;

@@ -1,3 +1,4 @@
+import { appTokens } from "@/components/ui/app/tokens";
 import { formatMeasurementSummaryItems } from "@/lib/measurement-display";
 import { cn } from "@/lib/cn";
 
@@ -28,10 +29,10 @@ export function MeasurementSummary({
         <span
           key={`${item.metric}-${item.label}`}
           className={cn(
-            "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide",
+            appTokens.badgeBase,
             item.tone === "muted"
-              ? "border-border/45 bg-[rgb(var(--bg)/0.24)] text-muted"
-              : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-[rgb(var(--text)/0.9)]",
+              ? appTokens.summaryMutedBadge
+              : appTokens.defaultBadge,
             itemClassName,
           )}
         >

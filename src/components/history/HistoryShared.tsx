@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
-import { AppPanel } from "@/components/ui/app/AppPanel";
+import { AppBadge } from "@/components/ui/app/AppBadge";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
-import { SubtitleText, TitleText } from "@/components/ui/text-roles";
+import { SubtitleText } from "@/components/ui/text-roles";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
+import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
 
 export function HistoryPageHeader({
   title,
@@ -72,21 +74,29 @@ export function HistorySection({
   className?: string;
 }) {
   return (
-    <AppPanel className={cn("space-y-4 p-4", className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <TitleText as="h3" className="text-base">{title}</TitleText>
-          {description ? <SubtitleText className="text-sm">{description}</SubtitleText> : null}
-        </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
+    <SharedSectionShell
+      recipe="historyDetail"
+      label={<span className="text-base font-semibold text-text">{title}</span>}
+      context={description ? <span className="text-sm">{description}</span> : undefined}
+      action={action}
+      className={cn("space-y-4", className)}
+      bodyClassName="space-y-4"
+    >
       {children}
-    </AppPanel>
+    </SharedSectionShell>
   );
 }
 
 export function HistoryControlPanel({ children, className }: { children: ReactNode; className?: string }) {
-  return <AppPanel className={cn("space-y-2 p-3 max-md:space-y-1.5", className)}>{children}</AppPanel>;
+  return (
+    <SharedSectionShell
+      recipe="historyDetail"
+      className={cn("space-y-2", className)}
+      bodyClassName="space-y-2 max-md:space-y-1.5"
+    >
+      {children}
+    </SharedSectionShell>
+  );
 }
 
 export function HistoryTitleControlShell({
@@ -112,8 +122,8 @@ export function HistoryTitleControlShell({
         <div className="flex flex-wrap items-center justify-between gap-2">
           {(label || caption) ? (
             <div className="min-w-0">
-              {label ? <p className="text-sm font-semibold text-slate-100">{label}</p> : null}
-              {caption ? <p className="mt-0.25 text-[10px] leading-[1.3] text-[rgb(var(--text-muted)/0.9)]">{caption}</p> : null}
+              {label ? <p className="text-sm font-semibold text-text">{label}</p> : null}
+              {caption ? <p className="mt-0.5 text-xs leading-[1.3] text-muted">{caption}</p> : null}
             </div>
           ) : null}
           {showViewModeToggle ? (
@@ -155,9 +165,9 @@ export function HistoryTabs({ value, sessionsHref, exercisesHref }: { value: "se
 
 export function HistoryControlGroup({ label, children, summary }: { label: string; children: ReactNode; summary?: string }) {
   return (
-    <div className="space-y-2 rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] px-3 py-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text)/0.56)]">{label}</p>
+    <div className="rounded-[1.15rem] border border-border/35 bg-[rgb(var(--surface-2-soft)/0.65)] px-3 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
+        <p className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionLabelClassName}>{label}</p>
         {summary ? <SubtitleText className="text-xs">{summary}</SubtitleText> : null}
       </div>
       {children}
@@ -171,17 +181,10 @@ export function HistoryMetaRow({ children, className }: { children: ReactNode; c
 
 export function HistoryMetaChip({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
   return (
-    <div
-      className={cn(
-        "min-w-0 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
-        emphasized
-          ? "border-[rgb(var(--button-primary-border)/0.45)] bg-[rgb(var(--button-primary-bg)/0.18)] text-slate-100"
-          : "border-white/10 bg-white/5 text-slate-300",
-      )}
-    >
-      <span className="text-slate-400">{label}</span>
-      <span className="ml-1 text-slate-100">{value}</span>
-    </div>
+    <AppBadge tone={emphasized ? "success" : "default"} className={cn("gap-1.5 px-2.5 py-1 normal-case tracking-normal")}>
+      <span className="text-muted">{label}</span>
+      <span className="text-text">{value}</span>
+    </AppBadge>
   );
 }
 

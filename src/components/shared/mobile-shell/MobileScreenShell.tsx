@@ -118,7 +118,8 @@ function MobileScreenShellFrame({
         style={{
           "--bottom-actions-height": `${dockHeight}px`,
           "--app-mobile-bottom-dock-height": `${dockHeight}px`,
-          scrollPaddingBottom: shouldRenderBottomDock ? "var(--app-dock-safe-padding-bottom,0px)" : undefined,
+          paddingBottom: shouldRenderBottomDock ? "var(--app-mobile-bottom-dock-height)" : undefined,
+          scrollPaddingBottom: shouldRenderBottomDock ? "var(--app-mobile-bottom-dock-height)" : undefined,
         } as CSSProperties}
       >
         <div
@@ -135,7 +136,7 @@ function MobileScreenShellFrame({
       {shouldRenderBottomDock ? (
         <div
           ref={dockRef}
-          className="z-40 flex-none border-t border-white/6 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.86)_0%,rgba(var(--bg-app),0.96)_16%,rgba(var(--bg-app),0.995)_100%)] shadow-[0_-6px_16px_rgba(0,0,0,0.16)] backdrop-blur-[10px]"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-40 border-t border-white/6 bg-[linear-gradient(180deg,rgba(var(--bg-app),0.86)_0%,rgba(var(--bg-app),0.96)_16%,rgba(var(--bg-app),0.995)_100%)] shadow-[0_-6px_16px_rgba(0,0,0,0.16)] backdrop-blur-[10px]"
         >
           {bottomDock ? bottomDock : <BottomActionsSlot />}
         </div>

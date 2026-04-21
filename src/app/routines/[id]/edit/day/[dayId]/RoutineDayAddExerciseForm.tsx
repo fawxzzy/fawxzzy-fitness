@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import type { ComponentProps, ReactNode } from "react";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -59,19 +60,21 @@ export function RoutineDayAddExerciseForm({
       <input type="hidden" name="routineId" value={routineId} />
       <input type="hidden" name="routineDayId" value={routineDayId} />
       {customExerciseSection}
-      <RoutineEditorAddExerciseFlowShell
-        exercises={exercises}
-        name="exerciseId"
-        initialSelectedId={initialSelectedId}
-        weightUnit={weightUnit}
-        exerciseStats={exerciseStats}
-        renderFooter={renderFooter}
-        footerSlot={footerSlot !== undefined ? footerSlot : (
-          <AppButton type="submit" variant="primary" fullWidth>
-            {submitLabel}
-          </AppButton>
-        )}
-      />
+      <SharedSectionShell recipe="editDay">
+        <RoutineEditorAddExerciseFlowShell
+          exercises={exercises}
+          name="exerciseId"
+          initialSelectedId={initialSelectedId}
+          weightUnit={weightUnit}
+          exerciseStats={exerciseStats}
+          renderFooter={renderFooter}
+          footerSlot={footerSlot !== undefined ? footerSlot : (
+            <AppButton type="submit" variant="primary" fullWidth>
+              {submitLabel}
+            </AppButton>
+          )}
+        />
+      </SharedSectionShell>
     </form>
   );
 }

@@ -9,4 +9,8 @@ export const headerTokens = {
   titleToSecondaryGap: fitnessDesignPrimitiveClassNames.header.titleToSecondaryGap,
   secondaryBlockGap: fitnessDesignPrimitiveClassNames.header.secondaryBlockGap,
   contentBottomGap: fitnessDesignPrimitiveClassNames.header.contentBottomGap,
+  eyebrowClassName: fitnessDesignPrimitiveClassNames.header.eyebrowClassName,
+  subtitleClassName: fitnessDesignPrimitiveClassNames.header.subtitleClassName,
+  metaClassName: fitnessDesignPrimitiveClassNames.header.metaClassName,
+  titleTextClassName: fitnessDesignPrimitiveClassNames.header.titleTextClassName,
 } as const;

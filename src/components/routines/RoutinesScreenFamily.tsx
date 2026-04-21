@@ -1,13 +1,11 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
-import { SurfaceCard } from "@/components/ui/SurfaceCard";
-import { AppHeader } from "@/components/ui/app/AppHeader";
-import { Chip } from "@/components/ui/Chip";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
-
-const CARD_HEADER_CLASS_NAME = "-mx-4 -mt-1 pb-1 sm:-mx-5";
-const SECTION_TITLE_CLASS_NAME = "text-[1.3125rem] font-semibold leading-[1.04] tracking-[-0.03em]";
 
 type RoutinesPageScaffoldProps = {
   children: ReactNode;
@@ -26,16 +24,7 @@ export function ActiveRoutineSummaryCard({
   metadata?: ReactNode;
   status?: ReactNode;
 }) {
-  return (
-    <SurfaceCard dense>
-      <AppHeader
-        title={title}
-        meta={metadata}
-        action={status}
-        className={CARD_HEADER_CLASS_NAME}
-      />
-    </SurfaceCard>
-  );
+  return <SharedScreenHeader recipe="routinesOverview" title={title} meta={metadata} action={status} />;
 }
 
 export function RoutinesRouteHeaderCard({
@@ -47,20 +36,11 @@ export function RoutinesRouteHeaderCard({
   subtitle?: ReactNode;
   action?: ReactNode;
 }) {
-  return (
-    <SurfaceCard dense>
-      <AppHeader
-        title={title}
-        subtitle={subtitle}
-        action={action}
-        className={CARD_HEADER_CLASS_NAME}
-      />
-    </SurfaceCard>
-  );
+  return <SharedScreenHeader recipe="routinesOverview" title={title} subtitle={subtitle} action={action} />;
 }
 
 export function ActiveRoutineStatusBadge({ active }: { active: boolean }) {
-  return active ? <Chip tone="success">ACTIVE</Chip> : null;
+  return active ? <AppBadge tone="success">ACTIVE</AppBadge> : null;
 }
 
 export function RoutinesSectionCard({
@@ -75,22 +55,21 @@ export function RoutinesSectionCard({
   children: ReactNode;
 }) {
   return (
-    <SurfaceCard dense>
-      <AppHeader
-        title={title}
-        meta={meta}
-        action={action}
-        titleAs="h2"
-        className={CARD_HEADER_CLASS_NAME}
-        titleClassName={SECTION_TITLE_CLASS_NAME}
-      />
+    <SharedSectionShell
+      recipe="routinesOverview"
+      label={title}
+      context={meta}
+      action={action}
+      className="space-y-4"
+      bodyClassName="space-y-4"
+    >
       {children}
-    </SurfaceCard>
+    </SharedSectionShell>
   );
 }
 
 export function RoutinesCardList({ children }: { children: ReactNode }) {
-  return <ul className="space-y-2">{children}</ul>;
+  return <ul className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName}>{children}</ul>;
 }
 
 export function RoutinesListItem({ children }: { children: ReactNode }) {
@@ -106,7 +85,14 @@ export function SharedDayListSection({
 }: {
   children: ReactNode;
 }) {
-  return <div className="space-y-2">{children}</div>;
+  return (
+    <SharedSectionShell
+      recipe="routinesOverview"
+      bodyClassName={fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName}
+    >
+      {children}
+    </SharedSectionShell>
+  );
 }
 
 

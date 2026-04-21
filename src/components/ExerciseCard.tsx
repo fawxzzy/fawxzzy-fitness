@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { appTokens } from "@/components/ui/app/tokens";
 import { textRoles } from "@/components/ui/text-roles";
 import { type CardSemanticTone, cardAccentRailClassNames, cardBadgeToneClassNames, cardMediaToneClassNames, cardShellToneClassNames } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
@@ -40,7 +41,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     subtitleClamp: "line-clamp-2",
     titleSize: "text-[0.92rem]",
     contentGap: "gap-0.5",
-    goalRow: "rounded-[0.78rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.52)] px-2 py-1",
+    goalRow: appTokens.workoutCardGoalRowCompact,
     childrenSpacing: "mt-0.75",
   },
   detailed: {
@@ -50,15 +51,15 @@ const densityStyles: Record<ExerciseCardDensity, {
     subtitleClamp: "line-clamp-3",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
     contentGap: "gap-1",
-    goalRow: "rounded-[0.9rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.56)] px-2.5 py-1.5",
+    goalRow: appTokens.workoutCardGoalRowDetailed,
     childrenSpacing: "mt-1.25",
   },
 };
 
-export const EXERCISE_CARD_LABEL_CLASS_NAME = "text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--text-muted)/0.84)]";
+export const EXERCISE_CARD_LABEL_CLASS_NAME = appTokens.measurementLabel;
 export const EXERCISE_CARD_SUMMARY_CLASS_NAME = "text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]";
-export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = "text-[11px] leading-[1.3] text-[rgb(var(--text-muted)/0.88)] [text-wrap:pretty]";
-export const EXERCISE_CARD_BADGE_CLASS_NAME = "inline-flex min-h-[1.5rem] items-center whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] leading-none";
+export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = appTokens.workoutCardDetailCompact;
+export const EXERCISE_CARD_BADGE_CLASS_NAME = cn(appTokens.badgeBase, "min-h-[1.5rem] px-2.5 py-1 text-[10px] tracking-[0.12em]");
 export const EXERCISE_CARD_TRAILING_ICON_CLASS_NAME = "flex h-full min-h-10 items-center justify-end";
 
 const shellStateClassNames: Record<ExerciseCardState, string> = {

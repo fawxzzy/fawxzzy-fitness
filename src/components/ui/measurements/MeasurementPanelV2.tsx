@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import type { MeasurementMetrics, MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
@@ -19,8 +20,8 @@ const METRICS: Array<{
 ];
 
 const shellClassName = "space-y-2";
-const metricCardClassName = "min-h-[5.15rem] rounded-[1rem] border px-3 py-3 transition-colors";
-const valueInputClassName = "input-no-spinner mt-2 h-11 w-full rounded-[0.9rem] border border-[rgb(var(--button-primary-border)/0.24)] bg-[rgb(var(--bg)/0.46)] px-3 text-[15px] font-semibold tabular-nums text-text placeholder:text-[rgb(var(--text)/0.24)] focus-visible:border-[rgb(var(--button-primary-border)/0.52)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.22)]";
+const metricCardClassName = appTokens.measurementField;
+const valueInputClassName = appTokens.measurementInput;
 
 type FieldWidth = "compact" | "standard" | "wide";
 
@@ -34,14 +35,14 @@ function getFieldSpanClassName(width: FieldWidth) {
 
 function getFieldChromeClassName(width: FieldWidth) {
   if (width === "compact") {
-    return "border-[rgb(var(--button-primary-border)/0.18)] bg-[rgb(var(--bg)/0.26)]";
+    return appTokens.measurementFieldCompact;
   }
 
   if (width === "wide") {
-    return "border-[rgb(var(--button-primary-border)/0.22)] bg-[rgb(var(--bg)/0.34)]";
+    return appTokens.measurementFieldWide;
   }
 
-  return "border-[rgb(var(--button-primary-border)/0.18)] bg-[rgb(var(--bg)/0.28)]";
+  return appTokens.measurementFieldStandard;
 }
 
 function renderMetricCard({
@@ -126,14 +127,14 @@ export function MeasurementPanelV2({
 
   return (
     <section className={cn("space-y-2.5", className)} data-field-label-style={contract.fieldLabelStyle} data-testid="measurement-panel">
-      {showHeader ? <div className="space-y-0.5">{description ? <p className="text-xs text-muted">{description}</p> : null}</div> : null}
+      {showHeader ? <div className="space-y-0.5">{description ? <p className={appTokens.measurementHeaderMeta}>{description}</p> : null}</div> : null}
 
       {leadingContent}
 
       <div className={shellClassName}>
         {showInnerHeader ? (
           <div className="mb-1.5 flex items-center justify-end gap-2">
-            <p className="text-[11px] text-muted">{enabledCount}/{hasRpeInput ? "6" : "5"} active</p>
+            <p className={appTokens.measurementHeaderMeta}>{enabledCount}/{hasRpeInput ? "6" : "5"} active</p>
           </div>
         ) : null}
 
@@ -157,7 +158,7 @@ export function MeasurementPanelV2({
                 <MetricHeader title={METRICS[0].title} suffix={METRICS[0].suffix(values)} />
                 {"repsMax" in values ? (
                   <div className="mt-2 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
-                    <label className="space-y-1 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+                    <label className={cn("space-y-1", appTokens.measurementHeaderMeta)}>
                       <span>Min</span>
                       <input
                         name={names?.reps}
@@ -171,7 +172,7 @@ export function MeasurementPanelV2({
                         placeholder="Required"
                       />
                     </label>
-                    <label className="space-y-1 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+                    <label className={cn("space-y-1", appTokens.measurementHeaderMeta)}>
                       <span>Max</span>
                       <input
                         name={names?.repsMax}

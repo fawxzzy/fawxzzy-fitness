@@ -4,7 +4,7 @@ import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { HistoryPageHeader } from "@/components/history/HistoryShared";
+import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShared";
 import { requireUser } from "@/lib/auth";
 import { EMPTY_PR_COUNTS, evaluatePrSummaries, type PrEvaluationSet } from "@/lib/pr-evaluator";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -223,7 +223,9 @@ export default async function HistoryPage({
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
           <ContentRail>
-            <HistoryPageHeader title="Sessions" subtitle={`${sessionItems.length} logged`} />
+            <HistoryPageHeader title="History" subtitle={`${sessionItems.length} logged sessions`}>
+              <HistoryTabs value="sessions" sessionsHref="/history" exercisesHref="/history/exercises" />
+            </HistoryPageHeader>
           </ContentRail>
         )}
       >

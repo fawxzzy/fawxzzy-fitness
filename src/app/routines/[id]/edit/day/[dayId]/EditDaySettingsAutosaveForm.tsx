@@ -14,6 +14,7 @@ import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
+import { formatRoutineDayDisplayName, getRoutineDayEditableName } from "@/lib/routines";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { subscribeScreenFocusMode } from "@/lib/screen-focus-mode";
 
@@ -28,6 +29,7 @@ type Props = {
   backHref: string;
   dayIndex: number;
   name: string | null;
+  startDate: string | null;
   isRest: boolean;
   floatingHeaderSlotId?: string;
   headerActionSlotId?: string;
@@ -35,15 +37,19 @@ type Props = {
 
 const REST_TOGGLE_SLOT_ID = "edit-day-rest-toggle-slot";
 
-export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routineDayId, backHref, dayIndex, name, isRest, floatingHeaderSlotId, headerActionSlotId }: Props) {
+export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routineDayId, backHref, dayIndex, name, startDate, isRest, floatingHeaderSlotId, headerActionSlotId }: Props) {
   const toast = useToast();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialSnapshot = useMemo(() => JSON.stringify({ name: name ?? "", isRest }), [isRest, name]);
+  const initialEditableName = useMemo(
+    () => getRoutineDayEditableName({ name, dayIndex, startDate }),
+    [dayIndex, name, startDate],
+  );
+  const initialSnapshot = useMemo(() => JSON.stringify({ name: initialEditableName, isRest }), [initialEditableName, isRest]);
   const pendingSnapshotRef = useRef<{ name: string; isRest: boolean } | null>(null);
   const lastSubmittedRef = useRef(initialSnapshot);
-  const [draft, setDraft] = useState({ name: name ?? "", isRest });
+  const [draft, setDraft] = useState({ name: initialEditableName, isRest });
   const [isFocusModeActive, setIsFocusModeActive] = useState(false);
   const [restToggleSlot, setRestToggleSlot] = useState<HTMLElement | null>(null);
   const [floatingHeaderSlot, setFloatingHeaderSlot] = useState<HTMLElement | null>(null);
@@ -54,11 +60,11 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
   }, []);
 
   useEffect(() => {
-    const nextDraft = { name: name ?? "", isRest };
+    const nextDraft = { name: initialEditableName, isRest };
     setDraft(nextDraft);
     pendingSnapshotRef.current = nextDraft;
     lastSubmittedRef.current = JSON.stringify(nextDraft);
-  }, [isRest, name]);
+  }, [initialEditableName, isRest]);
 
   useEffect(() => {
     const syncSlot = () => {
@@ -122,7 +128,11 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
     timeoutRef.current = setTimeout(submitAutosave, 500);
   }, [submitAutosave]);
 
-  const previewDayName = draft.name.trim() || `Day ${dayIndex}`;
+  const previewDayName = formatRoutineDayDisplayName({
+    name: draft.name,
+    dayIndex,
+    startDate,
+  });
   const restToggleButton = (
     <DayRestToggleDockControl
       isRest={draft.isRest}
@@ -145,8 +155,9 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
             setDraft(nextSnapshot);
             scheduleAutosave(nextSnapshot);
           }}
-          placeholder={`Day ${dayIndex}`}
+          placeholder="Custom day name"
           ariaLabel="Day Name"
+          maxLength={15}
         />
       )}
       subtitle={<DayTaxonomyHeaderSummary dayName={previewDayName} summary={daySummaryCounts} isRest={draft.isRest} />}

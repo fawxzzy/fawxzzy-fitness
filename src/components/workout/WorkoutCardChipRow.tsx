@@ -1,4 +1,5 @@
-import { Pill } from "@/components/ui/Pill";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import type { WorkoutCardChip, WorkoutCardDensity, WorkoutCardChipTone } from "@/lib/workout-card-view-models";
 
@@ -23,18 +24,22 @@ export function WorkoutCardChipRow({
   }
 
   return (
-    <div className={cn("flex flex-wrap gap-1", density === "compact" ? "pt-0" : "pt-0.5", className)}>
+    <div
+      className={cn(
+        density === "compact" ? appTokens.workoutCardChipRowCompact : appTokens.workoutCardChipRowDetailed,
+        className,
+      )}
+    >
       {chips.map((chip) => (
-        <Pill
+        <AppBadge
           key={chip.label}
           tone={toneMap[chip.tone ?? "default"]}
           className={cn(
-            "normal-case tracking-[0.01em]",
-            density === "compact" ? "px-2.25 py-0.75 text-[9px]" : "px-2.5 py-1 text-[10px]",
+            density === "compact" ? appTokens.workoutChipCompact : appTokens.workoutChipDetailed,
           )}
         >
           {chip.label}
-        </Pill>
+        </AppBadge>
       ))}
     </div>
   );

@@ -12,12 +12,10 @@ import {
   DayCard,
   DayList,
   REST_DAY_CARD_COPY,
-  formatLoggedSetCount,
   resolveDayCardBadgeText,
   resolveDayCardState,
 } from "@/components/day-list/DayList";
 import {
-  ActiveRoutineStatusBadge,
   RoutinesCardList,
   RoutinesListItem,
   RoutinesPageScaffold,
@@ -26,6 +24,8 @@ import {
 } from "@/components/routines/RoutinesScreenFamily";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { formatExerciseSplitSummary } from "@/lib/day-summary";
+import { formatRoutineDayDisplayName } from "@/lib/routines";
 
 export type RoutineSwitcherItem = {
   id: string;
@@ -36,15 +36,22 @@ export type RoutineSwitcherItem = {
 export type RoutineDayCardItem = {
   id: string;
   dayIndex: number;
-  title: string;
+  name?: string | null;
+  title?: string;
   isRest: boolean;
-  exerciseSummary: string;
-  notes: string | null;
+  splitSummary?: {
+    total: number;
+    strength: number;
+    cardio: number;
+    unknown: number;
+  };
+  exerciseSummary?: string;
+  notes?: string | null;
   href: string;
   isToday: boolean;
   isCompleted: boolean;
   isInSession: boolean;
-  loggedSetCount: number;
+  loggedSetCount?: number;
 };
 
 const ROUTINES_IA_COPY = {
@@ -64,6 +71,7 @@ export function RoutinesPageClient({
   activeRoutineId,
   activeRoutineName,
   activeRoutineSummary,
+  activeRoutineStartDate,
   activeRoutineEditHref,
   newRoutineHref,
   routines,
@@ -74,6 +82,7 @@ export function RoutinesPageClient({
   activeRoutineId: string | null;
   activeRoutineName: string | null;
   activeRoutineSummary: string | null;
+  activeRoutineStartDate?: string | null;
   activeRoutineEditHref: string | null;
   newRoutineHref: string;
   routines: RoutineSwitcherItem[];
@@ -158,7 +167,6 @@ export function RoutinesPageClient({
     <RoutinesRouteHeaderCard
       title={screenMode === "browse-routines" ? "All Routines" : (activeRoutineName ?? "Routine Selection")}
       subtitle={screenMode === "browse-routines" ? allRoutinesMeta : activeRoutineSummary}
-      action={screenMode === "browse-routines" ? undefined : <ActiveRoutineStatusBadge active={Boolean(activeRoutineId)} />}
     />
   );
 
@@ -196,36 +204,37 @@ export function RoutinesPageClient({
         <SharedDayListSection>
           {days.length > 0 ? (
             <DayList>
-              {days.map((day) => {
-                const subtitleParts = [
-                  day.exerciseSummary,
-                  day.notes?.trim() || null,
-                ].filter(Boolean);
-
-                return (
-                  <DayCard
-                    key={day.id}
-                    title={`Day ${day.dayIndex} · ${day.title}`}
-                    subtitle={(day.isRest ? [REST_DAY_CARD_COPY, day.notes?.trim() || null] : subtitleParts).filter(Boolean).join(" · ")}
-                    badgeText={resolveDayCardBadgeText({
-                      isToday: day.isToday,
-                      isRest: day.isRest,
-                      isCompleted: day.isCompleted,
-                      isInSession: day.isInSession,
-                    })}
-                    metaText={formatLoggedSetCount(day.loggedSetCount)}
-                    rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
-                    state={resolveDayCardState({
-                      isToday: day.isToday,
-                      isSelected: day.isToday,
-                      isRest: day.isRest,
-                      isCompleted: day.isCompleted,
-                      isInSession: day.isInSession,
-                    })}
-                    onPress={() => router.push(day.href)}
-                  />
-                );
-              })}
+              {days.map((day) => (
+                <DayCard
+                  key={day.id}
+                  title={formatRoutineDayDisplayName({
+                    name: day.name ?? day.title ?? null,
+                    dayIndex: day.dayIndex,
+                    startDate: activeRoutineStartDate,
+                  })}
+                  subtitle={day.isRest
+                    ? REST_DAY_CARD_COPY
+                    : day.splitSummary
+                      ? formatExerciseSplitSummary(day.splitSummary)
+                      : (day.exerciseSummary ?? "No exercises yet")}
+                  subtitleLabel={day.isRest ? undefined : "Split"}
+                  badgeText={resolveDayCardBadgeText({
+                    isToday: day.isToday,
+                    isRest: day.isRest,
+                    isCompleted: day.isCompleted,
+                    isInSession: day.isInSession,
+                  })}
+                  rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
+                  state={resolveDayCardState({
+                    isToday: day.isToday,
+                    isSelected: day.isToday,
+                    isRest: day.isRest,
+                    isCompleted: day.isCompleted,
+                    isInSession: day.isInSession,
+                  })}
+                  onPress={() => router.push(day.href)}
+                />
+              ))}
             </DayList>
           ) : (
             <EmptyState

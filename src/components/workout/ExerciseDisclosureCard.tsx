@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
@@ -65,7 +66,7 @@ export function ExerciseDisclosureCard({
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
 
   return (
-    <div className={cn("overflow-hidden rounded-[1.25rem]", className)}>
+    <div className={cn(appTokens.workoutCardDisclosureShell, className)}>
       <StandardExerciseRow
         exercise={exercise}
         summary={summary}
@@ -100,7 +101,7 @@ export function ExerciseDisclosureCard({
         <div
           id={contract.panelId}
           data-testid={contract.panelTestId}
-          className={cn("border-t border-border/30 px-3.5 pb-3.5 pt-2.5 sm:px-4", panelClassName)}
+          className={cn(appTokens.workoutCardExpandedPanel, panelClassName)}
         >
           {children}
         </div>

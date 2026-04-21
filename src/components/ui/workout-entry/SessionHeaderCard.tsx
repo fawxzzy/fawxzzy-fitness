@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
+import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
 import { cn } from "@/lib/cn";
 import { EyebrowText, SubtitleText, TitleText } from "@/components/ui/text-roles";
-import { standaloneHeaderFamily } from "@/components/ui/app/standaloneHeaderFamily";
 
 export function SessionHeaderCard({
   eyebrow,
@@ -23,28 +24,22 @@ export function SessionHeaderCard({
   className?: string;
 }) {
   return (
-    <section
-      className={cn(
-        "overflow-hidden border bg-[rgb(var(--surface-2-soft)/0.74)] px-4 pb-4 pt-6 backdrop-blur-md",
-        standaloneHeaderFamily.panelClassName,
-        className,
-      )}
-    >
+    <section className={cn(appTokens.exerciseLogHeaderPanel, className)}>
       {eyebrow ? <EyebrowText className="mb-2 block">{eyebrow}</EyebrowText> : null}
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="min-w-0 space-y-1.5">
-            <TitleText as="h1" className={standaloneHeaderFamily.titleClassName}>{title}</TitleText>
-            {subtitle ? <SubtitleText className="leading-snug text-[rgb(var(--text)/0.72)]">{subtitle}</SubtitleText> : null}
+            <TitleText as="h1" className={fitnessDesignPrimitiveClassNames.headerFamily.titleClassName}>{title}</TitleText>
+            {subtitle ? <SubtitleText className={cn("leading-snug", appTokens.mutedText)}>{subtitle}</SubtitleText> : null}
           </div>
           {meta && metaBelowTitle ? <div className="flex min-h-0 items-center">{meta}</div> : null}
         </div>
-        {action ? <div className={cn("shrink-0 self-start", standaloneHeaderFamily.actionClassName)}>{action}</div> : null}
+        {action ? <div className="shrink-0 self-start">{action}</div> : null}
         {meta && !metaBelowTitle ? <div className="shrink-0 self-center">{meta}</div> : null}
       </div>
 
-      {footer ? <div className={cn(standaloneHeaderFamily.dividerClassName, "text-xs text-muted")}>{footer}</div> : null}
+      {footer ? <div className={cn(fitnessDesignPrimitiveClassNames.headerFamily.dividerClassName, "text-xs text-muted")}>{footer}</div> : null}
     </section>
   );
 }

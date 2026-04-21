@@ -201,7 +201,7 @@ export function TodayDayPicker({
     return (
       <div
         className={[
-          "rounded-md px-3 py-1.5",
+          "rounded-[var(--radius-md)] px-3 py-1.5",
           daySummaryTone === "blocking"
             ? "border border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
             : "border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]",
@@ -215,24 +215,22 @@ export function TodayDayPicker({
   }, [daySummary, daySummaryTone, mode.summaryVisible, selectedDayStateCard]);
 
   const headerNode = selectedDay ? (
-    <ScreenScaffold recipe="todayOverview" className="w-full">
-      <SharedScreenHeader
-        recipe="todayOverview"
-        title={routineName}
-        subtitle={(
-          <DayTaxonomyHeaderSummary
-            dayName={selectedDay.name}
-            summary={getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest)}
-            isRest={selectedDay.isRest}
-          />
-        )}
-        action={inProgressSessionId
-          ? <AppBadge tone="success">In Session</AppBadge>
-          : completedDayIndexSet.has(selectedDay.dayIndex)
-            ? <AppBadge tone="success">Completed</AppBadge>
-            : undefined}
-      />
-    </ScreenScaffold>
+    <SharedScreenHeader
+      recipe="todayOverview"
+      title={routineName}
+      subtitle={(
+        <DayTaxonomyHeaderSummary
+          dayName={selectedDay.name}
+          summary={getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest)}
+          isRest={selectedDay.isRest}
+        />
+      )}
+      action={inProgressSessionId
+        ? <AppBadge tone="success">In Session</AppBadge>
+        : completedDayIndexSet.has(selectedDay.dayIndex)
+          ? <AppBadge tone="success">Completed</AppBadge>
+          : undefined}
+    />
   ) : null;
 
   const actionsNode = useMemo(() => {
@@ -285,7 +283,7 @@ export function TodayDayPicker({
         {!mode.noRoutine && selectedDay ? (
           <ScreenScaffold recipe="todayOverview" className="w-full">
             {mode.contentShellVisible ? (
-              <div className="space-y-2.5">
+              <div className="flex flex-col gap-[0.625rem]">
                 {mode.dayPickerOpen ? (
                   <DayList>
                     {days.map((day) => {
@@ -323,7 +321,7 @@ export function TodayDayPicker({
                 {selectedDaySummaryNode}
 
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
-                  <ul className="space-y-1.5">
+                  <ul className="flex flex-col gap-[0.375rem]">
                     {selectedDay.exercises.map((exercise) => {
                       const detailedMetrics = buildPlannedExerciseDetailMetrics({
                         measurementType: exercise.measurement_type,

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SessionSummaryCard } from "@/components/SessionSummaryCard";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
 import { MetricStrip, type MetricDatum } from "@/components/ui/MetricItem";
+import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { WorkoutCardChipRow } from "@/components/workout/WorkoutCardChipRow";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
@@ -76,8 +77,14 @@ export function HistorySessionsClient({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <HistoryTitleControlShell
+        label="Session list"
+        caption={`${sessions.length} shown`}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
       {sessions.length > 0 ? (
-          <ul className="space-y-1.5">
+        <ul className="space-y-1.5">
           {sessions.map((session, index) => (
             <li key={session.id}>
               <HistorySessionCard
@@ -90,7 +97,7 @@ export function HistorySessionsClient({
           ))}
         </ul>
       ) : (
-        <AppPanel className="rounded-[1.5rem] border-dashed p-5 text-sm text-muted">No completed sessions yet.</AppPanel>
+        <SharedSectionShell recipe="historyDetail" listState={<p className="text-sm text-muted">No completed sessions yet.</p>} />
       )}
       <PublishBottomActions>
         <BottomActionSplit

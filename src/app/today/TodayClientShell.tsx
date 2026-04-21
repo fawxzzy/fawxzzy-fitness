@@ -122,8 +122,8 @@ export function TodayClientShell({
     return (
       <ContentRail>
         <ScreenScaffold recipe="todayOverview" className="w-full">
-          <div className="space-y-2.5">
-            <Link href="/routines" className="block rounded-lg border border-border bg-bg/40 px-3 py-2 text-center text-sm text-text">
+          <div className="flex flex-col gap-[0.625rem]">
+            <Link href="/routines" className="block rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center text-sm text-[rgb(var(--text-primary))] transition-colors hover:bg-[rgb(var(--surface-3-rgb)/0.9)]">
               Go to Routines
             </Link>
           </div>
@@ -135,10 +135,10 @@ export function TodayClientShell({
   return (
     <ContentRail>
       <ScreenScaffold recipe="todayOverview" className="w-full">
-        <div className="space-y-2.5">
+        <div className="flex flex-col gap-[0.625rem]">
           <OfflineSyncBadge userId={userId} />
           {display.staleAt ? (
-            <AccentSubtitleText className="rounded-md border border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] px-3 py-2 text-xs text-[rgb(var(--accent-yellow-on))]">
+            <AccentSubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--warning-rgb)/0.28)] bg-[rgb(var(--warning-rgb)/0.12)] px-3 py-2 text-xs text-[rgb(var(--warning-rgb))]">
               Offline snapshot - stale data from {new Date(display.staleAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
             </AccentSubtitleText>
           ) : null}
@@ -160,7 +160,7 @@ export function TodayClientShell({
               label="Resume"
             />
           ) : (
-            <SubtitleText className="rounded-md border border-border bg-bg/40 px-3 py-2 text-center">
+            <SubtitleText className="rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center">
               Start session requires a live connection.
             </SubtitleText>
           )}
