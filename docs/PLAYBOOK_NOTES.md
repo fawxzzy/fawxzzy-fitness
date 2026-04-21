@@ -428,3 +428,11 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Rationale: Prevents preferences and migration screens from drifting back into one-off card chrome, label typography, and spacing rules while still allowing settings-only interaction surfaces to stay explicit and narrow.
 - Evidence: src/app/settings/page.tsx, src/components/settings/AccountSettingsForm.tsx, src/components/settings/GlassEffectsSettings.tsx, src/components/settings/LegacyMigrationSettings.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
 - Status: Proposed
+
+## 2026-04-21 - Detail-supporting cards should publish media, state, and metadata chrome through shared tokens
+- Type: Pattern
+- Summary: Detail-family support surfaces such as state cards, media callouts, metadata chips, and recent-history rows should expose their spacing, radii, borders, and copy rhythm through the shared token bridge instead of keeping route-local card literals inside each detail screen.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents adjacent detail screens from drifting into slightly different card shells and metadata treatments even when they already share the same detail header and section hierarchy.
+- Evidence: src/components/DetailSurface.tsx, src/components/ExerciseInfoSheet.tsx, src/components/routines/day-detail/DayDetailStateCard.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
+- Status: Proposed
