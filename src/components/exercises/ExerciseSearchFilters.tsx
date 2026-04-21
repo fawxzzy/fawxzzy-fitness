@@ -1,6 +1,7 @@
 "use client";
 
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 
 type ExerciseSearchFiltersProps = {
@@ -31,9 +32,9 @@ export function ExerciseSearchFilters({
             type="button"
             onClick={() => onQueryChange("")}
             aria-label="Clear exercise search"
-            className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+            className={appTokens.exercisePickerSearchClearButton}
           >
-            ×
+            &times;
           </button>
         ) : null}
       </div>
