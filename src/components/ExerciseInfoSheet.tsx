@@ -6,9 +6,12 @@ import { useRouter } from "next/navigation";
 import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ContentRail } from "@/components/layout/ContentRail";
+import { appTokens } from "@/components/ui/app/tokens";
 import { MetricGrid, MetricStrip, type MetricDatum } from "@/components/ui/MetricItem";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { EyebrowText } from "@/components/ui/text-roles";
 import { Glass } from "@/components/ui/Glass";
+import { cn } from "@/lib/cn";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
 
@@ -123,17 +126,17 @@ function ExerciseInfoOverviewMedia({
   howToImageSrc: string;
 }) {
   return (
-    <div className="space-y-3 rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.54)] p-3">
+    <div className={appTokens.detailMediaCard}>
       {exercise.how_to_short ? (
-        <p className="text-sm leading-6 text-[rgb(var(--text)/0.94)] [text-wrap:pretty]">
+        <p className={cn(appTokens.detailBodyText, "[text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
           {exercise.how_to_short}
         </p>
       ) : (
-        <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.86)]">
+        <p className={appTokens.detailBodyMutedText}>
           Log a few sessions to unlock more specific cues and trends for this exercise.
         </p>
       )}
-      <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[1.15rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.52)] p-3">
+      <div className={appTokens.detailMediaFrame}>
         <ExerciseAssetImage
           src={howToImageSrc}
           alt={`${exercise.name} demonstration`}
@@ -149,7 +152,7 @@ function ExerciseInfoOverviewMedia({
 
 function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStats }) {
   if (stats.progress.performances.length === 0) {
-    return <p className="text-sm text-[rgb(var(--text-secondary)/0.84)]">No recent performances logged yet.</p>;
+    return <p className={appTokens.detailBodyMutedText}>No recent performances logged yet.</p>;
   }
 
   return (
@@ -157,19 +160,19 @@ function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStat
       {stats.progress.performances.map((entry) => (
         <div
           key={`${entry.label}-${entry.value}`}
-          className="min-w-0 rounded-[0.95rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface-1-rgb)/0.52)] px-3 py-2.5"
+          className={appTokens.detailHistoryRow}
         >
           <div className="flex min-w-0 flex-wrap items-start gap-2">
-            <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text-muted)/0.88)]">
+            <EyebrowText as="p" className="min-w-0 flex-1 text-[rgb(var(--text-muted)/0.88)]">
               {entry.label}
-            </p>
+            </EyebrowText>
             {entry.context ? (
               <p className="min-w-0 max-w-full text-[11px] leading-[1.35] text-[rgb(var(--text-secondary)/0.72)] [text-wrap:pretty]">
                 {entry.context}
               </p>
             ) : null}
           </div>
-          <p className="mt-1 min-w-0 text-sm leading-[1.4] text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]">
+          <p className={cn(appTokens.detailBodyText, "mt-1 min-w-0 text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
             {entry.value}
           </p>
         </div>
@@ -289,7 +292,7 @@ export function ExerciseInfoSheet({
                   {statsLoading ? <ExerciseInfoLoadingMetrics /> : null}
                   {!statsLoading && stats ? <MetricGrid items={stats.quickMetrics} className="gap-2.5" /> : null}
                   {!statsLoading && !stats ? (
-                    <p className="text-sm text-[rgb(var(--text-secondary)/0.84)]">
+                    <p className={appTokens.detailBodyMutedText}>
                       No stats yet. Log a set to generate performance history for this exercise.
                     </p>
                   ) : null}
@@ -307,7 +310,7 @@ export function ExerciseInfoSheet({
                   ) : performanceMetrics.length > 0 ? (
                     <MetricGrid items={performanceMetrics} className="gap-2.5" compact />
                   ) : (
-                    <p className="text-sm text-[rgb(var(--text-secondary)/0.84)]">
+                    <p className={appTokens.detailBodyMutedText}>
                       No performance metrics available yet.
                     </p>
                   )}
@@ -324,7 +327,7 @@ export function ExerciseInfoSheet({
                   ) : progressMetrics.length > 0 ? (
                     <MetricStrip items={progressMetrics} />
                   ) : (
-                    <p className="text-sm text-[rgb(var(--text-secondary)/0.84)]">
+                    <p className={appTokens.detailBodyMutedText}>
                       No progress comparisons available yet.
                     </p>
                   )}
