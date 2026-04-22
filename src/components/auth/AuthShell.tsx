@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
@@ -76,8 +76,57 @@ export function AuthField({ label, children }: { label: string; children: ReactN
   );
 }
 
+export function AuthForm({
+  children,
+  className,
+  ...props
+}: ComponentPropsWithoutRef<"form">) {
+  return (
+    <form
+      {...props}
+      className={cn("space-y-5", className)}
+    >
+      {children}
+    </form>
+  );
+}
+
+export function AuthStack({
+  children,
+  className,
+  size = "md",
+  ...props
+}: ComponentPropsWithoutRef<"div"> & {
+  size?: "xs" | "sm" | "compact" | "md" | "lg";
+}) {
+  const gapClassName =
+    size === "xs"
+      ? "space-y-1"
+      : size === "sm"
+        ? "space-y-2"
+        : size === "compact"
+          ? "space-y-3"
+        : size === "lg"
+          ? "space-y-5"
+          : "space-y-4";
+
+  return (
+    <div {...props} className={cn(gapClassName, className)}>
+      {children}
+    </div>
+  );
+}
+
+export function AuthActionRow({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("flex justify-end", className)}>{children}</div>;
+}
+
 export function AuthFooter({ children }: { children: ReactNode }) {
   return <div className={appTokens.authFooter}>{children}</div>;
+}
+
+export function AuthFooterText({ children, className }: { children: ReactNode; className?: string }) {
+  return <p className={cn("text-center leading-6", className)}>{children}</p>;
 }
 
 export function AuthStatusCard({
@@ -97,10 +146,10 @@ export function AuthStatusCard({
       >
         <span className="h-4 w-4 animate-spin rounded-full border-[1.5px] border-current border-r-transparent motion-reduce:animate-none" />
       </div>
-      <div className="space-y-1" data-testid={testId}>
+      <AuthStack size="xs" data-testid={testId}>
         <p className={appTokens.authStatusTitle}>{title}</p>
         {description ? <p className={appTokens.authStatusDescription}>{description}</p> : null}
-      </div>
+      </AuthStack>
     </AuthCard>
   );
 }

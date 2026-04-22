@@ -11,6 +11,7 @@ import { DayRestToggleDockControl } from "@/components/day/DayRestToggleDockCont
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
+import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineDaySettingsAction } from "@/app/routines/[id]/edit/day/actions";
 import { getRoutineDayViewHref } from "@/lib/routine-day-navigation";
@@ -164,7 +165,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
       action={<TopRightBackButton href={backHref} ariaLabel="Back to Day" historyBehavior="fallback-only" />}
     >
       {headerActionSlotId ? (
-        <div className="w-full px-0.5">
+        <div className={appTokens.routineEditorHeaderSlot}>
           <div id={headerActionSlotId} className="w-full" />
         </div>
       ) : null}
@@ -172,7 +173,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
   );
 
   return (
-    <form ref={formRef} id="routine-day-settings-form" className="space-y-3" onSubmit={(event) => event.preventDefault()}>
+    <form ref={formRef} id="routine-day-settings-form" className={appTokens.routineEditorCompactStack} onSubmit={(event) => event.preventDefault()}>
       <input type="hidden" name="routineId" value={routineId} />
       <input type="hidden" name="routineDayId" value={routineDayId} />
       <NavigationReturnInput fallbackHref={getRoutineDayViewHref(routineId, routineDayId)} value={backHref} />

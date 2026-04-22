@@ -3,6 +3,7 @@
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/cn";
 
 type ExerciseSearchFiltersProps = {
   query: string;
@@ -26,7 +27,12 @@ export function ExerciseSearchFilters({
   return (
     <div className={className}>
       <div className="relative">
-        <Input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Search exercises" className="pr-9" />
+        <Input
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="Search exercises"
+          className={cn(appTokens.exercisePickerSearchInput)}
+        />
         {query ? (
           <button
             type="button"

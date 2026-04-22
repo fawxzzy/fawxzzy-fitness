@@ -3,6 +3,12 @@ import type { MobileFixtureScenario } from "./fixtures";
 const MIN_METADATA_COLUMN_WIDTH = 120;
 const MAX_GOAL_FORM_LABEL_LENGTH = 36;
 
+function isHistoryRoute(scenario: MobileFixtureScenario) {
+  return scenario.route === "historySessions"
+    || scenario.route === "historyExercises"
+    || scenario.route === "historyDetail";
+}
+
 export function finalRowVisibleAboveDock(scenario: MobileFixtureScenario) {
   return scenario.geometry.lastInteractiveRowBottom <= scenario.geometry.dockTop;
 }
@@ -100,6 +106,11 @@ export function routeUsesFloatingHeader(scenario: MobileFixtureScenario) {
   return scenario.usesFloatingHeader;
 }
 
+export function historyRoutesUseFloatingHeader(scenario: MobileFixtureScenario) {
+  if (!isHistoryRoute(scenario)) return true;
+  return scenario.usesFloatingHeader === true;
+}
+
 export function todayHeaderMatchesSelectedDay(scenario: MobileFixtureScenario) {
   if (scenario.route !== "today") return true;
   return scenario.todayHeaderMatchesSelectedDay ?? true;
@@ -146,6 +157,23 @@ export function historyLogViewHasOneHeader(scenario: MobileFixtureScenario) {
   return scenario.historyLogHeaderCount === 1;
 }
 
+export function historyRoutesHaveSingleHeaderOwner(scenario: MobileFixtureScenario) {
+  if (!isHistoryRoute(scenario)) return true;
+  return scenario.historyHeaderOwnerCount === 1;
+}
+
+export function historySurfaceMatchesRouteFamily(scenario: MobileFixtureScenario) {
+  if (scenario.route === "historyExercises") {
+    return scenario.historySurfaceToken === "history-browser";
+  }
+
+  if (scenario.route === "historyDetail") {
+    return scenario.historySurfaceToken === "history-detail";
+  }
+
+  return true;
+}
+
 export function exerciseInfoUsesPinnedFloatingHeader(scenario: MobileFixtureScenario) {
   if (scenario.route !== "today") return true;
   return scenario.exerciseInfoHeaderPinned ?? true;
@@ -173,6 +201,7 @@ export function validateMobileScenarioContracts(scenario: MobileFixtureScenario)
     detailedModeClearlyRicher: detailedModeClearlyRicher(scenario),
     exerciseInfoAnalyticsLayoutReady: exerciseInfoAnalyticsLayoutReady(scenario),
     routeUsesFloatingHeader: routeUsesFloatingHeader(scenario),
+    historyRoutesUseFloatingHeader: historyRoutesUseFloatingHeader(scenario),
     todayHeaderMatchesSelectedDay: todayHeaderMatchesSelectedDay(scenario),
     restDayHasNoExtraLowerFillerBox: restDayHasNoExtraLowerFillerBox(scenario),
     editDayHeaderPinned: editDayHeaderPinned(scenario),
@@ -180,6 +209,8 @@ export function validateMobileScenarioContracts(scenario: MobileFixtureScenario)
     editDayManualOrderEditClamps: editDayManualOrderEditClamps(scenario),
     routineDetailsBottomDockLayoutConsistent: routineDetailsBottomDockLayoutConsistent(scenario),
     historyLogViewHasOneHeader: historyLogViewHasOneHeader(scenario),
+    historyRoutesHaveSingleHeaderOwner: historyRoutesHaveSingleHeaderOwner(scenario),
+    historySurfaceMatchesRouteFamily: historySurfaceMatchesRouteFamily(scenario),
     exerciseInfoUsesPinnedFloatingHeader: exerciseInfoUsesPinnedFloatingHeader(scenario),
     currentSessionSaveSetUsesPinnedFloatingHeader: currentSessionSaveSetUsesPinnedFloatingHeader(scenario),
   };

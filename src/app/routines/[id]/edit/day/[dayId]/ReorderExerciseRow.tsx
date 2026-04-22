@@ -1,5 +1,6 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
@@ -72,13 +73,13 @@ export function ReorderExerciseRow({
             type="button"
             aria-label={`Reorder ${exerciseName}`}
             title="Drag to reorder"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/45 bg-[rgb(var(--bg)/0.3)] text-muted hover:bg-[rgb(var(--bg)/0.46)] touch-none"
+            className={appTokens.routineEditorReorderHandle}
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerUp}
             onPointerCancel={onHandlePointerCancel}
           >
-            <span aria-hidden="true" className="text-base leading-none tracking-[-0.08em]">::</span>
+            <span aria-hidden="true" className={appTokens.routineEditorHandleGlyph}>::</span>
           </button>
         )}
       />
