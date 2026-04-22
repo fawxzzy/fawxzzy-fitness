@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import type { ActionResult } from "@/lib/action-result";
 import { cn } from "@/lib/cn";
@@ -106,7 +107,7 @@ function RoutineTargetInputs({
   modality: GoalModality;
 }) {
   return (
-    <div className="space-y-3">
+    <div className={appTokens.routineEditorCompactStack}>
       <SharedExerciseGoalForm
         modality={modality}
         state={state}
@@ -459,8 +460,8 @@ export function EditableRoutineDayExerciseList({
         aria-pressed={reorderMode}
         disabled={isRestDay}
         className={cn(
-          "min-h-[2.625rem] w-full rounded-[0.9rem] px-4 py-2 text-[0.92rem]",
-          isRestDay ? "cursor-not-allowed opacity-55 hover:bg-white/[0.04] hover:text-muted" : undefined,
+          appTokens.routineEditorHeaderActionButton,
+          isRestDay ? appTokens.routineEditorHeaderActionButtonDisabled : undefined,
         )}
       >
         {reorderMode ? "Done" : "Reorder"}
@@ -493,7 +494,7 @@ export function EditableRoutineDayExerciseList({
     return (
       <>
         {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
-        <SharedSectionShell recipe="editDay" bodyClassName="space-y-3">
+        <SharedSectionShell recipe="editDay" bodyClassName={appTokens.routineEditorCompactStack}>
           {modeViewModel.sections.restDayCardVisible ? (
             <DayDetailStateCard
               tone="rest"
@@ -581,7 +582,7 @@ export function EditableRoutineDayExerciseList({
             {visibleItems.map((exercise, index) => {
               const isDragging = activeDragId === exercise.id;
               return (
-                <li key={exercise.id} className="rounded-[1.3rem] transition-all">
+                <li key={exercise.id} className={appTokens.routineEditorReorderItem}>
                   <ReorderExerciseRow
                     exerciseId={exercise.id}
                     exerciseName={exercise.name}
@@ -715,7 +716,7 @@ export function EditableRoutineDayExerciseList({
                             router.refresh();
                           }
                         }}
-                  className="space-y-3"
+                  className={appTokens.routineEditorCompactStack}
                   onChangeCapture={scheduleAutosave}
                   onBlurCapture={flushAutosave}
                 >
@@ -723,7 +724,7 @@ export function EditableRoutineDayExerciseList({
                   <input type="hidden" name="routineDayId" value={routineDayId} />
                   <input type="hidden" name="exerciseRowId" value={exercise.id} />
                   <div className="space-y-1">
-                    <label htmlFor={`exercise-order-${exercise.id}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                    <label htmlFor={`exercise-order-${exercise.id}`} className={appTokens.routineEditorOrderLabel}>
                       Order
                     </label>
                     <input
@@ -738,7 +739,7 @@ export function EditableRoutineDayExerciseList({
                         ...current,
                         manualOrder: event.target.value,
                       }))}
-                      className="h-10 w-full rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3 text-sm text-text outline-none transition focus:border-[rgb(var(--button-primary-border)/0.5)] focus:ring-2 focus:ring-[rgb(var(--button-primary-border)/0.22)]"
+                      className={appTokens.routineEditorOrderInput}
                     />
                   </div>
                   <RoutineTargetInputs
@@ -749,7 +750,7 @@ export function EditableRoutineDayExerciseList({
                     }))}
                     modality={resolveInlineModality(exercise.measurementType, exercise.equipment)}
                   />
-                  {autosaveError ? <p className="text-xs text-[rgb(var(--accent-red))]">{autosaveError}</p> : null}
+                  {autosaveError ? <p className={appTokens.routineEditorAutosaveErrorText}>{autosaveError}</p> : null}
                 </form>
               );
             }}

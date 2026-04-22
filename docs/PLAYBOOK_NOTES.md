@@ -62,6 +62,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-22 - Fitness deploy guards should anchor on immutable Vercel identity
+- Type: Guardrail
+- Summary: Fitness production deploy checks should require the canonical Vercel team and project IDs first, then treat the current team slug and project name as secondary rename-drift validation.
+- Suggested Playbook File: docs/GUARDRAILS/deploy-identity.md
+- Rationale: Prevents false wrong-owner deploy blocks when Vercel renames change visible slugs or deployment URLs while the underlying linked project is still correct.
+- Evidence: .vercel/project.json, docs/PLAYBOOK_NOTES.md
+- Status: Proposed
+
 ## 2026-04-22 - History route families should share one scaffold and QA preview seam
 - Type: Pattern
 - Summary: History sessions, exercises, and detail routes should publish one shared route-family scaffold for header ownership, surface tokens, and floating-header behavior, while localhost preview QA flows through one server-gated fixture seam instead of route-local data hacks.

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import { login } from "@/app/auth/actions";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
-import { AuthCard, AuthField, AuthFooter, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import { AuthActionRow, AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
@@ -173,12 +173,12 @@ export function LoginScreen({
           isSubmitting ? appTokens.authInteractiveCardPending : "",
         )}
       >
-        <form action={login} className="space-y-5" onSubmit={handleSubmit}>
+        <AuthForm action={login} onSubmit={handleSubmit}>
           {showRememberedAccountCard && rememberedEmail ? (
             <input type="hidden" name="email" value={rememberedEmail} />
           ) : null}
-          <div className="space-y-5">
-            <div className="space-y-4">
+          <AuthStack size="lg">
+            <AuthStack>
               <div className={cn("flex min-h-8", showRememberedAccountCard ? "justify-end" : "items-start justify-between gap-4")}>
                 {!showRememberedAccountCard ? (
                   <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
@@ -193,7 +193,7 @@ export function LoginScreen({
                   </button>
                 ) : null}
               </div>
-              <div className={cn("space-y-2", showRememberedAccountCard ? "text-center" : "text-left")}>
+              <AuthStack size="sm" className={showRememberedAccountCard ? "text-center" : "text-left"}>
                 <h1 className={appTokens.authIntroTitle}>{copy.title}</h1>
                 {rememberedDisplayName ? (
                   <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
@@ -213,12 +213,12 @@ export function LoginScreen({
                     {PASSWORD_LOGIN_UI_COPY.helper.default}
                   </p>
                 ) : null}
-              </div>
+              </AuthStack>
               {!showRememberedAccountCard && copy.subtitle ? <p className={appTokens.authSubtitleText}>{copy.subtitle}</p> : null}
-            </div>
+            </AuthStack>
 
             {showRememberedAccountCard && rememberedEmail && rememberedIdentity ? (
-              <div className="space-y-4">
+              <AuthStack>
                 <div className={appTokens.authAccountPanel}>
                   <p className={appTokens.authAccountEyebrow}>{PASSWORD_LOGIN_UI_COPY.returningUserLabel}</p>
                   <p className={appTokens.authAccountValue}>{rememberedEmail}</p>
@@ -237,18 +237,19 @@ export function LoginScreen({
                       isRestoring ? appTokens.authActionButtonPending : "",
                     )}
                   >
-                    {ctaLabel}
-                  </PrimaryButton>
-                ) : null}
-              </div>
+                      {ctaLabel}
+                    </PrimaryButton>
+                  ) : null}
+              </AuthStack>
             ) : null}
-          </div>
+          </AuthStack>
 
-          <div
+          <AuthStack
             key={formSeed}
+            size="md"
             aria-hidden={!showManualAuth}
             className={cn(
-              "space-y-4 transition-[max-height,opacity] duration-200 ease-out motion-reduce:transition-none",
+              "transition-[max-height,opacity] duration-200 ease-out motion-reduce:transition-none",
               showManualAuth
                 ? "max-h-[32rem] opacity-100"
                 : "pointer-events-none max-h-0 overflow-hidden opacity-0",
@@ -279,7 +280,7 @@ export function LoginScreen({
               </div>
             )}
 
-            <div className="space-y-2">
+            <AuthStack size="sm">
               <AuthField label={isReauthFlow ? "Password" : "Password"}>
                 <Input
                   id={PASSWORD_INPUT_ID}
@@ -297,15 +298,15 @@ export function LoginScreen({
                   onChange={(event) => setPassword(event.target.value)}
                 />
               </AuthField>
-            </div>
-          </div>
+            </AuthStack>
+          </AuthStack>
 
           {showManualAuth ? (
-            <div className="flex justify-end">
+            <AuthActionRow>
               <Link className={appTokens.authInlineLink} href="/forgot-password">
                 {PASSWORD_LOGIN_UI_COPY.forgotPassword}
               </Link>
-            </div>
+            </AuthActionRow>
           ) : null}
 
           {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
@@ -326,16 +327,16 @@ export function LoginScreen({
               {ctaLabel}
             </PrimaryButton>
           ) : null}
-        </form>
+        </AuthForm>
 
         {showManualAuth && !hasRememberedAccount ? (
           <AuthFooter>
-            <p className="text-center leading-6 text-slate-300">
+            <AuthFooterText>
               {PASSWORD_LOGIN_UI_COPY.createAccountPrefix}{" "}
               <Link href="/signup" className={appTokens.authInlineLink}>
                 {PASSWORD_LOGIN_UI_COPY.createAccountAction}
               </Link>
-            </p>
+            </AuthFooterText>
           </AuthFooter>
         ) : null}
       </AuthCard>

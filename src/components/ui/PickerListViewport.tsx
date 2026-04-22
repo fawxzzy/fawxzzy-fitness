@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 export function PickerListViewport({
@@ -21,7 +22,7 @@ export function PickerListViewport({
   const shouldShowDesktopFade = showFade && constrainOnDesktop;
   const shouldShowMobileFade = showFade && mobileTray;
   const shellClassName = plainOnMobile
-    ? "overflow-visible rounded-none border-0 bg-transparent p-0 md:relative md:overflow-hidden md:rounded-[1.35rem] md:border md:border-border/45 md:bg-[rgb(var(--surface-2-soft)/0.42)] md:p-2"
+    ? appTokens.exercisePickerViewportShell
     : "relative overflow-hidden rounded-[1.35rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] p-2";
 
   return (
@@ -29,7 +30,7 @@ export function PickerListViewport({
       className={cn(
         shellClassName,
         mobileTray
-          ? "relative max-md:overflow-hidden max-md:rounded-[1.05rem] max-md:border max-md:border-border/36 max-md:bg-[rgb(var(--surface-rgb)/0.2)] max-md:px-1.5 max-md:py-1.25"
+          ? appTokens.exercisePickerViewportTray
           : undefined,
         className,
       )}
@@ -49,11 +50,11 @@ export function PickerListViewport({
         <>
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-1.5 top-1.25 z-10 h-4 rounded-t-[0.8rem] bg-gradient-to-b from-[rgb(var(--surface-rgb)/0.74)] via-[rgb(var(--surface-rgb)/0.22)] to-transparent md:hidden"
+            className={appTokens.exercisePickerViewportMobileFadeTop}
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-1.5 bottom-1.25 z-10 h-5 rounded-b-[0.8rem] bg-gradient-to-t from-[rgb(var(--surface-rgb)/0.82)] via-[rgb(var(--surface-rgb)/0.38)] to-transparent md:hidden"
+            className={appTokens.exercisePickerViewportMobileFadeBottom}
           />
         </>
       ) : null}
@@ -61,15 +62,11 @@ export function PickerListViewport({
         <>
           <div
             aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute inset-x-2 top-2 z-10 hidden h-8 rounded-t-[1rem] bg-gradient-to-b from-[rgb(var(--surface-rgb)/0.82)] via-[rgb(var(--surface-rgb)/0.3)] to-transparent md:block",
-            )}
+            className={appTokens.exercisePickerViewportDesktopFadeTop}
           />
           <div
             aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute inset-x-2 bottom-2 z-10 hidden h-12 rounded-b-[1rem] bg-gradient-to-t from-[rgb(var(--surface-rgb)/0.92)] via-[rgb(var(--surface-rgb)/0.55)] to-transparent md:block",
-            )}
+            className={appTokens.exercisePickerViewportDesktopFadeBottom}
           />
         </>
       ) : null}

@@ -8,6 +8,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppButton } from "@/components/ui/AppButton";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { ScreenContractName } from "@/components/ui/app/screenContract";
 import { controlClassName } from "@/components/ui/formClasses";
@@ -104,8 +105,8 @@ export function RoutineEditorSection({
       label={title}
       context={description}
       action={action}
-      className={cn("space-y-4", className)}
-      bodyClassName="space-y-4"
+      className={cn(appTokens.routineEditorSectionStack, className)}
+      bodyClassName={appTokens.routineEditorSectionStack}
     >
       {children}
     </SharedSectionShell>
@@ -119,7 +120,7 @@ export function RoutineEditorPageBody({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn("space-y-4 px-1 pb-4", className)}>{children}</div>;
+  return <div className={cn(appTokens.routineEditorPageBody, className)}>{children}</div>;
 }
 
 export function RoutineDetailsBottomActionDock({
@@ -178,7 +179,7 @@ export function RoutineEditorTitleInput({
       placeholder={placeholder}
       aria-label={ariaLabel}
       maxLength={maxLength}
-      className={cn(controlClassName, "min-h-11 border-border/55 bg-[rgb(var(--bg)/0.44)] text-base font-semibold", className)}
+      className={cn(controlClassName.replace("h-11", "h-12"), "text-base font-semibold", className)}
     />
   );
 }
@@ -204,17 +205,15 @@ export function RoutineEditorFullRowToggle({
       onClick={onToggle}
       aria-pressed={enabled}
       className={cn(
-        "flex w-full items-center justify-between gap-3 rounded-[1.1rem] border px-3 py-2.5 text-left transition",
-        enabled
-          ? "border-emerald-400/35 bg-emerald-400/14 text-emerald-100"
-          : "border-white/8 bg-white/[0.04] text-text hover:bg-white/[0.06]",
+        appTokens.routineEditorToggleRow,
+        enabled ? appTokens.routineEditorToggleRowEnabled : appTokens.routineEditorToggleRowDefault,
       )}
     >
       <span className="flex min-w-0 items-center gap-2">
-        <span className={cn("truncate text-xs font-semibold uppercase tracking-[0.14em]", enabled ? "text-emerald-200" : "text-muted")}>{label}</span>
-        {description ? <span className={cn("text-sm", enabled ? "text-emerald-100/90" : "text-muted")}>{description}</span> : null}
+        <span className={cn("truncate text-xs font-semibold uppercase tracking-[0.14em]", enabled ? appTokens.accentText : appTokens.metaText)}>{label}</span>
+        {description ? <span className={cn("text-sm", enabled ? "text-[rgb(var(--text-primary)/0.92)]" : appTokens.metaText)}>{description}</span> : null}
       </span>
-      <span className={cn("text-sm", enabled ? "font-semibold text-emerald-100" : "font-medium text-text")}>{enabled ? enabledLabel : disabledLabel}</span>
+      <span className={cn("text-sm", enabled ? "font-semibold text-[rgb(var(--text-primary)/0.98)]" : "font-medium text-[rgb(var(--text-primary)/0.96)]")}>{enabled ? enabledLabel : disabledLabel}</span>
     </button>
   );
 }
@@ -231,8 +230,8 @@ export function RoutineEditorModeToggleRow({
   className?: string;
 }) {
   return (
-    <div className={cn("mb-3 flex items-center justify-between gap-3 rounded-[1.1rem] border border-border/35 bg-[rgb(var(--surface-2-soft)/0.3)] px-3 py-2.5", className)}>
-      <SubtitleText className="text-xs">{summary}</SubtitleText>
+    <div className={cn(appTokens.routineEditorModeRow, className)}>
+      <SubtitleText className={appTokens.routineEditorModeSummary}>{summary}</SubtitleText>
       <div className="flex items-center gap-2">
         {actions ?? action}
       </div>
@@ -324,13 +323,13 @@ export function RoutineEditorInlineSection({
   className?: string;
 }) {
   return (
-    <section className={cn("space-y-3 rounded-[1.25rem] border border-border/45 bg-[rgb(var(--surface-2-soft)/0.58)] p-4", className)}>
+    <section className={cn(appTokens.routineEditorInlineSection, className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{title}</p>
-          {description ? <p className="text-xs text-muted">{description}</p> : null}
+          <p className={appTokens.routineEditorInlineTitle}>{title}</p>
+          {description ? <p className={appTokens.routineEditorInlineDescription}>{description}</p> : null}
         </div>
-        {badge ? <span className="rounded-full bg-surface/80 px-2.5 py-1 text-[11px] font-medium text-muted">{badge}</span> : null}
+        {badge ? <span className={cn(appTokens.routineEditorInlineBadge, appTokens.routineEditorInlineBadgeText)}>{badge}</span> : null}
       </div>
       {children}
     </section>
@@ -361,7 +360,7 @@ export function RoutineEditorDayRow({
       badgeText={badgeText}
       state={state}
       variant="interactive"
-      rightIcon={rightLabel ?? <span aria-hidden="true" className="text-muted">›</span>}
+      rightIcon={rightLabel ?? <span aria-hidden="true" className={appTokens.metaText}>›</span>}
       className={cn("items-center", className)}
     />
   );

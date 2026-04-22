@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { type FormEvent } from "react";
 import { signup } from "@/app/auth/actions";
-import { AuthCard, AuthField, AuthFooter, AuthMessage } from "@/components/auth/AuthShell";
+import { AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthMessage, AuthStack } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
@@ -38,8 +38,8 @@ export function SignupForm({
 
   return (
     <AuthCard>
-      <form action={signup} className="space-y-5" onSubmit={handleSubmit}>
-        <div className="space-y-4">
+      <AuthForm action={signup} onSubmit={handleSubmit}>
+        <AuthStack>
           <AuthField label="Username">
             <Input
               type="text"
@@ -56,7 +56,7 @@ export function SignupForm({
           <AuthField label="Password">
             <Input type="password" name="password" minLength={6} required autoComplete="new-password" placeholder="Create a password" />
           </AuthField>
-        </div>
+        </AuthStack>
 
         {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
         {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
@@ -64,15 +64,15 @@ export function SignupForm({
         <PrimaryButton type="submit" fullWidth>
           Sign up
         </PrimaryButton>
-      </form>
+      </AuthForm>
 
       <AuthFooter>
-        <p className="text-center leading-6 text-slate-300">
+        <AuthFooterText>
           Already have an account?{" "}
           <Link href="/login" className={appTokens.authInlineLink}>
             Log in
           </Link>
-        </p>
+        </AuthFooterText>
       </AuthFooter>
     </AuthCard>
   );
