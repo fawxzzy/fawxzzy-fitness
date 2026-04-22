@@ -15,6 +15,10 @@ function requireScenario(id: string) {
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 
+function readSource(relativePathFromTestsDir: string) {
+  return readFileSync(path.resolve(THIS_DIR, relativePathFromTestsDir), "utf8");
+}
+
 test("dock and safe-area regressions are detected", () => {
   const baseline = requireScenario("today-default");
   const contracts = validateMobileScenarioContracts({
@@ -198,9 +202,44 @@ test("history family contracts catch floating-header, header-owner, and surface-
 });
 
 test("history browser source stays on the history-browser surface contract", () => {
-  const sourcePath = path.resolve(THIS_DIR, "../../src/app/history/exercises/ExerciseBrowserClient.tsx");
-  const source = readFileSync(sourcePath, "utf8");
+  const source = readSource("../../src/components/history/HistoryExerciseCard.tsx");
 
   assert.match(source, /surface="history-browser"/);
   assert.doesNotMatch(source, /surface="current-session"/);
+});
+
+test("history-browser compact rows stay on the shared history card wrapper without re-enabling media", () => {
+  const source = readSource("../../src/app/history/exercises/ExerciseBrowserClient.tsx");
+
+  assert.match(source, /<HistoryExerciseCard/);
+  assert.match(source, /density=\{viewMode\}/);
+  assert.doesNotMatch(source, /<StandardExerciseRow/);
+  assert.doesNotMatch(source, /showLeadingVisual/);
+});
+
+test("standard exercise rows gate rail media behind the surface policy", () => {
+  const source = readSource("../../src/components/StandardExerciseRow.tsx");
+
+  assert.match(source, /resolveWorkoutCardSurfacePolicy/);
+  assert.match(source, /surfacePolicy\.showMedia && mediaRailWidth > 0/);
+  assert.match(source, /leadingVisual=\{resolvedLeadingVisual\}/);
+});
+
+test("exercise card body stays clipping-safe while exposing shared media and density markers", () => {
+  const source = readSource("../../src/components/ExerciseCard.tsx");
+
+  assert.match(source, /overflow-visible/);
+  assert.match(source, /data-exercise-card-density=\{resolvedDensity\}/);
+  assert.match(source, /data-exercise-card-media=\{usesRailMedia \? "rail" : usesInlineMedia \? "inline" : "none"\}/);
+  assert.match(source, /bottom-px left-px top-px w-\[3px\] rounded-r-full/);
+});
+
+test("history sessions keep compact chips and detailed metrics on the shared card shell", () => {
+  const source = readSource("../../src/app/history/HistorySessionsClient.tsx");
+
+  assert.match(source, /<SessionSummaryCard/);
+  assert.match(source, /density=\{viewMode\}/);
+  assert.match(source, /<WorkoutCardChipRow chips=\{viewModel\.compactChips\} \/>/);
+  assert.match(source, /<MetricStrip items=\{viewModel\.detailedMetrics as MetricDatum\[\]\} \/>/);
+  assert.match(source, /appTokens\.historyExerciseCardShell/);
 });
