@@ -9,7 +9,18 @@ export type RememberedLoginState = {
   updatedAt: string;
 };
 
+export type RememberedLoginStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+type RememberedLoginInput = {
+  email: string;
+  displayName?: string;
+  firstName?: string;
+  sessionState?: RememberedLoginSessionState;
+  updatedAt?: string;
+};
+
 const REMEMBERED_LOGIN_KEY = "fawxzzy:remembered-login";
+const DEFAULT_SESSION_STATE: RememberedLoginSessionState = "reauth-required";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -36,13 +47,49 @@ export function deriveRememberedLoginFirstName(email: string) {
   return deriveRememberedLoginDisplayName(email);
 }
 
-export function readRememberedLoginState(): RememberedLoginState | null {
+function getRememberedLoginStorage(storage?: RememberedLoginStorage) {
+  if (storage) {
+    return storage;
+  }
+
   if (typeof window === "undefined") {
     return null;
   }
 
+  return window.localStorage;
+}
+
+export function buildRememberedLoginState(input: RememberedLoginInput): RememberedLoginState {
+  const email = normalizeEmail(input.email);
+
+  return {
+    email,
+    displayName: input.displayName?.trim() || input.firstName?.trim() || deriveRememberedLoginDisplayName(email),
+    sessionState: input.sessionState ?? DEFAULT_SESSION_STATE,
+    updatedAt: input.updatedAt ?? new Date().toISOString(),
+  };
+}
+
+export function toReauthRequiredRememberedLoginState(state: RememberedLoginState) {
+  if (state.sessionState === "reauth-required") {
+    return state;
+  }
+
+  return buildRememberedLoginState({
+    ...state,
+    sessionState: "reauth-required",
+  });
+}
+
+export function readRememberedLoginState(storage?: RememberedLoginStorage): RememberedLoginState | null {
+  const rememberedLoginStorage = getRememberedLoginStorage(storage);
+
+  if (!rememberedLoginStorage) {
+    return null;
+  }
+
   try {
-    const raw = window.localStorage.getItem(REMEMBERED_LOGIN_KEY);
+    const raw = rememberedLoginStorage.getItem(REMEMBERED_LOGIN_KEY);
     if (!raw) {
       return null;
     }
@@ -61,26 +108,23 @@ export function readRememberedLoginState(): RememberedLoginState | null {
       return null;
     }
 
-    return {
+    return buildRememberedLoginState({
       email,
       displayName: typeof parsed === "string"
         ? deriveRememberedLoginDisplayName(email)
         : (parsed.displayName?.trim() || parsed.firstName?.trim() || deriveRememberedLoginDisplayName(email)),
-      sessionState: typeof parsed === "string" ? "ready" : (parsed.sessionState ?? "ready"),
-      updatedAt: typeof parsed === "string" ? "" : (parsed.updatedAt ?? ""),
-    };
+      sessionState: typeof parsed === "string" ? DEFAULT_SESSION_STATE : (parsed.sessionState ?? DEFAULT_SESSION_STATE),
+      updatedAt: typeof parsed === "string" ? undefined : parsed.updatedAt,
+    });
   } catch {
     return null;
   }
 }
 
-export function writeRememberedLoginState(input: {
-  email: string;
-  displayName?: string;
-  firstName?: string;
-  sessionState?: RememberedLoginSessionState;
-}) {
-  if (typeof window === "undefined") {
+export function writeRememberedLoginState(input: RememberedLoginInput, storage?: RememberedLoginStorage) {
+  const rememberedLoginStorage = getRememberedLoginStorage(storage);
+
+  if (!rememberedLoginStorage) {
     return;
   }
 
@@ -90,21 +134,31 @@ export function writeRememberedLoginState(input: {
   }
 
   try {
-    window.localStorage.setItem(REMEMBERED_LOGIN_KEY, JSON.stringify({
-      email,
-      displayName: input.displayName?.trim() || input.firstName?.trim() || deriveRememberedLoginDisplayName(email),
-      sessionState: input.sessionState ?? "ready",
-      updatedAt: new Date().toISOString(),
-    } satisfies RememberedLoginState));
+    rememberedLoginStorage.setItem(REMEMBERED_LOGIN_KEY, JSON.stringify(buildRememberedLoginState(input)));
   } catch {}
 }
 
-export function clearRememberedLoginState() {
-  if (typeof window === "undefined") {
+export function syncRememberedLoginFromAuthenticatedSession(
+  input: Omit<RememberedLoginInput, "sessionState">,
+  storage?: RememberedLoginStorage,
+) {
+  const nextState = buildRememberedLoginState({
+    ...input,
+    sessionState: "ready",
+  });
+
+  writeRememberedLoginState(nextState, storage);
+  return nextState;
+}
+
+export function clearRememberedLoginState(storage?: RememberedLoginStorage) {
+  const rememberedLoginStorage = getRememberedLoginStorage(storage);
+
+  if (!rememberedLoginStorage) {
     return;
   }
 
   try {
-    window.localStorage.removeItem(REMEMBERED_LOGIN_KEY);
+    rememberedLoginStorage.removeItem(REMEMBERED_LOGIN_KEY);
   } catch {}
 }
