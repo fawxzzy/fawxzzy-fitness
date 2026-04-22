@@ -116,6 +116,7 @@ test("mobile regression fixture contracts pass for the full fixture suite", () =
     assert.equal(contracts.detailedModeClearlyRicher, true, `${scenario.id}: detailed mode no longer adds enough analytics density`);
     assert.equal(contracts.exerciseInfoAnalyticsLayoutReady, true, `${scenario.id}: Exercise Info lost media visibility or analytics density`);
     assert.equal(contracts.routeUsesFloatingHeader, true, `${scenario.id}: route header is not using floatingHeader`);
+    assert.equal(contracts.historyRoutesUseFloatingHeader, true, `${scenario.id}: history route lost floatingHeader ownership`);
     assert.equal(contracts.todayHeaderMatchesSelectedDay, true, `${scenario.id}: Today header drifted from selected day`);
     assert.equal(contracts.restDayHasNoExtraLowerFillerBox, true, `${scenario.id}: rest day introduced lower filler box`);
     assert.equal(contracts.editDayHeaderPinned, true, `${scenario.id}: Edit Day header is not pinned`);
@@ -127,6 +128,8 @@ test("mobile regression fixture contracts pass for the full fixture suite", () =
       `${scenario.id}: Routine Details dock layout diverged between new/edit`,
     );
     assert.equal(contracts.historyLogViewHasOneHeader, true, `${scenario.id}: History Log view header count regressed`);
+    assert.equal(contracts.historyRoutesHaveSingleHeaderOwner, true, `${scenario.id}: history route now has duplicate header owners`);
+    assert.equal(contracts.historySurfaceMatchesRouteFamily, true, `${scenario.id}: history route surface token drifted from its family contract`);
     assert.equal(
       contracts.exerciseInfoUsesPinnedFloatingHeader,
       true,
