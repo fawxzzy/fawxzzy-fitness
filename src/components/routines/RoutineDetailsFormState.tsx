@@ -1,4 +1,5 @@
 import { AccentSubtitleText } from "@/components/ui/text-roles";
+import { appTokens } from "@/components/ui/app/tokens";
 
 type RoutineDetailsSaveStateMode = "create" | "edit";
 
@@ -14,7 +15,7 @@ export function RoutineDetailsSaveState({
   mode: RoutineDetailsSaveStateMode;
 }) {
   if (error) {
-    return <AccentSubtitleText className="rounded-[1rem] border border-red-300/40 bg-red-50/10 px-3 py-2 text-red-200">{error}</AccentSubtitleText>;
+    return <AccentSubtitleText className={appTokens.routineEditorStatusError}>{error}</AccentSubtitleText>;
   }
 
   const statusText = isSaving
@@ -26,7 +27,7 @@ export function RoutineDetailsSaveState({
         : "Complete routine details to create a new routine";
 
   return (
-    <AccentSubtitleText className="text-[rgb(var(--text)/0.7)]">
+    <AccentSubtitleText className={appTokens.routineEditorStatusText}>
       {statusText}
     </AccentSubtitleText>
   );

@@ -195,13 +195,13 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           <span
             aria-hidden="true"
             className={cn(
-              "inline-flex min-h-7 min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 text-[11px] font-semibold leading-none",
+              appTokens.exercisePickerRowSelectPill,
               pickerRowMobileDensityClassNames.selectPill,
               isSelected
-                ? "border-[rgb(var(--accent-blue)/0.28)] bg-[rgb(var(--accent-blue)/0.12)] text-[rgb(var(--text)/0.98)]"
+                ? appTokens.exercisePickerRowSelectPillSelected
                 : hasStats
-                  ? "border-[rgb(var(--accent-mint)/0.28)] bg-[rgb(var(--accent-mint)/0.1)] text-[rgb(var(--text)/0.94)]"
-                  : "border-border/45 bg-[rgb(var(--bg)/0.32)] text-muted",
+                  ? appTokens.exercisePickerRowSelectPillActive
+                  : appTokens.exercisePickerRowSelectPillDefault,
             )}
           >
             {isSelected ? "Selected" : "Select"}
@@ -486,7 +486,7 @@ export function ExercisePicker({
   );
 
   return (
-    <div className="space-y-3">
+    <div className={appTokens.exercisePickerRoot}>
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
       <section className={appTokens.exercisePickerPanel}>
@@ -500,7 +500,7 @@ export function ExercisePicker({
           filterClassName="space-y-1"
         />
 
-        <section className="scroll-mb-24 space-y-1 px-1 md:px-0">
+        <section className={appTokens.exercisePickerLibrarySection}>
           <div className={appTokens.exercisePickerHeaderRow}>
             <p className={appTokens.exercisePickerSectionEyebrow}>Exercise Library</p>
             <p className={appTokens.exercisePickerSectionMeta}>{filteredExercises.length} shown</p>
@@ -508,7 +508,7 @@ export function ExercisePicker({
         </section>
 
         <PickerListViewport
-          className="[--picker-mobile-tray-max-h:var(--exercise-picker-mobile-tray-max-h)] border-0 bg-transparent p-0 md:border-white/10 md:bg-[rgb(var(--surface-rgb)/0.3)]"
+          className="[--picker-mobile-tray-max-h:var(--exercise-picker-mobile-tray-max-h)]"
           viewportClassName="pr-0 md:pr-1"
           showFade
           plainOnMobile
@@ -520,14 +520,14 @@ export function ExercisePicker({
       </section>
 
       {routineTargetConfig && selectedExercise ? (
-        <section className={cn(appTokens.exercisePickerGoalPanel, "scroll-mb-24 max-md:space-y-1.5 max-md:px-3 max-md:py-3")}>
+        <section className={cn(appTokens.exercisePickerGoalPanel, appTokens.exercisePickerGoalCompact)}>
           <p className={appTokens.exercisePickerSectionEyebrow}>Configure goal</p>
           {selectedStats && (hasLast || hasPR) ? (
             <div
               className={cn(
                 appTokens.exercisePickerStatsStack,
                 didApplyLast ? appTokens.exercisePickerStatsEmphasis : undefined,
-                "max-md:space-y-0.75 max-md:text-[11px]",
+                appTokens.exercisePickerStatsCompact,
               )}
             >
               {hasLast ? <p className={appTokens.exercisePickerStatsText}>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` \u00b7 ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
@@ -578,7 +578,7 @@ export function ExercisePicker({
             hideEmptySummary
           />
           {!goalValidation.isValid ? (
-            <p className={cn(appTokens.measurementValidation, "max-md:min-h-8 max-md:px-2.5 max-md:py-1.5 max-md:text-[11px] max-md:leading-4")}>
+            <p className={cn(appTokens.measurementValidation, appTokens.exercisePickerValidationCompact)}>
               {goalValidation.message}
             </p>
           ) : null}

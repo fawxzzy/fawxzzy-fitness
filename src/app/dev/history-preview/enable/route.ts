@@ -6,6 +6,8 @@ import {
   isHistoryPreviewEnabledInEnv,
 } from "@/lib/history-preview-fixtures";
 
+export const dynamic = "force-dynamic";
+
 export function GET(request: NextRequest) {
   if (!isHistoryPreviewEnabledInEnv() || !isHistoryPreviewAllowedHost(request.nextUrl.host)) {
     return new NextResponse(null, { status: 404 });
