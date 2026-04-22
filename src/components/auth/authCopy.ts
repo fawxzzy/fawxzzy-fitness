@@ -61,7 +61,7 @@ export const PASSWORD_LOGIN_UI_COPY: PasswordLoginUiCopy = {
   wordmark: "Fawxzzy Fitness",
   helper: {
     default: "Log in to continue your routine.",
-    remembered: "",
+    remembered: "Use this account, then enter your password to continue.",
     reauth: "Session refresh failed. Re-enter your password to continue.",
     emailValid: "",
     ready: "",

@@ -1,3 +1,4 @@
+import { AuthenticatedRememberedLoginSync } from "@/components/auth/AuthenticatedRememberedLoginSync";
 import { InitialExperienceGate } from "@/components/auth/InitialExperienceGate";
 import { requireUser } from "@/lib/auth";
 import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
@@ -9,6 +10,12 @@ export const dynamic = "force-dynamic";
 export default async function EntryPage() {
   const user = await requireUser();
   await ensureProfile(user.id);
+  const rememberedLoginDisplayName =
+    typeof user.user_metadata?.display_name === "string"
+      ? user.user_metadata.display_name
+      : typeof user.user_metadata?.username === "string"
+        ? user.user_metadata.username
+        : null;
 
   let hasExistingProgram = true;
 
@@ -25,10 +32,13 @@ export default async function EntryPage() {
   }
 
   return (
-    <InitialExperienceGate
-      userId={user.id}
-      hasExistingProgram={hasExistingProgram}
-      curatedEngineEnabled={isCuratedOnboardingEnabled()}
-    />
+    <>
+      <AuthenticatedRememberedLoginSync email={user.email ?? null} displayName={rememberedLoginDisplayName} />
+      <InitialExperienceGate
+        userId={user.id}
+        hasExistingProgram={hasExistingProgram}
+        curatedEngineEnabled={isCuratedOnboardingEnabled()}
+      />
+    </>
   );
 }
