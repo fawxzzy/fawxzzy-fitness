@@ -62,6 +62,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-22 - Remembered login state is UX memory only and cannot stand in for auth
+- Type: Guardrail
+- Summary: Local remembered-login state may remember account identity for the next login screen, but it must stay password-required until an authenticated surface confirms a real server session.
+- Suggested Playbook File: docs/GUARDRAILS/auth-remembered-login.md
+- Rationale: Prevents remembered-account shortcuts from navigating into protected routes without a live session, which creates login loops and a fake `ready` state after failed attempts.
+- Rule: local remembered-login state is UX memory only, never proof of authentication.
+- Failure Mode: a remembered-account shortcut navigates to a protected route without creating or verifying a real server session, causing login loops and fake `ready` state.
+- Evidence: src/app/login/LoginScreen.tsx, src/app/entry/page.tsx, src/lib/remembered-login.ts, src/components/auth/AuthenticatedRememberedLoginSync.tsx
+- Status: Proposed
+
 ## 2026-04-22 - Fitness deploy guards should anchor on immutable Vercel identity
 - Type: Guardrail
 - Summary: Fitness production deploy checks should require the canonical Vercel team and project IDs first, then treat the current team slug and project name as secondary rename-drift validation.
