@@ -5,6 +5,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
 import { AppButton } from "@/components/ui/AppButton";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -55,7 +56,7 @@ export function RoutineDayAddExerciseForm({
         }
       }}
       id="routine-day-add-exercise-form"
-      className="space-y-4"
+      className={appTokens.routineEditorSectionStack}
     >
       <input type="hidden" name="routineId" value={routineId} />
       <input type="hidden" name="routineDayId" value={routineDayId} />

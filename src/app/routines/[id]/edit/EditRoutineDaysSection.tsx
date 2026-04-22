@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppBadge } from "@/components/ui/app/AppBadge";
+import { appTokens } from "@/components/ui/app/tokens";
 import { RoutineEditorDayRow, RoutineEditorSection } from "@/components/routines/RoutineEditorShared";
 
 type EditRoutineDayItem = {
@@ -33,7 +34,7 @@ export function EditRoutineDaysSection({
         <div className="flex justify-end">
           <Link
             href={`/routines/${routineId}`}
-            className="text-sm font-medium text-muted underline-offset-4 hover:text-text hover:underline"
+            className={appTokens.routineEditorLinkAction}
           >
             View Routine
           </Link>
@@ -58,7 +59,7 @@ export function EditRoutineDaysSection({
           })}
         </ul>
       ) : (
-        <p className="px-1 text-sm text-muted">Set a cycle length above to generate days, then open a day here to edit its details.</p>
+        <p className={appTokens.routineEditorHelperText}>Set a cycle length above to generate days, then open a day here to edit its details.</p>
       )}
     </RoutineEditorSection>
   );

@@ -10,6 +10,7 @@ import {
 } from "@/components/routines/RoutineDetailsExitGuard";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
+import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { updateRoutineAction } from "@/app/routines/actions";
 import { buildRoutineDetailsSnapshot, type RoutineDetailsDraft, validateRoutineDetailsDraft } from "@/lib/routine-details-form";
@@ -118,7 +119,7 @@ export function EditRoutineAutosaveForm(props: Props) {
 
   return (
     <>
-      <form id="routine-update-form" className="space-y-4">
+      <form id="routine-update-form" className={appTokens.routineEditorSectionStack}>
         <input type="hidden" name="routineId" value={props.routineId} />
         <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
         <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />

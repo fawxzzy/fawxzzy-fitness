@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { requestPasswordReset } from "@/app/auth/actions";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthCard, AuthField, AuthFooter, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import { AuthActionRow, AuthCard, AuthField, AuthFooter, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -86,20 +86,22 @@ export default function ForgotPasswordFormClient({
       <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
 
       <AuthCard>
-        <form action={requestPasswordReset} className="space-y-5">
-          <div className="space-y-3">
+        <AuthForm action={requestPasswordReset}>
+          <AuthStack size="compact">
             <p className={appTokens.authHelperText}>Enter your email and we&apos;ll send a reset link.</p>
             <AuthField label="Email">
               <Input type="email" name="email" required autoComplete="email" placeholder="you@example.com" />
             </AuthField>
-          </div>
+          </AuthStack>
           {message}
           <SubmitButton cooldownRemaining={cooldownRemaining} />
           {copy.helper ? <p className={appTokens.authHelperTextMuted}>{copy.helper}</p> : null}
-        </form>
+        </AuthForm>
 
         <AuthFooter>
-          <BackButton href="/login" label="Back to log in" className="ml-auto" />
+          <AuthActionRow>
+            <BackButton href="/login" label="Back to log in" />
+          </AuthActionRow>
         </AuthFooter>
       </AuthCard>
     </AuthShell>

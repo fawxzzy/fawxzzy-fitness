@@ -1,4 +1,5 @@
 import { AppListboxField } from "@/components/ui/AppListboxField";
+import { appTokens } from "@/components/ui/app/tokens";
 import { controlClassName } from "@/components/ui/formClasses";
 import { getRoutineTimezoneLabel, ROUTINE_TIMEZONE_OPTIONS } from "@/lib/timezones";
 import { ROUTINE_START_WEEKDAYS } from "@/lib/routines";
@@ -39,7 +40,7 @@ export function RoutineEditorFormFields({
 }) {
   return (
     <>
-      <label className="block text-sm font-medium text-text">
+      <label className={appTokens.routineEditorFieldLabel}>
         Routine Name
         <input
           name="name"
@@ -54,7 +55,7 @@ export function RoutineEditorFormFields({
       </label>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm font-medium text-text">
+        <label className={appTokens.routineEditorFieldLabel}>
           Cycle Length (Days)
           <input
             type="number"

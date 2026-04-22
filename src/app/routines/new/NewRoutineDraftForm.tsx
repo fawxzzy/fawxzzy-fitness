@@ -7,6 +7,7 @@ import {
   RoutineDetailsBottomActionPublisher,
   RoutineEditorPageBody,
 } from "@/components/routines/RoutineEditorShared";
+import { appTokens } from "@/components/ui/app/tokens";
 import {
   RoutineDetailsBackSecondaryAction,
   RoutineDetailsDiscardConfirmationDock,
@@ -85,7 +86,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
 
   return (
     <>
-      <RoutineEditorPageBody>
+      <RoutineEditorPageBody className={appTokens.routineEditorSectionStack}>
         <RoutineEditorFormFields
           titleInput
           cycleLengthDefaultValue={draft.cycleLengthDays}

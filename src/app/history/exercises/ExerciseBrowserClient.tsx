@@ -127,7 +127,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const lastDate = formatShortDate(row.last_performed_at);
   const viewModel = buildHistoryExerciseCardViewModel(row);
   const primaryLine = row.lastSummary ? `${lastDate ? `${lastDate} | ` : ""}${viewModel.summary}` : viewModel.summary;
-  const metadata = viewModel.chips.map((chip) => chip.label).join(" • ");
+  const metadata = viewModel.chips.map((chip) => chip.label).join(" | ");
   const badgeText = row.prCount > 0 ? `${row.prCount} PR` : undefined;
 
   return (
@@ -146,7 +146,7 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
         variant="interactive"
         density="compact"
         semanticTone={viewModel.semanticTone}
-        surface="current-session"
+        surface="history-browser"
         showLeadingVisual
         onPress={() => onOpen(row.exerciseId)}
       >

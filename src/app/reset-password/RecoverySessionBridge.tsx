@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { establishRecoverySession } from "@/app/reset-password/actions";
-import { AuthMessage } from "@/components/auth/AuthShell";
+import { AuthMessage, AuthStack } from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
@@ -98,11 +98,11 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
   }
 
   return (
-    <div className="space-y-4">
+    <AuthStack>
       <AuthMessage tone="error">{error ?? RECOVERY_SESSION_ERROR}</AuthMessage>
       <Link href="/forgot-password" className={appTokens.authInlineAction}>
         Request new reset link
       </Link>
-    </div>
+    </AuthStack>
   );
 }

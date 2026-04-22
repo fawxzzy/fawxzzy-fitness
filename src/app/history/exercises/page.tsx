@@ -8,6 +8,8 @@ import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShar
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
+import { getHistoryPreviewExerciseRows } from "@/lib/history-preview-fixtures";
+import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +34,9 @@ export default async function HistoryExercisesPage() {
   const initialViewMode = resolveInitialViewMode();
 
   try {
-    const rows = await getExercisesWithStatsForUser();
+    const rows = isHistoryPreviewActiveForRequest()
+      ? getHistoryPreviewExerciseRows()
+      : await getExercisesWithStatsForUser();
 
     return (
       <MainTabScreen topNavMode="none" ambientPreset="history">
@@ -60,7 +64,7 @@ export default async function HistoryExercisesPage() {
       throw error;
     }
 
-    console.error("[history/exercises] failed to load exercise stats", error);
+    console.error("[history/exercises] failed to load or render exercise stats", error);
 
     return (
       <MainTabScreen topNavMode="none" ambientPreset="history">
