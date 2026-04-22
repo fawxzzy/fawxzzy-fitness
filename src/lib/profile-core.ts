@@ -9,7 +9,7 @@ const DEFAULT_DISTANCE_UNIT: NonNullable<ProfileRow["preferred_distance_unit"]> 
 type LegacyProfileShape = Pick<ProfileRow, "id" | "timezone" | "active_routine_id"> &
   Partial<Pick<ProfileRow, "preferred_weight_unit" | "preferred_distance_unit">>;
 
-type ProfileQueryError = { message?: string } | null | undefined;
+type ProfileQueryError = { code?: string; details?: string; message?: string } | null | undefined;
 
 type ProfileTableQuery = {
   select(columns: string): ProfileTableQuery;
@@ -55,10 +55,8 @@ function hydrateProfile(profile: LegacyProfileShape): ProfileRow {
   };
 }
 
-export async function ensureProfileWithClient(userId: string, supabase: ProfileSupabaseClient) {
-  const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Toronto";
+async function readProfile(userId: string, supabase: ProfileSupabaseClient) {
   let hasPreferenceColumns = true;
-
   const { data, error } = await supabase
     .from("profiles")
     .select(PROFILE_SELECT_WITH_PREFERENCES)
@@ -82,12 +80,44 @@ export async function ensureProfileWithClient(userId: string, supabase: ProfileS
     }
 
     if (legacyData) {
-      return hydrateProfile(legacyData as LegacyProfileShape);
+      return {
+        hasPreferenceColumns,
+        profile: hydrateProfile(legacyData as LegacyProfileShape),
+      };
     }
   }
 
   if (data) {
-    return hydrateProfile(data as LegacyProfileShape);
+    return {
+      hasPreferenceColumns,
+      profile: hydrateProfile(data as LegacyProfileShape),
+    };
+  }
+
+  return {
+    hasPreferenceColumns,
+    profile: null,
+  };
+}
+
+function isProfileAlreadyExistsError(error: ProfileQueryError) {
+  const message = error?.message?.toLowerCase() ?? "";
+  const details = error?.details?.toLowerCase() ?? "";
+
+  return (
+    error?.code === "23505"
+    || message.includes("duplicate key")
+    || message.includes("already exists")
+    || details.includes("already exists")
+  );
+}
+
+export async function ensureProfileWithClient(userId: string, supabase: ProfileSupabaseClient) {
+  const defaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Toronto";
+  const existingProfile = await readProfile(userId, supabase);
+
+  if (existingProfile.profile) {
+    return existingProfile.profile;
   }
 
   const insertPayload: {
@@ -99,9 +129,9 @@ export async function ensureProfileWithClient(userId: string, supabase: ProfileS
     id: userId,
     timezone: defaultTimeZone,
   };
-  const insertSelect = hasPreferenceColumns ? PROFILE_SELECT_WITH_PREFERENCES : PROFILE_SELECT_LEGACY;
+  const insertSelect = existingProfile.hasPreferenceColumns ? PROFILE_SELECT_WITH_PREFERENCES : PROFILE_SELECT_LEGACY;
 
-  if (hasPreferenceColumns) {
+  if (existingProfile.hasPreferenceColumns) {
     insertPayload.preferred_weight_unit = DEFAULT_WEIGHT_UNIT;
     insertPayload.preferred_distance_unit = DEFAULT_DISTANCE_UNIT;
   }
@@ -113,6 +143,14 @@ export async function ensureProfileWithClient(userId: string, supabase: ProfileS
     .single();
 
   if (insertError || !inserted) {
+    if (isProfileAlreadyExistsError(insertError)) {
+      const conflictedProfile = await readProfile(userId, supabase);
+
+      if (conflictedProfile.profile) {
+        return conflictedProfile.profile;
+      }
+    }
+
     throw new Error(insertError?.message ?? "Unable to create profile");
   }
 
