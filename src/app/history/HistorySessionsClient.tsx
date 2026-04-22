@@ -7,9 +7,11 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { appTokens } from "@/components/ui/app/tokens";
 import { MetricStrip, type MetricDatum } from "@/components/ui/MetricItem";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { WorkoutCardChipRow } from "@/components/workout/WorkoutCardChipRow";
+import { cn } from "@/lib/cn";
 import { formatDateShort, formatDurationShort } from "@/lib/formatting";
 import type { SessionSummary } from "./session-summary";
 import { buildHistorySessionCardViewModel } from "@/lib/workout-card-view-models";
@@ -41,7 +43,7 @@ function HistorySessionCard({
     <Link
       href={`/history/${session.id}?returnTab=sessions`}
       aria-current={selected ? "page" : undefined}
-      className="block rounded-[1.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring)]"
+      className={appTokens.historySessionLink}
     >
       <SessionSummaryCard
         title={session.routineTitle || "Unknown routine"}
@@ -51,7 +53,7 @@ function HistorySessionCard({
         badgeText={session.prCounts.total > 0 ? `${session.prCounts.total} PR` : undefined}
         tone={viewModel.tone}
         density={viewMode}
-        className={selected ? "ring-1 ring-[rgb(var(--accent)/0.2)]" : undefined}
+        className={cn(appTokens.historyExerciseCardShell, selected ? appTokens.historySessionSelected : undefined)}
       >
         {viewMode === "detailed" ? (
           <MetricStrip items={viewModel.detailedMetrics as MetricDatum[]} />
@@ -76,7 +78,7 @@ export function HistorySessionsClient({
   const nextViewModeLabel = viewMode === "compact" ? "Detailed" : "Compact";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className={appTokens.historyBrowserStack}>
       <HistoryTitleControlShell
         label="Session list"
         caption={`${sessions.length} shown`}
@@ -84,7 +86,7 @@ export function HistorySessionsClient({
         onViewModeChange={setViewMode}
       />
       {sessions.length > 0 ? (
-        <ul className="space-y-1.5">
+        <ul className={appTokens.historyBrowserList}>
           {sessions.map((session, index) => (
             <li key={session.id}>
               <HistorySessionCard
@@ -97,7 +99,7 @@ export function HistorySessionsClient({
           ))}
         </ul>
       ) : (
-        <SharedSectionShell recipe="historyDetail" listState={<p className="text-sm text-muted">No completed sessions yet.</p>} />
+        <SharedSectionShell recipe="historyDetail" listState={<p className={appTokens.historyBrowserEmptyState}>No completed sessions yet.</p>} />
       )}
       <PublishBottomActions>
         <BottomActionSplit
