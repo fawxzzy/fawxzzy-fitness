@@ -5,7 +5,7 @@ import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
 import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
-import { resolveWorkoutCardMediaRailWidth, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
+import { resolveWorkoutCardMediaRailWidth, resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 type StandardExerciseRowProps = {
   exercise: {
@@ -79,9 +79,26 @@ export function StandardExerciseRow({
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
-  const usesCompactDensity = density === "compact" || variant === "compact" || variant === "list" || variant === "interactive" || variant === "reorder";
+  const resolvedDensity = density ?? (variant === "standard" || variant === "expanded" || variant === "summary" ? "detailed" : "compact");
+  const usesCompactDensity = resolvedDensity === "compact";
+  const surfacePolicy = resolveWorkoutCardSurfacePolicy(surface, resolvedDensity);
   const mediaRailWidth = resolveWorkoutCardMediaRailWidth(surface);
-  const resolvedImageSizes = imageSizes ?? `${mediaRailWidth}px`;
+  const allowsSurfaceMedia = surfacePolicy.showMedia && mediaRailWidth > 0;
+  const resolvedImageSizes = imageSizes ?? `${Math.max(mediaRailWidth, 1)}px`;
+  const resolvedLeadingVisual = allowsSurfaceMedia
+    ? (
+        leadingVisual ?? (showLeadingVisual ? (
+          <ExerciseThumb
+            exercise={exercise}
+            detailed={!usesCompactDensity}
+            layout="rail"
+            railWidth={mediaRailWidth}
+            sizes={resolvedImageSizes}
+            intent="row-card"
+          />
+        ) : undefined)
+      )
+    : undefined;
 
   return (
     <ExerciseCard
@@ -89,20 +106,11 @@ export function StandardExerciseRow({
       subtitle={getExerciseGoalSummaryText(resolvedSummary)}
       variant={variant}
       state={resolvedState}
-      density={density}
+      density={resolvedDensity}
       semanticTone={semanticTone}
-      leadingVisual={leadingVisual ?? (showLeadingVisual ? (
-        <ExerciseThumb
-          exercise={exercise}
-          detailed={!usesCompactDensity}
-          layout="rail"
-          railWidth={mediaRailWidth}
-          sizes={resolvedImageSizes}
-          intent="row-card"
-        />
-      ) : undefined)}
+      leadingVisual={resolvedLeadingVisual}
       mediaLayout="rail"
-      mediaRailWidth={showLeadingVisual || leadingVisual ? mediaRailWidth : undefined}
+      mediaRailWidth={resolvedLeadingVisual ? mediaRailWidth : undefined}
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}
