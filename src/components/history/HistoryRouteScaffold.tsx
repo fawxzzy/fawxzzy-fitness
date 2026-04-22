@@ -5,7 +5,6 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShared";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 type HistoryOverviewRouteScaffoldProps = {
@@ -38,7 +37,7 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
     ? (
         <ContentRail className={cn("py-1", props.floatingHeaderRailClassName)}>
           <HistoryPageHeader title={props.title} subtitle={props.subtitle}>
-            <div className={appTokens.historyExerciseHeaderStack}>
+            <div className="space-y-3">
               <HistoryTabs
                 value={props.activeTab}
                 sessionsHref="/history"

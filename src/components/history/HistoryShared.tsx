@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppBadge } from "@/components/ui/app/AppBadge";
+import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -96,6 +97,21 @@ export function HistoryControlPanel({ children, className }: { children: ReactNo
     >
       {children}
     </SharedSectionShell>
+  );
+}
+
+export function HistoryRouteErrorShell({
+  title,
+  caption,
+}: {
+  title: string;
+  caption: string;
+}) {
+  return (
+    <AppPanel className="space-y-2 p-4">
+      <p className="text-base font-semibold text-[rgb(var(--text)/0.98)]">{title}</p>
+      <p className="text-sm leading-6 text-[rgb(var(--text)/0.72)]">{caption}</p>
+    </AppPanel>
   );
 }
 
