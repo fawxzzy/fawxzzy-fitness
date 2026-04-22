@@ -35,8 +35,8 @@ type SupabaseLike = { from: (table: string) => any };
 type SessionExerciseSummaryRow = Pick<SessionExerciseRow, "id" | "session_id" | "exercise_id" | "is_skipped">;
 type SessionSetSummaryRow = {
   session_exercise_id: string;
-  weight: number | null;
-  reps: number | null;
+  weight: number;
+  reps: number;
   weight_unit: "kg" | "lb" | "lbs" | null;
 };
 
@@ -157,8 +157,8 @@ function normalizeSessionSetRow(row: unknown): SessionSetSummaryRow | null {
 
   return {
     session_exercise_id: sessionExerciseId,
-    weight: asNullableNumber(record.weight),
-    reps: asNullableNumber(record.reps),
+    weight: asNullableNumber(record.weight) ?? 0,
+    reps: asNullableNumber(record.reps) ?? 0,
     weight_unit: weightUnit,
   };
 }
