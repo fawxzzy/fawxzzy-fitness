@@ -164,8 +164,8 @@ export function TodayDayPicker({
   const completedDayIndexSet = useMemo(() => new Set(completedDayIndexes ?? []), [completedDayIndexes]);
   const hasSelectedDayRows = Boolean(selectedDay && selectedDay.exercises.length > 0);
   const selectedDaySummaryToneClassName = daySummaryTone === "blocking"
-    ? "border-[rgb(var(--accent-red)/0.34)] bg-[rgb(var(--accent-red)/0.12)] text-[rgb(var(--button-destructive-text))]"
-    : "border-[rgb(var(--accent-yellow-on)/0.28)] bg-[rgb(var(--accent-yellow-off)/0.12)] text-[rgb(var(--accent-yellow-on))]";
+    ? appTokens.todaySummaryToneBlocking
+    : appTokens.todaySummaryToneCaution;
   const selectedDayStateCard = useMemo(() => {
     if (!selectedDay || mode.dayPickerOpen) {
       return null;
@@ -281,7 +281,7 @@ export function TodayDayPicker({
         {!mode.noRoutine && selectedDay ? (
           <ScreenScaffold recipe="todayOverview" className="w-full">
             {mode.contentShellVisible ? (
-              <div className="flex flex-col gap-[0.625rem]">
+              <div className={appTokens.todayOverviewStack}>
                 {mode.dayPickerOpen ? (
                   <DayList>
                     {days.map((day) => {
@@ -323,7 +323,7 @@ export function TodayDayPicker({
                 ) : null}
 
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
-                  <ul className="flex flex-col gap-[0.375rem]">
+                  <ul className={appTokens.todayExerciseList}>
                     {selectedDay.exercises.map((exercise) => {
                       const detailedMetrics = buildPlannedExerciseDetailMetrics({
                         measurementType: exercise.measurement_type,

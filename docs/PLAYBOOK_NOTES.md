@@ -62,11 +62,29 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-22 - Remembered login state is UX memory only and cannot stand in for auth
+- Type: Guardrail
+- Summary: Local remembered-login state may remember account identity for the next login screen, but it must stay password-required until an authenticated surface confirms a real server session.
+- Suggested Playbook File: docs/GUARDRAILS/auth-remembered-login.md
+- Rationale: Prevents remembered-account shortcuts from navigating into protected routes without a live session, which creates login loops and a fake `ready` state after failed attempts.
+- Rule: local remembered-login state is UX memory only, never proof of authentication.
+- Failure Mode: a remembered-account shortcut navigates to a protected route without creating or verifying a real server session, causing login loops and fake `ready` state.
+- Evidence: src/app/login/LoginScreen.tsx, src/app/entry/page.tsx, src/lib/remembered-login.ts, src/components/auth/AuthenticatedRememberedLoginSync.tsx
+- Status: Proposed
+
 ## 2026-04-22 - Fitness deploy guards should anchor on immutable Vercel identity
 - Type: Guardrail
 - Summary: Fitness production deploy checks should require the canonical Vercel team and project IDs first, then treat the current team slug and project name as secondary rename-drift validation.
 - Suggested Playbook File: docs/GUARDRAILS/deploy-identity.md
 - Rationale: Prevents false wrong-owner deploy blocks when Vercel renames change visible slugs or deployment URLs while the underlying linked project is still correct.
+- Evidence: .vercel/project.json, docs/PLAYBOOK_NOTES.md
+- Status: Proposed
+
+## 2026-04-22 - Vercel reconnect recovery should prove the Git-triggered path before more CLI production retries
+- Type: Guardrail
+- Summary: When Vercel team and project identity are fixed but CLI-created production deploys still fail before build, trigger a fresh branch push first and require a new Git-created preview deployment before attempting another production ship or touching app code.
+- Suggested Playbook File: docs/GUARDRAILS/deploy-identity.md
+- Rationale: Prevents stale CLI-created deploy attempts on an old SHA from masquerading as an app failure after connector repair, and exposes the distinct failure mode where Git integration does not create any deployment object for the new branch head at all.
 - Evidence: .vercel/project.json, docs/PLAYBOOK_NOTES.md
 - Status: Proposed
 
@@ -76,6 +94,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
 - Rationale: Prevents the history family from drifting into mixed shell ownership and mismatched mobile header behavior, and keeps preview verification deterministic when live data is unavailable.
 - Evidence: src/app/dev/history-preview/disable/route.ts, src/app/dev/history-preview/enable/route.ts, src/app/dev/history-preview/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx, src/app/history/exercises/page.tsx, src/app/history/page.tsx, src/components/history/HistoryRouteScaffold.tsx, src/components/history/HistoryShared.tsx, src/components/ui/app/designSystem.ts, src/features/mobile-regression/contracts.ts, src/features/mobile-regression/fixtures.ts, src/lib/history-preview-fixtures.ts, src/lib/history-preview.server.ts, src/lib/history-preview.test.ts, src/lib/history-sessions-page-loader.test.ts, src/lib/history-sessions-page-loader.ts, tests/mobile-regression/contracts.test.ts, tests/mobile-regression/fixtures.test.ts, package.json
+- Status: Proposed
+
+## 2026-04-22 - Today overview routes should publish list rhythm and feedback cards through the shared token bridge
+- Type: Pattern
+- Summary: Today overview variants should expose day-list spacing, overview stack rhythm, empty-state cards, global error cards, and summary-state tones through the shared token bridge instead of keeping those classes route-local.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents Today picker, resume, and empty/error states from drifting into separate spacing and feedback chrome even while they already share the same header and bottom-dock family.
+- Evidence: src/app/today/page.tsx, src/app/today/TodayDayPicker.tsx, src/app/today/TodayExerciseRows.tsx, src/components/day-list/DayList.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
 - Status: Proposed
 
 ## 2026-04-17 - Server-only auth confirm routes cannot consume fragment recovery payloads
@@ -451,7 +477,7 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
 - Rationale: Prevents adjacent detail screens from drifting into slightly different card shells and metadata treatments even when they already share the same detail header and section hierarchy.
 - Evidence: src/components/DetailSurface.tsx, src/components/ExerciseInfoSheet.tsx, src/components/routines/day-detail/DayDetailStateCard.tsx, src/components/ui/app/designSystem.ts, src/components/ui/app/tokens.ts
-- Status: Proposed
+- Status: Applied
 ## 2026-04-21 - Exercise chooser families should publish picker, filter, and goal chrome through shared tokens
 - Type: Pattern
 - Summary: Exercise-addition flows should keep one chooser language by exposing picker panels, filter toggles, helper copy, and goal configuration chrome through the shared token bridge instead of leaving those surfaces as route-local literals inside picker components.

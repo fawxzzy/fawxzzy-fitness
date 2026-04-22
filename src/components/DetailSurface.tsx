@@ -55,12 +55,12 @@ export function DetailSection({
 }) {
   return (
     <AppPanel className={cn(appTokens.detailSection, className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
+      <div className={appTokens.detailSectionHeader}>
+        <div className={appTokens.detailSectionHeaderContent}>
           <TitleText as="h3" className={appTokens.detailSectionTitle}>{title}</TitleText>
-          {description ? <SubtitleText className="text-sm">{description}</SubtitleText> : null}
+          {description ? <SubtitleText className={appTokens.detailSectionDescription}>{description}</SubtitleText> : null}
         </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
+        {action ? <div className={appTokens.detailSectionAction}>{action}</div> : null}
       </div>
       {children}
     </AppPanel>

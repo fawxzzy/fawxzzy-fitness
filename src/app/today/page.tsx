@@ -14,6 +14,7 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { appTokens } from "@/components/ui/app/tokens";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -467,7 +468,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
       >
           <TodayRouteRevalidator />
           {todayPayload.routine && !fetchFailed ? (
-          <ContentRail className="flex flex-col gap-[0.75rem]">
+          <ContentRail className={appTokens.todayRouteStack}>
               <OfflineSyncBadge userId={user.id} />
               {recoveryShadowPlacement ? (
                 <TodayRecoveryShadowPlacement
@@ -481,7 +482,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
               ) : null}
               {todayPayload.inProgressSessionId ? (
               <ScreenScaffold recipe="todayOverview" className="w-full">
-                <div className="flex flex-col gap-[0.625rem]">
+                <div className={appTokens.todayOverviewStack}>
                     <TodayExerciseRows
                       exercises={todayPayload.exercises}
                       emptyMessage={todayPayload.routine.state === "rest" ? "Recovery and mobility only." : "No runnable exercises planned for this day."}
@@ -575,7 +576,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
 
           <TodayOfflineBridge snapshot={todaySnapshot} />
 
-          {todayGlobalError ? <p className="rounded-[var(--radius-md)] border border-[rgb(var(--danger-rgb)/0.18)] bg-[rgb(var(--danger-rgb)/0.08)] px-3 py-2 text-sm text-[rgb(var(--danger-rgb))]">{todayGlobalError}</p> : null}
+          {todayGlobalError ? <p className={appTokens.todayGlobalErrorCard}>{todayGlobalError}</p> : null}
       </ScrollScreenWithBottomActions>
     </MainTabScreen>
   );

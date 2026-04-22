@@ -97,12 +97,12 @@ function describeOverview(stats: ExerciseInfoSheetStats | null) {
 
 function ExerciseInfoLoadingMetrics() {
   return (
-    <div className="space-y-2 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-        <div className="h-20 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+    <div className={appTokens.detailLoadingMetrics} aria-live="polite" aria-busy="true" aria-label="Loading stats">
+      <div className={appTokens.detailLoadingMetricsGrid}>
+        <div className={appTokens.detailLoadingMetricCard} />
+        <div className={appTokens.detailLoadingMetricCard} />
+        <div className={appTokens.detailLoadingMetricCard} />
+        <div className={appTokens.detailLoadingMetricCard} />
       </div>
     </div>
   );
@@ -110,10 +110,10 @@ function ExerciseInfoLoadingMetrics() {
 
 function ExerciseInfoLoadingRows() {
   return (
-    <div className="space-y-2" aria-hidden="true">
-      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
-      <div className="h-14 animate-pulse rounded-[1rem] bg-surface-2-soft" />
+    <div className={appTokens.detailLoadingRows} aria-hidden="true">
+      <div className={appTokens.detailLoadingRow} />
+      <div className={appTokens.detailLoadingRow} />
+      <div className={appTokens.detailLoadingRow} />
     </div>
   );
 }
@@ -128,7 +128,7 @@ function ExerciseInfoOverviewMedia({
   return (
     <div className={appTokens.detailMediaCard}>
       {exercise.how_to_short ? (
-        <p className={cn(appTokens.detailBodyText, "[text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
+        <p className={cn(appTokens.detailBodyText, "[text-wrap:pretty]")}>
           {exercise.how_to_short}
         </p>
       ) : (
@@ -156,23 +156,23 @@ function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStat
   }
 
   return (
-    <div className="space-y-2">
+    <div className={appTokens.detailHistoryList}>
       {stats.progress.performances.map((entry) => (
         <div
           key={`${entry.label}-${entry.value}`}
           className={appTokens.detailHistoryRow}
         >
-          <div className="flex min-w-0 flex-wrap items-start gap-2">
-            <EyebrowText as="p" className="min-w-0 flex-1 text-[rgb(var(--text-muted)/0.88)]">
+          <div className={appTokens.detailHistoryMeta}>
+            <EyebrowText as="p" className={appTokens.detailHistoryLabel}>
               {entry.label}
             </EyebrowText>
             {entry.context ? (
-              <p className="min-w-0 max-w-full text-[11px] leading-[1.35] text-[rgb(var(--text-secondary)/0.72)] [text-wrap:pretty]">
+              <p className={appTokens.detailHistoryContext}>
                 {entry.context}
               </p>
             ) : null}
           </div>
-          <p className={cn(appTokens.detailBodyText, "mt-1 min-w-0 text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
+          <p className={appTokens.detailHistoryValue}>
             {entry.value}
           </p>
         </div>
@@ -287,7 +287,7 @@ export function ExerciseInfoSheet({
                 <div
                   id={statsPanelId}
                   data-testid="exercise-info-stats-box"
-                  className="min-h-[140px] space-y-3 text-xs text-muted"
+                  className={appTokens.detailStatsPanel}
                 >
                   {statsLoading ? <ExerciseInfoLoadingMetrics /> : null}
                   {!statsLoading && stats ? <MetricGrid items={stats.quickMetrics} className="gap-2.5" /> : null}

@@ -32,7 +32,7 @@ export function SignupForm({
     writeRememberedLoginState({
       email,
       displayName: username || undefined,
-      sessionState: "ready",
+      sessionState: "reauth-required",
     });
   }
 

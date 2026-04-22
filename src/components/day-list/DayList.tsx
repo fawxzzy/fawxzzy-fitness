@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 export const REST_DAY_CARD_COPY = "Recover, move lightly, and come back ready for the next workout.";
@@ -83,7 +84,7 @@ export function formatLoggedSetCount(loggedSetCount?: number | null): string | u
 }
 
 export function DayList({ children }: { children: ReactNode }) {
-  return <ul className="space-y-1.5 sm:space-y-2">{children}</ul>;
+  return <ul className={appTokens.dayList}>{children}</ul>;
 }
 
 function DayListItem({ children }: { children: ReactNode }) {
