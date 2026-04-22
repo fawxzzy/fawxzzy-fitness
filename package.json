@@ -49,6 +49,7 @@
     "verify:mobile-regression": "npm run typecheck:mobile-regression-harness && npm run test:mobile-regression-fixtures",
     "verify": "node scripts/playbook-runtime.mjs verify",
     "verify:strict": "npm run lint && npm run verify:mobile-regression && npm run build",
+    "test:auth-ui-contracts": "node --import ./scripts/register-test-aliases.mjs --test src/app/login/loginScreenState.test.ts src/app/login/LoginScreen.contract.test.ts src/components/ui/app/designSystem.contract.test.ts",
     "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs",
     "test:playbook-adoption": "node --test tests/playbook-adoption-evidence.test.mjs",
     "test:playbook-verification": "node --test tests/playbook-verification-report.test.mjs",
@@ -60,7 +61,7 @@
     "evaluate:fitness-pilot-readiness": "node scripts/evaluate-fitness-pilot-readiness.mjs",
     "record:fitness-pilot-evidence": "node scripts/record-fitness-pilot-evidence.mjs",
     "test:session-set-count": "node --test src/components/session/setCountSync.test.ts",
-    "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-disclosure.test.ts src/lib/workout-card-surface-policy.test.ts src/lib/workout-card-view-models.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts"
+    "test:mobile-regression-fixtures": "node --import ./scripts/register-test-aliases.mjs --test src/lib/exercise-disclosure.test.ts src/lib/history-preview.test.ts src/lib/history-sessions-page-loader.test.ts src/lib/workout-card-surface-policy.test.ts src/lib/workout-card-view-models.test.ts tests/mobile-regression/fixtures.test.ts tests/mobile-regression/inventory.test.ts tests/mobile-regression/build-mobile-regression-boards.test.ts tests/mobile-regression/contracts.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

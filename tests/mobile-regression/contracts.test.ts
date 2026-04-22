@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { mobileRegressionScenarios } from "../../src/features/mobile-regression/fixtures.ts";
 import { validateMobileScenarioContracts } from "../../src/features/mobile-regression/contracts.ts";
@@ -9,6 +12,8 @@ function requireScenario(id: string) {
   assert.ok(scenario, `Missing fixture: ${id}`);
   return scenario;
 }
+
+const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 test("dock and safe-area regressions are detected", () => {
   const baseline = requireScenario("today-default");
@@ -167,4 +172,35 @@ test("mobile chrome/day editing contract regressions are detected", () => {
     currentSessionSaveSetHeaderPinned: false,
   });
   assert.equal(sessionContracts.currentSessionSaveSetUsesPinnedFloatingHeader, false);
+});
+
+test("history family contracts catch floating-header, header-owner, and surface-token drift", () => {
+  const sessionsBaseline = requireScenario("history-sessions-compact");
+  const sessionsContracts = validateMobileScenarioContracts({
+    ...sessionsBaseline,
+    usesFloatingHeader: false,
+  });
+  assert.equal(sessionsContracts.historyRoutesUseFloatingHeader, false);
+
+  const detailBaseline = requireScenario("history-detail-broken-images");
+  const detailContracts = validateMobileScenarioContracts({
+    ...detailBaseline,
+    historyHeaderOwnerCount: 2,
+  });
+  assert.equal(detailContracts.historyRoutesHaveSingleHeaderOwner, false);
+
+  const exercisesBaseline = requireScenario("history-exercises-compact");
+  const exercisesContracts = validateMobileScenarioContracts({
+    ...exercisesBaseline,
+    historySurfaceToken: "history-detail",
+  });
+  assert.equal(exercisesContracts.historySurfaceMatchesRouteFamily, false);
+});
+
+test("history browser source stays on the history-browser surface contract", () => {
+  const sourcePath = path.resolve(THIS_DIR, "../../src/app/history/exercises/ExerciseBrowserClient.tsx");
+  const source = readFileSync(sourcePath, "utf8");
+
+  assert.match(source, /surface="history-browser"/);
+  assert.doesNotMatch(source, /surface="current-session"/);
 });

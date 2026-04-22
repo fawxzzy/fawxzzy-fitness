@@ -106,6 +106,8 @@ export type ExerciseInfoLayoutFixture = {
   topSafePaddingRelaxed: boolean;
 };
 
+export type HistorySurfaceToken = "history-browser" | "history-detail";
+
 export type MobileFixtureScenario = {
   id: string;
   route: MobileRouteKey;
@@ -139,6 +141,8 @@ export type MobileFixtureScenario = {
   };
   bottomDockLayout?: "split" | "stacked";
   historyLogHeaderCount?: number;
+  historyHeaderOwnerCount?: number;
+  historySurfaceToken?: HistorySurfaceToken;
   exerciseInfoHeaderPinned?: boolean;
   currentSessionSaveSetHeaderPinned?: boolean;
   captureScrollPosition?: "top" | "bottom";
@@ -328,6 +332,8 @@ function buildSimpleFixture(args: {
   captureScrollPosition?: MobileFixtureScenario["captureScrollPosition"];
   detailedMode?: DetailedModeFixture;
   exerciseInfoLayout?: ExerciseInfoLayoutFixture;
+  historyHeaderOwnerCount?: number;
+  historySurfaceToken?: HistorySurfaceToken;
 }) {
   return {
     id: args.id,
@@ -346,6 +352,8 @@ function buildSimpleFixture(args: {
     sectionChromeOwnedByShell: true,
     detailedMode: args.detailedMode,
     exerciseInfoLayout: args.exerciseInfoLayout,
+    historyHeaderOwnerCount: args.historyHeaderOwnerCount,
+    historySurfaceToken: args.historySurfaceToken,
   } satisfies MobileFixtureScenario;
 }
 
@@ -625,6 +633,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixture: "compact",
     fixtureState: "history-sessions-compact-v1",
     cardStates: [{ cardId: "history-session-latest", state: "selected", badgeText: "Latest" }],
+    historyHeaderOwnerCount: 1,
   }),
   buildSimpleFixture({
     id: "history-sessions-detailed",
@@ -636,6 +645,7 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "history-sessions-detailed-v1",
     cardStates: [{ cardId: "history-session-detailed", state: "selected", badgeText: "Latest" }],
     detailedMode: { extraMetricCount: 4, analyticsSlotsReady: true },
+    historyHeaderOwnerCount: 1,
   }),
   buildSimpleFixture({
     id: "history-exercises-zero-results",
@@ -646,6 +656,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixture: "zero-results",
     fixtureState: "history-exercises-zero-results-v1",
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 168 },
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-browser",
   }),
   buildSimpleFixture({
     id: "history-exercises-compact",
@@ -657,6 +669,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "history-exercises-compact-v1",
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 188 },
     cardStates: [{ cardId: "history-exercise-compact", state: "default" }],
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-browser",
   }),
   buildSimpleFixture({
     id: "history-exercises-detailed",
@@ -669,6 +683,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 188 },
     cardStates: [{ cardId: "history-exercise-latest", state: "default" }],
     detailedMode: { extraMetricCount: 3, analyticsSlotsReady: true },
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-browser",
   }),
   buildSimpleFixture({
     id: "history-exercises-media-fallback",
@@ -680,6 +696,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "history-exercises-media-fallback-v1",
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 188 },
     cardStates: [{ cardId: "history-exercise-media-fallback", state: "default" }],
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-browser",
   }),
   buildSimpleFixture({
     id: "history-exercises-cardio-taxonomy",
@@ -691,6 +709,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "history-exercises-cardio-taxonomy-v1",
     libraryCardTextLayout: { titleLineCount: 2, metadataColumnWidth: 188 },
     cardStates: [{ cardId: "history-exercise-cardio", state: "default" }],
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-browser",
   }),
   buildSimpleFixture({
     id: "history-detail-broken-images",
@@ -702,6 +722,8 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     fixtureState: "history-detail-broken-images-v1",
     statusChips: ["logged"],
     cardStates: [{ cardId: "history-detail-primary", state: "completed", badgeText: "Logged" }],
+    historyHeaderOwnerCount: 1,
+    historySurfaceToken: "history-detail",
   }),
   buildSimpleFixture({
     id: "settings-default",
