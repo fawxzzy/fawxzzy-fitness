@@ -217,18 +217,20 @@ export function ExerciseCard({
   const bodyContent = (
     <div
       className={cn(
-        "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-hidden",
+        "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-visible",
         styles.shell,
         hasBadgeText ? (resolvedDensity === "compact" ? "pt-[1.45rem]" : "pt-[1.65rem]") : undefined,
         usesRailMedia ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
         bodyClassName,
       )}
       style={bodyGridStyle}
+      data-exercise-card-density={resolvedDensity}
+      data-exercise-card-media={usesRailMedia ? "rail" : usesInlineMedia ? "inline" : "none"}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute bottom-0 left-0 top-0 w-[4px]",
+          "pointer-events-none absolute bottom-px left-px top-px w-[3px] rounded-r-full",
           cardAccentRailClassNames[resolvedSemanticTone],
         )}
       />
@@ -322,14 +324,14 @@ export function ExerciseCard({
             rightRailClassName,
           )}
         >
-            <div
-              className={cn(
-                EXERCISE_CARD_TRAILING_ICON_CLASS_NAME,
-                trailingStackClassName,
-              )}
-            >
-              {rightIcon}
-            </div>
+          <div
+            className={cn(
+              EXERCISE_CARD_TRAILING_ICON_CLASS_NAME,
+              trailingStackClassName,
+            )}
+          >
+            {rightIcon}
+          </div>
         </div>
       ) : null}
     </div>
@@ -388,4 +390,3 @@ export function ExerciseCard({
     </Glass>
   );
 }
-
