@@ -195,3 +195,41 @@ test("ensureProfile creates a profile in legacy mode without preference columns 
   assert.equal(profile.preferred_weight_unit, "lbs");
   assert.equal(profile.preferred_distance_unit, "mi");
 });
+
+test("ensureProfile recovers from a concurrent create race by reloading the inserted row", async () => {
+  const fake = createFakeSupabase({
+    maybeSingle: [
+      { data: null, error: null },
+      {
+        data: {
+          id: "user-4",
+          timezone: "America/New_York",
+          active_routine_id: null,
+          preferred_weight_unit: "lbs",
+          preferred_distance_unit: "mi",
+        },
+        error: null,
+      },
+    ],
+    single: [
+      {
+        data: null,
+        error: {
+          code: "23505",
+          message: "duplicate key value violates unique constraint \"profiles_pkey\"",
+        },
+      },
+    ],
+  });
+
+  const profile = await ensureProfileWithClient("user-4", fake.client as never);
+
+  assert.equal(profile.id, "user-4");
+  assert.equal(profile.timezone, "America/New_York");
+  assert.equal(fake.tracker.inserts.length, 1);
+  assert.deepEqual(fake.tracker.selects, [
+    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
+    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
+    "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
+  ]);
+});
