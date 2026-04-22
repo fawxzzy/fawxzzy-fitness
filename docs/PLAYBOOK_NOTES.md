@@ -62,6 +62,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-22 - History route families should share one scaffold and QA preview seam
+- Type: Pattern
+- Summary: History sessions, exercises, and detail routes should publish one shared route-family scaffold for header ownership, surface tokens, and floating-header behavior, while localhost preview QA flows through one server-gated fixture seam instead of route-local data hacks.
+- Suggested Playbook File: docs/PATTERNS/workout-detail-shell.md
+- Rationale: Prevents the history family from drifting into mixed shell ownership and mismatched mobile header behavior, and keeps preview verification deterministic when live data is unavailable.
+- Evidence: src/app/dev/history-preview/disable/route.ts, src/app/dev/history-preview/enable/route.ts, src/app/dev/history-preview/page.tsx, src/app/history/[sessionId]/page.tsx, src/app/history/exercises/ExerciseBrowserClient.tsx, src/app/history/exercises/page.tsx, src/app/history/page.tsx, src/components/history/HistoryRouteScaffold.tsx, src/components/history/HistoryShared.tsx, src/components/ui/app/designSystem.ts, src/features/mobile-regression/contracts.ts, src/features/mobile-regression/fixtures.ts, src/lib/history-preview-fixtures.ts, src/lib/history-preview.server.ts, src/lib/history-preview.test.ts, src/lib/history-sessions-page-loader.test.ts, src/lib/history-sessions-page-loader.ts, tests/mobile-regression/contracts.test.ts, tests/mobile-regression/fixtures.test.ts, package.json
+- Status: Proposed
+
 ## 2026-04-17 - Server-only auth confirm routes cannot consume fragment recovery payloads
 - Type: Guardrail
 - Summary: Password recovery links that deliver auth state in the browser fragment must terminate in a client-capable handoff step before any server-only confirm or reset flow expects a session.
