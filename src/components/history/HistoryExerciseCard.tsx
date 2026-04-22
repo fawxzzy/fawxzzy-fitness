@@ -3,6 +3,7 @@ import { EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME } from "@/components/ExerciseCar
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { type CardSemanticTone } from "@/components/cardSemanticTones";
 import { MetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 export function HistoryExerciseCard({
@@ -35,7 +36,7 @@ export function HistoryExerciseCard({
       summaryLabel={summaryLabel}
       badgeText={badgeText}
       onPress={onPress}
-      className="shadow-none"
+      className={appTokens.historyExerciseCardShell}
       variant={density === "compact" ? "interactive" : "standard"}
       density={density}
       semanticTone={tone}
@@ -44,7 +45,7 @@ export function HistoryExerciseCard({
       titleClassName="[text-wrap:pretty]"
       subtitleClassName="[text-wrap:pretty]"
     >
-      <div className={cn(density === "compact" ? "space-y-2" : "space-y-2.5")}>
+      <div className={cn(density === "compact" ? appTokens.historyExerciseCardCompactStack : appTokens.historyExerciseCardDetailedStack)}>
         {metadata ? (
           <p className={EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME}>
             {metadata}
