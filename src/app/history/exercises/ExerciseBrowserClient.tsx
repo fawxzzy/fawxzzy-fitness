@@ -3,14 +3,13 @@
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME } from "@/components/ExerciseCard";
 import { ExerciseTagFilterControl, type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { HistoryExerciseCard } from "@/components/history/HistoryExerciseCard";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
 import { HistoryTitleControlShell } from "@/components/history/HistoryShared";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import type { ExerciseBrowserRow } from "@/lib/exercises-browser";
 import { buildHistoryExerciseCardViewModel } from "@/lib/workout-card-view-models";
@@ -80,33 +79,33 @@ function HistoryExerciseFilters({
   groups: ExerciseTagGroup[];
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className={appTokens.historyExerciseFilterStack}>
       <ExerciseTagFilterControl
         selectedTags={selectedTags}
         onChange={onTagsChange}
         groups={groups}
         countDisplayMode="never"
-        headerLabel={`${countLabel} • Filters`}
+        headerLabel={`${countLabel} \u2022 Filters`}
         variant="compact"
-        className="space-y-1.5"
-        buttonClassName="min-h-9 rounded-[1rem] px-3.5 py-2 text-[13px] font-semibold"
-        panelClassName="space-y-1.5 rounded-[1rem] px-2.5 py-2"
+        className={appTokens.historyExerciseFilterStack}
+        buttonClassName={appTokens.historyExerciseFilterButton}
+        panelClassName={appTokens.historyExerciseFilterPanel}
       />
       <div className="relative">
         <Input
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Search exercises"
-          className="h-10 rounded-[1rem] pr-9 text-[14px]"
+          className={appTokens.historyExerciseSearchInput}
         />
         {query ? (
           <button
             type="button"
             onClick={() => onQueryChange("")}
             aria-label="Clear exercise search"
-            className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25"
+            className={appTokens.exercisePickerSearchClearButton}
           >
-            ×
+            {"\u00D7"}
           </button>
         ) : null}
       </div>
@@ -131,44 +130,17 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const badgeText = row.prCount > 0 ? `${row.prCount} PR` : undefined;
 
   return (
-    viewMode === "compact" ? (
-      <StandardExerciseRow
-        exercise={{
-          name: displayName,
-          slug: row.slug,
-          image_path: row.image_path,
-          image_icon_path: row.image_icon_path,
-          image_howto_path: row.image_howto_path,
-        }}
-        summary={primaryLine}
-        summaryLabel={viewModel.summaryLabel}
-        badgeText={badgeText}
-        variant="interactive"
-        density="compact"
-        semanticTone={viewModel.semanticTone}
-        surface="history-browser"
-        showLeadingVisual
-        onPress={() => onOpen(row.exerciseId)}
-      >
-        {metadata ? (
-          <p className={EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME}>
-            {metadata}
-          </p>
-        ) : null}
-      </StandardExerciseRow>
-    ) : (
-      <HistoryExerciseCard
-        title={displayName}
-        summaryLabel={viewModel.summaryLabel}
-        summary={primaryLine}
-        metadata={metadata || undefined}
-        badgeText={badgeText}
-        metrics={viewModel.detailedMetrics}
-        density={viewMode}
-        tone={viewModel.semanticTone}
-        onPress={() => onOpen(row.exerciseId)}
-      />
-    )
+    <HistoryExerciseCard
+      title={displayName}
+      summaryLabel={viewModel.summaryLabel}
+      summary={primaryLine}
+      metadata={metadata || undefined}
+      badgeText={badgeText}
+      metrics={viewModel.detailedMetrics}
+      density={viewMode}
+      tone={viewModel.semanticTone}
+      onPress={() => onOpen(row.exerciseId)}
+    />
   );
 });
 
@@ -254,7 +226,7 @@ export function ExerciseBrowserClient({
   }, []);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className={appTokens.historyBrowserStack}>
       {inlineHeaderControls ? (
         <HistoryTitleControlShell
           viewMode={viewMode}
@@ -290,8 +262,8 @@ export function ExerciseBrowserClient({
           )
         : null}
 
-      <div className="relative min-h-0">
-        <ul className="space-y-2 scroll-py-2">
+      <div className={appTokens.historyExerciseResultsViewport}>
+        <ul className={appTokens.historyExerciseResults}>
           {filteredRows.map((row) => (
             <li key={row.exerciseId}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
