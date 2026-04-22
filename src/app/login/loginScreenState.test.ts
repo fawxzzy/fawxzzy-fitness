@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  getLoginHelperText,
   getLoginSubmitLabel,
   getRememberedAccountPromptState,
+  getSyncedLoginFieldState,
   shouldStartCredentialStepOpenForLogin,
 } from "./loginScreenState.ts";
 
@@ -34,17 +36,43 @@ test("submit labels stay tied to password auth state", () => {
   assert.equal(
     getLoginSubmitLabel({
       formReady: true,
-      isReauthFlow: true,
+      isExceptionalReauth: true,
       isSubmitting: false,
     }),
-    "Re-enter password",
+    "Continue",
   );
   assert.equal(
     getLoginSubmitLabel({
       formReady: true,
-      isReauthFlow: false,
+      isExceptionalReauth: false,
       isSubmitting: false,
     }),
     "Enter Gym",
+  );
+});
+
+test("hidden email sync preserves remembered email in password-only mode", () => {
+  assert.deepEqual(
+    getSyncedLoginFieldState({
+      emailInputValue: null,
+      passwordInputValue: "secret12",
+      rememberedEmail: "athlete@example.com",
+      showEmailField: false,
+    }),
+    {
+      email: "athlete@example.com",
+      password: "secret12",
+    },
+  );
+});
+
+test("remembered-account password step falls back to normal helper copy", () => {
+  assert.equal(
+    getLoginHelperText({
+      hasRememberedAccount: true,
+      showCredentialStep: true,
+      requiresReauth: false,
+    }),
+    "Log in to continue your routine.",
   );
 });

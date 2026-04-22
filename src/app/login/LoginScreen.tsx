@@ -4,8 +4,8 @@ import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import { login } from "@/app/auth/actions";
 import {
-  getLoginSubmitLabel,
-  getRememberedAccountPromptState,
+  getLoginScreenViewState,
+  getSyncedLoginFieldState,
   shouldStartCredentialStepOpenForLogin,
 } from "@/app/login/loginScreenState";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
@@ -74,7 +74,8 @@ export function LoginScreen({
   const rememberedIdentity = rememberedLogin
     ? { displayName: rememberedLogin.displayName || deriveRememberedLoginDisplayName(rememberedLogin.email) }
     : null;
-  const hasRememberedAccount = hasHydrated && Boolean(rememberedEmail) && Boolean(rememberedIdentity);
+  const hasRememberedAccount = hasHydrated && Boolean(rememberedEmail);
+  const showEmailField = !hasRememberedAccount;
 
   useEffect(() => {
     if (!showCredentialStep) {
@@ -85,9 +86,15 @@ export function LoginScreen({
       const emailInput = document.getElementById(EMAIL_INPUT_ID) as HTMLInputElement | null;
       const passwordInput = document.getElementById(PASSWORD_INPUT_ID) as HTMLInputElement | null;
       const focusTarget = rememberedEmail ? passwordInput : emailInput ?? passwordInput;
+      const nextFormState = getSyncedLoginFieldState({
+        emailInputValue: emailInput?.value,
+        passwordInputValue: passwordInput?.value,
+        rememberedEmail,
+        showEmailField,
+      });
 
-      setEmail(emailInput?.value ?? "");
-      setPassword(passwordInput?.value ?? "");
+      setEmail(nextFormState.email);
+      setPassword(nextFormState.password);
       if (focusTarget && document.activeElement !== focusTarget) {
         focusTarget.focus();
       }
@@ -100,27 +107,28 @@ export function LoginScreen({
       window.cancelAnimationFrame(frameId);
       timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
-  }, [formSeed, rememberedEmail, showCredentialStep]);
+  }, [formSeed, rememberedEmail, showCredentialStep, showEmailField]);
 
-  const normalizedEmail = normalizeEmail(email);
-  const emailValid = EMAIL_PATTERN.test(normalizedEmail);
-  const passwordValid = password.length >= 6;
-  const formReady = emailValid && passwordValid;
-  const showRememberedAccountCard = hasRememberedAccount;
-  const requiresCredentialStep = showCredentialStep || !hasRememberedAccount;
-  const isReauthFlow = Boolean(hasRememberedAccount && showCredentialStep);
-  const showManualAuth = requiresCredentialStep;
-  const showEmailField = !hasRememberedAccount;
-  const rememberedDisplayName = rememberedIdentity?.displayName ?? null;
-  const rememberedAccountPrompt = getRememberedAccountPromptState({
-    hasRememberedAccount: showRememberedAccountCard,
+  const viewState = getLoginScreenViewState({
+    email,
+    password,
+    rememberedEmail,
+    hasHydrated,
     showCredentialStep,
-  });
-  const submitLabel = getLoginSubmitLabel({
-    formReady,
-    isReauthFlow,
     isSubmitting,
+    requiresReauth,
   });
+  const {
+    emailValid,
+    passwordValid,
+    formReady,
+    showRememberedAccountCard,
+    showManualAuth,
+    rememberedAccountPrompt,
+    helperText,
+    submitLabel,
+  } = viewState;
+  const rememberedDisplayName = rememberedIdentity?.displayName ?? null;
 
   function handleSwitchAccount() {
     clearRememberedLoginState();
@@ -201,7 +209,7 @@ export function LoginScreen({
                 {rememberedDisplayName ? (
                   <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
                 ) : null}
-                {isReauthFlow ? (
+                {helperText ? (
                   <p
                     aria-live="polite"
                     className={cn(
@@ -209,21 +217,7 @@ export function LoginScreen({
                       showRememberedAccountCard ? appTokens.authHelperTextCentered : "",
                     )}
                   >
-                    {PASSWORD_LOGIN_UI_COPY.helper.reauth}
-                  </p>
-                ) : showRememberedAccountCard && !showCredentialStep && PASSWORD_LOGIN_UI_COPY.helper.remembered ? (
-                  <p
-                    aria-live="polite"
-                    className={cn(
-                      appTokens.authHelperText,
-                      appTokens.authHelperTextCentered,
-                    )}
-                  >
-                    {PASSWORD_LOGIN_UI_COPY.helper.remembered}
-                  </p>
-                ) : !showRememberedAccountCard && PASSWORD_LOGIN_UI_COPY.helper.default ? (
-                  <p aria-live="polite" className={appTokens.authHelperText}>
-                    {PASSWORD_LOGIN_UI_COPY.helper.default}
+                    {helperText}
                   </p>
                 ) : null}
               </AuthStack>
@@ -284,15 +278,10 @@ export function LoginScreen({
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </AuthField>
-            ) : (
-              <div className={appTokens.authAccountReadonly}>
-                <p className={appTokens.authAccountEyebrow}>Account</p>
-                <p className={appTokens.authAccountValue}>{rememberedEmail}</p>
-              </div>
-            )}
+            ) : null}
 
             <AuthStack size="sm">
-              <AuthField label={isReauthFlow ? "Password" : "Password"}>
+              <AuthField label="Password">
                 <Input
                   id={PASSWORD_INPUT_ID}
                   type="password"

@@ -62,6 +62,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-22 - Remembered-account login flows should derive submit readiness from the active auth identity
+- Type: Guardrail
+- Summary: When login hides the email field for a remembered account, submit readiness, helper copy, and CTA labels must still derive from the remembered identity plus the current password state instead of treating the hidden email input as empty or treating every remembered-account password step as exceptional reauth.
+- Suggested Playbook File: docs/GUARDRAILS/auth-remembered-login.md
+- Rationale: Prevents production-only remembered-account regressions where the password step stays disabled, the UI renders duplicate account identity, or normal login copy flips into session-expired language even though auth itself is healthy.
+- Evidence: src/app/login/LoginScreen.tsx, src/app/login/loginScreenState.ts, src/app/login/loginScreenState.test.ts, src/app/login/LoginScreen.contract.test.ts, src/components/auth/authCopy.ts
+- Status: Proposed
+
 ## 2026-04-22 - Remembered login state is UX memory only and cannot stand in for auth
 - Type: Guardrail
 - Summary: Local remembered-login state may remember account identity for the next login screen, but it must stay password-required until an authenticated surface confirms a real server session.
