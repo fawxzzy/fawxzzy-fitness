@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { InstallabilityBootstrap } from "@/components/install/InstallabilityBootstrap";
+import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
 import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
 import { DisplayModeBootstrap } from "@/components/ui/app/DisplayModeBootstrap";
 import { PersistentAppChrome } from "@/components/ui/app/PersistentAppChrome";
@@ -50,7 +50,7 @@ export default function RootLayout({
       <body className="relative overflow-x-hidden">
         <PersistentAppChrome />
         <ToastProvider>
-          <InstallabilityBootstrap />
+          <ServiceWorkerBootstrap />
           <GlassEffectsBootstrap />
           <DisplayModeBootstrap />
           <MobileViewportGuard />

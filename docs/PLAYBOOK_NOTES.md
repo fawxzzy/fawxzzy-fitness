@@ -262,12 +262,12 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: src/app/routines/[id]/edit/page.tsx, src/app/routines/[id]/edit/day/[dayId]/page.tsx, src/components/ExercisePicker.tsx, src/components/RoutineSwitcherBar.tsx
 - Status: Proposed
 
-## 2026-03-18 — Browser entry should coach install but never block auth
+## 2026-03-18 — Auth entry must stay usable when install is external
 - Type: Pattern
-- Summary: Browser auth entry points for install-first mobile products should recommend the installed app shell, but must keep login, account creation, email confirmation, and password recovery fully usable in-browser. Only show an Install CTA when a real install prompt can fire; on iPhone and iPad, use manual Add to Home Screen guidance, and route in-app browsers toward Safari-first steps instead of fake install affordances.
+- Summary: Browser auth entry points should keep login, account creation, email confirmation, and password recovery fully usable in-browser when install acquisition is handled outside the app.
 - Suggested Playbook File: docs/PATTERNS/mobile-install-entry.md
-- Rationale: Prevents teams from overcorrecting into browser lockouts that break deep links, recovery flows, and first-run account access while still steering users toward the intended app shell.
-- Evidence: src/app/login/page.tsx, src/app/login/LoginScreen.tsx, src/components/install/InstallEntryGate.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx
+- Rationale: Prevents in-app install coaching from becoming stale route state after acquisition moves to an external channel.
+- Evidence: src/app/page.tsx, src/app/login/page.tsx, src/app/login/LoginScreen.tsx, src/app/forgot-password/ForgotPasswordFormClient.tsx, src/app/reset-password/page.tsx
 ## 2026-03-18 — Mobile history cards should prefer hierarchy over inline completeness
 - Type: Pattern
 - Summary: On narrow mobile surfaces, history cards should follow a consistent order of title, context, compact metrics, then optional detail so the most important workout information survives even when width is constrained.

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { requestPasswordReset } from "@/app/auth/actions";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthActionRow, AuthCard, AuthField, AuthFooter, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
+import { AuthActionBar, AuthCard, AuthField, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { BackButton } from "@/components/ui/BackButton";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -21,9 +21,18 @@ function SubmitButton({ cooldownRemaining }: { cooldownRemaining: number }) {
   const label = pending ? "Sending..." : isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
 
   return (
-    <PrimaryButton type="submit" disabled={isDisabled} fullWidth>
-      {label}
-    </PrimaryButton>
+    <AuthActionBar>
+      <PrimaryButton
+        type="submit"
+        disabled={isDisabled}
+        loading={pending}
+        fullWidth
+        data-action-chrome-segmented="true"
+        className={appTokens.authActionButton}
+      >
+        {label}
+      </PrimaryButton>
+    </AuthActionBar>
   );
 }
 
@@ -82,10 +91,18 @@ export default function ForgotPasswordFormClient({
   }, [cooldownRemaining]);
 
   return (
-    <AuthShell>
-      <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
-
-      <AuthCard>
+    <AuthShell
+      topAction={(
+        <BackButton
+          href="/login"
+          label="Back to log in"
+          ariaLabel="Back to log in"
+          iconOnly
+        />
+      )}
+    >
+      <AuthCard className={appTokens.authInteractiveCard}>
+        <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
         <AuthForm action={requestPasswordReset}>
           <AuthStack size="compact">
             <p className={appTokens.authHelperText}>Enter your email and we&apos;ll send a reset link.</p>
@@ -97,12 +114,6 @@ export default function ForgotPasswordFormClient({
           <SubmitButton cooldownRemaining={cooldownRemaining} />
           {copy.helper ? <p className={appTokens.authHelperTextMuted}>{copy.helper}</p> : null}
         </AuthForm>
-
-        <AuthFooter>
-          <AuthActionRow>
-            <BackButton href="/login" label="Back to log in" />
-          </AuthActionRow>
-        </AuthFooter>
       </AuthCard>
     </AuthShell>
   );

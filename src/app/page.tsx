@@ -1,5 +1,5 @@
-import { InstallEntryGate } from "@/components/install/InstallEntryGate";
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return <InstallEntryGate continueHref="/entry" />;
+  redirect("/entry");
 }

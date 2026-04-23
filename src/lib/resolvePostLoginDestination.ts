@@ -1,12 +1,10 @@
 export type PostLoginDestination =
   | { kind: "home" }
-  | { kind: "install" }
   | { kind: "curated-intro" }
   | { kind: "curated-resume"; draftId: string };
 
 export interface PostLoginContext {
   isFirstLogin: boolean;
-  needsInstallFlow: boolean;
   curatedEngineEnabled: boolean;
   hasCompletedCuratedIntake: boolean;
   hasExistingProgram: boolean;
@@ -20,10 +18,6 @@ function normalizeDraftId(value: string | null | undefined) {
 
 export function resolvePostLoginDestination(ctx: PostLoginContext): PostLoginDestination {
   const savedCuratedDraftId = normalizeDraftId(ctx.savedCuratedDraftId);
-
-  if (ctx.needsInstallFlow) {
-    return { kind: "install" };
-  }
 
   if (!ctx.curatedEngineEnabled) {
     return { kind: "home" };

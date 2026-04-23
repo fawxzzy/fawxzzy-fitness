@@ -1,7 +1,21 @@
 "use client";
 
 import { useEffect, useLayoutEffect } from "react";
-import { getStandaloneState } from "@/lib/install/install-detection";
+
+type NavigatorWithStandalone = Navigator & {
+  standalone?: boolean;
+};
+
+function getStandaloneState() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const mediaMatch = window.matchMedia?.("(display-mode: standalone)").matches ?? false;
+  const navigatorStandalone = Boolean((window.navigator as NavigatorWithStandalone).standalone);
+
+  return mediaMatch || navigatorStandalone;
+}
 
 function syncDisplayMode() {
   if (typeof document === "undefined") {

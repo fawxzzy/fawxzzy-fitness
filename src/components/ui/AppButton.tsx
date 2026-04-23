@@ -5,7 +5,7 @@ import {
   type AppButtonState,
   type AppButtonVariant,
 } from "@/components/ui/appButtonClasses";
-import { resolveAppButtonIntent } from "@/components/ui/actionChrome";
+import { ACTION_CHROME_SEGMENTED_CLASS_NAME, resolveAppButtonIntent } from "@/components/ui/actionChrome";
 
 type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: AppButtonVariant;
@@ -34,7 +34,9 @@ export function AppButton({
   const resolvedIntent = resolveAppButtonIntent({ variant, state });
   const providedIntent = props["data-action-chrome-intent"] as string | undefined;
   const providedSelectedState = props["data-action-chrome-selected"] as string | undefined;
-  const loadingLabel = typeof children === "string" && children.trim().length > 0 ? `${children}...` : "Loading...";
+  const isSegmented = props["data-action-chrome-segmented"] === "true";
+  const childLabel = typeof children === "string" ? children.trim() : "";
+  const loadingLabel = childLabel.length > 0 ? (childLabel.endsWith("...") ? childLabel : `${childLabel}...`) : "Loading...";
 
   return (
     <button
@@ -43,7 +45,13 @@ export function AppButton({
       aria-busy={loading}
       data-action-chrome-intent={providedIntent ?? resolvedIntent}
       data-action-chrome-selected={providedSelectedState ?? (state === "active" ? "true" : undefined)}
-      className={getAppButtonClassName({ variant, size, state, fullWidth, className })}
+      className={getAppButtonClassName({
+        variant,
+        size,
+        state,
+        fullWidth,
+        className: [isSegmented ? ACTION_CHROME_SEGMENTED_CLASS_NAME : "", className ?? ""].filter(Boolean).join(" "),
+      })}
     >
       <span className={`inline-flex items-center justify-center gap-2 ${loading ? "opacity-0" : ""}`}>
         {icon ? <span aria-hidden="true">{icon}</span> : null}

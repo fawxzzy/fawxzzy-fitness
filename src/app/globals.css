@@ -1693,6 +1693,21 @@ a:focus-visible {
     -webkit-backdrop-filter: blur(var(--glass-blur, var(--glass-current-blur-base))) saturate(110%);
   }
 
+  .auth-surface {
+    isolation: isolate;
+    overflow: visible;
+  }
+
+  .auth-surface::before,
+  .auth-surface::after {
+    z-index: 0;
+  }
+
+  .auth-surface > * {
+    position: relative;
+    z-index: 1;
+  }
+
   @supports not ((backdrop-filter: blur(1px))) {
     .glass-surface {
       background-color: rgb(var(--glass-tint-rgb) / 0.92);

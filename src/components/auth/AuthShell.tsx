@@ -1,8 +1,20 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import {
+  ACTION_CHROME_RAIL_CLASS_NAME,
+  ACTION_CHROME_RAIL_GRID_CLASS_NAME,
+} from "@/components/ui/actionChrome";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
-export function AuthShell({ children, className }: { children: ReactNode; className?: string }) {
+export function AuthShell({
+  children,
+  className,
+  topAction,
+}: {
+  children: ReactNode;
+  className?: string;
+  topAction?: ReactNode;
+}) {
   return (
     <main
       className="hide-scrollbar relative isolate min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-[rgb(var(--bg-app))] touch-pan-y overscroll-y-contain"
@@ -19,8 +31,13 @@ export function AuthShell({ children, className }: { children: ReactNode; classN
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
+        {topAction ? (
+          <div className="absolute right-4 top-[calc(env(safe-area-inset-top,0px)+1rem)] z-20 flex justify-end">
+            {topAction}
+          </div>
+        ) : null}
         <div
-          className={cn("flex flex-1 flex-col justify-center", appTokens.authShellContent, className)}
+          className={cn("flex min-w-0 flex-1 flex-col justify-center", topAction ? "pt-14" : "", appTokens.authShellContent, className)}
           data-testid="auth-shell-content"
         >
           {children}
@@ -119,6 +136,24 @@ export function AuthStack({
 
 export function AuthActionRow({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("flex justify-end", className)}>{children}</div>;
+}
+
+export function AuthActionBar({
+  children,
+  className,
+  innerClassName,
+}: {
+  children: ReactNode;
+  className?: string;
+  innerClassName?: string;
+}) {
+  return (
+    <div className={cn(ACTION_CHROME_RAIL_CLASS_NAME, className)}>
+      <div className={cn(ACTION_CHROME_RAIL_GRID_CLASS_NAME, innerClassName)}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 export function AuthFooter({ children }: { children: ReactNode }) {
