@@ -85,7 +85,7 @@ function HistoryExerciseFilters({
         onChange={onTagsChange}
         groups={groups}
         countDisplayMode="never"
-        headerLabel={`${countLabel} \u2022 Filters`}
+        headerLabel={`${countLabel} \u00b7 Filters`}
         variant="compact"
         className={appTokens.historyExerciseFilterStack}
         buttonClassName={appTokens.historyExerciseFilterButton}
@@ -105,7 +105,7 @@ function HistoryExerciseFilters({
             aria-label="Clear exercise search"
             className={appTokens.exercisePickerSearchClearButton}
           >
-            {"\u00D7"}
+            ×
           </button>
         ) : null}
       </div>
@@ -126,11 +126,18 @@ const ExerciseHistoryRow = memo(function ExerciseHistoryRow({
   const lastDate = formatShortDate(row.last_performed_at);
   const viewModel = buildHistoryExerciseCardViewModel(row);
   const primaryLine = row.lastSummary ? `${lastDate ? `${lastDate} | ` : ""}${viewModel.summary}` : viewModel.summary;
-  const metadata = viewModel.chips.map((chip) => chip.label).join(" | ");
+  const metadata = viewModel.chips.map((chip) => chip.label).join(" \u00b7 ");
   const badgeText = row.prCount > 0 ? `${row.prCount} PR` : undefined;
 
   return (
     <HistoryExerciseCard
+      exercise={{
+        name: displayName,
+        slug: row.slug,
+        image_path: row.image_path,
+        image_icon_path: row.image_icon_path,
+        image_howto_path: row.image_howto_path,
+      }}
       title={displayName}
       summaryLabel={viewModel.summaryLabel}
       summary={primaryLine}

@@ -42,7 +42,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     titleSize: "text-[0.92rem]",
     contentGap: "gap-0.5",
     goalRow: appTokens.workoutCardGoalRowCompact,
-    childrenSpacing: "mt-0.75",
+    childrenSpacing: "mt-[0.1875rem]",
   },
   detailed: {
     shell: "min-h-[var(--exercise-row-min-height-detailed)] py-[var(--exercise-row-shell-padding-y-detailed)] pr-[var(--exercise-row-shell-padding-x)]",
@@ -52,7 +52,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
     contentGap: "gap-1",
     goalRow: appTokens.workoutCardGoalRowDetailed,
-    childrenSpacing: "mt-1.25",
+    childrenSpacing: "mt-[0.3125rem]",
   },
 };
 
@@ -119,7 +119,6 @@ function resolveStatusBadgeClassName(badgeText: string | undefined, state: Exerc
 
   return cn(badgeStateClassNames[state], cardBadgeToneClassNames[semanticTone]);
 }
-
 const defaultChevron = <ChevronRightIcon className="h-5 w-5 text-[rgb(var(--text-muted)/0.92)]" />;
 const cardPressClassName = "transition-[transform,filter] duration-75 ease-out active:scale-[0.992] active:brightness-[1.02] motion-reduce:transform-none motion-reduce:transition-none";
 
@@ -160,6 +159,7 @@ export function ExerciseCard({
   titleClassName,
   subtitleClassName,
   subtitleLabel,
+  subtitleTone = "panel",
   buttonProps,
   variant = "standard",
   state = "default",
@@ -188,6 +188,7 @@ export function ExerciseCard({
   titleClassName?: string;
   subtitleClassName?: string;
   subtitleLabel?: string;
+  subtitleTone?: "panel" | "plain";
   buttonProps?: ExerciseCardButtonProps;
   variant?: ExerciseCardVariant;
   state?: ExerciseCardState;
@@ -219,7 +220,6 @@ export function ExerciseCard({
       className={cn(
         "relative grid w-full min-w-0 items-stretch gap-[var(--exercise-row-gap)] overflow-visible",
         styles.shell,
-        hasBadgeText ? (resolvedDensity === "compact" ? "pt-[1.45rem]" : "pt-[1.65rem]") : undefined,
         usesRailMedia ? styles.shellWithMedia : "pl-[var(--exercise-row-shell-padding-x)]",
         bodyClassName,
       )}
@@ -285,30 +285,53 @@ export function ExerciseCard({
                 titleStateClassNames[state],
                 titleClassName,
               )}
+              data-exercise-card-title="true"
             >
               {title}
             </p>
             {subtitle ? (
-              <div className={cn("min-w-0", styles.goalRow)}>
-                {subtitleLabel ? (
-                  <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME)}>
-                    {subtitleLabel}
-                  </p>
-                ) : null}
-                <div
-                  className={cn(
-                    EXERCISE_CARD_SUMMARY_CLASS_NAME,
-                    styles.subtitleClamp,
-                    subtitleStateClassNames[state],
-                    subtitleClassName,
-                  )}
-                >
-                  {subtitle}
+              subtitleTone === "plain" ? (
+                <div className="min-w-0">
+                  {subtitleLabel ? (
+                    <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME)}>
+                      {subtitleLabel}
+                    </p>
+                  ) : null}
+                  <div
+                    className={cn(
+                      EXERCISE_CARD_SUMMARY_CLASS_NAME,
+                      styles.subtitleClamp,
+                      subtitleStateClassNames[state],
+                      subtitleClassName,
+                    )}
+                    data-exercise-card-summary="true"
+                  >
+                    {subtitle}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className={cn("min-w-0", styles.goalRow)}>
+                  {subtitleLabel ? (
+                    <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME)}>
+                      {subtitleLabel}
+                    </p>
+                  ) : null}
+                  <div
+                    className={cn(
+                      EXERCISE_CARD_SUMMARY_CLASS_NAME,
+                      styles.subtitleClamp,
+                      subtitleStateClassNames[state],
+                      subtitleClassName,
+                    )}
+                    data-exercise-card-summary="true"
+                  >
+                    {subtitle}
+                  </div>
+                </div>
+              )
             ) : null}
             {children ? (
-              <div className={cn("min-w-0", styles.childrenSpacing)}>
+              <div className={cn("min-w-0", styles.childrenSpacing)} data-exercise-card-supporting="true">
                 {children}
               </div>
             ) : null}
@@ -324,14 +347,14 @@ export function ExerciseCard({
             rightRailClassName,
           )}
         >
-          <div
-            className={cn(
-              EXERCISE_CARD_TRAILING_ICON_CLASS_NAME,
-              trailingStackClassName,
-            )}
-          >
-            {rightIcon}
-          </div>
+            <div
+              className={cn(
+                EXERCISE_CARD_TRAILING_ICON_CLASS_NAME,
+                trailingStackClassName,
+              )}
+            >
+              {rightIcon}
+            </div>
         </div>
       ) : null}
     </div>

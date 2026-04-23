@@ -16,20 +16,20 @@ import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedSer
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { SessionSummaryCard } from "@/components/SessionSummaryCard";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
+import { HistorySessionCard } from "@/components/history/HistorySessionCard";
 import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
-import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
+import { appTokens } from "@/components/ui/app/tokens";
 import { HistoryDetailHeader, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
-import { formatDateShort, formatDurationShort } from "@/lib/formatting";
+import { formatDateShort } from "@/lib/formatting";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import { formatMeasurementSummaryText } from "@/lib/measurement-display";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
@@ -408,21 +408,21 @@ export function LogAuditClient({
             title={sessionSummary.routineTitle}
             subtitle={sessionMeta.dateLine}
             action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
-            className={isEditing ? "border-[rgb(var(--button-primary-border)/0.8)] bg-[rgb(var(--glass-tint-rgb)/0.68)]" : undefined}
+            className={isEditing ? appTokens.historyEditorHeaderActive : undefined}
           >
             {isEditing ? (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Edit mode</p>
-                <div className="rounded-[1.1rem] border border-[rgb(var(--border-strong)/0.14)] bg-[rgb(var(--surface)/0.42)] px-3 py-2.5">
-                  <p className="text-sm font-semibold text-text">Session details</p>
-                  <div className="mt-3 space-y-3">
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+              <div className={appTokens.historyEditorStack}>
+                <p className={appTokens.exercisePickerSectionEyebrow}>Edit mode</p>
+                <div className={appTokens.historyEditorPanel}>
+                  <p className={appTokens.historyTitleControlLabel}>Session details</p>
+                  <div className={appTokens.historyEditorFieldStack}>
+                    <label className={appTokens.historyEditorFieldLabel}>
                       Day Name
-                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-[rgb(var(--button-primary-border)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.25)]" />
+                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={appTokens.historyEditorField} />
                     </label>
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+                    <label className={appTokens.historyEditorFieldLabel}>
                       Session Notes
-                      <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.24)] px-3 py-2 text-sm text-text focus-visible:border-[rgb(var(--button-primary-border)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.25)]" />
+                      <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className={appTokens.historyEditorField} />
                     </label>
                   </div>
                 </div>
@@ -433,20 +433,17 @@ export function LogAuditClient({
         )
         : null}
 
-      <SessionSummaryCard
+      <HistorySessionCard
+        session={sessionSummary}
+        viewMode="detailed"
         title="Session summary"
         subtitle={sessionMeta.dateLine}
-        summary={sessionMeta.summaryLine}
-        detail={sessionSummary.prCounts.total > 0 ? sessionSummary.prLabel : undefined}
-        badgeText={sessionSummary.prCounts.total > 0 ? `${sessionSummary.prCounts.total} PR` : undefined}
-        tone={sessionSummary.prCounts.total > 0 ? "pr" : "neutral"}
-        density="detailed"
         rightIcon={null}
       />
 
       {!isEditing && sessionNotes.trim().length > 0 ? (
         <HistorySection title="Session notes">
-          <p className="text-sm text-[rgb(var(--text)/0.94)]">{sessionNotes}</p>
+          <p className={appTokens.detailBodyText}>{sessionNotes}</p>
         </HistorySection>
       ) : null}
 
@@ -455,7 +452,7 @@ export function LogAuditClient({
         description={isEditing ? "Expand an exercise to edit sets and notes." : "Expand an exercise to review sets and notes."}
       >
         {exercises.length === 0 ? (
-          <p className="rounded-[0.95rem] border border-dashed border-border/35 bg-[rgb(var(--surface-2-soft)/0.42)] px-3 py-2.5 text-sm text-[rgb(var(--text-muted)/0.84)]">
+          <p className={appTokens.historyEmptyState}>
             No exercises logged for this session yet.
           </p>
         ) : null}
@@ -485,8 +482,8 @@ export function LogAuditClient({
           ];
 
           return (
-            <article key={exercise.id} className="space-y-2">
-              <StandardExerciseRow
+            <article key={exercise.id} className={appTokens.historyExerciseDisclosureStack}>
+              <HistoryDetailExerciseCard
                 exercise={{
                   name,
                   slug: exercise.exercise_slug ?? null,
@@ -497,31 +494,24 @@ export function LogAuditClient({
                 summary={subtitleParts.join(" | ")}
                 summaryLabel="Latest"
                 onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
-                rightIcon={isExpanded
-                  ? <ChevronDownIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />
-                  : <ChevronRightIcon className="h-5 w-5 shrink-0 self-center text-[rgb(var(--text)/0.6)]" />}
-                variant="interactive"
-                density="compact"
-                state={isExpanded ? "selected" : "default"}
-                className="w-full shadow-none"
-                surface="history-detail"
+                expanded={isExpanded}
                 showLeadingVisual={surfacePolicy.showMedia}
               />
 
               {isExpanded ? (
-                <div className="space-y-2.5 px-1.5 pb-1 pt-2">
+                <div className={appTokens.historyExerciseDisclosureBody}>
                   {isEditing ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className={appTokens.historyExerciseDisclosureActions}>
                       <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
                       <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete</DestructiveButton>
                     </div>
                   ) : null}
 
-                  <ul className="space-y-1.5 text-sm">
+                  <ul className={appTokens.historyExerciseSetList}>
                     {setsForExercise.map((set, index) => (
                       <li key={set.id}>
                         {isEditing ? (
-                          <div className="space-y-2">
+                          <div className={appTokens.historyEditorStack}>
                             <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId((current) => (current === set.id ? null : set.id))}>
                               <CompactLogRow
                                 label={<span className="font-semibold text-text">Set {index + 1}</span>}
@@ -538,12 +528,12 @@ export function LogAuditClient({
                                   emptyLabel: "No measurements",
                                 })}`}
                                 action={<span className="text-xs text-muted">{expandedSetId === set.id ? "▾" : "▸"}</span>}
-                                className="transition-colors hover:bg-[rgb(var(--surface-rgb)/0.42)]"
+                                className={appTokens.historySetSummaryInteractive}
                               />
                             </button>
 
                             {expandedSetId === set.id ? (
-                              <div className="space-y-2.5 px-0.5 pt-1" onClick={(event) => event.stopPropagation()}>
+                              <div className={appTokens.historyExerciseSetEditor} onClick={(event) => event.stopPropagation()}>
                                 <ModifyMeasurements
                                   values={set.values}
                                   activeMetrics={set.activeMetrics}
@@ -573,7 +563,7 @@ export function LogAuditClient({
                                   })}
                                   onChange={(patch) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
                                 />
-                                <div className="grid grid-cols-1 gap-2">
+                                <div className={appTokens.historyExerciseSetActionGrid}>
                                   <DestructiveButton
                                     type="button"
                                     size="md"
@@ -616,13 +606,13 @@ export function LogAuditClient({
                   </ul>
 
                   {setsForExercise.length === 0 ? (
-                    <p className="rounded-[0.95rem] border border-dashed border-border/35 bg-[rgb(var(--surface-2-soft)/0.42)] px-3 py-2.5 text-sm text-[rgb(var(--text-muted)/0.84)]">
+                    <p className={appTokens.historyEmptyState}>
                       No sets logged yet
                     </p>
                   ) : null}
 
                   {isEditing ? (
-                    <label className="block pt-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                    <label className={appTokens.historyEditorNotesLabel}>
                       Exercise Notes
                       <textarea
                         value={notesValue}
@@ -631,11 +621,11 @@ export function LogAuditClient({
                           setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
                         }}
                         rows={2}
-                        className="mt-1 w-full rounded-md border border-border/45 bg-[rgb(var(--bg)/0.22)] px-3 py-2 text-sm text-text focus-visible:border-[rgb(var(--button-primary-border)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--button-primary-border)/0.25)]"
+                        className={appTokens.historyEditorField}
                       />
                     </label>
                   ) : notesValue.trim() ? (
-                    <p className="pt-2 text-xs text-[rgb(var(--text-muted)/0.75)]">Notes: {notesValue}</p>
+                    <p className={appTokens.historyNotesCaption}>Notes: {notesValue}</p>
                   ) : null}
                 </div>
               ) : null}
