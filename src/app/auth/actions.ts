@@ -2,10 +2,62 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { optionalEnv } from "@/lib/env";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 
-function normalizeEmail(value: FormDataEntryValue | null) {
+function normalizeLoginIdentifier(value: FormDataEntryValue | null) {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function isEmailIdentifier(identifier: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+}
+
+function isUsernameIdentifier(identifier: string) {
+  return /^[a-z0-9][a-z0-9._-]{1,23}$/i.test(identifier);
+}
+
+async function resolveEmailForLogin(identifier: string) {
+  if (isEmailIdentifier(identifier)) {
+    return identifier;
+  }
+
+  if (!isUsernameIdentifier(identifier)) {
+    return null;
+  }
+
+  if (!optionalEnv("SUPABASE_SERVICE_ROLE_KEY")) {
+    return null;
+  }
+
+  const admin = supabaseAdmin();
+  let page = 1;
+  let nextPage: number | null = 1;
+
+  while (nextPage) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) {
+      return null;
+    }
+
+    const matchedUser = (data?.users ?? []).find((user) => {
+      const metadata = user.user_metadata ?? {};
+      const username = typeof metadata.username === "string" ? metadata.username.trim().toLowerCase() : "";
+      const displayName = typeof metadata.display_name === "string" ? metadata.display_name.trim().toLowerCase() : "";
+      return username === identifier || displayName === identifier;
+    });
+
+    const email = matchedUser?.email?.trim().toLowerCase();
+    if (email) {
+      return email;
+    }
+
+    nextPage = data?.nextPage ?? null;
+    page = nextPage ?? 0;
+  }
+
+  return null;
 }
 
 function getOrigin() {
@@ -45,6 +97,15 @@ function getResetPasswordErrorCode(message: string | undefined) {
   return "send_failed";
 }
 
+function getResetPasswordErrorMessage(message: string | undefined) {
+  const errorCode = getResetPasswordErrorCode(message);
+  if (errorCode === "rate_limited") {
+    return "Too many reset requests. Please wait a few minutes and try again.";
+  }
+
+  return "Could not send reset email. Please try again in a few minutes.";
+}
+
 function setSessionCookies(session: { access_token: string; refresh_token: string }) {
   const cookieStore = cookies();
   cookieStore.set("sb-access-token", session.access_token, {
@@ -63,8 +124,13 @@ function setSessionCookies(session: { access_token: string; refresh_token: strin
 }
 
 export async function login(formData: FormData) {
-  const email = normalizeEmail(formData.get("email"));
+  const identifier = normalizeLoginIdentifier(formData.get("email"));
   const password = String(formData.get("password") ?? "");
+  const email = await resolveEmailForLogin(identifier);
+
+  if (!email) {
+    redirect(`/login?error=${encodeURIComponent("Invalid email, username, or password")}`);
+  }
 
   const supabase = supabaseServer();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -78,7 +144,7 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const email = normalizeEmail(formData.get("email"));
+  const email = normalizeLoginIdentifier(formData.get("email"));
   const password = String(formData.get("password") ?? "");
   const username = String(formData.get("username") ?? "").trim();
 
@@ -110,7 +176,7 @@ export async function signup(formData: FormData) {
 }
 
 export async function requestPasswordReset(formData: FormData) {
-  const email = normalizeEmail(formData.get("email"));
+  const email = normalizeLoginIdentifier(formData.get("email"));
   const supabase = supabaseServer();
   const redirectTo = `${getAppOrigin()}/reset-password?recovery=1`;
 
@@ -132,4 +198,41 @@ export async function requestPasswordReset(formData: FormData) {
   }
 
   redirect(`/forgot-password?info=${encodeURIComponent("reset_requested")}`);
+}
+
+export async function requestPasswordResetInline(identifier: string) {
+  const normalizedIdentifier = normalizeLoginIdentifier(identifier);
+  const email = await resolveEmailForLogin(normalizedIdentifier);
+
+  if (!email) {
+    return {
+      ok: false,
+      error: "Enter your email to reset your password.",
+    };
+  }
+
+  const supabase = supabaseServer();
+  const redirectTo = `${getAppOrigin()}/reset-password?recovery=1`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) {
+    console.error("Password reset email request failed", {
+      email,
+      redirectTo,
+      message: error.message,
+      status: error.status,
+      name: error.name,
+    });
+
+    return {
+      ok: false,
+      error: getResetPasswordErrorMessage(error.message),
+    };
+  }
+
+  return {
+    ok: true,
+  };
 }

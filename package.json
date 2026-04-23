@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "qa:dev": "node scripts/dev.mjs --hostname 127.0.0.1 --port 3000",
+    "qa:dev:lan": "node scripts/dev.mjs --hostname 0.0.0.0 --port 3000",
     "build": "node scripts/next-cli.mjs build",
     "clean:next": "node scripts/cleanup-repo.mjs --only-build-cache",
     "rebuild:clean": "npm run clean:next && npm run build",
@@ -16,8 +17,10 @@
     "qa:user:cleanup": "node scripts/qa/fitness-qa-user.mjs cleanup",
     "qa:user:cleanup:apply": "node scripts/qa/fitness-qa-user.mjs cleanup --apply",
     "qa:session": "node scripts/qa/fitness-qa-user.mjs session",
+    "qa:tunnel": "node scripts/qa/fitness-tunnel.mjs",
     "qa:local": "node scripts/qa/fitness-local-feedback.mjs",
     "qa:loop": "node scripts/qa/fitness-qa-user.mjs reset && node scripts/qa/fitness-qa-user.mjs session && node scripts/qa/fitness-local-feedback.mjs",
+    "qa:loop:mobile": "node scripts/qa/fitness-mobile-loop.mjs",
     "verify:history-render": "node scripts/verify-history-family-ui.mjs",
     "qa:matrix": "node scripts/qa-matrix.mjs",
     "qa:boards": "python scripts/build-mobile-regression-boards.py",

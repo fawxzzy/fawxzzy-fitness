@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "cycle_id": "2026-04-23T16-58-56-615Z-f109ea5e",
-  "generated_at": "2026-04-23T16:58:57.716Z",
+  "cycle_id": "2026-04-23T10-39-51-315Z-99da05d3",
+  "generated_at": "2026-04-23T10:39:52.121Z",
   "recommendation_model": "deterministic-v1",
   "ranking_factors": [
     "path-class-priority",
@@ -17,7 +17,7 @@
       "path": ".git/",
       "rank": 1,
       "class": "vcs-internal",
-      "rationale": "class=vcs-internal; safety=safe-default; current_cost=0 files/0 bytes; candidate_repeats=4; expensive_repeats=0",
+      "rationale": "class=vcs-internal; safety=safe-default; current_cost=0 files/0 bytes; candidate_repeats=3; expensive_repeats=0",
       "confidence": 0.99,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,
@@ -30,7 +30,7 @@
       "path": ".next/cache/",
       "rank": 2,
       "class": "build-cache",
-      "rationale": "class=build-cache; safety=safe-default; current_cost=0 files/0 bytes; candidate_repeats=14; expensive_repeats=0",
+      "rationale": "class=build-cache; safety=safe-default; current_cost=0 files/0 bytes; candidate_repeats=13; expensive_repeats=0",
       "confidence": 0.99,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,
@@ -43,7 +43,7 @@
       "path": "node_modules/",
       "rank": 3,
       "class": "build-cache",
-      "rationale": "class=build-cache; safety=safe-default; current_cost=0 files/0 bytes; candidate_repeats=14; expensive_repeats=0",
+      "rationale": "class=build-cache; safety=safe-default; current_cost=0 files/0 bytes; candidate_repeats=13; expensive_repeats=0",
       "confidence": 0.99,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,
@@ -56,7 +56,7 @@
       "path": "tmp-dev-server.err.log",
       "rank": 4,
       "class": "unknown",
-      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=14; expensive_repeats=0",
+      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=13; expensive_repeats=0",
       "confidence": 0.61,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,
@@ -69,7 +69,7 @@
       "path": "tmp-dev-server.log",
       "rank": 5,
       "class": "unknown",
-      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=14; expensive_repeats=0",
+      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=13; expensive_repeats=0",
       "confidence": 0.61,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,
@@ -82,7 +82,7 @@
       "path": "tmp-history-dev.err.log",
       "rank": 6,
       "class": "unknown",
-      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=7; expensive_repeats=0",
+      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=6; expensive_repeats=0",
       "confidence": 0.61,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,
@@ -95,7 +95,7 @@
       "path": "tmp-history-dev.out.log",
       "rank": 7,
       "class": "unknown",
-      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=7; expensive_repeats=0",
+      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=6; expensive_repeats=0",
       "confidence": 0.61,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,
@@ -108,7 +108,7 @@
       "path": "tmp-history-render-dev-3120.err.log",
       "rank": 8,
       "class": "unknown",
-      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=4; expensive_repeats=0",
+      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=3; expensive_repeats=0",
       "confidence": 0.61,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,
@@ -121,7 +121,7 @@
       "path": "tmp-history-render-dev-3120.out.log",
       "rank": 9,
       "class": "unknown",
-      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=4; expensive_repeats=0",
+      "rationale": "class=unknown; safety=review-first; current_cost=0 files/0 bytes; candidate_repeats=3; expensive_repeats=0",
       "confidence": 0.61,
       "expected_scan_impact": {
         "estimated_files_reduced": 0,

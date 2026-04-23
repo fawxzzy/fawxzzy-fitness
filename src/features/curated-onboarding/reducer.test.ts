@@ -68,7 +68,7 @@ test("curatedOnboardingReducer marks intake completion separately from generatio
 
   assert.equal(completedState.draft.stepId, "generation-handoff");
   assert.equal(completedState.lifecycle.intakeStatus, "completed");
-  assert.equal(completedState.lifecycle.generationStatus, "idle");
+  assert.equal(completedState.lifecycle.generationStatus, "not-implemented");
   assert.equal(completedState.lifecycle.completedAt, "2026-01-04T00:00:00.000Z");
 });
 

@@ -1,40 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { requestPasswordReset } from "@/app/auth/actions";
-import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthActionBar, AuthCard, AuthField, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
-import { BackButton } from "@/components/ui/BackButton";
-import { PrimaryButton } from "@/components/ui/AppButton";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 
 const COOLDOWN_SECONDS = 60;
 const NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
-
-function SubmitButton({ cooldownRemaining }: { cooldownRemaining: number }) {
-  const { pending } = useFormStatus();
-  const isCoolingDown = cooldownRemaining > 0;
-  const isDisabled = pending || isCoolingDown;
-
-  const label = pending ? "Sending..." : isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
-
-  return (
-    <AuthActionBar>
-      <PrimaryButton
-        type="submit"
-        disabled={isDisabled}
-        loading={pending}
-        fullWidth
-        data-action-chrome-segmented="true"
-        className={appTokens.authActionButton}
-      >
-        {label}
-      </PrimaryButton>
-    </AuthActionBar>
-  );
-}
+const RESET_FORM_ID = "reset-password-request-form";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type ForgotPasswordFormClientProps = {
   errorMessage: string | null;
@@ -48,7 +26,8 @@ export default function ForgotPasswordFormClient({
   shouldStartCooldown,
 }: ForgotPasswordFormClientProps) {
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const copy = AUTH_MODE_COPY["reset-password"];
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [email, setEmail] = useState("");
 
   const message = useMemo(() => {
     if (errorMessage) {
@@ -90,31 +69,68 @@ export default function ForgotPasswordFormClient({
     return () => window.clearInterval(timer);
   }, [cooldownRemaining]);
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+
+    if (!EMAIL_PATTERN.test(email.toLowerCase()) || cooldownRemaining > 0) {
+      event.preventDefault();
+      return;
+    }
+
+    setIsSubmitting(true);
+  }
+
+  const isCoolingDown = cooldownRemaining > 0;
+  const emailValid = EMAIL_PATTERN.test(email.trim().toLowerCase());
+  const submitLabel = isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
+
   return (
-    <AuthShell
-      topAction={(
-        <BackButton
-          href="/login"
-          label="Back to log in"
-          ariaLabel="Back to log in"
-          iconOnly
-        />
-      )}
-    >
+    <AuthShell>
       <AuthCard className={appTokens.authInteractiveCard}>
-        <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
-        <AuthForm action={requestPasswordReset}>
-          <AuthStack size="compact">
-            <p className={appTokens.authHelperText}>Enter your email and we&apos;ll send a reset link.</p>
-            <AuthField label="Email">
-              <Input type="email" name="email" required autoComplete="email" placeholder="you@example.com" />
+        <AuthIntro eyebrow="" title="" subtitle="" />
+        <AuthForm id={RESET_FORM_ID} action={requestPasswordReset} onSubmit={handleSubmit}>
+          <AuthStack>
+            <AuthField label="Email" hideLabel>
+              <Input
+                type="email"
+                name="email"
+                required
+                autoComplete="email"
+                placeholder="you@example.com"
+                onChange={(event) => setEmail(event.target.value)}
+              />
             </AuthField>
           </AuthStack>
           {message}
-          <SubmitButton cooldownRemaining={cooldownRemaining} />
-          {copy.helper ? <p className={appTokens.authHelperTextMuted}>{copy.helper}</p> : null}
         </AuthForm>
+        <AuthFooter className="pt-7">
+          <AuthFooterText>
+            <Link href="/signup" className={appTokens.authInlineLink}>
+              Create account
+            </Link>
+            <span aria-hidden="true" className="px-2 text-[rgb(var(--text-muted)/0.72)]">|</span>
+            <Link href="/login" className={appTokens.authInlineLink}>
+              Log In
+            </Link>
+          </AuthFooterText>
+        </AuthFooter>
       </AuthCard>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+        <BottomActionSingle>
+          <BottomDockButton
+            type="submit"
+            form={RESET_FORM_ID}
+            intent="positive"
+            disabled={!emailValid || isSubmitting || isCoolingDown}
+            loading={isSubmitting}
+            loadingLabel="Sending..."
+          >
+            {submitLabel}
+          </BottomDockButton>
+        </BottomActionSingle>
+      </div>
     </AuthShell>
   );
 }

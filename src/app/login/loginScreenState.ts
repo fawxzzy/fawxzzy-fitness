@@ -1,6 +1,7 @@
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,23}$/i;
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -53,10 +54,6 @@ export function getLoginHelperText(args: {
   showCredentialStep: boolean;
   requiresReauth?: boolean;
 }) {
-  if (args.requiresReauth) {
-    return PASSWORD_LOGIN_UI_COPY.helper.reauth;
-  }
-
   if (args.hasRememberedAccount && !args.showCredentialStep) {
     return PASSWORD_LOGIN_UI_COPY.helper.remembered;
   }
@@ -75,10 +72,6 @@ export function getLoginSubmitLabel(args: {
 }) {
   if (args.isSubmitting) {
     return PASSWORD_LOGIN_UI_COPY.cta.pending;
-  }
-
-  if (args.isExceptionalReauth) {
-    return PASSWORD_LOGIN_UI_COPY.cta.reauth;
   }
 
   if (args.formReady) {
@@ -106,7 +99,7 @@ export function getLoginScreenViewState(args: {
     rememberedEmail: args.rememberedEmail,
     showEmailField,
   });
-  const emailValid = EMAIL_PATTERN.test(normalizeEmail(effectiveEmail));
+  const emailValid = EMAIL_PATTERN.test(normalizeEmail(effectiveEmail)) || USERNAME_PATTERN.test(effectiveEmail.trim());
   const passwordValid = args.password.length >= 6;
   const formReady = emailValid && passwordValid;
 

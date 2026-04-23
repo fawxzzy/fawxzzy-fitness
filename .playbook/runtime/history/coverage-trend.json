@@ -91,6 +91,20 @@
       "eligible_scan_coverage_score": 0.992,
       "repo_visibility_score": 0.3054,
       "blind_spot_ratio": 0.6946
+    },
+    {
+      "cycle_id": "2026-04-23T10-39-51-315Z-99da05d3",
+      "observed_at": "2026-04-23T10:39:51.623Z",
+      "eligible_scan_coverage_score": 0.9744,
+      "repo_visibility_score": 0.2573,
+      "blind_spot_ratio": 0.7427
+    },
+    {
+      "cycle_id": "2026-04-23T16-58-56-615Z-f109ea5e",
+      "observed_at": "2026-04-23T16:58:56.939Z",
+      "eligible_scan_coverage_score": 0.9718,
+      "repo_visibility_score": 0.3064,
+      "blind_spot_ratio": 0.6936
     }
   ]
 }

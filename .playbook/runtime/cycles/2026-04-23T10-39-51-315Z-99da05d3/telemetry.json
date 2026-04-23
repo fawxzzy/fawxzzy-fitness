@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "cycle_id": "2026-04-23T16-58-56-615Z-f109ea5e",
+  "cycle_id": "2026-04-23T10-39-51-315Z-99da05d3",
   "trigger_command": "verify",
   "command_call_count": 1,
   "command_call_count_by_command": {
@@ -8,7 +8,7 @@
   },
   "repeated_command_count": 0,
   "command_durations": {
-    "verify": 324
+    "verify": 306
   },
   "artifact_cache_hits": 0,
   "artifact_cache_misses": 1,
@@ -51,7 +51,7 @@
     "generated-report": 0,
     "temporary-file": 6,
     "binary-asset": 289,
-    "unknown": 1076
+    "unknown": 814
   },
   "parser_failure_counts": {
     "coverage_parse_failures": 0
@@ -62,27 +62,27 @@
       "size_bytes": 6017442
     },
     {
-      "path": ".next/server/vendor-chunks/@supabase.js",
-      "size_bytes": 4378006
-    },
-    {
       "path": ".next/server/app/today/page.js",
-      "size_bytes": 3379243
-    },
-    {
-      "path": ".next/trace",
-      "size_bytes": 3347249
+      "size_bytes": 3354905
     },
     {
       "path": ".next/server/vendor-chunks/next.js",
-      "size_bytes": 3226342
+      "size_bytes": 3226040
+    },
+    {
+      "path": ".next/server/vendor-chunks/@supabase.js",
+      "size_bytes": 2918371
+    },
+    {
+      "path": ".next/static/chunks/app/today/page.js",
+      "size_bytes": 2726774
     }
   ],
   "expensive_path_classes": [
     {
       "path_class": "unknown",
-      "total_size_bytes": 248714282,
-      "file_count": 1365
+      "total_size_bytes": 225898393,
+      "file_count": 1103
     },
     {
       "path_class": "build-cache",
@@ -95,7 +95,7 @@
       "file_count": 6
     }
   ],
-  "low_value_path_count": 1178,
+  "low_value_path_count": 1174,
   "recommendation_count": 9,
   "warnings_count": 4,
   "failures_count": 0

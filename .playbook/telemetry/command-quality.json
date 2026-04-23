@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-23T07:14:42.937Z",
+  "generatedAt": "2026-04-23T16:58:56.930Z",
   "kind": "command-execution-quality",
   "records": [
     {
@@ -183,17 +183,45 @@
       "run_id": "verify-1776928482677",
       "success_status": "success",
       "warnings_count": 0
+    },
+    {
+      "artifacts_read": [],
+      "artifacts_written": [],
+      "command_name": "verify",
+      "confidence_score": 0.9,
+      "downstream_artifacts_produced": [],
+      "duration_ms": 285,
+      "inputs_summary": "policy=off",
+      "open_questions_count": 0,
+      "recorded_at": "2026-04-23T10:39:51.614Z",
+      "run_id": "verify-1776940791327",
+      "success_status": "success",
+      "warnings_count": 0
+    },
+    {
+      "artifacts_read": [],
+      "artifacts_written": [],
+      "command_name": "verify",
+      "confidence_score": 0.9,
+      "downstream_artifacts_produced": [],
+      "duration_ms": 301,
+      "inputs_summary": "policy=off",
+      "open_questions_count": 0,
+      "recorded_at": "2026-04-23T16:58:56.930Z",
+      "run_id": "verify-1776963536627",
+      "success_status": "success",
+      "warnings_count": 0
     }
   ],
   "schemaVersion": "1.0",
   "summary": {
     "average_confidence_score": 0.9,
-    "average_duration_ms": 282,
+    "average_duration_ms": 284,
     "failure_runs": 0,
     "partial_runs": 0,
-    "success_runs": 13,
+    "success_runs": 15,
     "total_open_questions": 0,
-    "total_runs": 13,
+    "total_runs": 15,
     "total_warnings": 0
   }
 }

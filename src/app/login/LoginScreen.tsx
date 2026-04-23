@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
-import { login } from "@/app/auth/actions";
+import { login, requestPasswordResetInline } from "@/app/auth/actions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   getLoginScreenViewState,
   getSyncedLoginFieldState,
   shouldStartCredentialStepOpenForLogin,
 } from "@/app/login/loginScreenState";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
-import { AuthActionBar, AuthActionRow, AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
-import { PrimaryButton } from "@/components/ui/AppButton";
+import { AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/ToastProvider";
 import { cn } from "@/lib/cn";
 import {
   buildRememberedLoginState,
@@ -26,7 +28,9 @@ import {
 
 const EMAIL_INPUT_ID = "login-email";
 const PASSWORD_INPUT_ID = "login-password";
+const LOGIN_FORM_ID = "login-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,23}$/i;
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -36,23 +40,30 @@ export function LoginScreen({
   error,
   info,
   requiresReauth = false,
+  previewRememberedLogin = null,
+  previewShowCredentialStep = false,
 }: {
   error?: string;
   info?: string;
   requiresReauth?: boolean;
+  previewRememberedLogin?: RememberedLoginState | null;
+  previewShowCredentialStep?: boolean;
 }) {
   const copy = AUTH_MODE_COPY["password-login"];
-  const shouldStartCredentialStepOpen = shouldStartCredentialStepOpenForLogin({ error, requiresReauth });
+  const shouldStartCredentialStepOpen =
+    previewShowCredentialStep || shouldStartCredentialStepOpenForLogin({ error, requiresReauth });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberedLogin, setRememberedLogin] = useState<RememberedLoginState | null>(null);
   const [formSeed, setFormSeed] = useState(0);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const [showCredentialStep, setShowCredentialStep] = useState(shouldStartCredentialStepOpen);
+  const toast = useToast();
 
   useEffect(() => {
-    const storedLogin = readRememberedLoginState();
+    const storedLogin = previewRememberedLogin ?? readRememberedLoginState();
 
     if (storedLogin?.email) {
       const nextLogin = toReauthRequiredRememberedLoginState(storedLogin);
@@ -68,7 +79,7 @@ export function LoginScreen({
     }
 
     setHasHydrated(true);
-  }, [shouldStartCredentialStepOpen]);
+  }, [previewRememberedLogin, shouldStartCredentialStepOpen]);
 
   const rememberedEmail = rememberedLogin?.email ?? null;
   const rememberedIdentity = rememberedLogin
@@ -129,6 +140,9 @@ export function LoginScreen({
     submitLabel,
   } = viewState;
   const rememberedDisplayName = rememberedIdentity?.displayName ?? null;
+  const showRememberedAccountChoice = showRememberedAccountCard && Boolean(rememberedEmail) && !showCredentialStep;
+  const highlightInteractiveCard = showManualAuth && emailValid;
+  const readyInteractiveCard = showManualAuth && formReady;
 
   function handleSwitchAccount() {
     clearRememberedLoginState();
@@ -158,20 +172,50 @@ export function LoginScreen({
     const submittedEmail = normalizeEmail(String(formData.get("email") ?? rememberedEmail ?? ""));
     const submittedPassword = String(formData.get("password") ?? "");
 
-    if (!EMAIL_PATTERN.test(submittedEmail) || submittedPassword.length < 6) {
+    const identifierValid = EMAIL_PATTERN.test(submittedEmail) || USERNAME_PATTERN.test(submittedEmail);
+    if (!identifierValid || submittedPassword.length < 6) {
       event.preventDefault();
       return;
     }
 
-    const nextRememberedLogin = buildRememberedLoginState({
-      email: submittedEmail,
-      displayName: rememberedDisplayName ?? deriveRememberedLoginDisplayName(submittedEmail),
-      sessionState: "reauth-required",
-    });
-    writeRememberedLoginState(nextRememberedLogin);
-    setRememberedLogin(nextRememberedLogin);
+    if (EMAIL_PATTERN.test(submittedEmail)) {
+      const nextRememberedLogin = buildRememberedLoginState({
+        email: submittedEmail,
+        displayName: rememberedDisplayName ?? deriveRememberedLoginDisplayName(submittedEmail),
+        sessionState: "reauth-required",
+      });
+      writeRememberedLoginState(nextRememberedLogin);
+      setRememberedLogin(nextRememberedLogin);
+    }
     setIsSubmitting(true);
     setShowCredentialStep(true);
+  }
+
+  async function handlePasswordReset() {
+    if (isSendingReset) {
+      return;
+    }
+
+    const identifier = normalizeEmail(email || rememberedEmail || "");
+    if (!EMAIL_PATTERN.test(identifier) && !USERNAME_PATTERN.test(identifier)) {
+      toast.error("Enter your email to reset your password.");
+      return;
+    }
+
+    setIsSendingReset(true);
+    try {
+      const result = await requestPasswordResetInline(identifier);
+      if (result.ok) {
+        toast.success("Reset email sent. Check your inbox.");
+        return;
+      }
+
+      toast.error(result.error);
+    } catch {
+      toast.error("Could not send reset email. Please try again.");
+    } finally {
+      setIsSendingReset(false);
+    }
   }
 
   return (
@@ -179,37 +223,26 @@ export function LoginScreen({
       <AuthCard
         className={cn(
           appTokens.authInteractiveCard,
-          emailValid ? appTokens.authInteractiveCardEmailValid : "",
-          formReady ? appTokens.authInteractiveCardReady : "",
+          highlightInteractiveCard ? appTokens.authInteractiveCardEmailValid : "",
+          readyInteractiveCard ? appTokens.authInteractiveCardReady : "",
           isSubmitting ? appTokens.authInteractiveCardPending : "",
         )}
       >
-        <AuthForm action={login} onSubmit={handleSubmit}>
+        <AuthForm id={LOGIN_FORM_ID} action={login} onSubmit={handleSubmit}>
           {showRememberedAccountCard && rememberedEmail ? (
             <input type="hidden" name="email" value={rememberedEmail} />
           ) : null}
           <AuthStack size="lg">
             <AuthStack>
-              <div className={cn("flex min-h-8", showRememberedAccountCard ? "justify-end" : "items-start justify-between gap-4")}>
-                {!showRememberedAccountCard ? (
-                  <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
-                ) : null}
-                {showRememberedAccountCard ? (
-                  <button
-                    type="button"
-                    className={appTokens.authUtilityAction}
-                    onClick={handleSwitchAccount}
-                  >
-                    {PASSWORD_LOGIN_UI_COPY.switchAction}
-                  </button>
-                ) : null}
+              <div className="flex min-h-8 items-center justify-center">
+                <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
               </div>
-              <AuthStack size="sm" className={showRememberedAccountCard ? "text-center" : "text-left"}>
+              <AuthStack size="sm" className="text-center">
                 <h1 className={appTokens.authIntroTitle}>{copy.title}</h1>
                 {rememberedDisplayName ? (
                   <p className={appTokens.authDisplayName}>{rememberedDisplayName}</p>
                 ) : null}
-                {helperText ? (
+                {helperText && !showRememberedAccountChoice ? (
                   <p
                     aria-live="polite"
                     className={cn(
@@ -224,32 +257,6 @@ export function LoginScreen({
               {!showRememberedAccountCard && copy.subtitle ? <p className={appTokens.authSubtitleText}>{copy.subtitle}</p> : null}
             </AuthStack>
 
-            {showRememberedAccountCard && rememberedEmail && rememberedIdentity ? (
-              <AuthStack>
-                <div className={appTokens.authAccountPanel}>
-                  <p className={appTokens.authAccountEyebrow}>{PASSWORD_LOGIN_UI_COPY.returningUserLabel}</p>
-                  <p className={appTokens.authAccountValue}>{rememberedEmail}</p>
-                </div>
-
-                {rememberedAccountPrompt ? (
-                  <AuthActionBar>
-                    <PrimaryButton
-                      type="button"
-                      fullWidth
-                      disabled={isSubmitting}
-                      onClick={handleRevealCredentialStep}
-                      data-action-chrome-segmented="true"
-                      className={cn(
-                        appTokens.authActionButton,
-                        appTokens.authActionButtonReady,
-                      )}
-                    >
-                      {rememberedAccountPrompt.label}
-                    </PrimaryButton>
-                  </AuthActionBar>
-                ) : null}
-              </AuthStack>
-            ) : null}
           </AuthStack>
 
           <AuthStack
@@ -264,15 +271,15 @@ export function LoginScreen({
             )}
           >
             {showEmailField ? (
-              <AuthField label="Email">
+              <AuthField label="Email" hideLabel>
                 <Input
                   id={EMAIL_INPUT_ID}
-                  type="email"
+                  type="text"
                   name="email"
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                   defaultValue={rememberedEmail ?? undefined}
-                  placeholder="you@example.com"
+                  placeholder="you@example.com / username"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     appTokens.authInput,
@@ -284,7 +291,7 @@ export function LoginScreen({
             ) : null}
 
             <AuthStack size="sm">
-              <AuthField label="Password">
+              <AuthField label="Password" hideLabel>
                 <Input
                   id={PASSWORD_INPUT_ID}
                   type="password"
@@ -292,7 +299,7 @@ export function LoginScreen({
                   minLength={6}
                   required
                   autoComplete="current-password"
-                  placeholder="Enter your password"
+                  placeholder="password"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
                     appTokens.authInput,
@@ -304,48 +311,99 @@ export function LoginScreen({
             </AuthStack>
           </AuthStack>
 
-          {showManualAuth ? (
-            <AuthActionRow>
-              <Link className={appTokens.authInlineLink} href="/forgot-password">
-                {PASSWORD_LOGIN_UI_COPY.forgotPassword}
-              </Link>
-            </AuthActionRow>
-          ) : null}
-
           {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
           {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
 
-          {showManualAuth ? (
-            <AuthActionBar>
-              <PrimaryButton
-                type="submit"
-                fullWidth
-                disabled={!formReady || isSubmitting}
-                loading={isSubmitting}
-                data-action-chrome-segmented="true"
-                className={cn(
-                  appTokens.authActionButton,
-                  formReady ? appTokens.authActionButtonReady : "opacity-80",
-                  isSubmitting ? appTokens.authActionButtonPending : "",
-                )}
-              >
-                {submitLabel}
-              </PrimaryButton>
-            </AuthActionBar>
-          ) : null}
         </AuthForm>
 
-        {showManualAuth && !hasRememberedAccount ? (
-          <AuthFooter>
-            <AuthFooterText>
-              {PASSWORD_LOGIN_UI_COPY.createAccountPrefix}{" "}
+        {showManualAuth ? (
+          <AuthFooter className="pt-7">
+            <AuthFooterText className="text-sm">
               <Link href="/signup" className={appTokens.authInlineLink}>
                 {PASSWORD_LOGIN_UI_COPY.createAccountAction}
               </Link>
+              <span aria-hidden="true" className="px-2 text-[rgb(var(--text-muted)/0.72)]">|</span>
+              <button
+                type="button"
+                className={cn(
+                  appTokens.authInlineLink,
+                  "text-[rgb(var(--accent))] hover:text-[rgb(var(--accent)/0.78)]",
+                  "appearance-none border-0 bg-transparent p-0 font-inherit outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:underline disabled:cursor-not-allowed disabled:opacity-60",
+                )}
+                style={{
+                  WebkitAppearance: "none",
+                  appearance: "none",
+                  background: "transparent",
+                  border: 0,
+                  outline: 0,
+                  padding: 0,
+                  color: "rgb(var(--accent))",
+                }}
+                disabled={isSendingReset}
+                onClick={handlePasswordReset}
+              >
+                {isSendingReset ? "Sending..." : PASSWORD_LOGIN_UI_COPY.forgotPassword}
+              </button>
+            </AuthFooterText>
+          </AuthFooter>
+        ) : showRememberedAccountChoice ? (
+          <AuthFooter className="pt-7">
+            <AuthFooterText className="text-sm">
+              <button
+                type="button"
+                className={cn(
+                  appTokens.authInlineLink,
+                  "text-[rgb(var(--accent))] hover:text-[rgb(var(--accent)/0.78)]",
+                  "appearance-none border-0 bg-transparent p-0 font-inherit outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:underline",
+                )}
+                style={{
+                  WebkitAppearance: "none",
+                  appearance: "none",
+                  background: "transparent",
+                  border: 0,
+                  outline: 0,
+                  padding: 0,
+                  color: "rgb(var(--accent))",
+                }}
+                onClick={handleSwitchAccount}
+              >
+                Log Out
+              </button>
             </AuthFooterText>
           </AuthFooter>
         ) : null}
       </AuthCard>
+
+      {showManualAuth ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+          <BottomActionSingle>
+            <BottomDockButton
+              type="submit"
+              form={LOGIN_FORM_ID}
+              intent="positive"
+              disabled={!formReady || isSubmitting}
+              loading={isSubmitting}
+              loadingLabel={PASSWORD_LOGIN_UI_COPY.cta.pending}
+              className={cn(isSubmitting ? appTokens.authActionButtonPending : "")}
+            >
+              {submitLabel}
+            </BottomDockButton>
+          </BottomActionSingle>
+        </div>
+      ) : showRememberedAccountChoice && rememberedAccountPrompt ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+            <BottomActionSingle>
+              <BottomDockButton
+                type="button"
+                intent="positive"
+                disabled={isSubmitting}
+                onClick={handleRevealCredentialStep}
+              >
+              {rememberedAccountPrompt.label}
+            </BottomDockButton>
+          </BottomActionSingle>
+        </div>
+      ) : null}
     </AuthShell>
   );
 }

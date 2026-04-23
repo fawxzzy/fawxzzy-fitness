@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { spawn } from "node:child_process";
@@ -51,6 +52,60 @@ function parseDotenvFile(filePath) {
 const fileEnv = parseDotenvFile(envPath);
 const childEnv = { ...process.env };
 const overriddenKeys = [];
+const devArgs = process.argv.slice(2);
+
+function readArgValue(names, fallback) {
+  for (let index = 0; index < devArgs.length; index += 1) {
+    const entry = devArgs[index];
+    for (const name of names) {
+      if (entry === name) {
+        const next = devArgs[index + 1];
+        return next && !next.startsWith("-") ? next : fallback;
+      }
+
+      if (entry.startsWith(`${name}=`)) {
+        return entry.slice(name.length + 1);
+      }
+    }
+  }
+
+  return fallback;
+}
+
+function getLanIPv4Addresses() {
+  const addresses = [];
+  for (const entries of Object.values(os.networkInterfaces())) {
+    for (const entry of entries ?? []) {
+      if (entry.family !== "IPv4" || entry.internal || !entry.address || entry.address.startsWith("169.254.")) {
+        continue;
+      }
+
+      addresses.push(entry.address);
+    }
+  }
+
+  return [...new Set(addresses)].sort();
+}
+
+function printLanHint() {
+  const hostname = readArgValue(["--hostname", "-H"], "localhost");
+  const port = readArgValue(["--port", "-p"], "3000");
+  const bindsForLan = hostname === "0.0.0.0" || hostname === "::";
+
+  if (!bindsForLan) {
+    return;
+  }
+
+  const lanUrls = getLanIPv4Addresses().map((address) => `http://${address}:${port}`);
+  process.stdout.write(
+    [
+      "[dev] LAN mode enabled.",
+      `[dev] Local:   http://127.0.0.1:${port}`,
+      ...lanUrls.map((url) => `[dev] Phone:   ${url}`),
+      lanUrls.length === 0 ? "[dev] Phone:   no active LAN IPv4 address found" : null,
+    ].filter(Boolean).join("\n") + "\n",
+  );
+}
 
 for (const key of DEV_ENV_KEYS) {
   const fileValue = fileEnv[key];
@@ -71,7 +126,9 @@ if (overriddenKeys.length > 0) {
   );
 }
 
-const child = spawn(process.execPath, [nextBin, "dev", ...process.argv.slice(2)], {
+printLanHint();
+
+const child = spawn(process.execPath, [nextBin, "dev", ...devArgs], {
   cwd: repoRoot,
   env: childEnv,
   stdio: "inherit",

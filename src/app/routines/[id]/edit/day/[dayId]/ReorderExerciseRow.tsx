@@ -64,9 +64,9 @@ export function ReorderExerciseRow({
         variant="reorder"
         state={isDragging ? "selected" : "default"}
         badgeText={`ORDER ${orderNumber}`}
-        bodyClassName="pt-2.5"
-        className={cn("shadow-none", isDragging ? "scale-[0.99] opacity-85" : undefined)}
-        trailingStackClassName="gap-2"
+        bodyClassName={appTokens.routineEditorReorderBody}
+        className={cn(appTokens.routineEditorReorderBase, isDragging ? appTokens.routineEditorReorderDragging : undefined)}
+        trailingStackClassName={appTokens.routineEditorReorderTrailingStack}
         showLeadingVisual={policy.showMedia}
         rightIcon={(
           <button

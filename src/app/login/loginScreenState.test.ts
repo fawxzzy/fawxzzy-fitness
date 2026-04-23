@@ -36,14 +36,6 @@ test("submit labels stay tied to password auth state", () => {
   assert.equal(
     getLoginSubmitLabel({
       formReady: true,
-      isExceptionalReauth: true,
-      isSubmitting: false,
-    }),
-    "Continue",
-  );
-  assert.equal(
-    getLoginSubmitLabel({
-      formReady: true,
       isExceptionalReauth: false,
       isSubmitting: false,
     }),
@@ -73,6 +65,17 @@ test("remembered-account password step falls back to normal helper copy", () => 
       showCredentialStep: true,
       requiresReauth: false,
     }),
-    "Log in to continue your routine.",
+    null,
+  );
+});
+
+test("reauth path reuses the same remembered-password helper copy", () => {
+  assert.equal(
+    getLoginHelperText({
+      hasRememberedAccount: true,
+      showCredentialStep: true,
+      requiresReauth: true,
+    }),
+    null,
   );
 });

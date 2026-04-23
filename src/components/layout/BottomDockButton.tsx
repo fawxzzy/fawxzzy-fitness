@@ -15,13 +15,14 @@ type BottomDockButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "chil
   intent?: BottomActionIntent;
   variant?: BottomDockButtonVariant;
   loading?: boolean;
+  loadingLabel?: string;
   fullWidth?: boolean;
 };
 
-export function BottomDockButton({ children, intent, variant, className, loading = false, fullWidth = true, ...props }: BottomDockButtonProps) {
+export function BottomDockButton({ children, intent, variant, className, loading = false, loadingLabel: configuredLoadingLabel, fullWidth = true, ...props }: BottomDockButtonProps) {
   const resolvedIntent = resolveBottomActionIntent({ intent, variant });
   const isDisabled = Boolean(props.disabled || loading);
-  const loadingLabel = typeof children === "string" && children.trim().length > 0 ? `${children}...` : "Loading...";
+  const loadingLabel = configuredLoadingLabel ?? (typeof children === "string" && children.trim().length > 0 ? `${children}...` : "Loading...");
 
   return (
     <button

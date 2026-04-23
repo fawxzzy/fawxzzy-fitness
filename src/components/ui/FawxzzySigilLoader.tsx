@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/cn";
 
 type FawxzzySigilLoaderProps = {
@@ -8,19 +9,19 @@ type FawxzzySigilLoaderProps = {
 const sizeClassNames = {
   sm: {
     shell: "h-10 w-10",
-    core: "h-5 w-5 text-[0.54rem]",
+    core: "h-8 w-8",
   },
   md: {
     shell: "h-14 w-14",
-    core: "h-7 w-7 text-[0.7rem]",
+    core: "h-11 w-11",
   },
   lg: {
     shell: "h-16 w-16",
-    core: "h-8 w-8 text-[0.78rem]",
+    core: "h-13 w-13",
   },
   xl: {
     shell: "h-24 w-24",
-    core: "h-11 w-11 text-[1.05rem]",
+    core: "h-20 w-20",
   },
 };
 
@@ -37,8 +38,16 @@ export function FawxzzySigilLoader({
       <div className="absolute inset-[4px] animate-spin rounded-full border border-transparent border-r-[rgb(var(--ambient-line-cyan)/0.48)] border-t-[rgb(var(--accent)/0.9)]" />
       <div className="absolute inset-[9px] rounded-full border border-[rgb(var(--text)/0.08)]" />
       <div className="absolute inset-[11px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(71,215,196,0.28),rgba(71,215,196,0.04)_68%,transparent_100%)]" />
-      <div className={cn("relative grid place-items-center rounded-full border border-[rgb(var(--accent)/0.26)] bg-[rgb(var(--surface-2-rgb)/0.86)] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--text)/0.94)]", scale.core)}>
-        F
+      <div className={cn("relative grid place-items-center overflow-hidden", scale.core)}>
+        <Image
+          src="/app/loader-sigil.png"
+          alt=""
+          width={1024}
+          height={1024}
+          className="h-[114%] w-[114%] object-contain object-center mix-blend-screen opacity-95"
+          style={{ transform: "translate(0.5%, 5.5%)" }}
+          priority
+        />
       </div>
       <div
         className="absolute inset-0 animate-spin rounded-full [mask-image:conic-gradient(from_0deg,transparent_0deg,black_38deg,transparent_82deg)] bg-[conic-gradient(from_0deg,rgba(71,215,196,0)_0deg,rgba(71,215,196,0.55)_34deg,rgba(160,214,255,0.18)_68deg,rgba(71,215,196,0)_118deg)]"

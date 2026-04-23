@@ -54,7 +54,7 @@ export function RoutineEditorFormFields({
         />
       </label>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className={appTokens.routineEditorFieldGrid}>
         <label className={appTokens.routineEditorFieldLabel}>
           Cycle Length (Days)
           <input

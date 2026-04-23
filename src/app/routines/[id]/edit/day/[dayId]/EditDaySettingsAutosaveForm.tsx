@@ -166,7 +166,7 @@ export function EditDaySettingsAutosaveForm({ routineId, daySummaryCounts, routi
     >
       {headerActionSlotId ? (
         <div className={appTokens.routineEditorHeaderSlot}>
-          <div id={headerActionSlotId} className="w-full" />
+          <div id={headerActionSlotId} className={appTokens.routineEditorFill} />
         </div>
       ) : null}
     </RoutineEditorPageHeader>

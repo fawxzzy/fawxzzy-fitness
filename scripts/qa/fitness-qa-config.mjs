@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
@@ -13,11 +14,19 @@ export const envPath = path.join(repoRoot, ".env.local");
 export const runtimeRoot = path.join(atlasRoot, "runtime", "fitness");
 export const captureRoot = path.join(atlasRoot, "tmp", "captures", "fitness", "qa-local-feedback");
 export const sessionArtifactPath = path.join(runtimeRoot, "qa-session.json");
+export const mobileLoopStatusPath = path.join(runtimeRoot, "mobile-loop-status.json");
+export const devServerLogPath = path.join(runtimeRoot, "fitness-dev-server.log");
+export const devServerErrorLogPath = path.join(runtimeRoot, "fitness-dev-server.err.log");
+export const tunnelLogPath = path.join(runtimeRoot, "fitness-tunnel.log");
+export const tunnelErrorLogPath = path.join(runtimeRoot, "fitness-tunnel.err.log");
 
 export const FITNESS_QA_EMAIL_ENV = "FITNESS_QA_EMAIL";
 export const FITNESS_QA_PASSWORD_ENV = "FITNESS_QA_PASSWORD";
 export const FITNESS_QA_JUNK_USER_REGEX_ENV = "FITNESS_QA_JUNK_USER_REGEX";
 export const HISTORY_QA_PREVIEW_ENABLED_ENV = "HISTORY_QA_PREVIEW_ENABLED";
+export const DEFAULT_QA_PORT = 3000;
+export const DEFAULT_QA_HOST = "127.0.0.1";
+export const DEFAULT_QA_LAN_HOST = "0.0.0.0";
 
 let cachedEnv = null;
 
@@ -82,6 +91,59 @@ export const QA_BASELINE = {
 
 export function ensureDirectoryForFile(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
+export function getConfiguredQaPort() {
+  const rawPort = getOptionalEnv("FITNESS_QA_DEV_PORT");
+  const parsedPort = rawPort ? Number.parseInt(rawPort, 10) : DEFAULT_QA_PORT;
+  if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
+    throw new Error(`FITNESS_QA_DEV_PORT must be a TCP port number. Received: ${rawPort}`);
+  }
+
+  return parsedPort;
+}
+
+export function getLanIPv4Addresses() {
+  const addresses = [];
+  const interfaces = os.networkInterfaces();
+
+  for (const entries of Object.values(interfaces)) {
+    for (const entry of entries ?? []) {
+      if (entry.family !== "IPv4" || entry.internal || !entry.address) {
+        continue;
+      }
+
+      if (entry.address.startsWith("169.254.")) {
+        continue;
+      }
+
+      addresses.push(entry.address);
+    }
+  }
+
+  return [...new Set(addresses)].sort((left, right) => {
+    const leftPrivate = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(left);
+    const rightPrivate = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(right);
+    if (leftPrivate === rightPrivate) {
+      return left.localeCompare(right);
+    }
+
+    return leftPrivate ? -1 : 1;
+  });
+}
+
+export function resolveMobileLoopUrls({ port = getConfiguredQaPort(), tunnelUrl = null } = {}) {
+  const lanUrls = getLanIPv4Addresses().map((address) => `http://${address}:${port}`);
+  const configuredTunnelUrl = tunnelUrl ?? getOptionalEnv("FITNESS_QA_TUNNEL_URL");
+
+  return {
+    port,
+    localUrl: `http://${DEFAULT_QA_HOST}:${port}`,
+    bindUrl: `http://${DEFAULT_QA_LAN_HOST}:${port}`,
+    primaryLanUrl: lanUrls[0] ?? null,
+    lanUrls,
+    tunnelUrl: configuredTunnelUrl ? configuredTunnelUrl.replace(/\/$/, "") : null,
+  };
 }
 
 function normalizeEnvValue(rawValue) {

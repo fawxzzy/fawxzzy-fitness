@@ -4,14 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { establishRecoverySession } from "@/app/reset-password/actions";
-import { AuthActionBar, AuthMessage, AuthStack } from "@/components/auth/AuthShell";
-import { ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
-import { appTokens } from "@/components/ui/app/tokens";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { AuthFooter, AuthFooterText, AuthStack } from "@/components/auth/AuthShell";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockLink } from "@/components/layout/BottomDockButton";
+import { RouteLoading } from "@/components/RouteLoading";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import { cn } from "@/lib/cn";
 
-const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
+const RECOVERY_SESSION_ERROR = "Reset link expired.";
 
 type RecoverySessionBridgeProps = {
   initialError?: string;
@@ -97,25 +96,30 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
   }, [initialError]);
 
   if (isPending) {
-    return <p className={appTokens.authPendingText}>Finishing your password reset link...</p>;
+    return <RouteLoading label="Finishing your password reset link..." variant="route" />;
   }
 
   return (
-    <AuthStack>
-      <AuthMessage tone="error">{error ?? RECOVERY_SESSION_ERROR}</AuthMessage>
-      <AuthActionBar>
-        <Link
-          href="/forgot-password"
-          data-action-chrome-intent="positive"
-          className={getAppButtonClassName({
-            variant: "primary",
-            fullWidth: true,
-            className: cn(ACTION_CHROME_SEGMENTED_CLASS_NAME, appTokens.authActionButton),
-          })}
-        >
-          Request new reset link
-        </Link>
-      </AuthActionBar>
-    </AuthStack>
+    <>
+      <AuthStack>
+        <p className="pt-2 text-center text-sm leading-6 text-[rgb(var(--text-muted)/0.96)]">
+          {error ?? RECOVERY_SESSION_ERROR}
+        </p>
+        <AuthFooter className="pt-7">
+          <AuthFooterText>
+            <Link href="/login" className={appTokens.authInlineLink}>
+              Log In
+            </Link>
+          </AuthFooterText>
+        </AuthFooter>
+      </AuthStack>
+      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+        <BottomActionSingle>
+          <BottomDockLink href="/login" intent="positive">
+            Log In
+          </BottomDockLink>
+        </BottomActionSingle>
+      </div>
+    </>
   );
 }

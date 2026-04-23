@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AuthCard, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
-import { GhostButton } from "@/components/ui/AppButton";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
+import { AuthCard, AuthIntro, AuthShell } from "@/components/auth/AuthShell";
+import { RouteLoading } from "@/components/RouteLoading";
+import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton, BottomDockLink } from "@/components/layout/BottomDockButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import {
   trackEntryResolved,
 } from "@/features/curated-onboarding/analytics.ts";
@@ -180,68 +182,38 @@ export function InitialExperienceGate({
         : "redirecting";
   const stageCopy = getStageCopy(stage);
 
+  if (stage !== "error") {
+    return <RouteLoading label={stageCopy.detail} variant="route" />;
+  }
+
   return (
     <AuthShell>
-      <div className="space-y-5" data-testid="initial-experience-gate">
-        <AuthIntro eyebrow={stageCopy.eyebrow} title={stageCopy.title} subtitle={stageCopy.subtitle} />
+      <AuthCard className={appTokens.authInteractiveCard} data-testid="initial-experience-gate">
+        <AuthIntro eyebrow="" title="" subtitle="" />
+        <p className="pt-2 text-center text-sm leading-6 text-[rgb(var(--text-muted)/0.96)]">
+          Could not open app.
+        </p>
+      </AuthCard>
 
-        <AuthCard className="space-y-5 rounded-[1.85rem] border-emerald-400/10 shadow-[0_28px_80px_rgba(0,0,0,0.42)]">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-4 py-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-accent">
-                <span
-                  className={`h-4 w-4 rounded-full border-[1.5px] border-current border-r-transparent ${
-                    stage === "error" ? "animate-none" : "animate-spin motion-reduce:animate-none"
-                  }`}
-                />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-white">{stageCopy.detail}</p>
-                <p className="text-sm leading-6 text-slate-300">
-                  {stage === "redirecting"
-                    ? "Destination resolved once for this mount. The next screen is already committed."
-                    : "This handoff stays client-safe and avoids replaying the same redirect decision."}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-2 rounded-[1.2rem] border border-white/10 bg-black/15 px-4 py-4 text-sm text-slate-300">
-              <p className={stage === "checking-session" ? "text-white" : undefined}>Checking session context</p>
-              <p className={stage === "preparing-experience" ? "text-white" : undefined}>Preparing saved-state context</p>
-              <p className={stage === "redirecting" ? "text-white" : undefined}>Redirecting into the resolved destination</p>
-            </div>
-          </div>
-
-          {stage === "error" ? (
-            <>
-              <AuthMessage tone="error">
-                The post-auth destination check failed. Open the app directly or retry the handoff from here.
-              </AuthMessage>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/today"
-                  className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "min-h-[3.15rem] flex-1" })}
-                >
-                  Open Today
-                </Link>
-                <GhostButton
-                  type="button"
-                  onClick={() => {
-                    committedHrefRef.current = null;
-                    initialExperienceMarkedRef.current = false;
-                    setDecision(null);
-                    setGateState(null);
-                    setRetrySeed((value) => value + 1);
-                  }}
-                  className="min-h-[3.15rem] flex-1"
-                >
-                  Retry handoff
-                </GhostButton>
-              </div>
-            </>
-          ) : null}
-        </AuthCard>
+      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+        <BottomActionSplit
+          secondary={(
+            <BottomDockButton
+              type="button"
+              intent="info"
+              onClick={() => {
+                committedHrefRef.current = null;
+                initialExperienceMarkedRef.current = false;
+                setDecision(null);
+                setGateState(null);
+                setRetrySeed((value) => value + 1);
+              }}
+            >
+              Retry
+            </BottomDockButton>
+          )}
+          primary={<BottomDockLink href="/today" intent="positive">Start Offline</BottomDockLink>}
+        />
       </div>
     </AuthShell>
   );

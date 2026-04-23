@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { AuthCard, AuthMessage, AuthShell, AuthStatusCard } from "@/components/auth/AuthShell";
+import { AuthCard, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
+import { RouteLoading } from "@/components/RouteLoading";
 import { appTokens } from "@/components/ui/app/tokens";
 import { GhostButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
-import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { curatedWorkoutEngineClient } from "../api-contract.ts";
 import {
   trackCuratedAbandoned,
   trackCuratedCompleted,
@@ -33,7 +33,6 @@ import {
 import { getCuratedStepDefinition } from "../step-registry.ts";
 import type {
   CardioPreference,
-  CuratedGenerationStatus,
   CuratedOnboardingData,
   ExperienceLevel,
   EquipmentAccess,
@@ -45,7 +44,6 @@ import { CuratedIntroStep } from "./CuratedIntroStep";
 import { CuratedOnboardingProgress } from "./CuratedOnboardingProgress";
 import { EquipmentStep } from "./EquipmentStep";
 import { ExperienceStep } from "./ExperienceStep";
-import { GenerationHandoffStep } from "./GenerationHandoffStep";
 import { GoalsStep } from "./GoalsStep";
 import { PreferencesStep } from "./PreferencesStep";
 import { ReviewStep } from "./ReviewStep";
@@ -63,36 +61,17 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function getGenerationMessage(status: CuratedGenerationStatus) {
-  if (status === "not-implemented") {
-    return "Generation is not implemented yet. Your intake is saved and you can return later.";
-  }
-
-  if (status === "queued") {
-    return "The placeholder engine request is queued. Real routine generation is still intentionally out of scope.";
-  }
-
-  if (status === "ready") {
-    return "The contract returned a ready placeholder response. Plan preview work is still intentionally deferred.";
-  }
-
-  if (status === "failed") {
-    return "The placeholder engine request failed. Your intake is still saved on this device.";
-  }
-
-  return null;
-}
-
 export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnboardingShellProps) {
+  const router = useRouter();
   const [state, dispatch] = useReducer(curatedOnboardingReducer, undefined, () => createCuratedOnboardingState());
   const [hasHydrated, setHasHydrated] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [completionSource, setCompletionSource] = useState<CompletionSource>("fresh");
   const [didResumeDraft, setDidResumeDraft] = useState(false);
-  const generationRequestedRef = useRef(false);
   const journeyTrackedRef = useRef(false);
   const completionTrackedRef = useRef(false);
   const abandonmentTrackedRef = useRef(false);
+  const handoffRedirectedRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestStateRef = useRef(state);
   const latestCompletionSourceRef = useRef<CompletionSource>(completionSource);
@@ -193,57 +172,25 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
       !hasHydrated
       || state.draft.stepId !== "generation-handoff"
       || state.lifecycle.intakeStatus !== "completed"
-      || state.lifecycle.generationStatus !== "idle"
-      || generationRequestedRef.current
+      || handoffRedirectedRef.current
     ) {
       return;
     }
 
-    generationRequestedRef.current = true;
-    dispatch({ type: "generation-requested" });
+    handoffRedirectedRef.current = true;
+    const completedAt = state.lifecycle.completedAt ?? nowIso();
 
-    let cancelled = false;
+    saveCuratedOnboardingState(userId, state);
+    markInitialExperienceSeen(userId, completedAt);
 
-    void curatedWorkoutEngineClient
-      .generate({
-        userId,
-        onboarding: state.draft.data,
-      })
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
-
-        dispatch({
-          type: "generation-resolved",
-          status: response.status,
-          planId: response.planId ?? null,
-          message: getGenerationMessage(response.status),
-        });
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-
-        dispatch({
-          type: "generation-resolved",
-          status: "failed",
-          message: getGenerationMessage("failed"),
-        });
-      });
+    const timer = window.setTimeout(() => {
+      router.replace("/today");
+    }, 120);
 
     return () => {
-      cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [
-    hasHydrated,
-    state.draft.data,
-    state.draft.stepId,
-    state.lifecycle.generationStatus,
-    state.lifecycle.intakeStatus,
-    userId,
-  ]);
+  }, [hasHydrated, router, state, userId]);
 
   useEffect(() => {
     if (!hasHydrated || typeof window === "undefined") {
@@ -313,10 +260,10 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
 
   function handleReset() {
     resetCuratedOnboardingProgress(userId);
-    generationRequestedRef.current = false;
     journeyTrackedRef.current = false;
     completionTrackedRef.current = false;
     abandonmentTrackedRef.current = false;
+    handoffRedirectedRef.current = false;
     setCompletionSource("fresh");
     setDidResumeDraft(false);
     setSaveState("idle");
@@ -411,19 +358,15 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
       return <ReviewStep data={state.draft.data} />;
     }
 
-    return <GenerationHandoffStep data={state.draft.data} generationStatus={state.lifecycle.generationStatus} />;
+    return null;
   }
 
   if (!hasHydrated) {
-    return (
-      <AuthShell className="justify-center">
-        <AuthStatusCard
-          title="Restoring your training setup"
-          description="Checking for a saved intake before the curated flow decides whether to resume or start fresh."
-          testId="curated-onboarding-loading"
-        />
-      </AuthShell>
-    );
+    return <RouteLoading label="Restoring your training setup" variant="route" />;
+  }
+
+  if (state.draft.stepId === "generation-handoff" && state.lifecycle.intakeStatus === "completed") {
+    return <RouteLoading label="Opening today" variant="route" />;
   }
 
   return (
@@ -468,7 +411,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
           {renderStepBody()}
         </section>
 
-        {blockingMessage && !canAdvance && state.draft.stepId !== "generation-handoff" ? (
+        {blockingMessage && !canAdvance ? (
           <AuthMessage>{blockingMessage}</AuthMessage>
         ) : null}
 
@@ -485,23 +428,14 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
             </SecondaryButton>
           ) : null}
 
-          {state.draft.stepId === "generation-handoff" ? (
-            <Link
-              href="/today"
-              className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: appTokens.curatedActionButton })}
-            >
-              Open Today
-            </Link>
-          ) : (
-            <PrimaryButton
-              type="button"
-              disabled={!canAdvance}
-              onClick={handlePrimaryAction}
-              className={appTokens.curatedActionButton}
-            >
-              {stepDefinition.nextLabel}
-            </PrimaryButton>
-          )}
+          <PrimaryButton
+            type="button"
+            disabled={!canAdvance}
+            onClick={handlePrimaryAction}
+            className={appTokens.curatedActionButton}
+          >
+            {stepDefinition.nextLabel}
+          </PrimaryButton>
         </div>
       </AuthCard>
     </AuthShell>

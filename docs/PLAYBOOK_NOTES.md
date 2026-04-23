@@ -62,6 +62,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-23 - Phone QA loops should publish LAN and tunnel URLs from one local status file
+- Type: Guardrail
+- Summary: Mobile local verification should bind Next to all interfaces, publish the current LAN/tunnel URLs in the QA loop output, and write a runtime status file instead of relying on memory or a localhost-only server.
+- Suggested Playbook File: docs/GUARDRAILS/fitness-mobile-qa-loop.md
+- Rationale: Prevents phone checks from failing because the dev server only listens on localhost, the active URL is unclear, or the tunnel state is disconnected from the QA user reset flow.
+- Rule: Use `npm run qa:loop:mobile` for phone-ready local checks and keep tunnel command/URL config local-only.
+- Failure Mode: Desktop checks pass, but phone testing cannot reach the app or auth callback URLs point at the wrong host.
+- Evidence: scripts/dev.mjs, scripts/qa/fitness-qa-config.mjs, scripts/qa/fitness-mobile-loop.mjs, scripts/qa/fitness-tunnel.mjs, docs/runbooks/FITNESS-QA-LOCAL-LOOP.md
+- Status: Proposed
+
 ## 2026-04-23 - Fitness QA auth uses one resettable Supabase account
 - Type: Guardrail
 - Summary: Auth-aware local verification must reuse the permanent Fitness QA Supabase user from local env and reset that user's app data to a deterministic baseline before browser checks.

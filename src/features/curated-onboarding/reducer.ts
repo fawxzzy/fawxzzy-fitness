@@ -90,7 +90,7 @@ export function curatedOnboardingReducer(state: CuratedOnboardingState, action: 
       lifecycle: {
         ...state.lifecycle,
         intakeStatus: "completed",
-        generationStatus: "idle",
+        generationStatus: "not-implemented",
         planId: null,
         completedAt: action.at,
       },

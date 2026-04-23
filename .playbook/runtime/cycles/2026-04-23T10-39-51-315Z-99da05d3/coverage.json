@@ -1,18 +1,18 @@
 {
   "schemaVersion": "1.0",
-  "cycle_id": "2026-04-23T16-58-56-615Z-f109ea5e",
-  "observed_at": "2026-04-23T16:58:56.939Z",
-  "total_files_seen": 2477,
-  "eligible_files": 781,
-  "scanned_files": 759,
-  "skipped_files": 22,
-  "oversized_files": 22,
-  "ignored_files": 1175,
-  "unsupported_files": 232,
+  "cycle_id": "2026-04-23T10-39-51-315Z-99da05d3",
+  "observed_at": "2026-04-23T10:39:51.623Z",
+  "total_files_seen": 2215,
+  "eligible_files": 585,
+  "scanned_files": 570,
+  "skipped_files": 15,
+  "oversized_files": 15,
+  "ignored_files": 1171,
+  "unsupported_files": 170,
   "binary_files": 289,
   "parse_failures": 0,
   "parse_failed_files": 0,
-  "unresolved_imports": 24,
+  "unresolved_imports": 16,
   "detected_modules": 0,
   "unknown_areas": [
     "unsupported-file-types",
@@ -20,25 +20,25 @@
     "unresolved-imports",
     "classified-low-value-paths"
   ],
-  "eligible_scan_coverage_score": 0.9718,
-  "repo_visibility_score": 0.3064,
-  "blind_spot_ratio": 0.6936,
+  "eligible_scan_coverage_score": 0.9744,
+  "repo_visibility_score": 0.2573,
+  "blind_spot_ratio": 0.7427,
   "coverage_formulas": {
     "eligible_scan_coverage_score": "eligible_scan_coverage_score = scanned_files / eligible_files (eligible_files defaults to 1 when empty)",
     "repo_visibility_score": "repo_visibility_score = (total_files_seen - blind_spot_files) / total_files_seen (total_files_seen defaults to 1 when empty)",
     "blind_spot_ratio": "blind_spot_ratio = blind_spot_files / total_files_seen (total_files_seen defaults to 1 when empty)"
   },
   "score_components": {
-    "numerator_scanned_files": 759,
-    "denominator_eligible_files": 781,
-    "numerator_visible_files": 759,
-    "denominator_total_files_seen": 2477,
-    "numerator_blind_spot_files": 1718,
-    "denominator_total_files_seen_for_blind_spot": 2477
+    "numerator_scanned_files": 570,
+    "denominator_eligible_files": 585,
+    "numerator_visible_files": 570,
+    "denominator_total_files_seen": 2215,
+    "numerator_blind_spot_files": 1645,
+    "denominator_total_files_seen_for_blind_spot": 2215
   },
   "observations": {
     "file_inventory": {
-      "total_files_seen": 2477,
+      "total_files_seen": 2215,
       "sampled_file_hashes": [
         {
           "path": ".eslintrc.json",
@@ -50,7 +50,7 @@
         },
         {
           "path": ".next/app-build-manifest.json",
-          "sha256": "500c1d640029dc4d9996fb8141cdd897d7c89c70c88454894ec39cd8eeb69a97"
+          "sha256": "7283c68cbbb4e3908b7c92bb678d7c39a0ef5ee052de5536d80e3dfda316ea66"
         },
         {
           "path": ".next/build-manifest.json",
@@ -68,20 +68,20 @@
           "size_bytes": 6017442
         },
         {
-          "path": ".next/server/vendor-chunks/@supabase.js",
-          "size_bytes": 4378006
-        },
-        {
           "path": ".next/server/app/today/page.js",
-          "size_bytes": 3379243
-        },
-        {
-          "path": ".next/trace",
-          "size_bytes": 3347249
+          "size_bytes": 3354905
         },
         {
           "path": ".next/server/vendor-chunks/next.js",
-          "size_bytes": 3226342
+          "size_bytes": 3226040
+        },
+        {
+          "path": ".next/server/vendor-chunks/@supabase.js",
+          "size_bytes": 2918371
+        },
+        {
+          "path": ".next/static/chunks/app/today/page.js",
+          "size_bytes": 2726774
         }
       ],
       "path_class_counts": {
@@ -90,7 +90,7 @@
         "generated-report": 0,
         "temporary-file": 6,
         "binary-asset": 289,
-        "unknown": 1076
+        "unknown": 814
       },
       "pruned_directories": [
         {
@@ -153,18 +153,6 @@
           "reason": "unsupported-extension"
         },
         {
-          "path": ".next/server/app/dev/auth-screen-lab/page_client-reference-manifest.js",
-          "path_class": "unknown",
-          "handling": "scanned",
-          "reason": "analyzable-source-file"
-        },
-        {
-          "path": ".next/server/app/dev/auth-screen-lab/page.js",
-          "path_class": "unknown",
-          "handling": "skipped",
-          "reason": "oversized-file"
-        },
-        {
           "path": ".next/server/app/entry/page_client-reference-manifest.js",
           "path_class": "unknown",
           "handling": "scanned",
@@ -175,18 +163,6 @@
           "path_class": "unknown",
           "handling": "skipped",
           "reason": "oversized-file"
-        },
-        {
-          "path": ".next/server/app/forgot-password/page_client-reference-manifest.js",
-          "path_class": "unknown",
-          "handling": "scanned",
-          "reason": "analyzable-source-file"
-        },
-        {
-          "path": ".next/server/app/forgot-password/page.js",
-          "path_class": "unknown",
-          "handling": "scanned",
-          "reason": "analyzable-source-file"
         },
         {
           "path": ".next/server/app/history/exercises/page_client-reference-manifest.js",
@@ -221,8 +197,8 @@
         {
           "path": ".next/server/app/login/page.js",
           "path_class": "unknown",
-          "handling": "skipped",
-          "reason": "oversized-file"
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
         },
         {
           "path": ".next/server/app/manifest.webmanifest/route.js",
@@ -243,22 +219,46 @@
           "reason": "analyzable-source-file"
         },
         {
-          "path": ".next/server/app/reset-password/page_client-reference-manifest.js",
+          "path": ".next/server/app/routines/page_client-reference-manifest.js",
           "path_class": "unknown",
           "handling": "scanned",
           "reason": "analyzable-source-file"
         },
         {
-          "path": ".next/server/app/reset-password/page.js",
+          "path": ".next/server/app/routines/page.js",
           "path_class": "unknown",
           "handling": "skipped",
           "reason": "oversized-file"
         },
         {
-          "path": ".next/server/app/routines/page_client-reference-manifest.js",
+          "path": ".next/server/app/today/page_client-reference-manifest.js",
           "path_class": "unknown",
           "handling": "scanned",
           "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/app/today/page.js",
+          "path_class": "unknown",
+          "handling": "skipped",
+          "reason": "oversized-file"
+        },
+        {
+          "path": ".next/server/interception-route-rewrite-manifest.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/middleware-build-manifest.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/middleware-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
         }
       ],
       "ignore_candidate_paths": [
@@ -275,8 +275,8 @@
       "expensive_path_classes": [
         {
           "path_class": "unknown",
-          "total_size_bytes": 248714282,
-          "file_count": 1365
+          "total_size_bytes": 225898393,
+          "file_count": 1103
         },
         {
           "path_class": "build-cache",
@@ -291,7 +291,7 @@
       ]
     },
     "dependency_scan": {
-      "unresolved_relative_imports": 24
+      "unresolved_relative_imports": 16
     }
   },
   "interpretations": {

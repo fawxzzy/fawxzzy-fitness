@@ -3,6 +3,7 @@ import {
   ACTION_CHROME_RAIL_CLASS_NAME,
   ACTION_CHROME_RAIL_GRID_CLASS_NAME,
 } from "@/components/ui/actionChrome";
+import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
@@ -49,12 +50,15 @@ export function AuthShell({
 
 export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
   return (
-    <header className={appTokens.authIntro} data-testid="auth-intro">
-      <p className={appTokens.authIntroEyebrow}>{eyebrow}</p>
-      <div className={appTokens.authIntroTitleStack}>
-        <h1 className={appTokens.authIntroTitle}>{title}</h1>
-        <p className={appTokens.authIntroSubtitle}>{subtitle}</p>
-      </div>
+    <header className={cn(appTokens.authIntro, "pt-8 text-center")} data-testid="auth-intro">
+      <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
+      {eyebrow ? <p className={appTokens.authIntroEyebrow}>{eyebrow}</p> : null}
+      {title || subtitle ? (
+        <div className={appTokens.authIntroTitleStack}>
+          {title ? <h1 className={appTokens.authIntroTitle}>{title}</h1> : null}
+          {subtitle ? <p className={cn(appTokens.authIntroSubtitle, "mx-auto")}>{subtitle}</p> : null}
+        </div>
+      ) : null}
     </header>
   );
 }
@@ -84,10 +88,18 @@ export function AuthMessage({ tone = "default", children }: { tone?: "default" |
   return <p className={cn(appTokens.authMessage, toneClassName)}>{children}</p>;
 }
 
-export function AuthField({ label, children }: { label: string; children: ReactNode }) {
+export function AuthField({
+  label,
+  children,
+  hideLabel = false,
+}: {
+  label: string;
+  children: ReactNode;
+  hideLabel?: boolean;
+}) {
   return (
     <label className={appTokens.authField}>
-      <span className={appTokens.authFieldLabel}>{label}</span>
+      <span className={hideLabel ? "sr-only" : appTokens.authFieldLabel}>{label}</span>
       {children}
     </label>
   );
@@ -156,8 +168,8 @@ export function AuthActionBar({
   );
 }
 
-export function AuthFooter({ children }: { children: ReactNode }) {
-  return <div className={appTokens.authFooter}>{children}</div>;
+export function AuthFooter({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn(appTokens.authFooter, className)}>{children}</div>;
 }
 
 export function AuthFooterText({ children, className }: { children: ReactNode; className?: string }) {
