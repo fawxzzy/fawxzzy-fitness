@@ -6,7 +6,7 @@ import { signup } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthIntro, AuthMessage, AuthStack } from "@/components/auth/AuthShell";
+import { AuthCard, AuthDock, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthIntro, AuthMessage, AuthStack } from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { writeRememberedLoginState } from "@/lib/remembered-login";
@@ -89,7 +89,7 @@ export function SignupForm({
           {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
         </AuthForm>
 
-        <AuthFooter className="pt-7">
+        <AuthFooter>
           <AuthFooterText>
             <Link href="/login" className={appTokens.authInlineLink}>
               Log In
@@ -98,7 +98,7 @@ export function SignupForm({
         </AuthFooter>
       </AuthCard>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+      <AuthDock>
         <BottomActionSingle>
           <BottomDockButton
             type="submit"
@@ -109,7 +109,7 @@ export function SignupForm({
             Create
           </BottomDockButton>
         </BottomActionSingle>
-      </div>
+      </AuthDock>
     </>
   );
 }

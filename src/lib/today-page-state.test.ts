@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildTodayRoutinePayloadState,
   deriveTodayScreenMode,
+  formatTodayHeaderTitle,
   getTodayGlobalErrorMessage,
   getTodayDaySummary,
   getTodayDaySummaryTone,
@@ -119,7 +120,7 @@ test("buildTodayRoutinePayloadState reserves no-routine state for a genuinely mi
   assert.equal(payload, null);
 });
 
-test("deriveTodayScreenMode returns begin dock for runnable day", () => {
+test("deriveTodayScreenMode returns start dock for runnable day", () => {
   const mode = deriveTodayScreenMode({
     days: [{
       id: "day-1",
@@ -137,8 +138,8 @@ test("deriveTodayScreenMode returns begin dock for runnable day", () => {
 
   assert.equal(mode.runnableSelection, true);
   assert.equal(mode.dayRowsVisible, true);
-  assert.equal(mode.cta.primaryLabel, "Begin");
-  assert.equal(mode.cta.secondaryLabel, "Days");
+  assert.equal(mode.cta.primaryLabel, "Start");
+  assert.equal(mode.cta.secondaryLabel, "Switch");
 });
 
 test("deriveTodayScreenMode hides rows and switches secondary CTA when picker is open", () => {
@@ -186,7 +187,7 @@ test("deriveTodayScreenMode keeps resume CTA available for closed picker empty s
   assert.equal(mode.emptyTrainingDay, true);
   assert.equal(mode.cta.showPrimary, true);
   assert.equal(mode.cta.primaryLabel, "Resume");
-  assert.equal(mode.cta.secondaryLabel, "Days");
+  assert.equal(mode.cta.secondaryLabel, "Switch");
 });
 
 test("deriveTodayScreenMode keeps rest-day detail content visible when the picker is closed", () => {
@@ -244,4 +245,9 @@ test("rest and invalid-empty summaries resolve from pure summary selectors", () 
   assert.equal(restSummary, "Rest day.");
   assert.equal(invalidEmptyTone, "blocking");
   assert.equal(neutralEmptySummary, null);
+});
+
+test("formatTodayHeaderTitle joins routine and day names", () => {
+  assert.equal(formatTodayHeaderTitle("4Dayz", "Chest"), "4Dayz | Chest");
+  assert.equal(formatTodayHeaderTitle("4Dayz", ""), "4Dayz");
 });

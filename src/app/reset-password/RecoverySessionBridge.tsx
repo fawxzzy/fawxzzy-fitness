@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { establishRecoverySession } from "@/app/reset-password/actions";
-import { AuthFooter, AuthFooterText, AuthStack } from "@/components/auth/AuthShell";
+import { AuthDock, AuthFooter, AuthFooterText, AuthStack } from "@/components/auth/AuthShell";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { RouteLoading } from "@/components/RouteLoading";
+import { appTokens } from "@/components/ui/app/tokens";
+import { cn } from "@/lib/cn";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired.";
@@ -102,10 +104,10 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
   return (
     <>
       <AuthStack>
-        <p className="pt-2 text-center text-sm leading-6 text-[rgb(var(--text-muted)/0.96)]">
+        <p className={cn("pt-2 text-center", appTokens.authSubtitleText)}>
           {error ?? RECOVERY_SESSION_ERROR}
         </p>
-        <AuthFooter className="pt-7">
+        <AuthFooter>
           <AuthFooterText>
             <Link href="/login" className={appTokens.authInlineLink}>
               Log In
@@ -113,13 +115,13 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
           </AuthFooterText>
         </AuthFooter>
       </AuthStack>
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+      <AuthDock>
         <BottomActionSingle>
           <BottomDockLink href="/login" intent="positive">
             Log In
           </BottomDockLink>
         </BottomActionSingle>
-      </div>
+      </AuthDock>
     </>
   );
 }

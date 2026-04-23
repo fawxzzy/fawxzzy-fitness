@@ -11,7 +11,19 @@ import {
   shouldStartCredentialStepOpenForLogin,
 } from "@/app/login/loginScreenState";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
-import { AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
+import {
+  AuthCard,
+  AuthDock,
+  AuthField,
+  AuthFooter,
+  AuthFooterSeparator,
+  AuthFooterText,
+  AuthForm,
+  AuthInlineLinkButton,
+  AuthMessage,
+  AuthShell,
+  AuthStack,
+} from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -317,65 +329,30 @@ export function LoginScreen({
         </AuthForm>
 
         {showManualAuth ? (
-          <AuthFooter className="pt-7">
-            <AuthFooterText className="text-sm">
+          <AuthFooter>
+            <AuthFooterText>
               <Link href="/signup" className={appTokens.authInlineLink}>
                 {PASSWORD_LOGIN_UI_COPY.createAccountAction}
               </Link>
-              <span aria-hidden="true" className="px-2 text-[rgb(var(--text-muted)/0.72)]">|</span>
-              <button
-                type="button"
-                className={cn(
-                  appTokens.authInlineLink,
-                  "text-[rgb(var(--accent))] hover:text-[rgb(var(--accent)/0.78)]",
-                  "appearance-none border-0 bg-transparent p-0 font-inherit outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:underline disabled:cursor-not-allowed disabled:opacity-60",
-                )}
-                style={{
-                  WebkitAppearance: "none",
-                  appearance: "none",
-                  background: "transparent",
-                  border: 0,
-                  outline: 0,
-                  padding: 0,
-                  color: "rgb(var(--accent))",
-                }}
-                disabled={isSendingReset}
-                onClick={handlePasswordReset}
-              >
+              <AuthFooterSeparator />
+              <AuthInlineLinkButton disabled={isSendingReset} onClick={handlePasswordReset}>
                 {isSendingReset ? "Sending..." : PASSWORD_LOGIN_UI_COPY.forgotPassword}
-              </button>
+              </AuthInlineLinkButton>
             </AuthFooterText>
           </AuthFooter>
         ) : showRememberedAccountChoice ? (
-          <AuthFooter className="pt-7">
-            <AuthFooterText className="text-sm">
-              <button
-                type="button"
-                className={cn(
-                  appTokens.authInlineLink,
-                  "text-[rgb(var(--accent))] hover:text-[rgb(var(--accent)/0.78)]",
-                  "appearance-none border-0 bg-transparent p-0 font-inherit outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:underline",
-                )}
-                style={{
-                  WebkitAppearance: "none",
-                  appearance: "none",
-                  background: "transparent",
-                  border: 0,
-                  outline: 0,
-                  padding: 0,
-                  color: "rgb(var(--accent))",
-                }}
-                onClick={handleSwitchAccount}
-              >
+          <AuthFooter>
+            <AuthFooterText>
+              <AuthInlineLinkButton onClick={handleSwitchAccount}>
                 Log Out
-              </button>
+              </AuthInlineLinkButton>
             </AuthFooterText>
           </AuthFooter>
         ) : null}
       </AuthCard>
 
       {showManualAuth ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+        <AuthDock>
           <BottomActionSingle>
             <BottomDockButton
               type="submit"
@@ -389,20 +366,20 @@ export function LoginScreen({
               {submitLabel}
             </BottomDockButton>
           </BottomActionSingle>
-        </div>
+        </AuthDock>
       ) : showRememberedAccountChoice && rememberedAccountPrompt ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
-            <BottomActionSingle>
-              <BottomDockButton
-                type="button"
-                intent="positive"
-                disabled={isSubmitting}
-                onClick={handleRevealCredentialStep}
-              >
+        <AuthDock>
+          <BottomActionSingle>
+            <BottomDockButton
+              type="button"
+              intent="positive"
+              disabled={isSubmitting}
+              onClick={handleRevealCredentialStep}
+            >
               {rememberedAccountPrompt.label}
             </BottomDockButton>
           </BottomActionSingle>
-        </div>
+        </AuthDock>
       ) : null}
     </AuthShell>
   );

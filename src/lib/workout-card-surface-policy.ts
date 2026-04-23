@@ -46,7 +46,7 @@ export function resolveWorkoutCardSurfacePolicy(
   switch (surface) {
     case "today":
       return {
-        showMedia: false,
+        showMedia: true,
         showIdentityChips: false,
         showDetailedMetrics: density === "detailed",
         mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),

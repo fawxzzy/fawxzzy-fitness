@@ -324,7 +324,7 @@ export function SessionExerciseFocus({
 
   return (
     <div className={appTokens.currentSessionFocusStack} data-row-interaction={contract.rowInteraction}>
-      <ul className={appTokens.currentSessionFocusList}>
+      <ul className={cn(appTokens.currentSessionFocusList, "space-y-0")}>
         {visibleExercises.map((exercise) => {
           const isRemoving = removingExerciseIds.includes(exercise.id);
           const isExpanded = selectedExerciseId === exercise.id;
@@ -347,6 +347,9 @@ export function SessionExerciseFocus({
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
           });
+          const titleMeta = progressState.goalSetTarget !== null && progressState.loggedSetCount > 0
+            ? `${progressState.loggedSetCount} / ${progressState.goalSetTarget}`
+            : undefined;
           const semanticTone = resolveSessionExerciseTone({
             loggedSetCount: setCount,
             isSkipped: rowViewModel.isSkipped,
@@ -371,13 +374,17 @@ export function SessionExerciseFocus({
                     onToggle={() => toggleExercise(exercise.id)}
                     exercise={exercise}
                     summary={exercise.goalLabel}
-                    summaryLabel="Goal"
+                    summaryLabel=""
                     density="compact"
                     state={isExpanded ? "selected" : rowState.cardState}
                     semanticTone={semanticTone}
                     trailingClassName={appTokens.metaText}
-                    badgeText={rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined)}
+                    badgeText={titleMeta ? undefined : rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined)}
                     showLeadingVisual={surfacePolicy.showMedia}
+                    subtitleTone="plain"
+                    cardClassName={!isExpanded ? "rounded-bl-none border-b-0" : undefined}
+                    contentClassName="pl-3"
+                    titleMeta={titleMeta}
                   >
                     <>
                       {progressState.kind === "skipped" || progressState.kind === "partialSkipped" ? (

@@ -89,6 +89,12 @@
       "id": "checkpoint-015",
       "label": "verify:passed",
       "step_id": "step-015"
+    },
+    {
+      "created_at": "2026-04-23T20:08:21.392Z",
+      "id": "checkpoint-016",
+      "label": "verify:passed",
+      "step_id": "step-016"
     }
   ],
   "created_at": "2026-04-22T23:33:54.191Z",
@@ -305,6 +311,20 @@
     {
       "evidence": [],
       "id": "step-015",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-016",
       "inputs": {
         "policyMode": false
       },

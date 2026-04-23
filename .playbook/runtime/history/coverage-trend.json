@@ -105,6 +105,13 @@
       "eligible_scan_coverage_score": 0.9718,
       "repo_visibility_score": 0.3064,
       "blind_spot_ratio": 0.6936
+    },
+    {
+      "cycle_id": "2026-04-23T20-08-20-876Z-a7a5bb63",
+      "observed_at": "2026-04-23T20:08:21.413Z",
+      "eligible_scan_coverage_score": 0.9754,
+      "repo_visibility_score": 0.3646,
+      "blind_spot_ratio": 0.6354
     }
   ]
 }

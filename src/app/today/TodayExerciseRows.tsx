@@ -79,9 +79,10 @@ export function TodayExerciseRows({
               <StandardExerciseRow
                 exercise={exercise}
                 summary={exercise.targets}
-                summaryLabel="Goal"
+                subtitleTone="plain"
                 variant="interactive"
                 density={density}
+                contentClassName="pl-3"
                 state={cardVariantState.cardState}
                 badgeText={cardVariantState.badgeText}
                 onPress={() => {

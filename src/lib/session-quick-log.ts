@@ -1,5 +1,3 @@
-import { formatSetCountLabel } from "./measurement-display";
-
 export type SessionQuickLogTarget = {
   repsMin?: number;
   repsMax?: number;
@@ -38,12 +36,9 @@ function formatDurationPreview(totalSeconds: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-function formatRange(min?: number, max?: number, suffix = "") {
-  const hasMin = hasValue(min);
-  const hasMax = hasValue(max);
-  if (hasMin && hasMax && min !== max) return `${min}–${max}${suffix}`;
-  if (hasMin) return `${min}${suffix}`;
-  if (hasMax) return `${max}${suffix}`;
+function resolveSingleValue(min?: number, max?: number) {
+  if (hasValue(min)) return min ?? null;
+  if (hasValue(max)) return max ?? null;
   return null;
 }
 
@@ -61,8 +56,10 @@ export function formatQuickLogPreviewLabel({
   fallbackWeightUnit: "lbs" | "kg";
 }) {
   const weightUnit = target?.weightUnit ?? fallbackWeightUnit;
-  const repsSummary = formatRange(target?.repsMin, target?.repsMax, " reps");
-  const weightSummary = formatRange(target?.weightMin, target?.weightMax, ` ${weightUnit}`);
+  const repsValue = resolveSingleValue(target?.repsMin, target?.repsMax);
+  const weightValue = resolveSingleValue(target?.weightMin, target?.weightMax);
+  const repsSummary = hasValue(repsValue ?? undefined) ? `${repsValue} reps` : null;
+  const weightSummary = hasValue(weightValue ?? undefined) ? `${weightValue} ${weightUnit}` : null;
   const durationSummary = hasValue(target?.durationSeconds) ? formatDurationPreview(Number(target?.durationSeconds)) : null;
   const distanceSummary = hasValue(target?.distance) ? `${target?.distance} ${target?.distanceUnit ?? "mi"}` : null;
   const caloriesSummary = hasValue(target?.calories) ? `${target?.calories} cal` : null;
@@ -80,13 +77,10 @@ export function formatQuickLogPreviewLabel({
     return primarySummary;
   }
 
-  const nextSet = loggedSetCount + 1;
-  const goalSetCount = targetSetsMax ?? targetSetsMin;
-  if (goalSetCount && goalSetCount > 0) {
-    return `Set ${nextSet} of ${goalSetCount}`;
-  }
-
-  return formatSetCountLabel(nextSet) ?? `Set ${nextSet}`;
+  void loggedSetCount;
+  void targetSetsMin;
+  void targetSetsMax;
+  return "";
 }
 
 export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): QuickLogResolution {

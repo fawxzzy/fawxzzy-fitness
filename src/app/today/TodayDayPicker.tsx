@@ -12,7 +12,6 @@ import {
   DayCard,
   DayList,
   formatLoggedSetCount,
-  REST_DAY_CARD_COPY,
   resolveDayCardBadgeText,
   resolveDayCardState,
 } from "@/components/day-list/DayList";
@@ -21,15 +20,15 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { appTokens } from "@/components/ui/app/tokens";
-import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
-import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { cn } from "@/lib/cn";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import {
   deriveTodayScreenMode,
+  formatTodayHeaderTitle,
   getTodayDaySummary,
   getTodayDaySummaryTone,
   type TodayPickerDayState,
@@ -154,7 +153,11 @@ export function TodayDayPicker({
       return daySummary || getDayExerciseSummaryLabel(day) || undefined;
     }
 
-    return getDayExerciseSummaryLabel(day) || undefined;
+    return getDayTaxonomyHeaderSummaryParts({
+      dayName: day.name,
+      summary: getRestDayExerciseCountSummaryFromInputs(day.exercises, day.isRest),
+      isRest: day.isRest,
+    }).countsSummary || undefined;
   }, [getDayExerciseSummaryLabel]);
   const daySummary = selectedDay
     ? getTodayDaySummary(selectedDay)
@@ -168,16 +171,6 @@ export function TodayDayPicker({
   const selectedDayStateCard = useMemo(() => {
     if (!selectedDay || mode.dayPickerOpen) {
       return null;
-    }
-
-    if (selectedDay.state === "rest") {
-      return (
-        <DayDetailStateCard
-          tone="rest"
-          title="Rest day"
-          body={REST_DAY_CARD_COPY}
-        />
-      );
     }
 
     if (selectedDay.state === "empty" && selectedDay.invalidExerciseCount === 0) {
@@ -213,14 +206,13 @@ export function TodayDayPicker({
 
   const headerNode = selectedDay ? (
     <TodayOverviewHeader
-      title={routineName}
-      subtitle={(
-        <DayTaxonomyHeaderSummary
-          dayName={selectedDay.name}
-          summary={getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest)}
-          isRest={selectedDay.isRest}
-        />
-      )}
+      title={mode.dayPickerOpen ? routineName : formatTodayHeaderTitle(routineName, selectedDay.name)}
+      align="center"
+      subtitle={getDayTaxonomyHeaderSummaryParts({
+        dayName: selectedDay.name,
+        summary: getRestDayExerciseCountSummaryFromInputs(selectedDay.exercises, selectedDay.isRest),
+        isRest: selectedDay.isRest,
+      }).countsSummary}
       action={inProgressSessionId
         ? <AppBadge tone="success">In Session</AppBadge>
         : completedDayIndexSet.has(selectedDay.dayIndex)
@@ -234,7 +226,7 @@ export function TodayDayPicker({
       <BottomDockButton
         id="today-day-picker"
         type="button"
-        intent={mode.dayPickerOpen ? "toggleActive" : "toggleInactive"}
+        intent="toggleActive"
         onClick={togglePicker}
         aria-expanded={mode.dayPickerOpen}
         aria-controls="today-day-selector-list"
@@ -243,7 +235,7 @@ export function TodayDayPicker({
       </BottomDockButton>
     );
 
-    if (!mode.cta.showPrimary) {
+    if (mode.dayPickerOpen || !mode.cta.showPrimary) {
       return <BottomActionSingle>{selectDayButton}</BottomActionSingle>;
     }
 
@@ -300,12 +292,7 @@ export function TodayDayPicker({
                             isCompleted: completedDayIndexSet.has(day.dayIndex),
                             isInSession: inSessionDayIndex === day.dayIndex,
                           })}
-                          badgeText={resolveDayCardBadgeText({
-                            isToday: day.dayIndex === currentDayIndex,
-                            isRest: day.isRest,
-                            isCompleted: completedDayIndexSet.has(day.dayIndex),
-                            isInSession: inSessionDayIndex === day.dayIndex,
-                          })}
+                          showAccentRail={false}
                           metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
                           rightIcon={null}
                         />
@@ -349,7 +336,8 @@ export function TodayDayPicker({
                             variant="interactive"
                             density={exerciseDensity}
                             summary={exercise.targets}
-                            summaryLabel="Goal"
+                            subtitleTone="plain"
+                            contentClassName="pl-3"
                             onPress={() => {
                               if (process.env.NODE_ENV === "development") {
                                 console.debug("[ExerciseInfo:open] TodayDayPicker", { exerciseId: exercise.exerciseId, exercise });

@@ -140,6 +140,7 @@ function resolveDefaultSemanticTone(state: ExerciseCardState): CardSemanticTone 
 
 export function ExerciseCard({
   title,
+  titleMeta,
   subtitle,
   children,
   leadingVisual,
@@ -161,6 +162,7 @@ export function ExerciseCard({
   subtitleLabel,
   subtitleTone = "panel",
   buttonProps,
+  showAccentRail = true,
   variant = "standard",
   state = "default",
   density,
@@ -169,6 +171,7 @@ export function ExerciseCard({
   mediaRailWidth,
 }: {
   title: string;
+  titleMeta?: ReactNode;
   subtitle?: ReactNode;
   children?: ReactNode;
   leadingVisual?: ReactNode;
@@ -190,6 +193,7 @@ export function ExerciseCard({
   subtitleLabel?: string;
   subtitleTone?: "panel" | "plain";
   buttonProps?: ExerciseCardButtonProps;
+  showAccentRail?: boolean;
   variant?: ExerciseCardVariant;
   state?: ExerciseCardState;
   density?: ExerciseCardDensity;
@@ -205,6 +209,7 @@ export function ExerciseCard({
   const usesRailMedia = hasLeadingVisual && mediaLayout === "rail";
   const usesInlineMedia = hasLeadingVisual && mediaLayout === "inline";
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
+  const hasTitleMeta = titleMeta !== null && titleMeta !== undefined && titleMeta !== false;
   const hasBadgeText = Boolean(badgeText?.trim());
   const hasSupportingContent = Boolean(subtitle) || Boolean(children);
   const resolvedMediaRailWidth = mediaRailWidth ?? (resolvedDensity === "detailed" ? 76 : 72);
@@ -227,13 +232,16 @@ export function ExerciseCard({
       data-exercise-card-density={resolvedDensity}
       data-exercise-card-media={usesRailMedia ? "rail" : usesInlineMedia ? "inline" : "none"}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute bottom-px left-px top-px w-[3px] rounded-r-full",
-          cardAccentRailClassNames[resolvedSemanticTone],
-        )}
-      />
+      {showAccentRail ? (
+        <span
+          aria-hidden="true"
+          data-exercise-card-accent-rail="true"
+          className={cn(
+            "pointer-events-none absolute bottom-px left-px top-px w-[3px] rounded-r-full",
+            cardAccentRailClassNames[resolvedSemanticTone],
+          )}
+        />
+      ) : null}
       {hasBadgeText ? (
         <span
           className={cn(
@@ -272,24 +280,37 @@ export function ExerciseCard({
               "flex min-h-full min-w-0 flex-col",
               hasSupportingContent ? "justify-start" : "justify-center",
               styles.contentGap,
-              hasBadgeText ? (resolvedDensity === "compact" ? "pr-[5.2rem]" : "pr-[5.6rem]") : undefined,
+              hasBadgeText && !hasTitleMeta ? (resolvedDensity === "compact" ? "pr-[5.2rem]" : "pr-[5.6rem]") : undefined,
               titleContainerClassName,
             )}
           >
-            <p
-              className={cn(
-                "text-safe-wrap min-w-0 leading-tight [text-wrap:pretty]",
-                styles.titleClamp,
-                styles.titleSize,
-                appTokens.exerciseCardTitleTextPad,
-                "font-semibold",
-                titleStateClassNames[state],
-                titleClassName,
-              )}
-              data-exercise-card-title="true"
-            >
-              {title}
-            </p>
+            <div className="flex min-w-0 items-start justify-between gap-2">
+              <p
+                className={cn(
+                  "text-safe-wrap min-w-0 flex-1 leading-tight [text-wrap:pretty]",
+                  styles.titleClamp,
+                  styles.titleSize,
+                  appTokens.exerciseCardTitleTextPad,
+                  "font-semibold",
+                  titleStateClassNames[state],
+                  titleClassName,
+                )}
+                data-exercise-card-title="true"
+              >
+                {title}
+              </p>
+              {hasTitleMeta ? (
+                <div
+                  className={cn(
+                    "shrink-0 whitespace-nowrap px-1 text-[1rem] font-semibold leading-tight",
+                    titleStateClassNames[state],
+                  )}
+                  data-exercise-card-title-meta="true"
+                >
+                  {titleMeta}
+                </div>
+              ) : null}
+            </div>
             {subtitle ? (
               subtitleTone === "plain" ? (
                 <div className="min-w-0">

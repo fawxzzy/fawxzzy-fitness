@@ -8,7 +8,7 @@
     {
       "artifact": ".playbook/runs/run-237aa79db609.json",
       "kind": "run",
-      "pinnedAt": "2026-04-23T16:58:56.926Z"
+      "pinnedAt": "2026-04-23T20:08:21.397Z"
     }
   ],
   "currentStep": "verify",
@@ -19,7 +19,7 @@
     "session_id": "session-QzpcQVRMQV",
     "selected_run_id": "run-237aa79db609",
     "cycle_id": null,
-    "generated_from_last_updated_time": "2026-04-23T16:58:56.926Z",
+    "generated_from_last_updated_time": "2026-04-23T20:08:21.397Z",
     "artifacts": [
       {
         "path": ".playbook/cycle-history.json",
@@ -103,5 +103,5 @@
       }
     ]
   },
-  "lastUpdatedTime": "2026-04-23T16:58:56.926Z"
+  "lastUpdatedTime": "2026-04-23T20:08:21.397Z"
 }

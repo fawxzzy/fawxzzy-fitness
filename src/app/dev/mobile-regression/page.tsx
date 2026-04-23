@@ -456,7 +456,7 @@ const mockSessionExercises = [
     id: "session-ex-2",
     exerciseId: MOCK_EXERCISE_IDS.lunge,
     name: "Walking Lunge",
-    isSkipped: false,
+    isSkipped: true,
     defaultUnit: null,
     isCardio: false,
     measurementType: "reps" as const,
@@ -468,12 +468,29 @@ const mockSessionExercises = [
     routineDayExerciseId: "routine-row-2",
     planTargetsHash: "11000",
     goalLabel: LONG_GOAL_SUMMARY,
-    prefill: { weight: 35, reps: 12, weightUnit: "lbs" as const },
-    quickLogTarget: { measurementType: "reps" as const, repsMin: 12, repsMax: 12, weightMin: 35, weightMax: 35, weightUnit: "lbs" as const },
-    initialSets: [],
-    loggedSetCount: 0,
-    targetSetsMin: 3,
-    targetSetsMax: 3,
+    prefill: { weight: 35, reps: 8, weightUnit: "lbs" as const },
+    quickLogTarget: { measurementType: "reps" as const, repsMin: 8, repsMax: 8, weightMin: 35, weightMax: 35, weightUnit: "lbs" as const },
+    initialSets: [
+      {
+        id: "set-2",
+        session_exercise_id: "session-ex-2",
+        user_id: "dev-user",
+        set_index: 0,
+        weight: 35,
+        reps: 8,
+        is_warmup: false,
+        notes: null,
+        duration_seconds: null,
+        distance: null,
+        distance_unit: null,
+        calories: null,
+        rpe: 8,
+        weight_unit: "lbs" as const,
+      },
+    ],
+    loggedSetCount: 1,
+    targetSetsMin: 4,
+    targetSetsMax: 4,
     image_icon_path: "/missing/icon-lunge.png",
     image_howto_path: null,
     slug: "walking-lunge",
@@ -482,7 +499,7 @@ const mockSessionExercises = [
     id: "session-ex-3",
     exerciseId: MOCK_EXERCISE_IDS.walk,
     name: "Incline Walk",
-    isSkipped: false,
+    isSkipped: true,
     defaultUnit: "km" as const,
     isCardio: true,
     measurementType: "time_distance" as const,
@@ -527,8 +544,73 @@ const mockSessionExercises = [
     goalLabel: "4 sets x 6 reps",
     prefill: { reps: 6 },
     quickLogTarget: { measurementType: "reps" as const, repsMin: 6, repsMax: 6 },
-    initialSets: [],
-    loggedSetCount: 0,
+    initialSets: [
+      {
+        id: "set-4a",
+        session_exercise_id: "session-ex-4",
+        user_id: "dev-user",
+        set_index: 0,
+        weight: 0,
+        reps: 6,
+        is_warmup: false,
+        notes: null,
+        duration_seconds: null,
+        distance: null,
+        distance_unit: null,
+        calories: null,
+        rpe: 8,
+        weight_unit: "lbs" as const,
+      },
+      {
+        id: "set-4b",
+        session_exercise_id: "session-ex-4",
+        user_id: "dev-user",
+        set_index: 1,
+        weight: 0,
+        reps: 6,
+        is_warmup: false,
+        notes: null,
+        duration_seconds: null,
+        distance: null,
+        distance_unit: null,
+        calories: null,
+        rpe: 8,
+        weight_unit: "lbs" as const,
+      },
+      {
+        id: "set-4c",
+        session_exercise_id: "session-ex-4",
+        user_id: "dev-user",
+        set_index: 2,
+        weight: 0,
+        reps: 6,
+        is_warmup: false,
+        notes: null,
+        duration_seconds: null,
+        distance: null,
+        distance_unit: null,
+        calories: null,
+        rpe: 8,
+        weight_unit: "lbs" as const,
+      },
+      {
+        id: "set-4d",
+        session_exercise_id: "session-ex-4",
+        user_id: "dev-user",
+        set_index: 3,
+        weight: 0,
+        reps: 6,
+        is_warmup: false,
+        notes: null,
+        duration_seconds: null,
+        distance: null,
+        distance_unit: null,
+        calories: null,
+        rpe: 8,
+        weight_unit: "lbs" as const,
+      },
+    ],
+    loggedSetCount: 4,
     targetSetsMin: 4,
     targetSetsMax: 4,
     image_icon_path: "/missing/icon-pullup.png",
@@ -906,14 +988,16 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderSessionScenario(scenario: MobileFixtureScenario) {
+  const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
+
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
         <RegressionMarker scenario={scenario} />
         <SessionPageClient
           userId="dev-user"
           sessionId="dev-session"
-        initialDurationSeconds={1865}
-        performedAt="2026-04-10T12:00:00.000Z"
+        initialDurationSeconds={0}
+        performedAt={capturePerformedAt}
         routineName="Lower Rotation"
         sessionDayName="Day 2"
         sessionSummaryCounts={{ strength: 2, cardio: 1, unknown: 0 }}

@@ -172,8 +172,29 @@ export function AuthFooter({ children, className }: { children: ReactNode; class
   return <div className={cn(appTokens.authFooter, className)}>{children}</div>;
 }
 
+export function AuthFooterSeparator() {
+  return <span aria-hidden="true" className={appTokens.authFooterSeparator}>|</span>;
+}
+
 export function AuthFooterText({ children, className }: { children: ReactNode; className?: string }) {
   return <p className={cn("text-center leading-6", className)}>{children}</p>;
+}
+
+export function AuthInlineLinkButton({
+  children,
+  className,
+  type = "button",
+  ...props
+}: ComponentPropsWithoutRef<"button">) {
+  return (
+    <button {...props} type={type} className={cn(appTokens.authInlineButton, className)}>
+      {children}
+    </button>
+  );
+}
+
+export function AuthDock({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn(appTokens.authDock, className)}>{children}</div>;
 }
 
 export function AuthStatusCard({

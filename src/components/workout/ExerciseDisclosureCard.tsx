@@ -36,10 +36,15 @@ export function ExerciseDisclosureCard({
   variant = "interactive",
   children,
   showLeadingVisual = false,
+  showAccentRail = true,
   leadingVisual,
+  cardClassName,
+  titleMeta,
   trailingClassName,
   bodyClassName,
+  contentClassName,
   panelClassName,
+  subtitleTone,
   className,
 }: {
   scope: DisclosureScope;
@@ -56,10 +61,15 @@ export function ExerciseDisclosureCard({
   variant?: ExerciseCardVariant;
   children?: ReactNode;
   showLeadingVisual?: boolean;
+  showAccentRail?: boolean;
   leadingVisual?: ReactNode;
+  cardClassName?: string;
+  titleMeta?: ReactNode;
   trailingClassName?: string;
   bodyClassName?: string;
+  contentClassName?: string;
   panelClassName?: string;
+  subtitleTone?: "panel" | "plain";
   className?: string;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
@@ -79,14 +89,18 @@ export function ExerciseDisclosureCard({
         onPress={onToggle}
         showLeadingVisual={showLeadingVisual}
         leadingVisual={leadingVisual}
+        titleMeta={titleMeta}
         buttonProps={{
           "aria-expanded": expanded,
           "aria-controls": contract.panelId,
           "data-testid": contract.buttonTestId,
         } satisfies ExerciseCardButtonProps}
-        className={cn("shadow-none", expanded ? "rounded-b-none" : undefined)}
+        className={cn("shadow-none", expanded ? "rounded-b-none" : undefined, cardClassName)}
         trailingClassName={trailingClassName}
         bodyClassName={bodyClassName}
+        contentClassName={contentClassName}
+        subtitleTone={subtitleTone}
+        showAccentRail={showAccentRail}
         rightIcon={(
           <ChevronRightIcon
             className={cn(

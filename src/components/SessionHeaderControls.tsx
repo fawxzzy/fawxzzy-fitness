@@ -1,8 +1,9 @@
 "use client";
 
-import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { SessionBackButton } from "@/components/SessionBackButton";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { getDayTaxonomyHeaderSummaryParts } from "@/lib/day-summary";
+import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 
 export function SessionHeaderControls({
   routineName,
@@ -21,12 +22,19 @@ export function SessionHeaderControls({
   isRestDay?: boolean;
   backHref?: string;
 }) {
+  const { countsSummary } = getDayTaxonomyHeaderSummaryParts({
+    dayName: sessionDayName,
+    summary: sessionSummaryCounts,
+    isRest: isRestDay,
+  });
+
   return (
     <SharedScreenHeader
       recipe="currentSession"
-      title={routineName}
-      subtitle={<DayTaxonomyHeaderSummary dayName={sessionDayName} summary={sessionSummaryCounts} isRest={isRestDay} />}
+      title={formatTodayHeaderTitle(routineName, sessionDayName)}
+      subtitle={countsSummary}
       action={<SessionBackButton href={backHref} />}
+      align="center"
     />
   );
 }

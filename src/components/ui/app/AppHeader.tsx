@@ -17,6 +17,7 @@ export function AppHeader({
   actionClassName,
   titleClassName,
   subtitleClassName,
+  align = "left",
   titleAs = "h1",
 }: {
   eyebrow?: ReactNode;
@@ -32,6 +33,7 @@ export function AppHeader({
   actionClassName?: string;
   titleClassName?: string;
   subtitleClassName?: string;
+  align?: "left" | "center";
   titleAs?: "h1" | "h2" | "h3";
 }) {
   const resolvedSubtitle = subtitle ?? subtitleLeft;
@@ -41,25 +43,27 @@ export function AppHeader({
   const actionNode = action ?? leading;
   const shouldMergeSubtitleAndMeta = !subtitleRight && Boolean(resolvedSubtitle) && hasMeta;
 
+  const isCentered = align === "center";
+
   return (
     <header className={cn(headerTokens.horizontalPadding, headerTokens.contentBottomGap, "space-y-0", className)}>
       <div className={cn("flex justify-between", isTitleOnlyHeader ? "items-center" : "items-start", headerTokens.primaryRowGap)}>
         <div className="min-w-0 flex-1">
-          {eyebrow ? <EyebrowText className={cn("block text-left", headerTokens.eyebrowClassName)}>{eyebrow}</EyebrowText> : null}
-          <TitleText as={titleAs} className={cn("block text-left [text-wrap:balance]", headerTokens.titleClassName, headerTokens.titleTextClassName, titleClassName)}>{title}</TitleText>
+          {eyebrow ? <EyebrowText className={cn("block", isCentered ? "text-center" : "text-left", headerTokens.eyebrowClassName)}>{eyebrow}</EyebrowText> : null}
+          <TitleText as={titleAs} className={cn("block max-w-full break-words px-1 leading-tight [text-wrap:balance] sm:px-0", isCentered ? "text-center" : "text-left", headerTokens.titleClassName, headerTokens.titleTextClassName, titleClassName)}>{title}</TitleText>
           {hasSubtitleRow || hasMeta ? (
             <div className={cn(headerTokens.titleToSecondaryGap, headerTokens.secondaryBlockGap)}>
               {hasSubtitleRow ? (
-                <div className={cn("flex min-w-0 gap-2", subtitleRight ? "items-start justify-between" : "items-center")}>
+                <div className={cn("flex min-w-0 gap-2", subtitleRight ? "items-start justify-between" : isCentered ? "items-center justify-center" : "items-center")}>
                   {shouldMergeSubtitleAndMeta ? (
-                    <p className={cn("min-w-0 text-left [text-wrap:pretty] break-words", headerTokens.subtitleClassName, subtitleClassName)}>
+                    <p className={cn("min-w-0 break-words px-1 [text-wrap:pretty] sm:px-0", isCentered ? "text-center" : "text-left", headerTokens.subtitleClassName, subtitleClassName)}>
                       <span className="align-middle">{resolvedSubtitle}</span>
                       <span className={cn("inline align-middle before:mx-1 before:inline-block before:content-['\\2022']", headerTokens.metaClassName)}>
                         {meta}
                       </span>
                     </p>
                   ) : resolvedSubtitle ? (
-                    <div className={cn("min-w-0 text-left [text-wrap:pretty] break-words", headerTokens.subtitleClassName, subtitleClassName)}>{resolvedSubtitle}</div>
+                    <div className={cn("min-w-0 break-words px-1 [text-wrap:pretty] sm:px-0", isCentered ? "text-center" : "text-left", headerTokens.subtitleClassName, subtitleClassName)}>{resolvedSubtitle}</div>
                   ) : <span />}
                   {subtitleRight ? (
                     <div className={cn("shrink-0 text-right", headerTokens.metaClassName)}>{subtitleRight}</div>
@@ -67,7 +71,7 @@ export function AppHeader({
                 </div>
               ) : null}
               {hasMeta && !shouldMergeSubtitleAndMeta ? (
-                <div className={cn("text-left", headerTokens.metaClassName)}>{meta}</div>
+                <div className={cn(isCentered ? "text-center" : "text-left", headerTokens.metaClassName)}>{meta}</div>
               ) : null}
             </div>
           ) : null}

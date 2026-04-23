@@ -5,7 +5,19 @@ import Link from "next/link";
 import { requestPasswordReset } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
+import {
+  AuthCard,
+  AuthDock,
+  AuthField,
+  AuthFooter,
+  AuthFooterSeparator,
+  AuthFooterText,
+  AuthForm,
+  AuthIntro,
+  AuthMessage,
+  AuthShell,
+  AuthStack,
+} from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 
@@ -104,12 +116,12 @@ export default function ForgotPasswordFormClient({
           </AuthStack>
           {message}
         </AuthForm>
-        <AuthFooter className="pt-7">
+        <AuthFooter>
           <AuthFooterText>
             <Link href="/signup" className={appTokens.authInlineLink}>
               Create account
             </Link>
-            <span aria-hidden="true" className="px-2 text-[rgb(var(--text-muted)/0.72)]">|</span>
+            <AuthFooterSeparator />
             <Link href="/login" className={appTokens.authInlineLink}>
               Log In
             </Link>
@@ -117,7 +129,7 @@ export default function ForgotPasswordFormClient({
         </AuthFooter>
       </AuthCard>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+      <AuthDock>
         <BottomActionSingle>
           <BottomDockButton
             type="submit"
@@ -130,7 +142,7 @@ export default function ForgotPasswordFormClient({
             {submitLabel}
           </BottomDockButton>
         </BottomActionSingle>
-      </div>
+      </AuthDock>
     </AuthShell>
   );
 }

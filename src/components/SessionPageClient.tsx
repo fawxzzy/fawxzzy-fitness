@@ -64,7 +64,7 @@ function formatDurationClock(totalSeconds: number) {
   const safeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function getElapsedDuration(baseDurationSeconds: number, performedAt: string) {
@@ -191,11 +191,16 @@ export function SessionPageClient({
           secondary={quickAddAction}
           tertiary={(
             <div
-              className={appTokens.currentSessionDurationPill}
+              className={cn(
+                appTokens.currentSessionDurationPill,
+                "min-h-[44px] bg-[linear-gradient(180deg,rgba(26,31,42,0.98),rgba(12,16,24,0.98))] px-0 text-[1.44rem] font-black tracking-[0.04em] text-[rgb(236_247_255/0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(125,211,252,0.08)] [font-variant-numeric:tabular-nums] [text-shadow:0_0_10px_rgba(220,240,255,0.12)]",
+              )}
               suppressHydrationWarning
               aria-live={hasMountedTimer ? "off" : undefined}
             >
-              {formatDurationClock(hasMountedTimer ? durationSeconds : baseDurationSeconds)}
+              <span className="inline-flex w-full items-center justify-center font-mono">
+                {formatDurationClock(hasMountedTimer ? durationSeconds : 0)}
+              </span>
             </div>
           )}
           primary={(
@@ -207,11 +212,12 @@ export function SessionPageClient({
             </BottomDockButton>
           )}
           className="w-full"
-          tertiaryClassName="px-0.5 [&>*]:max-w-[6.1rem]"
+          tertiaryClassName="px-0"
+          tertiaryFill
         />
       </form>
     ),
-    [baseDurationSeconds, durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, toast],
+    [durationSeconds, hasMountedTimer, navigateReturn, quickAddAction, router, saveSessionAction, sessionId, toast],
   );
 
   return (

@@ -34,6 +34,13 @@ export type SessionRowState = {
 
 export function deriveSessionRowState(input: DeriveSessionRowStateInput): SessionRowState {
   const progressState = deriveSessionExerciseProgressState(input);
+  const quickLogPreviewLabel = formatQuickLogPreviewLabel({
+    target: input.quickLogTarget,
+    loggedSetCount: progressState.loggedSetCount,
+    targetSetsMin: input.targetSetsMin,
+    targetSetsMax: input.targetSetsMax,
+    fallbackWeightUnit: input.fallbackWeightUnit,
+  });
   const variant: SessionRowVisualVariant = input.isPending ? "pending" : "active";
   const variantStyles: Record<SessionRowVisualVariant, Pick<SessionRowState, "actionRowClassName" | "quickLogActionClassName" | "skipActionClassName">> = {
     pending: {
@@ -59,13 +66,7 @@ export function deriveSessionRowState(input: DeriveSessionRowStateInput): Sessio
     skipActionIntent: progressState.skipActionLabel === "Unskip" ? "toggleActive" : "toggleInactive",
     isQuickLogDisabled: !progressState.allowQuickLog,
     quickLogDisabledMessage: "Unskip to log",
-    quickLogLabel: `Log: ${formatQuickLogPreviewLabel({
-      target: input.quickLogTarget,
-      loggedSetCount: progressState.loggedSetCount,
-      targetSetsMin: input.targetSetsMin,
-      targetSetsMax: input.targetSetsMax,
-      fallbackWeightUnit: input.fallbackWeightUnit,
-    })}`,
+    quickLogLabel: quickLogPreviewLabel ? `Log: ${quickLogPreviewLabel}` : "Log",
     ...variantStyles[variant],
   };
 }

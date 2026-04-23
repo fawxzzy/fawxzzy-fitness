@@ -99,10 +99,11 @@ export type DayCardProps = {
   metaText?: string;
   state?: DayListState;
   rightIcon?: ReactNode;
+  showAccentRail?: boolean;
   wrapper?: (child: ReactNode) => ReactNode;
 };
 
-export function DayCard({ onPress, wrapper, state = "default", metaText, subtitle, subtitleLabel, ...cardProps }: DayCardProps) {
+export function DayCard({ onPress, wrapper, state = "default", metaText, subtitle, subtitleLabel, showAccentRail = true, ...cardProps }: DayCardProps) {
   const resolvedSubtitle = [subtitle, metaText].filter(Boolean).join(" · ") || undefined;
 
   const card = (
@@ -117,6 +118,7 @@ export function DayCard({ onPress, wrapper, state = "default", metaText, subtitl
       titleClassName={appTokens.dayCardTitle}
       subtitleClassName={appTokens.dayCardSubtitle}
       variant="list"
+      showAccentRail={showAccentRail}
     />
   );
 

@@ -42,7 +42,7 @@ export function TodayStartButton({
   returnTo,
   fullWidth = true,
   className,
-  label = "Begin",
+  label = "Start",
   sessionId,
 }: {
   selectedDayIndex?: number;
@@ -94,7 +94,7 @@ export function TodayStartButton({
         });
       }}
     >
-      {isPending ? (sessionId ? "Opening…" : "Starting…") : label}
+      {isPending ? (sessionId ? "Opening..." : "Starting...") : label}
     </BottomDockButton>
   );
 }

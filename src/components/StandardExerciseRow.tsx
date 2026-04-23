@@ -33,6 +33,7 @@ type StandardExerciseRowProps = {
   contentClassName?: string;
   titleContainerClassName?: string;
   titleClassName?: string;
+  titleMeta?: ReactNode;
   subtitleClassName?: string;
   summaryLabel?: string;
   subtitleTone?: "panel" | "plain";
@@ -46,6 +47,7 @@ type StandardExerciseRowProps = {
   imageSizes?: string;
   buttonProps?: ExerciseCardButtonProps;
   surface?: WorkoutCardSurface;
+  showAccentRail?: boolean;
 };
 
 export function StandardExerciseRow({
@@ -65,6 +67,7 @@ export function StandardExerciseRow({
   contentClassName,
   titleContainerClassName,
   titleClassName,
+  titleMeta,
   subtitleClassName,
   summaryLabel,
   subtitleTone,
@@ -78,6 +81,7 @@ export function StandardExerciseRow({
   imageSizes,
   buttonProps,
   surface = "exercise-picker",
+  showAccentRail = true,
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
@@ -105,6 +109,7 @@ export function StandardExerciseRow({
   return (
     <ExerciseCard
       title={exercise.name}
+      titleMeta={titleMeta}
       subtitle={getExerciseGoalSummaryText(resolvedSummary)}
       variant={variant}
       state={resolvedState}
@@ -129,6 +134,7 @@ export function StandardExerciseRow({
       subtitleClassName={subtitleClassName}
       subtitleLabel={summaryLabel}
       subtitleTone={subtitleTone}
+      showAccentRail={showAccentRail}
       buttonProps={buttonProps}
     >
       {children}

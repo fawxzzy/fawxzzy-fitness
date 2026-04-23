@@ -1,9 +1,10 @@
 import { RecoverySessionBridge } from "@/app/reset-password/RecoverySessionBridge";
 import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
-import { AuthCard, AuthIntro, AuthShell } from "@/components/auth/AuthShell";
+import { AuthCard, AuthDock, AuthIntro, AuthShell } from "@/components/auth/AuthShell";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { appTokens } from "@/components/ui/app/tokens";
+import { cn } from "@/lib/cn";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -29,17 +30,17 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
           {isRecoveryAttempt ? (
             <RecoverySessionBridge initialError={error} />
           ) : (
-            <p className="pt-2 text-center text-sm leading-6 text-[rgb(var(--text-muted)/0.96)]">Reset link expired.</p>
+            <p className={cn("pt-2 text-center", appTokens.authSubtitleText)}>Reset link expired.</p>
           )}
         </AuthCard>
         {!isRecoveryAttempt ? (
-          <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+          <AuthDock>
             <BottomActionSingle>
               <BottomDockLink href="/login" intent="positive">
                 Log In
               </BottomDockLink>
             </BottomActionSingle>
-          </div>
+          </AuthDock>
         ) : null}
       </AuthShell>
     );

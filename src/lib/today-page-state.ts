@@ -10,6 +10,12 @@ export function getTodayGlobalErrorMessage(args: {
   return error;
 }
 
+export function formatTodayHeaderTitle(routineName: string | null | undefined, dayName: string | null | undefined) {
+  const normalizedRoutineName = routineName?.trim() || "Routine";
+  const normalizedDayName = dayName?.trim();
+  return normalizedDayName ? `${normalizedRoutineName} | ${normalizedDayName}` : normalizedRoutineName;
+}
+
 type SessionDaySnapshot = {
   routine_day_index: number | null;
   routine_day_name: string | null;
@@ -166,9 +172,9 @@ export type TodayScreenMode<TDay extends TodayPickerDay = TodayPickerDay> = {
   summaryVisible: boolean;
   cta: {
     showPrimary: boolean;
-    primaryLabel: "Resume" | "Begin" | null;
+    primaryLabel: "Resume" | "Start" | null;
     showSecondarySelectDay: boolean;
-    secondaryLabel: "Days" | "Hide";
+    secondaryLabel: "Switch" | "Hide";
   };
 };
 
@@ -213,9 +219,9 @@ export function deriveTodayScreenMode<TDay extends TodayPickerDay>(args: {
     summaryVisible,
     cta: {
       showPrimary: hasInProgressSession || Boolean(runnableSelection),
-      primaryLabel: hasInProgressSession ? "Resume" : runnableSelection ? "Begin" : null,
+      primaryLabel: hasInProgressSession ? "Resume" : runnableSelection ? "Start" : null,
       showSecondarySelectDay: true,
-      secondaryLabel: args.dayPickerOpen ? "Hide" : "Days",
+      secondaryLabel: args.dayPickerOpen ? "Hide" : "Switch",
     },
   };
 }

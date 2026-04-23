@@ -7,7 +7,6 @@ import { TodayRouteRevalidator } from "@/app/today/TodayRouteRevalidator";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
-import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
@@ -25,13 +24,14 @@ import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
 import {
   buildTodayRoutinePayloadState,
+  formatTodayHeaderTitle,
   getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
-import { getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
+import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow, SessionRow } from "@/types/db";
 import { TodayRecoveryShadowPlacement } from "@/app/today/TodayRecoveryShadowPlacement";
 import {
@@ -561,14 +561,13 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           todayPayload.inProgressSessionId || !hasDetailedRoutineState ? (
             <TodayFloatingHeaderRail>
               <TodayOverviewHeader
-                title={todayPayload.routine.name}
-                subtitle={(
-                  <DayTaxonomyHeaderSummary
-                    dayName={todayPayload.routine.dayName}
-                    summary={getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest)}
-                    isRest={todayPayload.routine.isRest}
-                  />
-                )}
+                title={formatTodayHeaderTitle(todayPayload.routine.name, todayPayload.routine.dayName)}
+                align="center"
+                subtitle={getDayTaxonomyHeaderSummaryParts({
+                  dayName: todayPayload.routine.dayName,
+                  summary: getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest),
+                  isRest: todayPayload.routine.isRest,
+                }).countsSummary}
                 action={todayPayload.inProgressSessionId
                   ? <AppBadge tone="success">In Session</AppBadge>
                   : completedDayIndexes.includes(todayPayload.routine.dayIndex)
