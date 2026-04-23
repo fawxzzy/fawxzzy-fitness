@@ -5,7 +5,7 @@ import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
 import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
-import { resolveWorkoutCardMediaRailWidth, resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
+import { resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
 type StandardExerciseRowProps = {
   exercise: {
@@ -35,6 +35,7 @@ type StandardExerciseRowProps = {
   titleClassName?: string;
   subtitleClassName?: string;
   summaryLabel?: string;
+  subtitleTone?: "panel" | "plain";
   variant?: "standard" | "compact" | "list" | "interactive" | "expanded" | "summary" | "reorder";
   state?: "default" | "selected" | "active" | "completed" | "empty";
   density?: "compact" | "detailed";
@@ -66,6 +67,7 @@ export function StandardExerciseRow({
   titleClassName,
   subtitleClassName,
   summaryLabel,
+  subtitleTone,
   variant = "standard",
   state,
   density,
@@ -82,7 +84,7 @@ export function StandardExerciseRow({
   const resolvedDensity = density ?? (variant === "standard" || variant === "expanded" || variant === "summary" ? "detailed" : "compact");
   const usesCompactDensity = resolvedDensity === "compact";
   const surfacePolicy = resolveWorkoutCardSurfacePolicy(surface, resolvedDensity);
-  const mediaRailWidth = resolveWorkoutCardMediaRailWidth(surface);
+  const mediaRailWidth = surfacePolicy.mediaRailWidth;
   const allowsSurfaceMedia = surfacePolicy.showMedia && mediaRailWidth > 0;
   const resolvedImageSizes = imageSizes ?? `${Math.max(mediaRailWidth, 1)}px`;
   const resolvedLeadingVisual = allowsSurfaceMedia
@@ -126,6 +128,7 @@ export function StandardExerciseRow({
       titleClassName={titleClassName}
       subtitleClassName={subtitleClassName}
       subtitleLabel={summaryLabel}
+      subtitleTone={subtitleTone}
       buttonProps={buttonProps}
     >
       {children}

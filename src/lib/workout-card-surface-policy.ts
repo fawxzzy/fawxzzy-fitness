@@ -25,7 +25,7 @@ export function resolveWorkoutCardMediaRailWidth(surface: WorkoutCardSurface): n
     case "current-session":
       return 74;
     case "history-browser":
-      return 0;
+      return 74;
     case "history-detail":
       return 72;
     case "exercise-picker":
@@ -81,10 +81,10 @@ export function resolveWorkoutCardSurfacePolicy(
       };
     case "history-browser":
       return {
-        showMedia: false,
+        showMedia: density === "compact",
         showIdentityChips: true,
         showDetailedMetrics: density === "detailed",
-        mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),
+        mediaRailWidth: density === "compact" ? resolveWorkoutCardMediaRailWidth(surface) : 0,
       };
     case "history-detail":
       return {

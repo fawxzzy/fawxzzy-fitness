@@ -1,12 +1,9 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { cookies } from "next/headers";
-import { AppNav } from "@/components/AppNav";
-import { ContentRail } from "@/components/layout/ContentRail";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShared";
-import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
+import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { getHistoryPreviewExerciseRows } from "@/lib/history-preview-fixtures";
 import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
@@ -24,8 +21,8 @@ function ExercisesBrowserError() {
   return (
     <SharedSectionShell
       recipe="historyDetail"
-      label={<span className="text-sm font-medium text-text">Unable to load exercise history right now.</span>}
-      context={<span className="text-xs text-muted">Please try again in a moment.</span>}
+      label={<span className={appTokens.historyTitleControlLabel}>Unable to load exercise history right now.</span>}
+      context={<span className={appTokens.historyTitleControlCaption}>Please try again in a moment.</span>}
     />
   );
 }
@@ -39,25 +36,15 @@ export default async function HistoryExercisesPage() {
       : await getExercisesWithStatsForUser();
 
     return (
-      <MainTabScreen topNavMode="none" ambientPreset="history">
-        <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={(
-            <ContentRail className="py-1">
-              <HistoryPageHeader title="History" subtitle={`${rows.length} tracked exercises`}>
-                <div className="space-y-2">
-                  <HistoryTabs value="exercises" sessionsHref="/history" exercisesHref="/history/exercises" />
-                  <div id="history-exercises-floating-header" />
-                </div>
-              </HistoryPageHeader>
-            </ContentRail>
-          )}
-        >
-          <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-            <ExerciseBrowserClient rows={rows} initialViewMode={initialViewMode} />
-          </ContentRail>
-        </ScrollScreenWithBottomActions>
-      </MainTabScreen>
+      <HistoryRouteScaffold
+        mode="overview"
+        title="History"
+        subtitle={`${rows.length} tracked exercises`}
+        activeTab="exercises"
+        floatingHeaderSlot={<div id="history-exercises-floating-header" />}
+      >
+        <ExerciseBrowserClient rows={rows} initialViewMode={initialViewMode} />
+      </HistoryRouteScaffold>
     );
   } catch (error) {
     if (isRedirectError(error) || isNotFoundError(error)) {
@@ -67,25 +54,14 @@ export default async function HistoryExercisesPage() {
     console.error("[history/exercises] failed to load or render exercise stats", error);
 
     return (
-      <MainTabScreen topNavMode="none" ambientPreset="history">
-        <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={(
-            <ContentRail className="py-1">
-              <HistoryPageHeader title="History" subtitle="Exercise history unavailable">
-                <div className="space-y-2">
-                  <HistoryTabs value="exercises" sessionsHref="/history" exercisesHref="/history/exercises" />
-                  <div id="history-exercises-floating-header" />
-                </div>
-              </HistoryPageHeader>
-            </ContentRail>
-          )}
-        >
-          <ContentRail className="py-1">
-            <ExercisesBrowserError />
-          </ContentRail>
-        </ScrollScreenWithBottomActions>
-      </MainTabScreen>
+      <HistoryRouteScaffold
+        mode="overview"
+        title="History"
+        subtitle="Exercise history unavailable"
+        activeTab="exercises"
+      >
+        <ExercisesBrowserError />
+      </HistoryRouteScaffold>
     );
   }
 }

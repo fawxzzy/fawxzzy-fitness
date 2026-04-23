@@ -21,12 +21,12 @@ test("today cards stay text-first while detailed mode keeps the richer metric ro
   });
 });
 
-test("history browser stays text-first while preserving detail metrics", () => {
+test("history browser restores compact media while preserving detail metrics", () => {
   assert.deepEqual(resolveWorkoutCardSurfacePolicy("history-browser", "compact"), {
-    showMedia: false,
+    showMedia: true,
     showIdentityChips: true,
     showDetailedMetrics: false,
-    mediaRailWidth: 0,
+    mediaRailWidth: 74,
   });
   assert.deepEqual(resolveWorkoutCardSurfacePolicy("history-browser", "detailed"), {
     showMedia: false,

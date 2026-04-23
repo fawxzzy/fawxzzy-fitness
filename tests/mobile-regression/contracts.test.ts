@@ -208,19 +208,22 @@ test("history browser source stays on the history-browser surface contract", () 
   assert.doesNotMatch(source, /surface="current-session"/);
 });
 
-test("history-browser compact rows stay on the shared history card wrapper without re-enabling media", () => {
-  const source = readSource("../../src/app/history/exercises/ExerciseBrowserClient.tsx");
+test("history-browser compact rows stay on the shared history card wrapper with recovered media", () => {
+  const browserSource = readSource("../../src/app/history/exercises/ExerciseBrowserClient.tsx");
+  const cardSource = readSource("../../src/components/history/HistoryExerciseCard.tsx");
 
-  assert.match(source, /<HistoryExerciseCard/);
-  assert.match(source, /density=\{viewMode\}/);
-  assert.doesNotMatch(source, /<StandardExerciseRow/);
-  assert.doesNotMatch(source, /showLeadingVisual/);
+  assert.match(browserSource, /<HistoryExerciseCard/);
+  assert.match(browserSource, /density=\{viewMode\}/);
+  assert.doesNotMatch(browserSource, /<StandardExerciseRow/);
+  assert.match(cardSource, /data-history-card="exercise"/);
+  assert.match(cardSource, /showLeadingVisual=\{density === "compact"\}/);
 });
 
 test("standard exercise rows gate rail media behind the surface policy", () => {
   const source = readSource("../../src/components/StandardExerciseRow.tsx");
 
   assert.match(source, /resolveWorkoutCardSurfacePolicy/);
+  assert.match(source, /const mediaRailWidth = surfacePolicy\.mediaRailWidth/);
   assert.match(source, /surfacePolicy\.showMedia && mediaRailWidth > 0/);
   assert.match(source, /leadingVisual=\{resolvedLeadingVisual\}/);
 });
@@ -237,9 +240,26 @@ test("exercise card body stays clipping-safe while exposing shared media and den
 test("history sessions keep compact chips and detailed metrics on the shared card shell", () => {
   const source = readSource("../../src/app/history/HistorySessionsClient.tsx");
 
-  assert.match(source, /<SessionSummaryCard/);
-  assert.match(source, /density=\{viewMode\}/);
-  assert.match(source, /<WorkoutCardChipRow chips=\{viewModel\.compactChips\} \/>/);
-  assert.match(source, /<MetricStrip items=\{viewModel\.detailedMetrics as MetricDatum\[\]\} \/>/);
+  assert.match(source, /<HistorySessionCard/);
+  assert.match(source, /viewMode=\{viewMode\}/);
+  assert.match(source, /href=\{`\/history\/\$\{session\.id\}\?returnTab=sessions`\}/);
+  assert.doesNotMatch(source, /<SessionSummaryCard/);
+});
+
+test("history session wrapper owns the shared card contract directly", () => {
+  const source = readSource("../../src/components/history/HistorySessionCard.tsx");
+
+  assert.match(source, /<ExerciseCard/);
+  assert.match(source, /data-history-card="session"/);
   assert.match(source, /appTokens\.historyExerciseCardShell/);
+  assert.doesNotMatch(source, /SessionSummaryCard/);
+});
+
+test("history detail stays on explicit history wrappers instead of raw generic cards", () => {
+  const source = readSource("../../src/app/history/[sessionId]/LogAuditClient.tsx");
+
+  assert.match(source, /<HistorySessionCard/);
+  assert.match(source, /<HistoryDetailExerciseCard/);
+  assert.doesNotMatch(source, /<SessionSummaryCard/);
+  assert.doesNotMatch(source, /<StandardExerciseRow/);
 });

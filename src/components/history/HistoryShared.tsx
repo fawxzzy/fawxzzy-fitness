@@ -3,11 +3,11 @@ import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AppPanel } from "@/components/ui/app/AppPanel";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { formatCount, formatDateShort, formatDurationShort } from "@/lib/formatting";
-import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
 
 export function HistoryPageHeader({
   title,
@@ -23,6 +23,7 @@ export function HistoryPageHeader({
       recipe="historyDetail"
       title={title}
       subtitle={subtitle}
+      className="pl-1"
     >
       {children}
     </SharedScreenHeader>
@@ -54,7 +55,7 @@ export function HistoryDetailHeader({
       subtitle={subtitle}
       action={action}
       meta={meta}
-      className={className}
+      className={cn("pl-1", className)}
     >
       {children}
     </SharedScreenHeader>
@@ -77,11 +78,11 @@ export function HistorySection({
   return (
     <SharedSectionShell
       recipe="historyDetail"
-      label={<span className="text-base font-semibold text-text">{title}</span>}
-      context={description ? <span className="text-sm">{description}</span> : undefined}
+      label={<span className={appTokens.historySectionTitle}>{title}</span>}
+      context={description ? <span className={appTokens.historySectionDescription}>{description}</span> : undefined}
       action={action}
-      className={cn("space-y-4", className)}
-      bodyClassName="space-y-4"
+      className={cn("pl-1", appTokens.historySectionPanel, className)}
+      bodyClassName={appTokens.historySectionBody}
     >
       {children}
     </SharedSectionShell>
@@ -92,8 +93,8 @@ export function HistoryControlPanel({ children, className }: { children: ReactNo
   return (
     <SharedSectionShell
       recipe="historyDetail"
-      className={cn("space-y-2", className)}
-      bodyClassName="space-y-2 max-md:space-y-1.5"
+      className={cn("pl-1", appTokens.historyControlPanel, className)}
+      bodyClassName={appTokens.historyControlPanelBody}
     >
       {children}
     </SharedSectionShell>
@@ -108,9 +109,9 @@ export function HistoryRouteErrorShell({
   caption: string;
 }) {
   return (
-    <AppPanel className="space-y-2 p-4">
-      <p className="text-base font-semibold text-[rgb(var(--text)/0.98)]">{title}</p>
-      <p className="text-sm leading-6 text-[rgb(var(--text)/0.72)]">{caption}</p>
+    <AppPanel className={appTokens.historyRouteMessage}>
+      <p className={appTokens.historyRouteMessageTitle}>{title}</p>
+      <p className={appTokens.historyRouteMessageCaption}>{caption}</p>
     </AppPanel>
   );
 }
@@ -133,17 +134,17 @@ export function HistoryTitleControlShell({
   className?: string;
 }) {
   return (
-    <HistoryControlPanel className={cn("space-y-1.5", className)}>
+    <HistoryControlPanel className={cn(appTokens.historyTitleControlStack, className)}>
       {(label || caption || showViewModeToggle) ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className={appTokens.historyTitleControlRow}>
           {(label || caption) ? (
             <div className="min-w-0">
-              {label ? <p className="text-sm font-semibold text-text">{label}</p> : null}
-              {caption ? <p className="mt-0.5 text-xs leading-[1.3] text-muted">{caption}</p> : null}
+              {label ? <p className={appTokens.historyTitleControlLabel}>{label}</p> : null}
+              {caption ? <p className={appTokens.historyTitleControlCaption}>{caption}</p> : null}
             </div>
           ) : null}
           {showViewModeToggle ? (
-            <div className="min-w-[12rem] flex-1 sm:flex-none">
+            <div className={appTokens.historyTitleControlToggleSlot}>
               <SegmentedControl
                 options={[
                   { label: "Compact", value: "compact" },
@@ -181,10 +182,10 @@ export function HistoryTabs({ value, sessionsHref, exercisesHref }: { value: "se
 
 export function HistoryControlGroup({ label, children, summary }: { label: string; children: ReactNode; summary?: string }) {
   return (
-    <div className="rounded-[1.15rem] border border-border/35 bg-[rgb(var(--surface-2-soft)/0.65)] px-3 py-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
-        <p className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionLabelClassName}>{label}</p>
-        {summary ? <SubtitleText className="text-xs">{summary}</SubtitleText> : null}
+    <div className={appTokens.historyControlGroup}>
+      <div className={appTokens.historyControlGroupHeader}>
+        <p className={appTokens.historySectionTitle}>{label}</p>
+        {summary ? <SubtitleText className={appTokens.historyControlGroupSummary}>{summary}</SubtitleText> : null}
       </div>
       {children}
     </div>
@@ -192,14 +193,17 @@ export function HistoryControlGroup({ label, children, summary }: { label: strin
 }
 
 export function HistoryMetaRow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex flex-wrap gap-1.5", className)}>{children}</div>;
+  return <div className={cn(appTokens.detailMetaRow, className)}>{children}</div>;
 }
 
 export function HistoryMetaChip({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
   return (
-    <AppBadge tone={emphasized ? "success" : "default"} className={cn("gap-1.5 px-2.5 py-1 normal-case tracking-normal")}>
-      <span className="text-muted">{label}</span>
-      <span className="text-text">{value}</span>
+    <AppBadge
+      tone={emphasized ? "success" : "default"}
+      className={cn(appTokens.detailMetaChip, emphasized ? appTokens.detailMetaChipEmphasized : appTokens.detailMetaChipDefault)}
+    >
+      <span className={appTokens.detailMetaChipLabel}>{label}</span>
+      <span className={appTokens.detailMetaChipValue}>{value}</span>
     </AppBadge>
   );
 }

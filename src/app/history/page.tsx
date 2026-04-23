@@ -1,11 +1,8 @@
 import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import Link from "next/link";
-import { AppNav } from "@/components/AppNav";
-import { ContentRail } from "@/components/layout/ContentRail";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShared";
-import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
+import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
+import { appTokens } from "@/components/ui/app/tokens";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { requireUser } from "@/lib/auth";
 import {
@@ -30,11 +27,9 @@ function HistoryRouteMessage({
   caption: string;
 }) {
   return (
-    <section className="rounded-[1.5rem] border border-[rgb(var(--border-strong)/0.16)] bg-[rgb(var(--surface-1-rgb)/0.88)] px-5 py-4 shadow-[0_18px_40px_rgb(0_0_0/0.18)] backdrop-blur-[10px]">
-      <div className="space-y-2">
-        <p className="text-base font-semibold text-[rgb(var(--text)/0.98)]">{title}</p>
-        <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.92)]">{caption}</p>
-      </div>
+    <section className={appTokens.historyRouteMessage}>
+      <p className={appTokens.historyRouteMessageTitle}>{title}</p>
+      <p className={appTokens.historyRouteMessageCaption}>{caption}</p>
     </section>
   );
 }
@@ -73,59 +68,44 @@ export default async function HistoryPage({
 
     if (state.kind === "fallback") {
       return (
-        <MainTabScreen topNavMode="none" ambientPreset="history">
-          <ScrollScreenWithBottomActions
-            topChrome={<AppNav mode="topChrome" />}
-            floatingHeader={(
-              <ContentRail>
-                <HistoryPageHeader title="History" subtitle={state.fallback.subtitle}>
-                  <HistoryTabs value="sessions" sessionsHref="/history" exercisesHref="/history/exercises" />
-                </HistoryPageHeader>
-              </ContentRail>
-            )}
-          >
-            <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-              <HistoryRouteMessage
-                title={state.fallback.errorTitle}
-                caption={state.fallback.errorCaption}
-              />
-            </ContentRail>
-          </ScrollScreenWithBottomActions>
-        </MainTabScreen>
+        <HistoryRouteScaffold
+          mode="overview"
+          title="History"
+          subtitle={state.fallback.subtitle}
+          activeTab="sessions"
+        >
+          <HistoryRouteMessage
+            title={state.fallback.errorTitle}
+            caption={state.fallback.errorCaption}
+          />
+        </HistoryRouteScaffold>
       );
     }
 
     return (
-      <MainTabScreen topNavMode="none" ambientPreset="history">
-        <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={(
-            <ContentRail>
-              <HistoryPageHeader title="History" subtitle={state.data.subtitle}>
-                <HistoryTabs value="sessions" sessionsHref="/history" exercisesHref="/history/exercises" />
-              </HistoryPageHeader>
-            </ContentRail>
-          )}
-        >
-          <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-            <HistorySessionsClient
-              sessions={state.data.sessionItems}
-              selectedSessionId={state.data.selectedSessionId}
-            />
+      <HistoryRouteScaffold
+        mode="overview"
+        title="History"
+        subtitle={state.data.subtitle}
+        activeTab="sessions"
+        floatingHeaderSlot={<div id="history-sessions-floating-header" />}
+      >
+        <HistorySessionsClient
+          sessions={state.data.sessionItems}
+          selectedSessionId={state.data.selectedSessionId}
+        />
 
-            {state.data.nextCursor ? (
-              <div className="flex justify-center">
-                <Link
-                  href={`/history?tab=sessions&cursor=${encodeURIComponent(state.data.nextCursor)}`}
-                  className={getAppButtonClassName({ variant: "secondary", size: "md" })}
-                >
-                  Load more
-                </Link>
-              </div>
-            ) : null}
-          </ContentRail>
-        </ScrollScreenWithBottomActions>
-      </MainTabScreen>
+        {state.data.nextCursor ? (
+          <div className="flex justify-center">
+            <Link
+              href={`/history?tab=sessions&cursor=${encodeURIComponent(state.data.nextCursor)}`}
+              className={getAppButtonClassName({ variant: "secondary", size: "md" })}
+            >
+              Load more
+            </Link>
+          </div>
+        ) : null}
+      </HistoryRouteScaffold>
     );
   } catch (error) {
     if (isRedirectError(error) || isNotFoundError(error)) {
@@ -135,25 +115,17 @@ export default async function HistoryPage({
     console.error("[history/sessions] unexpected render failure", error);
 
     return (
-      <MainTabScreen topNavMode="none" ambientPreset="history">
-        <ScrollScreenWithBottomActions
-          topChrome={<AppNav mode="topChrome" />}
-          floatingHeader={(
-            <ContentRail>
-              <HistoryPageHeader title="History" subtitle="Session history unavailable">
-                <HistoryTabs value="sessions" sessionsHref="/history" exercisesHref="/history/exercises" />
-              </HistoryPageHeader>
-            </ContentRail>
-          )}
-        >
-          <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-            <HistoryRouteMessage
-              title="Unable to render session history right now."
-              caption="Please try again in a moment."
-            />
-          </ContentRail>
-        </ScrollScreenWithBottomActions>
-      </MainTabScreen>
+      <HistoryRouteScaffold
+        mode="overview"
+        title="History"
+        subtitle="Session history unavailable"
+        activeTab="sessions"
+      >
+        <HistoryRouteMessage
+          title="Unable to render session history right now."
+          caption="Please try again in a moment."
+        />
+      </HistoryRouteScaffold>
     );
   }
 }

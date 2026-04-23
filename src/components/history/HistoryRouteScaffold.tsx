@@ -5,6 +5,7 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShared";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 type HistoryOverviewRouteScaffoldProps = {
@@ -35,9 +36,9 @@ type HistoryRouteScaffoldProps =
 export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
   const floatingHeader = props.mode === "overview"
     ? (
-        <ContentRail className={cn("py-1", props.floatingHeaderRailClassName)}>
+        <ContentRail className={cn(appTokens.historyFloatingHeaderRail, props.floatingHeaderRailClassName)}>
           <HistoryPageHeader title={props.title} subtitle={props.subtitle}>
-            <div className="space-y-3">
+            <div className={appTokens.historyOverviewHeaderStack}>
               <HistoryTabs
                 value={props.activeTab}
                 sessionsHref="/history"
@@ -48,8 +49,8 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
           </HistoryPageHeader>
         </ContentRail>
       )
-    : (
-        <ContentRail className={cn("max-w-[720px] py-1", props.floatingHeaderRailClassName)}>
+      : (
+        <ContentRail className={cn(appTokens.historyDetailFloatingHeaderRail, props.floatingHeaderRailClassName)}>
           <div data-history-floating-header className="w-full">
             {props.floatingHeader}
           </div>
@@ -64,15 +65,14 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
       >
         <ContentRail
           className={cn(
-            "flex min-h-0 flex-1 flex-col gap-3 py-1",
-            props.mode === "detail" ? "max-w-[720px]" : null,
+            props.mode === "detail" ? appTokens.historyDetailContentRail : appTokens.historyContentRail,
             props.contentRailClassName,
           )}
         >
           {props.mode === "detail" ? (
             <ScreenScaffold
               recipe="historyDetail"
-              className={cn("w-full space-y-4", props.contentClassName)}
+              className={cn(appTokens.historyDetailScreen, props.contentClassName)}
             >
               {props.children}
             </ScreenScaffold>
