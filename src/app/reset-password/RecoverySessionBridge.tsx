@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { establishRecoverySession } from "@/app/reset-password/actions";
-import { AuthMessage, AuthStack } from "@/components/auth/AuthShell";
+import { AuthActionBar, AuthMessage, AuthStack } from "@/components/auth/AuthShell";
+import { ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
 import { appTokens } from "@/components/ui/app/tokens";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { cn } from "@/lib/cn";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
 
@@ -100,9 +103,19 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
   return (
     <AuthStack>
       <AuthMessage tone="error">{error ?? RECOVERY_SESSION_ERROR}</AuthMessage>
-      <Link href="/forgot-password" className={appTokens.authInlineAction}>
-        Request new reset link
-      </Link>
+      <AuthActionBar>
+        <Link
+          href="/forgot-password"
+          data-action-chrome-intent="positive"
+          className={getAppButtonClassName({
+            variant: "primary",
+            fullWidth: true,
+            className: cn(ACTION_CHROME_SEGMENTED_CLASS_NAME, appTokens.authActionButton),
+          })}
+        >
+          Request new reset link
+        </Link>
+      </AuthActionBar>
     </AuthStack>
   );
 }

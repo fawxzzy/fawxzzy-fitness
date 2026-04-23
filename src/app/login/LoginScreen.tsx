@@ -9,7 +9,7 @@ import {
   shouldStartCredentialStepOpenForLogin,
 } from "@/app/login/loginScreenState";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
-import { AuthActionRow, AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
+import { AuthActionBar, AuthActionRow, AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
@@ -232,18 +232,21 @@ export function LoginScreen({
                 </div>
 
                 {rememberedAccountPrompt ? (
-                  <PrimaryButton
-                    type="button"
-                    fullWidth
-                    disabled={isSubmitting}
-                    onClick={handleRevealCredentialStep}
-                    className={cn(
-                      appTokens.authActionButton,
-                      appTokens.authActionButtonReady,
-                    )}
-                  >
-                    {rememberedAccountPrompt.label}
-                  </PrimaryButton>
+                  <AuthActionBar>
+                    <PrimaryButton
+                      type="button"
+                      fullWidth
+                      disabled={isSubmitting}
+                      onClick={handleRevealCredentialStep}
+                      data-action-chrome-segmented="true"
+                      className={cn(
+                        appTokens.authActionButton,
+                        appTokens.authActionButtonReady,
+                      )}
+                    >
+                      {rememberedAccountPrompt.label}
+                    </PrimaryButton>
+                  </AuthActionBar>
                 ) : null}
               </AuthStack>
             ) : null}
@@ -313,19 +316,22 @@ export function LoginScreen({
           {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
 
           {showManualAuth ? (
-            <PrimaryButton
-              type="submit"
-              fullWidth
-              disabled={!formReady || isSubmitting}
-              loading={isSubmitting}
-              className={cn(
-                appTokens.authActionButton,
-                formReady ? appTokens.authActionButtonReady : "opacity-80",
-                isSubmitting ? appTokens.authActionButtonPending : "",
-              )}
-            >
-              {submitLabel}
-            </PrimaryButton>
+            <AuthActionBar>
+              <PrimaryButton
+                type="submit"
+                fullWidth
+                disabled={!formReady || isSubmitting}
+                loading={isSubmitting}
+                data-action-chrome-segmented="true"
+                className={cn(
+                  appTokens.authActionButton,
+                  formReady ? appTokens.authActionButtonReady : "opacity-80",
+                  isSubmitting ? appTokens.authActionButtonPending : "",
+                )}
+              >
+                {submitLabel}
+              </PrimaryButton>
+            </AuthActionBar>
           ) : null}
         </AuthForm>
 

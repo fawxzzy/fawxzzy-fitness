@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { type FormEvent } from "react";
 import { signup } from "@/app/auth/actions";
-import { AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthMessage, AuthStack } from "@/components/auth/AuthShell";
+import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
+import { AuthActionBar, AuthCard, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthIntro, AuthMessage, AuthStack } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
@@ -20,6 +21,8 @@ export function SignupForm({
   error?: string;
   info?: string;
 }) {
+  const copy = AUTH_MODE_COPY["create-account"];
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const formData = new FormData(event.currentTarget);
     const email = normalizeEmail(String(formData.get("email") ?? ""));
@@ -37,7 +40,8 @@ export function SignupForm({
   }
 
   return (
-    <AuthCard>
+    <AuthCard className={appTokens.authInteractiveCard}>
+      <AuthIntro eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
       <AuthForm action={signup} onSubmit={handleSubmit}>
         <AuthStack>
           <AuthField label="Username">
@@ -61,9 +65,16 @@ export function SignupForm({
         {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
         {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
 
-        <PrimaryButton type="submit" fullWidth>
-          Sign up
-        </PrimaryButton>
+        <AuthActionBar>
+          <PrimaryButton
+            type="submit"
+            fullWidth
+            data-action-chrome-segmented="true"
+            className={appTokens.authActionButton}
+          >
+            Sign up
+          </PrimaryButton>
+        </AuthActionBar>
       </AuthForm>
 
       <AuthFooter>

@@ -6,13 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { AuthCard, AuthIntro, AuthMessage, AuthShell } from "@/components/auth/AuthShell";
 import { GhostButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
-import { InstallEntryGate } from "@/components/install/InstallEntryGate";
 import {
   trackEntryResolved,
 } from "@/features/curated-onboarding/analytics.ts";
 import type { CuratedOnboardingGateState } from "@/features/curated-onboarding/types.ts";
 import { loadCuratedOnboardingGateState, markInitialExperienceSeen } from "@/features/curated-onboarding/storage.ts";
-import { useInstallContext } from "@/hooks/useInstallContext";
 import { resolvePostLoginDestination, type PostLoginDestination } from "@/lib/resolvePostLoginDestination";
 
 type InitialExperienceGateProps = {
@@ -24,12 +22,11 @@ type InitialExperienceGateProps = {
 type GateStage = "checking-session" | "preparing-experience" | "redirecting" | "error";
 type ResolvedGateDecision = {
   destination: PostLoginDestination;
-  continueDestination: Exclude<PostLoginDestination, { kind: "install" }> | null;
   isFirstLogin: boolean;
   hasSavedDraft: boolean;
 };
 
-function destinationToHref(destination: Exclude<PostLoginDestination, { kind: "install" }>) {
+function destinationToHref(destination: PostLoginDestination) {
   if (destination.kind === "home") {
     return "/today";
   }
@@ -55,7 +52,7 @@ function getStageCopy(stage: GateStage) {
     return {
       eyebrow: "Warm-Up Handoff",
       title: "Preparing your training space",
-      subtitle: "Looking at install state, saved setup, and whether this session should continue through first-time setup.",
+      subtitle: "Looking at saved setup and whether this session should continue through first-time setup.",
       detail: "Lining up the right post-login experience.",
     };
   }
@@ -79,33 +76,23 @@ function getStageCopy(stage: GateStage) {
 
 function resolveGateDecision(
   gateState: CuratedOnboardingGateState,
-  installReadyState: {
+  context: {
     curatedEngineEnabled: boolean;
     hasExistingProgram: boolean;
-    needsInstallFlow: boolean;
   },
 ) {
   const isFirstLogin = !gateState.hasSeenInitialExperience;
   const baseContext = {
     isFirstLogin,
-    needsInstallFlow: installReadyState.needsInstallFlow,
-    curatedEngineEnabled: installReadyState.curatedEngineEnabled,
+    curatedEngineEnabled: context.curatedEngineEnabled,
     hasCompletedCuratedIntake: gateState.hasCompletedCuratedIntake,
-    hasExistingProgram: installReadyState.hasExistingProgram,
+    hasExistingProgram: context.hasExistingProgram,
     savedCuratedDraftId: gateState.savedCuratedDraftId,
   } as const;
   const destination = resolvePostLoginDestination(baseContext);
-  const continueDestination =
-    destination.kind === "install"
-      ? resolvePostLoginDestination({
-          ...baseContext,
-          needsInstallFlow: false,
-        })
-      : null;
 
   return {
     destination,
-    continueDestination: continueDestination && continueDestination.kind !== "install" ? continueDestination : null,
     isFirstLogin,
     hasSavedDraft: Boolean(gateState.savedCuratedDraftId),
   } satisfies ResolvedGateDecision;
@@ -118,7 +105,6 @@ export function InitialExperienceGate({
 }: InitialExperienceGateProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const install = useInstallContext();
   const committedHrefRef = useRef<string | null>(null);
   const initialExperienceMarkedRef = useRef(false);
   const [gateState, setGateState] = useState<CuratedOnboardingGateState | null>(null);
@@ -136,14 +122,13 @@ export function InitialExperienceGate({
   }, [curatedEngineEnabled, retrySeed, userId]);
 
   useEffect(() => {
-    if (!install.isReady || !gateState || decision || loadFailed) {
+    if (!gateState || decision || loadFailed) {
       return;
     }
 
     const nextDecision = resolveGateDecision(gateState, {
       curatedEngineEnabled,
       hasExistingProgram,
-      needsInstallFlow: install.isBrowserMode && install.capability !== "unsupported",
     });
 
     trackEntryResolved(
@@ -157,10 +142,10 @@ export function InitialExperienceGate({
       userId,
     );
     setDecision(nextDecision);
-  }, [curatedEngineEnabled, decision, gateState, hasExistingProgram, install.capability, install.isBrowserMode, install.isReady, loadFailed, userId]);
+  }, [curatedEngineEnabled, decision, gateState, hasExistingProgram, loadFailed, userId]);
 
   useEffect(() => {
-    if (!decision || decision.destination.kind === "install") {
+    if (!decision) {
       return;
     }
 
@@ -186,29 +171,14 @@ export function InitialExperienceGate({
     });
   }, [decision, pathname, router, userId]);
 
-  useEffect(() => {
-    if (!decision || decision.destination.kind !== "install" || !decision.continueDestination) {
-      return;
-    }
-
-    if (decision.continueDestination.kind === "home" && !initialExperienceMarkedRef.current) {
-      initialExperienceMarkedRef.current = true;
-      markInitialExperienceSeen(userId, new Date().toISOString());
-    }
-  }, [decision, userId]);
-
   const stage: GateStage = loadFailed
     ? "error"
     : !gateState
       ? "checking-session"
-      : !install.isReady || !decision
+      : !decision
         ? "preparing-experience"
         : "redirecting";
   const stageCopy = getStageCopy(stage);
-
-  if (decision?.destination.kind === "install" && decision.continueDestination) {
-    return <InstallEntryGate continueHref={destinationToHref(decision.continueDestination)} />;
-  }
 
   return (
     <AuthShell>
@@ -237,7 +207,7 @@ export function InitialExperienceGate({
 
             <div className="grid gap-2 rounded-[1.2rem] border border-white/10 bg-black/15 px-4 py-4 text-sm text-slate-300">
               <p className={stage === "checking-session" ? "text-white" : undefined}>Checking session context</p>
-              <p className={stage === "preparing-experience" ? "text-white" : undefined}>Preparing install and saved-state context</p>
+              <p className={stage === "preparing-experience" ? "text-white" : undefined}>Preparing saved-state context</p>
               <p className={stage === "redirecting" ? "text-white" : undefined}>Redirecting into the resolved destination</p>
             </div>
           </div>

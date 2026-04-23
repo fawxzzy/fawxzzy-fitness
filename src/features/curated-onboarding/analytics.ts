@@ -12,7 +12,7 @@ export const CURATED_ONBOARDING_ANALYTICS = {
 type CompletionSource = "fresh" | "resumed";
 
 type EntryResolvedPayload = {
-  destination: "home" | "install" | "curated-intro" | "curated-resume";
+  destination: "home" | "curated-intro" | "curated-resume";
   isFirstLogin: boolean;
   curatedEnabled: boolean;
   hasExistingProgram: boolean;

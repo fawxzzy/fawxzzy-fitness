@@ -2,10 +2,13 @@ import Link from "next/link";
 import { updatePasswordAction } from "@/app/reset-password/actions";
 import { RecoverySessionBridge } from "@/app/reset-password/RecoverySessionBridge";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthCard, AuthField, AuthFooter, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
+import { AuthActionBar, AuthCard, AuthField, AuthFooter, AuthForm, AuthIntro, AuthMessage, AuthShell, AuthStack } from "@/components/auth/AuthShell";
 import { PrimaryButton } from "@/components/ui/AppButton";
+import { ACTION_CHROME_SEGMENTED_CLASS_NAME } from "@/components/ui/actionChrome";
 import { appTokens } from "@/components/ui/app/tokens";
+import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/cn";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -27,21 +30,31 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
   if (!data.user) {
     return (
       <AuthShell>
-        <AuthIntro
-          eyebrow={copy.eyebrow}
-          title="Set new password"
-          subtitle={isRecoveryAttempt ? "Finishing your password reset link." : "Reset link expired. Request a new password reset to continue."}
-        />
-        <AuthCard>
+        <AuthCard className={appTokens.authInteractiveCard}>
+          <AuthIntro
+            eyebrow={copy.eyebrow}
+            title="Set new password"
+            subtitle="Use your recovery link to choose a new password."
+          />
           {isRecoveryAttempt ? (
             <RecoverySessionBridge initialError={error} />
           ) : (
-            <Link
-              href="/forgot-password"
-              className={appTokens.authInlineAction}
-            >
-              Request new reset link
-            </Link>
+            <AuthStack>
+              <AuthMessage tone="error">Reset link expired. Request a new password reset.</AuthMessage>
+              <AuthActionBar>
+                <Link
+                  href="/forgot-password"
+                  data-action-chrome-intent="positive"
+                  className={getAppButtonClassName({
+                    variant: "primary",
+                    fullWidth: true,
+                    className: cn(ACTION_CHROME_SEGMENTED_CLASS_NAME, appTokens.authActionButton),
+                  })}
+                >
+                  Request new reset link
+                </Link>
+              </AuthActionBar>
+            </AuthStack>
           )}
         </AuthCard>
       </AuthShell>
@@ -50,8 +63,8 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
 
   return (
     <AuthShell>
-      <AuthIntro eyebrow={copy.eyebrow} title="Set new password" subtitle="Choose and confirm a new password for your account." />
-      <AuthCard>
+      <AuthCard className={appTokens.authInteractiveCard}>
+        <AuthIntro eyebrow={copy.eyebrow} title="Set new password" subtitle="Choose and confirm a new password for your account." />
         <AuthForm action={updatePasswordAction}>
           <AuthStack>
             <AuthField label="New password">
@@ -62,9 +75,16 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
             </AuthField>
           </AuthStack>
           {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
-          <PrimaryButton type="submit" fullWidth>
-            Save new password
-          </PrimaryButton>
+          <AuthActionBar>
+            <PrimaryButton
+              type="submit"
+              fullWidth
+              data-action-chrome-segmented="true"
+              className={appTokens.authActionButton}
+            >
+              Save new password
+            </PrimaryButton>
+          </AuthActionBar>
         </AuthForm>
         <AuthFooter>
           <p className={appTokens.authHelperTextMuted}>{copy.helper}</p>
