@@ -62,6 +62,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-23 - History UI recovery follows the app-wide contract first
+- Type: Guardrail
+- Summary: History UI recovery must follow the app-wide design contract first, then use recent commit and artifact archaeology to restore missing specifics.
+- Suggested Playbook File: docs/GUARDRAILS/history-ui-recovery.md
+- Rationale: Prevents polishing history in isolation until it drifts from Today, active-session, routines, exercise-detail, and shared card-shell behavior even when individual fixes look correct.
+- Rule: History UI recovery must follow the app-wide design contract first, then use recent commit/artifact archaeology to restore missing specifics.
+- Failure Mode: The team keeps polishing history in isolation, so it drifts from the rest of the app even when individual fixes look correct.
+- Evidence: src/app/history/page.tsx, src/app/history/exercises/page.tsx, src/app/history/[sessionId]/LogAuditClient.tsx, src/components/history/HistorySessionCard.tsx, src/components/history/HistoryExerciseCard.tsx, src/components/history/HistoryDetailExerciseCard.tsx, scripts/verify-history-family-ui.mjs
+- Status: Proposed
+
 ## 2026-04-22 - Remembered-account login flows should derive submit readiness from the active auth identity
 - Type: Guardrail
 - Summary: When login hides the email field for a remembered account, submit readiness, helper copy, and CTA labels must still derive from the remembered identity plus the current password state instead of treating the hidden email input as empty or treating every remembered-account password step as exceptional reauth.

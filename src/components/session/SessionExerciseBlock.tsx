@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 export function SessionExerciseBlock({ children, className }: { children: ReactNode; className?: string }) {
@@ -45,11 +46,11 @@ export function AttachedQuickActionStrip({
   return (
     <div
       className={cn(
-        "mt-0.75 rounded-[1.05rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] px-1.5 py-1.5",
+        appTokens.currentSessionActionStrip,
         className,
       )}
     >
-      <div className={cn("grid grid-cols-3 items-stretch gap-1.5", actionRowClassName)}>
+      <div className={cn(appTokens.currentSessionActionStripGrid, actionRowClassName)}>
         <AppButton
           type="button"
           variant="secondary"
@@ -59,11 +60,11 @@ export function AttachedQuickActionStrip({
           data-action-chrome-intent={skipActionIntent}
           data-action-chrome-segmented="true"
           className={cn(
-            "col-span-1 min-h-[40px] rounded-[var(--action-chrome-segment-radius-compact)] px-2 text-[11px] font-semibold tracking-[0.01em] shadow-none sm:min-h-[42px] sm:px-2.5 sm:text-[12px]",
+            appTokens.currentSessionActionButton,
             skipActionClassName,
           )}
         >
-          {rowContract.isSkipPending ? "Saving…" : rowContract.skipLabel}
+          {rowContract.isSkipPending ? "Saving..." : rowContract.skipLabel}
         </AppButton>
         <AppButton
           type="button"
@@ -73,10 +74,10 @@ export function AttachedQuickActionStrip({
           disabled={isQuickLogDisabled}
           data-action-chrome-intent={quickLogActionIntent}
           data-action-chrome-segmented="true"
-          className={cn("col-span-2 min-h-[40px] rounded-[var(--action-chrome-segment-radius-compact)] px-2.5 text-[11px] font-semibold tracking-[0.01em] shadow-none sm:min-h-[42px] sm:px-3 sm:text-[12px]", quickLogActionClassName)}
+          className={cn(appTokens.currentSessionActionButtonWide, quickLogActionClassName)}
         >
           <span className="block truncate">
-            {rowContract.isQuickLogDisabled ? rowContract.quickLogDisabledMessage : rowContract.isQuickLogPending ? "Adding…" : rowContract.label}
+            {rowContract.isQuickLogDisabled ? rowContract.quickLogDisabledMessage : rowContract.isQuickLogPending ? "Adding..." : rowContract.label}
           </span>
         </AppButton>
       </div>

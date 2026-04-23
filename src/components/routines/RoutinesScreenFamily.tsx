@@ -3,7 +3,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { fitnessDesignPrimitiveClassNames } from "@/components/ui/app/designSystem";
+import { appTokens } from "@/components/ui/app/tokens";
 import { SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
 
@@ -12,7 +12,7 @@ type RoutinesPageScaffoldProps = {
 };
 
 export function RoutinesPageScaffold({ children }: RoutinesPageScaffoldProps) {
-  return <div className="space-y-4">{children}</div>;
+  return <div className={appTokens.routinesOverviewPageStack}>{children}</div>;
 }
 
 export function ActiveRoutineSummaryCard({
@@ -60,8 +60,8 @@ export function RoutinesSectionCard({
       label={title}
       context={meta}
       action={action}
-      className="space-y-4"
-      bodyClassName="space-y-4"
+      className={appTokens.routinesOverviewSectionStack}
+      bodyClassName={appTokens.routinesOverviewSectionStack}
     >
       {children}
     </SharedSectionShell>
@@ -69,7 +69,7 @@ export function RoutinesSectionCard({
 }
 
 export function RoutinesCardList({ children }: { children: ReactNode }) {
-  return <ul className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName}>{children}</ul>;
+  return <ul className={appTokens.dayListStack}>{children}</ul>;
 }
 
 export function RoutinesListItem({ children }: { children: ReactNode }) {
@@ -77,7 +77,7 @@ export function RoutinesListItem({ children }: { children: ReactNode }) {
 }
 
 export function RoutinesListEmpty({ children }: { children: ReactNode }) {
-  return <SubtitleText className="px-1">{children}</SubtitleText>;
+  return <SubtitleText className={appTokens.routinesOverviewListEmpty}>{children}</SubtitleText>;
 }
 
 export function SharedDayListSection({
@@ -85,10 +85,10 @@ export function SharedDayListSection({
 }: {
   children: ReactNode;
 }) {
-  return <div className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName}>{children}</div>;
+  return <div className={appTokens.dayListStack}>{children}</div>;
 }
 
 
 export function RoutinesListItemCard(props: ComponentProps<typeof ExerciseCard>) {
-  return <ExerciseCard {...props} className={cn("shadow-none", props.className)} variant="compact" />;
+  return <ExerciseCard {...props} className={cn(appTokens.routinesOverviewCardFlat, props.className)} variant="compact" />;
 }

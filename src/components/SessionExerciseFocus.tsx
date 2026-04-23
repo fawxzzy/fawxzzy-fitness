@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { AppButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } from "@/components/session/SessionExerciseBlock";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
@@ -16,6 +17,7 @@ import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/ses
 import { buildInitialSessionRowClientState, reconcileSessionRowClientState, type SessionRowClientState } from "@/components/session/sessionRowClientState";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model";
+import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { createStableSetId } from "@/lib/offline/set-log-reconciliation";
@@ -321,8 +323,8 @@ export function SessionExerciseFocus({
   }, [patchRowState, router, sessionId, toast, toggleSkipAction]);
 
   return (
-    <div className="flex flex-col gap-2.5" data-row-interaction={contract.rowInteraction}>
-      <ul className="space-y-1.5">
+    <div className={appTokens.currentSessionFocusStack} data-row-interaction={contract.rowInteraction}>
+      <ul className={appTokens.currentSessionFocusList}>
         {visibleExercises.map((exercise) => {
           const isRemoving = removingExerciseIds.includes(exercise.id);
           const isExpanded = selectedExerciseId === exercise.id;
@@ -373,14 +375,14 @@ export function SessionExerciseFocus({
                     density="compact"
                     state={isExpanded ? "selected" : rowState.cardState}
                     semanticTone={semanticTone}
-                    trailingClassName="text-muted"
+                    trailingClassName={appTokens.metaText}
                     badgeText={rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined)}
                     showLeadingVisual={surfacePolicy.showMedia}
                   >
                     <>
                       {progressState.kind === "skipped" || progressState.kind === "partialSkipped" ? (
-                        <div className="mb-3 flex items-start justify-between gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
-                          <p className="min-w-0 flex-1 leading-6">
+                        <div className={cn(appTokens.currentSessionWarningBanner, "flex items-start justify-between gap-3")}>
+                          <p className={cn("min-w-0 flex-1", appTokens.detailBodyText)}>
                             {progressState.kind === "partialSkipped"
                               ? `${progressState.progressLabel ?? "Partial progress"} - ended early for this session. Unskip to keep logging.`
                               : "Skipped for this session. Unskip to keep logging."}

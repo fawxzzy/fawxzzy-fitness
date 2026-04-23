@@ -5,6 +5,99 @@ import {
   buildTodayRecoveryShadowPlacementHref,
   buildTodayRecoveryShadowPlacementModel,
 } from "./fitness-shadow-placement-model.ts";
+import {
+  prepareTodayRecoveryShadowPlacement,
+  type PrepareTodayRecoveryShadowPlacementDependencies,
+} from "./fitness-shadow-placement.ts";
+
+function createPrepareTodayRecoveryShadowPlacementDependencies(
+  overrides: Partial<PrepareTodayRecoveryShadowPlacementDependencies> = {},
+): PrepareTodayRecoveryShadowPlacementDependencies {
+  return {
+    existsSync: () => true,
+    findAtlasRoot: () => "C:\\ATLAS",
+    readAcceptedShadowWarehouseReceipts: () => [],
+    buildFitnessSnapshotSourceStateFromApp: async () => ({
+      memberId: "member-shadow-1",
+      capturedAt: "2026-04-19T10:30:00.000Z",
+      weekStartDate: "2026-04-14",
+    } as Awaited<ReturnType<PrepareTodayRecoveryShadowPlacementDependencies["buildFitnessSnapshotSourceStateFromApp"]>>),
+    evaluateAndPackageSignals: () => ([{
+      signalType: "recovery_warning",
+      outboundId: "out-shadow-latest",
+    }] as ReturnType<PrepareTodayRecoveryShadowPlacementDependencies["evaluateAndPackageSignals"]>),
+    packageSnapshots: () => ({
+      exported: [],
+    } as ReturnType<PrepareTodayRecoveryShadowPlacementDependencies["packageSnapshots"]>),
+    emitFitnessShadowTelemetryBatch: async () => ({
+      receiptRefs: [],
+      errors: [],
+    } as Awaited<ReturnType<PrepareTodayRecoveryShadowPlacementDependencies["emitFitnessShadowTelemetryBatch"]>>),
+    buildFitnessGrowthShadowReport: () => ({
+      pack_id: "atlas-fitness-growth-pack",
+      pack_version: "atlas.fitness.growth-pack.v1",
+      consumer_of_pack_versions: ["atlas.fitness.wave-2-metrics-pack.v1"],
+      warehouse_receipt_count: 1,
+      placement_contract: {
+        placement_id: "recovery_reset_shadow_placement",
+        label: "Recovery reset follow-up",
+        surface_id: "today_recovery_banner",
+        mode: "shadow_only",
+        success_kpi_ids: ["recovery_guardrail_application_rate"],
+      },
+      baseline_dashboard: {
+        pack_id: "atlas-fitness-funnel-dashboard-pack",
+        pack_version: "atlas.fitness.funnel-dashboard-pack.v1",
+        recovery_warning_stage_count: 1,
+        recovery_guardrail_application_rate: {
+          numerator: 0,
+          denominator: 1,
+          value: 0,
+        },
+      },
+      summary: {
+        candidate_count: 1,
+        eligible_count: 1,
+        suppressed_count: 0,
+        control_count: 0,
+        placed_count: 1,
+        attributed_conversion_count: 0,
+      },
+      candidates: [{
+        placement_id: "recovery_reset_shadow_placement",
+        member_id: "member-shadow-1",
+        source_outbound_id: "out-shadow-latest",
+        week_start_date: "2026-04-14",
+        observed_day: "2026-04-19",
+        trigger_occurred_at: "2026-04-19T10:30:00.000Z",
+        experiment_arm: "treatment_shadow",
+        cohort_id: "fitness_growth_shadow_recovery_reset_v1:treatment_shadow:80",
+        cohort_bucket: 80,
+        eligible_rule_ids_met: ["actionable_recovery_warning", "open_weekly_progress_window"],
+        ineligibility_reasons: [],
+        suppression_rule_ids: [],
+        placement_status: "shadow_placed",
+        attribution: {
+          sourceOutboundId: "out-shadow-latest",
+        },
+        deep_link: {
+          pathname: "/today",
+          params: {
+            memberId: "member-shadow-1",
+            sourceOutboundId: "out-shadow-latest",
+            placementId: "recovery_reset_shadow_placement",
+            cohortId: "fitness_growth_shadow_recovery_reset_v1:treatment_shadow:80",
+          },
+        },
+        converted_on_primary_receipt: false,
+      }],
+      acceptance_checks: [],
+    }),
+    buildTodayRecoveryShadowPlacementModel,
+    logWarning: () => {},
+    ...overrides,
+  };
+}
 
 test("buildTodayRecoveryShadowPlacementHref carries the frozen attribution keys into the deep link", () => {
   const href = buildTodayRecoveryShadowPlacementHref({
@@ -125,4 +218,29 @@ test("buildTodayRecoveryShadowPlacementModel selects the latest shadow-placed ca
     placement?.destinationHref,
     "/today?memberId=member-shadow-1&sourceOutboundId=out-shadow-latest&placementId=recovery_reset_shadow_placement&cohortId=fitness_growth_shadow_recovery_reset_v1%3Atreatment_shadow%3A80&shadowPlacement=recovery_reset_shadow_placement&focus=recovery_reset_shadow",
   );
+});
+
+test("prepareTodayRecoveryShadowPlacement returns null when report generation fails", async () => {
+  const warnings: Array<{ message: string; details: Record<string, unknown> }> = [];
+
+  const result = await prepareTodayRecoveryShadowPlacement(
+    {
+      memberId: "member-shadow-1",
+      now: "2026-04-19T10:30:00.000Z",
+    },
+    createPrepareTodayRecoveryShadowPlacementDependencies({
+      buildFitnessGrowthShadowReport: () => {
+        throw new Error("malformed recovery shadow receipts");
+      },
+      logWarning: (message, details) => {
+        warnings.push({ message, details });
+      },
+    }),
+  );
+
+  assert.equal(result, null);
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0]?.message, "[fitness-shadow-placement] recovery shadow report unavailable");
+  assert.equal(warnings[0]?.details.memberId, "member-shadow-1");
+  assert.match(String(warnings[0]?.details.error), /malformed recovery shadow receipts/);
 });

@@ -21,6 +21,8 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppButton } from "@/components/ui/AppButton";
+import { AppBadge } from "@/components/ui/app/AppBadge";
+import { appTokens } from "@/components/ui/app/tokens";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
@@ -781,7 +783,7 @@ export function SetLoggerCard({
               }
             }}
           >
-            {isSecondaryPending ? "Opening…" : (secondaryActionLabel ?? "View")}
+            {isSecondaryPending ? "Opening..." : (secondaryActionLabel ?? "View")}
           </DockButton>
         ) : <div aria-hidden="true" />}
         right={(
@@ -808,7 +810,7 @@ export function SetLoggerCard({
     const parts = [summary];
     if (rpe.trim()) parts.push(`RPE ${rpe.trim()}`);
     if (resolvedIsWarmup) parts.push("Warm-Up");
-    return parts.join(" • ");
+    return parts.join(" - ");
   }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
   const currentSetLabel = formatSetPositionLabel(sets.length + 1, useIntervalLanguage ? "Interval" : "Set");
 
@@ -859,16 +861,14 @@ export function SetLoggerCard({
   }
 
   return (
-    <div className="flex min-h-0 flex-col space-y-2.5" data-testid="set-logger-card">
+    <div className={appTokens.currentSessionLoggerStack} data-testid="set-logger-card">
       {/* Manual QA checklist:
           - Add/exercise metric hints are visible inside input boxes
           - No Set Timer UI remains; duration logging still works via mm:ss
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <WorkoutEntrySection
-        className="border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-rgb)/0.42)]"
-      >
+      <WorkoutEntrySection className={appTokens.currentSessionLoggerPanel}>
         <MeasurementPanelV2
           values={{
             reps,
@@ -903,13 +903,13 @@ export function SetLoggerCard({
           visibleMetrics={(Object.entries(visibleMetrics) as Array<[keyof typeof visibleMetrics, boolean]>).filter(([, enabled]) => enabled).map(([metric]) => metric)}
           leadingContent={(
             <div
-              className="rounded-[1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-rgb)/0.4)] px-3 py-2.5"
+              className={appTokens.currentSessionLoggerSummaryCard}
               data-testid="set-logger-current-summary"
             >
-              <div className="flex flex-col gap-2">
+              <div className={appTokens.currentSessionLoggerSummaryStack}>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Current set</p>
-                  <p className="mt-1 text-[13px] leading-snug text-text/90 line-clamp-2">{currentSetLabel} • {liveSummaryText}</p>
+                  <p className={appTokens.currentSessionLoggerSummaryEyebrow}>Current set</p>
+                  <p className={appTokens.currentSessionLoggerSummaryText}>{currentSetLabel} - {liveSummaryText}</p>
                 </div>
               </div>
             </div>
@@ -922,7 +922,7 @@ export function SetLoggerCard({
               state={resolvedIsWarmup ? "active" : "default"}
               data-action-chrome-intent={resolvedIsWarmup ? "info" : "neutral"}
               data-action-chrome-segmented="true"
-              className="min-h-[2.6rem] w-full rounded-[var(--action-chrome-segment-radius-compact)] px-3.5 text-[12px] font-semibold tracking-[0.02em]"
+              className={appTokens.currentSessionWarmupToggle}
               aria-pressed={resolvedIsWarmup}
               aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
               onClick={() => setWarmupValue(!resolvedIsWarmup)}
@@ -934,13 +934,13 @@ export function SetLoggerCard({
           rpe={rpe}
           onRpeChange={setRpe}
           footerContent={(
-            <div className="space-y-2.5">
-              <div className="rounded-[1rem] bg-[rgb(var(--surface-rgb)/0.42)] px-2.5 py-2" data-testid="set-logger-set-list">
-                <div className="mb-2 flex items-center justify-between gap-2 px-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Sets</span>
-                  <span className="text-[11px] text-muted">{sets.length} logged</span>
+            <div className={appTokens.currentSessionFocusStack}>
+              <div className={appTokens.currentSessionLoggerSetList} data-testid="set-logger-set-list">
+                <div className={appTokens.currentSessionLoggerSetListHeader}>
+                  <span className={appTokens.currentSessionLoggerSetListTitle}>Sets</span>
+                  <span className={appTokens.currentSessionLoggerSetListMeta}>{sets.length} logged</span>
                 </div>
-                <ul className="space-y-1.5 text-sm">
+                <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
                   {animatedSets.map((set, index) => (
                     <li
                       key={set.stableId}
@@ -951,9 +951,9 @@ export function SetLoggerCard({
                     >
                       <CompactLogRow
                         summary={(
-                          <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-snug text-[rgb(var(--text)/0.94)]">
-                            <span className="font-semibold text-text">{useIntervalLanguage ? "Interval" : "Set"} {index + 1}</span>
-                            <span className="text-muted">•</span>
+                          <span className={appTokens.currentSessionSetSummary}>
+                            <span className={appTokens.currentSessionSetSummaryLabel}>{useIntervalLanguage ? "Interval" : "Set"} {index + 1}</span>
+                            <span className={appTokens.currentSessionSetSummaryDivider}>-</span>
                             <span>{formatMeasurementSummaryText({
                               reps: set.reps,
                               weight: set.weight,
@@ -965,16 +965,16 @@ export function SetLoggerCard({
                               emptyLabel: "No measurements",
                             })}</span>
                             {set.is_warmup ? (
-                              <span className="rounded-full border border-[rgb(var(--button-primary-border)/0.34)] bg-[rgb(var(--button-primary-bg)/0.16)] px-2 py-0.5 text-[10px] font-medium text-[rgb(var(--button-primary-text)/0.94)]">Warm-Up</span>
+                              <AppBadge tone="default" className={appTokens.workoutChipCompact}>Warm-Up</AppBadge>
                             ) : null}
                             {set.rpe !== null ? (
-                              <span className="rounded-full border border-[rgb(var(--accent-blue)/0.24)] bg-[rgb(var(--accent-blue)/0.12)] px-2 py-0.5 text-[10px] font-medium text-[rgb(var(--text-primary)/0.96)]">RPE {set.rpe}</span>
+                              <AppBadge tone="today" className={appTokens.workoutChipCompact}>RPE {set.rpe}</AppBadge>
                             ) : null}
-                            {set.queueStatus ? <span className="text-[11px] text-muted">{set.queueStatus}</span> : null}
-                            {set.pending && !set.queueStatus ? <span className="text-[11px] text-muted">saving...</span> : null}
+                            {set.queueStatus ? <span className={appTokens.currentSessionPendingText}>{set.queueStatus}</span> : null}
+                            {set.pending && !set.queueStatus ? <span className={appTokens.currentSessionPendingText}>saving...</span> : null}
                           </span>
                         )}
-                        actionClassName="border-l border-[rgb(var(--button-destructive-border)/0.38)] bg-[rgb(var(--button-destructive-bg))]"
+                        actionClassName={appTokens.currentSessionDeleteActionRail}
                         action={(
                           <button
                             type="button"
@@ -982,10 +982,7 @@ export function SetLoggerCard({
                               void handleDeleteSet(set);
                             }}
                             aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
-                            className={cn(
-                              "min-h-[44px] self-stretch px-3.5 text-[11px] font-semibold tracking-[0.02em] text-[rgb(var(--button-destructive-text)/0.82)] transition hover:bg-[rgb(var(--button-destructive-bg-hover))] hover:text-[rgb(var(--button-destructive-text))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--button-destructive-border)/0.72)]",
-                              tapFeedbackClass,
-                            )}
+                            className={cn(appTokens.currentSessionDeleteActionButton, tapFeedbackClass)}
                           >
                             Delete
                           </button>
@@ -993,13 +990,13 @@ export function SetLoggerCard({
                       />
                     </li>
                   ))}
-                  {sets.length === 0 ? <li className="rounded-2xl border border-dashed border-[rgb(var(--border-strong)/0.18)] px-3 py-3 text-muted">No {useIntervalLanguage ? "intervals" : "sets"} logged yet.</li> : null}
+                  {sets.length === 0 ? <li className={appTokens.currentSessionEmptyState}>No {useIntervalLanguage ? "intervals" : "sets"} logged yet.</li> : null}
                 </ul>
               </div>
             </div>
           )}
         />
-        {error ? <p className="text-sm text-[rgb(var(--accent-red))]">{error}</p> : null}
+        {error ? <p className={appTokens.routineEditorAutosaveErrorText}>{error}</p> : null}
       </WorkoutEntrySection>
 
       <PublishBottomActions>{saveSetActions}</PublishBottomActions>

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "1.0",
+  "cycle_id": "2026-04-23T00-50-46-790Z-d7ca2a05",
+  "trigger_command": "verify",
+  "command_call_count": 1,
+  "command_call_count_by_command": {
+    "verify": 1
+  },
+  "repeated_command_count": 0,
+  "command_durations": {
+    "verify": 248
+  },
+  "artifact_cache_hits": 0,
+  "artifact_cache_misses": 1,
+  "internal_phase_counts": {
+    "coverage_collection": 1,
+    "ignore_recommendation_ranking": 1,
+    "dependency_scan": 1,
+    "history_update": 3,
+    "cycle_manifest_write": 1
+  },
+  "artifact_reads": {
+    "attempted": 3,
+    "found": 2,
+    "missing": 1,
+    "malformed": 0
+  },
+  "artifact_writes": {
+    "total": 8,
+    "by_artifact": {
+      "runtime/current/coverage": 1,
+      "runtime/current/telemetry": 1,
+      "runtime/current/ignore-recommendations": 1,
+      "runtime/cycle/manifest": 1,
+      "runtime/cycle/coverage": 1,
+      "runtime/cycle/telemetry": 1,
+      "runtime/cycle/ignore-recommendations": 1,
+      "runtime/history-rollups": 1
+    }
+  },
+  "graph_build_phase_count": 0,
+  "module_extraction_phase_count": 0,
+  "verify_rule_phase_count": 1,
+  "fallback_usage_counts": {
+    "coverage_denominator_defaulted": 0,
+    "total_files_denominator_defaulted": 0
+  },
+  "ignore_classification_counts": {
+    "vcs-internal": 0,
+    "build-cache": 1106,
+    "generated-report": 0,
+    "temporary-file": 2,
+    "binary-asset": 289,
+    "unknown": 1005
+  },
+  "parser_failure_counts": {
+    "coverage_parse_failures": 0
+  },
+  "expensive_paths": [
+    {
+      "path": ".next/server/app/history/[sessionId]/page.js",
+      "size_bytes": 2908584
+    },
+    {
+      "path": ".next/static/chunks/app/today/page.js",
+      "size_bytes": 2711211
+    },
+    {
+      "path": ".next/static/chunks/app/history/[sessionId]/page.js",
+      "size_bytes": 2550215
+    },
+    {
+      "path": ".next/static/chunks/app/history/exercises/page.js",
+      "size_bytes": 2342771
+    },
+    {
+      "path": ".next/trace",
+      "size_bytes": 1658689
+    }
+  ],
+  "expensive_path_classes": [
+    {
+      "path_class": "unknown",
+      "total_size_bytes": 209283685,
+      "file_count": 1294
+    },
+    {
+      "path_class": "build-cache",
+      "total_size_bytes": 3561746,
+      "file_count": 1106
+    },
+    {
+      "path_class": "temporary-file",
+      "total_size_bytes": 84635,
+      "file_count": 2
+    }
+  ],
+  "low_value_path_count": 1133,
+  "recommendation_count": 4,
+  "warnings_count": 4,
+  "failures_count": 0
+}

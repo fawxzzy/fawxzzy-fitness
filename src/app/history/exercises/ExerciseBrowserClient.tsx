@@ -272,7 +272,7 @@ export function ExerciseBrowserClient({
       <div className={appTokens.historyExerciseResultsViewport}>
         <ul className={appTokens.historyExerciseResults}>
           {filteredRows.map((row) => (
-            <li key={row.exerciseId}>
+            <li key={`${viewMode}:${row.exerciseId}`}>
               <ExerciseHistoryRow row={row} onOpen={setSelectedExerciseId} viewMode={viewMode} />
             </li>
           ))}
@@ -298,6 +298,7 @@ export function ExerciseBrowserClient({
             <BottomDockButton
               type="button"
               intent="info"
+              data-history-density-toggle="exercises"
               onClick={() => applyViewMode(viewMode === "compact" ? "detailed" : "compact")}
             >
               {nextViewModeLabel}

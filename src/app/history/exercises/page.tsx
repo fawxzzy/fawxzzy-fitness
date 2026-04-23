@@ -38,9 +38,9 @@ export default async function HistoryExercisesPage() {
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="History"
-        subtitle={`${rows.length} tracked exercises`}
+        title="Exercises"
         activeTab="exercises"
+        headerChrome="controlsOnly"
         floatingHeaderSlot={<div id="history-exercises-floating-header" />}
       >
         <ExerciseBrowserClient rows={rows} initialViewMode={initialViewMode} />
@@ -56,9 +56,9 @@ export default async function HistoryExercisesPage() {
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="History"
-        subtitle="Exercise history unavailable"
+        title="Exercises"
         activeTab="exercises"
+        headerChrome="controlsOnly"
       >
         <ExercisesBrowserError />
       </HistoryRouteScaffold>

@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { TodayOverviewHeader, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import {
   DayCard,
@@ -20,7 +20,6 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { AppBadge } from "@/components/ui/app/AppBadge";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { appTokens } from "@/components/ui/app/tokens";
 import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
@@ -213,8 +212,7 @@ export function TodayDayPicker({
   const shouldCenterSelectedDayState = Boolean(!mode.dayPickerOpen && selectedDayStateCard && !hasSelectedDayRows);
 
   const headerNode = selectedDay ? (
-    <SharedScreenHeader
-      recipe="todayOverview"
+    <TodayOverviewHeader
       title={routineName}
       subtitle={(
         <DayTaxonomyHeaderSummary
@@ -279,7 +277,7 @@ export function TodayDayPicker({
       {headerNode && floatingHeaderTarget ? createPortal(headerNode, floatingHeaderTarget) : null}
       <div className="flex min-h-0 flex-col">
         {!mode.noRoutine && selectedDay ? (
-          <ScreenScaffold recipe="todayOverview" className="w-full">
+          <TodayOverviewScaffold>
             {mode.contentShellVisible ? (
               <div className="flex flex-col gap-[0.625rem]">
                 {mode.dayPickerOpen ? (
@@ -373,7 +371,7 @@ export function TodayDayPicker({
                 ) : null}
               </div>
             ) : null}
-          </ScreenScaffold>
+          </TodayOverviewScaffold>
         ) : null}
 
         <ExerciseInfo

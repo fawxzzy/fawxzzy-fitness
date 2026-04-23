@@ -1,0 +1,291 @@
+{
+  "schemaVersion": "1.0",
+  "cycle_id": "2026-04-23T00-17-26-745Z-b5aeb15d",
+  "observed_at": "2026-04-23T00:17:27.033Z",
+  "total_files_seen": 2322,
+  "eligible_files": 727,
+  "scanned_files": 727,
+  "skipped_files": 0,
+  "oversized_files": 0,
+  "ignored_files": 1123,
+  "unsupported_files": 183,
+  "binary_files": 289,
+  "parse_failures": 0,
+  "parse_failed_files": 0,
+  "unresolved_imports": 76,
+  "detected_modules": 0,
+  "unknown_areas": [
+    "unsupported-file-types",
+    "unresolved-imports",
+    "classified-low-value-paths"
+  ],
+  "eligible_scan_coverage_score": 1,
+  "repo_visibility_score": 0.3131,
+  "blind_spot_ratio": 0.6869,
+  "coverage_formulas": {
+    "eligible_scan_coverage_score": "eligible_scan_coverage_score = scanned_files / eligible_files (eligible_files defaults to 1 when empty)",
+    "repo_visibility_score": "repo_visibility_score = (total_files_seen - blind_spot_files) / total_files_seen (total_files_seen defaults to 1 when empty)",
+    "blind_spot_ratio": "blind_spot_ratio = blind_spot_files / total_files_seen (total_files_seen defaults to 1 when empty)"
+  },
+  "score_components": {
+    "numerator_scanned_files": 727,
+    "denominator_eligible_files": 727,
+    "numerator_visible_files": 727,
+    "denominator_total_files_seen": 2322,
+    "numerator_blind_spot_files": 1595,
+    "denominator_total_files_seen_for_blind_spot": 2322
+  },
+  "observations": {
+    "file_inventory": {
+      "total_files_seen": 2322,
+      "sampled_file_hashes": [
+        {
+          "path": ".eslintrc.json",
+          "sha256": "c42575f830bb5003bb7be58fbec13d0ca65a6188155067e98076a7f3977e7472"
+        },
+        {
+          "path": ".next/app-build-manifest.json",
+          "sha256": "1a1959c94dd71b51d0e399ddb0fc42d0c7057509d2eb269f2ee61962b51a4deb"
+        },
+        {
+          "path": ".next/app-path-routes-manifest.json",
+          "sha256": "8e5cb96cf05ad74dbee0411e312cb8ea35b33366d972766d4367c04a9650639d"
+        },
+        {
+          "path": ".next/BUILD_ID",
+          "sha256": "97d434cef026115ce6fb68afb2eb9fa5b4bc6d43b33b5093adbc509161a819d9"
+        },
+        {
+          "path": ".next/build-manifest.json",
+          "sha256": "740ef3897aaeb6cac82f5c7300840e79b6d988c5dfb49beb81bfb519a01ba7b3"
+        }
+      ],
+      "max_scan_bytes": 1000000,
+      "expensive_paths": [
+        {
+          "path": "public/exercises/icons/dumbbell-fly.png",
+          "size_bytes": 1549947
+        },
+        {
+          "path": "public/exercises/icons/barbell-row.png",
+          "size_bytes": 1546746
+        },
+        {
+          "path": "public/exercises/icons/dips-chest.png",
+          "size_bytes": 1532819
+        },
+        {
+          "path": "public/exercises/icons/high-to-low-cable-fly.png",
+          "size_bytes": 1529878
+        },
+        {
+          "path": "public/exercises/icons/push-up.png",
+          "size_bytes": 1522794
+        }
+      ],
+      "path_class_counts": {
+        "vcs-internal": 0,
+        "build-cache": 1106,
+        "generated-report": 0,
+        "temporary-file": 2,
+        "binary-asset": 289,
+        "unknown": 925
+      },
+      "pruned_directories": [
+        {
+          "path": ".next/cache",
+          "path_class": "build-cache",
+          "reason": "next-build-cache-directory"
+        },
+        {
+          "path": "node_modules",
+          "path_class": "build-cache",
+          "reason": "dependency-cache-directory"
+        }
+      ],
+      "low_value_path_samples": [
+        {
+          "path": ".eslintrc.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/app-build-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/app-path-routes-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/BUILD_ID",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/build-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/export-marker.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/images-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/next-minimal-server.js.nft.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/next-server.js.nft.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/package.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/prerender-manifest.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/prerender-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/react-loadable-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/required-server-files.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/routes-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/app-paths-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/app/_not-found.html",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/app/_not-found.meta",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/app/_not-found.rsc",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/app/_not-found/page_client-reference-manifest.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/app/_not-found/page.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/app/_not-found/page.js.nft.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/app/api/ecosystem/fitness/debug/route.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/app/api/ecosystem/fitness/debug/route.js.nft.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/app/api/ecosystem/fitness/pilot-shadow/route.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        }
+      ],
+      "ignore_candidate_paths": [
+        ".next/cache/",
+        "node_modules/",
+        "tmp-dev-server.err.log",
+        "tmp-dev-server.log"
+      ],
+      "expensive_path_classes": [
+        {
+          "path_class": "unknown",
+          "total_size_bytes": 188867044,
+          "file_count": 1214
+        },
+        {
+          "path_class": "build-cache",
+          "total_size_bytes": 3561746,
+          "file_count": 1106
+        },
+        {
+          "path_class": "temporary-file",
+          "total_size_bytes": 84635,
+          "file_count": 2
+        }
+      ]
+    },
+    "dependency_scan": {
+      "unresolved_relative_imports": 76
+    }
+  },
+  "interpretations": {
+    "framework_inference": "unknown",
+    "architecture_inference": "unknown",
+    "coverage_confidence": "low"
+  }
+}

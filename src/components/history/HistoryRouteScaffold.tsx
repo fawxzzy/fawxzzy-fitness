@@ -15,6 +15,7 @@ type HistoryOverviewRouteScaffoldProps = {
   activeTab: "sessions" | "exercises";
   children: ReactNode;
   floatingHeaderSlot?: ReactNode;
+  headerChrome?: "titleOnly" | "tabsWithControls" | "controlsOnly";
   contentRailClassName?: string;
   contentClassName?: string;
   floatingHeaderRailClassName?: string;
@@ -35,20 +36,39 @@ type HistoryRouteScaffoldProps =
 
 export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
   const floatingHeader = props.mode === "overview"
-    ? (
-        <ContentRail className={cn(appTokens.historyFloatingHeaderRail, props.floatingHeaderRailClassName)}>
-          <HistoryPageHeader title={props.title} subtitle={props.subtitle}>
-            <div className={appTokens.historyOverviewHeaderStack}>
-              <HistoryTabs
-                value={props.activeTab}
-                sessionsHref="/history"
-                exercisesHref="/history/exercises"
-              />
-              {props.floatingHeaderSlot}
-            </div>
-          </HistoryPageHeader>
-        </ContentRail>
-      )
+    ? (() => {
+        const headerChrome = props.headerChrome ?? "tabsWithControls";
+        const showTabs = headerChrome === "tabsWithControls";
+        const showTitleHeader = headerChrome !== "controlsOnly";
+        const headerChildren = showTabs || props.floatingHeaderSlot
+          ? (
+              <div className={showTabs ? appTokens.historyOverviewHeaderStack : appTokens.historyExerciseHeaderStack}>
+                {showTabs ? (
+                  <HistoryTabs
+                    value={props.activeTab}
+                    sessionsHref="/history"
+                    exercisesHref="/history/exercises"
+                  />
+                ) : null}
+                {props.floatingHeaderSlot}
+              </div>
+            )
+          : null;
+
+        return (
+          <ContentRail className={cn(appTokens.historyFloatingHeaderRail, props.floatingHeaderRailClassName)}>
+            {showTitleHeader ? (
+              <HistoryPageHeader title={props.title} subtitle={props.subtitle}>
+                {headerChildren}
+              </HistoryPageHeader>
+            ) : (
+              <div data-history-floating-header className="w-full">
+                {props.floatingHeaderSlot}
+              </div>
+            )}
+          </ContentRail>
+        );
+      })()
       : (
         <ContentRail className={cn(appTokens.historyDetailFloatingHeaderRail, props.floatingHeaderRailClassName)}>
           <div data-history-floating-header className="w-full">

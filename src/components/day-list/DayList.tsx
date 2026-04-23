@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ExerciseCard } from "@/components/ExerciseCard";
-import { cn } from "@/lib/cn";
+import { appTokens } from "@/components/ui/app/tokens";
 
 export const REST_DAY_CARD_COPY = "Recover, move lightly, and come back ready for the next workout.";
 
@@ -83,7 +83,7 @@ export function formatLoggedSetCount(loggedSetCount?: number | null): string | u
 }
 
 export function DayList({ children }: { children: ReactNode }) {
-  return <ul className="space-y-1.5 sm:space-y-2">{children}</ul>;
+  return <ul className={appTokens.dayListStack}>{children}</ul>;
 }
 
 function DayListItem({ children }: { children: ReactNode }) {
@@ -112,10 +112,10 @@ export function DayCard({ onPress, wrapper, state = "default", metaText, subtitl
       subtitleLabel={subtitleLabel}
       onPress={onPress}
       state={toExerciseCardState(state)}
-      className={cn("shadow-none")}
-      contentClassName="space-y-0.5 sm:space-y-1"
-      titleClassName="[text-wrap:pretty]"
-      subtitleClassName="[text-wrap:pretty] line-clamp-2"
+      className={appTokens.routinesOverviewCardFlat}
+      contentClassName={appTokens.dayCardContent}
+      titleClassName={appTokens.dayCardTitle}
+      subtitleClassName={appTokens.dayCardSubtitle}
       variant="list"
     />
   );

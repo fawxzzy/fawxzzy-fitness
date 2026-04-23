@@ -5,6 +5,7 @@ import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { RoutineEditorAddExerciseFlowShell, type EditorExerciseOption } from "@/components/routines/RoutineEditorShared";
+import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -43,7 +44,7 @@ export function SessionQuickAddExerciseForm({
         }
       }}
       id="session-quick-add-exercise-form"
-      className="space-y-4"
+      className={appTokens.currentSessionFormStack}
     >
       <input type="hidden" name="sessionId" value={sessionId} />
       <input type="hidden" name="setCount" value="3" />

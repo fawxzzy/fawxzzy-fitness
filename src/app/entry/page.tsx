@@ -2,14 +2,14 @@ import { AuthenticatedRememberedLoginSync } from "@/components/auth/Authenticate
 import { InitialExperienceGate } from "@/components/auth/InitialExperienceGate";
 import { requireUser } from "@/lib/auth";
 import { isCuratedOnboardingEnabled } from "@/lib/feature-flags";
-import { ensureProfile } from "@/lib/profile";
+import { ensureProfileForEntryBootstrap } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function EntryPage() {
   const user = await requireUser();
-  await ensureProfile(user.id);
+  await ensureProfileForEntryBootstrap(user.id);
   const rememberedLoginDisplayName =
     typeof user.user_metadata?.display_name === "string"
       ? user.user_metadata.display_name

@@ -1,0 +1,1 @@
+<w> [webpack.cache.PackFileCacheStrategy] Restoring pack from C:\ATLAS\repos\fawxzzy-fitness\.next\cache\webpack\client-development.pack.gz failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')

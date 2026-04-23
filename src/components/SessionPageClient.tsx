@@ -11,11 +11,13 @@ import { BottomActionTriad } from "@/components/layout/CanonicalBottomActions";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { appTokens } from "@/components/ui/app/tokens";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { useToast } from "@/components/ui/ToastProvider";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
+import { cn } from "@/lib/cn";
 import { clearActiveSessionHint, writeActiveSessionHint } from "@/lib/session-state-sync";
 import type { SetRow } from "@/types/db";
 
@@ -161,7 +163,7 @@ export function SessionPageClient({
   ) : null;
 
   const emptyState = useMemo(
-    () => (hasExercises ? null : <p className="rounded-xl border border-border/55 bg-surface/55 p-3 text-sm text-muted">No exercises yet.</p>),
+    () => (hasExercises ? null : <p className={appTokens.currentSessionEmptyState}>No exercises yet.</p>),
     [hasExercises],
   );
 
@@ -189,7 +191,7 @@ export function SessionPageClient({
           secondary={quickAddAction}
           tertiary={(
             <div
-              className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-[rgb(var(--border-subtle)/0.18)] bg-[rgb(var(--surface-muted)/0.92)] px-3.25 py-1.5 text-[0.925rem] font-semibold tabular-nums text-[rgb(var(--text-secondary)/0.96)]"
+              className={appTokens.currentSessionDurationPill}
               suppressHydrationWarning
               aria-live={hasMountedTimer ? "off" : undefined}
             >
@@ -213,25 +215,25 @@ export function SessionPageClient({
   );
 
   return (
-    <ScrollScreenWithBottomActions className="space-y-2.5 overflow-x-clip" floatingHeader={floatingHeader}>
+    <ScrollScreenWithBottomActions className={cn(appTokens.currentSessionScreenStack, "overflow-x-clip")} floatingHeader={floatingHeader}>
       {!isExerciseOpen ? (
         <PublishBottomActions>{sessionActions}</PublishBottomActions>
       ) : null}
 
-      <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+      <ContentRail className={appTokens.currentSessionContentRail}>
         <section
           data-screen-scaffold={sessionRecipe.scaffold}
           data-section-chrome={sessionRecipe.sectionChrome}
           data-footer-dock={sessionRecipe.footerDock}
           data-row-interaction={sessionRecipe.rowInteraction}
-          className="flex flex-col gap-3"
+          className={appTokens.currentSessionSectionStack}
         >
           {!isExerciseOpen ? (
             <div className="flex justify-end">
               <OfflineSyncBadge userId={userId} />
             </div>
           ) : null}
-          {searchError ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{searchError}</p> : null}
+          {searchError ? <p className={appTokens.currentSessionInlineError}>{searchError}</p> : null}
           <ActionFeedbackToasts />
 
           {hasExercises ? (

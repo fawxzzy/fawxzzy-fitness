@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { AuthCard, AuthMessage, AuthShell, AuthStatusCard } from "@/components/auth/AuthShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { GhostButton, PrimaryButton, SecondaryButton } from "@/components/ui/AppButton";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { curatedWorkoutEngineClient } from "../api-contract.ts";
@@ -427,30 +428,30 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
 
   return (
     <AuthShell>
-      <AuthCard className="space-y-6 rounded-[1.85rem] border-emerald-400/10 px-5 py-5 shadow-[0_28px_80px_rgba(0,0,0,0.42)]">
-        <div className="space-y-4">
+      <AuthCard className={appTokens.curatedCard}>
+        <div className={appTokens.curatedHeaderStack}>
           <CuratedOnboardingProgress
             currentStep={currentStep}
             totalSteps={CURATED_STEP_ORDER.length}
             progress={progressValue}
           />
 
-          <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-accent/90">{stepDefinition.eyebrow}</p>
-            <h1 className="text-[clamp(2rem,8vw,2.5rem)] font-semibold tracking-[-0.04em] text-white">{stepDefinition.title}</h1>
-            <p className="max-w-sm text-sm leading-6 text-slate-300">{stepDefinition.body}</p>
+          <div className={appTokens.curatedHeaderTitleStack}>
+            <p className={appTokens.curatedHeaderEyebrow}>{stepDefinition.eyebrow}</p>
+            <h1 className={appTokens.curatedHeaderTitle}>{stepDefinition.title}</h1>
+            <p className={appTokens.curatedHeaderBody}>{stepDefinition.body}</p>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-[1.15rem] border border-white/10 bg-white/[0.03] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-slate-100">{saveLabel}</p>
-              <p className="text-xs leading-5 text-slate-400">Leave anytime. Resume later will pick up on this device if the intake is still in draft.</p>
+          <div className={appTokens.curatedAutosavePanel}>
+            <div className={appTokens.curatedInlineStack}>
+              <p className={appTokens.curatedStatusText}>{saveLabel}</p>
+              <p className={appTokens.curatedMetaText}>Leave anytime. Resume later will pick up on this device if the intake is still in draft.</p>
             </div>
-            <div className="flex items-center gap-3">
-              <Link href="/today" className="text-xs font-medium text-slate-300 underline-offset-4 hover:text-white hover:underline">
+            <div className={appTokens.curatedUtilityRow}>
+              <Link href="/today" className={appTokens.curatedInlineLink}>
                 Resume later
               </Link>
-              <GhostButton type="button" size="sm" onClick={handleReset} className="px-3 text-xs">
+              <GhostButton type="button" size="sm" onClick={handleReset} className={appTokens.curatedUtilityButton}>
                 Start over
               </GhostButton>
             </div>
@@ -463,7 +464,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
           </AuthMessage>
         ) : null}
 
-        <section className="space-y-4 rounded-[1.4rem] border border-white/10 bg-black/15 px-4 py-4">
+        <section className={appTokens.curatedStepPanel}>
           {renderStepBody()}
         </section>
 
@@ -473,12 +474,12 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
 
         {state.message ? <AuthMessage tone={state.lifecycle.generationStatus === "failed" ? "error" : "default"}>{state.message}</AuthMessage> : null}
 
-        <div className={`flex gap-3 ${showBack ? "flex-row" : "flex-col"}`}>
+        <div className={showBack ? appTokens.curatedActionRow : appTokens.curatedActionRowSolo}>
           {showBack ? (
             <SecondaryButton
               type="button"
               onClick={() => dispatch({ type: "go-back", at: nowIso() })}
-              className="min-h-[3.2rem] flex-1"
+              className={appTokens.curatedActionButton}
             >
               Back
             </SecondaryButton>
@@ -487,7 +488,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
           {state.draft.stepId === "generation-handoff" ? (
             <Link
               href="/today"
-              className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: "min-h-[3.2rem] flex-1" })}
+              className={getAppButtonClassName({ variant: "primary", fullWidth: true, className: appTokens.curatedActionButton })}
             >
               Open Today
             </Link>
@@ -496,7 +497,7 @@ export function CuratedOnboardingShell({ userId, requestedDraftId }: CuratedOnbo
               type="button"
               disabled={!canAdvance}
               onClick={handlePrimaryAction}
-              className="min-h-[3.2rem] flex-1"
+              className={appTokens.curatedActionButton}
             >
               {stepDefinition.nextLabel}
             </PrimaryButton>

@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "1.0",
+  "entries": [
+    {
+      "cycle_id": "2026-04-22T23-33-53-914Z-cb911406",
+      "observed_at": "2026-04-22T23:33:54.221Z",
+      "eligible_scan_coverage_score": 0.9886,
+      "repo_visibility_score": 0.2557,
+      "blind_spot_ratio": 0.7443
+    },
+    {
+      "cycle_id": "2026-04-22T23-41-07-420Z-21de7441",
+      "observed_at": "2026-04-22T23:41:07.632Z",
+      "eligible_scan_coverage_score": 0.9908,
+      "repo_visibility_score": 0.2609,
+      "blind_spot_ratio": 0.7391
+    },
+    {
+      "cycle_id": "2026-04-23T00-17-26-745Z-b5aeb15d",
+      "observed_at": "2026-04-23T00:17:27.033Z",
+      "eligible_scan_coverage_score": 1,
+      "repo_visibility_score": 0.3131,
+      "blind_spot_ratio": 0.6869
+    },
+    {
+      "cycle_id": "2026-04-23T00-50-04-584Z-e62af98d",
+      "observed_at": "2026-04-23T00:50:04.954Z",
+      "eligible_scan_coverage_score": 0.9936,
+      "repo_visibility_score": 0.3229,
+      "blind_spot_ratio": 0.6771
+    },
+    {
+      "cycle_id": "2026-04-23T00-50-46-790Z-d7ca2a05",
+      "observed_at": "2026-04-23T00:50:47.039Z",
+      "eligible_scan_coverage_score": 0.9936,
+      "repo_visibility_score": 0.3218,
+      "blind_spot_ratio": 0.6782
+    },
+    {
+      "cycle_id": "2026-04-23T01-04-57-979Z-22d33882",
+      "observed_at": "2026-04-23T01:04:58.288Z",
+      "eligible_scan_coverage_score": 0.9937,
+      "repo_visibility_score": 0.3246,
+      "blind_spot_ratio": 0.6754
+    },
+    {
+      "cycle_id": "2026-04-23T01-37-13-808Z-2dc2f305",
+      "observed_at": "2026-04-23T01:37:14.117Z",
+      "eligible_scan_coverage_score": 0.9987,
+      "repo_visibility_score": 0.3149,
+      "blind_spot_ratio": 0.6851
+    },
+    {
+      "cycle_id": "2026-04-23T02-03-40-228Z-2480ae84",
+      "observed_at": "2026-04-23T02:03:40.768Z",
+      "eligible_scan_coverage_score": 0.9803,
+      "repo_visibility_score": 0.2561,
+      "blind_spot_ratio": 0.7439
+    },
+    {
+      "cycle_id": "2026-04-23T02-32-31-638Z-b9118f73",
+      "observed_at": "2026-04-23T02:32:32.018Z",
+      "eligible_scan_coverage_score": 0.9801,
+      "repo_visibility_score": 0.2536,
+      "blind_spot_ratio": 0.7464
+    },
+    {
+      "cycle_id": "2026-04-23T04-25-36-721Z-66d81888",
+      "observed_at": "2026-04-23T04:25:36.989Z",
+      "eligible_scan_coverage_score": 0.9786,
+      "repo_visibility_score": 0.2549,
+      "blind_spot_ratio": 0.7451
+    },
+    {
+      "cycle_id": "2026-04-23T07-01-20-374Z-efc672c3",
+      "observed_at": "2026-04-23T07:01:20.647Z",
+      "eligible_scan_coverage_score": 0.9801,
+      "repo_visibility_score": 0.2515,
+      "blind_spot_ratio": 0.7485
+    },
+    {
+      "cycle_id": "2026-04-23T07-14-05-457Z-4632fb43",
+      "observed_at": "2026-04-23T07:14:05.737Z",
+      "eligible_scan_coverage_score": 0.992,
+      "repo_visibility_score": 0.3063,
+      "blind_spot_ratio": 0.6937
+    },
+    {
+      "cycle_id": "2026-04-23T07-14-42-665Z-d1b798ea",
+      "observed_at": "2026-04-23T07:14:42.951Z",
+      "eligible_scan_coverage_score": 0.992,
+      "repo_visibility_score": 0.3054,
+      "blind_spot_ratio": 0.6946
+    }
+  ]
+}

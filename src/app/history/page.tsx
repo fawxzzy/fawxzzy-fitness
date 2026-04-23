@@ -70,9 +70,10 @@ export default async function HistoryPage({
       return (
         <HistoryRouteScaffold
           mode="overview"
-          title="History"
-          subtitle={state.fallback.subtitle}
+          title="Sessions"
+          subtitle="0 logged"
           activeTab="sessions"
+          headerChrome="titleOnly"
         >
           <HistoryRouteMessage
             title={state.fallback.errorTitle}
@@ -85,10 +86,10 @@ export default async function HistoryPage({
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="History"
-        subtitle={state.data.subtitle}
+        title="Sessions"
+        subtitle={`${state.data.sessionItems.length} logged`}
         activeTab="sessions"
-        floatingHeaderSlot={<div id="history-sessions-floating-header" />}
+        headerChrome="titleOnly"
       >
         <HistorySessionsClient
           sessions={state.data.sessionItems}
@@ -117,9 +118,10 @@ export default async function HistoryPage({
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="History"
-        subtitle="Session history unavailable"
+        title="Sessions"
+        subtitle="0 logged"
         activeTab="sessions"
+        headerChrome="titleOnly"
       >
         <HistoryRouteMessage
           title="Unable to render session history right now."

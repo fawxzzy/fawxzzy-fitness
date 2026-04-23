@@ -42,7 +42,7 @@ const densityStyles: Record<ExerciseCardDensity, {
     titleSize: "text-[0.92rem]",
     contentGap: "gap-0.5",
     goalRow: appTokens.workoutCardGoalRowCompact,
-    childrenSpacing: "mt-[0.1875rem]",
+    childrenSpacing: "mt-[0.125rem]",
   },
   detailed: {
     shell: "min-h-[var(--exercise-row-min-height-detailed)] py-[var(--exercise-row-shell-padding-y-detailed)] pr-[var(--exercise-row-shell-padding-x)]",
@@ -57,8 +57,8 @@ const densityStyles: Record<ExerciseCardDensity, {
 };
 
 export const EXERCISE_CARD_LABEL_CLASS_NAME = appTokens.measurementLabel;
-export const EXERCISE_CARD_SUMMARY_CLASS_NAME = "text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]";
-export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = appTokens.workoutCardDetailCompact;
+export const EXERCISE_CARD_SUMMARY_CLASS_NAME = cn("text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]", appTokens.exerciseCardSummaryTextPad);
+export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = cn(appTokens.workoutCardDetailCompact, appTokens.exerciseCardTertiaryTextPad);
 export const EXERCISE_CARD_BADGE_CLASS_NAME = cn(appTokens.badgeBase, "min-h-[1.5rem] px-2.5 py-1 text-[10px] tracking-[0.12em]");
 export const EXERCISE_CARD_TRAILING_ICON_CLASS_NAME = "flex h-full min-h-10 items-center justify-end";
 
@@ -281,6 +281,7 @@ export function ExerciseCard({
                 "text-safe-wrap min-w-0 leading-tight [text-wrap:pretty]",
                 styles.titleClamp,
                 styles.titleSize,
+                appTokens.exerciseCardTitleTextPad,
                 "font-semibold",
                 titleStateClassNames[state],
                 titleClassName,

@@ -1,0 +1,281 @@
+{
+  "checkpoints": [
+    {
+      "created_at": "2026-04-22T23:33:54.193Z",
+      "id": "checkpoint-001",
+      "label": "verify:passed",
+      "step_id": "step-001"
+    },
+    {
+      "created_at": "2026-04-22T23:41:07.616Z",
+      "id": "checkpoint-002",
+      "label": "verify:passed",
+      "step_id": "step-002"
+    },
+    {
+      "created_at": "2026-04-23T00:17:27.005Z",
+      "id": "checkpoint-003",
+      "label": "verify:passed",
+      "step_id": "step-003"
+    },
+    {
+      "created_at": "2026-04-23T00:50:04.931Z",
+      "id": "checkpoint-004",
+      "label": "verify:passed",
+      "step_id": "step-004"
+    },
+    {
+      "created_at": "2026-04-23T00:50:47.018Z",
+      "id": "checkpoint-005",
+      "label": "verify:passed",
+      "step_id": "step-005"
+    },
+    {
+      "created_at": "2026-04-23T01:04:58.259Z",
+      "id": "checkpoint-006",
+      "label": "verify:passed",
+      "step_id": "step-006"
+    },
+    {
+      "created_at": "2026-04-23T01:37:14.092Z",
+      "id": "checkpoint-007",
+      "label": "verify:passed",
+      "step_id": "step-007"
+    },
+    {
+      "created_at": "2026-04-23T02:03:40.718Z",
+      "id": "checkpoint-008",
+      "label": "verify:passed",
+      "step_id": "step-008"
+    },
+    {
+      "created_at": "2026-04-23T02:32:31.982Z",
+      "id": "checkpoint-009",
+      "label": "verify:passed",
+      "step_id": "step-009"
+    },
+    {
+      "created_at": "2026-04-23T04:25:36.967Z",
+      "id": "checkpoint-010",
+      "label": "verify:passed",
+      "step_id": "step-010"
+    },
+    {
+      "created_at": "2026-04-23T07:01:20.624Z",
+      "id": "checkpoint-011",
+      "label": "verify:passed",
+      "step_id": "step-011"
+    },
+    {
+      "created_at": "2026-04-23T07:14:05.706Z",
+      "id": "checkpoint-012",
+      "label": "verify:passed",
+      "step_id": "step-012"
+    },
+    {
+      "created_at": "2026-04-23T07:14:42.926Z",
+      "id": "checkpoint-013",
+      "label": "verify:passed",
+      "step_id": "step-013"
+    }
+  ],
+  "created_at": "2026-04-22T23:33:54.191Z",
+  "frozen": false,
+  "id": "run-237aa79db609",
+  "intent": {
+    "constraints": [
+      "deterministic-cli-only-writes"
+    ],
+    "goal": "verify repository governance",
+    "id": "intent-a79d481da19f",
+    "requested_by": "user",
+    "scope": [
+      "repository"
+    ]
+  },
+  "steps": [
+    {
+      "evidence": [],
+      "id": "step-001",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-002",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-003",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-004",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-005",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-006",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-007",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-008",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-009",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-010",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-011",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-012",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    },
+    {
+      "evidence": [],
+      "id": "step-013",
+      "inputs": {
+        "policyMode": false
+      },
+      "kind": "verify",
+      "outputs": {
+        "failures": 0,
+        "ok": true,
+        "warnings": 0
+      },
+      "status": "passed"
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,43 @@
+
+> fawxzzyfitness@0.3.88 dev
+> node scripts/dev.mjs -p 3100
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3100
+
+ ✓ Starting...
+ ✓ Ready in 2.4s
+ ✓ Compiled /dev/history-preview/enable in 265ms (54 modules)
+ GET /dev/history-preview/enable?target=%2Fhistory 307 in 418ms
+ GET /dev/history-preview/enable?target=%2Fhistory%2Fhistory-preview-session-2 307 in 42ms
+ ○ Compiling /history/[sessionId] ...
+ ✓ Compiled /history/[sessionId] in 8.8s (1752 modules)
+ ✓ Compiled in 740ms (760 modules)
+ GET /history/history-preview-session-2 200 in 10128ms
+ ○ Compiling /manifest.webmanifest ...
+ ✓ Compiled /manifest.webmanifest in 602ms (1022 modules)
+ GET /manifest.webmanifest 200 in 736ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 3.3s (1790 modules)
+ GET /login 200 in 2860ms
+ GET /history/history-preview-session-2 200 in 2762ms
+ GET /manifest.webmanifest 200 in 48ms
+ GET /dev/history-preview/enable?target=%2Fhistory%2Fexercises 307 in 28ms
+ ○ Compiling /history/exercises ...
+ ✓ Compiled /history/exercises in 809ms (1824 modules)
+ GET /history/exercises 200 in 1015ms
+ GET /manifest.webmanifest 200 in 39ms
+ GET /login 200 in 87ms
+ GET /manifest.webmanifest 200 in 43ms
+ GET /history/exercises 200 in 121ms
+ GET /manifest.webmanifest 200 in 45ms
+ GET /dev/history-preview/enable?target=%2Fhistory 307 in 42ms
+ ○ Compiling /history ...
+ ✓ Compiled /history in 962ms (1836 modules)
+ GET /history 200 in 1278ms
+ GET /manifest.webmanifest 200 in 44ms
+ GET /login 200 in 60ms
+ GET /manifest.webmanifest 200 in 30ms
+ GET /history 200 in 86ms
+ GET /manifest.webmanifest 200 in 29ms
+[?25h

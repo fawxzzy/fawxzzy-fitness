@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0",
+  "cycle_id": "2026-04-23T00-50-04-584Z-e62af98d",
+  "started_at": "2026-04-23T00:50:04.584Z",
+  "ended_at": "2026-04-23T00:50:04.954Z",
+  "repo_root": "C:\\ATLAS\\repos\\fawxzzy-fitness",
+  "trigger_command": "verify",
+  "child_commands": [],
+  "playbook_version": "0.1.2",
+  "analyzer_contract_version": "1.0",
+  "status": "success",
+  "success": true,
+  "artifact_paths_written": [
+    ".playbook/runtime/current/coverage.json",
+    ".playbook/runtime/current/telemetry.json",
+    ".playbook/runtime/current/ignore-recommendations.json",
+    ".playbook/runtime/cycles/2026-04-23T00-50-04-584Z-e62af98d/manifest.json"
+  ]
+}

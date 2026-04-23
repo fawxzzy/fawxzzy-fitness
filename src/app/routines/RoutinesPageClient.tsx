@@ -22,6 +22,7 @@ import {
   RoutinesRouteHeaderCard,
   SharedDayListSection,
 } from "@/components/routines/RoutinesScreenFamily";
+import { appTokens } from "@/components/ui/app/tokens";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { formatExerciseSplitSummary } from "@/lib/day-summary";
@@ -190,8 +191,8 @@ export function RoutinesPageClient({
                     showLeadingVisual={false}
                     state={isCurrent ? "selected" : "default"}
                     badgeText={isCurrent ? "ACTIVE" : undefined}
-                    rightIcon={isPending && isCurrent ? <span className="text-xs text-muted">Updating...</span> : undefined}
-                    className="shadow-none"
+                    rightIcon={isPending && isCurrent ? <span className={appTokens.routinesOverviewPendingText}>Updating...</span> : undefined}
+                    className={appTokens.routinesOverviewCardFlat}
                   />
                 </RoutinesListItem>
               );
@@ -224,7 +225,7 @@ export function RoutinesPageClient({
                     isCompleted: day.isCompleted,
                     isInSession: day.isInSession,
                   })}
-                  rightIcon={<span aria-hidden="true" className="text-muted">›</span>}
+                  rightIcon={<span aria-hidden="true" className={appTokens.metaText}>›</span>}
                   state={resolveDayCardState({
                     isToday: day.isToday,
                     isSelected: day.isToday,
@@ -245,7 +246,7 @@ export function RoutinesPageClient({
                   Create a routine
                 </Link>
               )}
-              className="border-0 bg-transparent p-0 shadow-none"
+              className={appTokens.routinesOverviewEmptyState}
             />
           )}
         </SharedDayListSection>

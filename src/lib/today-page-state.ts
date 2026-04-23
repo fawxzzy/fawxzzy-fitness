@@ -54,6 +54,55 @@ export function resolveTodayDisplayDay(args: {
   };
 }
 
+type ActiveRoutineIdentity = {
+  id: string;
+  name: string | null;
+};
+
+export type TodayRoutinePayloadState = {
+  id: string;
+  name: string;
+  dayIndex: number;
+  dayName: string;
+  isRest: boolean;
+  state: TodayPickerDayState;
+  routineId: string;
+  routineDayId: string | null;
+};
+
+export function buildTodayRoutinePayloadState(args: {
+  activeRoutine: ActiveRoutineIdentity | null;
+  effectiveDayIndex: number | null;
+  routineDayName: string | null;
+  isRest: boolean;
+  state: TodayPickerDayState;
+  routineDayId: string | null;
+  fallbackDayIndex: number | null;
+}): TodayRoutinePayloadState | null {
+  if (!args.activeRoutine) {
+    return null;
+  }
+
+  const dayIndex = args.effectiveDayIndex ?? args.fallbackDayIndex;
+  if (dayIndex === null) {
+    return null;
+  }
+
+  const dayName = args.routineDayName?.trim() || `Day ${dayIndex}`;
+  const routineName = args.activeRoutine.name?.trim() || "Routine";
+
+  return {
+    id: args.activeRoutine.id,
+    name: routineName,
+    dayIndex,
+    dayName,
+    isRest: args.isRest,
+    state: args.state,
+    routineId: args.activeRoutine.id,
+    routineDayId: args.routineDayId,
+  };
+}
+
 export type TodayPickerDayState = "rest" | "empty" | "partial" | "runnable";
 
 export type TodayPickerExercise = {

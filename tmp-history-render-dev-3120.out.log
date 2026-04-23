@@ -1,0 +1,60 @@
+
+> fawxzzyfitness@0.3.88 dev
+> node scripts/dev.mjs --hostname 127.0.0.1 --port 3120
+
+  ▲ Next.js 14.2.5
+  - Local:        http://127.0.0.1:3120
+  - Network:      http://127.0.0.1:3120
+
+ ✓ Starting...
+ ✓ Ready in 2.2s
+ ○ Compiling /dev/history-preview ...
+ ✓ Compiled /dev/history-preview in 5.9s (1358 modules)
+ GET /dev/history-preview 200 in 1011ms
+ ✓ Compiled in 672ms (674 modules)
+ ○ Compiling /dev/history-preview/enable ...
+ ✓ Compiled /dev/history-preview/enable in 1413ms (712 modules)
+ GET /dev/history-preview/enable?target=%2Fhistory%2Fhistory-preview-session-2 307 in 1614ms
+ ○ Compiling /history/[sessionId] ...
+ ✓ Compiled /history/[sessionId] in 2.7s (1758 modules)
+ GET /history/history-preview-session-2 200 in 3383ms
+ ✓ Compiled /manifest.webmanifest in 236ms (1027 modules)
+ GET /manifest.webmanifest 200 in 313ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 511ms (1796 modules)
+ GET /login 200 in 148ms
+ GET /manifest.webmanifest 200 in 22ms
+ GET /history/history-preview-session-2 200 in 155ms
+ GET /manifest.webmanifest 200 in 18ms
+ GET /dev/history-preview/enable?target=%2Fhistory%2Fexercises 307 in 20ms
+ ○ Compiling /history/exercises ...
+ ✓ Compiled /history/exercises in 1194ms (1830 modules)
+ GET /history/exercises 200 in 1404ms
+ GET /manifest.webmanifest 200 in 27ms
+ GET /login 200 in 50ms
+ GET /manifest.webmanifest 200 in 16ms
+ GET /history/exercises 200 in 90ms
+ GET /manifest.webmanifest 200 in 29ms
+ GET /dev/history-preview/enable?target=%2Fhistory 307 in 31ms
+ ○ Compiling /history ...
+ ✓ Compiled /history in 920ms (1854 modules)
+ GET /history 200 in 1053ms
+ GET /manifest.webmanifest 200 in 20ms
+ GET /login 200 in 46ms
+ GET /manifest.webmanifest 200 in 16ms
+ GET /history 200 in 83ms
+ GET /manifest.webmanifest 200 in 19ms
+ ✓ Compiled in 3.8s (1770 modules)
+ ✓ Compiled in 845ms (784 modules)
+ ✓ Compiled in 627ms (784 modules)
+ ✓ Compiled in 721ms (1770 modules)
+ ✓ Compiled in 1080ms (1770 modules)
+ ✓ Compiled in 967ms (1770 modules)
+ ✓ Compiled in 776ms (1770 modules)
+ ✓ Compiled in 1491ms (1770 modules)
+ ✓ Compiled in 734ms (784 modules)
+ ✓ Compiled in 1187ms (1770 modules)
+ ✓ Compiled in 2.6s (1756 modules)
+ ✓ Compiled in 411ms (1756 modules)
+ ✓ Compiled in 1638ms (1770 modules)
+ ✓ Compiled in 599ms (1756 modules)

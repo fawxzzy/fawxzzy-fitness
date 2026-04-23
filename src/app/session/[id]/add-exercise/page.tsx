@@ -4,6 +4,7 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { appTokens } from "@/components/ui/app/tokens";
 import { quickAddExerciseAction } from "@/app/session/[id]/actions";
 import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
 import { getSessionPageData } from "@/app/session/[id]/queries";
@@ -34,7 +35,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
     <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="logSet">
       <ScrollScreenWithBottomActions
         floatingHeader={(
-          <ContentRail className="py-1">
+          <ContentRail className={appTokens.historyFloatingHeaderRail}>
             <ScreenScaffold recipe="sessionAddExercise" className="w-full">
               <RoutineEditorPageHeader
                 recipe="sessionAddExercise"
@@ -45,7 +46,7 @@ export default async function SessionAddExercisePage({ params, searchParams }: P
           </ContentRail>
         )}
       >
-        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+        <ContentRail className={appTokens.currentSessionContentRail}>
           <ScreenScaffold recipe="sessionAddExercise" className="w-full">
             <SessionQuickAddExerciseForm
               sessionId={params.id}

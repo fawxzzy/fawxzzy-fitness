@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildTodayRoutinePayloadState,
   deriveTodayScreenMode,
   getTodayGlobalErrorMessage,
   getTodayDaySummary,
@@ -79,6 +80,43 @@ test("resolveTodayDisplayDay keeps the session snapshot label even if the routin
     dayName: "Travel Day",
     source: "session",
   });
+});
+
+test("buildTodayRoutinePayloadState preserves an active routine when downstream day loading fails", () => {
+  const payload = buildTodayRoutinePayloadState({
+    activeRoutine: { id: "routine-1", name: "Strength Base" },
+    effectiveDayIndex: null,
+    routineDayName: null,
+    isRest: false,
+    state: "empty",
+    routineDayId: null,
+    fallbackDayIndex: 3,
+  });
+
+  assert.deepEqual(payload, {
+    id: "routine-1",
+    name: "Strength Base",
+    dayIndex: 3,
+    dayName: "Day 3",
+    isRest: false,
+    state: "empty",
+    routineId: "routine-1",
+    routineDayId: null,
+  });
+});
+
+test("buildTodayRoutinePayloadState reserves no-routine state for a genuinely missing active routine", () => {
+  const payload = buildTodayRoutinePayloadState({
+    activeRoutine: null,
+    effectiveDayIndex: null,
+    routineDayName: null,
+    isRest: false,
+    state: "empty",
+    routineDayId: null,
+    fallbackDayIndex: 1,
+  });
+
+  assert.equal(payload, null);
 });
 
 test("deriveTodayScreenMode returns begin dock for runnable day", () => {

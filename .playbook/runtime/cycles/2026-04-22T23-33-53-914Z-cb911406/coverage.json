@@ -1,0 +1,292 @@
+{
+  "schemaVersion": "1.0",
+  "cycle_id": "2026-04-22T23-33-53-914Z-cb911406",
+  "observed_at": "2026-04-22T23:33:54.221Z",
+  "total_files_seen": 2030,
+  "eligible_files": 525,
+  "scanned_files": 519,
+  "skipped_files": 6,
+  "oversized_files": 6,
+  "ignored_files": 1109,
+  "unsupported_files": 107,
+  "binary_files": 289,
+  "parse_failures": 0,
+  "parse_failed_files": 0,
+  "unresolved_imports": 8,
+  "detected_modules": 0,
+  "unknown_areas": [
+    "unsupported-file-types",
+    "oversized-files",
+    "unresolved-imports",
+    "classified-low-value-paths"
+  ],
+  "eligible_scan_coverage_score": 0.9886,
+  "repo_visibility_score": 0.2557,
+  "blind_spot_ratio": 0.7443,
+  "coverage_formulas": {
+    "eligible_scan_coverage_score": "eligible_scan_coverage_score = scanned_files / eligible_files (eligible_files defaults to 1 when empty)",
+    "repo_visibility_score": "repo_visibility_score = (total_files_seen - blind_spot_files) / total_files_seen (total_files_seen defaults to 1 when empty)",
+    "blind_spot_ratio": "blind_spot_ratio = blind_spot_files / total_files_seen (total_files_seen defaults to 1 when empty)"
+  },
+  "score_components": {
+    "numerator_scanned_files": 519,
+    "denominator_eligible_files": 525,
+    "numerator_visible_files": 519,
+    "denominator_total_files_seen": 2030,
+    "numerator_blind_spot_files": 1511,
+    "denominator_total_files_seen_for_blind_spot": 2030
+  },
+  "observations": {
+    "file_inventory": {
+      "total_files_seen": 2030,
+      "sampled_file_hashes": [
+        {
+          "path": ".next/fallback-build-manifest.json",
+          "sha256": "a5f1f83cc9fbad5a910ed69605956c0eb537161be19c4b8d50b3f58b35124e83"
+        },
+        {
+          "path": ".next/react-loadable-manifest.json",
+          "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        {
+          "path": ".next/server/_error.js",
+          "sha256": "6fb9aa280929ba84147a417bd0d32fa42cc3ff5422a02ff7a55cb9e30030b726"
+        },
+        {
+          "path": ".next/server/app-paths-manifest.json",
+          "sha256": "003c2f6a0bc725e4309f1dbd9582cf0ca634f3a8a8066c3541ce1e2fc6005dde"
+        },
+        {
+          "path": ".next/server/app/dev/history-preview/enable/route.js",
+          "sha256": "4e725d6dc8489ad11427445fe182b0a47f29a195d0d563ddf03b9528bbfde970"
+        }
+      ],
+      "max_scan_bytes": 1000000,
+      "expensive_paths": [
+        {
+          "path": ".next/static/chunks/fallback/main.js",
+          "size_bytes": 5008477
+        },
+        {
+          "path": ".next/static/chunks/fallback/amp.js",
+          "size_bytes": 3731295
+        },
+        {
+          "path": ".next/server/vendor-chunks/next.js",
+          "size_bytes": 2616168
+        },
+        {
+          "path": ".next/server/app/history/exercises/page.js",
+          "size_bytes": 2463787
+        },
+        {
+          "path": "public/exercises/icons/dumbbell-fly.png",
+          "size_bytes": 1549947
+        }
+      ],
+      "path_class_counts": {
+        "vcs-internal": 0,
+        "build-cache": 1106,
+        "generated-report": 0,
+        "temporary-file": 2,
+        "binary-asset": 289,
+        "unknown": 633
+      },
+      "pruned_directories": [
+        {
+          "path": ".next/cache",
+          "path_class": "build-cache",
+          "reason": "next-build-cache-directory"
+        },
+        {
+          "path": "node_modules",
+          "path_class": "build-cache",
+          "reason": "dependency-cache-directory"
+        }
+      ],
+      "low_value_path_samples": [
+        {
+          "path": ".next/fallback-build-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/react-loadable-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/_error.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/app-paths-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/app/dev/history-preview/enable/route.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/app/dev/history-preview/page.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/app/history/exercises/page.js",
+          "path_class": "unknown",
+          "handling": "skipped",
+          "reason": "oversized-file"
+        },
+        {
+          "path": ".next/server/middleware-build-manifest.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/middleware-react-loadable-manifest.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/next-font-manifest.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/next-font-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/pages-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/pages/_app.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/pages/_document.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/pages/_error.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/server-reference-manifest.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/server-reference-manifest.json",
+          "path_class": "unknown",
+          "handling": "unsupported",
+          "reason": "unsupported-extension"
+        },
+        {
+          "path": ".next/server/vendor-chunks/@supabase.js",
+          "path_class": "unknown",
+          "handling": "skipped",
+          "reason": "oversized-file"
+        },
+        {
+          "path": ".next/server/vendor-chunks/@swc.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/vendor-chunks/framer-motion.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/vendor-chunks/iceberg-js.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/vendor-chunks/motion-dom.js",
+          "path_class": "unknown",
+          "handling": "skipped",
+          "reason": "oversized-file"
+        },
+        {
+          "path": ".next/server/vendor-chunks/motion-utils.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        },
+        {
+          "path": ".next/server/vendor-chunks/next.js",
+          "path_class": "unknown",
+          "handling": "skipped",
+          "reason": "oversized-file"
+        },
+        {
+          "path": ".next/server/vendor-chunks/tslib.js",
+          "path_class": "unknown",
+          "handling": "scanned",
+          "reason": "analyzable-source-file"
+        }
+      ],
+      "ignore_candidate_paths": [
+        ".next/cache/",
+        "node_modules/",
+        "tmp-dev-server.err.log",
+        "tmp-dev-server.log"
+      ],
+      "expensive_path_classes": [
+        {
+          "path_class": "unknown",
+          "total_size_bytes": 201032663,
+          "file_count": 922
+        },
+        {
+          "path_class": "build-cache",
+          "total_size_bytes": 3561746,
+          "file_count": 1106
+        },
+        {
+          "path_class": "temporary-file",
+          "total_size_bytes": 84635,
+          "file_count": 2
+        }
+      ]
+    },
+    "dependency_scan": {
+      "unresolved_relative_imports": 8
+    }
+  },
+  "interpretations": {
+    "framework_inference": "unknown",
+    "architecture_inference": "unknown",
+    "coverage_confidence": "low"
+  }
+}

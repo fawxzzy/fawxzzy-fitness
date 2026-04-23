@@ -1,0 +1,27 @@
+{
+  "command_name": "verify",
+  "confidence_score": 0.9,
+  "event_id": "20260423070120-command_quality-22b87c15aae9",
+  "event_type": "command_quality",
+  "open_questions_count": 0,
+  "payload": {
+    "command_name": "verify",
+    "confidence_score": 0.9,
+    "open_questions_count": 0,
+    "success_status": "success",
+    "warnings_count": 0
+  },
+  "related_artifacts": [
+    {
+      "kind": "command_quality",
+      "path": ".playbook/telemetry/command-quality.json"
+    }
+  ],
+  "run_id": "verify-1776927680389",
+  "schemaVersion": "1.0",
+  "subject": "verify",
+  "subsystem": "repository_memory",
+  "success_status": "success",
+  "timestamp": "2026-04-23T07:01:20.642Z",
+  "warnings_count": 0
+}
