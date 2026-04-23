@@ -82,12 +82,32 @@ async function waitForJson(url, timeoutMs = DEFAULT_TIMEOUT_MS) {
   throw new Error(`Timed out waiting for DevTools endpoint: ${url}`);
 }
 
+async function createPageTarget(debuggingPort, targetUrl = "about:blank") {
+  const endpoint = `http://127.0.0.1:${debuggingPort}/json/new?${encodeURIComponent(String(targetUrl))}`;
+  for (const method of ["PUT", "GET"]) {
+    try {
+      const response = await fetch(endpoint, { method });
+      if (response.ok) {
+        const target = await response.json();
+        if (target?.type === "page" && typeof target.webSocketDebuggerUrl === "string") {
+          return target;
+        }
+      }
+    } catch {
+      // Fall back to the target list below.
+    }
+  }
+
+  const targets = await waitForJson(`http://127.0.0.1:${debuggingPort}/json/list`);
+  return targets.find((target) => target.type === "page" && typeof target.webSocketDebuggerUrl === "string") ?? null;
+}
+
 async function killProcessTree(pid) {
   if (!pid) return;
 
   if (process.platform === "win32") {
     try {
-      await execFileAsync("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true });
+      await execFileAsync("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true, timeout: 5000 });
       return;
     } catch {
       // Fall back to a direct kill when taskkill is unavailable.
@@ -212,13 +232,35 @@ async function evaluate(client, expression) {
   return result.result?.value;
 }
 
+async function sendWithTimeout(client, method, params = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  let timeoutId;
+  try {
+    return await Promise.race([
+      client.send(method, params),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`Timed out waiting for CDP command: ${method}`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 async function waitForCondition(client, expression, timeoutMs, failureMessage) {
   const startedAt = Date.now();
 
   while ((Date.now() - startedAt) < timeoutMs) {
-    const matched = await evaluate(client, expression);
-    if (matched) {
-      return;
+    try {
+      const matched = await evaluate(client, expression);
+      if (matched) {
+        return;
+      }
+    } catch {
+      // Navigations can briefly destroy the execution context. Keep polling.
     }
     await delay(100);
   }
@@ -226,12 +268,58 @@ async function waitForCondition(client, expression, timeoutMs, failureMessage) {
   throw new Error(failureMessage);
 }
 
+async function navigateAndWait(client, url, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  try {
+    await sendWithTimeout(client, "Page.navigate", { url: String(url) }, Math.min(timeoutMs, 5000));
+  } catch {
+    await sendWithTimeout(
+      client,
+      "Runtime.evaluate",
+      {
+        expression: `(() => { window.location.assign(${JSON.stringify(String(url))}); return true; })()`,
+        returnByValue: true,
+        awaitPromise: true,
+      },
+      Math.min(timeoutMs, 5000),
+    );
+  }
+
+  await waitForCondition(
+    client,
+    `(() => document.readyState === "interactive" || document.readyState === "complete")()`,
+    timeoutMs,
+    `Timed out waiting for document readiness after navigating to ${url}`,
+  );
+}
+
+async function setupPageClient(client, config, windowWidth, windowHeight, deviceScaleFactor) {
+  await sendWithTimeout(client, "Page.enable");
+  await sendWithTimeout(client, "Runtime.enable");
+  await sendWithTimeout(client, "Network.enable");
+  if (config.disableJavaScript) {
+    await sendWithTimeout(client, "Emulation.setScriptExecutionDisabled", { value: true });
+  }
+  await sendWithTimeout(client, "Emulation.setDeviceMetricsOverride", {
+    width: windowWidth,
+    height: windowHeight,
+    deviceScaleFactor,
+    mobile: Boolean(config.mobile),
+    screenWidth: windowWidth,
+    screenHeight: windowHeight,
+  });
+
+  if (config.mobile) {
+    await sendWithTimeout(client, "Emulation.setTouchEmulationEnabled", {
+      enabled: true,
+      maxTouchPoints: 5,
+    });
+  }
+}
+
 async function runAction(client, action) {
   switch (action.type) {
     case "navigate": {
-      const loadPromise = client.waitForEvent("Page.loadEventFired");
-      await client.send("Page.navigate", { url: String(action.url) });
-      await loadPromise;
+      await navigateAndWait(client, action.url, Number(action.timeoutMs ?? DEFAULT_TIMEOUT_MS));
       return;
     }
     case "sleep":
@@ -288,6 +376,50 @@ async function runAction(client, action) {
   }
 }
 
+async function applyCookies(client, cookies) {
+  for (const cookie of cookies) {
+    if (!cookie || typeof cookie !== "object") {
+      continue;
+    }
+
+    const payload = {
+      name: String(cookie.name ?? ""),
+      value: String(cookie.value ?? ""),
+    };
+
+    if (!payload.name || !payload.value) {
+      throw new Error("Each configured cookie must include a non-empty name and value.");
+    }
+
+    if (typeof cookie.url === "string" && cookie.url.length > 0) {
+      payload.url = cookie.url;
+    }
+    if (typeof cookie.domain === "string" && cookie.domain.length > 0) {
+      payload.domain = cookie.domain;
+    }
+    if (typeof cookie.path === "string" && cookie.path.length > 0) {
+      payload.path = cookie.path;
+    }
+    if (typeof cookie.httpOnly === "boolean") {
+      payload.httpOnly = cookie.httpOnly;
+    }
+    if (typeof cookie.secure === "boolean") {
+      payload.secure = cookie.secure;
+    }
+    if (typeof cookie.sameSite === "string" && cookie.sameSite.length > 0) {
+      payload.sameSite = cookie.sameSite;
+    }
+    if (typeof cookie.expires === "number" && Number.isFinite(cookie.expires)) {
+      payload.expires = cookie.expires;
+    }
+
+    const result = await client.send("Network.setCookie", payload);
+    if (!result.success) {
+      throw new Error(`Failed to set cookie ${payload.name}.`);
+    }
+  }
+}
+
 async function main() {
   const configPath = process.argv[2];
   if (!configPath) {
@@ -327,8 +459,7 @@ async function main() {
 
   try {
     const versionInfo = await waitForJson(`http://127.0.0.1:${debuggingPort}/json/version`);
-    const targets = await waitForJson(`http://127.0.0.1:${debuggingPort}/json/list`);
-    const pageTarget = targets.find((target) => target.type === "page" && typeof target.webSocketDebuggerUrl === "string");
+    let pageTarget = await createPageTarget(debuggingPort);
 
     if (!pageTarget?.webSocketDebuggerUrl) {
       throw new Error("Unable to find a debuggable page target for the screenshot run.");
@@ -340,31 +471,13 @@ async function main() {
 
     client = new CdpClient(pageTarget.webSocketDebuggerUrl);
     await client.connect();
-    await client.send("Page.enable");
-    await client.send("Runtime.enable");
-    await client.send("Network.enable");
-    if (config.disableJavaScript) {
-      await client.send("Emulation.setScriptExecutionDisabled", { value: true });
-    }
-    await client.send("Emulation.setDeviceMetricsOverride", {
-      width: windowWidth,
-      height: windowHeight,
-      deviceScaleFactor,
-      mobile: Boolean(config.mobile),
-      screenWidth: windowWidth,
-      screenHeight: windowHeight,
-    });
+    await setupPageClient(client, config, windowWidth, windowHeight, deviceScaleFactor);
 
-    if (config.mobile) {
-      await client.send("Emulation.setTouchEmulationEnabled", {
-        enabled: true,
-        maxTouchPoints: 5,
-      });
+    if (Array.isArray(config.cookies) && config.cookies.length > 0) {
+      await applyCookies(client, config.cookies);
     }
 
-    const loadPromise = client.waitForEvent("Page.loadEventFired");
-    await client.send("Page.navigate", { url: String(config.url) });
-    await loadPromise;
+    await navigateAndWait(client, config.url, Number(config.navigationTimeoutMs ?? DEFAULT_TIMEOUT_MS));
 
     if (Number(config.initialWaitMs ?? 0) > 0) {
       await delay(Number(config.initialWaitMs));
@@ -378,11 +491,11 @@ async function main() {
       await delay(Number(config.finalWaitMs));
     }
 
-    const screenshot = await client.send("Page.captureScreenshot", {
+    const screenshot = await sendWithTimeout(client, "Page.captureScreenshot", {
       format: "png",
       fromSurface: true,
       captureBeyondViewport: false,
-    });
+    }, Number(config.screenshotTimeoutMs ?? DEFAULT_TIMEOUT_MS));
 
     const outPath = path.resolve(String(config.outPath));
     await fs.mkdir(path.dirname(outPath), { recursive: true });

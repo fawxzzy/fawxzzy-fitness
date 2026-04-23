@@ -1,0 +1,246 @@
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { createClient } from "@supabase/supabase-js";
+import { fileURLToPath } from "node:url";
+
+const scriptPath = fileURLToPath(import.meta.url);
+const scriptDir = path.dirname(scriptPath);
+
+export const repoRoot = path.resolve(scriptDir, "..", "..");
+export const atlasRoot = path.resolve(repoRoot, "..", "..");
+export const envPath = path.join(repoRoot, ".env.local");
+export const runtimeRoot = path.join(atlasRoot, "runtime", "fitness");
+export const captureRoot = path.join(atlasRoot, "tmp", "captures", "fitness", "qa-local-feedback");
+export const sessionArtifactPath = path.join(runtimeRoot, "qa-session.json");
+
+export const FITNESS_QA_EMAIL_ENV = "FITNESS_QA_EMAIL";
+export const FITNESS_QA_PASSWORD_ENV = "FITNESS_QA_PASSWORD";
+export const FITNESS_QA_JUNK_USER_REGEX_ENV = "FITNESS_QA_JUNK_USER_REGEX";
+export const HISTORY_QA_PREVIEW_ENABLED_ENV = "HISTORY_QA_PREVIEW_ENABLED";
+
+let cachedEnv = null;
+
+export const QA_BASELINE = {
+  profileTimeZone: "America/New_York",
+  routineId: "4c0df9ea-b277-4c44-9076-239291d1aa10",
+  routineDayId: "de35f9b0-b73a-49cb-b3e3-032f4f6cf46d",
+  routineDayExerciseIds: {
+    squat: "38087e27-2743-41ef-af0f-a0d49b1b88ea",
+    lunge: "7c4449e8-7288-4b62-8ddb-e4eefb3f9f6a",
+    pullup: "b4ad5c48-2ff2-45b3-b1df-65f8f17a47f8",
+  },
+  sessionIds: {
+    latest: "3a8fc306-9ad4-4c1d-bfad-55e66cb2ae1b",
+    prior: "2d6e6ec7-8594-49d6-8b7e-e5750cb88df9",
+  },
+  sessionExerciseIds: {
+    latestSquat: "dece93d0-b3ac-4400-b205-df34f822f413",
+    latestLunge: "fb0c9af0-78c1-4128-8f94-c55ddb9f1d83",
+    latestPullup: "f8b88e70-21e1-4dc9-aa7e-51e7bff9f8d0",
+    priorSquat: "31bd6af7-5379-4750-914d-c8284f805fbf",
+    priorPullup: "8ff5ef0c-0394-4739-b08d-e46949f1a9c4",
+  },
+  routineName: "Fitness QA Baseline",
+  dayName: "QA Baseline Day",
+  exercises: [
+    {
+      key: "squat",
+      name: "Back Squat",
+      targetSets: 4,
+      targetRepsMin: 5,
+      targetRepsMax: 5,
+      targetWeight: 225,
+      targetWeightUnit: "lbs",
+      measurementType: "reps",
+      defaultUnit: "reps",
+    },
+    {
+      key: "lunge",
+      name: "Walking Lunge",
+      targetSets: 3,
+      targetRepsMin: 10,
+      targetRepsMax: 12,
+      targetWeight: 40,
+      targetWeightUnit: "lbs",
+      measurementType: "reps",
+      defaultUnit: "reps",
+    },
+    {
+      key: "pullup",
+      name: "Weighted Pull-Up",
+      targetSets: 3,
+      targetRepsMin: 5,
+      targetRepsMax: 6,
+      targetWeight: 25,
+      targetWeightUnit: "lbs",
+      measurementType: "reps",
+      defaultUnit: "reps",
+    },
+  ],
+};
+
+export function ensureDirectoryForFile(filePath) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
+function normalizeEnvValue(rawValue) {
+  const trimmed = rawValue.trim();
+  if (
+    (trimmed.startsWith("\"") && trimmed.endsWith("\""))
+    || (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
+}
+
+function parseDotenvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
+
+  const entries = {};
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex < 0) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const rawValue = line.slice(separatorIndex + 1);
+    entries[key] = normalizeEnvValue(rawValue);
+  }
+
+  return entries;
+}
+
+export function loadPinnedEnv() {
+  if (cachedEnv) {
+    return cachedEnv;
+  }
+
+  const fileEnv = parseDotenvFile(envPath);
+  cachedEnv = {
+    ...process.env,
+    ...fileEnv,
+  };
+
+  return cachedEnv;
+}
+
+export function getOptionalEnv(name) {
+  const value = loadPinnedEnv()[name];
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+export function getRequiredEnv(name) {
+  const value = getOptionalEnv(name);
+  if (!value) {
+    throw new Error(`Set ${name} in ${envPath} or the current shell before running this QA workflow.`);
+  }
+
+  return value;
+}
+
+export function resolveBaseUrl() {
+  const configured = getOptionalEnv("APP_URL") ?? getOptionalEnv("NEXT_PUBLIC_APP_URL");
+  return (configured ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+}
+
+export function getQaCredentials() {
+  return {
+    email: getRequiredEnv(FITNESS_QA_EMAIL_ENV).toLowerCase(),
+    password: getRequiredEnv(FITNESS_QA_PASSWORD_ENV),
+  };
+}
+
+export function createServiceRoleClient() {
+  return createClient(
+    getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    },
+  );
+}
+
+export function createAnonClient() {
+  return createClient(
+    getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    },
+  );
+}
+
+export function formatDateInTimeZone(date, timeZone) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function shiftDate(date, days) {
+  return new Date(date.getTime() + (days * 24 * 60 * 60 * 1000));
+}
+
+export function formatDateTimeInTimeZone(date, timeZone, hour, minute) {
+  const datePart = formatDateInTimeZone(date, timeZone);
+  const [year, month, day] = datePart.split("-").map((value) => Number.parseInt(value, 10));
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, 0)).toISOString();
+}
+
+export function buildSessionCookies(session, baseUrl) {
+  const secure = baseUrl.startsWith("https://");
+  const expires = typeof session.expires_at === "number" ? session.expires_at : undefined;
+
+  return [
+    {
+      name: "sb-access-token",
+      value: session.access_token,
+      url: baseUrl,
+      path: "/",
+      httpOnly: true,
+      secure,
+      sameSite: "Lax",
+      expires,
+    },
+    {
+      name: "sb-refresh-token",
+      value: session.refresh_token,
+      url: baseUrl,
+      path: "/",
+      httpOnly: true,
+      secure,
+      sameSite: "Lax",
+      expires,
+    },
+  ];
+}
+
+export function getHistoryPreviewEnabled() {
+  return getOptionalEnv(HISTORY_QA_PREVIEW_ENABLED_ENV) === "1";
+}

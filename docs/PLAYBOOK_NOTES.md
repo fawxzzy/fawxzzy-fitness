@@ -62,6 +62,16 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-04-23 - Fitness QA auth uses one resettable Supabase account
+- Type: Guardrail
+- Summary: Auth-aware local verification must reuse the permanent Fitness QA Supabase user from local env and reset that user's app data to a deterministic baseline before browser checks.
+- Suggested Playbook File: docs/GUARDRAILS/fitness-auth-qa-account.md
+- Rationale: Prevents Codex-created throwaway Supabase users, stale local auth state, and route checks that depend on whatever data happened to exist.
+- Rule: Never create random Fitness signup users for QA; use `npm run qa:user:ensure`, `npm run qa:user:reset`, `npm run qa:session`, and `npm run qa:local`.
+- Failure Mode: Local auth appears fixed because one random browser session works, while server routes verify against a different Supabase project or the test account data is nondeterministic.
+- Evidence: scripts/dev.mjs, scripts/qa/fitness-qa-config.mjs, scripts/qa/fitness-qa-user.mjs, scripts/qa/fitness-local-feedback.mjs, scripts/qa/cdp-edge.mjs
+- Status: Proposed
+
 ## 2026-04-23 - History UI recovery follows the app-wide contract first
 - Type: Guardrail
 - Summary: History UI recovery must follow the app-wide design contract first, then use recent commit and artifact archaeology to restore missing specifics.
