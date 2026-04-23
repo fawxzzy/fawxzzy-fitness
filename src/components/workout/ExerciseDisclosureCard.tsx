@@ -75,8 +75,10 @@ export function ExerciseDisclosureCard({
   const contract = buildExerciseDisclosureContract({ itemId, scope });
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
 
+  const sharpMediaEdgeClassName = showLeadingVisual ? "rounded-l-none rounded-tl-none rounded-bl-none" : undefined;
+
   return (
-    <div className={cn(appTokens.workoutCardDisclosureShell, className)}>
+    <div className={cn(appTokens.workoutCardDisclosureShell, sharpMediaEdgeClassName, className)}>
       <StandardExerciseRow
         exercise={exercise}
         summary={summary}

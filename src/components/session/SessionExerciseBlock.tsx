@@ -40,6 +40,9 @@ export function AttachedQuickActionStrip({
   const isBusy = rowContract.isSkipPending || rowContract.isQuickLogPending;
   const isSkipDisabled = isBusy || !onSkip;
   const isQuickLogDisabled = isBusy || rowContract.isQuickLogDisabled;
+  const stripSurfaceClassName = isQuickLogDisabled
+    ? "bg-[linear-gradient(180deg,rgba(58,127,123,0.56),rgba(34,76,76,0.7))]"
+    : "bg-[linear-gradient(180deg,rgba(78,214,192,0.95),rgba(40,146,129,0.98))]";
   const quickLogLabel = rowContract.isQuickLogDisabled
     ? rowContract.quickLogDisabledMessage
     : rowContract.isQuickLogPending
@@ -50,7 +53,8 @@ export function AttachedQuickActionStrip({
   return (
     <div
       className={cn(
-        "relative -mt-px overflow-hidden border border-t-0 border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.78)]",
+        "relative -mt-px overflow-hidden rounded-bl-none rounded-tr-[0.95rem] rounded-br-[var(--card-radius)] border border-t-0 border-[rgb(var(--border-strong)/0.18)]",
+        stripSurfaceClassName,
         className,
       )}
     >
@@ -60,11 +64,11 @@ export function AttachedQuickActionStrip({
           onClick={onPress}
           disabled={isQuickLogDisabled}
           className={cn(
-            "relative h-11 w-full rounded-none rounded-tr-[1.05rem] rounded-br-[1.05rem] border-0 bg-[linear-gradient(180deg,rgba(37,91,105,0.94),rgba(24,55,68,0.99))] text-[rgb(var(--text)/0.96)] transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.24)] disabled:cursor-not-allowed disabled:opacity-60",
+            "relative h-11 w-full rounded-none border-0 bg-transparent text-[rgb(var(--text)/0.96)] transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.24)] disabled:cursor-not-allowed disabled:opacity-60",
             quickLogActionClassName,
           )}
         >
-          <span className="block truncate pl-[4.4rem] pr-3 text-center text-[0.95rem] font-semibold">
+          <span className="block truncate pl-[4.75rem] pr-[1.15rem] text-center text-[0.95rem] font-semibold">
             {quickLogLabel}
           </span>
         </button>

@@ -456,7 +456,7 @@ const mockSessionExercises = [
     id: "session-ex-2",
     exerciseId: MOCK_EXERCISE_IDS.lunge,
     name: "Walking Lunge",
-    isSkipped: true,
+    isSkipped: false,
     defaultUnit: null,
     isCardio: false,
     measurementType: "reps" as const,
@@ -470,25 +470,8 @@ const mockSessionExercises = [
     goalLabel: LONG_GOAL_SUMMARY,
     prefill: { weight: 35, reps: 8, weightUnit: "lbs" as const },
     quickLogTarget: { measurementType: "reps" as const, repsMin: 8, repsMax: 8, weightMin: 35, weightMax: 35, weightUnit: "lbs" as const },
-    initialSets: [
-      {
-        id: "set-2",
-        session_exercise_id: "session-ex-2",
-        user_id: "dev-user",
-        set_index: 0,
-        weight: 35,
-        reps: 8,
-        is_warmup: false,
-        notes: null,
-        duration_seconds: null,
-        distance: null,
-        distance_unit: null,
-        calories: null,
-        rpe: 8,
-        weight_unit: "lbs" as const,
-      },
-    ],
-    loggedSetCount: 1,
+    initialSets: [],
+    loggedSetCount: 0,
     targetSetsMin: 4,
     targetSetsMax: 4,
     image_icon_path: "/missing/icon-lunge.png",
@@ -621,7 +604,7 @@ const mockSessionExercises = [
     id: "session-ex-5",
     exerciseId: MOCK_EXERCISE_IDS.plank,
     name: "Plank",
-    isSkipped: false,
+    isSkipped: true,
     defaultUnit: null,
     isCardio: false,
     measurementType: "time" as const,
@@ -635,8 +618,25 @@ const mockSessionExercises = [
     goalLabel: "3 holds x 45 sec",
     prefill: { durationSeconds: 45 },
     quickLogTarget: { measurementType: "time" as const, durationSeconds: 45 },
-    initialSets: [],
-    loggedSetCount: 0,
+    initialSets: [
+      {
+        id: "set-5",
+        session_exercise_id: "session-ex-5",
+        user_id: "dev-user",
+        set_index: 0,
+        weight: 0,
+        reps: 0,
+        is_warmup: false,
+        notes: null,
+        duration_seconds: 45,
+        distance: null,
+        distance_unit: null,
+        calories: null,
+        rpe: null,
+        weight_unit: "lbs" as const,
+      },
+    ],
+    loggedSetCount: 1,
     targetSetsMin: 3,
     targetSetsMax: 3,
     image_icon_path: "/missing/icon-plank.png",
@@ -1006,7 +1006,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
         initialSelectedExerciseId={scenario.id === "active-workout-session-expanded" ? "session-ex-2" : null}
         saveSessionAction={noopActionResult}
         requestedReturnTo="/today"
-        quickAddAction={<BottomDockButton type="button" intent="info">Add</BottomDockButton>}
+            quickAddAction={<BottomDockButton type="button" intent="positive">Add</BottomDockButton>}
         addSetAction={noopSetAction}
         syncQueuedSetLogsAction={noopSyncQueuedSetLogsAction}
         toggleSkipAction={noopActionResult}

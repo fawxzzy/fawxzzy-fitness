@@ -384,6 +384,7 @@ export function ExerciseCard({
 
   const shellClassName = cn(
     "w-full max-w-none overflow-hidden rounded-[var(--card-radius)] text-left",
+    usesRailMedia ? "rounded-l-none rounded-tl-none rounded-bl-none" : undefined,
     shellStateClassNames[state],
     cardShellToneClassNames[resolvedSemanticTone],
     disabled ? "cursor-not-allowed opacity-60" : undefined,
