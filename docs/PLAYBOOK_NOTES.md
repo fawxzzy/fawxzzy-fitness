@@ -469,6 +469,13 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: src/app/globals.css, src/components/ui/app/AppShell.tsx, src/components/shared/mobile-shell/MobileScreenShell.tsx, src/components/layout/CanonicalBottomActions.tsx, src/components/ui/app/DisplayModeBootstrap.tsx
 - Status: Proposed
 
+## 2026-04-23 - Composed session rows must assign border and radius ownership per edge
+- Type: Pattern
+- Summary: For composed session rows, only one visible layer may own the border and radius on any given edge; the disclosure card owns the upper shell and the attached action strip owns the lower shell.
+- Failure Mode: Nested `AppButton` or action-chrome borders create double-hump geometry even when the individual radius values look correct, especially on the right edge of split quick-log strips.
+- Evidence: src/components/SessionExerciseFocus.tsx, src/components/session/SessionExerciseBlock.tsx, src/components/workout/ExerciseDisclosureCard.tsx, src/components/ExerciseCard.tsx
+- Status: Proposed
+
 ## 2026-04-21 - Routine days should store neutral defaults and render cycle-aware labels at display time
 - Type: Pattern
 - Summary: Routine-day records should persist only neutral deterministic defaults for identity, while weekday-aware labels and compact split summaries are derived at render time from the active cycle context and optional bounded custom names.

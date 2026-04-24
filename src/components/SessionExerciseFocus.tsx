@@ -374,7 +374,7 @@ export function SessionExerciseFocus({
               showLeadingVisual={surfacePolicy.showMedia}
               subtitleTone="plain"
               className={!isExpanded ? "overflow-visible rounded-none border-0" : undefined}
-              cardClassName={!isExpanded ? "rounded-none rounded-tr-[var(--card-radius)] border border-b border-[rgb(var(--border-strong)/0.18)]" : undefined}
+              cardClassName={!isExpanded ? "rounded-b-none border-b-0" : undefined}
               contentClassName="pl-3"
               titleMeta={titleMeta}
             >
@@ -440,8 +440,6 @@ export function SessionExerciseFocus({
               rowContract={{
                 label: rowState.quickLogLabel,
                 skipLabel: rowState.skipActionLabel,
-                quickLogActionIntent: rowState.quickLogActionIntent,
-                skipActionIntent: rowState.skipActionIntent,
                 quickLogActionClassName: rowState.quickLogActionClassName,
                 skipActionClassName: rowState.skipActionClassName,
                 actionRowClassName: rowState.actionRowClassName,
