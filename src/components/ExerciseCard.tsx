@@ -13,6 +13,7 @@ export type ExerciseCardButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElemen
   [key: `data-${string}`]: string | number | boolean | undefined;
 };
 export type ExerciseCardMediaLayout = "rail" | "inline";
+export type ExerciseCardMediaLeftCornerMode = "sharp" | "top-rounded";
 
 const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
   standard: "detailed",
@@ -169,6 +170,8 @@ export function ExerciseCard({
   semanticTone,
   mediaLayout = "rail",
   mediaRailWidth,
+  shellStyle,
+  mediaLeftCornerMode = "sharp",
 }: {
   title: string;
   titleMeta?: ReactNode;
@@ -200,6 +203,8 @@ export function ExerciseCard({
   semanticTone?: CardSemanticTone;
   mediaLayout?: ExerciseCardMediaLayout;
   mediaRailWidth?: number;
+  shellStyle?: CSSProperties;
+  mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
 }) {
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
@@ -219,6 +224,13 @@ export function ExerciseCard({
     : usesInlineMedia
       ? { gridTemplateColumns: "auto minmax(0,1fr)" } satisfies CSSProperties
       : undefined;
+  const resolvedShellStyle = usesRailMedia
+    ? {
+        ...shellStyle,
+        borderTopLeftRadius: mediaLeftCornerMode === "top-rounded" ? "var(--card-radius)" : "0px",
+        borderBottomLeftRadius: "0px",
+      } satisfies CSSProperties
+    : shellStyle;
 
   const bodyContent = (
     <div
@@ -384,7 +396,6 @@ export function ExerciseCard({
 
   const shellClassName = cn(
     "w-full max-w-none overflow-hidden rounded-[var(--card-radius)] text-left",
-    usesRailMedia ? "rounded-l-none rounded-tl-none rounded-bl-none" : undefined,
     shellStateClassNames[state],
     cardShellToneClassNames[resolvedSemanticTone],
     disabled ? "cursor-not-allowed opacity-60" : undefined,
@@ -392,8 +403,8 @@ export function ExerciseCard({
   );
 
   if (actions) {
-    return (
-      <Glass variant="base" interactive={!disabled} className={shellClassName}>
+      return (
+      <Glass variant="base" interactive={!disabled} className={shellClassName} style={resolvedShellStyle}>
         <div className="flex w-full items-stretch gap-2">
           {onPress ? (
             <button
@@ -416,7 +427,7 @@ export function ExerciseCard({
 
   if (onPress) {
     return (
-      <Glass variant="base" interactive={!disabled} className={shellClassName}>
+      <Glass variant="base" interactive={!disabled} className={shellClassName} style={resolvedShellStyle}>
         <button
           type="button"
           {...buttonProps}
@@ -431,7 +442,7 @@ export function ExerciseCard({
   }
 
   return (
-    <Glass variant="base" className={shellClassName}>
+    <Glass variant="base" className={shellClassName} style={resolvedShellStyle}>
       {bodyContent}
     </Glass>
   );

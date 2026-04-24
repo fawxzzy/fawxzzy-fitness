@@ -21,7 +21,6 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppButton } from "@/components/ui/AppButton";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
@@ -29,7 +28,7 @@ import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection"
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
-import { formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
+import { formatMeasurementSummaryText } from "@/lib/measurement-display";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
@@ -101,6 +100,91 @@ function toDisplaySet(set: SetRow): DisplaySet {
     ...set,
     stableId: resolveStableSetId(set),
   };
+}
+
+function formatSessionSummaryText({
+  reps,
+  weight,
+  weightUnit,
+  durationSeconds,
+  distance,
+  distanceUnit,
+  calories,
+  rpe,
+  isWarmup,
+  queueStatus,
+  pending,
+  emptyLabel,
+}: {
+  reps: number | null | undefined;
+  weight: number | null | undefined;
+  weightUnit: string | null | undefined;
+  durationSeconds: number | null | undefined;
+  distance: number | null | undefined;
+  distanceUnit: "mi" | "km" | "m" | null | undefined;
+  calories: number | null | undefined;
+  rpe?: number | null;
+  isWarmup?: boolean;
+  queueStatus?: string;
+  pending?: boolean;
+  emptyLabel: string;
+}) {
+  const hasCardioSignal = [durationSeconds, distance, calories].some((value) => Number.isFinite(value ?? null) && (value ?? 0) > 0);
+  const normalizedReps = hasCardioSignal && (reps ?? 0) <= 0 ? null : reps;
+  const normalizedWeight = hasCardioSignal && (weight ?? 0) <= 0 ? null : weight;
+  const normalizedDistance = (distance ?? 0) > 0 ? distance : null;
+  const normalizedCalories = (calories ?? 0) > 0 ? calories : null;
+  const parts = [
+    formatMeasurementSummaryText({
+      reps: normalizedReps,
+      weight: normalizedWeight,
+      weightUnit,
+      durationSeconds,
+      distance: normalizedDistance,
+      distanceUnit,
+      calories: normalizedCalories,
+      emptyLabel,
+    }),
+  ];
+
+  if (rpe !== null && rpe !== undefined) {
+    parts.push(`Effort ${rpe}`);
+  }
+
+  if (isWarmup) {
+    parts.push("Warm-Up");
+  }
+
+  if (queueStatus) {
+    parts.push(queueStatus);
+  } else if (pending) {
+    parts.push("saving...");
+  }
+
+  return parts.join(" • ");
+}
+
+function formatLoggedSetSummaryText({
+  set,
+  unitLabel,
+}: {
+  set: DisplaySet;
+  unitLabel: string;
+}) {
+  return formatSessionSummaryText({
+    reps: set.reps,
+    weight: set.weight,
+    weightUnit: set.weight_unit ?? unitLabel,
+    durationSeconds: set.duration_seconds,
+    distance: set.distance,
+    distanceUnit: set.distance_unit,
+    calories: set.calories,
+    rpe: set.rpe,
+    isWarmup: set.is_warmup,
+    queueStatus: set.queueStatus,
+    pending: set.pending,
+    emptyLabel: "No measurements",
+  });
 }
 
 export function SetLoggerCard({
@@ -797,7 +881,7 @@ export function SetLoggerCard({
   );
 
   const liveSummaryText = useMemo(() => {
-    const summary = formatMeasurementSummaryText({
+    return formatSessionSummaryText({
       reps: reps.trim() ? Number(reps) : null,
       weight: weight.trim() ? Number(weight) : null,
       weightUnit: selectedWeightUnit,
@@ -805,14 +889,13 @@ export function SetLoggerCard({
       distance: distance.trim() ? Number(distance) : null,
       distanceUnit,
       calories: calories.trim() ? Number(calories) : null,
+      rpe: rpe.trim() ? Number(rpe.trim()) : null,
+      isWarmup: resolvedIsWarmup,
       emptyLabel: "Add measurements",
     });
-    const parts = [summary];
-    if (rpe.trim()) parts.push(`RPE ${rpe.trim()}`);
-    if (resolvedIsWarmup) parts.push("Warm-Up");
-    return parts.join(" - ");
   }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
-  const currentSetLabel = formatSetPositionLabel(sets.length + 1, useIntervalLanguage ? "Interval" : "Set");
+  const currentSetLabel = `Current: ${useIntervalLanguage ? "Interval" : "Set"} ${sets.length + 1}`;
+  const currentSetPreview = `${currentSetLabel} - ${liveSummaryText}`;
 
 
   async function handleDeleteSet(set: DisplaySet) {
@@ -868,7 +951,10 @@ export function SetLoggerCard({
           - RPE tooltip does not reserve blank space when closed
           - Save button remains stable while toggling measurements */}
 
-      <WorkoutEntrySection className={appTokens.currentSessionLoggerPanel}>
+      <WorkoutEntrySection
+        className={cn(appTokens.currentSessionLoggerPanel, "mt-2.5")}
+        contentClassName="space-y-0"
+      >
         <MeasurementPanelV2
           values={{
             reps,
@@ -901,28 +987,16 @@ export function SetLoggerCard({
           className={tapFeedbackClass}
           showInnerHeader={false}
           visibleMetrics={(Object.entries(visibleMetrics) as Array<[keyof typeof visibleMetrics, boolean]>).filter(([, enabled]) => enabled).map(([metric]) => metric)}
-          leadingContent={(
-            <div
-              className={appTokens.currentSessionLoggerSummaryCard}
-              data-testid="set-logger-current-summary"
-            >
-              <div className={appTokens.currentSessionLoggerSummaryStack}>
-                <div className="min-w-0 flex-1">
-                  <p className={appTokens.currentSessionLoggerSummaryEyebrow}>Current set</p>
-                  <p className={appTokens.currentSessionLoggerSummaryText}>{currentSetLabel} - {liveSummaryText}</p>
-                </div>
-              </div>
-            </div>
-          )}
           belowRpeContent={(
             <AppButton
               type="button"
               variant="secondary"
               size="sm"
+              fullWidth
               state={resolvedIsWarmup ? "active" : "default"}
               data-action-chrome-intent={resolvedIsWarmup ? "info" : "neutral"}
               data-action-chrome-segmented="true"
-              className={appTokens.currentSessionWarmupToggle}
+              className={cn(appTokens.currentSessionWarmupToggle, "flex h-full items-center justify-center")}
               aria-pressed={resolvedIsWarmup}
               aria-label={resolvedIsWarmup ? "Warm set enabled" : "Warm set disabled"}
               onClick={() => setWarmupValue(!resolvedIsWarmup)}
@@ -930,69 +1004,72 @@ export function SetLoggerCard({
               Warm-Up
             </AppButton>
           )}
-          belowRpeField={{ title: "SET TYPE", suffix: "toggle", width: "compact" }}
+          belowRpeField={{ width: "wide" }}
           rpe={rpe}
           onRpeChange={setRpe}
           footerContent={(
-            <div className={appTokens.currentSessionFocusStack}>
-              <div className={appTokens.currentSessionLoggerSetList} data-testid="set-logger-set-list">
-                <div className={appTokens.currentSessionLoggerSetListHeader}>
-                  <span className={appTokens.currentSessionLoggerSetListTitle}>Sets</span>
-                  <span className={appTokens.currentSessionLoggerSetListMeta}>{sets.length} logged</span>
-                </div>
-                <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
-                  {animatedSets.map((set, index) => (
-                    <li
-                      key={set.stableId}
-                      className={[
-                        "origin-top transition-all duration-150 motion-reduce:transition-none",
-                        set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
-                      ].join(" ")}
-                    >
-                      <CompactLogRow
-                        summary={(
-                          <span className={appTokens.currentSessionSetSummary}>
-                            <span className={appTokens.currentSessionSetSummaryLabel}>{useIntervalLanguage ? "Interval" : "Set"} {index + 1}</span>
-                            <span className={appTokens.currentSessionSetSummaryDivider}>-</span>
-                            <span>{formatMeasurementSummaryText({
-                              reps: set.reps,
-                              weight: set.weight,
-                              weightUnit: set.weight_unit ?? unitLabel,
-                              durationSeconds: set.duration_seconds,
-                              distance: set.distance,
-                              distanceUnit: set.distance_unit,
-                              calories: set.calories,
-                              emptyLabel: "No measurements",
-                            })}</span>
-                            {set.is_warmup ? (
-                              <AppBadge tone="default" className={appTokens.workoutChipCompact}>Warm-Up</AppBadge>
-                            ) : null}
-                            {set.rpe !== null ? (
-                              <AppBadge tone="today" className={appTokens.workoutChipCompact}>RPE {set.rpe}</AppBadge>
-                            ) : null}
-                            {set.queueStatus ? <span className={appTokens.currentSessionPendingText}>{set.queueStatus}</span> : null}
-                            {set.pending && !set.queueStatus ? <span className={appTokens.currentSessionPendingText}>saving...</span> : null}
-                          </span>
-                        )}
-                        actionClassName={appTokens.currentSessionDeleteActionRail}
-                        action={(
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void handleDeleteSet(set);
-                            }}
-                            aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
-                            className={cn(appTokens.currentSessionDeleteActionButton, tapFeedbackClass)}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      />
-                    </li>
-                  ))}
-                  {sets.length === 0 ? <li className={appTokens.currentSessionEmptyState}>No {useIntervalLanguage ? "intervals" : "sets"} logged yet.</li> : null}
-                </ul>
+            <div className={cn(appTokens.currentSessionFocusStack, "gap-px")}>
+              <div data-testid="set-logger-current-summary">
+                <CompactLogRow
+                  className="border-[rgb(var(--accent)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.2)] transition-all duration-200 ease-out"
+                  summary={(
+                    <div className="flex min-h-[52px] items-center justify-center text-center">
+                      <p className={cn(appTokens.currentSessionLoggerSummaryText, "text-center text-[14px] leading-[1.25] transition-all duration-200 ease-out")}>
+                        {currentSetPreview}
+                      </p>
+                    </div>
+                  )}
+                />
               </div>
+              {sets.length > 0 ? (
+                <div className={appTokens.currentSessionLoggerSetList} data-testid="set-logger-set-list">
+                  <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
+                    {animatedSets.map((set, index) => (
+                      <li
+                        key={set.stableId}
+                        className={[
+                          "origin-top transition-all duration-150 motion-reduce:transition-none",
+                          set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
+                        ].join(" ")}
+                      >
+                        <CompactLogRow
+                          className="pr-0 transition-all duration-200 ease-out"
+                          summary={(
+                            <div className="relative flex min-h-[52px] items-center justify-center px-5 pt-3 text-center">
+                              <p className={cn(appTokens.currentSessionLoggerSummaryText, "text-center text-[14px] leading-[1.25]")}>
+                                {formatLoggedSetSummaryText({
+                                  set,
+                                  unitLabel,
+                                })}
+                              </p>
+                              <span className="pointer-events-none absolute left-4 top-2.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.7)]">
+                                {useIntervalLanguage ? `Interval ${index + 1}` : `Set ${index + 1}`}
+                              </span>
+                            </div>
+                          )}
+                          actionClassName="min-w-[6.5rem]"
+                          action={(
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void handleDeleteSet(set);
+                              }}
+                              aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
+                              className={cn(
+                                appTokens.currentSessionDeleteActionButton,
+                                "min-w-[6.5rem] border-[rgb(var(--danger-rgb)/0.28)] bg-[linear-gradient(180deg,rgba(89,37,44,0.5),rgba(56,23,29,0.78))] px-4 text-center text-[rgb(255_225_230/0.96)] hover:border-[rgb(var(--danger-rgb)/0.4)] hover:bg-[linear-gradient(180deg,rgba(110,42,52,0.58),rgba(69,26,35,0.84))]",
+                                tapFeedbackClass,
+                              )}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           )}
         />
@@ -1003,3 +1080,5 @@ export function SetLoggerCard({
     </div>
   );
 }
+
+

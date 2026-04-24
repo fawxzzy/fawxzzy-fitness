@@ -82,6 +82,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: scripts/dev.mjs, scripts/qa/fitness-qa-config.mjs, scripts/qa/fitness-qa-user.mjs, scripts/qa/fitness-local-feedback.mjs, scripts/qa/cdp-edge.mjs
 - Status: Proposed
 
+## 2026-04-23 - Composed card rows should let the parent own the outer silhouette
+- Type: Pattern
+- Summary: For attached card and action-strip rows, the parent container should own the visible outer silhouette, and any shell overrides must reach the actual visual card shell rather than only the disclosure wrapper.
+- Suggested Playbook File: docs/PATTERNS/attached-action-strip-contour.md
+- Rationale: Independent child contours create competing geometry; a shared parent silhouette makes the stacked row read as one composed card instead of a title card plus a separate action bar.
+- Failure Mode: Parent-owned shells do not work if the inner card shell still owns a terminal radius, or if overrides only hit the disclosure wrapper instead of the actual Glass/card surface.
+- Evidence: src/components/SessionExerciseFocus.tsx, src/components/workout/ExerciseDisclosureCard.tsx, src/components/StandardExerciseRow.tsx, src/components/ExerciseCard.tsx, src/components/session/SessionExerciseBlock.tsx
+- Status: Proposed
+
 ## 2026-04-23 - History UI recovery follows the app-wide contract first
 - Type: Guardrail
 - Summary: History UI recovery must follow the app-wide design contract first, then use recent commit and artifact archaeology to restore missing specifics.
@@ -474,6 +483,14 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Summary: For composed session rows, only one visible layer may own the border and radius on any given edge; the disclosure card owns the upper shell and the attached action strip owns the lower shell.
 - Failure Mode: Nested `AppButton` or action-chrome borders create double-hump geometry even when the individual radius values look correct, especially on the right edge of split quick-log strips.
 - Evidence: src/components/SessionExerciseFocus.tsx, src/components/session/SessionExerciseBlock.tsx, src/components/workout/ExerciseDisclosureCard.tsx, src/components/ExerciseCard.tsx
+- Status: Proposed
+
+## 2026-04-24 - Fix logger drift by removing divergent layout branches before tuning styles
+- Type: Guardrail
+- Summary: When two logger states look inconsistent, first check whether they are flowing through different layout branches in the same component; collapse them onto one shared structure before changing tokens, spacing, or one-off classes.
+- Rationale: Visual drift that looks like a color or spacing bug is often a structural split, and class-level tweaks will keep half-fixing the wrong branch.
+- Failure Mode: A control like `Warm-Up` lives inside one measurement-grid path for cardio but outside it for strength, so the screen appears to have different box geometry even though the design tokens are the same.
+- Evidence: src/components/SessionTimers.tsx, src/components/ui/measurements/MeasurementPanelV2.tsx
 - Status: Proposed
 
 ## 2026-04-21 - Routine days should store neutral defaults and render cycle-aware labels at display time

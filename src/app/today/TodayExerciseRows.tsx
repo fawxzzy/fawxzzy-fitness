@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
-import { deriveReadOnlyExercisePresentation } from "@/lib/session-exercise-progress";
+import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
@@ -47,12 +47,16 @@ export function TodayExerciseRows({
     <>
       <ul className="flex flex-col gap-[0.375rem]">
         {exercises.map((exercise) => {
-          const cardVariantState = deriveReadOnlyExercisePresentation({
+          const progressState = deriveSessionExerciseProgressState({
             loggedSetCount: exercise.loggedSetCount ?? 0,
             isSkipped: exercise.isSkipped === true,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
+            surface: "summary",
           });
+          const titleMeta = progressState.goalSetTarget !== null
+            ? `${progressState.loggedSetCount} / ${progressState.goalSetTarget}`
+            : undefined;
           const detailedMetrics = buildPlannedExerciseDetailMetrics({
             measurementType: exercise.measurement_type,
             isCardio: exercise.isCardio,
@@ -83,8 +87,10 @@ export function TodayExerciseRows({
                 variant="interactive"
                 density={density}
                 contentClassName="pl-3"
-                state={cardVariantState.cardState}
-                badgeText={cardVariantState.badgeText}
+                state={progressState.cardState}
+                badgeText={titleMeta ? undefined : progressState.badgeText}
+                titleMeta={titleMeta}
+                className={exercise.isSkipped ? "opacity-60 saturate-[0.78]" : undefined}
                 onPress={() => {
                   if (process.env.NODE_ENV === "development") {
                     console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });

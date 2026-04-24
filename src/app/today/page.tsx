@@ -568,11 +568,9 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                   summary: getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest),
                   isRest: todayPayload.routine.isRest,
                 }).countsSummary}
-                action={todayPayload.inProgressSessionId
-                  ? <AppBadge tone="success">In Session</AppBadge>
-                  : completedDayIndexes.includes(todayPayload.routine.dayIndex)
-                    ? <AppBadge tone="success">Completed</AppBadge>
-                    : undefined}
+                action={completedDayIndexes.includes(todayPayload.routine.dayIndex)
+                  ? <AppBadge tone="success">Completed</AppBadge>
+                  : undefined}
               />
             </TodayFloatingHeaderRail>
           ) : (

@@ -1,13 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
-import type { ExerciseCardButtonProps, ExerciseCardDensity, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
+import type { ExerciseCardButtonProps, ExerciseCardDensity, ExerciseCardMediaLeftCornerMode, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
 import type { ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
 import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
@@ -20,6 +20,8 @@ type ExerciseCardVisual = {
   image_icon_path?: string | null;
   image_howto_path?: string | null;
 };
+
+const mediaDisclosureShellClassName = "rounded-l-none rounded-tl-none rounded-bl-none";
 
 export function ExerciseDisclosureCard({
   scope,
@@ -39,6 +41,8 @@ export function ExerciseDisclosureCard({
   showAccentRail = true,
   leadingVisual,
   cardClassName,
+  shellClassName,
+  shellStyle,
   titleMeta,
   trailingClassName,
   bodyClassName,
@@ -46,6 +50,7 @@ export function ExerciseDisclosureCard({
   panelClassName,
   subtitleTone,
   className,
+  mediaLeftCornerMode,
 }: {
   scope: DisclosureScope;
   itemId: string;
@@ -64,6 +69,8 @@ export function ExerciseDisclosureCard({
   showAccentRail?: boolean;
   leadingVisual?: ReactNode;
   cardClassName?: string;
+  shellClassName?: string;
+  shellStyle?: CSSProperties;
   titleMeta?: ReactNode;
   trailingClassName?: string;
   bodyClassName?: string;
@@ -71,11 +78,12 @@ export function ExerciseDisclosureCard({
   panelClassName?: string;
   subtitleTone?: "panel" | "plain";
   className?: string;
+  mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
 
-  const sharpMediaEdgeClassName = showLeadingVisual ? "rounded-l-none rounded-tl-none rounded-bl-none" : undefined;
+  const sharpMediaEdgeClassName = showLeadingVisual ? mediaDisclosureShellClassName : undefined;
 
   return (
     <div className={cn(appTokens.workoutCardDisclosureShell, sharpMediaEdgeClassName, className)}>
@@ -97,6 +105,9 @@ export function ExerciseDisclosureCard({
           "aria-controls": contract.panelId,
           "data-testid": contract.buttonTestId,
         } satisfies ExerciseCardButtonProps}
+        shellClassName={shellClassName}
+        shellStyle={shellStyle}
+        mediaLeftCornerMode={mediaLeftCornerMode}
         className={cn("shadow-none", expanded ? "rounded-b-none" : undefined, cardClassName)}
         trailingClassName={trailingClassName}
         bodyClassName={bodyClassName}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EditDayRegressionSurface } from "@/app/dev/mobile-regression/EditDayRegressionSurface";
 import { RegressionBodyFlag } from "@/app/dev/mobile-regression/RegressionBodyFlag";
 import { RegressionExerciseInfoSheet } from "@/app/dev/mobile-regression/RegressionExerciseInfoSheet";
+import { MeasurementComboBoard } from "@/app/dev/mobile-regression/MeasurementComboBoard";
 import { RegressionDayRestToggleDockControl } from "@/app/dev/mobile-regression/RegressionDayRestToggleDockControl";
 import { SessionQuickAddExerciseForm } from "@/app/session/[id]/SessionQuickAddExerciseForm";
 import { TodayDayPicker } from "@/app/today/TodayDayPicker";
@@ -72,6 +73,8 @@ const MOCK_EXERCISE_IDS = {
   walk: "55555555-5555-4555-8555-555555555555",
   pullup: "66666666-6666-4666-8666-666666666666",
   plank: "77777777-7777-4777-8777-777777777777",
+  rower: "88888888-8888-4888-8888-888888888888",
+  bike: "99999999-9999-4999-8999-999999999999",
 } as const;
 
 async function noopRoutineSwitchAction(_: FormData) {
@@ -270,6 +273,38 @@ const mockPickerExercises = [
     image_icon_path: "/missing/icon-plank.png",
     how_to_short: "Squeeze glutes, keep ribs down, and push the floor away.",
     slug: "plank",
+  },
+  {
+    id: MOCK_EXERCISE_IDS.rower,
+    name: "Row Erg Distance",
+    user_id: null,
+    is_global: true,
+    primary_muscle: "Cardio",
+    equipment: "Rower",
+    movement_pattern: "Gait",
+    measurement_type: "distance" as const,
+    default_unit: "mi",
+    calories_estimation_method: null,
+    image_howto_path: null,
+    image_icon_path: "/missing/icon-rower.png",
+    how_to_short: "Hold a consistent split and let the drive length set the distance.",
+    slug: "row-erg-distance",
+  },
+  {
+    id: MOCK_EXERCISE_IDS.bike,
+    name: "Air Bike Calories",
+    user_id: null,
+    is_global: true,
+    primary_muscle: "Cardio",
+    equipment: "Bike",
+    movement_pattern: "Gait",
+    measurement_type: "time" as const,
+    default_unit: "sec",
+    calories_estimation_method: null,
+    image_howto_path: null,
+    image_icon_path: "/missing/icon-bike.png",
+    how_to_short: "Push steady and treat calories like the primary target instead of time.",
+    slug: "air-bike-calories",
   },
 ];
 
@@ -643,6 +678,56 @@ const mockSessionExercises = [
     image_howto_path: "/missing/howto-plank.png",
     slug: "plank",
   },
+  {
+    id: "session-ex-6",
+    exerciseId: MOCK_EXERCISE_IDS.rower,
+    name: "Row Erg Distance",
+    isSkipped: false,
+    defaultUnit: "mi" as const,
+    isCardio: true,
+    measurementType: "distance" as const,
+    primary_muscle: "Cardio",
+    equipment: "Rower",
+    movement_pattern: "Gait",
+    useIntervalLanguage: false,
+    initialEnabledMetrics: { reps: false, weight: false, time: false, distance: true, calories: false },
+    routineDayExerciseId: "routine-row-6",
+    planTargetsHash: "00010",
+    goalLabel: "3 rounds x 0.5 mi",
+    quickLogTarget: { measurementType: "distance" as const, distance: 0.5, distanceUnit: "mi" as const },
+    initialSets: [],
+    loggedSetCount: 0,
+    targetSetsMin: 3,
+    targetSetsMax: 3,
+    image_icon_path: "/missing/icon-rower.png",
+    image_howto_path: null,
+    slug: "row-erg-distance",
+  },
+  {
+    id: "session-ex-7",
+    exerciseId: MOCK_EXERCISE_IDS.bike,
+    name: "Air Bike Calories",
+    isSkipped: false,
+    defaultUnit: "sec" as const,
+    isCardio: true,
+    measurementType: "time" as const,
+    primary_muscle: "Cardio",
+    equipment: "Bike",
+    movement_pattern: "Gait",
+    useIntervalLanguage: false,
+    initialEnabledMetrics: { reps: false, weight: false, time: false, distance: false, calories: true },
+    routineDayExerciseId: "routine-row-7",
+    planTargetsHash: "00001",
+    goalLabel: "4 rounds x 20 cal",
+    quickLogTarget: { measurementType: "time" as const, calories: 20 },
+    initialSets: [],
+    loggedSetCount: 0,
+    targetSetsMin: 4,
+    targetSetsMax: 4,
+    image_icon_path: "/missing/icon-bike.png",
+    image_howto_path: null,
+    slug: "air-bike-calories",
+  },
 ];
 
 const mockHistorySessions = [
@@ -988,7 +1073,41 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderSessionScenario(scenario: MobileFixtureScenario) {
+  if (
+    scenario.id === "session-logger-combo-board"
+    || scenario.id === "session-logger-combo-board-2"
+    || scenario.id === "session-logger-combo-board-3"
+    || scenario.id === "session-logger-combo-board-4"
+  ) {
+    const sectionByScenarioId: Record<string, "q1" | "q2" | "q3" | "q4"> = {
+      "session-logger-combo-board": "q1",
+      "session-logger-combo-board-2": "q2",
+      "session-logger-combo-board-3": "q3",
+      "session-logger-combo-board-4": "q4",
+    };
+    return (
+      <AppShell topNavMode="none" ambientPreset="logSet">
+        <RegressionMarker scenario={scenario} />
+        <ScrollScreenWithBottomActions>
+          <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-3">
+            <MeasurementComboBoard section={sectionByScenarioId[scenario.id]} />
+          </ContentRail>
+        </ScrollScreenWithBottomActions>
+      </AppShell>
+    );
+  }
+
   const capturePerformedAt = new Date(Date.now() + 5000).toISOString();
+  const selectedExerciseByScenarioId: Record<string, string | null> = {
+    "active-workout-session-expanded": "session-ex-2",
+    "session-logger-combo-board": null,
+    "session-logger-strength-weight": "session-ex-1",
+    "session-logger-bodyweight-reps": "session-ex-4",
+    "session-logger-cardio-time": "session-ex-5",
+    "session-logger-cardio-time-distance": "session-ex-3",
+    "session-logger-cardio-distance": "session-ex-6",
+    "session-logger-calories": "session-ex-7",
+  };
 
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
@@ -997,16 +1116,16 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
           userId="dev-user"
           sessionId="dev-session"
         initialDurationSeconds={0}
-        performedAt={capturePerformedAt}
-        routineName="Lower Rotation"
-        sessionDayName="Day 2"
-        sessionSummaryCounts={{ strength: 2, cardio: 1, unknown: 0 }}
-        unitLabel="lbs"
-        exercises={mockSessionExercises}
-        initialSelectedExerciseId={scenario.id === "active-workout-session-expanded" ? "session-ex-2" : null}
-        saveSessionAction={noopActionResult}
-        requestedReturnTo="/today"
-            quickAddAction={<BottomDockButton type="button" intent="positive">Add</BottomDockButton>}
+          performedAt={capturePerformedAt}
+          routineName="Lower Rotation"
+          sessionDayName="Day 2"
+          sessionSummaryCounts={{ strength: 2, cardio: 1, unknown: 0 }}
+          unitLabel="lbs"
+          exercises={mockSessionExercises}
+        initialSelectedExerciseId={selectedExerciseByScenarioId[scenario.id] ?? null}
+          saveSessionAction={noopActionResult}
+          requestedReturnTo="/today"
+              quickAddAction={<BottomDockButton type="button" intent="positive">Add</BottomDockButton>}
         addSetAction={noopSetAction}
         syncQueuedSetLogsAction={noopSyncQueuedSetLogsAction}
         toggleSkipAction={noopActionResult}

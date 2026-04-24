@@ -222,7 +222,7 @@ export function LoginScreen({
         return;
       }
 
-      toast.error(result.error);
+      toast.error(result.error ?? "Could not send reset email. Please try again.");
     } catch {
       toast.error("Could not send reset email. Please try again.");
     } finally {

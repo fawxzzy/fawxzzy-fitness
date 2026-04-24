@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { AppButton } from "@/components/ui/AppButton";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } from "@/components/session/SessionExerciseBlock";
@@ -273,9 +272,13 @@ export function SessionExerciseFocus({
   }, [patchRowState]);
 
   const toggleExercise = useCallback((exerciseId: string) => {
+    const rowViewModel = rowViewModelBySessionExerciseId.get(exerciseId);
+    if (rowViewModel?.isSkipped) {
+      return;
+    }
     setSetLoggerResetSignal((value) => value + 1);
     onSelectedExerciseIdChange(selectedExerciseId === exerciseId ? null : exerciseId);
-  }, [onSelectedExerciseIdChange, selectedExerciseId]);
+  }, [onSelectedExerciseIdChange, rowViewModelBySessionExerciseId, selectedExerciseId]);
 
   const handleSkipToggle = useCallback(async (
     exerciseId: string,
@@ -306,6 +309,9 @@ export function SessionExerciseFocus({
       });
 
       if (result.ok) {
+        if (nextSkipped && selectedExerciseId === exerciseId) {
+          onSelectedExerciseIdChange(null);
+        }
         router.refresh();
       } else {
         patchRowState(exerciseId, (current) => ({
@@ -320,7 +326,7 @@ export function SessionExerciseFocus({
         isSkipPending: false,
       }));
     }
-  }, [patchRowState, router, sessionId, toast, toggleSkipAction]);
+  }, [onSelectedExerciseIdChange, patchRowState, router, selectedExerciseId, sessionId, toast, toggleSkipAction]);
 
   return (
     <div className={appTokens.currentSessionFocusStack} data-row-interaction={contract.rowInteraction}>
@@ -370,42 +376,23 @@ export function SessionExerciseFocus({
               state={isExpanded ? "selected" : rowState.cardState}
               semanticTone={semanticTone}
               trailingClassName={appTokens.metaText}
-              badgeText={titleMeta ? undefined : rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined)}
+              badgeText={rowViewModel.isSkipped ? undefined : (titleMeta ? undefined : rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined))}
               showLeadingVisual={surfacePolicy.showMedia}
               subtitleTone="plain"
-              className={!isExpanded ? "overflow-visible rounded-none border-0" : undefined}
-              cardClassName={!isExpanded ? "rounded-b-none border-b-0" : undefined}
+              className={!isExpanded ? "overflow-hidden rounded-none border-0 bg-transparent shadow-none ring-0" : undefined}
+              shellClassName={!isExpanded ? "rounded-none border-0 shadow-none ring-0" : undefined}
+              shellStyle={isExpanded ? {
+                borderBottomRightRadius: "0px",
+              } : {
+                borderTopRightRadius: "var(--card-radius)",
+                borderBottomRightRadius: "0px",
+              }}
+              cardClassName={!isExpanded ? "rounded-none border-0 shadow-none ring-0" : undefined}
               contentClassName="pl-3"
+              mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
               titleMeta={titleMeta}
             >
               <>
-                {progressState.kind === "skipped" || progressState.kind === "partialSkipped" ? (
-                  <div className={cn(appTokens.currentSessionWarningBanner, "flex items-start justify-between gap-3")}>
-                    <p className={cn("min-w-0 flex-1", appTokens.detailBodyText)}>
-                      {progressState.kind === "partialSkipped"
-                        ? `${progressState.progressLabel ?? "Partial progress"} - ended early for this session. Unskip to keep logging.`
-                        : "Skipped for this session. Unskip to keep logging."}
-                    </p>
-                    <AppButton
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={rowViewModel.isQuickLogPending || rowViewModel.isSkipPending}
-                      onClick={() => {
-                        void handleSkipToggle(
-                          exercise.id,
-                          rowViewModel.isSkipped,
-                          rowViewModel.isQuickLogPending,
-                          rowViewModel.isSkipPending,
-                        );
-                      }}
-                      className="shrink-0"
-                    >
-                      {rowViewModel.isSkipPending ? "Saving..." : "Unskip"}
-                    </AppButton>
-                  </div>
-                ) : null}
-
                 <SetLoggerCard
                   userId={userId}
                   sessionId={sessionId}
@@ -515,7 +502,7 @@ export function SessionExerciseFocus({
                     {disclosureCard}
                   </SessionExerciseCard>
                 ) : (
-                  <div className="overflow-visible rounded-none border-0 bg-transparent">
+                  <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-transparent">
                     {disclosureCard}
                     {quickActionStrip}
                   </div>

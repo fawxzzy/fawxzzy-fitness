@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
+const enabledQuickLogStyle = {
+  backgroundColor: "rgb(var(--accent))",
+  color: "rgb(var(--text-on-accent))",
+} as const;
+
 export function SessionExerciseBlock({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("w-full pb-4", className)}>{children}</div>;
 }
@@ -46,7 +51,7 @@ export function AttachedQuickActionStrip({
   return (
     <div
       className={cn(
-        "relative -mt-px grid min-h-11 grid-cols-[4.75rem_minmax(0,1fr)] overflow-hidden rounded-none rounded-br-[var(--card-radius)] border border-t-0 border-[rgb(var(--border-strong)/0.18)] bg-transparent",
+        "relative grid min-h-11 grid-cols-[4.75rem_minmax(0,1fr)] overflow-hidden rounded-none border-t border-[rgb(var(--border-strong)/0.18)] bg-transparent",
         className,
       )}
     >
@@ -66,13 +71,14 @@ export function AttachedQuickActionStrip({
         onClick={onPress}
         disabled={isQuickLogDisabled}
         className={cn(
-          "relative flex h-11 min-w-0 items-center justify-center rounded-none border-0 transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.24)] disabled:cursor-not-allowed",
+          "relative flex h-11 min-w-0 items-center justify-center overflow-hidden rounded-none border-0 transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.24)] disabled:cursor-not-allowed",
           isQuickLogDisabled
             ? "bg-[linear-gradient(180deg,rgba(82,154,137,0.72),rgba(45,90,81,0.86))] text-[rgb(221_236_230/0.86)]"
-            : "bg-[linear-gradient(180deg,rgba(82,208,156,0.98),rgba(24,132,102,0.98))] text-[rgb(7_17_27/0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]",
+            : "",
           actionRowClassName,
           quickLogActionClassName,
         )}
+        style={isQuickLogDisabled ? undefined : enabledQuickLogStyle}
       >
         <span className="block truncate px-4 text-center text-[0.95rem] font-semibold">
           {quickLogLabel}

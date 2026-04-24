@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
-import { ExerciseCard, type ExerciseCardButtonProps } from "@/components/ExerciseCard";
+import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardMediaLeftCornerMode } from "@/components/ExerciseCard";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
 import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
@@ -25,6 +25,8 @@ type StandardExerciseRowProps = {
   rightIcon?: ReactNode;
   actions?: ReactNode;
   className?: string;
+  shellClassName?: string;
+  shellStyle?: CSSProperties;
   trailingClassName?: string;
   rightRailClassName?: string;
   trailingStackClassName?: string;
@@ -48,6 +50,7 @@ type StandardExerciseRowProps = {
   buttonProps?: ExerciseCardButtonProps;
   surface?: WorkoutCardSurface;
   showAccentRail?: boolean;
+  mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
 };
 
 export function StandardExerciseRow({
@@ -59,6 +62,8 @@ export function StandardExerciseRow({
   rightIcon,
   actions,
   className,
+  shellClassName,
+  shellStyle,
   trailingClassName,
   rightRailClassName,
   trailingStackClassName,
@@ -82,6 +87,7 @@ export function StandardExerciseRow({
   buttonProps,
   surface = "exercise-picker",
   showAccentRail = true,
+  mediaLeftCornerMode,
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
   const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
@@ -118,11 +124,13 @@ export function StandardExerciseRow({
       leadingVisual={resolvedLeadingVisual}
       mediaLayout="rail"
       mediaRailWidth={resolvedLeadingVisual ? mediaRailWidth : undefined}
+      mediaLeftCornerMode={mediaLeftCornerMode}
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}
       actions={actions}
-      className={cn("shadow-none", className)}
+      className={cn("shadow-none", shellClassName, className)}
+      shellStyle={shellStyle}
       trailingClassName={trailingClassName}
       rightRailClassName={rightRailClassName}
       trailingStackClassName={trailingStackClassName}
