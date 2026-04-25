@@ -26,5 +26,27 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "any maskable" as any,
       },
     ],
+    screenshots: [
+      {
+        src: "/app/previews/today.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/routines.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/history.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+      {
+        src: "/app/previews/add-exercise.png",
+        sizes: "430x932",
+        type: "image/png",
+      },
+    ],
   };
 }

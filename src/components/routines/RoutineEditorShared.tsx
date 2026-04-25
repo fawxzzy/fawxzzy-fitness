@@ -45,6 +45,7 @@ export function RoutineEditorPageHeader({
   children,
   className,
   recipe = "editDay",
+  align = "left",
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -56,6 +57,7 @@ export function RoutineEditorPageHeader({
   children?: ReactNode;
   className?: string;
   recipe?: ScreenContractName;
+  align?: "left" | "center";
 }) {
   return (
     <SharedScreenHeader
@@ -66,6 +68,7 @@ export function RoutineEditorPageHeader({
       meta={meta}
       subtitleRight={subtitleRight}
       action={action}
+      align={align}
       className={className}
       actionClassName={actionClassName}
     >

@@ -11,6 +11,7 @@ type ExerciseSearchFiltersProps = {
   selectedTags: string[];
   onTagsChange: (nextTags: string[]) => void;
   groups: ExerciseTagGroup[];
+  resultCount?: number;
   className?: string;
   filterClassName?: string;
 };
@@ -21,6 +22,7 @@ export function ExerciseSearchFilters({
   selectedTags,
   onTagsChange,
   groups,
+  resultCount,
   className = "space-y-2",
   filterClassName = "space-y-1.5",
 }: ExerciseSearchFiltersProps) {
@@ -48,6 +50,7 @@ export function ExerciseSearchFilters({
         selectedTags={selectedTags}
         onChange={onTagsChange}
         groups={groups}
+        trailingMeta={typeof resultCount === "number" ? `${resultCount} shown` : undefined}
         className={filterClassName}
         variant="compact"
       />

@@ -10,6 +10,7 @@ type Props = {
   summary: {
     strength: number;
     cardio: number;
+    bodyweight: number;
     unknown: number;
   };
   isRest: boolean;

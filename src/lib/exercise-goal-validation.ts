@@ -1,6 +1,10 @@
+import { isBodyweightExercise, normalizeExerciseMeasurementType } from "@/lib/exercise-metadata";
+
 export type MeasurementSelection = "reps" | "weight" | "time" | "distance" | "calories";
 
 export type GoalModality = "strength" | "bodyweight" | "cardio_time" | "cardio_distance" | "cardio_time_distance";
+
+export const GOAL_MEASUREMENT_FIELDS: MeasurementSelection[] = ["reps", "weight", "time", "distance", "calories"];
 
 export type GoalValidationInput = {
   modality: GoalModality;
@@ -16,6 +20,7 @@ export type GoalValidationInput = {
 
 type GoalMeasurementValueInputs = {
   repsMin: string;
+  repsMax?: string;
   weight: string;
   duration: string;
   distance: string;
@@ -24,9 +29,24 @@ type GoalMeasurementValueInputs = {
 
 export type GoalValidationResult = {
   isValid: boolean;
-  requiredFields: Array<"sets" | "repsMin" | "weight" | "duration" | "distance">;
+  requiredFields: Array<"sets" | "repsMin" | "weight" | "duration" | "distance" | "calories">;
   message: string;
 };
+
+const requiredFieldLabels: Record<GoalValidationResult["requiredFields"][number], string> = {
+  sets: "Sets",
+  repsMin: "Min Rep",
+  weight: "Weight",
+  duration: "Time",
+  distance: "Distance",
+  calories: "Calories",
+};
+
+export function getMissingGoalMeasurementMessage(
+  field: GoalValidationResult["requiredFields"][number],
+) {
+  return `Missing ${requiredFieldLabels[field]}`;
+}
 
 export const GOAL_SCHEMA_MATRIX: Record<GoalModality, {
   requiredFields: GoalValidationResult["requiredFields"];
@@ -53,10 +73,6 @@ export const GOAL_SCHEMA_MATRIX: Record<GoalModality, {
     optionalFields: [],
   },
 };
-
-function getAllowedMetricSetForModality(modality: GoalModality) {
-  return new Set<MeasurementSelection>(getVisibleMetricsForModality(modality));
-}
 
 function parseInteger(value: string) {
   const trimmed = value.trim();
@@ -92,22 +108,33 @@ function parseDurationSeconds(value: string) {
 export function resolveGoalModality({
   measurementType,
   equipment,
+  name,
   tags,
 }: {
   measurementType: "reps" | "time" | "distance" | "time_distance";
   equipment?: string | null;
+  name?: string | null;
   tags?: Set<string>;
 }): GoalModality {
-  if (measurementType === "time_distance") return "cardio_time_distance";
-  if (measurementType === "time") return "cardio_time";
-  if (measurementType === "distance") return "cardio_distance";
+  const normalizedMeasurementType = normalizeExerciseMeasurementType({
+    name,
+    measurement_type: measurementType,
+  });
 
-  const normalizedEquipment = (equipment ?? "").trim().toLowerCase();
-  const isBodyweight = normalizedEquipment === "bodyweight" || tags?.has("bodyweight");
+  if (normalizedMeasurementType === "time_distance") return "cardio_time_distance";
+  if (normalizedMeasurementType === "time") return "cardio_time";
+  if (normalizedMeasurementType === "distance") return "cardio_distance";
+
+  const isBodyweight = isBodyweightExercise({
+    name,
+    measurement_type: measurementType,
+    equipment,
+    tags: tags ? Array.from(tags) : null,
+  });
   return isBodyweight ? "bodyweight" : "strength";
 }
 
-export function getVisibleMetricsForModality(modality: GoalModality): MeasurementSelection[] {
+export function getDefaultMeasurementsForGoalModality(modality: GoalModality): MeasurementSelection[] {
   switch (modality) {
     case "bodyweight":
       return ["reps"];
@@ -123,27 +150,40 @@ export function getVisibleMetricsForModality(modality: GoalModality): Measuremen
   }
 }
 
+export function getVisibleMetricsForModality(modality: GoalModality): MeasurementSelection[] {
+  return getDefaultMeasurementsForGoalModality(modality);
+}
+
+export function getGoalMeasurementOrder(modality: GoalModality): MeasurementSelection[] {
+  void modality;
+  return ["reps", "time", "distance", "calories", "weight"];
+}
+
+export function inferMeasurementTypeFromGoalModality(modality: GoalModality): "reps" | "time" | "distance" | "time_distance" {
+  switch (modality) {
+    case "cardio_time":
+      return "time";
+    case "cardio_distance":
+      return "distance";
+    case "cardio_time_distance":
+      return "time_distance";
+    case "bodyweight":
+    case "strength":
+    default:
+      return "reps";
+  }
+}
+
 export function deriveGoalMeasurementSelections(
-  modality: GoalModality,
+  _modality: GoalModality,
   values: GoalMeasurementValueInputs,
 ): MeasurementSelection[] {
-  const allowedMetrics = getAllowedMetricSetForModality(modality);
   const present = new Set<MeasurementSelection>();
-  if (allowedMetrics.has("reps") && hasNonEmptyValue(values.repsMin)) present.add("reps");
-  if (allowedMetrics.has("weight") && hasNonEmptyValue(values.weight)) present.add("weight");
-  if (allowedMetrics.has("time") && hasNonEmptyValue(values.duration)) present.add("time");
-  if (allowedMetrics.has("distance") && hasNonEmptyValue(values.distance)) present.add("distance");
-  if (allowedMetrics.has("calories") && hasNonEmptyValue(values.calories)) present.add("calories");
-
-  if (modality === "strength" || modality === "bodyweight") {
-    present.add("reps");
-  }
-  if (modality === "cardio_time") {
-    present.add("time");
-  }
-  if (modality === "cardio_distance") {
-    present.add("distance");
-  }
+  if (hasNonEmptyValue(values.repsMin) || hasNonEmptyValue(values.repsMax ?? "")) present.add("reps");
+  if (hasNonEmptyValue(values.weight)) present.add("weight");
+  if (hasNonEmptyValue(values.duration)) present.add("time");
+  if (hasNonEmptyValue(values.distance)) present.add("distance");
+  if (hasNonEmptyValue(values.calories)) present.add("calories");
 
   return Array.from(present);
 }
@@ -154,7 +194,7 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
     return {
       isValid: false,
       requiredFields: ["sets"],
-      message: "Set target sets to at least 1 to add this exercise.",
+      message: getMissingGoalMeasurementMessage("sets"),
     };
   }
 
@@ -165,64 +205,73 @@ export function validateGoalConfiguration(input: GoalValidationInput): GoalValid
   const distance = parsePositiveNumber(input.distance);
 
   if (repsMin !== null && (!Number.isInteger(repsMin) || repsMin < 1)) {
-    return { isValid: false, requiredFields: ["repsMin"], message: "Enter reps as a whole number greater than 0." };
+    return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
   }
 
   if (repsMax !== null && (!Number.isInteger(repsMax) || repsMax < 1)) {
-    return { isValid: false, requiredFields: ["repsMin"], message: "Enter max reps as a whole number greater than 0." };
+    return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
+  }
+
+  if (repsMax !== null && repsMin === null) {
+    return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
   }
 
   if (repsMin !== null && repsMax !== null && repsMin > repsMax) {
-    return { isValid: false, requiredFields: ["repsMin"], message: "Rep range must use min less than or equal to max." };
+    return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
   }
 
   if (weight !== null && (!Number.isFinite(weight) || weight < 0)) {
-    return { isValid: false, requiredFields: ["weight"], message: "Weight must be 0 or greater." };
+    return { isValid: false, requiredFields: ["weight"], message: getMissingGoalMeasurementMessage("weight") };
   }
 
   if (Number.isNaN(duration)) {
-    return { isValid: false, requiredFields: ["duration"], message: "Time must be entered as seconds or mm:ss." };
+    return { isValid: false, requiredFields: ["duration"], message: getMissingGoalMeasurementMessage("duration") };
   }
 
   if (distance !== null && (!Number.isFinite(distance) || distance < 0)) {
-    return { isValid: false, requiredFields: ["distance"], message: "Distance must be 0 or greater." };
+    return { isValid: false, requiredFields: ["distance"], message: getMissingGoalMeasurementMessage("distance") };
+  }
+
+  const calories = parsePositiveNumber(input.calories);
+  if (calories !== null && (!Number.isFinite(calories) || calories < 0)) {
+    return { isValid: false, requiredFields: ["calories"], message: getMissingGoalMeasurementMessage("calories") };
   }
 
   switch (input.modality) {
     case "bodyweight":
-      if (!input.measurementSelections.has("reps") || repsMin === null) {
-        return { isValid: false, requiredFields: ["repsMin"], message: "Add a rep target to preview and save this bodyweight goal." };
+      if (repsMin === null) {
+        return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
       }
       break;
     case "cardio_time":
-      if (!input.measurementSelections.has("time") || duration === null || duration <= 0) {
-        return { isValid: false, requiredFields: ["duration"], message: "Add a time target to preview and save this cardio goal." };
+      if (duration === null || duration <= 0) {
+        return { isValid: false, requiredFields: ["duration"], message: getMissingGoalMeasurementMessage("duration") };
       }
       break;
     case "cardio_distance":
-      if (!input.measurementSelections.has("distance") || distance === null || distance <= 0) {
-        return { isValid: false, requiredFields: ["distance"], message: "Add a distance target to preview and save this cardio goal." };
+      if (distance === null || distance <= 0) {
+        return { isValid: false, requiredFields: ["distance"], message: getMissingGoalMeasurementMessage("distance") };
       }
       break;
     case "cardio_time_distance": {
-      const hasTime = input.measurementSelections.has("time") && duration !== null && duration > 0;
-      const hasDistance = input.measurementSelections.has("distance") && distance !== null && distance > 0;
+      const hasTime = duration !== null && duration > 0;
+      const hasDistance = distance !== null && distance > 0;
       if (!hasTime && !hasDistance) {
         return {
           isValid: false,
-          requiredFields: ["duration", "distance"],
-          message: "Add a time or distance target to preview and save this cardio goal.",
+          requiredFields: ["duration"],
+          message: getMissingGoalMeasurementMessage("duration"),
         };
       }
       break;
     }
     case "strength":
     default:
-      if (!input.measurementSelections.has("reps") || repsMin === null) {
-        return { isValid: false, requiredFields: ["repsMin"], message: "Add a rep target to preview and save this strength goal." };
+      if (repsMin === null) {
+        return { isValid: false, requiredFields: ["repsMin"], message: getMissingGoalMeasurementMessage("repsMin") };
       }
       if (input.measurementSelections.has("weight") && weight === null) {
-        return { isValid: false, requiredFields: ["weight"], message: "Add a weight target or turn off weight for rep-only programming." };
+        return { isValid: false, requiredFields: ["weight"], message: getMissingGoalMeasurementMessage("weight") };
       }
       break;
   }

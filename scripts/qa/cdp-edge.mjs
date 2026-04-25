@@ -14,6 +14,12 @@ const DEFAULT_EDGE_PATHS = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
 ].filter((value) => typeof value === "string" && value.length > 0);
+const DEFAULT_CHROME_PATHS = [
+  process.env.QA_CHROME_PATH,
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Users\\zjhre\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
+].filter((value) => typeof value === "string" && value.length > 0);
 
 function delay(ms) {
   return new Promise((resolve) => {
@@ -27,7 +33,7 @@ async function readConfig(configPath) {
 }
 
 async function resolveEdgePath() {
-  for (const candidate of DEFAULT_EDGE_PATHS) {
+  for (const candidate of [...DEFAULT_EDGE_PATHS, ...DEFAULT_CHROME_PATHS]) {
     try {
       await fs.access(candidate);
       return candidate;
@@ -427,9 +433,14 @@ async function main() {
   }
 
   const config = await readConfig(configPath);
-  const edgePath = await resolveEdgePath();
+  const edgePath = typeof config.browserPath === "string" && config.browserPath.length > 0
+    ? config.browserPath
+    : await resolveEdgePath();
   const debuggingPort = await findFreePort();
-  const profileDir = await fs.mkdtemp(path.join(os.tmpdir(), "fitness-cdp-edge-"));
+  const providedUserDataDir = typeof config.userDataDir === "string" && config.userDataDir.length > 0
+    ? path.resolve(config.userDataDir)
+    : null;
+  const profileDir = providedUserDataDir ?? await fs.mkdtemp(path.join(os.tmpdir(), "fitness-cdp-edge-"));
   const windowWidth = Number(config.width ?? 430);
   const windowHeight = Number(config.height ?? 932);
   const deviceScaleFactor = Number(config.deviceScaleFactor ?? 1);
@@ -449,6 +460,10 @@ async function main() {
     `--force-device-scale-factor=${deviceScaleFactor}`,
     "about:blank",
   ];
+
+  if (typeof config.profileDirectory === "string" && config.profileDirectory.length > 0) {
+    browserArgs.splice(browserArgs.length - 1, 0, `--profile-directory=${config.profileDirectory}`);
+  }
 
   const browser = spawn(edgePath, browserArgs, {
     stdio: "ignore",
@@ -503,12 +518,14 @@ async function main() {
   } finally {
     await client?.close().catch(() => {});
     await killProcessTree(browser.pid);
-    await fs.rm(profileDir, {
-      recursive: true,
-      force: true,
-      maxRetries: 10,
-      retryDelay: 100,
-    }).catch(() => {});
+    if (!providedUserDataDir) {
+      await fs.rm(profileDir, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100,
+      }).catch(() => {});
+    }
   }
 }
 

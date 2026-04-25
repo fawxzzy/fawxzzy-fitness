@@ -36,7 +36,7 @@ export default async function SettingsPage() {
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
-          <ContentRail className="py-1">
+          <ContentRail className={appTokens.settingsFloatingHeaderRail}>
             <SurfaceCard dense>
               <AppHeader
                 title="Settings"
@@ -49,7 +49,7 @@ export default async function SettingsPage() {
           </ContentRail>
         )}
       >
-        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
+        <ContentRail className={appTokens.settingsContentRail}>
           <SurfaceCard>
             <AppHeader
               title="Data & Account"

@@ -146,6 +146,7 @@ export async function getSessionPageData(sessionId: string) {
 
     return {
       ...item,
+      exercise_name: exerciseRow?.name ?? null,
       ...(inheritedGoalColumns ?? {}),
       measurement_type: effectiveMeasurementType,
       default_unit: effectiveDefaultUnit,

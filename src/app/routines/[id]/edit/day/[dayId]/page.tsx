@@ -150,7 +150,14 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const activeExerciseCountSummary = getRestDayExerciseCountSummaryFromInputs(
     editableExercises.map((exercise) => ({
       measurement_type: exercise.measurementType,
+      equipment: exercise.equipment,
+      movement_pattern: exercise.movement_pattern,
+      primary_muscle: exercise.primary_muscle,
       isCardio: exercise.isCardio,
+      kind: exercise.kind,
+      type: exercise.type,
+      tags: exercise.tags,
+      categories: exercise.categories,
     })),
     day.is_rest,
   );

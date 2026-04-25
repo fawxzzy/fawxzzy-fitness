@@ -24,6 +24,7 @@ type Props = {
   daySummaryCounts: {
     strength: number;
     cardio: number;
+    bodyweight: number;
     unknown: number;
   };
   routineDayId: string;

@@ -39,7 +39,7 @@ export function formatSetPositionLabel(index: number | null | undefined, noun: "
 }
 
 function formatRepRange(reps: number | null | undefined, repsMax: number | null | undefined) {
-  if (!Number.isFinite(reps ?? null) || (reps ?? 0) < 0) {
+  if (!Number.isFinite(reps ?? null) || (reps ?? 0) <= 0) {
     return null;
   }
 
@@ -69,19 +69,19 @@ function getMetricSummaryParts(values: {
     measurementParts.push({ metric: "reps", label: repRange });
   }
 
-  if (Number.isFinite(values.weight ?? null) && (values.weight ?? 0) >= 0) {
+  if (Number.isFinite(values.weight ?? null) && (values.weight ?? 0) > 0) {
     measurementParts.push({ metric: "weight", label: `${formatNumber(values.weight as number)} ${values.weightUnit ?? "lbs"}` });
   }
 
-  if (Number.isFinite(values.durationSeconds ?? null) && (values.durationSeconds ?? 0) >= 0) {
+  if (Number.isFinite(values.durationSeconds ?? null) && (values.durationSeconds ?? 0) > 0) {
     measurementParts.push({ metric: "time", label: formatDurationClock(values.durationSeconds as number) });
   }
 
-  if (Number.isFinite(values.distance ?? null) && (values.distance ?? 0) >= 0) {
+  if (Number.isFinite(values.distance ?? null) && (values.distance ?? 0) > 0) {
     measurementParts.push({ metric: "distance", label: `${formatNumber(values.distance as number)} ${values.distanceUnit ?? "mi"}` });
   }
 
-  if (Number.isFinite(values.calories ?? null) && (values.calories ?? 0) >= 0) {
+  if (Number.isFinite(values.calories ?? null) && (values.calories ?? 0) > 0) {
     measurementParts.push({ metric: "calories", label: `${formatNumber(values.calories as number)} cal` });
   }
 

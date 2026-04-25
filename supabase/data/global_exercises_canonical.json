@@ -2056,6 +2056,22 @@
     "image_muscles_path": "/exercises/placeholders/muscles.svg"
   },
   {
+    "name": "Stretch",
+    "primary_muscle": "recovery",
+    "equipment": "Bodyweight",
+    "is_global": true,
+    "how_to_short": "Complete your planned stretch or mobility drill, then mark the set when finished.",
+    "movement_pattern": "push",
+    "primary_muscles": [
+      "recovery"
+    ],
+    "secondary_muscles": [],
+    "image_howto_path": "/exercises/placeholders/howto.svg",
+    "image_muscles_path": "/exercises/placeholders/muscles.svg",
+    "measurement_type": "reps",
+    "default_unit": "reps"
+  },
+  {
     "name": "T-Bar Row",
     "primary_muscle": "lats, mid back",
     "equipment": "Machine",

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { DetailHeader, DetailMetaChip, DetailMetaRow, DetailSection } from "@/components/DetailSurface";
+import { DetailHeader, DetailSection } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { appTokens } from "@/components/ui/app/tokens";
@@ -95,6 +95,43 @@ function describeOverview(stats: ExerciseInfoSheetStats | null) {
   }
 }
 
+function ExerciseInfoHeaderMetaGrid({
+  items,
+}: {
+  items: Array<{ label: string; value: string }>;
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        "grid gap-1.5 pl-[4px] pt-[6px]",
+        items.length === 1
+          ? "grid-cols-1"
+          : items.length === 2
+            ? "grid-cols-2"
+            : "grid-cols-3",
+      )}
+    >
+      {items.map((item) => (
+        <div
+          key={`${item.label}-${item.value}`}
+          className="min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.58)] px-2.5 py-2"
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--text-muted)/0.74)]">
+            {item.label}
+          </p>
+          <p className="pt-1 text-[12px] font-semibold leading-[1.18] text-[rgb(var(--text)/0.96)] [text-wrap:balance]">
+            {item.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ExerciseInfoLoadingMetrics() {
   return (
     <div className="space-y-2 pt-0.5" aria-live="polite" aria-busy="true" aria-label="Loading stats">
@@ -127,6 +164,19 @@ function ExerciseInfoOverviewMedia({
 }) {
   return (
     <div className={appTokens.detailMediaCard}>
+      <div className={appTokens.detailMediaFrame}>
+        <ExerciseAssetImage
+          src={howToImageSrc}
+          alt={`${exercise.name} demonstration`}
+          className="h-full w-full"
+          preferNaturalAspectRatio
+          containerStyle={{ minHeight: "15rem", maxHeight: "24rem" }}
+          imageClassName="object-contain object-center"
+          imageStyle={{ padding: "clamp(0.35rem, 1.6vw, 0.65rem)" }}
+          sizes="(max-width: 768px) 100vw, 520px"
+          priority
+        />
+      </div>
       {exercise.how_to_short ? (
         <p className={cn(appTokens.detailBodyText, "[text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
           {exercise.how_to_short}
@@ -136,16 +186,6 @@ function ExerciseInfoOverviewMedia({
           Log a few sessions to unlock more specific cues and trends for this exercise.
         </p>
       )}
-      <div className={appTokens.detailMediaFrame}>
-        <ExerciseAssetImage
-          src={howToImageSrc}
-          alt={`${exercise.name} demonstration`}
-          className="h-full w-full"
-          imageClassName="object-contain object-center"
-          sizes="(max-width: 768px) 100vw, 520px"
-          priority
-        />
-      </div>
     </div>
   );
 }
@@ -235,6 +275,8 @@ export function ExerciseInfoSheet({
   const detailHeader = (
     <DetailHeader
       title={exercise?.name ?? "Exercise"}
+      titleClassName="pl-[4px] pt-[4px] pr-3"
+      actionClassName="pt-[4px]"
       action={(
         <TopRightBackButton
           onClick={(event) => {
@@ -249,11 +291,7 @@ export function ExerciseInfoSheet({
         />
       )}
       meta={metadata.length > 0 ? (
-        <DetailMetaRow>
-          {metadata.map((item) => (
-            <DetailMetaChip key={`${item.label}-${item.value}`} label={item.label} value={item.value} />
-          ))}
-        </DetailMetaRow>
+        <ExerciseInfoHeaderMetaGrid items={metadata} />
       ) : undefined}
     />
   );
@@ -283,6 +321,10 @@ export function ExerciseInfoSheet({
         <Glass variant="base" className="overflow-hidden rounded-[34px]">
           <div className="px-4 pb-6 pt-4">
             <div className="space-y-3">
+              <DetailSection title="Movement" description="Reference image and form cue for this exercise.">
+                <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
+              </DetailSection>
+
               <DetailSection title="Overview" description={describeOverview(stats)}>
                 <div
                   id={statsPanelId}
@@ -296,7 +338,6 @@ export function ExerciseInfoSheet({
                       No stats yet. Log a set to generate performance history for this exercise.
                     </p>
                   ) : null}
-                  <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
                 </div>
               </DetailSection>
 

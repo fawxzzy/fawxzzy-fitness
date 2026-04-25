@@ -26,6 +26,7 @@ import { cn } from "@/lib/cn";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
+import { formatRoutineDayDisplayName } from "@/lib/routines";
 import {
   deriveTodayScreenMode,
   formatTodayHeaderTitle,
@@ -75,6 +76,7 @@ export function TodayDayPicker({
   inSessionDayIndex,
   loggedSetCountsByDayIndex,
   routineName,
+  startDate,
   floatingHeaderSlotId,
   exerciseDensity = "compact",
 }: {
@@ -85,6 +87,7 @@ export function TodayDayPicker({
   inSessionDayIndex?: number | null;
   loggedSetCountsByDayIndex?: Record<number, number>;
   routineName: string;
+  startDate: string | null;
   floatingHeaderSlotId?: string;
   exerciseDensity?: "compact" | "detailed";
 }) {
@@ -144,6 +147,13 @@ export function TodayDayPicker({
   }, []);
 
   const selectedDay = mode.selectedDay;
+  const selectedDayDisplayName = selectedDay
+    ? formatRoutineDayDisplayName({
+        name: selectedDay.name,
+        dayIndex: selectedDay.dayIndex,
+        startDate,
+      })
+    : null;
   const getDayExerciseSummaryLabel = useCallback((day: TodayDay) => (
     getRestDayExerciseCountSummaryFromInputs(day.exercises, day.state === "rest").label
   ), []);
@@ -206,7 +216,7 @@ export function TodayDayPicker({
 
   const headerNode = selectedDay ? (
     <TodayOverviewHeader
-      title={mode.dayPickerOpen ? routineName : formatTodayHeaderTitle(routineName, selectedDay.name)}
+      title={mode.dayPickerOpen ? routineName : formatTodayHeaderTitle(routineName, selectedDayDisplayName)}
       align="center"
       subtitle={getDayTaxonomyHeaderSummaryParts({
         dayName: selectedDay.name,
@@ -279,7 +289,11 @@ export function TodayDayPicker({
                       return (
                         <DayCard
                           key={day.id}
-                          title={`Day ${day.dayIndex} | ${day.name}`}
+                          title={formatRoutineDayDisplayName({
+                            name: day.name,
+                            dayIndex: day.dayIndex,
+                            startDate,
+                          })}
                           subtitle={resolveDayCardSubtitle(day)}
                           onPress={() => {
                             setSelectedDayIndex(day.dayIndex);
@@ -293,6 +307,7 @@ export function TodayDayPicker({
                             isInSession: inSessionDayIndex === day.dayIndex,
                           })}
                           showAccentRail={false}
+                          subtitleTone="plain"
                           metaText={formatLoggedSetCount(loggedSetCountsByDayIndex?.[day.dayIndex])}
                           rightIcon={null}
                         />

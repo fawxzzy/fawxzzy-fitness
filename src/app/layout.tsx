@@ -7,13 +7,62 @@ import { ToastProvider } from "@/components/ui/ToastProvider";
 import { MobileViewportGuard } from "@/components/ui/MobileViewportGuard";
 import "./globals.css";
 
+const APP_NAME = "FawxzzyFitness";
+const APP_DESCRIPTION = "Track sessions and progress with a focused training workflow.";
+const APP_PREVIEW_IMAGE = "/app/previews/today.png";
+
+function resolveMetadataBase() {
+  const candidates = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.APP_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    "https://fawxzzy-fitness-local.vercel.app",
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    try {
+      return new URL(candidate);
+    } catch {
+      continue;
+    }
+  }
+
+  return undefined;
+}
+
 export const metadata: Metadata = {
-  title: "FawxzzyFitness",
-  description: "Foundation app for logging gym sessions.",
+  metadataBase: resolveMetadataBase(),
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
   appleWebApp: {
     capable: true,
-    title: "FawxzzyFitness",
+    title: APP_NAME,
     statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    type: "website",
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
+    siteName: APP_NAME,
+    images: [
+      {
+        url: APP_PREVIEW_IMAGE,
+        width: 430,
+        height: 932,
+        alt: "FawxzzyFitness Today screen preview",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
+    images: [APP_PREVIEW_IMAGE],
   },
   icons: {
     icon: [
@@ -27,7 +76,7 @@ export const metadata: Metadata = {
     "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",
-    "apple-mobile-web-app-title": "FawxzzyFitness",
+    "apple-mobile-web-app-title": APP_NAME,
   },
 };
 

@@ -272,7 +272,7 @@ export function LegacyMigrationSettings({
   };
 
   return (
-    <div className={cn("space-y-3", appTokens.settingsDivider)}>
+    <div className={cn(appTokens.settingsDivider, appTokens.settingsBlockStack)}>
       <AppRow
         leftTop="Import legacy data"
         leftBottom={migrationStatusLabel}
@@ -288,7 +288,7 @@ export function LegacyMigrationSettings({
 
       {isExpanded ? (
         <div className={appTokens.settingsExpandedPanel}>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={appTokens.settingsUtilityRow}>
             <Chip tone={legacyBridgeConfigured ? "success" : "warning"}>
               {legacyBridgeConfigured ? "Legacy bridge ready" : "Legacy env missing"}
             </Chip>
@@ -297,7 +297,7 @@ export function LegacyMigrationSettings({
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className={appTokens.settingsTwoColumnGrid}>
             <div className={appTokens.settingsFieldStack}>
               <label htmlFor="legacy-email" className={cn("block", appTokens.measurementLabel)}>
                 Legacy email
@@ -326,7 +326,7 @@ export function LegacyMigrationSettings({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className={appTokens.settingsActionRow}>
             <AppButton
               type="button"
               variant="secondary"
@@ -383,7 +383,7 @@ export function LegacyMigrationSettings({
               </p>
             ) : null}
             {parity ? (
-              <div className={cn(appTokens.settingsBodyText, "space-y-1")}>
+              <div className={cn(appTokens.settingsBodyText, appTokens.settingsStatusStack)}>
                 {parity.counts.map((count) => (
                   <p key={count.metric}>
                     {count.metric}: snapshot {count.snapshot} / database {count.database} / {count.matches ? "match" : "mismatch"}

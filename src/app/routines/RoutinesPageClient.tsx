@@ -44,6 +44,7 @@ export type RoutineDayCardItem = {
     total: number;
     strength: number;
     cardio: number;
+    bodyweight: number;
     unknown: number;
   };
   exerciseSummary?: string;
@@ -218,7 +219,7 @@ export function RoutinesPageClient({
                     : day.splitSummary
                       ? formatExerciseSplitSummary(day.splitSummary)
                       : (day.exerciseSummary ?? "No exercises yet")}
-                  subtitleLabel={day.isRest ? undefined : "Split"}
+                  subtitleTone="plain"
                   badgeText={resolveDayCardBadgeText({
                     isToday: day.isToday,
                     isRest: day.isRest,

@@ -13,6 +13,14 @@ const INITIAL_EMAIL_STATE: EmailUpdateState = { status: "idle" };
 export function AccountSettingsForm({ email, username }: { email: string; username: string }) {
   const [emailState, setEmailState] = useState<EmailUpdateState>(INITIAL_EMAIL_STATE);
   const [emailPending, startEmailTransition] = useTransition();
+  const rememberedUsername = useMemo(() => {
+    const rememberedDisplayName = readRememberedLoginState()?.displayName;
+    return typeof rememberedDisplayName === "string" ? rememberedDisplayName.trim() : "";
+  }, []);
+  const initialUsername = useMemo(() => {
+    const normalizedUsername = username.trim();
+    return normalizedUsername || rememberedUsername;
+  }, [rememberedUsername, username]);
 
   const submitEmailUpdate = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -54,7 +62,7 @@ export function AccountSettingsForm({ email, username }: { email: string; userna
           id="settings-username"
           name="username"
           type="text"
-          defaultValue={username}
+          defaultValue={initialUsername}
           autoComplete="username"
           minLength={2}
           maxLength={24}

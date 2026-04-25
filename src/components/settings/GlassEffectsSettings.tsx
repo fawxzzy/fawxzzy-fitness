@@ -68,7 +68,7 @@ export function GlassEffectsSettings({
           value={mode}
           onChange={(nextValue) => setMode(nextValue as GlassEffectsMode)}
         />
-        <div className="flex items-center gap-2">
+        <div className={appTokens.settingsUtilityRow}>
           <Chip tone="today">{activeAppearance.label}</Chip>
           <p className={appTokens.settingsBodyText}>{activeAppearance.description}</p>
         </div>

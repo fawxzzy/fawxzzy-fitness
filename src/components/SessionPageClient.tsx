@@ -107,6 +107,7 @@ export function SessionPageClient({
   sessionSummaryCounts: {
     strength: number;
     cardio: number;
+    bodyweight: number;
     unknown: number;
   };
   searchError?: string;

@@ -992,7 +992,6 @@ export function SetLoggerCard({
               type="button"
               variant="secondary"
               size="sm"
-              fullWidth
               state={resolvedIsWarmup ? "active" : "default"}
               data-action-chrome-intent={resolvedIsWarmup ? "info" : "neutral"}
               data-action-chrome-segmented="true"

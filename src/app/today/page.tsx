@@ -28,7 +28,7 @@ import {
   getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
-import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
+import { formatRoutineDayDisplayName, getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRunnableDayState } from "@/lib/runnable-day";
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs, toExerciseCountSummaryInput } from "@/lib/day-summary";
@@ -465,7 +465,13 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
   const effectiveDayIndex = displayDay.dayIndex;
   const effectiveRoutineDay = displayDay.routineDay;
   const effectiveDaySummary = effectiveRoutineDay ? normalizedDayByIndex.get(effectiveRoutineDay.day_index) ?? null : null;
-  const routineDayName = displayDay.dayName;
+  const routineDayName = effectiveDayIndex !== null
+    ? formatRoutineDayDisplayName({
+        name: displayDay.dayName,
+        dayIndex: effectiveDayIndex,
+        startDate: activeRoutine?.start_date ?? null,
+      })
+    : displayDay.dayName;
   const routinePayloadState = buildTodayRoutinePayloadState({
     activeRoutine,
     effectiveDayIndex,
@@ -656,6 +662,7 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
                     ? { [inProgressSession.routine_day_index]: inProgressSessionLoggedSetCount }
                     : {}}
                   routineName={todayPayload.routine.name}
+                  startDate={activeRoutine?.start_date ?? null}
                   floatingHeaderSlotId="today-floating-header-slot"
                   />
                 )}

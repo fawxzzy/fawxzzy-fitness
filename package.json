@@ -19,6 +19,7 @@
     "qa:session": "node scripts/qa/fitness-qa-user.mjs session",
     "qa:tunnel": "node scripts/qa/fitness-tunnel.mjs",
     "qa:local": "node scripts/qa/fitness-local-feedback.mjs",
+    "qa:preview-assets": "node scripts/qa/update-app-preview-assets.mjs",
     "qa:loop": "node scripts/qa/fitness-qa-user.mjs reset && node scripts/qa/fitness-qa-user.mjs session && node scripts/qa/fitness-local-feedback.mjs",
     "qa:loop:mobile": "node scripts/qa/fitness-mobile-loop.mjs",
     "verify:history-render": "node scripts/verify-history-family-ui.mjs",

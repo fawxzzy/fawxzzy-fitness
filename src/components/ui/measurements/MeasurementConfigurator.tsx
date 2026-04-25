@@ -21,7 +21,9 @@ export function MeasurementConfigurator({
   leadingContent,
   trailingContent,
   topField,
+  repRangeLabels,
   visibleMetrics,
+  metricOrder,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -42,8 +44,20 @@ export function MeasurementConfigurator({
     title: string;
     suffix?: string;
     input: ReactNode;
+    inlineLabel?: string;
+    showEmptyValue?: boolean;
+    hasValue?: boolean;
+    labelClassName?: string;
+    valueLabelClassName?: string;
+    emptyValueClassName?: string;
+    renderInput?: (options: { inputClassName: string }) => ReactNode;
+  };
+  repRangeLabels?: {
+    min: string;
+    max: string;
   };
   visibleMetrics?: Array<keyof MeasurementMetrics>;
+  metricOrder?: Array<keyof MeasurementMetrics>;
 }) {
   return (
     <MeasurementPanelV2
@@ -63,7 +77,9 @@ export function MeasurementConfigurator({
       leadingContent={leadingContent}
       trailingContent={trailingContent}
       topField={topField}
+      repRangeLabels={repRangeLabels}
       visibleMetrics={visibleMetrics}
+      metricOrder={metricOrder}
     />
   );
 }

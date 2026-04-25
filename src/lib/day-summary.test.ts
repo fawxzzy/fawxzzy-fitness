@@ -126,11 +126,57 @@ test("today offline payload shape preserves primary muscle cardio classification
   assert.equal(summaryInput.isCardio, true);
 });
 
+test("canonical day summaries break out bodyweight metadata from strength totals", () => {
+  const exercise = {
+    id: "day-ex-2",
+    user_id: "user-1",
+    routine_day_id: "day-1",
+    exercise_id: "exercise-2",
+    position: 1,
+    target_sets: null,
+    target_reps: null,
+    target_reps_min: null,
+    target_reps_max: null,
+    target_weight: null,
+    target_weight_unit: null,
+    target_duration_seconds: null,
+    target_distance: null,
+    target_distance_unit: null,
+    target_calories: null,
+    measurement_type: "reps",
+    default_unit: null,
+    notes: null,
+    displayName: "Pull Up",
+    goalLine: null,
+    details: {
+      id: "exercise-2",
+      primary_muscle: "back",
+      equipment: "bodyweight",
+      movement_pattern: "pull",
+      image_howto_path: null,
+      image_icon_path: null,
+      slug: "pull-up",
+      how_to_short: null,
+      measurement_type: "reps",
+      default_unit: null,
+      kind: null,
+      type: null,
+      tags: ["bodyweight"],
+      categories: null,
+    },
+  } satisfies CanonicalDayExercise;
+
+  const summary = getExerciseCountSummaryFromCanonicalExercises([exercise]);
+  assert.equal(summary.label, "1 bodyweight");
+  assert.equal(summary.bodyweight, 1);
+  assert.equal(summary.strength, 0);
+});
+
 test("day taxonomy header uses friendly zero-exercise copy for empty training days", () => {
   assert.equal(
     formatDayTaxonomyHeaderSummaryFromCounts({
       dayName: "Travel",
-      summary: { strength: 0, cardio: 0, unknown: 0 },
+      summary: { strength: 0, cardio: 0, bodyweight: 0, unknown: 0 },
       isRest: false,
     }),
     "Travel | No exercises yet",
@@ -143,5 +189,6 @@ test("canonical day fallback summary keeps friendly zero-exercise copy for empty
   assert.equal(summary.label, "No exercises yet");
   assert.equal(summary.strength, 0);
   assert.equal(summary.cardio, 0);
+  assert.equal(summary.bodyweight, 0);
   assert.equal(summary.unknown, 0);
 });

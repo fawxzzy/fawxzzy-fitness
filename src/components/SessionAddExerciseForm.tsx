@@ -83,7 +83,17 @@ export function SessionAddExerciseForm({
                   </BottomDockButton>
                 )}
                 primary={(
-                  <BottomDockButton type="submit" intent="positive" disabled={!goalValidation.isValid}>
+                  <BottomDockButton
+                    type="submit"
+                    intent="positive"
+                    onClick={(event) => {
+                      if (goalValidation.isValid) {
+                        return;
+                      }
+                      event.preventDefault();
+                      toast.warning(goalValidation.message, { id: "exercise-goal-validation" });
+                    }}
+                  >
                     Add
                   </BottomDockButton>
                 )}

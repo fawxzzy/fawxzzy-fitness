@@ -379,8 +379,8 @@ export function SessionExerciseFocus({
               badgeText={rowViewModel.isSkipped ? undefined : (titleMeta ? undefined : rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined))}
               showLeadingVisual={surfacePolicy.showMedia}
               subtitleTone="plain"
-              className={!isExpanded ? "overflow-hidden rounded-none border-0 bg-transparent shadow-none ring-0" : undefined}
-              shellClassName={!isExpanded ? "rounded-none border-0 shadow-none ring-0" : undefined}
+              className={isExpanded ? "overflow-visible" : "overflow-hidden rounded-none border-0 bg-transparent shadow-none ring-0"}
+              shellClassName={isExpanded ? "sticky top-0 z-20 shadow-[0_14px_28px_rgb(0_0_0/0.3)]" : "rounded-none border-0 shadow-none ring-0"}
               shellStyle={isExpanded ? {
                 borderBottomRightRadius: "0px",
               } : {
@@ -492,21 +492,27 @@ export function SessionExerciseFocus({
             <li
               key={exercise.id}
               className={[
-                "origin-top overflow-hidden transition-all duration-150 motion-reduce:transition-none",
-                isRemoving ? "max-h-0 scale-[0.98] opacity-0" : isExpanded ? "max-h-[240rem] scale-100 opacity-100" : "max-h-72 scale-100 opacity-100",
+                "origin-top transition-all duration-150 motion-reduce:transition-none",
+                isRemoving
+                  ? "max-h-0 scale-[0.98] overflow-hidden opacity-0"
+                  : isExpanded
+                    ? "max-h-[240rem] scale-100 overflow-visible opacity-100"
+                    : "max-h-72 scale-100 overflow-hidden opacity-100",
               ].join(" ")}
             >
               <SessionExerciseBlock>
-                {isExpanded ? (
-                  <SessionExerciseCard>
-                    {disclosureCard}
-                  </SessionExerciseCard>
-                ) : (
-                  <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-transparent">
-                    {disclosureCard}
-                    {quickActionStrip}
-                  </div>
-                )}
+                <div className={cn(!isExpanded ? "mx-auto w-full min-[360px]:max-w-[22.75rem]" : undefined)}>
+                  {isExpanded ? (
+                    <SessionExerciseCard>
+                      {disclosureCard}
+                    </SessionExerciseCard>
+                  ) : (
+                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-transparent">
+                      {disclosureCard}
+                      {quickActionStrip}
+                    </div>
+                  )}
+                </div>
               </SessionExerciseBlock>
             </li>
           );

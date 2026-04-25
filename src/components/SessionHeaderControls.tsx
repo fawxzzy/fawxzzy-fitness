@@ -17,6 +17,7 @@ export function SessionHeaderControls({
   sessionSummaryCounts: {
     strength: number;
     cardio: number;
+    bodyweight: number;
     unknown: number;
   };
   isRestDay?: boolean;

@@ -76,9 +76,9 @@ function formatSetCountLabel(count: number | null) {
 }
 
 function formatRepRange(reps: number | null, repsMax: number | null) {
-  if (!Number.isFinite(reps) || (reps ?? 0) < 0) return null;
+  if (!Number.isFinite(reps) || (reps ?? 0) <= 0) return null;
   const minReps = Math.floor(reps as number);
-  if (Number.isFinite(repsMax) && (repsMax ?? 0) >= 0) {
+  if (Number.isFinite(repsMax) && (repsMax ?? 0) > 0) {
     const maxReps = Math.floor(repsMax as number);
     return minReps === maxReps ? `${minReps} reps` : `${minReps}\u2013${maxReps} reps`;
   }
@@ -99,12 +99,12 @@ function formatDraftSummary(values: {
   const parts = [
     formatSetCountLabel(values.sets),
     formatRepRange(values.reps, values.repsMax),
-    Number.isFinite(values.weight) && (values.weight ?? 0) >= 0 ? `${formatNumber(values.weight as number)} ${values.weightUnit}` : null,
-    Number.isFinite(values.durationSeconds) && (values.durationSeconds ?? 0) >= 0
+    Number.isFinite(values.weight) && (values.weight ?? 0) > 0 ? `${formatNumber(values.weight as number)} ${values.weightUnit}` : null,
+    Number.isFinite(values.durationSeconds) && (values.durationSeconds ?? 0) > 0
       ? formatDurationClock(values.durationSeconds as number)
       : null,
-    Number.isFinite(values.distance) && (values.distance ?? 0) >= 0 ? `${formatNumber(values.distance as number)} ${values.distanceUnit}` : null,
-    Number.isFinite(values.calories) && (values.calories ?? 0) >= 0 ? `${formatNumber(values.calories as number)} cal` : null,
+    Number.isFinite(values.distance) && (values.distance ?? 0) > 0 ? `${formatNumber(values.distance as number)} ${values.distanceUnit}` : null,
+    Number.isFinite(values.calories) && (values.calories ?? 0) > 0 ? `${formatNumber(values.calories as number)} cal` : null,
   ].filter((part): part is string => Boolean(part));
 
   return parts.length > 0 ? parts.join(" \u2022 ") : "Goal missing";
@@ -150,6 +150,7 @@ export function createEditDayExerciseDraft({
 export function formatEditDayExerciseDraftSummary(draft: EditDayExerciseDraft) {
   const measurementSelections = new Set(deriveGoalMeasurementSelections(draft.modality, {
     repsMin: draft.goalState.repsMin,
+    repsMax: draft.goalState.repsMax,
     weight: draft.goalState.weight,
     duration: draft.goalState.duration,
     distance: draft.goalState.distance,

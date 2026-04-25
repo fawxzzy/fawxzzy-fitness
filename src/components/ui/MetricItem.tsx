@@ -21,6 +21,7 @@ function MetricChrome({
     <div
       className={cn(
         appTokens.workoutMetricChrome,
+        "flex min-h-0 flex-col items-start justify-start overflow-visible",
         className,
       )}
     >
@@ -42,14 +43,14 @@ export function MetricItem({
 
   return (
     <MetricChrome className={className}>
-      <p className={appTokens.workoutMetricLabel}>
+      <p className={cn(appTokens.workoutMetricLabel, "block px-px pt-px leading-[1.18]")}>
         {item.label}
       </p>
-      <p className={cn(appTokens.workoutMetricValue, valueClassName)}>
+      <p className={cn(appTokens.workoutMetricValue, "block px-px pb-px leading-[1.26]", valueClassName)}>
         {item.value}
       </p>
       {metaParts.length > 0 ? (
-        <p className={appTokens.workoutMetricMeta}>
+        <p className={cn(appTokens.workoutMetricMeta, "block px-px pb-px leading-[1.4]")}>
           {metaParts.join(" | ")}
         </p>
       ) : null}
@@ -100,14 +101,14 @@ export function MetricStrip({
     <div className={cn("flex flex-wrap gap-1.25", className)}>
       {items.map((item) => (
         <MetricChrome key={`${item.label}-${item.value}`} className={appTokens.workoutMetricStrip}>
-          <p className={appTokens.workoutMetricLabel}>
+          <p className={cn(appTokens.workoutMetricLabel, "block px-px pt-px leading-[1.18]")}>
             {item.label}
           </p>
-          <p className={cn(appTokens.workoutMetricValue, "mt-0.5 text-[13px] leading-[1.18] text-[rgb(var(--text-primary)/0.96)]")}>
+          <p className={cn(appTokens.workoutMetricValue, "mt-0.5 block px-px pb-px text-[13px] leading-[1.26] text-[rgb(var(--text-primary)/0.96)]")}>
             {item.value}
           </p>
           {item.delta || item.timeframe ? (
-            <p className={appTokens.workoutMetricStripMeta}>
+            <p className={cn(appTokens.workoutMetricStripMeta, "block px-px pb-px leading-[1.36]")}>
               {[item.delta, item.timeframe].filter(Boolean).join(" | ")}
             </p>
           ) : null}

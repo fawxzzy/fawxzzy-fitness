@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 
 const enabledQuickLogStyle = {
@@ -80,9 +81,11 @@ export function AttachedQuickActionStrip({
         )}
         style={isQuickLogDisabled ? undefined : enabledQuickLogStyle}
       >
-        <span className="block truncate px-4 text-center text-[0.95rem] font-semibold">
-          {quickLogLabel}
-        </span>
+        <div className="flex min-h-11 w-full items-center justify-center px-4 text-center">
+          <p className={cn(appTokens.currentSessionLoggerSummaryText, "mt-0 line-clamp-1 text-center text-[14px] leading-[1.25] text-inherit")}>
+            {quickLogLabel}
+          </p>
+        </div>
       </button>
     </div>
   );

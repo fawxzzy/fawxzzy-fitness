@@ -41,8 +41,12 @@ function buildGoalState(): ExerciseGoalFormState {
   };
 }
 
-function resolveInlineModality(measurementType: "reps" | "time" | "distance" | "time_distance", equipment: string | null): GoalModality {
-  return resolveGoalModality({ measurementType, equipment, tags: undefined });
+function resolveInlineModality(
+  measurementType: "reps" | "time" | "distance" | "time_distance",
+  equipment: string | null,
+  name?: string | null,
+): GoalModality {
+  return resolveGoalModality({ measurementType, equipment, name, tags: undefined });
 }
 
 export function EditDayRegressionSurface({
@@ -60,7 +64,7 @@ export function EditDayRegressionSurface({
     ? {
       goalState,
       manualOrder,
-      modality: resolveInlineModality(activeExercise.measurementType ?? "reps", activeExercise.equipment ?? null),
+      modality: resolveInlineModality(activeExercise.measurementType ?? "reps", activeExercise.equipment ?? null, activeExercise.name),
     }
     : null;
 

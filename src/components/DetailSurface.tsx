@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 export function DetailHeader({
   eyebrow,
   title,
+  titleClassName,
   subtitle,
   meta,
   action,
@@ -17,6 +18,7 @@ export function DetailHeader({
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
+  titleClassName?: string;
   subtitle?: ReactNode;
   meta?: ReactNode;
   action?: ReactNode;
@@ -29,6 +31,7 @@ export function DetailHeader({
       recipe="exerciseDetail"
       eyebrow={eyebrow}
       title={title}
+      titleClassName={titleClassName}
       subtitle={subtitle}
       action={action}
       meta={meta}

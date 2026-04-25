@@ -13,7 +13,8 @@ import { SharedExerciseGoalForm, inferGoalModeFromState } from "@/components/ui/
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
-import { deriveGoalMeasurementSelections, resolveGoalModality, validateGoalConfiguration, type GoalModality, type MeasurementSelection } from "@/lib/exercise-goal-validation";
+import { deriveGoalMeasurementSelections, getDefaultMeasurementsForGoalModality, resolveGoalModality, validateGoalConfiguration, type GoalModality } from "@/lib/exercise-goal-validation";
+import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 
 type ExerciseOption = {
   id: string;
@@ -80,7 +81,7 @@ const pickerRowMobileDensityClassNames = {
   body: "max-md:gap-1",
   title: "max-md:text-[0.86rem] max-md:leading-[1.15] max-md:line-clamp-2",
   titleContainer: "max-md:space-y-0.25",
-  subtitle: "max-md:text-[9px] max-md:leading-[1.15] max-md:line-clamp-2",
+  subtitle: "max-md:text-[11px] max-md:leading-[1.26] max-md:line-clamp-2",
   content: "max-md:space-y-0.25",
   trailing: "max-md:min-w-[4.3rem]",
   selectPill: "max-md:min-h-[1.65rem] max-md:min-w-[3rem] max-md:px-1.75 max-md:text-[9px]",
@@ -140,15 +141,6 @@ function formatTagLabel(tag: string) {
     .join(" ");
 }
 
-function getDefaultMeasurementType(exercise: ExerciseOption) {
-  const tags = normalizeExerciseTags(exercise);
-  if (tags.has("cardio")) {
-    return "time" as const;
-  }
-
-  return "reps" as const;
-}
-
 function formatMeasurementStat(weight: number | null, reps: number | null, unit: string | null) {
   if (weight === null || reps === null) {
     return null;
@@ -163,6 +155,31 @@ function formatStatDate(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+void formatMeasurementStat;
+
+function formatLoggedMeasurementStat(weight: number | null, reps: number | null, unit: string | null) {
+  const hasWeight = typeof weight === "number" && Number.isFinite(weight) && weight > 0;
+  const hasReps = typeof reps === "number" && Number.isFinite(reps) && reps > 0;
+
+  if (!hasWeight && !hasReps) {
+    return null;
+  }
+
+  const weightLabel = hasWeight
+    ? `${Number.isInteger(weight) ? String(weight) : weight.toFixed(1).replace(/\.0$/, "")}${unit ? ` ${unit}` : ""}`
+    : null;
+
+  if (weightLabel && hasReps) {
+    return `${weightLabel} x ${reps}`;
+  }
+
+  if (weightLabel) {
+    return weightLabel;
+  }
+
+  return `${reps} reps`;
 }
 
 function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
@@ -180,8 +197,22 @@ function hasExerciseStatsSignal(stats: ExerciseStatsOption | undefined) {
   );
 }
 
+function parseDurationInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  const match = trimmed.match(/^(\d+):(\d{1,2})$/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
 const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, metadata, onPress }: ExerciseRowProps) {
   const rowState = isSelected ? "selected" : hasStats ? "active" : "default";
+  const rightRailClassName = isSelected
+    ? "border-l-[rgb(var(--accent)/0.2)] bg-[rgb(var(--accent)/0.12)]"
+    : hasStats
+      ? "border-l-[rgb(var(--success-rgb)/0.18)] bg-[rgb(var(--success-rgb)/0.08)]"
+      : "border-l-[rgb(var(--border-strong)/0.1)] bg-[rgb(var(--surface-1-rgb)/0.28)]";
 
   return (
     <li>
@@ -195,13 +226,13 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           <span
             aria-hidden="true"
             className={cn(
-              appTokens.exercisePickerRowSelectPill,
+              "flex h-full min-h-0 min-w-[4.4rem] self-stretch items-center justify-center rounded-none rounded-r-[inherit] border-0 bg-transparent px-3.5 shadow-none",
               pickerRowMobileDensityClassNames.selectPill,
               isSelected
-                ? appTokens.exercisePickerRowSelectPillSelected
+                ? "text-[rgb(224_255_248)]"
                 : hasStats
-                  ? appTokens.exercisePickerRowSelectPillActive
-                  : appTokens.exercisePickerRowSelectPillDefault,
+                  ? "text-[rgb(var(--text)/0.92)]"
+                  : "text-[rgb(var(--text-muted)/0.96)]",
             )}
           >
             {isSelected ? "Selected" : "Select"}
@@ -211,6 +242,11 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           pickerRowMobileDensityClassNames.trailing,
           isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
         )}
+        rightRailClassName={cn(
+          "-my-[var(--exercise-row-shell-padding-y-compact)] -mr-[var(--exercise-row-shell-padding-x)] self-stretch overflow-hidden rounded-r-[inherit] border-l",
+          rightRailClassName,
+        )}
+        trailingStackClassName="h-full min-h-0"
         surface="exercise-picker"
         bodyClassName={pickerRowMobileDensityClassNames.body}
         titleClassName={pickerRowMobileDensityClassNames.title}
@@ -367,8 +403,14 @@ export function ExercisePicker({
   const exerciseMetadataById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean).join(" • ")])), [uniqueExercises]);
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
   const selectedStats = selectedCanonicalExerciseId ? statsByExerciseId.get(selectedCanonicalExerciseId) : undefined;
-  const hasLast = selectedStats ? (selectedStats.lastWeight != null && selectedStats.lastReps != null) : false;
-  const hasPR = selectedStats ? ((selectedStats.prWeight != null && selectedStats.prReps != null) || selectedStats.prEst1rm != null) : false;
+  const lastSummaryText = selectedStats
+    ? formatLoggedMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)
+    : null;
+  const bestSummaryText = selectedStats
+    ? formatLoggedMeasurementStat(selectedStats.actualPrWeight, selectedStats.actualPrReps, selectedStats.lastUnit)
+    : null;
+  const hasLast = Boolean(lastSummaryText);
+  const hasBest = Boolean(bestSummaryText) || selectedStats?.prEst1rm != null;
 
   const resetMeasurementFields = useCallback(() => {
     setGoalState((current) => ({
@@ -389,15 +431,19 @@ export function ExercisePicker({
       return;
     }
 
-    const nextMeasurementType = getDefaultMeasurementType(selectedExercise);
     const nextDefaultUnit = selectedExercise.default_unit === "km" || selectedExercise.default_unit === "m"
       ? selectedExercise.default_unit
       : "mi";
-
-    const defaultModality = nextMeasurementType === "time" ? "cardio_time" : "strength";
+    const selectedExerciseTags = normalizeExerciseTags(selectedExercise);
+    const defaultModality = resolveGoalModality({
+      measurementType: selectedExercise.measurement_type,
+      equipment: selectedExercise.equipment,
+      name: selectedExercise.name,
+      tags: new Set(selectedExerciseTags.keys()),
+    });
     setGoalState((current) => ({
       ...current,
-      measurements: defaultModality === "cardio_time" ? ["time"] : ["reps", "weight"],
+      measurements: getDefaultMeasurementsForGoalModality(defaultModality),
       distanceUnit: nextDefaultUnit,
     }));
     resetMeasurementFields();
@@ -411,16 +457,60 @@ export function ExercisePicker({
     ? resolveGoalModality({
       measurementType: selectedExercise.measurement_type,
       equipment: selectedExercise.equipment,
+      name: selectedExercise.name,
       tags: selectedTagSet,
     })
     : "strength";
   const effectiveGoalModality: GoalModality = goalModality === "cardio_time_distance"
     ? inferGoalModeFromState(goalState)
     : goalModality;
+  const goalMeasurementSelections = useMemo(
+    () => deriveGoalMeasurementSelections(effectiveGoalModality, {
+      repsMin: goalState.repsMin,
+      repsMax: goalState.repsMax,
+      weight: goalState.weight,
+      duration: goalState.duration,
+      distance: goalState.distance,
+      calories: goalState.calories,
+    }),
+    [effectiveGoalModality, goalState.calories, goalState.distance, goalState.duration, goalState.repsMax, goalState.repsMin, goalState.weight],
+  );
+  const goalPreviewText = useMemo(
+    () => formatGoalInlineSummaryText({
+      sets: goalState.sets ? Number(goalState.sets) : null,
+      reps: goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null,
+      repsMax: goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null,
+      weight: goalMeasurementSelections.includes("weight") && goalState.weight ? Number(goalState.weight) : null,
+      weightUnit: goalState.weightUnit,
+      durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
+      distance: goalMeasurementSelections.includes("distance") && goalState.distance ? Number(goalState.distance) : null,
+      distanceUnit: goalState.distanceUnit,
+      calories: goalMeasurementSelections.includes("calories") && goalState.calories ? Number(goalState.calories) : null,
+      enabledMeasurements: {
+        reps: goalMeasurementSelections.includes("reps"),
+        weight: goalMeasurementSelections.includes("weight"),
+        time: goalMeasurementSelections.includes("time"),
+        distance: goalMeasurementSelections.includes("distance"),
+        calories: goalMeasurementSelections.includes("calories"),
+      },
+      emptyLabel: "Goal missing",
+    }),
+    [
+      goalMeasurementSelections,
+      goalState.calories,
+      goalState.distance,
+      goalState.distanceUnit,
+      goalState.duration,
+      goalState.repsMax,
+      goalState.repsMin,
+      goalState.sets,
+      goalState.weight,
+      goalState.weightUnit,
+    ],
+  );
 
   const handleExercisePress = useCallback((exerciseId: string, isSelected: boolean) => {
     if (isSelected) {
-      setIsExerciseInfoOpen(true);
       return;
     }
     setSelectedId(exerciseId);
@@ -440,27 +530,15 @@ export function ExercisePicker({
     duration: goalState.duration,
     distance: goalState.distance,
     calories: goalState.calories,
-    measurementSelections: new Set(deriveGoalMeasurementSelections(effectiveGoalModality, {
-      repsMin: goalState.repsMin,
-      weight: goalState.weight,
-      duration: goalState.duration,
-      distance: goalState.distance,
-      calories: goalState.calories,
-    })),
-  }), [effectiveGoalModality, goalState]);
+    measurementSelections: new Set(goalMeasurementSelections),
+  }), [effectiveGoalModality, goalMeasurementSelections, goalState]);
 
   useEffect(() => {
     if (goalState.measurements.length > 0) return;
-    const defaults: MeasurementSelection[] = goalModality === "cardio_time"
-      ? ["time"]
-      : goalModality === "cardio_distance"
-        ? ["distance"]
-        : goalModality === "cardio_time_distance"
-          ? ["time"]
-          : goalModality === "bodyweight"
-            ? ["reps"]
-            : ["reps", "weight"];
-    setGoalState((current) => ({ ...current, measurements: defaults }));
+    setGoalState((current) => ({
+      ...current,
+      measurements: getDefaultMeasurementsForGoalModality(goalModality),
+    }));
   }, [goalModality, goalState.measurements.length]);
 
   const exerciseListContent = (
@@ -496,16 +574,10 @@ export function ExercisePicker({
           selectedTags={selectedTags}
           onTagsChange={setSelectedTags}
           groups={availableTagGroups}
+          resultCount={filteredExercises.length}
           className="space-y-1.5"
           filterClassName="space-y-1"
         />
-
-        <section className={appTokens.exercisePickerLibrarySection}>
-          <div className={appTokens.exercisePickerHeaderRow}>
-            <p className={appTokens.exercisePickerSectionEyebrow}>Exercise Library</p>
-            <p className={appTokens.exercisePickerSectionMeta}>{filteredExercises.length} shown</p>
-          </div>
-        </section>
 
         <PickerListViewport
           className="[--picker-mobile-tray-max-h:var(--exercise-picker-mobile-tray-max-h)]"
@@ -520,9 +592,9 @@ export function ExercisePicker({
       </section>
 
       {routineTargetConfig && selectedExercise ? (
-        <section className={cn(appTokens.exercisePickerGoalPanel, appTokens.exercisePickerGoalCompact)}>
-          <p className={appTokens.exercisePickerSectionEyebrow}>Configure goal</p>
-          {selectedStats && (hasLast || hasPR) ? (
+        <section className={cn(appTokens.exercisePickerGoalPanel, appTokens.exercisePickerGoalCompact, "mt-3")}>
+          <p className={cn(appTokens.exercisePickerSectionEyebrow, "pl-[4px] pt-[4px]")}>Configure goal</p>
+          {selectedStats && (hasLast || hasBest) ? (
             <div
               className={cn(
                 appTokens.exercisePickerStatsStack,
@@ -530,23 +602,36 @@ export function ExercisePicker({
                 appTokens.exercisePickerStatsCompact,
               )}
             >
-              {hasLast ? <p className={appTokens.exercisePickerStatsText}>Last: {formatMeasurementStat(selectedStats.lastWeight, selectedStats.lastReps, selectedStats.lastUnit)}{selectedStats.lastPerformedAt ? ` \u00b7 ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p> : null}
-              {hasPR ? <p className={appTokens.exercisePickerStatsText}>PR: {selectedStats.prWeight != null && selectedStats.prReps != null ? formatMeasurementStat(selectedStats.prWeight, selectedStats.prReps, null) : null}{selectedStats.prEst1rm != null ? `${selectedStats.prWeight != null && selectedStats.prReps != null ? " \u00b7 " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}</p> : null}
               {hasLast ? (
-                <div className="pt-0.5">
+                <div className="flex items-start justify-between gap-3">
+                  <p className={cn(appTokens.exercisePickerStatsText, "min-w-0 flex-1")}>Last: {lastSummaryText}{selectedStats.lastPerformedAt ? ` \u00b7 ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p>
                   <AppButton
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="shrink-0 self-start"
                     onClick={() => {
-                      setGoalState((current) => ({
-                        ...current,
-                        weight: String(selectedStats.lastWeight),
-                        repsMin: String(selectedStats.lastReps),
-                        repsMax: String(selectedStats.lastReps),
-                        weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
-                        measurements: Array.from(new Set([...current.measurements, "weight", "reps"])),
-                      }));
+                      setGoalState((current) => {
+                        const nextMeasurements = new Set(current.measurements);
+                        const hasLastWeight = typeof selectedStats.lastWeight === "number" && selectedStats.lastWeight > 0;
+                        const hasLastReps = typeof selectedStats.lastReps === "number" && selectedStats.lastReps > 0;
+
+                        if (hasLastWeight) {
+                          nextMeasurements.add("weight");
+                        }
+                        if (hasLastReps) {
+                          nextMeasurements.add("reps");
+                        }
+
+                        return {
+                          ...current,
+                          weight: hasLastWeight ? String(selectedStats.lastWeight) : current.weight,
+                          repsMin: hasLastReps ? String(selectedStats.lastReps) : current.repsMin,
+                          repsMax: hasLastReps ? String(selectedStats.lastReps) : current.repsMax,
+                          weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
+                          measurements: Array.from(nextMeasurements),
+                        };
+                      });
                       setDidApplyLast(true);
                       setTimeout(() => setDidApplyLast(false), 1200);
                     }}
@@ -554,6 +639,13 @@ export function ExercisePicker({
                     Use last
                   </AppButton>
                 </div>
+              ) : null}
+              {hasBest ? (
+                <p className={appTokens.exercisePickerStatsText}>
+                  Best: {bestSummaryText}
+                  {selectedStats.actualPrAt ? ` \u00b7 ${formatStatDate(selectedStats.actualPrAt)}` : ""}
+                  {selectedStats.prEst1rm != null ? `${bestSummaryText || selectedStats.actualPrAt ? " \u00b7 " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}
+                </p>
               ) : null}
             </div>
           ) : null}
@@ -576,12 +668,17 @@ export function ExercisePicker({
             includeSetsInSummary={false}
             showValidationMessage={false}
             hideEmptySummary
+            hideSummary
           />
-          {!goalValidation.isValid ? (
-            <p className={cn(appTokens.measurementValidation, appTokens.exercisePickerValidationCompact)}>
-              {goalValidation.message}
-            </p>
-          ) : null}
+
+          <div className={cn(appTokens.currentSessionLoggerSummaryCard, "mt-1 border-[rgb(var(--accent)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.2)]")}>
+            <p className={cn(appTokens.currentSessionLoggerSummaryEyebrow, "pl-[4px] pt-[4px]")}>Preview goal</p>
+            <div className="flex min-h-[52px] items-center justify-center text-center">
+              <p className={cn(appTokens.currentSessionLoggerSummaryText, "text-center text-[14px] leading-[1.25]")}>
+                {goalPreviewText}
+              </p>
+            </div>
+          </div>
         </section>
       ) : null}
 

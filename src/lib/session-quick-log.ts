@@ -8,7 +8,7 @@ export type SessionQuickLogTarget = {
   distance?: number;
   distanceUnit?: "mi" | "km" | "m";
   calories?: number;
-  measurementType?: "reps" | "time" | "distance" | "time_distance";
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none";
 };
 
 type QuickLogPayload = {
@@ -65,11 +65,12 @@ export function formatQuickLogPreviewLabel({
   const caloriesSummary = hasValue(target?.calories) ? `${target?.calories} cal` : null;
 
   const measurementType = target?.measurementType ?? "reps";
-  const metricSummaryByType: Record<"reps" | "time" | "distance" | "time_distance", string | null> = {
+  const metricSummaryByType: Record<"reps" | "time" | "distance" | "time_distance" | "none", string | null> = {
     reps: [repsSummary, weightSummary].filter(Boolean).join(" • ") || null,
     time: [durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
     distance: [distanceSummary, durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
     time_distance: [durationSummary, distanceSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
+    none: null,
   };
 
   const primarySummary = metricSummaryByType[measurementType] ?? null;
@@ -86,6 +87,21 @@ export function formatQuickLogPreviewLabel({
 export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefined, fallbackWeightUnit: "lbs" | "kg"): QuickLogResolution {
   if (!target) {
     return { ok: false, reason: "No goal target available for quick log." };
+  }
+
+  if (target.measurementType === "none") {
+    return {
+      ok: true,
+      payload: {
+        weight: 0,
+        reps: 0,
+        durationSeconds: null,
+        distance: null,
+        distanceUnit: null,
+        calories: null,
+        weightUnit: target.weightUnit ?? fallbackWeightUnit,
+      },
+    };
   }
 
   const reps = target.repsMin ?? target.repsMax;

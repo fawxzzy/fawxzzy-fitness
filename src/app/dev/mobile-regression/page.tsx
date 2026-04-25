@@ -267,7 +267,7 @@ const mockPickerExercises = [
     equipment: "Bodyweight",
     movement_pattern: "Brace",
     measurement_type: "time" as const,
-    default_unit: "sec",
+    default_unit: "seconds",
     calories_estimation_method: null,
     image_howto_path: "/missing/howto-plank.png",
     image_icon_path: "/missing/icon-plank.png",
@@ -299,7 +299,7 @@ const mockPickerExercises = [
     equipment: "Bike",
     movement_pattern: "Gait",
     measurement_type: "time" as const,
-    default_unit: "sec",
+    default_unit: "seconds",
     calories_estimation_method: null,
     image_howto_path: null,
     image_icon_path: "/missing/icon-bike.png",
@@ -708,7 +708,7 @@ const mockSessionExercises = [
     exerciseId: MOCK_EXERCISE_IDS.bike,
     name: "Air Bike Calories",
     isSkipped: false,
-    defaultUnit: "sec" as const,
+    defaultUnit: null,
     isCardio: true,
     measurementType: "time" as const,
     primary_muscle: "Cardio",
@@ -1063,6 +1063,7 @@ function renderTodayScenario(scenario: MobileFixtureScenario) {
             completedDayIndexes={[1]}
             loggedSetCountsByDayIndex={{ 2: 5 }}
             routineName="Lower Rotation"
+            startDate="2025-03-10"
             floatingHeaderSlotId="today-floating-header-slot"
             exerciseDensity={exerciseDensity}
           />
@@ -1119,7 +1120,7 @@ function renderSessionScenario(scenario: MobileFixtureScenario) {
           performedAt={capturePerformedAt}
           routineName="Lower Rotation"
           sessionDayName="Day 2"
-          sessionSummaryCounts={{ strength: 2, cardio: 1, unknown: 0 }}
+          sessionSummaryCounts={{ strength: 2, cardio: 1, bodyweight: 0, unknown: 0 }}
           unitLabel="lbs"
           exercises={mockSessionExercises}
         initialSelectedExerciseId={selectedExerciseByScenarioId[scenario.id] ?? null}
@@ -1192,7 +1193,7 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
     ? getRestDayExerciseCountSummaryFromInputs([], true)
     : isEmptyFixture
       ? getRestDayExerciseCountSummaryFromInputs([], false)
-      : { strength: 2, cardio: 1, unknown: 0 };
+      : { strength: 2, cardio: 1, bodyweight: 0, unknown: 0 };
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
       <RegressionMarker scenario={scenario} />
@@ -1294,7 +1295,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
               <SharedScreenHeader
                 recipe="editDay"
                 title="Lower"
-                subtitle={<DayTaxonomyHeaderSummary dayName={fixture === "rest" ? "Recovery" : fixture === "empty" ? "Travel Reset" : "Lower"} summary={fixture === "rest" ? getRestDayExerciseCountSummaryFromInputs([], true) : fixture === "empty" ? getRestDayExerciseCountSummaryFromInputs([], false) : { strength: 2, cardio: 1, unknown: 0 }} isRest={fixture === "rest"} />}
+                subtitle={<DayTaxonomyHeaderSummary dayName={fixture === "rest" ? "Recovery" : fixture === "empty" ? "Travel Reset" : "Lower"} summary={fixture === "rest" ? getRestDayExerciseCountSummaryFromInputs([], true) : fixture === "empty" ? getRestDayExerciseCountSummaryFromInputs([], false) : { strength: 2, cardio: 1, bodyweight: 0, unknown: 0 }} isRest={fixture === "rest"} />}
                 action={<TopRightBackButton href="/routines" ariaLabel="Back to day" historyBehavior="fallback-only" />}
               >
                 {fixture === "reorder" ? (

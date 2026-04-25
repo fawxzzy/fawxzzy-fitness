@@ -10,8 +10,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const EXERCISE_DETAILS_SELECT =
   "id, exercise_id, name, primary_muscle, equipment, movement_pattern, image_icon_path, image_howto_path, slug, how_to_short, measurement_type, default_unit, kind, type, tags, categories";
 const EXERCISE_DETAILS_SELECT_LEGACY =
-  "id, exercise_id, name, primary_muscle, equipment, movement_pattern, measurement_type, default_unit";
+  "id, name, primary_muscle, equipment, movement_pattern, measurement_type, default_unit";
 const EXERCISE_DETAILS_OPTIONAL_COLUMNS = [
+  "exercise_id",
   "image_path",
   "image_icon_path",
   "image_howto_path",

@@ -15,7 +15,7 @@ function getRequestOrigin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  if (process.env.NODE_ENV !== "development") {
+  if (process.env.NODE_ENV === "production") {
     return deny(request);
   }
 

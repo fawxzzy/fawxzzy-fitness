@@ -17,11 +17,11 @@ const sizeClassNames = {
   },
   lg: {
     shell: "h-16 w-16",
-    core: "h-13 w-13",
+    core: "h-14 w-14",
   },
   xl: {
     shell: "h-24 w-24",
-    core: "h-20 w-20",
+    core: "h-[5.45rem] w-[5.45rem]",
   },
 };
 
@@ -44,8 +44,8 @@ export function FawxzzySigilLoader({
           alt=""
           width={1024}
           height={1024}
-          className="h-[114%] w-[114%] object-contain object-center mix-blend-screen opacity-95"
-          style={{ transform: "translate(0.5%, 5.5%)" }}
+          className="h-[124%] w-[124%] object-contain object-center mix-blend-screen opacity-95"
+          style={{ transform: "translate(0.35%, 3.25%)" }}
           priority
         />
       </div>

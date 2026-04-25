@@ -173,7 +173,7 @@ export function AuthFooter({ children, className }: { children: ReactNode; class
 }
 
 export function AuthFooterSeparator() {
-  return <span aria-hidden="true" className={appTokens.authFooterSeparator}>|</span>;
+  return <span aria-hidden="true" className={cn("inline-block px-1.5", appTokens.authFooterSeparator)}>|</span>;
 }
 
 export function AuthFooterText({ children, className }: { children: ReactNode; className?: string }) {
@@ -187,7 +187,15 @@ export function AuthInlineLinkButton({
   ...props
 }: ComponentPropsWithoutRef<"button">) {
   return (
-    <button {...props} type={type} className={cn(appTokens.authInlineButton, className)}>
+    <button
+      {...props}
+      type={type}
+      className={cn(
+        "!border-0 !bg-transparent !text-[rgb(var(--accent))] !shadow-none !outline-none hover:!text-[rgb(var(--accent-strong))] focus:!outline-none focus-visible:!outline-none focus:!shadow-none focus-visible:!shadow-none focus:!ring-0 focus-visible:!ring-0",
+        appTokens.authInlineButton,
+        className,
+      )}
+    >
       {children}
     </button>
   );

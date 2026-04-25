@@ -8,6 +8,7 @@ export type EnabledMeasurements = {
 
 export type MeasurementValueInput = {
   reps?: string | number | null;
+  repsMax?: string | number | null;
   weight?: string | number | null;
   duration?: string | null;
   durationSeconds?: number | null;
@@ -30,7 +31,7 @@ function hasInputValue(value: unknown) {
 
 export function deriveMeasurementPresenceFromValues(values: MeasurementValueInput): EnabledMeasurements {
   return {
-    reps: hasInputValue(values.reps),
+    reps: hasInputValue(values.reps) || hasInputValue(values.repsMax),
     weight: hasInputValue(values.weight),
     time: hasInputValue(values.duration) || hasInputValue(values.durationSeconds),
     distance: hasInputValue(values.distance),
@@ -45,6 +46,7 @@ export function sanitizeEnabledMeasurementValues<T extends SanitizableMeasuremen
   return {
     ...raw,
     ...(Object.prototype.hasOwnProperty.call(raw, "reps") ? { reps: enabled.reps ? raw.reps : emptyDisabledValue(raw.reps) } : null),
+    ...(Object.prototype.hasOwnProperty.call(raw, "repsMax") ? { repsMax: enabled.reps ? (raw as T & { repsMax?: unknown }).repsMax : emptyDisabledValue((raw as T & { repsMax?: unknown }).repsMax) } : null),
     ...(Object.prototype.hasOwnProperty.call(raw, "weight") ? { weight: enabled.weight ? raw.weight : emptyDisabledValue(raw.weight) } : null),
     ...(Object.prototype.hasOwnProperty.call(raw, "duration") ? { duration: enabled.time ? raw.duration : emptyDisabledValue(raw.duration) } : null),
     ...(Object.prototype.hasOwnProperty.call(raw, "durationSeconds") ? { durationSeconds: enabled.time ? raw.durationSeconds : emptyDisabledValue(raw.durationSeconds) } : null),

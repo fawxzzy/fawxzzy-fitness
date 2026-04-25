@@ -188,7 +188,7 @@
   --exercise-row-media-min-height-detailed: 3.8rem;
   --exercise-row-media-radius-compact: 0.95rem;
   --exercise-row-media-radius-detailed: 1.05rem;
-  --exercise-row-trailing-min-width: 2rem;
+  --exercise-row-trailing-min-width: 1.5rem;
   --exercise-row-gap: 0.5rem;
   --exercise-row-badge-gap: 0.5rem;
   --bottom-nav-h: 92px;
@@ -218,7 +218,7 @@
     --exercise-row-min-height-detailed: 4.7rem;
     --exercise-row-media-min-height-compact: 3rem;
     --exercise-row-media-min-height-detailed: 3.3rem;
-    --exercise-row-trailing-min-width: 1.5rem;
+    --exercise-row-trailing-min-width: 1.2rem;
     --exercise-row-gap: 0.425rem;
   }
 }

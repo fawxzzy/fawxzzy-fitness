@@ -95,6 +95,7 @@ export type DayCardProps = {
   title: string;
   subtitle?: string;
   subtitleLabel?: string;
+  subtitleTone?: "panel" | "plain";
   badgeText?: string;
   metaText?: string;
   state?: DayListState;
@@ -103,7 +104,7 @@ export type DayCardProps = {
   wrapper?: (child: ReactNode) => ReactNode;
 };
 
-export function DayCard({ onPress, wrapper, state = "default", metaText, subtitle, subtitleLabel, showAccentRail = true, ...cardProps }: DayCardProps) {
+export function DayCard({ onPress, wrapper, state = "default", metaText, subtitle, subtitleLabel, subtitleTone = "panel", showAccentRail = true, ...cardProps }: DayCardProps) {
   const resolvedSubtitle = [subtitle, metaText].filter(Boolean).join(" · ") || undefined;
 
   const card = (
@@ -111,6 +112,7 @@ export function DayCard({ onPress, wrapper, state = "default", metaText, subtitl
       {...cardProps}
       subtitle={resolvedSubtitle}
       subtitleLabel={subtitleLabel}
+      subtitleTone={subtitleTone}
       onPress={onPress}
       state={toExerciseCardState(state)}
       className={appTokens.routinesOverviewCardFlat}

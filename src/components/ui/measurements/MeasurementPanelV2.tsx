@@ -22,6 +22,8 @@ const METRICS: Array<{
 const shellClassName = "space-y-0";
 const metricCardClassName = appTokens.measurementField;
 const valueInputClassName = appTokens.measurementInput;
+const bottomRightInlineLabelClassName = "top-auto bottom-3 right-3 translate-y-0 text-[9px] tracking-[0.08em] text-[rgb(var(--text-muted)/0.6)]";
+const lowerBottomRightInlineLabelClassName = "top-auto bottom-1 right-3 translate-y-0 text-[9px] tracking-[0.08em] text-[rgb(var(--text-muted)/0.6)]";
 
 function sanitizeIntegerInput(value: string) {
   return value.replace(/[^\d]/g, "");
@@ -38,7 +40,9 @@ function sanitizeDecimalInput(value: string) {
 
 function sanitizeDurationTextInput(value: string) {
   const cleaned = value.replace(/[^\d:]/g, "");
-  const [minutes = "", secondsParts = ""] = cleaned.split(/:(.*)/s);
+  const separatorIndex = cleaned.indexOf(":");
+  const minutes = separatorIndex >= 0 ? cleaned.slice(0, separatorIndex) : cleaned;
+  const secondsParts = separatorIndex >= 0 ? cleaned.slice(separatorIndex + 1) : "";
   if (!cleaned.includes(":")) {
     return minutes;
   }
@@ -60,7 +64,7 @@ function getFieldSpanClassName(width: FieldWidth, gridColumnCount: 2 | 3) {
     return undefined;
   }
 
-  return gridColumnCount === 3 ? "min-[360px]:col-span-3" : "min-[360px]:col-span-2";
+  return gridColumnCount === 3 ? "col-span-3" : "col-span-2";
 }
 
 function getFieldChromeClassName(width: FieldWidth) {
@@ -73,6 +77,20 @@ function getFieldChromeClassName(width: FieldWidth) {
   }
 
   return appTokens.measurementFieldStandard;
+}
+
+function getMetricRowLaneClassName(fieldCount: number, gridColumnCount: 2 | 3) {
+  if (fieldCount >= 3) {
+    return "w-full max-w-[22.75rem]";
+  }
+
+  if (fieldCount === 2) {
+    return "w-full max-w-[20.75rem]";
+  }
+
+  return gridColumnCount === 3
+    ? "w-[calc((100%-1.25rem)/3)] min-w-[6.375rem] max-w-[7.25rem]"
+    : "w-[calc((100%-0.625rem)/2)] min-w-[8.75rem] max-w-[10rem]";
 }
 
 function renderMetricCard({
@@ -109,7 +127,7 @@ function InlineFieldLabel({ label, className }: { label: string; className?: str
     <span
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[rgb(var(--text-muted)/0.54)]",
+        "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 whitespace-pre-line text-right text-[10px] font-semibold uppercase leading-[1.02] tracking-[0.1em] text-[rgb(var(--text-muted)/0.54)]",
         className,
       )}
     >
@@ -142,7 +160,7 @@ function InlineFieldControl({
         <span
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute inset-0 flex items-center justify-center text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
+            "pointer-events-none absolute inset-0 flex items-center justify-start pl-3.5 pr-14 text-left text-[15px] font-semibold tabular-nums text-[rgb(var(--text-muted)/0.72)]",
             emptyValueClassName,
           )}
         >
@@ -199,11 +217,11 @@ function getInputClassName({
     valueInputClassName,
     tripleRow
       ? hasValue
-        ? "px-4 pb-4 pt-2.5 text-center"
-        : "px-4 text-center"
+        ? "pl-3.5 pr-8 pb-4 pt-2.5 text-left"
+        : "pl-3.5 pr-8 text-left"
       : hasValue
-        ? "px-4 pb-4 pt-2.5 text-center"
-        : "pl-20 pr-14 text-center [text-indent:0.45rem]",
+        ? "pl-3.5 pr-14 pb-4 pt-2.5 text-left"
+        : "pl-3.5 pr-14 text-left",
     extraClassName,
   );
 }
@@ -225,7 +243,9 @@ export function MeasurementPanelV2({
   footerContent,
   showInnerHeader = false,
   topField,
+  repRangeLabels,
   visibleMetrics,
+  metricOrder,
 }: {
   values: MeasurementValues;
   activeMetrics: MeasurementMetrics;
@@ -244,7 +264,7 @@ export function MeasurementPanelV2({
   trailingContent?: ReactNode;
   belowRpeContent?: ReactNode;
   belowRpeField?: {
-    title: string;
+    title?: string;
     suffix?: string;
     width?: FieldWidth;
   };
@@ -256,8 +276,20 @@ export function MeasurementPanelV2({
     title: string;
     suffix?: string;
     input: ReactNode;
+    inlineLabel?: string;
+    showEmptyValue?: boolean;
+    hasValue?: boolean;
+    labelClassName?: string;
+    valueLabelClassName?: string;
+    emptyValueClassName?: string;
+    renderInput?: (options: { inputClassName: string }) => ReactNode;
+  };
+  repRangeLabels?: {
+    min: string;
+    max: string;
   };
   visibleMetrics?: Array<keyof MeasurementMetrics>;
+  metricOrder?: Array<keyof MeasurementMetrics>;
 }) {
   const enabledCount = Object.values(activeMetrics).filter(Boolean).length;
   const resolvedDistanceUnit = values.distanceUnit === "km" || values.distanceUnit === "m" ? values.distanceUnit : "mi";
@@ -265,85 +297,153 @@ export function MeasurementPanelV2({
   const hasRpeInput = typeof onRpeChange === "function";
   const contract = resolveScreenContract("exerciseLog");
   const allowedMetrics = new Set<keyof MeasurementMetrics>(visibleMetrics ?? ["reps", "weight", "time", "distance", "calories"]);
+  const resolvedMetricOrder = (metricOrder ?? ["reps", "weight", "time", "distance", "calories"]).filter((metric) => allowedMetrics.has(metric));
   const standardMetrics = (["reps", "weight", "time", "distance", "calories"] as const).filter((metric) => allowedMetrics.has(metric));
   const singlePrimaryMetric = standardMetrics.length === 1 ? standardMetrics[0] : null;
   const usesRepRange = "repsMax" in values;
-  const visibleInlineFieldCount = standardMetrics.length + (hasRpeInput ? 1 : 0);
+  const resolvedRepRangeLabels = repRangeLabels ?? { min: "Min", max: "Max" };
+  const repFieldCount = allowedMetrics.has("reps") ? (usesRepRange ? 2 : 1) : 0;
+  const visibleInlineFieldCount = repFieldCount
+    + (allowedMetrics.has("weight") ? 1 : 0)
+    + (allowedMetrics.has("time") ? 1 : 0)
+    + (allowedMetrics.has("distance") ? 1 : 0)
+    + (allowedMetrics.has("calories") ? 1 : 0)
+    + (hasRpeInput ? 1 : 0)
+    + (topField ? 1 : 0);
   const shareSingleMetricRowWithRpe = hasRpeInput && standardMetrics.length === 1;
-  const useThreeAcrossMetrics = !topField && !usesRepRange && visibleInlineFieldCount >= 3;
+  const useThreeAcrossMetrics = visibleInlineFieldCount >= 3 && !belowRpeContent;
   const gridColumnCount: 2 | 3 = useThreeAcrossMetrics ? 3 : 2;
   const metricFields: Array<{ id: string; node: ReactNode }> = [];
 
+  if (topField) {
+    metricFields.push({
+      id: "top-field",
+      node: renderMetricCard({
+        testId: "measurement-field-summary",
+        width: useThreeAcrossMetrics ? "compact" : "standard",
+        gridColumnCount,
+        children: topField.inlineLabel ? (
+          <InlineFieldControl
+            label={topField.inlineLabel}
+            showEmptyValue={topField.showEmptyValue}
+            hasValue={topField.hasValue}
+            labelClassName={topField.labelClassName}
+            valueLabelClassName={topField.valueLabelClassName}
+            emptyValueClassName={topField.emptyValueClassName}
+          >
+            {topField.renderInput
+              ? topField.renderInput({
+                  inputClassName: getInputClassName({
+                    tripleRow: useThreeAcrossMetrics,
+                    hasValue: topField.hasValue,
+                  }),
+                })
+              : topField.input}
+          </InlineFieldControl>
+        ) : (
+          <>
+            <StatFieldLabel title={topField.title} suffix={topField.suffix} emphasis="target" />
+            <div className="mt-2">{topField.input}</div>
+          </>
+        ),
+      }),
+    });
+  }
+
   if (allowedMetrics.has("reps")) {
-    metricFields.push({ id: "reps", node: renderMetricCard({
-            testId: "measurement-field-reps",
-            width: usesRepRange
-              ? "wide"
-              : shareSingleMetricRowWithRpe
+    if (usesRepRange) {
+      metricFields.push({
+        id: "reps-min",
+        node: renderMetricCard({
+          testId: "measurement-field-reps-min",
+          width: useThreeAcrossMetrics ? "compact" : "standard",
+          gridColumnCount,
+          children: (
+            <InlineFieldControl
+              label={resolvedRepRangeLabels.min}
+              showEmptyValue={!values.reps.trim()}
+              hasValue={Boolean(values.reps.trim())}
+              labelClassName={lowerBottomRightInlineLabelClassName}
+              valueLabelClassName="bottom-1"
+              emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+            >
+              <input
+                name={names?.reps}
+                type="text"
+                inputMode="text"
+                value={values.reps}
+                onChange={(event) => {
+                  onChange({ reps: sanitizeIntegerInput(event.target.value) });
+                }}
+                className={getInputClassName({ tripleRow: useThreeAcrossMetrics, hasValue: Boolean(values.reps.trim()) })}
+                placeholder=""
+              />
+            </InlineFieldControl>
+          ),
+        }),
+      });
+      metricFields.push({
+        id: "reps-max",
+        node: renderMetricCard({
+          testId: "measurement-field-reps-max",
+          width: useThreeAcrossMetrics ? "compact" : "standard",
+          gridColumnCount,
+          children: (
+            <InlineFieldControl
+              label={resolvedRepRangeLabels.max}
+              showEmptyValue={!(values.repsMax ?? "").trim()}
+              hasValue={Boolean((values.repsMax ?? "").trim())}
+              labelClassName={lowerBottomRightInlineLabelClassName}
+              valueLabelClassName="bottom-1"
+              emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+            >
+              <input
+                name={names?.repsMax}
+                type="text"
+                inputMode="text"
+                value={values.repsMax ?? ""}
+                onChange={(event) => {
+                  onChange({ repsMax: sanitizeIntegerInput(event.target.value) });
+                }}
+                className={getInputClassName({ tripleRow: useThreeAcrossMetrics, hasValue: Boolean((values.repsMax ?? "").trim()) })}
+                placeholder=""
+              />
+            </InlineFieldControl>
+          ),
+        }),
+      });
+    } else {
+      metricFields.push({ id: "reps", node: renderMetricCard({
+              testId: "measurement-field-reps",
+              width: shareSingleMetricRowWithRpe
                 ? "standard"
                 : singlePrimaryMetric === "reps"
                   ? "wide"
                   : (useThreeAcrossMetrics ? "compact" : "standard"),
-            gridColumnCount,
-            children: (
-              <>
-                {usesRepRange ? (
-                  <div className="mt-2 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
-                    <label className={cn("space-y-1", appTokens.measurementHeaderMeta)}>
-                      <InlineFieldControl label="Min" showEmptyValue={!values.reps.trim()}>
-                        <input
-                          name={names?.reps}
-                          type="text"
-                          inputMode="text"
-                          value={values.reps}
-                          onChange={(event) => {
-                            onChange({ reps: sanitizeIntegerInput(event.target.value) });
-                          }}
-                          className={getInputClassName({ extraClassName: "" })}
-                          placeholder=""
-                        />
-                      </InlineFieldControl>
-                    </label>
-                    <label className={cn("space-y-1", appTokens.measurementHeaderMeta)}>
-                      <InlineFieldControl label="Max" showEmptyValue={!(values.repsMax ?? "").trim()}>
-                        <input
-                          name={names?.repsMax}
-                          type="text"
-                          inputMode="text"
-                          value={values.repsMax ?? ""}
-                          onChange={(event) => {
-                            onChange({ repsMax: sanitizeIntegerInput(event.target.value) });
-                          }}
-                          className={getInputClassName({ extraClassName: "" })}
-                          placeholder=""
-                        />
-                      </InlineFieldControl>
-                    </label>
-                  </div>
-                ) : (
-                  <InlineFieldControl
-                    label={METRICS[0].title}
-                    showEmptyValue={!values.reps.trim()}
-                    hasValue={Boolean(values.reps.trim())}
-                    labelClassName={useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined}
-                    emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
-                  >
-                    <input
-                      name={names?.reps}
-                      type="text"
-                      inputMode="text"
-                      value={values.reps}
-                      onChange={(event) => {
-                        onChange({ reps: sanitizeIntegerInput(event.target.value) });
-                      }}
-                      className={getInputClassName({ tripleRow: useThreeAcrossMetrics, hasValue: Boolean(values.reps.trim()) })}
-                      placeholder=""
-                    />
-                  </InlineFieldControl>
-                )}
-              </>
-            ),
-          })});
+              gridColumnCount,
+              children: (
+                <InlineFieldControl
+                  label={METRICS[0].title}
+                  showEmptyValue={!values.reps.trim()}
+                  hasValue={Boolean(values.reps.trim())}
+                  labelClassName={useThreeAcrossMetrics ? "right-3 text-[9px] tracking-[0.08em]" : undefined}
+                  emptyValueClassName={useThreeAcrossMetrics ? "pr-7" : undefined}
+                >
+                  <input
+                    name={names?.reps}
+                    type="text"
+                    inputMode="text"
+                    value={values.reps}
+                    onChange={(event) => {
+                      onChange({ reps: sanitizeIntegerInput(event.target.value) });
+                    }}
+                    className={getInputClassName({ tripleRow: useThreeAcrossMetrics, hasValue: Boolean(values.reps.trim()) })}
+                    placeholder=""
+                  />
+                </InlineFieldControl>
+              ),
+            })});
+    }
   }
 
   if (allowedMetrics.has("weight")) {
@@ -509,7 +609,26 @@ export function MeasurementPanelV2({
           })});
   }
 
-  const metricRows = useThreeAcrossMetrics ? chunkFields(metricFields, 3) : [metricFields];
+  const metricSortOrder = new Map<string, number>();
+  metricSortOrder.set("top-field", -10);
+  resolvedMetricOrder.forEach((metric, index) => {
+    const baseOrder = index * 10;
+    if (metric === "reps") {
+      metricSortOrder.set("reps", baseOrder);
+      metricSortOrder.set("reps-min", baseOrder);
+      metricSortOrder.set("reps-max", baseOrder + 1);
+      return;
+    }
+
+    metricSortOrder.set(metric, baseOrder);
+  });
+  metricSortOrder.set("rpe", resolvedMetricOrder.length * 10 + 5);
+
+  const orderedMetricFields = [...metricFields].sort(
+    (left, right) => (metricSortOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (metricSortOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+  );
+
+  const metricRows = useThreeAcrossMetrics ? chunkFields(orderedMetricFields, 3) : [orderedMetricFields];
 
   return (
     <section className={cn("space-y-2.5", className)} data-field-label-style={contract.fieldLabelStyle} data-testid="measurement-panel">
@@ -524,24 +643,24 @@ export function MeasurementPanelV2({
           </div>
         ) : null}
 
-        <div className="space-y-2" data-testid="measurement-grid">
-          {topField ? renderMetricCard({
-            testId: "measurement-field-summary",
-            width: "wide",
+        <div className="space-y-0.5" data-testid="measurement-grid">
+          {belowRpeContent ? renderMetricCard({
+            testId: "measurement-field-secondary",
+            width: belowRpeField?.width ?? "wide",
             gridColumnCount,
             children: (
-              <>
-                <StatFieldLabel title={topField.title} suffix={topField.suffix} emphasis="target" />
-                <div className="mt-2">{topField.input}</div>
-              </>
+              <div className="relative flex justify-center py-2">
+                <div className="w-[52%] min-w-[10.5rem] max-w-[14rem]">{belowRpeContent}</div>
+                {belowRpeField?.title ? <InlineFieldLabel label={belowRpeField.title} /> : null}
+              </div>
             ),
           }) : null}
 
           {metricRows.map((row, rowIndex) => {
             if (row.length === 1) {
               return (
-                <div key={`measurement-row-${rowIndex}`} className="flex justify-center">
-                  <div className="w-full min-[360px]:w-[calc((100%-0.625rem)/2)]">
+                  <div key={`measurement-row-${rowIndex}`} className="flex justify-center">
+                  <div className={getMetricRowLaneClassName(row.length, gridColumnCount)}>
                     {row[0]?.node}
                   </div>
                 </div>
@@ -549,31 +668,23 @@ export function MeasurementPanelV2({
             }
 
             const rowClassName = row.length === 3
-              ? "grid grid-cols-1 gap-x-2.5 gap-y-2 min-[360px]:grid-cols-3"
-              : "grid grid-cols-1 gap-x-2.5 gap-y-2 min-[360px]:grid-cols-2";
+              ? "grid grid-cols-3 gap-x-2.5 gap-y-2"
+              : "grid grid-cols-2 gap-x-2.5 gap-y-2";
 
             return (
-              <div key={`measurement-row-${rowIndex}`} className={rowClassName}>
-                {row.map((field) => (
-                  <div key={field.id} className="min-w-0">
-                    {field.node}
+              <div key={`measurement-row-${rowIndex}`} className="flex justify-center">
+                <div className={getMetricRowLaneClassName(row.length, gridColumnCount)}>
+                  <div className={rowClassName}>
+                    {row.map((field) => (
+                      <div key={field.id} className="min-w-0">
+                        {field.node}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             );
           })}
-
-          {belowRpeContent ? renderMetricCard({
-            testId: "measurement-field-secondary",
-            width: belowRpeField?.width ?? "wide",
-            gridColumnCount,
-            children: (
-              <div className="relative h-full">
-                <div className="h-full">{belowRpeContent}</div>
-                {belowRpeField?.title ? <InlineFieldLabel label={belowRpeField.title} /> : null}
-              </div>
-            ),
-          }) : null}
         </div>
 
         {footerContent ? <div>{footerContent}</div> : null}
@@ -583,3 +694,4 @@ export function MeasurementPanelV2({
     </section>
   );
 }
+

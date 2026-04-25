@@ -93,8 +93,12 @@ function clampOrderValue(rawValue: number, listLength: number) {
   return normalized;
 }
 
-function resolveInlineModality(measurementType: "reps" | "time" | "distance" | "time_distance", equipment: string | null): GoalModality {
-  return resolveGoalModality({ measurementType, equipment, tags: undefined });
+function resolveInlineModality(
+  measurementType: "reps" | "time" | "distance" | "time_distance",
+  equipment: string | null,
+  name?: string | null,
+): GoalModality {
+  return resolveGoalModality({ measurementType, equipment, name, tags: undefined });
 }
 
 function RoutineTargetInputs({
@@ -405,7 +409,7 @@ export function EditableRoutineDayExerciseList({
     weightUnit,
     distanceUnit: exercise.defaultDistanceUnit,
     orderNumber: canonicalOrderById.get(exercise.id) ?? exercise.orderNumber,
-    modality: resolveInlineModality(exercise.measurementType, exercise.equipment),
+    modality: resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name),
   }), [canonicalOrderById, weightUnit]);
   const getExerciseDraft = useCallback(
     (exercise: EditableRoutineDayExerciseItem) => draftsById[exercise.id] ?? buildExerciseDraft(exercise),
@@ -748,7 +752,7 @@ export function EditableRoutineDayExerciseList({
                       ...current,
                       goalState: nextState,
                     }))}
-                    modality={resolveInlineModality(exercise.measurementType, exercise.equipment)}
+                    modality={resolveInlineModality(exercise.measurementType, exercise.equipment, exercise.name)}
                   />
                   {autosaveError ? <p className={appTokens.routineEditorAutosaveErrorText}>{autosaveError}</p> : null}
                 </form>

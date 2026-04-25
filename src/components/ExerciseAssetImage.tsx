@@ -11,7 +11,9 @@ type ExerciseAssetImageProps = {
   className?: string;
   imageClassName?: string;
   imageStyle?: CSSProperties;
+  containerStyle?: CSSProperties;
   fit?: "contain" | "cover";
+  preferNaturalAspectRatio?: boolean;
   fallbackSrc?: string;
   fallback?: ReactNode;
   sizes?: string;
@@ -39,7 +41,9 @@ export function ExerciseAssetImage({
   className,
   imageClassName,
   imageStyle,
+  containerStyle,
   fit = "contain",
+  preferNaturalAspectRatio = false,
   fallbackSrc = DEFAULT_FALLBACK_SRC,
   fallback,
   sizes = DEFAULT_SIZES,
@@ -48,18 +52,34 @@ export function ExerciseAssetImage({
 }: ExerciseAssetImageProps) {
   const [renderSrc, setRenderSrc] = useState(() => resolveKnownMissingAssetSrc(src, fallbackSrc));
   const [showFallback, setShowFallback] = useState(false);
+  const [intrinsicAspectRatio, setIntrinsicAspectRatio] = useState<string | null>(null);
 
   useEffect(() => {
     setRenderSrc(resolveKnownMissingAssetSrc(src, fallbackSrc));
     setShowFallback(false);
+    setIntrinsicAspectRatio(null);
   }, [src, fallbackSrc]);
 
+  const resolvedContainerStyle = preferNaturalAspectRatio
+    ? { ...containerStyle, aspectRatio: intrinsicAspectRatio ?? containerStyle?.aspectRatio ?? "1 / 1" }
+    : containerStyle;
+
   if (showFallback && fallback) {
-    return <div className={cn("relative block shrink-0 overflow-hidden bg-transparent", className)}>{fallback}</div>;
+    return (
+      <div
+        className={cn("relative block shrink-0 overflow-hidden bg-transparent", className)}
+        style={resolvedContainerStyle}
+      >
+        {fallback}
+      </div>
+    );
   }
 
   return (
-    <div className={cn("relative block shrink-0 overflow-hidden bg-transparent", className)}>
+    <div
+      className={cn("relative block shrink-0 overflow-hidden bg-transparent", className)}
+      style={resolvedContainerStyle}
+    >
       <Image
         fill
         unoptimized
@@ -70,6 +90,13 @@ export function ExerciseAssetImage({
         sizes={sizes}
         className={cn(fit === "cover" ? "object-cover object-center" : "object-contain object-center", imageClassName)}
         style={imageStyle}
+        onLoad={(event) => {
+          if (!preferNaturalAspectRatio) return;
+          const image = event.currentTarget;
+          if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+            setIntrinsicAspectRatio(`${image.naturalWidth} / ${image.naturalHeight}`);
+          }
+        }}
         onError={() => {
           if (renderSrc !== fallbackSrc && src !== fallbackSrc) {
             missingSrcCache.add(src);

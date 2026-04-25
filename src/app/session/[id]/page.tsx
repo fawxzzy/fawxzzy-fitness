@@ -2,7 +2,7 @@ import { SessionPageClient } from "@/components/SessionPageClient";
 import { AppShell } from "@/components/ui/app/AppShell";
 import { QuickAddExerciseSheet } from "./QuickAddExerciseSheet";
 import { formatExerciseGoal } from "@/lib/exercise-goal-format";
-import { isCardioExercise } from "@/lib/exercise-metadata";
+import { isCardioExercise, isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
 import { usesIntervalLanguage } from "@/lib/log-set-language";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { getExerciseCountSummaryFromInputs } from "@/lib/day-summary";
@@ -120,6 +120,22 @@ function formatSessionGoalLabel(target: DisplayTarget | undefined, fallbackWeigh
   });
 }
 
+function resolveSessionExerciseDefaultDistanceUnit(defaultUnit: string | null | undefined): "mi" | "km" | "m" | null {
+  if (defaultUnit === "mi" || defaultUnit === "km" || defaultUnit === "m") {
+    return defaultUnit;
+  }
+
+  if (defaultUnit === "miles") {
+    return "mi";
+  }
+
+  if (defaultUnit === "meters") {
+    return "m";
+  }
+
+  return null;
+}
+
 type PageProps = {
   params: {
     id: string;
@@ -163,10 +179,18 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
         movement_pattern: canonicalExercise?.movement_pattern ?? null,
         primary_muscle: canonicalExercise?.primary_muscle ?? null,
         isCardio: canonicalExercise ? isCardioExercise(canonicalExercise) : null,
+        kind: null,
+        type: null,
+        tags: null,
+        categories: null,
       };
     }),
   );
   const requestedReturnTo = isSafeAppPath(searchParams?.returnTo) ? searchParams?.returnTo : undefined;
+  const requestedExerciseId = typeof searchParams?.exerciseId === "string"
+    && sessionExercises.some((exercise) => exercise.id === searchParams.exerciseId)
+    ? searchParams.exerciseId
+    : null;
 
   return (
     <AppShell topNavMode="none" ambientPreset="logSet">
@@ -184,11 +208,14 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             const displayTarget = buildSessionExerciseTarget(exercise) ?? sessionTargets.get(exercise.id);
             const canonicalExercise = exerciseById.get(exercise.exercise_id);
             const exerciseMetadata = {
+              name: exercise.exercise_name ?? canonicalExercise?.name ?? null,
               measurement_type: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
               equipment: canonicalExercise?.equipment ?? null,
               movement_pattern: canonicalExercise?.movement_pattern ?? null,
+              primary_muscle: canonicalExercise?.primary_muscle ?? null,
             };
             const isCardio = isCardioExercise(exerciseMetadata);
+            const isMeasurementOptional = isMeasurementOptionalExercise(exerciseMetadata);
             const useIntervalLanguage = usesIntervalLanguage({
               intervalMode: false,
             });
@@ -196,9 +223,13 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
             return {
               id: exercise.id,
               exerciseId: exercise.exercise_id,
-              name: normalizeExerciseDisplayName({ exerciseId: exercise.exercise_id, fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? null }),
+              name: normalizeExerciseDisplayName({
+                exerciseId: exercise.exercise_id,
+                name: exercise.exercise_name ?? null,
+                fallbackName: exerciseNameMap.get(exercise.exercise_id) ?? canonicalExercise?.name ?? null,
+              }),
               isSkipped: exercise.is_skipped,
-              defaultUnit: exercise.default_unit ?? null,
+              defaultUnit: resolveSessionExerciseDefaultDistanceUnit(exercise.default_unit),
               isCardio,
               measurementType: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
               primary_muscle: canonicalExercise?.primary_muscle ?? null,
@@ -235,6 +266,10 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   return { reps: false, weight: false, time: true, distance: false, calories: false };
                 }
 
+                if (isMeasurementOptional) {
+                  return { reps: false, weight: false, time: false, distance: false, calories: false };
+                }
+
                 return { reps: true, weight: true, time: false, distance: false, calories: false };
               })(),
               goalLabel: formatSessionGoalLabel(displayTarget, unitLabel),
@@ -250,7 +285,11 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                 distanceUnit: displayTarget.distanceUnit,
                 calories: displayTarget.calories,
                 measurementType: displayTarget.measurementType,
-              } : undefined,
+              } : (
+                isMeasurementOptional
+                  ? { measurementType: "none" }
+                  : undefined
+              ),
               targetSetsMin: displayTarget?.setsMin ?? null,
               targetSetsMax: displayTarget?.setsMax ?? null,
               initialSets: setsByExercise.get(exercise.id) ?? [],
@@ -259,6 +298,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
           })}
           saveSessionAction={saveSessionAction}
           requestedReturnTo={requestedReturnTo}
+          initialSelectedExerciseId={requestedExerciseId}
           quickAddAction={(
             <QuickAddExerciseSheet
               sessionId={params.id}

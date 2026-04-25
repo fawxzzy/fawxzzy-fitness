@@ -76,8 +76,6 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [showPendingHint, setShowPendingHint] = useState(false);
-  const activeLink = links.find((link) => pathname === link.href || pathname.startsWith(`${link.href}/`));
-
   useEffect(() => {
     for (const link of links) {
       router.prefetch(link.href);
@@ -135,8 +133,7 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
           className="relative isolate min-h-[var(--header-h)] w-full rounded-[var(--card-radius)] border border-white/15 bg-[rgb(var(--glass-tint-rgb)/0.9)] px-2 pb-1 shadow-[0_8px_20px_rgb(0_0_0/0.26)] [--glass-current-border-alpha:0.3] [--glass-current-tint-alpha:0.88] supports-[backdrop-filter]:bg-[rgb(var(--glass-tint-rgb)/0.72)]"
           interactive={false}
         >
-          <div className="flex h-[var(--header-h)] flex-col justify-center gap-1 pt-0.5">
-            <p className="px-2 pt-0.5 text-center text-sm font-bold leading-none text-[rgb(var(--text)/0.98)]">{activeLink?.label ?? "FawxzzyFitness"}</p>
+          <div className="flex h-[var(--header-h)] items-center justify-center pt-0.5">
             <nav className="grid grid-cols-4 gap-1 text-center text-xs" aria-label="App tabs">
               {links.map((link) => {
                 const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -153,12 +150,12 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
                     onClick={(event) => handleNavClick(event, link.href, isActive)}
                     className={`group relative flex min-h-11 items-center justify-center rounded-[10px] px-2 py-1 transition-[transform,filter,background-color,color,box-shadow] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985] active:brightness-[0.98] ${
                       isActive
-                        ? "bg-accent/28 font-semibold text-[rgb(var(--accent-rgb)/1)] shadow-[0_0_0_1px_rgb(var(--accent-rgb)/0.28),0_0_16px_rgb(var(--accent-rgb)/0.18)]"
+                        ? "font-semibold text-[rgb(var(--accent)/0.98)]"
                         : "text-[rgb(var(--text)/0.72)] hover:bg-[rgb(255_255_255/0.06)] hover:text-[rgb(var(--text)/0.88)]"
                     }`}
                   >
                     <span className="flex flex-col items-center gap-0.5">
-                      <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-[rgb(var(--accent-rgb)/1)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
+                      <Icon className={`h-[18px] w-[18px] transition-colors ${isActive ? "text-[rgb(var(--accent)/0.98)]" : "text-[rgb(var(--text)/0.64)] group-hover:text-[rgb(var(--text)/0.76)]"}`} />
                       <span>{link.label}</span>
                     </span>
                     {isPending ? (
@@ -167,7 +164,6 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
                         className="absolute right-2 top-2 h-1.5 w-1.5 animate-pulse rounded-full bg-[rgb(var(--accent)/0.88)] shadow-[0_0_10px_rgb(var(--accent)/0.4)]"
                       />
                     ) : null}
-                    {isActive ? <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-[rgb(var(--accent-rgb)/1)] shadow-[0_0_10px_rgb(var(--accent-rgb)/0.5)]" aria-hidden="true" /> : null}
                   </Link>
                 );
               })}

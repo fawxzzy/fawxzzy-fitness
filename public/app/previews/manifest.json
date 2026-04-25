@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-04-25T03:27:15.115Z",
+  "helper": "C:\\ATLAS\\repos\\fawxzzy-fitness\\scripts\\qa\\update-app-preview-assets.mjs",
+  "runner": "C:\\ATLAS\\repos\\fawxzzy-fitness\\scripts\\qa\\cdp-edge.mjs",
+  "outputDir": "C:\\ATLAS\\repos\\fawxzzy-fitness\\public\\app\\previews",
+  "baseUrl": "http://127.0.0.1:3000",
+  "source": "dev-mobile-regression",
+  "captures": [
+    {
+      "key": "today",
+      "label": "Today screen with active workout summary",
+      "screenshot": "today.png",
+      "url": "http://127.0.0.1:3000/dev/mobile-regression?screen=today&fixture=default",
+      "expectedPath": "/dev/mobile-regression"
+    },
+    {
+      "key": "routines",
+      "label": "Routine list and split overview",
+      "screenshot": "routines.png",
+      "url": "http://127.0.0.1:3000/dev/mobile-regression?screen=routines&fixture=current-view",
+      "expectedPath": "/dev/mobile-regression"
+    },
+    {
+      "key": "history",
+      "label": "Session history overview",
+      "screenshot": "history.png",
+      "url": "http://127.0.0.1:3000/dev/mobile-regression?screen=history-sessions&fixture=compact",
+      "expectedPath": "/dev/mobile-regression"
+    },
+    {
+      "key": "add-exercise",
+      "label": "Add exercise flow with configure goal cards",
+      "screenshot": "add-exercise.png",
+      "url": "http://127.0.0.1:3000/dev/mobile-regression?screen=add-exercise&fixture=default",
+      "expectedPath": "/dev/mobile-regression"
+    }
+  ]
+}

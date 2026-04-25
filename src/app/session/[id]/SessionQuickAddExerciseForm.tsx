@@ -14,6 +14,7 @@ import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 export function SessionQuickAddExerciseForm({
   sessionId,
   exercises,
+  initialSelectedId,
   weightUnit,
   exerciseStats,
   backHref,
@@ -21,6 +22,7 @@ export function SessionQuickAddExerciseForm({
 }: {
   sessionId: string;
   exercises: EditorExerciseOption[];
+  initialSelectedId?: string;
   weightUnit: "lbs" | "kg";
   exerciseStats: ExerciseStatsOption[];
   backHref: string;
@@ -52,10 +54,10 @@ export function SessionQuickAddExerciseForm({
       <RoutineEditorAddExerciseFlowShell
         exercises={exercises}
         name="exerciseId"
-        initialSelectedId={exercises[0]?.id}
+        initialSelectedId={initialSelectedId ?? exercises[0]?.id}
         weightUnit={weightUnit}
         exerciseStats={exerciseStats}
-        renderFooter={({ selectedCanonicalExerciseId, openExerciseInfo }) => (
+        renderFooter={({ goalValidation, selectedCanonicalExerciseId, openExerciseInfo }) => (
           <PublishBottomActions>
             <BottomActionSplit
               secondary={(
@@ -69,7 +71,18 @@ export function SessionQuickAddExerciseForm({
                 </BottomDockButton>
               )}
               primary={(
-                <BottomDockButton type="submit" form="session-quick-add-exercise-form" intent="positive">
+                <BottomDockButton
+                  type="submit"
+                  form="session-quick-add-exercise-form"
+                  intent="positive"
+                  onClick={(event) => {
+                    if (goalValidation.isValid) {
+                      return;
+                    }
+                    event.preventDefault();
+                    toast.warning(goalValidation.message, { id: "exercise-goal-validation" });
+                  }}
+                >
                   Add
                 </BottomDockButton>
               )}
