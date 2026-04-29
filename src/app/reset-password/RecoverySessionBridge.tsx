@@ -1,15 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
 import { establishRecoverySession } from "@/app/reset-password/actions";
-import { AuthDock, AuthFooter, AuthFooterText, AuthStack } from "@/components/auth/AuthShell";
-import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockLink } from "@/components/layout/BottomDockButton";
+import { hasRecoveryFragment, readRecoveryTokensFromHash } from "@/app/reset-password/recovery-fragment";
+import { AuthStack, AuthStatusText } from "@/components/auth/AuthShell";
 import { RouteLoading } from "@/components/RouteLoading";
-import { appTokens } from "@/components/ui/app/tokens";
-import { cn } from "@/lib/cn";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired.";
@@ -28,15 +23,39 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
     }
 
     let cancelled = false;
+    const supabase = createBrowserSupabase();
 
-    const syncRecoverySession = async (session: Session | null) => {
-      if (!session || cancelled) {
+    const failRecovery = async () => {
+      await supabase.auth.signOut();
+      if (!cancelled) {
+        setError(RECOVERY_SESSION_ERROR);
+        setIsPending(false);
+      }
+    };
+
+    const syncRecoverySession = async () => {
+      if (cancelled) {
         return false;
       }
 
+      const { accessToken, refreshToken, type } = readRecoveryTokensFromHash(window.location.hash);
+      if (!accessToken || !refreshToken || type !== "recovery") {
+        return false;
+      }
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+      if (sessionError) {
+        await failRecovery();
+        return true;
+      }
+
       const result = await establishRecoverySession({
-        accessToken: session.access_token,
-        refreshToken: session.refresh_token,
+        accessToken,
+        refreshToken,
       });
 
       if (cancelled) {
@@ -44,8 +63,7 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
       }
 
       if (!result.ok) {
-        setError(result.error);
-        setIsPending(false);
+        await failRecovery();
         return true;
       }
 
@@ -55,33 +73,15 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
 
     const finishRecovery = async () => {
       const recoveryHash = window.location.hash;
-      const hasRecoveryFragment =
-        recoveryHash.includes("access_token=") || recoveryHash.includes("refresh_token=") || recoveryHash.includes("type=recovery");
 
-      if (!hasRecoveryFragment) {
+      if (!hasRecoveryFragment(recoveryHash)) {
         setError(RECOVERY_SESSION_ERROR);
         setIsPending(false);
         return;
       }
 
-      const supabase = createBrowserSupabase();
-
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const { data, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          if (!cancelled) {
-            setError(RECOVERY_SESSION_ERROR);
-            setIsPending(false);
-          }
-          return;
-        }
-
-        if (await syncRecoverySession(data.session)) {
-          return;
-        }
-
-        await new Promise((resolve) => window.setTimeout(resolve, 150));
+      if (await syncRecoverySession()) {
+        return;
       }
 
       if (!cancelled) {
@@ -104,24 +104,8 @@ export function RecoverySessionBridge({ initialError }: RecoverySessionBridgePro
   return (
     <>
       <AuthStack>
-        <p className={cn("pt-2 text-center", appTokens.authSubtitleText)}>
-          {error ?? RECOVERY_SESSION_ERROR}
-        </p>
-        <AuthFooter>
-          <AuthFooterText>
-            <Link href="/login" className={appTokens.authInlineLink}>
-              Log In
-            </Link>
-          </AuthFooterText>
-        </AuthFooter>
+        <AuthStatusText>{error ?? RECOVERY_SESSION_ERROR}</AuthStatusText>
       </AuthStack>
-      <AuthDock>
-        <BottomActionSingle>
-          <BottomDockLink href="/login" intent="positive">
-            Log In
-          </BottomDockLink>
-        </BottomActionSingle>
-      </AuthDock>
     </>
   );
 }

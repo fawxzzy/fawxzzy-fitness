@@ -63,7 +63,7 @@
     "verify": "node scripts/playbook-runtime.mjs verify",
     "test:history-ui-contracts": "node --test src/components/ui/SegmentedControl.contract.test.ts",
     "verify:strict": "npm run lint && npm run test:history-ui-contracts && npm run verify:mobile-regression && npm run build",
-    "test:auth-ui-contracts": "node --import ./scripts/register-test-aliases.mjs --test src/app/login/loginScreenState.test.ts src/app/login/LoginScreen.contract.test.ts src/components/ui/app/designSystem.contract.test.ts",
+    "test:auth-ui-contracts": "node --import ./scripts/register-test-aliases.mjs --test src/app/login/loginScreenState.test.ts src/app/login/LoginScreen.contract.test.ts src/app/forgot-password/page.test.ts src/app/reset-password/recovery-fragment.test.ts src/components/ui/app/designSystem.contract.test.ts",
     "test:playbook-runtime": "node --test scripts/playbook-runtime.test.mjs",
     "test:playbook-adoption": "node --test tests/playbook-adoption-evidence.test.mjs",
     "test:playbook-verification": "node --test tests/playbook-verification-report.test.mjs",

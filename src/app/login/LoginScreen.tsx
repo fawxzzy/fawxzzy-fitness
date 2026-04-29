@@ -1,29 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useEffect, useState } from "react";
+import { startTransition, type FormEvent, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { login, requestPasswordResetInline } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   getLoginScreenViewState,
   getSyncedLoginFieldState,
+  resolveLoginRouteMessages,
   shouldStartCredentialStepOpenForLogin,
 } from "@/app/login/loginScreenState";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import {
   AuthCard,
   AuthDock,
-  AuthField,
   AuthFooter,
   AuthFooterSeparator,
   AuthFooterText,
   AuthForm,
+  AuthFormFields,
   AuthInlineLinkButton,
   AuthMessage,
   AuthShell,
   AuthStack,
+  AuthStatusCard,
 } from "@/components/auth/AuthShell";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -37,12 +41,15 @@ import {
   writeRememberedLoginState,
   type RememberedLoginState,
 } from "@/lib/remembered-login";
+import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const EMAIL_INPUT_ID = "login-email";
 const PASSWORD_INPUT_ID = "login-password";
 const LOGIN_FORM_ID = "login-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,23}$/i;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
+const RESET_COOLDOWN_SECONDS = 60;
+const RESET_NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -61,9 +68,20 @@ export function LoginScreen({
   previewRememberedLogin?: RememberedLoginState | null;
   previewShowCredentialStep?: boolean;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionProbeStartedRef = useRef(false);
   const copy = AUTH_MODE_COPY["password-login"];
+  const routeState = resolveLoginRouteMessages({
+    errorCode: searchParams?.get("error"),
+    infoCode: searchParams?.get("info"),
+    verified: searchParams?.get("verified"),
+  });
+  const resolvedError = error ?? routeState.error;
+  const resolvedInfo = info ?? routeState.info;
+  const resolvedRequiresReauth = requiresReauth || routeState.requiresReauth;
   const shouldStartCredentialStepOpen =
-    previewShowCredentialStep || shouldStartCredentialStepOpenForLogin({ error, requiresReauth });
+    previewShowCredentialStep || shouldStartCredentialStepOpenForLogin({ error: resolvedError, requiresReauth: resolvedRequiresReauth });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberedLogin, setRememberedLogin] = useState<RememberedLoginState | null>(null);
@@ -71,8 +89,45 @@ export function LoginScreen({
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetCooldownRemaining, setResetCooldownRemaining] = useState(0);
+  const [isRedirectingAuthenticatedUser, setIsRedirectingAuthenticatedUser] = useState(false);
   const [showCredentialStep, setShowCredentialStep] = useState(shouldStartCredentialStepOpen);
   const toast = useToast();
+
+  useEffect(() => {
+    if (previewRememberedLogin || previewShowCredentialStep || sessionProbeStartedRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    sessionProbeStartedRef.current = true;
+
+    const probeSession = async () => {
+      try {
+        const supabase = createBrowserSupabase();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user || cancelled) {
+          return;
+        }
+
+        setIsRedirectingAuthenticatedUser(true);
+        startTransition(() => {
+          router.replace("/entry");
+        });
+      } catch {
+        // If auth probing fails, keep the login screen usable.
+      }
+    };
+
+    void probeSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [previewRememberedLogin, previewShowCredentialStep, router]);
 
   useEffect(() => {
     const storedLogin = previewRememberedLogin ?? readRememberedLoginState();
@@ -92,6 +147,29 @@ export function LoginScreen({
 
     setHasHydrated(true);
   }, [previewRememberedLogin, shouldStartCredentialStepOpen]);
+
+  useEffect(() => {
+    const now = Date.now();
+    const stored = Number(window.localStorage.getItem(RESET_NEXT_ALLOWED_AT_KEY) ?? "0");
+
+    if (Number.isFinite(stored) && stored > now) {
+      setResetCooldownRemaining(Math.ceil((stored - now) / 1000));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (resetCooldownRemaining <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const nextAllowedAt = Number(window.localStorage.getItem(RESET_NEXT_ALLOWED_AT_KEY) ?? "0");
+      const seconds = Math.max(0, Math.ceil((nextAllowedAt - Date.now()) / 1000));
+      setResetCooldownRemaining(seconds);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [resetCooldownRemaining]);
 
   const rememberedEmail = rememberedLogin?.email ?? null;
   const rememberedIdentity = rememberedLogin
@@ -139,7 +217,7 @@ export function LoginScreen({
     hasHydrated,
     showCredentialStep,
     isSubmitting,
-    requiresReauth,
+    requiresReauth: resolvedRequiresReauth,
   });
   const {
     emailValid,
@@ -155,6 +233,7 @@ export function LoginScreen({
   const showRememberedAccountChoice = showRememberedAccountCard && Boolean(rememberedEmail) && !showCredentialStep;
   const highlightInteractiveCard = showManualAuth && emailValid;
   const readyInteractiveCard = showManualAuth && formReady;
+  const resetPasswordLabel = resetCooldownRemaining > 0 ? `Try again in ${resetCooldownRemaining}s` : PASSWORD_LOGIN_UI_COPY.forgotPassword;
 
   function handleSwitchAccount() {
     clearRememberedLoginState();
@@ -204,13 +283,13 @@ export function LoginScreen({
   }
 
   async function handlePasswordReset() {
-    if (isSendingReset) {
+    if (isSendingReset || resetCooldownRemaining > 0) {
       return;
     }
 
     const identifier = normalizeEmail(email || rememberedEmail || "");
     if (!EMAIL_PATTERN.test(identifier) && !USERNAME_PATTERN.test(identifier)) {
-      toast.error("Enter your email to reset your password.");
+      toast.error("Enter your email or username to reset your password.");
       return;
     }
 
@@ -218,6 +297,9 @@ export function LoginScreen({
     try {
       const result = await requestPasswordResetInline(identifier);
       if (result.ok) {
+        const nextAllowedAt = Date.now() + RESET_COOLDOWN_SECONDS * 1000;
+        window.localStorage.setItem(RESET_NEXT_ALLOWED_AT_KEY, String(nextAllowedAt));
+        setResetCooldownRemaining(RESET_COOLDOWN_SECONDS);
         toast.success("Reset email sent. Check your inbox.");
         return;
       }
@@ -228,6 +310,18 @@ export function LoginScreen({
     } finally {
       setIsSendingReset(false);
     }
+  }
+
+  if (isRedirectingAuthenticatedUser) {
+    return (
+      <AuthShell>
+        <AuthStatusCard
+          title="Resuming your session"
+          description="Taking you back into the app without reopening login."
+          testId="login-session-redirect"
+        />
+      </AuthShell>
+    );
   }
 
   return (
@@ -271,9 +365,8 @@ export function LoginScreen({
 
           </AuthStack>
 
-          <AuthStack
+          <AuthFormFields
             key={formSeed}
-            size="md"
             aria-hidden={!showManualAuth}
             className={cn(
               "transition-[max-height,opacity] duration-200 ease-out motion-reduce:transition-none",
@@ -283,7 +376,7 @@ export function LoginScreen({
             )}
           >
             {showEmailField ? (
-              <AuthField label="Email" hideLabel>
+              <LabeledEditorField label="Email or username">
                 <Input
                   id={EMAIL_INPUT_ID}
                   type="text"
@@ -291,19 +384,19 @@ export function LoginScreen({
                   required
                   autoComplete="username"
                   defaultValue={rememberedEmail ?? undefined}
-                  placeholder="you@example.com / username"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
-                    appTokens.authInput,
+                    labeledEditorFieldControlClassName,
+                    "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     emailValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => setEmail(event.target.value)}
                 />
-              </AuthField>
+              </LabeledEditorField>
             ) : null}
 
             <AuthStack size="sm">
-              <AuthField label="Password" hideLabel>
+              <LabeledEditorField label="Password">
                 <Input
                   id={PASSWORD_INPUT_ID}
                   type="password"
@@ -311,32 +404,32 @@ export function LoginScreen({
                   minLength={6}
                   required
                   autoComplete="current-password"
-                  placeholder="password"
                   tabIndex={showManualAuth ? undefined : -1}
                   className={cn(
-                    appTokens.authInput,
+                    labeledEditorFieldControlClassName,
+                    "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
                     passwordValid ? appTokens.authInputActive : "",
                   )}
                   onChange={(event) => setPassword(event.target.value)}
                 />
-              </AuthField>
+              </LabeledEditorField>
             </AuthStack>
-          </AuthStack>
+          </AuthFormFields>
 
-          {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
-          {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
+          {resolvedError ? <AuthMessage tone="error">{resolvedError}</AuthMessage> : null}
+          {resolvedInfo ? <AuthMessage tone="success">{resolvedInfo}</AuthMessage> : null}
 
         </AuthForm>
 
         {showManualAuth ? (
           <AuthFooter>
             <AuthFooterText>
-              <Link href="/signup" className={appTokens.authInlineLink}>
+              <Link href="/signup" className={cn(appTokens.authInlineLink, "inline-flex items-center px-1 py-0.5 select-none")}>
                 {PASSWORD_LOGIN_UI_COPY.createAccountAction}
               </Link>
               <AuthFooterSeparator />
-              <AuthInlineLinkButton disabled={isSendingReset} onClick={handlePasswordReset}>
-                {isSendingReset ? "Sending..." : PASSWORD_LOGIN_UI_COPY.forgotPassword}
+              <AuthInlineLinkButton disabled={isSendingReset || resetCooldownRemaining > 0} onClick={handlePasswordReset}>
+                {isSendingReset ? "Sending..." : resetPasswordLabel}
               </AuthInlineLinkButton>
             </AuthFooterText>
           </AuthFooter>

@@ -1,10 +1,9 @@
 import { RecoverySessionBridge } from "@/app/reset-password/RecoverySessionBridge";
 import { ResetPasswordForm } from "@/app/reset-password/ResetPasswordForm";
-import { AuthCard, AuthDock, AuthIntro, AuthShell } from "@/components/auth/AuthShell";
+import { AuthCard, AuthDock, AuthIntro, AuthShell, AuthStatusText } from "@/components/auth/AuthShell";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
 import { appTokens } from "@/components/ui/app/tokens";
-import { cn } from "@/lib/cn";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +18,25 @@ type ResetPasswordPageProps = {
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
   const error = searchParams?.error;
   const isRecoveryAttempt = searchParams?.recovery === "1";
+
+  if (isRecoveryAttempt) {
+    return (
+      <AuthShell>
+        <AuthCard className={appTokens.authInteractiveCard}>
+          <AuthIntro eyebrow="" title="Reset password" subtitle="" />
+          <RecoverySessionBridge initialError={error} />
+        </AuthCard>
+        <AuthDock>
+          <BottomActionSingle>
+            <BottomDockLink href="/login" intent="positive">
+              Log In
+            </BottomDockLink>
+          </BottomActionSingle>
+        </AuthDock>
+      </AuthShell>
+    );
+  }
+
   const supabase = supabaseServer();
   const { data } = await supabase.auth.getUser();
 
@@ -27,21 +45,15 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
       <AuthShell>
         <AuthCard className={appTokens.authInteractiveCard}>
           <AuthIntro eyebrow="" title="Reset password" subtitle="" />
-          {isRecoveryAttempt ? (
-            <RecoverySessionBridge initialError={error} />
-          ) : (
-            <p className={cn("pt-2 text-center", appTokens.authSubtitleText)}>Reset link expired.</p>
-          )}
+          <AuthStatusText>{error ?? "Reset link expired."}</AuthStatusText>
         </AuthCard>
-        {!isRecoveryAttempt ? (
-          <AuthDock>
-            <BottomActionSingle>
-              <BottomDockLink href="/login" intent="positive">
-                Log In
-              </BottomDockLink>
-            </BottomActionSingle>
-          </AuthDock>
-        ) : null}
+        <AuthDock>
+          <BottomActionSingle>
+            <BottomDockLink href="/login" intent="positive">
+              Log In
+            </BottomDockLink>
+          </BottomActionSingle>
+        </AuthDock>
       </AuthShell>
     );
   }

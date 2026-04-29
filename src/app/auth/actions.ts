@@ -15,7 +15,7 @@ function isEmailIdentifier(identifier: string) {
 }
 
 function isUsernameIdentifier(identifier: string) {
-  return /^[a-z0-9][a-z0-9._-]{1,23}$/i.test(identifier);
+  return /^[a-z0-9][a-z0-9._-]{1,14}$/i.test(identifier);
 }
 
 async function resolveEmailForLogin(identifier: string) {
@@ -148,6 +148,14 @@ export async function signup(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const username = String(formData.get("username") ?? "").trim();
 
+  if (username && !isUsernameIdentifier(username)) {
+    redirect(
+      `/signup?error=${encodeURIComponent(
+        "Username must be 2-15 characters and use letters, numbers, periods, underscores, or hyphens.",
+      )}`,
+    );
+  }
+
   const supabase = supabaseServer();
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -176,7 +184,24 @@ export async function signup(formData: FormData) {
 }
 
 export async function requestPasswordReset(formData: FormData) {
-  const email = normalizeLoginIdentifier(formData.get("email"));
+  const identifier = normalizeLoginIdentifier(formData.get("email"));
+  const usesEmailIdentifier = isEmailIdentifier(identifier);
+  const usesUsernameIdentifier = isUsernameIdentifier(identifier);
+
+  if (!usesEmailIdentifier && !usesUsernameIdentifier) {
+    redirect(`/login?error=${encodeURIComponent("Enter your email or username to reset your password.")}`);
+  }
+
+  if (usesUsernameIdentifier && !optionalEnv("SUPABASE_SERVICE_ROLE_KEY")) {
+    redirect(`/login?error=${encodeURIComponent("Use your email to reset your password.")}`);
+  }
+
+  const email = await resolveEmailForLogin(identifier);
+
+  if (!email) {
+    redirect(`/login?info=${encodeURIComponent("reset_requested")}`);
+  }
+
   const supabase = supabaseServer();
   const redirectTo = `${getAppOrigin()}/reset-password?recovery=1`;
 
@@ -194,20 +219,36 @@ export async function requestPasswordReset(formData: FormData) {
     });
 
     const errorCode = getResetPasswordErrorCode(error.message);
-    redirect(`/forgot-password?error=${encodeURIComponent(errorCode)}`);
+    redirect(`/login?error=${encodeURIComponent(errorCode)}`);
   }
 
-  redirect(`/forgot-password?info=${encodeURIComponent("reset_requested")}`);
+  redirect(`/login?info=${encodeURIComponent("reset_requested")}`);
 }
 
 export async function requestPasswordResetInline(identifier: string) {
   const normalizedIdentifier = normalizeLoginIdentifier(identifier);
+  const usesEmailIdentifier = isEmailIdentifier(normalizedIdentifier);
+  const usesUsernameIdentifier = isUsernameIdentifier(normalizedIdentifier);
+
+  if (!usesEmailIdentifier && !usesUsernameIdentifier) {
+    return {
+      ok: false,
+      error: "Enter your email or username to reset your password.",
+    };
+  }
+
+  if (usesUsernameIdentifier && !optionalEnv("SUPABASE_SERVICE_ROLE_KEY")) {
+    return {
+      ok: false,
+      error: "Use your email to reset your password.",
+    };
+  }
+
   const email = await resolveEmailForLogin(normalizedIdentifier);
 
   if (!email) {
     return {
-      ok: false,
-      error: "Enter your email to reset your password.",
+      ok: true,
     };
   }
 

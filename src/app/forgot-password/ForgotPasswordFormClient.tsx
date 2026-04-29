@@ -8,23 +8,25 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   AuthCard,
   AuthDock,
-  AuthField,
   AuthFooter,
   AuthFooterSeparator,
   AuthFooterText,
   AuthForm,
+  AuthFormFields,
   AuthIntro,
   AuthMessage,
   AuthShell,
-  AuthStack,
 } from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { cn } from "@/lib/cn";
 
 const COOLDOWN_SECONDS = 60;
 const NEXT_ALLOWED_AT_KEY = "fp_next_allowed_at";
 const RESET_FORM_ID = "reset-password-request-form";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
 
 type ForgotPasswordFormClientProps = {
   errorMessage: string | null;
@@ -83,9 +85,9 @@ export default function ForgotPasswordFormClient({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "").trim();
+    const identifier = String(formData.get("email") ?? "").trim();
 
-    if (!EMAIL_PATTERN.test(email.toLowerCase()) || cooldownRemaining > 0) {
+    if ((!EMAIL_PATTERN.test(identifier.toLowerCase()) && !USERNAME_PATTERN.test(identifier)) || cooldownRemaining > 0) {
       event.preventDefault();
       return;
     }
@@ -94,7 +96,8 @@ export default function ForgotPasswordFormClient({
   }
 
   const isCoolingDown = cooldownRemaining > 0;
-  const emailValid = EMAIL_PATTERN.test(email.trim().toLowerCase());
+  const identifierValue = email.trim();
+  const emailValid = EMAIL_PATTERN.test(identifierValue.toLowerCase()) || USERNAME_PATTERN.test(identifierValue);
   const submitLabel = isCoolingDown ? `Try again in ${cooldownRemaining}s` : "Send reset link";
 
   return (
@@ -102,20 +105,24 @@ export default function ForgotPasswordFormClient({
       <AuthCard className={appTokens.authInteractiveCard}>
         <AuthIntro eyebrow="" title="" subtitle="" />
         <AuthForm id={RESET_FORM_ID} action={requestPasswordReset} onSubmit={handleSubmit}>
-          <AuthStack>
-            <AuthField label="Email" hideLabel>
+          <AuthFormFields>
+            <LabeledEditorField label="Email or username">
               <Input
-                type="email"
+                type="text"
                 name="email"
                 required
-                autoComplete="email"
-                placeholder="you@example.com"
+                autoComplete="username"
+                className={cn(
+                  labeledEditorFieldControlClassName,
+                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                )}
                 onChange={(event) => setEmail(event.target.value)}
               />
-            </AuthField>
-          </AuthStack>
+            </LabeledEditorField>
+          </AuthFormFields>
           {message}
         </AuthForm>
+
         <AuthFooter>
           <AuthFooterText>
             <Link href="/signup" className={appTokens.authInlineLink}>
