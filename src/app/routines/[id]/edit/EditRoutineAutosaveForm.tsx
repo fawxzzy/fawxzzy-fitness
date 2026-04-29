@@ -26,7 +26,7 @@ type Props = {
   startWeekday: string;
   timezone: string;
   weightUnit: string;
-  distanceUnit: "mi" | "km";
+  distanceUnit?: "mi" | "km";
   error?: string;
   deleteAction?: ReactNode;
 };
@@ -48,6 +48,7 @@ function resolveRoutineDraftFieldValue(field: string, value: string, previousCyc
 
 export function EditRoutineAutosaveForm(props: Props) {
   const toast = useToast();
+  const distanceUnit = props.distanceUnit ?? "mi";
   const [error, setError] = useState<string | null>(props.error ?? null);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState("");
   const [draft, setDraft] = useState<RoutineDetailsDraft>({
@@ -56,7 +57,7 @@ export function EditRoutineAutosaveForm(props: Props) {
     startWeekday: props.startWeekday,
     timezone: props.timezone,
     weightUnit: props.weightUnit,
-    distanceUnit: props.distanceUnit,
+    distanceUnit,
   });
   const [isSaving, startTransition] = useTransition();
 
@@ -70,9 +71,9 @@ export function EditRoutineAutosaveForm(props: Props) {
         startWeekday: props.startWeekday,
         timezone: props.timezone,
         weightUnit: props.weightUnit,
-        distanceUnit: props.distanceUnit,
+        distanceUnit,
       }),
-    [props.cycleLengthDays, props.distanceUnit, props.name, props.startWeekday, props.timezone, props.weightUnit],
+    [distanceUnit, props.cycleLengthDays, props.name, props.startWeekday, props.timezone, props.weightUnit],
   );
 
   useEffect(() => {

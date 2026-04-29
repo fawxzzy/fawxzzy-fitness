@@ -3,6 +3,7 @@ import {
   ACTION_CHROME_RAIL_CLASS_NAME,
   ACTION_CHROME_RAIL_GRID_CLASS_NAME,
 } from "@/components/ui/actionChrome";
+import { SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
@@ -18,27 +19,27 @@ export function AuthShell({
 }) {
   return (
     <main
-      className="hide-scrollbar relative isolate min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-[rgb(var(--bg-app))] touch-pan-y overscroll-y-contain"
+      className={cn(appTokens.authShell, "[caret-color:transparent]")}
       data-testid="auth-shell"
     >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden select-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(26,119,86,0.16),transparent_24%),radial-gradient(circle_at_18%_18%,rgba(16,185,129,0.12),transparent_28%),radial-gradient(circle_at_84%_72%,rgba(148,163,184,0.1),transparent_30%),linear-gradient(180deg,rgba(9,16,25,0.92),rgba(4,9,16,0.96)_46%,rgba(2,6,12,0.99))]" />
-        <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.14)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(180deg,rgba(0,0,0,0.86),rgba(0,0,0,0.42)_52%,transparent_82%)]" />
-        <div className="absolute left-[-10%] top-[10%] h-72 w-72 rounded-full bg-emerald-400/10 blur-[140px]" />
-        <div className="absolute bottom-[-18%] right-[-8%] h-80 w-80 rounded-full bg-slate-300/8 blur-[160px]" />
-        <div className="absolute inset-x-[10%] top-[18%] h-px bg-gradient-to-r from-transparent via-emerald-300/30 to-transparent opacity-80 blur-[0.8px]" />
-        <div className="absolute inset-x-[18%] top-[62%] h-px bg-gradient-to-r from-transparent via-white/16 to-transparent opacity-60 blur-[0.8px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_18%,rgba(4,8,12,0.22)_58%,rgba(1,4,8,0.68))]" />
+      <div aria-hidden="true" className={appTokens.authShellBackdrop}>
+        <div className={appTokens.authShellBackdropGradient} />
+        <div className={appTokens.authShellBackdropGrid} />
+        <div className={appTokens.authShellBackdropGlowLeading} />
+        <div className={appTokens.authShellBackdropGlowTrailing} />
+        <div className={appTokens.authShellBackdropRuleTop} />
+        <div className={appTokens.authShellBackdropRuleBottom} />
+        <div className={appTokens.authShellBackdropOverlay} />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] pt-[calc(env(safe-area-inset-top,0px)+1.25rem)]">
+      <div className={appTokens.authShellFrame}>
         {topAction ? (
-          <div className="absolute right-4 top-[calc(env(safe-area-inset-top,0px)+1rem)] z-20 flex justify-end">
+          <div className={appTokens.authShellTopAction}>
             {topAction}
           </div>
         ) : null}
         <div
-          className={cn("flex min-w-0 flex-1 flex-col justify-center", topAction ? "pt-14" : "", appTokens.authShellContent, className)}
+          className={cn("flex min-w-0 flex-1 flex-col justify-center", topAction ? appTokens.authShellContentOffset : "", appTokens.authShellContent, className)}
           data-testid="auth-shell-content"
         >
           {children}
@@ -50,7 +51,7 @@ export function AuthShell({
 
 export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
   return (
-    <header className={cn(appTokens.authIntro, "pt-8 text-center")} data-testid="auth-intro">
+    <header className={cn(appTokens.authIntro, appTokens.authIntroFrame)} data-testid="auth-intro">
       <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>
       {eyebrow ? <p className={appTokens.authIntroEyebrow}>{eyebrow}</p> : null}
       {title || subtitle ? (
@@ -113,11 +114,25 @@ export function AuthForm({
   return (
     <form
       {...props}
-      className={cn("space-y-5", className)}
+      className={cn(appTokens.authFormStack, className)}
     >
       {children}
     </form>
   );
+}
+
+export function AuthFormFields({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={cn("mx-auto w-full max-w-[23rem] space-y-3 px-0.5 pt-1.5 sm:space-y-4 sm:px-0 sm:pt-2", className)}>{children}</div>;
+}
+
+export function AuthStatusText({ children, className }: { children: ReactNode; className?: string }) {
+  return <p className={cn(appTokens.authStatusMessage, className)}>{children}</p>;
 }
 
 export function AuthStack({
@@ -173,11 +188,11 @@ export function AuthFooter({ children, className }: { children: ReactNode; class
 }
 
 export function AuthFooterSeparator() {
-  return <span aria-hidden="true" className={cn("inline-block px-1.5", appTokens.authFooterSeparator)}>|</span>;
+  return <SignatureMiniPipe className={appTokens.authFooterSeparator} />;
 }
 
 export function AuthFooterText({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn("text-center leading-6", className)}>{children}</p>;
+  return <p className={cn("flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center leading-6", className)}>{children}</p>;
 }
 
 export function AuthInlineLinkButton({
@@ -191,7 +206,7 @@ export function AuthInlineLinkButton({
       {...props}
       type={type}
       className={cn(
-        "!border-0 !bg-transparent !text-[rgb(var(--accent))] !shadow-none !outline-none hover:!text-[rgb(var(--accent-strong))] focus:!outline-none focus-visible:!outline-none focus:!shadow-none focus-visible:!shadow-none focus:!ring-0 focus-visible:!ring-0",
+        "!border-0 !bg-transparent !px-1 !py-0.5 !text-[rgb(var(--accent))] !shadow-none !outline-none select-none hover:!text-[rgb(var(--accent-strong))] focus:!outline-none focus-visible:!outline-none focus:!shadow-none focus-visible:!shadow-none focus:!ring-0 focus-visible:!ring-0",
         appTokens.authInlineButton,
         className,
       )}
