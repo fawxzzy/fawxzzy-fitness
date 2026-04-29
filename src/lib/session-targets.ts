@@ -1,7 +1,7 @@
 import "server-only";
 
 import { supabaseServer } from "@/lib/supabase/server";
-import { formatDurationClock } from "@/lib/duration";
+import { formatDurationPreview } from "@/lib/duration";
 import { formatGoalSummaryText } from "@/lib/measurement-display";
 import { requireUser } from "@/lib/auth";
 
@@ -17,7 +17,7 @@ export type DisplayTarget = {
   distance?: number;
   distanceUnit?: "mi" | "km" | "m";
   calories?: number;
-  measurementType?: "reps" | "time" | "distance" | "time_distance";
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none";
   source: "engine" | "template";
 };
 
@@ -53,7 +53,7 @@ function resolveRangeValue(minValue: number | null | undefined, maxValue: number
 }
 
 function formatDurationText(durationSeconds: number) {
-  return formatDurationClock(durationSeconds);
+  return formatDurationPreview(durationSeconds);
 }
 
 function formatRangeValue(minValue: number | undefined, maxValue: number | undefined, suffix: string) {
@@ -73,8 +73,8 @@ function toSingularUnit(unit: "lbs" | "kg" | "mi" | "km" | "m" | "cal") {
 }
 
 
-function resolveMeasurementType(value: unknown): "reps" | "time" | "distance" | "time_distance" | null {
-  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" ? value : null;
+function resolveMeasurementType(value: unknown): "reps" | "time" | "distance" | "time_distance" | "none" | null {
+  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" || value === "none" ? value : null;
 }
 
 function resolveWeightUnit(value: unknown): "lbs" | "kg" | null {
@@ -160,7 +160,8 @@ function buildDisplayTargetFromGoalFields(fields: {
     target.calories = Number(resolvedCalories);
   }
 
-  const hasMeasurementTarget = target.setsMin !== undefined
+  const hasMeasurementTarget = target.measurementType === "none"
+    || target.setsMin !== undefined
     || target.setsMax !== undefined
     || target.repsMin !== undefined
     || target.repsMax !== undefined

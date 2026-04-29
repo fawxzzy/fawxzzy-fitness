@@ -24,7 +24,7 @@ export function MeasurementSummary({
   const items = formatMeasurementSummaryItems({ ...values, emptyLabel });
 
   return (
-    <div className={cn("flex flex-wrap gap-1.5", className)}>
+    <div className={cn(appTokens.exerciseLogSummaryBadgeRow, className)}>
       {items.map((item) => (
         <span
           key={`${item.metric}-${item.label}`}

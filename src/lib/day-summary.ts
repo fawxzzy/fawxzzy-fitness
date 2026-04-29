@@ -138,10 +138,10 @@ export function formatExerciseSplitSummary(summary: Pick<ExerciseCountSummary, "
 
   const parts: string[] = [];
 
-  if (summary.strength > 0) parts.push(`Str ${summary.strength}`);
-  if (summary.cardio > 0) parts.push(`Cardio ${summary.cardio}`);
-  if (summary.bodyweight > 0) parts.push(`Bodyweight ${summary.bodyweight}`);
-  if (summary.unknown > 0) parts.push(`Other ${summary.unknown}`);
+  if (summary.strength > 0) parts.push(`${summary.strength} strength`);
+  if (summary.cardio > 0) parts.push(`${summary.cardio} cardio`);
+  if (summary.bodyweight > 0) parts.push(`${summary.bodyweight} bodyweight`);
+  if (summary.unknown > 0) parts.push(`${summary.unknown} other`);
 
   return parts.length > 0 ? parts.join(" \u2022 ") : EMPTY_EXERCISE_SUMMARY_LABEL;
 }

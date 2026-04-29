@@ -52,8 +52,8 @@ export const AUTH_MODE_COPY: Record<AuthMode, AuthModeCopy> = {
   },
   "create-account": {
     eyebrow: "Get started",
-    title: "",
-    subtitle: "",
+    title: "Create account",
+    subtitle: "Choose your username, email, and password.",
   },
 };
 

@@ -15,6 +15,7 @@ export function PersistentAppChrome() {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0">
+      <div className="app-standalone-safe-area-bleed" aria-hidden="true" />
       <AppAmbientBackdrop preset={preset} />
       <AppEdgeFrame preset={preset} />
     </div>

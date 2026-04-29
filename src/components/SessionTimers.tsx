@@ -21,14 +21,16 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { AppButton } from "@/components/ui/AppButton";
+import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useUndoAction } from "@/components/ui/useUndoAction";
 import { MeasurementPanelV2 } from "@/components/ui/measurements/MeasurementPanelV2";
 import { WorkoutEntrySection } from "@/components/ui/workout-entry/EntrySection";
 import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
+import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { tapFeedbackClass } from "@/components/ui/interactionClasses";
 import { formatDurationClock } from "@/lib/duration";
-import { formatMeasurementSummaryText } from "@/lib/measurement-display";
+import { formatMeasurementSummaryItems, formatSetPositionLabel } from "@/lib/measurement-display";
 import { deriveMeasurementPresenceFromValues, sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
 import type { ActionResult } from "@/lib/action-result";
 import { getNextPublishedSetCount } from "@/components/session/setCountSync";
@@ -102,7 +104,7 @@ function toDisplaySet(set: SetRow): DisplaySet {
   };
 }
 
-function formatSessionSummaryText({
+function getSessionSummaryItems({
   reps,
   weight,
   weightUnit,
@@ -134,18 +136,16 @@ function formatSessionSummaryText({
   const normalizedWeight = hasCardioSignal && (weight ?? 0) <= 0 ? null : weight;
   const normalizedDistance = (distance ?? 0) > 0 ? distance : null;
   const normalizedCalories = (calories ?? 0) > 0 ? calories : null;
-  const parts = [
-    formatMeasurementSummaryText({
-      reps: normalizedReps,
-      weight: normalizedWeight,
-      weightUnit,
-      durationSeconds,
-      distance: normalizedDistance,
-      distanceUnit,
-      calories: normalizedCalories,
-      emptyLabel,
-    }),
-  ];
+  const parts = formatMeasurementSummaryItems({
+    reps: normalizedReps,
+    weight: normalizedWeight,
+    weightUnit,
+    durationSeconds,
+    distance: normalizedDistance,
+    distanceUnit,
+    calories: normalizedCalories,
+    emptyLabel,
+  }).map((item) => item.label);
 
   if (rpe !== null && rpe !== undefined) {
     parts.push(`Effort ${rpe}`);
@@ -161,30 +161,7 @@ function formatSessionSummaryText({
     parts.push("saving...");
   }
 
-  return parts.join(" • ");
-}
-
-function formatLoggedSetSummaryText({
-  set,
-  unitLabel,
-}: {
-  set: DisplaySet;
-  unitLabel: string;
-}) {
-  return formatSessionSummaryText({
-    reps: set.reps,
-    weight: set.weight,
-    weightUnit: set.weight_unit ?? unitLabel,
-    durationSeconds: set.duration_seconds,
-    distance: set.distance,
-    distanceUnit: set.distance_unit,
-    calories: set.calories,
-    rpe: set.rpe,
-    isWarmup: set.is_warmup,
-    queueStatus: set.queueStatus,
-    pending: set.pending,
-    emptyLabel: "No measurements",
-  });
+  return parts;
 }
 
 export function SetLoggerCard({
@@ -880,8 +857,9 @@ export function SetLoggerCard({
     [handleLogSet, isSaveDisabled, isSecondaryPending, onSecondaryAction, secondaryActionLabel],
   );
 
-  const liveSummaryText = useMemo(() => {
-    return formatSessionSummaryText({
+  const liveSummaryItems = useMemo(() => {
+    const hasVisibleMeasurements = Object.values(visibleMetrics).some(Boolean);
+    return getSessionSummaryItems({
       reps: reps.trim() ? Number(reps) : null,
       weight: weight.trim() ? Number(weight) : null,
       weightUnit: selectedWeightUnit,
@@ -891,11 +869,13 @@ export function SetLoggerCard({
       calories: calories.trim() ? Number(calories) : null,
       rpe: rpe.trim() ? Number(rpe.trim()) : null,
       isWarmup: resolvedIsWarmup,
-      emptyLabel: "Add measurements",
+      emptyLabel: hasVisibleMeasurements ? "Add measurements" : "",
     });
-  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, weight]);
-  const currentSetLabel = `Current: ${useIntervalLanguage ? "Interval" : "Set"} ${sets.length + 1}`;
-  const currentSetPreview = `${currentSetLabel} - ${liveSummaryText}`;
+  }, [calories, distance, distanceUnit, durationInput, reps, resolvedIsWarmup, rpe, selectedWeightUnit, visibleMetrics, weight]);
+  const currentSetLabel = useMemo(
+    () => formatSetPositionLabel(sets.length + 1, useIntervalLanguage ? "Interval" : "Set"),
+    [sets.length, useIntervalLanguage],
+  );
 
 
   async function handleDeleteSet(set: DisplaySet) {
@@ -1010,11 +990,15 @@ export function SetLoggerCard({
             <div className={cn(appTokens.currentSessionFocusStack, "gap-px")}>
               <div data-testid="set-logger-current-summary">
                 <CompactLogRow
-                  className="border-[rgb(var(--accent)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.2)] transition-all duration-200 ease-out"
+                  className={cn(appTokens.currentSessionLoggerSummaryCard, "transition-all duration-200 ease-out")}
                   summary={(
                     <div className="flex min-h-[52px] items-center justify-center text-center">
                       <p className={cn(appTokens.currentSessionLoggerSummaryText, "text-center text-[14px] leading-[1.25] transition-all duration-200 ease-out")}>
-                        {currentSetPreview}
+                        {/* structured current-set preview */}
+                        <SignatureInlineList
+                          items={[currentSetLabel, ...liveSummaryItems]}
+                          className="justify-center whitespace-normal break-words"
+                        />
                       </p>
                     </div>
                   )}
@@ -1031,22 +1015,28 @@ export function SetLoggerCard({
                           set.isLeaving ? "max-h-0 scale-[0.98] opacity-0" : "max-h-28 scale-100 opacity-100",
                         ].join(" ")}
                       >
-                        <CompactLogRow
-                          className="pr-0 transition-all duration-200 ease-out"
+                        <LoggedSetSummaryRow
+                          label={useIntervalLanguage ? `Interval ${index + 1}` : `Set ${index + 1}`}
                           summary={(
-                            <div className="relative flex min-h-[52px] items-center justify-center px-5 pt-3 text-center">
-                              <p className={cn(appTokens.currentSessionLoggerSummaryText, "text-center text-[14px] leading-[1.25]")}>
-                                {formatLoggedSetSummaryText({
-                                  set,
-                                  unitLabel,
-                                })}
-                              </p>
-                              <span className="pointer-events-none absolute left-4 top-2.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[rgb(var(--text-muted)/0.7)]">
-                                {useIntervalLanguage ? `Interval ${index + 1}` : `Set ${index + 1}`}
-                              </span>
-                            </div>
+                            <SignatureInlineList
+                              items={getSessionSummaryItems({
+                                reps: set.reps,
+                                weight: set.weight,
+                                weightUnit: set.weight_unit ?? unitLabel,
+                                durationSeconds: set.duration_seconds,
+                                distance: set.distance,
+                                distanceUnit: set.distance_unit,
+                                calories: set.calories,
+                                rpe: set.rpe,
+                                isWarmup: set.is_warmup,
+                                queueStatus: set.queueStatus,
+                                pending: set.pending,
+                                emptyLabel: "No measurements",
+                              })}
+                              className="whitespace-normal break-words"
+                            />
                           )}
-                          actionClassName="min-w-[6.5rem]"
+                          actionClassName={cn(appTokens.currentSessionDeleteActionRail, "min-w-[6.5rem]")}
                           action={(
                             <button
                               type="button"
@@ -1056,7 +1046,7 @@ export function SetLoggerCard({
                               aria-label={`Delete ${useIntervalLanguage ? "interval" : "set"} ${index + 1}`}
                               className={cn(
                                 appTokens.currentSessionDeleteActionButton,
-                                "min-w-[6.5rem] border-[rgb(var(--danger-rgb)/0.28)] bg-[linear-gradient(180deg,rgba(89,37,44,0.5),rgba(56,23,29,0.78))] px-4 text-center text-[rgb(255_225_230/0.96)] hover:border-[rgb(var(--danger-rgb)/0.4)] hover:bg-[linear-gradient(180deg,rgba(110,42,52,0.58),rgba(69,26,35,0.84))]",
+                                "min-w-[6.5rem] px-4 text-center",
                                 tapFeedbackClass,
                               )}
                             >

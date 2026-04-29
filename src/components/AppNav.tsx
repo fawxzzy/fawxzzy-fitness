@@ -77,10 +77,14 @@ export function AppNav({ mode = "fixed" }: AppNavProps) {
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [showPendingHint, setShowPendingHint] = useState(false);
   useEffect(() => {
+    if (!pathname || pathname === "/dev" || pathname.startsWith("/dev/")) {
+      return;
+    }
+
     for (const link of links) {
       router.prefetch(link.href);
     }
-  }, [router]);
+  }, [pathname, router]);
 
   useEffect(() => {
     setPendingHref(null);

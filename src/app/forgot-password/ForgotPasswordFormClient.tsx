@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { requestPasswordReset } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
@@ -14,12 +14,12 @@ import {
   AuthForm,
   AuthFormFields,
   AuthIntro,
-  AuthMessage,
   AuthShell,
 } from "@/components/auth/AuthShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
+import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 
 const COOLDOWN_SECONDS = 60;
@@ -43,17 +43,8 @@ export default function ForgotPasswordFormClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
 
-  const message = useMemo(() => {
-    if (errorMessage) {
-      return <AuthMessage tone="error">{errorMessage}</AuthMessage>;
-    }
-
-    if (infoMessage) {
-      return <AuthMessage tone="success">{infoMessage}</AuthMessage>;
-    }
-
-    return null;
-  }, [errorMessage, infoMessage]);
+  useToastMessageEffect("error", errorMessage, { id: "forgot-password-error" });
+  useToastMessageEffect("success", infoMessage, { id: "forgot-password-info" });
 
   useEffect(() => {
     const now = Date.now();
@@ -120,7 +111,6 @@ export default function ForgotPasswordFormClient({
               />
             </LabeledEditorField>
           </AuthFormFields>
-          {message}
         </AuthForm>
 
         <AuthFooter>

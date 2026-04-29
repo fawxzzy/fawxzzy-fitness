@@ -11,12 +11,29 @@ import { toCanonicalRoutineTimezone } from "@/lib/timezones";
 
 type CreateRoutineResult = ActionResult & { routineId?: string; firstDayId?: string };
 
+function isMissingProfilePreferenceColumnError(error: { message?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+  const referencesPreferenceColumn =
+    message.includes("preferred_weight_unit") || message.includes("preferred_distance_unit");
+  const referencesProfilesTable = message.includes("profiles");
+  const schemaCacheMissingColumn = message.includes("schema cache");
+  const postgresMissingColumn =
+    message.includes("column") && message.includes("does not exist") && referencesProfilesTable;
+
+  return (
+    referencesPreferenceColumn &&
+    referencesProfilesTable &&
+    (schemaCacheMissingColumn || postgresMissingColumn)
+  );
+}
+
 function parseRoutineForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const cycleLengthDays = Number(formData.get("cycleLengthDays"));
   const timezone = String(formData.get("timezone") ?? "").trim();
   const startWeekday = String(formData.get("startWeekday") ?? "").trim().toLowerCase();
   const weightUnit = String(formData.get("weightUnit") ?? "lbs").trim();
+  const distanceUnit = String(formData.get("distanceUnit") ?? "mi").trim();
 
   if (!name || !timezone || !startWeekday) {
     return { ok: false as const, error: "Routine name, timezone, and start weekday are required." };
@@ -34,10 +51,20 @@ function parseRoutineForm(formData: FormData) {
   if (weightUnit !== "lbs" && weightUnit !== "kg") {
     return { ok: false as const, error: "Weight unit must be lbs or kg." };
   }
+  if (distanceUnit !== "mi" && distanceUnit !== "km") {
+    return { ok: false as const, error: "Distance unit must be mi or km." };
+  }
 
   return {
     ok: true as const,
-    payload: { name, cycleLengthDays, canonicalTimezone, startWeekday: startWeekday as (typeof ROUTINE_START_WEEKDAYS)[number], weightUnit },
+    payload: {
+      name,
+      cycleLengthDays,
+      canonicalTimezone,
+      startWeekday: startWeekday as (typeof ROUTINE_START_WEEKDAYS)[number],
+      weightUnit,
+      distanceUnit,
+    },
   };
 }
 
@@ -80,10 +107,13 @@ export async function createRoutineAction(formData: FormData): Promise<CreateRou
 
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({ active_routine_id: routine.id })
+    .update({
+      active_routine_id: routine.id,
+      preferred_distance_unit: parsed.payload.distanceUnit,
+    })
     .eq("id", user.id);
 
-  if (profileError) return { ok: false, error: profileError.message };
+  if (profileError && !isMissingProfilePreferenceColumnError(profileError)) return { ok: false, error: profileError.message };
 
   revalidateRoutinesViews();
   revalidatePath(getRoutineEditPath(routine.id));
@@ -160,6 +190,15 @@ export async function updateRoutineAction(formData: FormData): Promise<ActionRes
         if (deleteError) return { ok: false, error: deleteError.message };
       }
     }
+  }
+
+  const { error: profilePreferenceError } = await supabase
+    .from("profiles")
+    .update({ preferred_distance_unit: parsed.payload.distanceUnit })
+    .eq("id", user.id);
+
+  if (profilePreferenceError && !isMissingProfilePreferenceColumnError(profilePreferenceError)) {
+    return { ok: false, error: profilePreferenceError.message };
   }
 
   revalidateRoutinesViews();

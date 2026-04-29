@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
+import { FloatingHeaderSlot } from "@/components/layout/FloatingHeaderRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { HistoryPageHeader, HistoryTabs } from "@/components/history/HistoryShared";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
@@ -56,25 +57,27 @@ export function HistoryRouteScaffold(props: HistoryRouteScaffoldProps) {
           : null;
 
         return (
-          <ContentRail className={cn(appTokens.historyFloatingHeaderRail, props.floatingHeaderRailClassName)}>
+          <FloatingHeaderSlot
+            railClassName={cn(appTokens.historyFloatingHeaderRail, props.floatingHeaderRailClassName)}
+            data-history-floating-header
+          >
             {showTitleHeader ? (
-              <HistoryPageHeader title={props.title} subtitle={props.subtitle}>
+              <HistoryPageHeader title={props.title} subtitle={props.subtitle} withPanel={headerChrome !== "titleOnly"}>
                 {headerChildren}
               </HistoryPageHeader>
             ) : (
-              <div data-history-floating-header className="w-full">
-                {props.floatingHeaderSlot}
-              </div>
+              props.floatingHeaderSlot
             )}
-          </ContentRail>
+          </FloatingHeaderSlot>
         );
       })()
       : (
-        <ContentRail className={cn(appTokens.historyDetailFloatingHeaderRail, props.floatingHeaderRailClassName)}>
-          <div data-history-floating-header className="w-full">
-            {props.floatingHeader}
-          </div>
-        </ContentRail>
+        <FloatingHeaderSlot
+          railClassName={cn(appTokens.historyDetailFloatingHeaderRail, props.floatingHeaderRailClassName)}
+          data-history-floating-header
+        >
+          {props.floatingHeader}
+        </FloatingHeaderSlot>
       );
 
   return (

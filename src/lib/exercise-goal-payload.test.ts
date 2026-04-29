@@ -1,63 +1,43 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseExerciseGoalPayload } from "./exercise-goal-payload.ts";
 
-function createGoalFormData(entries: Record<string, string>) {
+import { mapRoutineDayGoalToSessionColumns, parseExerciseGoalPayload } from "./exercise-goal-payload.ts";
+
+test("parseExerciseGoalPayload preserves measurement-optional sets-only goals", () => {
   const formData = new FormData();
-  for (const [key, value] of Object.entries(entries)) {
-    formData.set(key, value);
-  }
-  return formData;
-}
+  formData.set("targetSets", "3");
+  formData.set("goalModality", "strength");
 
-test("strength payload keeps auxiliary time and calories targets instead of dropping them", () => {
-  const result = parseExerciseGoalPayload(createGoalFormData({
-    targetSets: "3",
-    targetRepsMin: "8",
-    targetRepsMax: "10",
-    targetWeight: "65",
-    targetWeightUnit: "lbs",
-    targetDuration: "3:00",
-    targetDistance: "",
-    targetDistanceUnit: "mi",
-    targetCalories: "120",
-    goalModality: "strength",
-    defaultUnit: "mi",
-  }), { requireSets: true });
+  const result = parseExerciseGoalPayload(formData, { requireSets: true });
 
   assert.equal(result.ok, true);
-  if (!result.ok) return;
+  if (!result.ok) {
+    throw new Error("Expected payload parsing to succeed.");
+  }
 
-  assert.equal(result.payload.measurement_type, "reps");
-  assert.equal(result.payload.target_reps_min, 8);
-  assert.equal(result.payload.target_reps_max, 10);
-  assert.equal(result.payload.target_weight_min, 65);
-  assert.equal(result.payload.target_time_seconds_min, 180);
-  assert.equal(result.payload.target_calories_min, 120);
+  assert.equal(result.payload.measurement_type, "none");
+  assert.equal(result.payload.target_sets_min, 3);
+  assert.equal(result.payload.target_reps_min, null);
+  assert.equal(result.payload.target_time_seconds_min, null);
 });
 
-test("cardio time payload keeps auxiliary reps, weight, and distance while preserving cardio measurement type", () => {
-  const result = parseExerciseGoalPayload(createGoalFormData({
-    targetSets: "2",
-    targetRepsMin: "20",
-    targetRepsMax: "25",
-    targetWeight: "15",
-    targetWeightUnit: "lbs",
-    targetDuration: "12:00",
-    targetDistance: "1.5",
-    targetDistanceUnit: "mi",
-    targetCalories: "180",
-    goalModality: "cardio_time",
-    defaultUnit: "mi",
-  }), { requireSets: true });
+test("mapRoutineDayGoalToSessionColumns preserves explicit measurement-optional state", () => {
+  const mapped = mapRoutineDayGoalToSessionColumns({
+    target_sets: 2,
+    target_reps: null,
+    target_reps_min: null,
+    target_reps_max: null,
+    target_weight: null,
+    target_weight_unit: null,
+    target_duration_seconds: null,
+    target_distance: null,
+    target_distance_unit: null,
+    target_calories: null,
+    measurement_type: "none",
+    default_unit: null,
+  });
 
-  assert.equal(result.ok, true);
-  if (!result.ok) return;
-
-  assert.equal(result.payload.measurement_type, "time");
-  assert.equal(result.payload.target_reps_min, 20);
-  assert.equal(result.payload.target_weight_min, 15);
-  assert.equal(result.payload.target_time_seconds_min, 720);
-  assert.equal(result.payload.target_distance_min, 1.5);
-  assert.equal(result.payload.target_calories_min, 180);
+  assert.equal(mapped.measurement_type, "none");
+  assert.equal(mapped.target_sets_min, 2);
+  assert.equal(mapped.target_reps_min, null);
 });

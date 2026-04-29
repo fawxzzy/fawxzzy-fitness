@@ -1,4 +1,5 @@
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { formatDurationPreview } from "@/lib/duration";
 import { deriveGoalMeasurementSelections, type GoalModality } from "@/lib/exercise-goal-validation";
 
 export type EditDayExerciseDefaults = {
@@ -56,19 +57,6 @@ function formatNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
 }
 
-function formatDurationClock(totalSeconds: number) {
-  const seconds = Math.max(0, Math.floor(totalSeconds));
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainder = seconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
-  }
-
-  return `${minutes}:${String(remainder).padStart(2, "0")}`;
-}
-
 function formatSetCountLabel(count: number | null) {
   if (!Number.isFinite(count) || (count ?? 0) <= 0) return null;
   const normalizedCount = Math.floor(count as number);
@@ -101,7 +89,7 @@ function formatDraftSummary(values: {
     formatRepRange(values.reps, values.repsMax),
     Number.isFinite(values.weight) && (values.weight ?? 0) > 0 ? `${formatNumber(values.weight as number)} ${values.weightUnit}` : null,
     Number.isFinite(values.durationSeconds) && (values.durationSeconds ?? 0) > 0
-      ? formatDurationClock(values.durationSeconds as number)
+      ? formatDurationPreview(values.durationSeconds as number)
       : null,
     Number.isFinite(values.distance) && (values.distance ?? 0) > 0 ? `${formatNumber(values.distance as number)} ${values.distanceUnit}` : null,
     Number.isFinite(values.calories) && (values.calories ?? 0) > 0 ? `${formatNumber(values.calories as number)} cal` : null,

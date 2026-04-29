@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
+import { FloatingHeaderRail, FloatingHeaderSlot } from "@/components/layout/FloatingHeaderRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
@@ -34,7 +35,7 @@ export function TodayFloatingHeaderRail({
   children: ReactNode;
   className?: string;
 }) {
-  return <ContentRail className={cn("py-1", className)}>{children}</ContentRail>;
+  return <FloatingHeaderRail className={cn("py-1", className)}>{children}</FloatingHeaderRail>;
 }
 
 export function TodayFloatingHeaderSlot({
@@ -42,11 +43,7 @@ export function TodayFloatingHeaderSlot({
 }: {
   id: string;
 }) {
-  return (
-    <TodayFloatingHeaderRail>
-      <div id={id} className="w-full" />
-    </TodayFloatingHeaderRail>
-  );
+  return <FloatingHeaderSlot railClassName="py-1" id={id} />;
 }
 
 export function TodayOverviewHeader(props: Omit<ComponentProps<typeof SharedScreenHeader>, "recipe">) {

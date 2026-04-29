@@ -68,6 +68,28 @@ export function isMeasurementOptionalExercise(exercise: Pick<ExerciseMetadataInp
     || normalizedMovementPattern === "mobility";
 }
 
+export function getRecoveryExerciseFallbackDescription(
+  exercise: Pick<ExerciseMetadataInput, "name" | "primary_muscle" | "movement_pattern"> | null | undefined,
+) {
+  if (!exercise) {
+    return null;
+  }
+
+  const normalizedName = normalizeMetadataName(exercise.name);
+  const normalizedPrimaryMuscle = normalizeMetadataName(exercise.primary_muscle);
+  const normalizedMovementPattern = normalizeMetadataName(exercise.movement_pattern);
+
+  if (normalizedName.includes("mobility") || normalizedMovementPattern === "mobility") {
+    return "Use this slot for joint prep, controlled mobility drills, and simple movement flows before training or during recovery work.";
+  }
+
+  if (normalizedName.includes("stretch") || normalizedPrimaryMuscle === "recovery") {
+    return "Use this slot for gentle recovery work, easy range-of-motion drills, or cooldown movement that helps you reset without chasing fatigue.";
+  }
+
+  return null;
+}
+
 export function isBodyweightExercise(exercise: ExerciseMetadataInput | null | undefined) {
   if (!exercise) return false;
 

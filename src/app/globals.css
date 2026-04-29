@@ -249,6 +249,9 @@
 
 body {
   min-height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background-color: rgb(var(--bg));
   background-image: linear-gradient(180deg, rgb(var(--bg-1)), rgb(var(--bg-0)) 42%, rgb(var(--bg-0)));
   color: rgb(var(--text));
@@ -1277,6 +1280,9 @@ body {
 
 html {
   height: 100%;
+  min-height: 100dvh;
+  background-color: rgb(var(--bg));
+  background-image: linear-gradient(180deg, rgb(var(--bg-1)), rgb(var(--bg-0)) 42%, rgb(var(--bg-0)));
   overflow-x: hidden;
   overflow-y: hidden;
   overscroll-behavior-x: none;
@@ -1674,6 +1680,12 @@ a:focus-visible {
   color: rgb(var(--accent-yellow-on) / 0.96);
 }
 
+.bottom-action[data-bottom-action-intent="toggleInactive"] {
+  border-color: transparent;
+  background: rgb(var(--accent));
+  color: rgb(var(--text-on-accent));
+}
+
 .bottom-action[data-bottom-action-intent="danger"] {
   border-color: rgb(var(--danger-rgb) / 0.2);
   color: rgb(var(--danger-rgb) / 0.96);
@@ -1887,6 +1899,26 @@ a:focus-visible {
 .picker-scroll-viewport::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+.filter-scroll-viewport {
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--accent) / 0.5) rgb(var(--surface-1-rgb) / 0.24);
+}
+
+.filter-scroll-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-scroll-viewport::-webkit-scrollbar-track {
+  background: rgb(var(--surface-1-rgb) / 0.24);
+  border-radius: 999px;
+}
+
+.filter-scroll-viewport::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgb(var(--accent) / 0.82), rgb(var(--accent) / 0.52));
+  border-radius: 999px;
 }
 
 .app-page-scroll {

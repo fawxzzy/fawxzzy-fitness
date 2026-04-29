@@ -19,7 +19,7 @@ test("formatQuickLogPreviewLabel omits unconfigured zero-valued metrics", () => 
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "10 reps");
+  assert.equal(label, "15 reps");
 });
 
 test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", () => {
@@ -38,7 +38,7 @@ test("formatQuickLogPreviewLabel keeps configured non-zero strength metrics", ()
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "5 reps • 225 lbs");
+  assert.equal(label, "8 reps • 225 lbs");
 });
 
 test("formatQuickLogPreviewLabel falls back to blank when no real metrics exist", () => {
@@ -74,7 +74,7 @@ test("formatQuickLogPreviewLabel uses metric-based cardio summary when metrics e
     fallbackWeightUnit: "lbs",
   });
 
-  assert.equal(label, "12:00 • 2 mi • 250 cal");
+  assert.equal(label, "12:00 s • 2 mi • 250 cal");
 });
 
 test("measurement-optional quick log resolves without reps or time", () => {
@@ -106,4 +106,43 @@ test("measurement-optional quick log preview stays empty", () => {
   });
 
   assert.equal(preview, "");
+});
+
+test("measurementless quick log override keeps preview empty even when targets exist", () => {
+  const preview = formatQuickLogPreviewLabel({
+    target: {
+      measurementType: "time",
+      durationSeconds: 30,
+      allowMeasurementlessLog: true,
+    },
+    loggedSetCount: 0,
+    targetSetsMin: 1,
+    targetSetsMax: 1,
+    fallbackWeightUnit: "lbs",
+  });
+
+  assert.equal(preview, "");
+});
+
+test("measurementless quick log override resolves without target metrics", () => {
+  const result = resolveQuickLogFromTarget({
+    measurementType: "time",
+    durationSeconds: 30,
+    allowMeasurementlessLog: true,
+  }, "lbs");
+
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    throw new Error("Expected quick log resolution to succeed.");
+  }
+
+  assert.deepEqual(result.payload, {
+    weight: 0,
+    reps: 0,
+    durationSeconds: null,
+    distance: null,
+    distanceUnit: null,
+    calories: null,
+    weightUnit: "lbs",
+  });
 });

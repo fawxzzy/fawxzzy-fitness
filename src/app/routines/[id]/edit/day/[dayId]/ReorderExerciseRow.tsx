@@ -8,7 +8,7 @@ type Props = {
   exerciseId: string;
   exerciseName: string;
   metadata: string;
-  measurementType?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
@@ -61,9 +61,10 @@ export function ReorderExerciseRow({
         exercise={{ name: exerciseName, slug, image_path, image_icon_path, image_howto_path }}
         summary={metadata}
         summaryLabel="Goal"
+        subtitleTone="plain"
         variant="reorder"
         state={isDragging ? "selected" : "default"}
-        badgeText={`ORDER ${orderNumber}`}
+        badgeText={undefined}
         bodyClassName={appTokens.routineEditorReorderBody}
         className={cn(appTokens.routineEditorReorderBase, isDragging ? appTokens.routineEditorReorderDragging : undefined)}
         trailingStackClassName={appTokens.routineEditorReorderTrailingStack}

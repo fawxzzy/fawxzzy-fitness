@@ -33,6 +33,7 @@ export function HistoryLogPageClient(props: {
   workoutExercises?: IncomingHistoryAuditExercise[];
   sessionSummary: SessionSummary;
   backHref: string;
+  initialExpandedExerciseId?: string | null;
 }) {
   const incomingExercises = pickPreferredArray([
     props.exercises,

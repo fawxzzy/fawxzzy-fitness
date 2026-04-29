@@ -97,7 +97,7 @@ export function InstallRouteSurface({ initialInstallContext = null }: { initialI
             )}
             secondary={(
               <BottomDockButton
-                intent="secondary"
+                intent="info"
                 loading={installPrompt.isPrompting}
                 loadingLabel="Installing app..."
                 onClick={() => {

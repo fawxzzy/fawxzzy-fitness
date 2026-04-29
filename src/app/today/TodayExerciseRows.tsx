@@ -1,14 +1,17 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { ChevronRightIcon } from "@/components/ui/Chevrons";
 import { WorkoutExerciseCardDetails } from "@/components/workout/WorkoutExerciseCardDetails";
 import { deriveSessionExerciseProgressState } from "@/lib/session-exercise-progress";
+import { isStretchHubExercise } from "@/lib/stretch-library";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
-import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
+import { applyWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
-type TodayExerciseRow = {
+export type TodayExerciseRow = {
   id: string;
   exerciseId: string;
   name: string;
@@ -24,7 +27,7 @@ type TodayExerciseRow = {
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   isCardio?: boolean | null;
   kind?: string | null;
   type?: string | null;
@@ -32,14 +35,53 @@ type TodayExerciseRow = {
   categories?: string[] | string | null;
 };
 
+function formatLoggedSetFraction(loggedSetCount: number, goalSetTarget: number | null) {
+  if (goalSetTarget !== null) {
+    return `${loggedSetCount} / ${goalSetTarget}`;
+  }
+
+  return `${loggedSetCount} logged`;
+}
+
+function renderProgressChevron(progressLabel?: string, completed = false) {
+  return (
+    <div className="flex min-w-[4.75rem] shrink-0 items-center justify-end gap-1.5 self-center">
+      {progressLabel ? (
+        <span className={[
+          "whitespace-nowrap leading-none text-[0.85rem] font-semibold tabular-nums",
+          completed ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.94)]",
+        ].join(" ")}>
+          {progressLabel}
+        </span>
+      ) : null}
+      <ChevronRightIcon className={[
+        "h-5 w-5 shrink-0 self-center",
+        completed ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]",
+      ].join(" ")} />
+    </div>
+  );
+}
+
 export function TodayExerciseRows({
   exercises,
   emptyMessage,
   density = "compact",
+  showProgress = true,
+  sourceContext = "TodayExerciseRows",
+  surface = "today",
+  rowClassName,
+  rowContentClassName = "pl-3",
+  rightIcon,
 }: {
   exercises: TodayExerciseRow[];
   emptyMessage: string;
   density?: "compact" | "detailed";
+  showProgress?: boolean;
+  sourceContext?: string;
+  surface?: WorkoutCardSurface;
+  rowClassName?: string;
+  rowContentClassName?: string;
+  rightIcon?: ReactNode;
 }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
@@ -47,17 +89,23 @@ export function TodayExerciseRows({
     <>
       <ul className="flex flex-col gap-[0.375rem]">
         {exercises.map((exercise) => {
-          const progressState = deriveSessionExerciseProgressState({
-            loggedSetCount: exercise.loggedSetCount ?? 0,
-            isSkipped: exercise.isSkipped === true,
-            targetSetsMin: exercise.targetSetsMin,
-            targetSetsMax: exercise.targetSetsMax,
-            surface: "summary",
-          });
-          const titleMeta = progressState.goalSetTarget !== null
-            ? `${progressState.loggedSetCount} / ${progressState.goalSetTarget}`
+          const isStretchHub = isStretchHubExercise(exercise);
+          const resolvedSummary = isStretchHub ? null : exercise.targets;
+          const progressState = showProgress
+            ? deriveSessionExerciseProgressState({
+                loggedSetCount: exercise.loggedSetCount ?? 0,
+                isSkipped: exercise.isSkipped === true,
+                targetSetsMin: exercise.targetSetsMin,
+                targetSetsMax: exercise.targetSetsMax,
+                surface: "summary",
+              })
+            : null;
+          const progressLabel = progressState && progressState.goalSetTarget !== null
+            ? formatLoggedSetFraction(progressState.loggedSetCount, progressState.goalSetTarget)
             : undefined;
           const detailedMetrics = buildPlannedExerciseDetailMetrics({
+            name: exercise.name,
+            slug: exercise.slug,
             measurementType: exercise.measurement_type,
             isCardio: exercise.isCardio,
             kind: exercise.kind,
@@ -73,38 +121,72 @@ export function TodayExerciseRows({
             targetSetsMax: exercise.targetSetsMax,
           });
           const { policy, chips, detailedMetrics: visibleDetailedMetrics } = applyWorkoutCardSurfacePolicy({
-            surface: "today",
+            surface,
             density,
             detailedMetrics,
           });
-
+          const shouldRenderCompactSkippedRow =
+            surface === "today"
+            && exercise.isSkipped === true
+            && progressState?.cardState !== "completed";
           return (
             <li key={exercise.id}>
-              <StandardExerciseRow
-                exercise={exercise}
-                summary={exercise.targets}
-                subtitleTone="plain"
-                variant="interactive"
-                density={density}
-                contentClassName="pl-3"
-                state={progressState.cardState}
-                badgeText={titleMeta ? undefined : progressState.badgeText}
-                titleMeta={titleMeta}
-                className={exercise.isSkipped ? "opacity-60 saturate-[0.78]" : undefined}
-                onPress={() => {
-                  if (process.env.NODE_ENV === "development") {
-                    console.debug("[ExerciseInfo:open] TodayExerciseRows", { exerciseId: exercise.exerciseId, exercise });
-                  }
-                  setSelectedExerciseId(exercise.exerciseId);
-                }}
-                showLeadingVisual={policy.showMedia}
-              >
-                <WorkoutExerciseCardDetails
+              {shouldRenderCompactSkippedRow ? (
+                <button
+                  type="button"
+                  className={[
+                    "flex w-full items-center justify-between gap-3 overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.86)] px-4 py-2.5 text-left opacity-60 saturate-[0.78] transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent)/0.2)]",
+                    rowClassName,
+                  ].filter(Boolean).join(" ")}
+                  onClick={() => {
+                    if (process.env.NODE_ENV === "development") {
+                      console.debug(`[ExerciseInfo:open] ${sourceContext}`, { exerciseId: exercise.exerciseId, exercise });
+                    }
+                    setSelectedExerciseId(exercise.exerciseId);
+                  }}
+                >
+                  <p className="min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
+                    {exercise.name}
+                  </p>
+                  {renderProgressChevron(progressLabel, false)}
+                </button>
+              ) : (
+                <StandardExerciseRow
+                  exercise={exercise}
+                  summary={resolvedSummary}
+                  subtitleTone="plain"
+                  variant="interactive"
                   density={density}
-                  chips={chips}
-                  detailedMetrics={visibleDetailedMetrics}
-                />
-              </StandardExerciseRow>
+                  contentClassName={rowContentClassName}
+                  state={progressState?.cardState ?? "default"}
+                  semanticTone={progressState?.cardState === "completed" ? "completed" : undefined}
+                  badgeText={progressState && progressState.goalSetTarget === null ? progressState.badgeText : undefined}
+                  className={[
+                    rowClassName,
+                    progressState?.cardState === "completed"
+                      ? "border-[rgb(var(--success-rgb)/0.96)] bg-[linear-gradient(180deg,rgba(99,235,150,0.72),rgba(24,88,60,0.99))] ring-1 ring-[rgb(var(--success-rgb)/0.42)]"
+                      : undefined,
+                    exercise.isSkipped && progressState && progressState.cardState !== "completed" ? "opacity-60 saturate-[0.78]" : undefined,
+                  ].filter(Boolean).join(" ")}
+                  rightIcon={rightIcon ?? renderProgressChevron(progressLabel, progressState?.cardState === "completed")}
+                  onPress={() => {
+                    if (process.env.NODE_ENV === "development") {
+                      console.debug(`[ExerciseInfo:open] ${sourceContext}`, { exerciseId: exercise.exerciseId, exercise });
+                    }
+                    setSelectedExerciseId(exercise.exerciseId);
+                  }}
+                  surface={surface}
+                  showLeadingVisual={policy.showMedia}
+                  showAccentRail={!isStretchHub}
+                  hideEmptySummary={isStretchHub}
+                >
+                  <WorkoutExerciseCardDetails
+                    density={density}
+                    chips={chips}
+                    detailedMetrics={visibleDetailedMetrics}
+                  />
+                </StandardExerciseRow>
+              )}
             </li>
           );
         })}
@@ -122,7 +204,7 @@ export function TodayExerciseRows({
         onClose={() => {
           setSelectedExerciseId(null);
         }}
-        sourceContext="TodayExerciseRows"
+        sourceContext={sourceContext}
       />
     </>
   );

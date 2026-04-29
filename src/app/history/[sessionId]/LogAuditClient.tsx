@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -15,24 +15,33 @@ import {
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { usePublishBottomActions } from "@/components/layout/bottom-actions";
+import { getBottomActionButtonClassName } from "@/components/layout/bottomActionIntents";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { HistoryDetailExerciseCard } from "@/components/history/HistoryDetailExerciseCard";
-import { HistorySessionCard } from "@/components/history/HistorySessionCard";
-import { DestructiveButton, SecondaryButton } from "@/components/ui/AppButton";
+import { buildSessionCompactTitleText, HistorySessionCard } from "@/components/history/HistorySessionCard";
+import { AttachedQuickActionStrip } from "@/components/session/SessionExerciseBlock";
+import { SignatureDot } from "@/components/ui/app/SignatureSeparator";
+import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
+import { PickerListViewport } from "@/components/ui/PickerListViewport";
+import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { ModifyMeasurements, type MeasurementMetrics, type MeasurementValues } from "@/components/ui/measurements/ModifyMeasurements";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { useReturnNavigation } from "@/components/ui/useReturnNavigation";
-import { CompactLogRow } from "@/components/ui/workout-entry/CompactLogRow";
+import { LoggedSetSummaryRow } from "@/components/ui/workout-entry/LoggedSetSummaryRow";
 import { appTokens } from "@/components/ui/app/tokens";
-import { HistoryDetailHeader, HistorySection, buildHistorySessionMeta } from "@/components/history/HistoryShared";
+import { HistoryDetailHeader, HistorySection } from "@/components/history/HistoryShared";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { useToast } from "@/components/ui/ToastProvider";
+import type { MetricDatum } from "@/components/ui/MetricItem";
 import { toastActionResult } from "@/lib/action-feedback";
 import { formatDurationClock } from "@/lib/duration";
+import { formatDistance, formatDurationShort as formatWorkoutDuration, formatPace } from "@/lib/exercise-stats-formatting";
 import { formatDateShort } from "@/lib/formatting";
 import { sanitizeEnabledMeasurementValues } from "@/lib/measurement-sanitization";
-import { formatMeasurementSummaryText } from "@/lib/measurement-display";
+import { formatMeasurementSummaryItems, formatMeasurementSummaryText, formatSetPositionLabel } from "@/lib/measurement-display";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
+import { cn } from "@/lib/cn";
 import type { SessionSummary } from "../session-summary";
 
 type AuditSet = {
@@ -64,7 +73,7 @@ type AuditExercise = {
   exercise_image_icon_path?: string | null;
   exercise_image_howto_path?: string | null;
   notes: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   sets: AuditSet[];
 };
@@ -74,8 +83,17 @@ const resolveDistanceUnit = (value: string | null | undefined): "mi" | "km" | "m
   return null;
 };
 
+const DELETE_ACTION_BUTTON_CLASS_NAME = getBottomActionButtonClassName({
+  intent: "danger",
+  fullWidth: true,
+  className: "!min-h-0 !h-11 !rounded-none !border-0 !px-4",
+});
+
+const SESSION_HEADER_TITLE_CLASS_NAME = "text-[0.79rem] font-semibold leading-[1.12] tracking-[-0.01em]";
+const SET_CARD_SHELL_CLASS_NAME = "w-full overflow-hidden rounded-[1.05rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)] shadow-none";
 const metricsForMeasurementType = (measurementType: AuditExercise["measurement_type"]): MeasurementMetrics => {
   if (measurementType === "reps") return { reps: true, weight: true, time: false, distance: false, calories: false };
+  if (measurementType === "none") return { reps: false, weight: false, time: false, distance: false, calories: false };
   if (measurementType === "time") return { reps: false, weight: false, time: true, distance: false, calories: false };
   if (measurementType === "distance") return { reps: false, weight: false, time: false, distance: true, calories: false };
   return { reps: false, weight: false, time: true, distance: true, calories: false };
@@ -151,6 +169,322 @@ const isSetChanged = (set: EditableSet, payload: ReturnType<typeof toSetPayload>
   || payload.weightUnit !== (set.source.weight_unit ?? payload.weightUnit)
 );
 
+function buildMeasurementSummary(set: EditableSet, defaultUnit: string | null) {
+  return formatMeasurementSummaryText({
+    ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
+      reps: set.values.reps.trim() ? Number(set.values.reps) : null,
+      weight: set.values.weight.trim() ? Number(set.values.weight) : null,
+      durationSeconds: parseDurationInput(set.values.duration),
+      distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+      calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+    }),
+    weightUnit: set.values.weightUnit,
+    distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(defaultUnit) ?? "mi",
+    emptyLabel: "No measurements",
+  });
+}
+
+function scoreEditableSet(set: EditableSet) {
+  const weight = set.values.weight.trim() ? Number(set.values.weight) : 0;
+  const reps = set.values.reps.trim() ? Number(set.values.reps) : 0;
+  const distance = set.values.distance.trim() ? Number(set.values.distance) : 0;
+  const durationSeconds = parseDurationInput(set.values.duration) ?? 0;
+  const calories = set.values.calories.trim() ? Number(set.values.calories) : 0;
+
+  return (
+    (Number.isFinite(weight) ? weight : 0) * 1_000_000
+    + (Number.isFinite(reps) ? reps : 0) * 10_000
+    + (Number.isFinite(distance) ? distance : 0) * 100
+    + (Number.isFinite(durationSeconds) ? durationSeconds : 0)
+    + (Number.isFinite(calories) ? calories : 0)
+  );
+}
+
+function findBestEditableSet(sets: EditableSet[]) {
+  return sets.reduce<EditableSet | null>((best, current) => {
+    if (!best) return current;
+    return scoreEditableSet(current) > scoreEditableSet(best) ? current : best;
+  }, null);
+}
+
+function parsePositiveNumber(rawValue: string) {
+  const value = Number(rawValue);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function hasMeaningfulSetData(set: EditableSet) {
+  return (
+    parsePositiveNumber(set.values.weight) > 0
+    || parsePositiveNumber(set.values.reps) > 0
+    || (parseDurationInput(set.values.duration) ?? 0) > 0
+    || parsePositiveNumber(set.values.distance) > 0
+    || parsePositiveNumber(set.values.calories) > 0
+  );
+}
+
+function buildFocusedExerciseSessionSummary(args: {
+  sessionSummary: SessionSummary;
+  exerciseName: string;
+  sets: EditableSet[];
+  defaultUnit: string | null;
+}) {
+  const meaningfulSetCount = args.sets.filter(hasMeaningfulSetData).length;
+  const totalReps = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.reps), 0);
+  const totalDurationSeconds = args.sets.reduce((sum, set) => sum + (parseDurationInput(set.values.duration) ?? 0), 0);
+  const totalVolume = args.sets.reduce((sum, set) => {
+    const reps = parsePositiveNumber(set.values.reps);
+    const weight = parsePositiveNumber(set.values.weight);
+    return reps > 0 && weight > 0 ? sum + (weight * reps) : sum;
+  }, 0);
+  const bestSet = findBestEditableSet(args.sets);
+  const bestDisplay = bestSet ? buildMeasurementSummary(bestSet, args.defaultUnit) : undefined;
+  const isPrExercise = (args.sessionSummary.prExerciseNames ?? []).includes(args.exerciseName);
+  const volumeUnit = args.sets.find((set) => set.values.weightUnit === "lbs" || set.values.weightUnit === "kg")?.values.weightUnit;
+
+  return {
+    ...args.sessionSummary,
+    exerciseCount: 1,
+    setCount: args.sets.length,
+    repCount: Math.round(totalReps),
+    durationSec: totalDurationSeconds > 0 ? totalDurationSeconds : undefined,
+    totalVolume,
+    volumeUnit,
+    completionRate: args.sets.length > 0 ? meaningfulSetCount / args.sets.length : undefined,
+    bestLift: bestDisplay ? { exerciseName: args.exerciseName, display: bestDisplay } : undefined,
+    topSet: bestDisplay ? { exerciseName: args.exerciseName, display: bestDisplay } : undefined,
+    prExerciseNames: isPrExercise ? [args.exerciseName] : [],
+    hasSetData: args.sets.length > 0,
+  } satisfies SessionSummary;
+}
+
+function buildLoggedSessionSummary(args: {
+  sessionSummary: SessionSummary;
+  exercises: AuditExercise[];
+  editableSets: Record<string, EditableSet[]>;
+  exerciseNameMap: Record<string, string>;
+}) {
+  const exerciseSummaries = args.exercises.map((exercise) => {
+    const sets = args.editableSets[exercise.id] ?? [];
+    const name = exercise.exercise_name?.trim() || args.exerciseNameMap[exercise.exercise_id] || "Exercise";
+    return {
+      exercise,
+      sets,
+      name,
+      bestSet: findBestEditableSet(sets),
+      score: Math.max(...sets.map(scoreEditableSet), 0),
+    };
+  });
+  const totalSetCount = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.length, 0);
+  const meaningfulSetCount = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.filter(hasMeaningfulSetData).length, 0);
+  const totalReps = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.reduce((setSum, set) => setSum + parsePositiveNumber(set.values.reps), 0), 0);
+  const totalVolume = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.reduce((setSum, set) => {
+    const reps = parsePositiveNumber(set.values.reps);
+    const weight = parsePositiveNumber(set.values.weight);
+    return reps > 0 && weight > 0 ? setSum + (weight * reps) : setSum;
+  }, 0), 0);
+  const totalDurationSeconds = exerciseSummaries.reduce((sum, entry) => sum + entry.sets.reduce((setSum, set) => setSum + (parseDurationInput(set.values.duration) ?? 0), 0), 0);
+  const bestExercise = exerciseSummaries.reduce<typeof exerciseSummaries[number] | null>((best, current) => {
+    if (!current.bestSet) return best;
+    if (!best || current.score > best.score) return current;
+    return best;
+  }, null);
+  const bestDisplay = bestExercise?.bestSet ? buildMeasurementSummary(bestExercise.bestSet, bestExercise.exercise.default_unit) : undefined;
+  const volumeUnit = exerciseSummaries.flatMap((entry) => entry.sets).find((set) => set.values.weightUnit === "lbs" || set.values.weightUnit === "kg")?.values.weightUnit;
+  const visibleExerciseNames = exerciseSummaries.map((entry) => entry.name);
+
+  return {
+    ...args.sessionSummary,
+    exerciseCount: exerciseSummaries.length,
+    setCount: totalSetCount,
+    repCount: Math.round(totalReps),
+    durationSec: totalDurationSeconds > 0 ? totalDurationSeconds : args.sessionSummary.durationSec,
+    totalVolume,
+    volumeUnit,
+    completionRate: totalSetCount > 0 ? meaningfulSetCount / totalSetCount : undefined,
+    exerciseNames: visibleExerciseNames,
+    prExerciseNames: (args.sessionSummary.prExerciseNames ?? []).filter((name) => visibleExerciseNames.includes(name)),
+    bestLift: bestDisplay && bestExercise ? { exerciseName: bestExercise.name, display: bestDisplay } : undefined,
+    topSet: bestDisplay && bestExercise ? { exerciseName: bestExercise.name, display: bestDisplay } : undefined,
+    hasSetData: totalSetCount > 0,
+  } satisfies SessionSummary;
+}
+
+function formatMetricCount(value: number) {
+  return Math.max(0, Math.round(value)).toLocaleString();
+}
+
+function formatFocusedVolume(totalVolume: number, unit: "lbs" | "kg" | null) {
+  const safeVolume = Math.max(0, Math.round(totalVolume));
+  if (safeVolume <= 0) {
+    return "0";
+  }
+
+  return unit ? `${safeVolume.toLocaleString()} ${unit}` : safeVolume.toLocaleString();
+}
+
+function resolveFocusedDistanceUnit(sets: EditableSet[], defaultUnit: string | null) {
+  return sets.find((set) => parsePositiveNumber(set.values.distance) > 0)?.values.distanceUnit
+    ?? resolveDistanceUnit(defaultUnit);
+}
+
+function buildFocusedExerciseDetailedMetrics(args: {
+  exercise: AuditExercise;
+  sets: EditableSet[];
+  defaultUnit: string | null;
+}): MetricDatum[] | null {
+  const bestSet = findBestEditableSet(args.sets);
+  const bestDisplay = bestSet ? buildMeasurementSummary(bestSet, args.defaultUnit) : null;
+  const totalReps = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.reps), 0);
+  const totalDurationSeconds = args.sets.reduce((sum, set) => sum + (parseDurationInput(set.values.duration) ?? 0), 0);
+  const totalDistance = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.distance), 0);
+  const totalCalories = args.sets.reduce((sum, set) => sum + parsePositiveNumber(set.values.calories), 0);
+  const totalVolume = args.sets.reduce((sum, set) => {
+    const reps = parsePositiveNumber(set.values.reps);
+    const weight = parsePositiveNumber(set.values.weight);
+    return reps > 0 && weight > 0 ? sum + (weight * reps) : sum;
+  }, 0);
+  const volumeUnit = args.sets.find((set) => set.values.weightUnit === "lbs" || set.values.weightUnit === "kg")?.values.weightUnit ?? null;
+  const completionRate = args.sets.length > 0
+    ? args.sets.filter(hasMeaningfulSetData).length / args.sets.length
+    : undefined;
+  const distanceUnit = resolveFocusedDistanceUnit(args.sets, args.defaultUnit);
+  const pace = totalDurationSeconds > 0 && totalDistance > 0 && distanceUnit
+    ? formatPace(totalDurationSeconds / totalDistance, distanceUnit)
+    : null;
+  const summaryMetrics: MetricDatum[] = [
+    {
+      label: "Exercise",
+      value: "1",
+    },
+    {
+      label: "Sets",
+      value: formatMetricCount(args.sets.length),
+    },
+  ];
+
+  if (bestDisplay && bestDisplay !== "No measurements") {
+    summaryMetrics.push({
+      label: "Best",
+      value: bestDisplay,
+    });
+  }
+
+  const detailMetrics: MetricDatum[] = [];
+
+  if (args.exercise.measurement_type === "time" || args.exercise.measurement_type === "time_distance") {
+    detailMetrics.push({
+      label: "Duration",
+      value: formatWorkoutDuration(totalDurationSeconds) ?? "0:00",
+    });
+  }
+
+  if (args.exercise.measurement_type === "distance") {
+    detailMetrics.push({
+      label: "Distance",
+      value: formatDistance(totalDistance, distanceUnit) ?? "0",
+    });
+  }
+
+  if (args.exercise.measurement_type === "time_distance") {
+    detailMetrics.push({
+      label: "Pace",
+      value: pace ?? "No pace",
+    });
+  }
+
+  if (args.exercise.measurement_type === "time") {
+    detailMetrics.push({
+      label: "Mode",
+      value: totalCalories > 0 ? `${formatMetricCount(totalCalories)} cal` : "Timed",
+    });
+  } else if (args.exercise.measurement_type === "distance") {
+    detailMetrics.push({
+      label: "Mode",
+      value: totalCalories > 0 ? `${formatMetricCount(totalCalories)} cal` : "Distance",
+    });
+  } else if (args.exercise.measurement_type === "time_distance" && totalCalories > 0) {
+    detailMetrics.push({
+      label: "Calories",
+      value: `${formatMetricCount(totalCalories)} cal`,
+    });
+  }
+
+  const completionMetric: MetricDatum = {
+    label: "Completion",
+    value: completionRate !== undefined ? `${Math.round(completionRate * 100)}%` : (args.sets.length > 0 ? "Logged" : "Open"),
+  };
+
+  if (args.exercise.measurement_type === "reps") {
+    return [
+      ...summaryMetrics,
+      {
+        label: "Reps",
+        value: formatMetricCount(totalReps),
+      },
+      {
+        label: "Volume",
+        value: formatFocusedVolume(totalVolume, volumeUnit),
+      },
+      completionMetric,
+    ].slice(0, 6);
+  }
+
+  return [...summaryMetrics, ...detailMetrics.slice(0, 2), completionMetric].slice(0, 6);
+}
+
+function buildLoggedSetSummaryItems(set: EditableSet, defaultUnit: string | null) {
+  return formatMeasurementSummaryItems({
+    ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
+      reps: set.values.reps.trim() ? Number(set.values.reps) : null,
+      weight: set.values.weight.trim() ? Number(set.values.weight) : null,
+      durationSeconds: parseDurationInput(set.values.duration),
+      distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+      calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+    }),
+    weightUnit: set.values.weightUnit,
+    distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(defaultUnit) ?? "mi",
+    emptyLabel: "No measurements",
+  }).map((item) => item.label);
+}
+
+function buildGoalSummaryValuesForSet(set: EditableSet) {
+  return {
+    sets: 1,
+    reps: set.values.reps.trim() ? Number(set.values.reps) : null,
+    weight: set.values.weight.trim() ? Number(set.values.weight) : null,
+    weightUnit: set.values.weightUnit,
+    durationSeconds: parseDurationInput(set.values.duration),
+    distance: set.values.distance.trim() ? Number(set.values.distance) : null,
+    distanceUnit: set.values.distanceUnit,
+    calories: set.values.calories.trim() ? Number(set.values.calories) : null,
+    enabledMeasurements: set.activeMetrics,
+    emptyLabel: "No measurements",
+  };
+}
+
+function autoSizeTextarea(element: HTMLTextAreaElement | null) {
+  if (!element) return;
+  element.style.height = "0px";
+  element.style.height = `${Math.max(element.scrollHeight, 52)}px`;
+}
+
+function renderSignatureMeta(parts: string[]) {
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {parts.map((part, index) => (
+        <div key={`${part}-${index}`} className="flex min-w-0 items-center gap-2">
+          {index > 0 ? <SignatureDot /> : null}
+          <span className="min-w-0 truncate">{part}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function LogAuditClient({
   logId,
   initialDayName,
@@ -159,7 +493,8 @@ export function LogAuditClient({
   exerciseNameMap,
   exercises,
   sessionSummary,
-  backHref
+  backHref,
+  initialExpandedExerciseId = null,
 }: {
   logId: string;
   initialDayName: string;
@@ -169,6 +504,7 @@ export function LogAuditClient({
   exercises: AuditExercise[];
   sessionSummary: SessionSummary;
   backHref: string;
+  initialExpandedExerciseId?: string | null;
 }) {
   const surfacePolicy = resolveWorkoutCardSurfacePolicy("history-detail", "compact");
   const router = useRouter();
@@ -178,7 +514,7 @@ export function LogAuditClient({
   const [isEditing, setIsEditing] = useState(false);
   const [dayName, setDayName] = useState(initialDayName);
   const [sessionNotes, setSessionNotes] = useState(initialNotes ?? "");
-  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(initialExpandedExerciseId);
   const [exerciseToDelete, setExerciseToDelete] = useState<{ id: string; name: string } | null>(null);
   const [setToDelete, setSetToDelete] = useState<{ exerciseId: string; setId: string; label: string } | null>(null);
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
@@ -187,10 +523,130 @@ export function LogAuditClient({
     Object.fromEntries(exercises.map((exercise) => [exercise.id, exercise.sets.map((set) => toEditableSet(set, unitLabel, exercise.measurement_type))])),
   );
   const [floatingHeaderContainer, setFloatingHeaderContainer] = useState<HTMLElement | null>(null);
+  const [exerciseViewportHeight, setExerciseViewportHeight] = useState<number | null>(null);
+  const exerciseViewportRef = useRef<HTMLDivElement | null>(null);
+  const headerSessionNotesRef = useRef<HTMLTextAreaElement | null>(null);
+  const exerciseNoteRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   useEffect(() => {
     setFloatingHeaderContainer(document.getElementById("history-log-floating-header"));
   }, []);
+
+  const displayExercises = useMemo(
+    () => exercises.filter((exercise) => (editableSets[exercise.id] ?? []).length > 0),
+    [editableSets, exercises],
+  );
+
+  const expandedExercise = useMemo(
+    () => displayExercises.find((exercise) => exercise.id === expandedExerciseId) ?? null,
+    [displayExercises, expandedExerciseId],
+  );
+
+  const visibleExercises = expandedExercise ? [expandedExercise] : displayExercises;
+
+  const focusedSessionSummary = useMemo(() => {
+    if (!expandedExercise) {
+      return buildLoggedSessionSummary({
+        sessionSummary,
+        exercises: displayExercises,
+        editableSets,
+        exerciseNameMap,
+      });
+    }
+
+    const exerciseName = expandedExercise.exercise_name?.trim() || exerciseNameMap[expandedExercise.exercise_id] || "Exercise";
+    return buildFocusedExerciseSessionSummary({
+      sessionSummary,
+      exerciseName,
+      sets: editableSets[expandedExercise.id] ?? [],
+      defaultUnit: expandedExercise.default_unit,
+    });
+  }, [displayExercises, editableSets, expandedExercise, exerciseNameMap, sessionSummary]);
+
+  const focusedDetailedMetrics = useMemo(() => {
+    if (!expandedExercise) {
+      return undefined;
+    }
+
+    return buildFocusedExerciseDetailedMetrics({
+      exercise: expandedExercise,
+      sets: editableSets[expandedExercise.id] ?? [],
+      defaultUnit: expandedExercise.default_unit,
+    }) ?? undefined;
+  }, [editableSets, expandedExercise]);
+
+  const exerciseViewportMeta = useMemo(() => {
+    if (expandedExercise) {
+      return {
+        caption: null,
+        prNames: focusedSessionSummary.prExerciseNames ?? [],
+      };
+    }
+
+    return {
+      caption: renderSignatureMeta([
+        `${displayExercises.length} ${displayExercises.length === 1 ? "exercise" : "exercises"}`,
+        "Tap a card to focus",
+      ]),
+      prNames: sessionSummary.prExerciseNames ?? [],
+    };
+  }, [displayExercises.length, expandedExercise, focusedSessionSummary.prExerciseNames, sessionSummary.prExerciseNames]);
+
+  useEffect(() => {
+    if (expandedExerciseId && !expandedExercise) {
+      setExpandedExerciseId(null);
+    }
+  }, [expandedExercise, expandedExerciseId]);
+
+  useLayoutEffect(() => {
+    const node = exerciseViewportRef.current;
+    if (!node || typeof window === "undefined") {
+      return;
+    }
+
+    const syncViewportHeight = () => {
+      const nextViewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const dockHeightValue = window.getComputedStyle(node).getPropertyValue("--app-mobile-bottom-dock-height");
+      const dockHeight = Number.parseFloat(dockHeightValue) || 0;
+      const topOffset = node.getBoundingClientRect().top;
+      const availableHeight = Math.max(260, Math.floor(nextViewportHeight - topOffset - Math.max(dockHeight - 8, 0) - 2));
+      setExerciseViewportHeight(availableHeight);
+    };
+
+    syncViewportHeight();
+
+    window.addEventListener("resize", syncViewportHeight);
+    window.visualViewport?.addEventListener("resize", syncViewportHeight);
+
+    return () => {
+      window.removeEventListener("resize", syncViewportHeight);
+      window.visualViewport?.removeEventListener("resize", syncViewportHeight);
+    };
+  }, [displayExercises.length, expandedExerciseId, isEditing, sessionNotes]);
+
+  useEffect(() => {
+    const node = exerciseViewportRef.current;
+    if (!node) {
+      return;
+    }
+
+    const viewport = node.querySelector(".picker-scroll-viewport");
+    if (!(viewport instanceof HTMLElement)) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      viewport.scrollTo({ top: 0, behavior: "instant" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [expandedExerciseId]);
+
+  useLayoutEffect(() => {
+    if (!isEditing) return;
+    autoSizeTextarea(headerSessionNotesRef.current);
+    Object.values(exerciseNoteRefs.current).forEach((element) => autoSizeTextarea(element));
+  }, [exerciseNotes, expandedExerciseId, isEditing, sessionNotes]);
 
   const handleCancel = useCallback(() => {
     setIsEditing(false);
@@ -260,10 +716,9 @@ export function LogAuditClient({
   }, [dayName, editableSets, exerciseNotes, exercises, logId, navigateReturn, sessionNotes, toast]);
 
   const handleStartEditing = useCallback(() => {
-    const firstSet = exercises.flatMap((exercise) => editableSets[exercise.id] ?? [])[0];
-    setExpandedSetId(firstSet?.id ?? null);
+    setExpandedSetId(null);
     setIsEditing(true);
-  }, [editableSets, exercises]);
+  }, []);
 
   const actionsNode = useMemo(() => {
     if (isEditing) {
@@ -293,7 +748,7 @@ export function LogAuditClient({
         primary={(
           <BottomDockButton
             type="button"
-            intent="info"
+            intent="positive"
             onClick={handleStartEditing}
           >
             Edit
@@ -390,56 +845,64 @@ export function LogAuditClient({
     });
   };
 
-  const sessionMeta = buildHistorySessionMeta({
-    startedAt: sessionSummary.startedAt,
-    durationSec: sessionSummary.durationSec,
-    exerciseCount: sessionSummary.exerciseCount,
-    setCount: sessionSummary.setCount,
-    prLabel: sessionSummary.prLabel,
-    dayTitle: sessionSummary.dayTitle,
-  });
+  const headerTitleNode = buildSessionCompactTitleText(sessionSummary, { showChevron: false, centeredTitle: true });
 
   return (
     <>
       {floatingHeaderContainer
         ? createPortal(
-          <HistoryDetailHeader
-            eyebrow={null}
-            title={sessionSummary.routineTitle}
-            subtitle={sessionMeta.dateLine}
-            action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
-            className={isEditing ? appTokens.historyEditorHeaderActive : undefined}
-          >
+          <>
+            <HistoryDetailHeader
+              eyebrow={null}
+              title={headerTitleNode}
+              titleClassName={SESSION_HEADER_TITLE_CLASS_NAME}
+              action={<TopRightBackButton href={backHref} ariaLabel="Back to sessions" />}
+              align="center"
+              className={isEditing ? appTokens.historyEditorHeaderActive : undefined}
+              actionClassName="-ml-1 -mr-1 gap-0"
+            />
             {isEditing ? (
-              <div className={appTokens.historyEditorStack}>
-                <p className={appTokens.exercisePickerSectionEyebrow}>Edit mode</p>
-                <div className={appTokens.historyEditorPanel}>
-                  <p className={appTokens.historyTitleControlLabel}>Session details</p>
-                  <div className={appTokens.historyEditorFieldStack}>
-                    <label className={appTokens.historyEditorFieldLabel}>
-                      Day Name
-                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={appTokens.historyEditorField} />
-                    </label>
-                    <label className={appTokens.historyEditorFieldLabel}>
-                      Session Notes
-                      <textarea value={sessionNotes} onChange={(event) => setSessionNotes(event.target.value)} rows={3} className={appTokens.historyEditorField} />
-                    </label>
-                  </div>
+              <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 px-4 pb-1 pt-2">
+                <div className={cn(appTokens.historyEditorStack, "gap-1.5")}>
+                  <label className="block">
+                    <LabeledEditorField label="Day name">
+                      <input value={dayName} onChange={(event) => setDayName(event.target.value)} className={cn(labeledEditorFieldControlClassName, "min-h-[2.65rem] px-3.5 pt-3.5")} />
+                    </LabeledEditorField>
+                  </label>
+                  <label className="block">
+                    <LabeledEditorField label="Session notes">
+                      <textarea
+                        ref={headerSessionNotesRef}
+                        value={sessionNotes}
+                        onChange={(event) => {
+                          setSessionNotes(event.target.value);
+                          autoSizeTextarea(event.currentTarget);
+                        }}
+                        rows={1}
+                        className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
+                      />
+                    </LabeledEditorField>
+                  </label>
                 </div>
               </div>
             ) : null}
-          </HistoryDetailHeader>,
+          </>,
           floatingHeaderContainer,
         )
         : null}
 
-      <HistorySessionCard
-        session={sessionSummary}
-        viewMode="detailed"
-        title="Session summary"
-        subtitle={sessionMeta.dateLine}
-        rightIcon={null}
-      />
+      {!isEditing ? (
+        <HistorySessionCard
+          session={focusedSessionSummary}
+          viewMode="detailed"
+          rightIcon={null}
+          className="mt-1.5"
+          prExerciseNames={exerciseViewportMeta.prNames}
+          detailedMetrics={focusedDetailedMetrics}
+          detailedHeaderMode="hidden"
+          showDetailedDivider={false}
+        />
+      ) : null}
 
       {!isEditing && sessionNotes.trim().length > 0 ? (
         <HistorySection title="Session notes">
@@ -447,192 +910,252 @@ export function LogAuditClient({
         </HistorySection>
       ) : null}
 
-      <HistorySection
-        title="Logged exercises"
-        description={isEditing ? "Expand an exercise to edit sets and notes." : "Expand an exercise to review sets and notes."}
+      <div
+        ref={exerciseViewportRef}
+        className={cn(
+          "relative left-1/2 w-[calc(100vw-22px)] max-w-[calc(100vw-22px)] -translate-x-1/2 md:left-auto md:w-auto md:max-w-none md:translate-x-0",
+          isEditing ? "mt-5" : undefined,
+        )}
       >
-        {exercises.length === 0 ? (
-          <p className={appTokens.historyEmptyState}>
-            No exercises logged for this session yet.
-          </p>
-        ) : null}
-        {exercises.map((exercise) => {
+        <div
+          className="relative flex min-h-[18rem] w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(18,32,46,0.94),rgba(7,14,24,0.985))] md:rounded-[1.5rem] md:border md:border-[rgb(var(--accent)/0.16)]"
+          style={exerciseViewportHeight ? { height: `${exerciseViewportHeight}px` } : undefined}
+        >
+          {exerciseViewportMeta.caption ? (
+            <div className="px-4 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--accent)/0.92)]">
+              {exerciseViewportMeta.caption}
+            </div>
+          ) : null}
+          <div className="relative min-h-0 flex-1">
+            <div
+              aria-hidden="true"
+              className={appTokens.exercisePickerViewportMobileFadeTop}
+            />
+            <div
+              aria-hidden="true"
+              className={appTokens.exercisePickerViewportMobileFadeBottom}
+            />
+            <PickerListViewport
+              plainOnMobile
+              showFade={false}
+              className="h-full"
+              viewportClassName={cn(
+                "hide-scrollbar h-full overscroll-contain",
+                expandedExercise ? "px-2 pb-1" : "px-4 pb-2",
+                expandedExercise ? "overflow-hidden" : "overflow-y-scroll",
+              )}
+            >
+              <div className={cn(expandedExercise ? "flex h-full min-h-full flex-col pb-1" : "min-h-full space-y-[0.5rem] pb-3")}>
+                {displayExercises.length === 0 ? (
+                  <p className={appTokens.historyEmptyState}>
+                    No exercises logged for this session yet.
+                  </p>
+                ) : null}
+                {visibleExercises.map((exercise) => {
           const name = exercise.exercise_name?.trim() || exerciseNameMap[exercise.exercise_id] || "Exercise";
           const notesValue = exerciseNotes[exercise.id] ?? "";
           const setsForExercise = editableSets[exercise.id] ?? [];
           const isExpanded = expandedExerciseId === exercise.id;
-          const latestSet = setsForExercise[setsForExercise.length - 1] ?? null;
-          const latestSummary = latestSet
-            ? formatMeasurementSummaryText({
-              ...sanitizeEnabledMeasurementValues(latestSet.activeMetrics, {
-                reps: latestSet.values.reps.trim() ? Number(latestSet.values.reps) : null,
-                weight: latestSet.values.weight.trim() ? Number(latestSet.values.weight) : null,
-                durationSeconds: parseDurationInput(latestSet.values.duration),
-                distance: latestSet.values.distance.trim() ? Number(latestSet.values.distance) : null,
-                calories: latestSet.values.calories.trim() ? Number(latestSet.values.calories) : null,
-              }),
-              weightUnit: latestSet.values.weightUnit,
-              distanceUnit: latestSet.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
-              emptyLabel: "No measurements",
-            })
-            : "No measurements";
-          const subtitleParts = [
-            latestSummary,
-            `${setsForExercise.length} ${setsForExercise.length === 1 ? "set" : "sets"}`,
-          ];
-
+          const bestSet = findBestEditableSet(setsForExercise);
+          const bestSummary = bestSet ? buildMeasurementSummary(bestSet, exercise.default_unit) : "No measurements";
+          const expandedSet = setsForExercise.find((set) => set.id === expandedSetId) ?? null;
           return (
-            <article key={exercise.id} className={appTokens.historyExerciseDisclosureStack}>
-              <HistoryDetailExerciseCard
-                exercise={{
-                  name,
-                  slug: exercise.exercise_slug ?? null,
-                  image_path: exercise.exercise_image_path ?? null,
-                  image_icon_path: exercise.exercise_image_icon_path ?? null,
-                  image_howto_path: exercise.exercise_image_howto_path ?? null,
-                }}
-                summary={subtitleParts.join(" | ")}
-                summaryLabel="Latest"
-                onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
-                expanded={isExpanded}
-                showLeadingVisual={surfacePolicy.showMedia}
-              />
+            <article
+              key={exercise.id}
+              className={cn(
+                isExpanded ? "flex h-full min-h-full flex-1 flex-col space-y-0" : appTokens.historyExerciseDisclosureStack,
+              )}
+            >
+              {!(isEditing && isExpanded && expandedSet) ? (
+                <HistoryDetailExerciseCard
+                  exercise={{
+                    name,
+                    slug: exercise.exercise_slug ?? null,
+                    image_path: exercise.exercise_image_path ?? null,
+                    image_icon_path: exercise.exercise_image_icon_path ?? null,
+                    image_howto_path: exercise.exercise_image_howto_path ?? null,
+                  }}
+                  summary={bestSummary}
+                  summaryLabel="Best"
+                  badgeText={`${setsForExercise.length} ${setsForExercise.length === 1 ? "set" : "sets"}`}
+                  onPress={() => setExpandedExerciseId((current) => (current === exercise.id ? null : exercise.id))}
+                  expanded={isExpanded}
+                  showLeadingVisual={surfacePolicy.showMedia}
+                  className={isEditing && isExpanded ? "-mb-px rounded-b-none [border-bottom-left-radius:0px] [border-bottom-right-radius:0px]" : undefined}
+                />
+              ) : null}
 
               {isExpanded ? (
-                <div className={appTokens.historyExerciseDisclosureBody}>
-                  {isEditing ? (
-                    <div className={appTokens.historyExerciseDisclosureActions}>
-                      <SecondaryButton type="button" size="sm" onClick={() => handleAddSet(exercise)}>+ Add Set</SecondaryButton>
-                      <DestructiveButton type="button" size="sm" onClick={() => setExerciseToDelete({ id: exercise.id, name })}>Delete</DestructiveButton>
+                <div className={cn(appTokens.historyExerciseDisclosureBody, "flex min-h-0 flex-1 flex-col overflow-hidden px-0 pb-0 pt-0")}>
+                  {isEditing && !expandedSet ? (
+                    <AttachedQuickActionStrip
+                      rowContract={{
+                        label: "Add Set",
+                        skipLabel: "Delete",
+                        skipActionIntent: "danger",
+                        skipActionClassName: cn("!border-r !border-r-[rgb(255,120,120,0.16)]", DELETE_ACTION_BUTTON_CLASS_NAME),
+                        actionRowClassName: "",
+                        quickLogActionClassName: "",
+                        isSkipPending: false,
+                        isQuickLogPending: false,
+                        isQuickLogDisabled: false,
+                        isSkipDisabled: false,
+                        quickLogDisabledMessage: "Add Set",
+                      }}
+                      className="-mt-px overflow-hidden rounded-b-[1.05rem] border border-[rgb(var(--border-strong)/0.14)] border-t-0 bg-[rgb(var(--surface-1-rgb)/0.16)] [grid-template-columns:72px_minmax(0,1fr)]"
+                      onPress={() => handleAddSet(exercise)}
+                      onSkip={() => setExerciseToDelete({ id: exercise.id, name })}
+                    />
+                  ) : null}
+
+                  {isEditing && expandedSet ? (
+                    <div className={cn("w-full shrink-0", SET_CARD_SHELL_CLASS_NAME)}>
+                      <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId(null)}>
+                        <LoggedSetSummaryRow
+                          label={formatSetPositionLabel(setsForExercise.findIndex((set) => set.id === expandedSet.id) + 1)}
+                          summary={buildMeasurementSummary(expandedSet, exercise.default_unit)}
+                          summaryItems={buildLoggedSetSummaryItems(expandedSet, exercise.default_unit)}
+                          action={<div className="flex h-full items-end justify-end pb-0.5"><ChevronDownIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>}
+                          contentAlign="center"
+                          actionClassName="self-stretch items-end justify-end pb-0.5"
+                          className="rounded-none border-0 border-b border-[rgb(var(--border-strong)/0.18)] bg-transparent shadow-none"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        data-bottom-action-intent="danger"
+                        className={DELETE_ACTION_BUTTON_CLASS_NAME}
+                        disabled={expandedSet.id.startsWith("temp-")}
+                        onClick={() => {
+                          setSetToDelete({
+                            exerciseId: exercise.id,
+                            setId: expandedSet.id,
+                            label: `${name} - ${formatSetPositionLabel(setsForExercise.findIndex((set) => set.id === expandedSet.id) + 1)}`,
+                          });
+                        }}
+                      >
+                        <span className="bottom-action__label">Delete</span>
+                      </button>
                     </div>
                   ) : null}
 
-                  <ul className={appTokens.historyExerciseSetList}>
-                    {setsForExercise.map((set, index) => (
-                      <li key={set.id}>
-                        {isEditing ? (
-                          <div className={appTokens.historyEditorStack}>
-                            <button type="button" className="block w-full text-left" onClick={() => setExpandedSetId((current) => (current === set.id ? null : set.id))}>
-                              <CompactLogRow
-                                label={<span className="font-semibold text-text">Set {index + 1}</span>}
-                                summary={`Set ${index + 1} • ${formatMeasurementSummaryText({
-                                  ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
-                                    reps: set.values.reps.trim() ? Number(set.values.reps) : null,
-                                    weight: set.values.weight.trim() ? Number(set.values.weight) : null,
-                                    durationSeconds: parseDurationInput(set.values.duration),
-                                    distance: set.values.distance.trim() ? Number(set.values.distance) : null,
-                                    calories: set.values.calories.trim() ? Number(set.values.calories) : null,
-                                  }),
-                                  weightUnit: set.values.weightUnit,
-                                  distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
-                                  emptyLabel: "No measurements",
-                                })}`}
-                                action={<span className="text-xs text-muted">{expandedSetId === set.id ? "▾" : "▸"}</span>}
-                                className={appTokens.historySetSummaryInteractive}
-                              />
-                            </button>
-
-                            {expandedSetId === set.id ? (
-                              <div className={appTokens.historyExerciseSetEditor} onClick={(event) => event.stopPropagation()}>
-                                <ModifyMeasurements
-                                  values={set.values}
-                                  activeMetrics={set.activeMetrics}
-                                  isExpanded={set.isMetricsExpanded}
-                                  onExpandedChange={(nextExpanded) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, isMetricsExpanded: nextExpanded }))}
-                                  onMetricToggle={(metric) => updateEditableSet(exercise.id, set.id, (current) => {
-                                    const nextMetrics = { ...current.activeMetrics, [metric]: !current.activeMetrics[metric] };
-                                    const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
-                                      reps: current.values.reps,
-                                      weight: current.values.weight,
-                                      duration: current.values.duration,
-                                      distance: current.values.distance,
-                                      calories: current.values.calories,
-                                    });
-                                    return {
-                                      ...current,
-                                      activeMetrics: nextMetrics,
-                                      values: {
-                                        ...current.values,
-                                        reps: sanitizedValues.reps,
-                                        weight: sanitizedValues.weight,
-                                        duration: sanitizedValues.duration,
-                                        distance: sanitizedValues.distance,
-                                        calories: sanitizedValues.calories,
-                                      },
-                                    };
-                                  })}
-                                  onChange={(patch) => updateEditableSet(exercise.id, set.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
-                                />
-                                <div className={appTokens.historyExerciseSetActionGrid}>
-                                  <DestructiveButton
-                                    type="button"
-                                    size="md"
-                                    className="w-full"
-                                    disabled={set.id.startsWith("temp-")}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setSetToDelete({
-                                        exerciseId: exercise.id,
-                                        setId: set.id,
-                                        label: `${name} - Set ${index + 1}`,
-                                      });
-                                    }}
-                                  >
-                                    Delete Set
-                                  </DestructiveButton>
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <CompactLogRow
-                            label={<span className="font-semibold text-text">Logged set</span>}
-                            summary={`Set ${index + 1} • ${formatMeasurementSummaryText({
-                              ...sanitizeEnabledMeasurementValues(set.activeMetrics, {
-                                reps: set.values.reps.trim() ? Number(set.values.reps) : null,
-                                weight: set.values.weight.trim() ? Number(set.values.weight) : null,
-                                durationSeconds: parseDurationInput(set.values.duration),
-                                distance: set.values.distance.trim() ? Number(set.values.distance) : null,
-                                calories: set.values.calories.trim() ? Number(set.values.calories) : null,
-                              }),
-                              weightUnit: set.values.weightUnit,
-                              distanceUnit: set.values.distanceUnit ?? resolveDistanceUnit(exercise.default_unit) ?? "mi",
-                              emptyLabel: "No measurements",
-                            })}`}
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                      {expandedSet && isEditing ? (
+                        <div className="px-0 pb-0 pt-2">
+                          <ModifyMeasurements
+                            values={expandedSet.values}
+                            activeMetrics={expandedSet.activeMetrics}
+                            isExpanded={expandedSet.isMetricsExpanded}
+                            onExpandedChange={(nextExpanded) => updateEditableSet(exercise.id, expandedSet.id, (current) => ({ ...current, isMetricsExpanded: nextExpanded }))}
+                            onMetricToggle={(metric) => updateEditableSet(exercise.id, expandedSet.id, (current) => {
+                              const nextMetrics = { ...current.activeMetrics, [metric]: !current.activeMetrics[metric] };
+                              const sanitizedValues = sanitizeEnabledMeasurementValues(nextMetrics, {
+                                reps: current.values.reps,
+                                weight: current.values.weight,
+                                duration: current.values.duration,
+                                distance: current.values.distance,
+                                calories: current.values.calories,
+                              });
+                              return {
+                                ...current,
+                                activeMetrics: nextMetrics,
+                                values: {
+                                  ...current.values,
+                                  reps: sanitizedValues.reps,
+                                  weight: sanitizedValues.weight,
+                                  duration: sanitizedValues.duration,
+                                  distance: sanitizedValues.distance,
+                                  calories: sanitizedValues.calories,
+                                },
+                              };
+                            })}
+                            onChange={(patch) => updateEditableSet(exercise.id, expandedSet.id, (current) => ({ ...current, values: { ...current.values, ...patch } }))}
+                            layoutMode="horizontal-scroll"
                           />
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                        </div>
+                      ) : (
+                        <div className={cn(appTokens.currentSessionLoggerSetList, "min-h-full overflow-hidden rounded-none border-0 bg-transparent px-0 py-2")}>
+                          <ul className={cn(appTokens.currentSessionFocusList, "text-sm")}>
+                            {setsForExercise.map((set, index) => {
+                              const setSummaryText = buildMeasurementSummary(set, exercise.default_unit);
+                              const setLabel = formatSetPositionLabel(index + 1);
+                              const setSummaryItems = buildLoggedSetSummaryItems(set, exercise.default_unit);
 
-                  {setsForExercise.length === 0 ? (
-                    <p className={appTokens.historyEmptyState}>
-                      No sets logged yet
-                    </p>
-                  ) : null}
+                              return (
+                                <li key={set.id}>
+                                  <div className={SET_CARD_SHELL_CLASS_NAME}>
+                                    <button type="button" className="block w-full text-left" onClick={() => isEditing ? setExpandedSetId((current) => (current === set.id ? null : set.id)) : undefined}>
+                                      <LoggedSetSummaryRow
+                                        label={setLabel}
+                                        summary={setSummaryText}
+                                        summaryItems={setSummaryItems}
+                                        contentAlign="center"
+                                        action={isEditing
+                                          ? (expandedSetId === set.id
+                                            ? <div className="flex h-full items-end justify-end pb-0.5"><ChevronDownIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>
+                                            : <div className="flex h-full items-end justify-end pb-0.5"><ChevronRightIcon className="h-4 w-4 text-[rgb(var(--text-muted)/0.84)]" /></div>)
+                                          : undefined}
+                                        actionClassName="self-stretch items-end justify-end"
+                                        className={cn(
+                                          isEditing ? appTokens.historySetSummaryInteractive : undefined,
+                                          "rounded-none border-0 bg-transparent shadow-none",
+                                        )}
+                                      />
+                                    </button>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
 
-                  {isEditing ? (
-                    <label className={appTokens.historyEditorNotesLabel}>
-                      Exercise Notes
-                      <textarea
-                        value={notesValue}
-                        onChange={(event) => {
-                          const nextValue = event.target.value;
-                          setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
-                        }}
-                        rows={2}
-                        className={appTokens.historyEditorField}
-                      />
-                    </label>
-                  ) : notesValue.trim() ? (
-                    <p className={appTokens.historyNotesCaption}>Notes: {notesValue}</p>
-                  ) : null}
+                      {setsForExercise.length === 0 ? (
+                        <p className={appTokens.historyEmptyState}>
+                          No sets logged yet
+                        </p>
+                      ) : null}
+                    </div>
+
+                    {isEditing ? (
+                      <div className="-mx-4 mt-auto shrink-0 bg-[linear-gradient(180deg,rgba(var(--surface-rgb),0)_0%,rgba(var(--surface-rgb),0.78)_26%,rgba(var(--surface-rgb),0.96)_100%)] px-4 pb-1 pt-0.5">
+                        {!expandedSet ? (
+                          <label className="block">
+                            <LabeledEditorField label="Exercise notes">
+                              <textarea
+                                ref={(element) => {
+                                  exerciseNoteRefs.current[exercise.id] = element;
+                                }}
+                                value={notesValue}
+                                onChange={(event) => {
+                                  const nextValue = event.target.value;
+                                  setExerciseNotes((current) => ({ ...current, [exercise.id]: nextValue }));
+                                  autoSizeTextarea(event.currentTarget);
+                                }}
+                                rows={1}
+                                className={cn(labeledEditorFieldControlClassName, "min-h-[3.1rem] resize-none overflow-hidden px-3.5 pb-2 pt-4")}
+                              />
+                            </LabeledEditorField>
+                          </label>
+                        ) : null}
+                      </div>
+                    ) : notesValue.trim() ? (
+                      <div className="mt-auto shrink-0 px-4 pb-1 pt-0.5">
+                        <p className={appTokens.historyNotesCaption}>Notes: {notesValue}</p>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
             </article>
           );
         })}
-      </HistorySection>
+              </div>
+            </PickerListViewport>
+          </div>
+        </div>
+      </div>
 
 
       <ConfirmDestructiveModal

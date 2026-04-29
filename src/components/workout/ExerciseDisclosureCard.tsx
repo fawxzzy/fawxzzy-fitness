@@ -51,6 +51,7 @@ export function ExerciseDisclosureCard({
   subtitleTone,
   className,
   mediaLeftCornerMode,
+  hideEmptySummary = false,
 }: {
   scope: DisclosureScope;
   itemId: string;
@@ -79,6 +80,7 @@ export function ExerciseDisclosureCard({
   subtitleTone?: "panel" | "plain";
   className?: string;
   mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
+  hideEmptySummary?: boolean;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
@@ -114,6 +116,7 @@ export function ExerciseDisclosureCard({
         contentClassName={contentClassName}
         subtitleTone={subtitleTone}
         showAccentRail={showAccentRail}
+        hideEmptySummary={hideEmptySummary}
         rightIcon={(
           <ChevronRightIcon
             className={cn(

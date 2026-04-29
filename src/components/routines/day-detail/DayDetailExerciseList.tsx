@@ -2,7 +2,9 @@
 
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
 import { ExerciseDisclosureCard } from "@/components/workout/ExerciseDisclosureCard";
+import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
+import { isStretchHubExercise } from "@/lib/stretch-library";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 
 export type DayDetailExerciseListItem = {
@@ -10,7 +12,7 @@ export type DayDetailExerciseListItem = {
   name: string;
   summary: string | null;
   orderNumber: number;
-  measurementType?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
@@ -28,7 +30,9 @@ export type DayDetailExerciseListItem = {
 type Props = {
   items: DayDetailExerciseListItem[];
   mode: "read_only" | "editable";
+  density?: "compact" | "detailed";
   activeItemId?: string | null;
+  showOrderBadges?: boolean;
   onSelectItem?: (item: DayDetailExerciseListItem) => void;
   renderExpandedContent?: (item: DayDetailExerciseListItem) => React.ReactNode;
   className?: string;
@@ -37,7 +41,9 @@ type Props = {
 export function DayDetailExerciseList({
   items,
   mode,
+  density,
   activeItemId = null,
+  showOrderBadges = mode === "editable",
   onSelectItem,
   renderExpandedContent,
   className,
@@ -49,6 +55,8 @@ export function DayDetailExerciseList({
     <ul className={cn("space-y-1.5", className)}>
       {items.map((item) => {
         const isActive = activeItemId === item.id;
+        const isStretchHub = isStretchHubExercise(item);
+        const resolvedSummary = isStretchHub ? undefined : item.summary;
         const exerciseVisual = {
           name: item.name,
           slug: item.slug,
@@ -58,7 +66,7 @@ export function DayDetailExerciseList({
         };
 
         return (
-          <li key={item.id} className="rounded-[1.3rem] transition-all">
+          <li key={item.id} className={appTokens.routineEditorReorderItem}>
             {mode === "editable" && interactive ? (
               <ExerciseDisclosureCard
                 scope="day-detail"
@@ -66,27 +74,35 @@ export function DayDetailExerciseList({
                 expanded={isActive}
                 onToggle={() => onSelectItem?.(item)}
                 exercise={exerciseVisual}
-                summary={item.summary ?? undefined}
-                summaryLabel="Goal"
+                summary={resolvedSummary}
+                summaryLabel={isStretchHub ? "" : "Goal"}
                 state={isActive ? "selected" : "default"}
-                badgeText={`ORDER ${item.orderNumber}`}
-                bodyClassName="pt-2.5"
+                badgeText={showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
+                bodyClassName={appTokens.routineEditorReorderBody}
+                subtitleTone="plain"
                 showLeadingVisual={policy.showMedia}
+                showAccentRail={!isStretchHub}
+                hideEmptySummary={isStretchHub}
               >
                 {renderExpandedContent?.(item)}
               </ExerciseDisclosureCard>
             ) : (
               <StandardExerciseRow
                 exercise={exerciseVisual}
-                summary={item.summary ?? undefined}
-                summaryLabel="Goal"
+                summary={resolvedSummary}
+                summaryLabel={mode === "editable" ? (isStretchHub ? "" : "Goal") : undefined}
+                subtitleTone="plain"
                 variant={interactive ? "interactive" : "standard"}
+                density={density}
                 state="default"
                 onPress={interactive ? () => onSelectItem?.(item) : undefined}
-                badgeText={mode === "editable" ? `ORDER ${item.orderNumber}` : undefined}
-                bodyClassName={mode === "editable" ? "pt-2.5" : undefined}
-                className="w-full shadow-none"
+                badgeText={mode === "editable" && showOrderBadges ? `ORDER ${item.orderNumber}` : undefined}
+                bodyClassName={mode === "editable" ? appTokens.routineEditorReorderBody : undefined}
+                className={cn("w-full", appTokens.routineEditorReorderBase)}
+                contentClassName={mode === "editable" ? undefined : "pl-3"}
                 showLeadingVisual={policy.showMedia}
+                showAccentRail={!isStretchHub}
+                hideEmptySummary={isStretchHub}
               />
             )}
           </li>

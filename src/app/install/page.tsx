@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { InstallRouteSurface } from "@/components/install/InstallRouteSurface";
 
 type InstallPageProps = {
@@ -7,5 +8,9 @@ type InstallPageProps = {
 };
 
 export default function InstallPage({ searchParams }: InstallPageProps) {
-  return <InstallRouteSurface initialInstallContext={searchParams?.installContext ?? null} />;
+  return (
+    <Suspense fallback={null}>
+      <InstallRouteSurface initialInstallContext={searchParams?.installContext ?? null} />
+    </Suspense>
+  );
 }

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
 import { ProtectedAppInstallGate } from "@/components/install/ProtectedAppInstallGate";
 import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
@@ -109,7 +110,9 @@ export default function RootLayout({
           <DisplayModeBootstrap />
           <MobileViewportGuard />
           <main className="safe-area-main relative z-10 flex min-h-0 flex-1 w-full flex-col overflow-hidden">
-            <ProtectedAppInstallGate>{children}</ProtectedAppInstallGate>
+            <Suspense fallback={children}>
+              <ProtectedAppInstallGate>{children}</ProtectedAppInstallGate>
+            </Suspense>
           </main>
         </ToastProvider>
       </body>

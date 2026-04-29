@@ -28,6 +28,7 @@ export type SessionRowState = {
   quickLogActionClassName: string;
   skipActionClassName: string;
   isQuickLogDisabled: boolean;
+  isSkipDisabled: boolean;
   quickLogDisabledMessage: string;
   quickLogLabel: string;
 };
@@ -65,6 +66,7 @@ export function deriveSessionRowState(input: DeriveSessionRowStateInput): Sessio
     quickLogActionIntent: progressState.allowQuickLog ? "positive" : "neutral",
     skipActionIntent: progressState.skipActionLabel === "Unskip" ? "toggleActive" : "toggleInactive",
     isQuickLogDisabled: !progressState.allowQuickLog,
+    isSkipDisabled: !progressState.allowSkipToggle,
     quickLogDisabledMessage: "Unskip to log",
     quickLogLabel: quickLogPreviewLabel ? `Log: ${quickLogPreviewLabel}` : "Log",
     ...variantStyles[variant],

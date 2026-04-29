@@ -21,6 +21,10 @@ type PageProps = {
   params: { sessionId: string };
 };
 
+function toClientPlainObject<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export default async function HistoryLogDetailsPage({ params }: PageProps) {
   try {
     if (isHistoryPreviewActiveForRequest()) {
@@ -159,7 +163,7 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
         reps: row.reps,
       }];
     });
-    const { sessionCountsById } = evaluatePrSummaries(prEvaluationSets);
+    const { sessionCountsById, sessionPrExerciseIdsById } = evaluatePrSummaries(prEvaluationSets);
 
     const sessionSummary = buildSessionSummary({
       sessionRow,
@@ -173,7 +177,45 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
       setsBySessionExerciseId: new Map(Array.from(setsByExercise.entries())),
       exerciseNameById: exerciseNameMap,
       prCounts: sessionCountsById.get(sessionRow.id) ?? { ...EMPTY_PR_COUNTS },
+      prExerciseNames: Array.from(sessionPrExerciseIdsById.get(sessionRow.id) ?? [])
+        .map((exerciseId) => exerciseNameMap.get(exerciseId) ?? "")
+        .filter(Boolean),
     });
+    const clientExercises = toClientPlainObject(orderedSessionExercises.map((exercise) => {
+      const exerciseId = String(exercise.exercise_id);
+      const metadata = exerciseMetadataById.get(exerciseId);
+      const resolvedExerciseName = resolveHistoryExerciseName({
+        metadataName: metadata?.name,
+        rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
+        rowName: (exercise as { name?: string | null }).name,
+        mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
+      });
+      return ({
+        id: exercise.id,
+        exercise_id: exerciseId,
+        exercise_name: resolvedExerciseName,
+        exercise_slug: metadata?.slug ?? null,
+        exercise_image_path: metadata?.image_path ?? null,
+        exercise_image_icon_path: metadata?.image_icon_path ?? null,
+        exercise_image_howto_path: metadata?.image_howto_path ?? null,
+        notes: exercise.notes,
+        measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
+        default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
+        sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
+          id: set.id,
+          set_index: set.set_index,
+          weight: set.weight,
+          reps: set.reps,
+          duration_seconds: set.duration_seconds,
+          distance: set.distance,
+          distance_unit: set.distance_unit,
+          calories: set.calories,
+          weight_unit: set.weight_unit,
+        })),
+      });
+    }));
+    const clientSessionSummary = toClientPlainObject(sessionSummary);
+
     return (
       <HistoryRouteScaffold mode="detail" floatingHeader={<div id="history-log-floating-header" />}>
         <HistoryLogPageClient
@@ -182,41 +224,9 @@ export default async function HistoryLogDetailsPage({ params }: PageProps) {
           initialNotes={sessionRow.notes}
           unitLabel={unitLabel}
           exerciseNameMap={exerciseNameRecord}
-          sessionSummary={sessionSummary}
+          sessionSummary={clientSessionSummary}
           backHref={backHref}
-          exercises={orderedSessionExercises.map((exercise) => {
-            const exerciseId = String(exercise.exercise_id);
-            const metadata = exerciseMetadataById.get(exerciseId);
-            const resolvedExerciseName = resolveHistoryExerciseName({
-              metadataName: metadata?.name,
-              rowExerciseName: (exercise as { exercise_name?: string | null }).exercise_name,
-              rowName: (exercise as { name?: string | null }).name,
-              mapExerciseName: exerciseNameRecord[exerciseId] ?? null,
-            });
-            return ({
-              id: exercise.id,
-              exercise_id: exerciseId,
-              exercise_name: resolvedExerciseName,
-              exercise_slug: metadata?.slug ?? null,
-              exercise_image_path: metadata?.image_path ?? null,
-              exercise_image_icon_path: metadata?.image_icon_path ?? null,
-              exercise_image_howto_path: metadata?.image_howto_path ?? null,
-              notes: exercise.notes,
-              measurement_type: exercise.measurement_type ?? metadata?.measurement_type ?? "reps",
-              default_unit: exercise.default_unit ?? metadata?.default_unit ?? null,
-              sets: (setsByExercise.get(exercise.id) ?? []).map((set) => ({
-                id: set.id,
-                set_index: set.set_index,
-                weight: set.weight,
-                reps: set.reps,
-                duration_seconds: set.duration_seconds,
-                distance: set.distance,
-                distance_unit: set.distance_unit,
-                calories: set.calories,
-                weight_unit: set.weight_unit,
-              })),
-            });
-          })}
+          exercises={clientExercises}
         />
       </HistoryRouteScaffold>
     );

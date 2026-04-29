@@ -1,10 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
-import { BottomDockButton } from "@/components/layout/BottomDockButton";
-import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
-import { RoutineDayAddExerciseForm } from "@/app/routines/[id]/edit/day/[dayId]/RoutineDayAddExerciseForm";
+import { ExerciseChooserAddFlowForm } from "@/components/exercises/ExerciseChooserAddFlowForm";
 import type { ActionResult } from "@/lib/action-result";
 import type { ExerciseStatsOption } from "@/lib/exercise-picker-stats";
 
@@ -16,7 +12,7 @@ type ExerciseOption = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
@@ -42,41 +38,17 @@ export function EditDayAddExerciseScreen({
   exerciseStats: ExerciseStatsOption[];
   backHref: string;
 }) {
-  const router = useRouter();
-
   return (
-    <RoutineDayAddExerciseForm
-      routineId={routineId}
-      routineDayId={routineDayId}
+    <ExerciseChooserAddFlowForm
+      formId="routine-day-add-exercise-form"
+      hiddenFields={{ routineId, routineDayId }}
       exercises={exercises}
       weightUnit={weightUnit}
-      addExerciseAction={addExerciseAction}
       exerciseStats={exerciseStats}
-      footerSlot={null}
-      renderFooter={({ selectedCanonicalExerciseId, openExerciseInfo }) => (
-        <PublishBottomActions>
-          <BottomActionSplit
-            secondary={(
-              <BottomDockButton
-                type="button"
-                intent="info"
-                onClick={openExerciseInfo}
-                disabled={!selectedCanonicalExerciseId}
-              >
-                View
-              </BottomDockButton>
-            )}
-            primary={(
-              <BottomDockButton type="submit" form="routine-day-add-exercise-form" intent="positive">
-                Add
-              </BottomDockButton>
-            )}
-          />
-        </PublishBottomActions>
-      )}
-      onSuccess={() => {
-        router.push(backHref);
-      }}
+      backHref={backHref}
+      addExerciseAction={addExerciseAction}
+      successMessage="Exercise added to the day."
+      errorMessage="Could not add exercise to the day."
     />
   );
 }

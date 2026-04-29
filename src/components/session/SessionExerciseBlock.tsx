@@ -23,13 +23,15 @@ export function AttachedQuickActionStrip({
 }: {
   rowContract: {
     label: string;
-    skipLabel: "Skip" | "Unskip";
+    skipLabel: string;
     quickLogActionClassName?: string;
     skipActionClassName?: string;
+    skipActionIntent?: "danger" | "info" | "positive" | "toggleInactive" | "toggleActive";
     actionRowClassName?: string;
     isSkipPending: boolean;
     isQuickLogPending: boolean;
     isQuickLogDisabled: boolean;
+    isSkipDisabled: boolean;
     quickLogDisabledMessage: string;
   };
   onPress: () => Promise<void> | void;
@@ -40,7 +42,7 @@ export function AttachedQuickActionStrip({
   const skipActionClassName = rowContract.skipActionClassName;
   const quickLogActionClassName = rowContract.quickLogActionClassName;
   const isBusy = rowContract.isSkipPending || rowContract.isQuickLogPending;
-  const isSkipDisabled = isBusy || !onSkip;
+  const isSkipDisabled = isBusy || rowContract.isSkipDisabled || !onSkip;
   const isQuickLogDisabled = isBusy || rowContract.isQuickLogDisabled;
   const quickLogLabel = rowContract.isQuickLogDisabled
     ? rowContract.quickLogDisabledMessage
@@ -60,8 +62,10 @@ export function AttachedQuickActionStrip({
         type="button"
         onClick={onSkip}
         disabled={isSkipDisabled}
+        data-bottom-action-intent={rowContract.skipActionIntent}
         className={cn(
           "relative z-10 flex h-11 items-center justify-center rounded-none border-0 border-r border-[rgb(var(--border-strong)/0.18)] bg-[linear-gradient(180deg,rgba(40,47,63,0.99),rgba(20,25,35,0.99))] text-[0.9rem] font-semibold text-[rgb(248_234_205/0.96)] transition-[filter,transform] duration-75 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--warning-rgb)/0.2)] disabled:cursor-not-allowed disabled:text-[rgb(var(--text-muted)/0.72)]",
+          rowContract.isSkipDisabled ? "bg-[linear-gradient(180deg,rgba(57,64,76,0.98),rgba(32,37,45,0.98))] text-[rgb(var(--text-muted)/0.82)]" : undefined,
           skipActionClassName,
         )}
       >
@@ -82,7 +86,7 @@ export function AttachedQuickActionStrip({
         style={isQuickLogDisabled ? undefined : enabledQuickLogStyle}
       >
         <div className="flex min-h-11 w-full items-center justify-center px-4 text-center">
-          <p className={cn(appTokens.currentSessionLoggerSummaryText, "mt-0 line-clamp-1 text-center text-[14px] leading-[1.25] text-inherit")}>
+          <p className={cn(appTokens.currentSessionLoggerSummaryText, "mt-0 whitespace-normal break-words text-center text-[14px] leading-[1.25] text-inherit")}>
             {quickLogLabel}
           </p>
         </div>

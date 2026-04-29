@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { DayDetailExerciseList, type DayDetailExerciseListItem } from "@/components/routines/day-detail/DayDetailExerciseList";
+import { appTokens } from "@/components/ui/app/tokens";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 
-type EditDayFixture = "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
+type EditDayFixture = "default" | "reorder" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
 
 type EditDayExercise = {
   id: string;
@@ -17,7 +18,7 @@ type EditDayExercise = {
   summary: string | null;
   iconSrc: string;
   orderNumber: number;
-  measurementType?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
@@ -42,11 +43,11 @@ function buildGoalState(): ExerciseGoalFormState {
 }
 
 function resolveInlineModality(
-  measurementType: "reps" | "time" | "distance" | "time_distance",
+  measurementType: "reps" | "time" | "distance" | "time_distance" | "none",
   equipment: string | null,
   name?: string | null,
 ): GoalModality {
-  return resolveGoalModality({ measurementType, equipment, name, tags: undefined });
+  return resolveGoalModality({ measurementType: measurementType === "none" ? "reps" : measurementType, equipment, name, tags: undefined });
 }
 
 export function EditDayRegressionSurface({
@@ -68,14 +69,6 @@ export function EditDayRegressionSurface({
     }
     : null;
 
-  if (fixture === "rest") {
-    return (
-      <div className="rounded-[1.25rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-5 text-sm text-[rgb(var(--text-muted)/0.92)]">
-        Recovery day enabled. Training rows are hidden and the rest toggle becomes the only bottom action.
-      </div>
-    );
-  }
-
   if (fixture === "empty") {
     return (
       <DayDetailStateCard
@@ -90,7 +83,7 @@ export function EditDayRegressionSurface({
     return (
       <ul className="space-y-2">
         {exercises.map((exercise, index) => (
-          <li key={exercise.id} className="rounded-[1.3rem] transition-all">
+          <li key={exercise.id} className={appTokens.routineEditorReorderItem}>
             <ReorderExerciseRow
               exerciseId={exercise.id}
               exerciseName={exercise.name}

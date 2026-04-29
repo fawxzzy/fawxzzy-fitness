@@ -10,10 +10,10 @@ test("fixture inventory covers all mobile screens from the pre-fix set", () => {
   }
 
   assert.equal(byRoute.get("today"), 5);
-  assert.equal(byRoute.get("session"), 2);
+  assert.equal(byRoute.get("session"), 12);
   assert.equal(byRoute.get("routines"), 2);
   assert.equal(byRoute.get("viewDay"), 3);
-  assert.equal(byRoute.get("editDay"), 7);
+  assert.equal(byRoute.get("editDay"), 6);
   assert.equal(byRoute.get("createRoutine"), 1);
   assert.equal(byRoute.get("editRoutine"), 1);
   assert.equal(byRoute.get("addExercise"), 1);

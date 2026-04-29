@@ -20,6 +20,7 @@ import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { createStableSetId } from "@/lib/offline/set-log-reconciliation";
+import { isStretchHubExercise } from "@/lib/stretch-library";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -75,7 +76,7 @@ export type SessionExerciseFocusItem = {
   isSkipped: boolean;
   defaultUnit: "mi" | "km" | "m" | null;
   isCardio: boolean;
-  measurementType?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
@@ -108,12 +109,12 @@ function resolveSessionExerciseTone(args: {
   isCompleted: boolean;
   isAddedToday: boolean;
 }) {
-  if (args.isSkipped) {
-    return "attention";
-  }
-
   if (args.isCompleted) {
     return "completed";
+  }
+
+  if (args.isSkipped) {
+    return "attention";
   }
 
   if (args.loggedSetCount > 0) {
@@ -285,6 +286,7 @@ export function SessionExerciseFocus({
     previousSkipped: boolean,
     isQuickLogPending: boolean,
     isSkipPending: boolean,
+    loggedSetCount: number,
   ) => {
     if (isQuickLogPending || isSkipPending) {
       return;
@@ -304,7 +306,9 @@ export function SessionExerciseFocus({
       formData.set("nextSkipped", String(nextSkipped));
       const result = await toggleSkipAction(formData);
       toastActionResult(toast, result, {
-        success: previousSkipped ? "Exercise unskipped." : "Exercise skipped.",
+        success: previousSkipped
+          ? "Exercise unskipped."
+          : (loggedSetCount > 0 ? "Skipped. Logged sets were saved." : "Exercise skipped."),
         error: "Could not update skip state.",
       });
 
@@ -334,6 +338,7 @@ export function SessionExerciseFocus({
         {visibleExercises.map((exercise) => {
           const isRemoving = removingExerciseIds.includes(exercise.id);
           const isExpanded = selectedExerciseId === exercise.id;
+          const isStretchHub = isStretchHubExercise(exercise);
           const rowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({
             exerciseId: exercise.id,
             loggedSetCount: exercise.loggedSetCount,
@@ -356,12 +361,14 @@ export function SessionExerciseFocus({
           const titleMeta = progressState.goalSetTarget !== null && progressState.loggedSetCount > 0
             ? `${progressState.loggedSetCount} / ${progressState.goalSetTarget}`
             : undefined;
+          const exerciseSummary = isStretchHub ? null : exercise.goalLabel;
           const semanticTone = resolveSessionExerciseTone({
             loggedSetCount: setCount,
             isSkipped: rowViewModel.isSkipped,
             isCompleted: rowState.cardState === "completed",
             isAddedToday: exercise.routineDayExerciseId === null,
           });
+          const shouldRenderCompactSkippedRow = rowViewModel.isSkipped && rowState.cardState !== "completed";
 
           const disclosureCard = (
             <ExerciseDisclosureCard
@@ -370,27 +377,34 @@ export function SessionExerciseFocus({
               expanded={isExpanded}
               onToggle={() => toggleExercise(exercise.id)}
               exercise={exercise}
-              summary={exercise.goalLabel}
+              summary={exerciseSummary}
               summaryLabel=""
               density="compact"
-              state={isExpanded ? "selected" : rowState.cardState}
+              state={rowState.cardState === "completed" ? "completed" : (isExpanded ? "selected" : rowState.cardState)}
               semanticTone={semanticTone}
               trailingClassName={appTokens.metaText}
               badgeText={rowViewModel.isSkipped ? undefined : (titleMeta ? undefined : rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined))}
               showLeadingVisual={surfacePolicy.showMedia}
               subtitleTone="plain"
-              className={isExpanded ? "overflow-visible" : "overflow-hidden rounded-none border-0 bg-transparent shadow-none ring-0"}
-              shellClassName={isExpanded ? "sticky top-0 z-20 shadow-[0_14px_28px_rgb(0_0_0/0.3)]" : "rounded-none border-0 shadow-none ring-0"}
+              className={isExpanded ? "overflow-visible" : "overflow-hidden rounded-none shadow-none ring-0"}
+              shellClassName={[
+                isExpanded ? "sticky top-0 z-20 shadow-[0_14px_28px_rgb(0_0_0/0.3)]" : "rounded-none shadow-none ring-0",
+                rowState.cardState === "completed"
+                  ? "border-[rgb(var(--success-rgb)/0.96)] bg-[linear-gradient(180deg,rgba(99,235,150,0.76),rgba(24,88,60,0.99))] ring-1 ring-[rgb(var(--success-rgb)/0.42)]"
+                  : undefined,
+              ].filter(Boolean).join(" ")}
               shellStyle={isExpanded ? {
                 borderBottomRightRadius: "0px",
               } : {
                 borderTopRightRadius: "var(--card-radius)",
                 borderBottomRightRadius: "0px",
               }}
-              cardClassName={!isExpanded ? "rounded-none border-0 shadow-none ring-0" : undefined}
+              cardClassName={!isExpanded ? "rounded-none shadow-none ring-0" : undefined}
               contentClassName="pl-3"
               mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
               titleMeta={titleMeta}
+              showAccentRail={!isStretchHub}
+              hideEmptySummary={isStretchHub}
             >
               <>
                 <SetLoggerCard
@@ -431,6 +445,7 @@ export function SessionExerciseFocus({
                 skipActionClassName: rowState.skipActionClassName,
                 actionRowClassName: rowState.actionRowClassName,
                 isQuickLogDisabled: rowState.isQuickLogDisabled,
+                isSkipDisabled: rowState.isSkipDisabled,
                 quickLogDisabledMessage: rowState.quickLogDisabledMessage,
                 isSkipPending: rowViewModel.isSkipPending,
                 isQuickLogPending: rowViewModel.isQuickLogPending,
@@ -441,6 +456,7 @@ export function SessionExerciseFocus({
                   rowViewModel.isSkipped,
                   rowViewModel.isQuickLogPending,
                   rowViewModel.isSkipPending,
+                  setCount,
                 );
               }}
               onPress={async () => {
@@ -502,7 +518,31 @@ export function SessionExerciseFocus({
             >
               <SessionExerciseBlock>
                 <div className={cn(!isExpanded ? "mx-auto w-full min-[360px]:max-w-[22.75rem]" : undefined)}>
-                  {isExpanded ? (
+                  {shouldRenderCompactSkippedRow ? (
+                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.86)]">
+                      <div className="flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2.5">
+                        <p className="min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
+                          {exercise.name}
+                        </p>
+                        <button
+                          type="button"
+                          disabled={rowViewModel.isSkipPending}
+                          onClick={() => {
+                            void handleSkipToggle(
+                              exercise.id,
+                              rowViewModel.isSkipped,
+                              rowViewModel.isQuickLogPending,
+                              rowViewModel.isSkipPending,
+                              setCount,
+                            );
+                          }}
+                          className="shrink-0 rounded-[999px] border border-[rgb(var(--accent)/0.24)] bg-[rgb(var(--accent)/0.14)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--text)/0.96)] transition-colors hover:bg-[rgb(var(--accent)/0.22)] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {rowViewModel.isSkipPending ? "Saving..." : "Unskip"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : isExpanded ? (
                     <SessionExerciseCard>
                       {disclosureCard}
                     </SessionExerciseCard>

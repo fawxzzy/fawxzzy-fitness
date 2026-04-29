@@ -71,6 +71,7 @@ export type CardioSessionAggregate = {
   distance: number;
   distanceUnit: "mi" | "km" | "m" | null;
   calories: number;
+  setCount: number;
 };
 
 export function computeEstimated1rm(weight: number, reps: number) {
@@ -250,6 +251,7 @@ export function aggregateCardioSessions(args: {
         distance: distanceUnit ? (distanceByUnit.get(distanceUnit) ?? 0) : 0,
         distanceUnit,
         calories,
+        setCount: meaningfulRows.length,
       } satisfies CardioSessionAggregate;
     })
     .filter((entry): entry is CardioSessionAggregate => Boolean(entry))

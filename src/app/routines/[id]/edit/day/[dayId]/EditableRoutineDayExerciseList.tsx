@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ConfirmDestructiveModal } from "@/components/ui/ConfirmDestructiveModal";
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
@@ -9,7 +8,7 @@ import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { DayDetailExerciseList } from "@/components/routines/day-detail/DayDetailExerciseList";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionDock, DockButton } from "@/components/layout/BottomActionDock";
-import { BottomActionSingle, BottomActionUtilityCluster } from "@/components/layout/CanonicalBottomActions";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { useToast } from "@/components/ui/ToastProvider";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
@@ -31,14 +30,14 @@ import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { getDayEditorModeViewModel } from "@/app/routines/[id]/edit/day/[dayId]/dayEditorMode";
 import { REST_DAY_BEHAVIOR_CONTRACT } from "@/features/day-state/restDayBehavior";
 import { getDayCtaDockState } from "@/shared/day-cta-dock/dayCtaDockState";
-import { publishScreenFocusMode } from "@/lib/screen-focus-mode";
+import { publishScreenFocusMode, publishScreenMode } from "@/lib/screen-focus-mode";
 
 type EditableRoutineDayExerciseItem = {
   id: string;
   exerciseId: string;
   orderNumber: number;
   name: string;
-  measurementType: "reps" | "time" | "distance" | "time_distance";
+  measurementType: "reps" | "time" | "distance" | "time_distance" | "none";
   primary_muscle?: string | null;
   equipment: string | null;
   movement_pattern?: string | null;
@@ -77,7 +76,6 @@ type Props = {
   reorderAction: (formData: FormData) => Promise<ActionResult>;
   initialIsRest: boolean;
   addExerciseHref: string;
-  headerActionSlotId?: string;
 };
 
 type DragState = {
@@ -94,11 +92,11 @@ function clampOrderValue(rawValue: number, listLength: number) {
 }
 
 function resolveInlineModality(
-  measurementType: "reps" | "time" | "distance" | "time_distance",
+  measurementType: "reps" | "time" | "distance" | "time_distance" | "none",
   equipment: string | null,
   name?: string | null,
 ): GoalModality {
-  return resolveGoalModality({ measurementType, equipment, name, tags: undefined });
+  return resolveGoalModality({ measurementType: measurementType === "none" ? "reps" : measurementType, equipment, name, tags: undefined });
 }
 
 function RoutineTargetInputs({
@@ -143,7 +141,6 @@ export function EditableRoutineDayExerciseList({
   reorderAction,
   initialIsRest,
   addExerciseHref,
-  headerActionSlotId,
 }: Props) {
   const toast = useToast();
   const router = useRouter();
@@ -440,40 +437,28 @@ export function EditableRoutineDayExerciseList({
     };
   }, [editModeActive]);
 
-  const [headerActionTarget, setHeaderActionTarget] = useState<HTMLElement | null>(null);
-
   useEffect(() => {
-    if (!headerActionSlotId) return;
-    const syncSlot = () => setHeaderActionTarget(document.getElementById(headerActionSlotId));
-    syncSlot();
-    const observer = new MutationObserver(syncSlot);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-    window.addEventListener("resize", syncSlot);
+    publishScreenMode({ screen: "edit-day", mode: modeViewModel.mode });
     return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", syncSlot);
+      publishScreenMode({ screen: "edit-day", mode: "default" });
     };
-  }, [headerActionSlotId]);
-
-  const headerAction = modeViewModel.headerAction === "reorder_toggle" && hasExercises ? (
-    <BottomActionUtilityCluster className="mx-0.5">
-      <BottomDockButton
-        type="button"
-        intent={reorderMode ? "toggleActive" : "toggleInactive"}
-        onClick={handleToggleReorderMode}
-        aria-pressed={reorderMode}
-        disabled={isRestDay}
-        className={cn(
-          appTokens.routineEditorHeaderActionButton,
-          isRestDay ? appTokens.routineEditorHeaderActionButtonDisabled : undefined,
-        )}
-      >
-        {reorderMode ? "Done" : "Reorder"}
-      </BottomDockButton>
-      </BottomActionUtilityCluster>
-  ) : null;
+  }, [modeViewModel.mode]);
 
   const addExerciseLabel = NORMALIZED_ACTION_LABELS.add;
+  const reorderButton = modeViewModel.headerAction === "reorder_toggle" ? (
+    <BottomDockButton
+      type="button"
+      intent={reorderMode ? "toggleActive" : "toggleInactive"}
+      onClick={handleToggleReorderMode}
+      aria-pressed={reorderMode}
+      disabled={isRestDay || !hasExercises}
+      className={cn(
+        isRestDay || !hasExercises ? appTokens.routineEditorHeaderActionButtonDisabled : undefined,
+      )}
+    >
+      {reorderMode ? "Done" : "Reorder"}
+    </BottomDockButton>
+  ) : null;
 
   const handleAddExercisePress = () => {
     if (addExerciseNavigationLockedRef.current) return;
@@ -481,11 +466,9 @@ export function EditableRoutineDayExerciseList({
     router.push(addExerciseHref);
   };
 
-  const dockWithRestToggleSlot = <BottomActionSingle><div id="edit-day-rest-toggle-slot" className="w-full" /></BottomActionSingle>;
-
   const addExerciseDock = (
         <BottomActionDock
-          left={<div id="edit-day-rest-toggle-slot" className="w-full" />}
+          left={reorderButton ?? <div />}
           right={(
         <BottomDockButton type="button" intent="positive" onClick={handleAddExercisePress}>
           {addExerciseLabel}
@@ -497,7 +480,6 @@ export function EditableRoutineDayExerciseList({
   if (items.length === 0 || modeViewModel.sections.restDayCardVisible) {
     return (
       <>
-        {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
         <SharedSectionShell recipe="editDay" bodyClassName={appTokens.routineEditorCompactStack}>
           {modeViewModel.sections.restDayCardVisible ? (
             <DayDetailStateCard
@@ -530,8 +512,10 @@ export function EditableRoutineDayExerciseList({
             />
           ) : ctaDockState.variant === "add_exercise" ? (
             addExerciseDock
+        ) : ctaDockState.variant === "reorder_only" ? (
+            reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
         ) : ctaDockState.variant === "rest_toggle_only" ? (
-            dockWithRestToggleSlot
+            reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
           ) : null}
         </PublishBottomActions>
       </>
@@ -540,7 +524,6 @@ export function EditableRoutineDayExerciseList({
 
   return (
     <>
-      {headerActionTarget ? createPortal(headerAction, headerActionTarget) : null}
       <PublishBottomActions>
         {ctaDockState.variant === "edit_exercise" && activeExercise ? (
           <BottomActionDock
@@ -557,8 +540,10 @@ export function EditableRoutineDayExerciseList({
             />
         ) : ctaDockState.variant === "add_exercise" ? (
           addExerciseDock
+        ) : ctaDockState.variant === "reorder_only" ? (
+          reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
         ) : ctaDockState.variant === "rest_toggle_only" ? (
-          dockWithRestToggleSlot
+          reorderButton ? <BottomActionSingle>{reorderButton}</BottomActionSingle> : null
         ) : null}
       </PublishBottomActions>
       <form
@@ -618,6 +603,7 @@ export function EditableRoutineDayExerciseList({
         ) : (
           <DayDetailExerciseList
             mode="editable"
+            showOrderBadges={false}
             items={visibleItems.map((exercise) => ({
               ...resolveEditDayExercisePreview({
                 savedSummary: exercise.targetSummary,

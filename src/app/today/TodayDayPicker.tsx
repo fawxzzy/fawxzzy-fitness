@@ -19,17 +19,18 @@ import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { BottomActionSingle, BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import { AppBadge } from "@/components/ui/app/AppBadge";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
 import { appTokens } from "@/components/ui/app/tokens";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { getDayTaxonomyHeaderSummaryParts, getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
 import { cn } from "@/lib/cn";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
+import { isStretchHubExercise } from "@/lib/stretch-library";
 import { buildPlannedExerciseDetailMetrics } from "@/lib/workout-card-view-models";
 import { applyWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { formatRoutineDayDisplayName } from "@/lib/routines";
 import {
   deriveTodayScreenMode,
-  formatTodayHeaderTitle,
   getTodayDaySummary,
   getTodayDaySummaryTone,
   type TodayPickerDayState,
@@ -45,7 +46,7 @@ type TodayExercise = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   isCardio?: boolean | null;
   kind?: string | null;
   type?: string | null;
@@ -216,7 +217,14 @@ export function TodayDayPicker({
 
   const headerNode = selectedDay ? (
     <TodayOverviewHeader
-      title={mode.dayPickerOpen ? routineName : formatTodayHeaderTitle(routineName, selectedDayDisplayName)}
+      title={mode.dayPickerOpen
+        ? (routineName.trim() || "Routine")
+        : (
+          <RoutineDayHeaderTitle
+            leadingItems={[routineName.trim() || "Routine"]}
+            dayLabel={selectedDayDisplayName}
+          />
+        )}
       align="center"
       subtitle={getDayTaxonomyHeaderSummaryParts({
         dayName: selectedDay.name,
@@ -325,7 +333,11 @@ export function TodayDayPicker({
                 {mode.dayRowsVisible && hasSelectedDayRows ? (
                   <ul className="flex flex-col gap-[0.375rem]">
                     {selectedDay.exercises.map((exercise) => {
+                      const isStretchHub = isStretchHubExercise(exercise);
+                      const resolvedSummary = isStretchHub ? null : exercise.targets;
                       const detailedMetrics = buildPlannedExerciseDetailMetrics({
+                        name: exercise.name,
+                        slug: exercise.slug,
                         measurementType: exercise.measurement_type,
                         isCardio: exercise.isCardio,
                         kind: exercise.kind,
@@ -350,7 +362,7 @@ export function TodayDayPicker({
                             exercise={exercise}
                             variant="interactive"
                             density={exerciseDensity}
-                            summary={exercise.targets}
+                            summary={resolvedSummary}
                             subtitleTone="plain"
                             contentClassName="pl-3"
                             onPress={() => {
@@ -360,6 +372,8 @@ export function TodayDayPicker({
                               setSelectedExerciseId(exercise.exerciseId);
                             }}
                             showLeadingVisual={policy.showMedia}
+                            showAccentRail={!isStretchHub}
+                            hideEmptySummary={isStretchHub}
                           >
                             <WorkoutExerciseCardDetails
                               density={exerciseDensity}

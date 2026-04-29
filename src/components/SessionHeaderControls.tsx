@@ -1,9 +1,9 @@
 "use client";
 
 import { SessionBackButton } from "@/components/SessionBackButton";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { getDayTaxonomyHeaderSummaryParts } from "@/lib/day-summary";
-import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 
 export function SessionHeaderControls({
   routineName,
@@ -32,7 +32,7 @@ export function SessionHeaderControls({
   return (
     <SharedScreenHeader
       recipe="currentSession"
-      title={formatTodayHeaderTitle(routineName, sessionDayName)}
+      title={<RoutineDayHeaderTitle leadingItems={[routineName.trim() || "Routine"]} dayLabel={sessionDayName} />}
       subtitle={countsSummary}
       action={<SessionBackButton href={backHref} />}
       align="center"

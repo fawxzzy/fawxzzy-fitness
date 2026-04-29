@@ -20,7 +20,7 @@ import { getSessionPageData } from "./queries";
 import { isSafeAppPath } from "@/lib/navigation-return";
 
 function buildSessionExerciseTarget(exercise: {
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   target_sets_min?: number | null;
   target_sets_max?: number | null;
   target_reps_min?: number | null;
@@ -90,7 +90,7 @@ function getGoalPrefill(target: DisplayTarget | undefined, fallbackWeightUnit: "
     prefill.weightUnit = target.weightUnit ?? fallbackWeightUnit;
   }
 
-  const prefillReps = target.repsMin ?? target.repsMax;
+  const prefillReps = target.repsMax ?? target.repsMin;
   if (prefillReps !== undefined) {
     prefill.reps = prefillReps;
   }
@@ -231,7 +231,7 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
               isSkipped: exercise.is_skipped,
               defaultUnit: resolveSessionExerciseDefaultDistanceUnit(exercise.default_unit),
               isCardio,
-              measurementType: exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null,
+              measurementType: isMeasurementOptional ? "none" : (exercise.measurement_type ?? canonicalExercise?.measurement_type ?? null),
               primary_muscle: canonicalExercise?.primary_muscle ?? null,
               equipment: canonicalExercise?.equipment ?? null,
               movement_pattern: canonicalExercise?.movement_pattern ?? null,
@@ -251,6 +251,10 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   .join("");
               })(),
               initialEnabledMetrics: (() => {
+                if (isMeasurementOptional) {
+                  return { reps: false, weight: false, time: false, distance: false, calories: false };
+                }
+
                 const fromPlan = exercise.enabled_metrics;
                 if (fromPlan && [fromPlan.reps, fromPlan.weight, fromPlan.time, fromPlan.distance, fromPlan.calories].some((value) => value === true)) {
                   return {
@@ -266,30 +270,38 @@ export default async function SessionPage({ params, searchParams }: PageProps) {
                   return { reps: false, weight: false, time: true, distance: false, calories: false };
                 }
 
-                if (isMeasurementOptional) {
-                  return { reps: false, weight: false, time: false, distance: false, calories: false };
-                }
-
                 return { reps: true, weight: true, time: false, distance: false, calories: false };
               })(),
               goalLabel: formatSessionGoalLabel(displayTarget, unitLabel),
               prefill: getGoalPrefill(displayTarget, unitLabel),
-              quickLogTarget: displayTarget ? {
-                repsMin: displayTarget.repsMin,
-                repsMax: displayTarget.repsMax,
-                weightMin: displayTarget.weightMin,
-                weightMax: displayTarget.weightMax,
-                weightUnit: displayTarget.weightUnit,
-                durationSeconds: displayTarget.durationSeconds,
-                distance: displayTarget.distance,
-                distanceUnit: displayTarget.distanceUnit,
-                calories: displayTarget.calories,
-                measurementType: displayTarget.measurementType,
-              } : (
-                isMeasurementOptional
-                  ? { measurementType: "none" }
-                  : undefined
-              ),
+              quickLogTarget: isMeasurementOptional
+                ? {
+                    repsMin: displayTarget?.repsMin,
+                    repsMax: displayTarget?.repsMax,
+                    weightMin: displayTarget?.weightMin,
+                    weightMax: displayTarget?.weightMax,
+                    weightUnit: displayTarget?.weightUnit,
+                    durationSeconds: displayTarget?.durationSeconds,
+                    distance: displayTarget?.distance,
+                    distanceUnit: displayTarget?.distanceUnit,
+                    calories: displayTarget?.calories,
+                    measurementType: displayTarget?.measurementType ?? "none",
+                    allowMeasurementlessLog: true,
+                  }
+                : (
+                  displayTarget ? {
+                    repsMin: displayTarget.repsMin,
+                    repsMax: displayTarget.repsMax,
+                    weightMin: displayTarget.weightMin,
+                    weightMax: displayTarget.weightMax,
+                    weightUnit: displayTarget.weightUnit,
+                    durationSeconds: displayTarget.durationSeconds,
+                    distance: displayTarget.distance,
+                    distanceUnit: displayTarget.distanceUnit,
+                    calories: displayTarget.calories,
+                    measurementType: displayTarget.measurementType,
+                  } : undefined
+                ),
               targetSetsMin: displayTarget?.setsMin ?? null,
               targetSetsMax: displayTarget?.setsMax ?? null,
               initialSets: setsByExercise.get(exercise.id) ?? [],

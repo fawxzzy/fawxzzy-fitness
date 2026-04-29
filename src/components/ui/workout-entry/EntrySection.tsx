@@ -26,12 +26,12 @@ export function WorkoutEntrySection({
   return (
     <AppPanel className={cn(appTokens.exerciseLogSectionPanel, className)}>
       <div className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionHeaderClassName}>
-        <div className="min-w-0 space-y-1">
-          {eyebrow ? <p className={fitnessDesignPrimitiveClassNames.sectionLayout.sectionLabelClassName}>{eyebrow}</p> : null}
-          {title ? <TitleText as="h3" className="text-base">{title}</TitleText> : null}
+        <div className={appTokens.exerciseLogSectionHeaderCopy}>
+          {eyebrow ? <p className={appTokens.measurementLabel}>{eyebrow}</p> : null}
+          {title ? <TitleText as="h3" className={appTokens.exerciseLogSectionTitle}>{title}</TitleText> : null}
           {description ? <SubtitleText>{description}</SubtitleText> : null}
         </div>
-        {aside ? <div className="shrink-0">{aside}</div> : null}
+        {aside ? <div className={appTokens.exerciseLogSectionAside}>{aside}</div> : null}
       </div>
 
       <div className={cn(fitnessDesignPrimitiveClassNames.sectionLayout.sectionBodyDenseClassName, contentClassName)}>
@@ -84,7 +84,7 @@ export function WorkoutEntryMetric({
   return (
     <div className={cn(appTokens.exerciseLogMetric, tone === "warning" ? appTokens.exerciseLogMetricWarning : undefined)}>
       <p className={appTokens.exerciseLogMetricLabel}>{label}</p>
-      <p className={cn(appTokens.exerciseLogMetricValue, tone === "warning" ? "text-amber-100" : undefined)}>{value}</p>
+      <p className={cn(appTokens.exerciseLogMetricValue, tone === "warning" ? appTokens.exerciseLogMetricValueWarning : undefined)}>{value}</p>
     </div>
   );
 }

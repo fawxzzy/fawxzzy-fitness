@@ -6,6 +6,13 @@ function deny(request: NextRequest) {
   return NextResponse.json({ error: "Not found" }, { status: 404, headers: { "cache-control": "no-store" } });
 }
 
+function isLocalRequest(request: NextRequest) {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = (forwardedHost ?? request.headers.get("host") ?? "").trim().toLowerCase();
+  const hostname = host.split(":")[0] ?? "";
+  return hostname === "127.0.0.1" || hostname === "localhost";
+}
+
 function getRequestOrigin(request: NextRequest) {
   const forwardedHost = request.headers.get("x-forwarded-host");
   const host = forwardedHost ?? request.headers.get("host") ?? "127.0.0.1:3000";
@@ -15,7 +22,7 @@ function getRequestOrigin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && !isLocalRequest(request)) {
     return deny(request);
   }
 

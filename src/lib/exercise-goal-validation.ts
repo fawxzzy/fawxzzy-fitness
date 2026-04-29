@@ -42,10 +42,25 @@ const requiredFieldLabels: Record<GoalValidationResult["requiredFields"][number]
   calories: "Calories",
 };
 
+const requiredFieldPreviewLabels: Record<GoalValidationResult["requiredFields"][number], string> = {
+  sets: "sets",
+  repsMin: "min reps",
+  weight: "weight",
+  duration: "time",
+  distance: "distance",
+  calories: "calories",
+};
+
 export function getMissingGoalMeasurementMessage(
   field: GoalValidationResult["requiredFields"][number],
 ) {
   return `Missing ${requiredFieldLabels[field]}`;
+}
+
+export function getMissingGoalPreviewLabel(
+  field: GoalValidationResult["requiredFields"][number],
+) {
+  return requiredFieldPreviewLabels[field];
 }
 
 export const GOAL_SCHEMA_MATRIX: Record<GoalModality, {
@@ -111,14 +126,15 @@ export function resolveGoalModality({
   name,
   tags,
 }: {
-  measurementType: "reps" | "time" | "distance" | "time_distance";
+  measurementType: "reps" | "time" | "distance" | "time_distance" | "none";
   equipment?: string | null;
   name?: string | null;
   tags?: Set<string>;
 }): GoalModality {
+  const effectiveMeasurementType = measurementType === "none" ? "reps" : measurementType;
   const normalizedMeasurementType = normalizeExerciseMeasurementType({
     name,
-    measurement_type: measurementType,
+    measurement_type: effectiveMeasurementType,
   });
 
   if (normalizedMeasurementType === "time_distance") return "cardio_time_distance";
@@ -127,7 +143,7 @@ export function resolveGoalModality({
 
   const isBodyweight = isBodyweightExercise({
     name,
-    measurement_type: measurementType,
+    measurement_type: effectiveMeasurementType,
     equipment,
     tags: tags ? Array.from(tags) : null,
   });

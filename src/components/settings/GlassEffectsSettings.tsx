@@ -4,16 +4,8 @@ import { useState, useTransition } from "react";
 import { updateUnitPreferencesAction } from "@/app/settings/actions";
 import { AppButton } from "@/components/ui/AppButton";
 import { appTokens } from "@/components/ui/app/tokens";
-import { Chip } from "@/components/ui/Chip";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { cn } from "@/lib/cn";
-import { type GlassEffectsMode, useGlassEffects } from "@/lib/useGlassEffects";
-
-const APPEARANCE_OPTIONS: Array<{ value: GlassEffectsMode; label: string; description: string }> = [
-  { value: "on", label: "Coated", description: "Sharper glass with subtle blur" },
-  { value: "reduced", label: "Performance", description: "Lower blur and stronger contrast" },
-  { value: "off", label: "Solid", description: "No blur, darkest surfaces" },
-];
 
 const WEIGHT_OPTIONS: Array<{ value: "lbs" | "kg"; label: string }> = [
   { value: "lbs", label: "lbs" },
@@ -32,14 +24,14 @@ export function GlassEffectsSettings({
   preferredWeightUnit: "lbs" | "kg";
   preferredDistanceUnit: "mi" | "km";
 }) {
-  const { mode, setMode } = useGlassEffects();
   const [weightUnit, setWeightUnit] = useState<"lbs" | "kg">(preferredWeightUnit);
   const [distanceUnit, setDistanceUnit] = useState<"mi" | "km">(preferredDistanceUnit);
+  const [savedWeightUnit, setSavedWeightUnit] = useState<"lbs" | "kg">(preferredWeightUnit);
+  const [savedDistanceUnit, setSavedDistanceUnit] = useState<"mi" | "km">(preferredDistanceUnit);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isSaving, startSaving] = useTransition();
 
-  const isDirty = weightUnit !== preferredWeightUnit || distanceUnit !== preferredDistanceUnit;
-  const activeAppearance = APPEARANCE_OPTIONS.find((option) => option.value === mode) ?? APPEARANCE_OPTIONS[0];
+  const isDirty = weightUnit !== savedWeightUnit || distanceUnit !== savedDistanceUnit;
 
   const saveUnits = () => {
     setMessage(null);
@@ -54,29 +46,17 @@ export function GlassEffectsSettings({
         return;
       }
 
+      setSavedWeightUnit(weightUnit);
+      setSavedDistanceUnit(distanceUnit);
       setMessage({ tone: "success", text: "Preferences saved." });
     });
   };
 
   return (
-    <div className={appTokens.settingsBlockStack}>
-      <div className={appTokens.settingsFieldStack}>
-        <p className={appTokens.measurementLabel}>Appearance</p>
-        <SegmentedControl
-          ariaLabel="Appearance mode"
-          options={APPEARANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
-          value={mode}
-          onChange={(nextValue) => setMode(nextValue as GlassEffectsMode)}
-        />
-        <div className={appTokens.settingsUtilityRow}>
-          <Chip tone="today">{activeAppearance.label}</Chip>
-          <p className={appTokens.settingsBodyText}>{activeAppearance.description}</p>
-        </div>
-      </div>
-
-      <div className={appTokens.settingsDivider}>
-        <div className={appTokens.settingsFieldStack}>
-          <p className={appTokens.measurementLabel}>Weight unit</p>
+    <div className="space-y-3 pt-2">
+      <div className="grid grid-cols-2 gap-3">
+        <div className={cn(appTokens.settingsFieldStack, "items-center text-center")}>
+          <p className={cn(appTokens.settingsFieldLabel, "w-full text-center")}>Weight unit</p>
           <SegmentedControl
             ariaLabel="Weight unit"
             options={WEIGHT_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
@@ -86,8 +66,8 @@ export function GlassEffectsSettings({
           />
         </div>
 
-        <div className={appTokens.settingsFieldStack}>
-          <p className={appTokens.measurementLabel}>Distance unit</p>
+        <div className={cn(appTokens.settingsFieldStack, "items-center text-center")}>
+          <p className={cn(appTokens.settingsFieldLabel, "w-full text-center")}>Distance unit</p>
           <SegmentedControl
             ariaLabel="Distance unit"
             options={DISTANCE_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
@@ -96,15 +76,26 @@ export function GlassEffectsSettings({
             size="sm"
           />
         </div>
+      </div>
 
-        <div className={appTokens.settingsFieldStack}>
-          <AppButton type="button" variant="primary" fullWidth disabled={!isDirty} loading={isSaving} onClick={saveUnits}>
-            Save preferences
-          </AppButton>
-          <p className={cn(appTokens.settingsBodyText, message?.tone === "error" ? "text-[rgb(var(--button-destructive-text))]" : undefined)}>
-            {message?.text ?? "These defaults apply to logging, summaries, and add-exercise flows."}
+      <div className={appTokens.settingsFieldStack}>
+        <AppButton type="button" variant={isDirty ? "primary" : "secondary"} fullWidth disabled={!isDirty} loading={isSaving} onClick={saveUnits}>
+          Save preferences
+        </AppButton>
+        {message?.text ? (
+          <p
+            className={[
+              appTokens.settingsBodyText,
+              message?.tone === "error"
+                ? appTokens.settingsStatusError
+                : message?.tone === "success"
+                  ? appTokens.settingsStatusSuccess
+                  : undefined,
+            ].filter(Boolean).join(" ")}
+          >
+            {message.text}
           </p>
-        </div>
+        ) : null}
       </div>
     </div>
   );

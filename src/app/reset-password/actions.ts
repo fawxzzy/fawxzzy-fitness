@@ -3,7 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseServerWithSession } from "@/lib/supabase/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/env";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired. Request a new password reset.";
@@ -67,7 +67,7 @@ export async function establishRecoverySession(input: { accessToken: string; ref
 }
 
 export async function updatePassword(newPassword: string) {
-  const supabase = supabaseServer();
+  const supabase = await supabaseServerWithSession();
   const { data: userData } = await supabase.auth.getUser();
 
   if (!userData.user) {

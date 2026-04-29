@@ -3,18 +3,39 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
 import { ExerciseCard } from "@/components/ExerciseCard";
-import { StandardExerciseRow } from "@/components/StandardExerciseRow";
+import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
+import { BOTTOM_ACTION_SHELL_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 import { appTokens } from "@/components/ui/app/tokens";
 import { AppButton } from "@/components/ui/AppButton";
-import { listShellClasses } from "@/components/ui/listShellClasses";
+import { usePublishBottomActions } from "@/components/layout/bottom-actions";
 import { PickerListViewport } from "@/components/ui/PickerListViewport";
 import { type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { GoalSummaryInline } from "@/components/ui/measurements/GoalSummaryInline";
 import { SharedExerciseGoalForm, inferGoalModeFromState } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import { ExerciseSearchFilters } from "@/components/exercises/ExerciseSearchFilters";
+import { type ExerciseTagGroup } from "@/components/ExerciseTagFilterControl";
+import { SignatureMetaTag, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
 import { cn } from "@/lib/cn";
 import { resolveCanonicalExerciseId, type ExerciseStatsOption } from "@/lib/exercise-picker-stats";
-import { deriveGoalMeasurementSelections, getDefaultMeasurementsForGoalModality, resolveGoalModality, validateGoalConfiguration, type GoalModality } from "@/lib/exercise-goal-validation";
-import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
+import { isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
+import {
+  EXERCISE_CURATION_GROUPS,
+  flattenExerciseCurationTagValues,
+  formatExerciseTagLabel,
+  normalizeExerciseCurationTags,
+  buildScopedExerciseCurationTagValue,
+  type ExerciseCurationTags,
+} from "@/lib/exercise-curation";
+import {
+  deriveGoalMeasurementSelections,
+  getDefaultMeasurementsForGoalModality,
+  getMissingGoalPreviewLabel,
+  resolveGoalModality,
+  validateGoalConfiguration,
+  type GoalModality,
+  type GoalValidationResult,
+} from "@/lib/exercise-goal-validation";
+import { getStretchHubMetaItems, isStretchHubExercise } from "@/lib/stretch-library";
 
 type ExerciseOption = {
   id: string;
@@ -25,13 +46,14 @@ type ExerciseOption = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
   how_to_short?: string | null;
   image_icon_path?: string | null;
   slug?: string | null;
+  curation_tags?: ExerciseCurationTags | string | null;
 } & {
   tags?: string[] | string | null;
   tag?: string[] | string | null;
@@ -60,13 +82,13 @@ type ExercisePickerProps = {
   }) => ReactNode;
 };
 
-type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
+ type TagFilterGroup = "muscle" | "movement" | "equipment" | "other";
 
 type ExerciseRowProps = {
   exercise: ExerciseOption;
   isSelected: boolean;
   hasStats: boolean;
-  metadata: string;
+  metadata: ReactNode;
   onPress: (exerciseId: string, isSelected: boolean) => void;
 };
 
@@ -79,9 +101,9 @@ const tagGroupLabels: Record<TagFilterGroup, string> = {
 
 const pickerRowMobileDensityClassNames = {
   body: "max-md:gap-1",
-  title: "max-md:text-[0.86rem] max-md:leading-[1.15] max-md:line-clamp-2",
+  title: "max-md:text-[0.86rem] max-md:leading-[1.15]",
   titleContainer: "max-md:space-y-0.25",
-  subtitle: "max-md:text-[11px] max-md:leading-[1.26] max-md:line-clamp-2",
+  subtitle: "max-md:text-[11px] max-md:leading-[1.26]",
   content: "max-md:space-y-0.25",
   trailing: "max-md:min-w-[4.3rem]",
   selectPill: "max-md:min-h-[1.65rem] max-md:min-w-[3rem] max-md:px-1.75 max-md:text-[9px]",
@@ -107,6 +129,7 @@ function normalizeExerciseTags(exercise: ExerciseOption) {
     ...toTagArray(exercise.primary_muscle),
     ...toTagArray(exercise.movement_pattern),
     ...toTagArray(exercise.equipment),
+    ...flattenExerciseCurationTagValues(normalizeExerciseCurationTags(exercise.curation_tags)),
   ];
 
   const deduped = new Map<string, string>();
@@ -139,6 +162,41 @@ function formatTagLabel(tag: string) {
     .filter(Boolean)
     .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
+}
+
+function ExerciseMetaLine({ items }: { items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center justify-start gap-x-2 gap-y-1 text-[11px] font-medium leading-[1.2] text-[rgb(var(--text-secondary)/0.94)]">
+      {items.map((item, index) => (
+        <span key={`${item}-${index}`} className="inline-flex min-w-0 items-center gap-2">
+          {index > 0 ? <span aria-hidden="true" className="h-[4px] w-[4px] rounded-full bg-[rgb(var(--accent)/0.9)]" /> : null}
+          <span className="min-w-0 [text-wrap:balance]">{item}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function ExercisePickerBleed({
+  children,
+  className,
+  innerClassName,
+}: {
+  children: ReactNode;
+  className?: string;
+  innerClassName?: string;
+}) {
+  return (
+    <div className={cn("relative w-full max-w-full overflow-visible", className)}>
+      <div className={cn("px-4 md:px-0", innerClassName)}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function formatMeasurementStat(weight: number | null, reps: number | null, unit: string | null) {
@@ -216,12 +274,22 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
 
   return (
     <li>
-      <StandardExerciseRow
-        exercise={exercise}
-        summary={metadata || undefined}
+      <ExerciseCard
+        title={exercise.name}
+        leadingVisual={(
+          <ExerciseThumb
+            exercise={exercise}
+            detailed={false}
+            layout="rail"
+            railWidth={72}
+            sizes="72px"
+            intent="row-card"
+          />
+        )}
         variant="compact"
         state={rowState}
         onPress={() => onPress(exercise.id, isSelected)}
+        className="border-[rgb(var(--border-strong)/0.08)] shadow-none"
         rightIcon={(
           <span
             aria-hidden="true"
@@ -243,17 +311,17 @@ const ExerciseRow = memo(function ExerciseRow({ exercise, isSelected, hasStats, 
           isSelected ? "text-[rgb(var(--text)/0.98)]" : "text-muted",
         )}
         rightRailClassName={cn(
-          "-my-[var(--exercise-row-shell-padding-y-compact)] -mr-[var(--exercise-row-shell-padding-x)] self-stretch overflow-hidden rounded-r-[inherit] border-l",
+          "-my-[var(--exercise-row-shell-padding-y-compact)] -mr-[calc(var(--exercise-row-shell-padding-x)+1px)] self-stretch overflow-hidden rounded-r-[inherit] border-l",
           rightRailClassName,
         )}
         trailingStackClassName="h-full min-h-0"
-        surface="exercise-picker"
         bodyClassName={pickerRowMobileDensityClassNames.body}
         titleClassName={pickerRowMobileDensityClassNames.title}
         titleContainerClassName={pickerRowMobileDensityClassNames.titleContainer}
-        subtitleClassName={pickerRowMobileDensityClassNames.subtitle}
-        contentClassName={pickerRowMobileDensityClassNames.content}
-      />
+        contentClassName={cn("pl-1.5", pickerRowMobileDensityClassNames.content)}
+      >
+        {metadata ? <div className="pt-0.5">{metadata}</div> : null}
+      </ExerciseCard>
     </li>
   );
 });
@@ -344,8 +412,11 @@ export function ExercisePicker({
     return tagsById;
   }, [uniqueExercises]);
 
-  const availableTagGroups = useMemo(() => {
+  const availableTagGroups = useMemo<ExerciseTagGroup[]>(() => {
     const tagsByValue = new Map<string, { label: string; group: TagFilterGroup }>();
+    const curationGroups = new Map(
+      EXERCISE_CURATION_GROUPS.map((group) => [group.key, { label: group.label, tags: new Map<string, string>() }]),
+    );
 
     for (const exercise of uniqueExercises) {
       appendTagsWithGroup(tagsByValue, exercise.muscles, "muscle");
@@ -357,6 +428,18 @@ export function ExercisePicker({
       appendTagsWithGroup(tagsByValue, exercise.tag, "other");
       appendTagsWithGroup(tagsByValue, exercise.categories, "other");
       appendTagsWithGroup(tagsByValue, exercise.category, "other");
+
+      const curationTags = normalizeExerciseCurationTags(exercise.curation_tags);
+      if (curationTags) {
+        for (const group of EXERCISE_CURATION_GROUPS) {
+          const values = curationTags[group.key] ?? [];
+          const targetGroup = curationGroups.get(group.key);
+          if (!targetGroup) continue;
+          for (const value of values) {
+            targetGroup.tags.set(buildScopedExerciseCurationTagValue(group.key, value), formatExerciseTagLabel(value));
+          }
+        }
+      }
 
       const normalizedTags = normalizeExerciseTags(exercise);
       for (const [tag, label] of normalizedTags) {
@@ -374,12 +457,27 @@ export function ExercisePicker({
       groupedTags[group].push({ value, label: formatTagLabel(label) });
     }
 
-    return (Object.keys(tagGroupLabels) as TagFilterGroup[])
-      .map((group) => ({ key: group, label: tagGroupLabels[group], tags: groupedTags[group].sort((a, b) => a.label.localeCompare(b.label)) }))
-      .filter((group) => group.tags.length > 0);
+    const baseGroups: ExerciseTagGroup[] = (Object.keys(tagGroupLabels) as TagFilterGroup[]).map((group) => ({
+      key: group,
+      label: tagGroupLabels[group],
+      tags: groupedTags[group].sort((a, b) => a.label.localeCompare(b.label)),
+    }));
+
+    const extraGroups: ExerciseTagGroup[] = EXERCISE_CURATION_GROUPS.map((group) => {
+      const targetGroup = curationGroups.get(group.key);
+      return {
+        key: group.key,
+        label: group.label,
+        tags: Array.from(targetGroup?.tags ?? [], ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label)),
+      };
+    });
+
+    return [...baseGroups, ...extraGroups].filter((group) => group.tags.length > 0);
   }, [uniqueExercises]);
 
   const selectedExercise = uniqueExercises.find((exercise) => exercise.id === selectedId);
+  const isStretchHubSelected = isStretchHubExercise(selectedExercise);
+  const isMeasurementOptionalSelected = isMeasurementOptionalExercise(selectedExercise);
 
   const filteredExercises = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -400,7 +498,19 @@ export function ExercisePicker({
   useEffect(() => {
     onSelectedExerciseChange?.(selectedExercise ?? null);
   }, [onSelectedExerciseChange, selectedExercise]);
-  const exerciseMetadataById = useMemo(() => new Map(uniqueExercises.map((exercise) => [exercise.id, [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment].filter(Boolean).join(" • ")])), [uniqueExercises]);
+  const exerciseMetadataById = useMemo(
+    () => new Map(
+      uniqueExercises.map((exercise) => [
+        exercise.id,
+        isStretchHubExercise(exercise)
+          ? getStretchHubMetaItems()
+          : [exercise.primary_muscle, exercise.movement_pattern, exercise.equipment]
+            .filter((value): value is string => Boolean(value?.trim()))
+            .map((value) => formatTagLabel(value)),
+      ]),
+    ),
+    [uniqueExercises],
+  );
   const selectedCanonicalExerciseId = selectedExercise ? resolveCanonicalExerciseId(selectedExercise) : null;
   const selectedStats = selectedCanonicalExerciseId ? statsByExerciseId.get(selectedCanonicalExerciseId) : undefined;
   const lastSummaryText = selectedStats
@@ -443,7 +553,7 @@ export function ExercisePicker({
     });
     setGoalState((current) => ({
       ...current,
-      measurements: getDefaultMeasurementsForGoalModality(defaultModality),
+      measurements: isMeasurementOptionalExercise(selectedExercise) ? [] : getDefaultMeasurementsForGoalModality(defaultModality),
       distanceUnit: nextDefaultUnit,
     }));
     resetMeasurementFields();
@@ -475,39 +585,6 @@ export function ExercisePicker({
     }),
     [effectiveGoalModality, goalState.calories, goalState.distance, goalState.duration, goalState.repsMax, goalState.repsMin, goalState.weight],
   );
-  const goalPreviewText = useMemo(
-    () => formatGoalInlineSummaryText({
-      sets: goalState.sets ? Number(goalState.sets) : null,
-      reps: goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null,
-      repsMax: goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null,
-      weight: goalMeasurementSelections.includes("weight") && goalState.weight ? Number(goalState.weight) : null,
-      weightUnit: goalState.weightUnit,
-      durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
-      distance: goalMeasurementSelections.includes("distance") && goalState.distance ? Number(goalState.distance) : null,
-      distanceUnit: goalState.distanceUnit,
-      calories: goalMeasurementSelections.includes("calories") && goalState.calories ? Number(goalState.calories) : null,
-      enabledMeasurements: {
-        reps: goalMeasurementSelections.includes("reps"),
-        weight: goalMeasurementSelections.includes("weight"),
-        time: goalMeasurementSelections.includes("time"),
-        distance: goalMeasurementSelections.includes("distance"),
-        calories: goalMeasurementSelections.includes("calories"),
-      },
-      emptyLabel: "Goal missing",
-    }),
-    [
-      goalMeasurementSelections,
-      goalState.calories,
-      goalState.distance,
-      goalState.distanceUnit,
-      goalState.duration,
-      goalState.repsMax,
-      goalState.repsMin,
-      goalState.sets,
-      goalState.weight,
-      goalState.weightUnit,
-    ],
-  );
 
   const handleExercisePress = useCallback((exerciseId: string, isSelected: boolean) => {
     if (isSelected) {
@@ -521,32 +598,173 @@ export function ExercisePicker({
     setIsExerciseInfoOpen(true);
   }, [selectedCanonicalExerciseId]);
 
-  const goalValidation = useMemo(() => validateGoalConfiguration({
-    modality: effectiveGoalModality,
-    sets: goalState.sets,
-    repsMin: goalState.repsMin,
-    repsMax: goalState.repsMax,
-    weight: goalState.weight,
-    duration: goalState.duration,
-    distance: goalState.distance,
-    calories: goalState.calories,
-    measurementSelections: new Set(goalMeasurementSelections),
-  }), [effectiveGoalModality, goalMeasurementSelections, goalState]);
+  const goalValidation = useMemo<GoalValidationResult>(() => {
+    if (isMeasurementOptionalSelected) {
+      const sets = Number(goalState.sets);
+      return Number.isInteger(sets) && sets > 0
+        ? { isValid: true, requiredFields: [], message: "Goal is valid." }
+        : { isValid: false, requiredFields: ["sets"], message: "Missing Sets" };
+    }
+
+    return validateGoalConfiguration({
+      modality: effectiveGoalModality,
+      sets: goalState.sets,
+      repsMin: goalState.repsMin,
+      repsMax: goalState.repsMax,
+      weight: goalState.weight,
+      duration: goalState.duration,
+      distance: goalState.distance,
+      calories: goalState.calories,
+      measurementSelections: new Set(goalMeasurementSelections),
+    });
+  }, [effectiveGoalModality, goalMeasurementSelections, goalState, isMeasurementOptionalSelected]);
+  const goalPreviewMissingLabel = !goalValidation.isValid && goalValidation.requiredFields.length > 0
+    ? `missing ${getMissingGoalPreviewLabel(goalValidation.requiredFields[0])}`
+    : null;
+  const goalPreviewNode = (
+    <div className="mx-0.5 -mt-1.5 border-t border-[rgb(var(--accent)/0.52)] pt-0">
+      <div className="flex min-w-0 items-center justify-center gap-1.5 px-1 pb-0.5 pt-0 text-center">
+        <SignatureMetaTag className="text-[10px] tracking-[0.16em]">Preview</SignatureMetaTag>
+        <SignatureMiniPipe />
+        {goalPreviewMissingLabel ? (
+          <p className="min-w-0 flex-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--accent)/0.96)]">
+            {goalPreviewMissingLabel}
+          </p>
+        ) : (
+          <GoalSummaryInline
+            includeSets={false}
+            className="min-w-0 flex-1 px-0 py-0 text-center"
+            values={{
+              sets: goalState.sets ? Number(goalState.sets) : null,
+              reps: goalMeasurementSelections.includes("reps") && goalState.repsMin ? Number(goalState.repsMin) : null,
+              repsMax: goalMeasurementSelections.includes("reps") && goalState.repsMax ? Number(goalState.repsMax) : null,
+              weight: goalMeasurementSelections.includes("weight") && goalState.weight ? Number(goalState.weight) : null,
+              weightUnit: goalState.weightUnit,
+              durationSeconds: goalMeasurementSelections.includes("time") ? parseDurationInput(goalState.duration) : null,
+              distance: goalMeasurementSelections.includes("distance") && goalState.distance ? Number(goalState.distance) : null,
+              distanceUnit: goalState.distanceUnit,
+              calories: goalMeasurementSelections.includes("calories") && goalState.calories ? Number(goalState.calories) : null,
+              emptyLabel: "Goal missing",
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+  const footerNode = renderFooter ? renderFooter({
+    selectedExercise,
+    selectedCanonicalExerciseId,
+    filteredExercises,
+    openExerciseInfo,
+    goalValidation: {
+      isValid: goalValidation.isValid,
+      message: goalValidation.message,
+    },
+  }) : footerSlot;
+
+  const configureGoalDockNode = routineTargetConfig && selectedExercise ? (
+    <section className={cn(appTokens.exercisePickerGoalPanel, appTokens.exercisePickerGoalCompact, "-mx-2 flex w-[calc(100%+1rem)] min-w-0 max-w-none flex-col space-y-0 overflow-visible rounded-[1.7rem] border-[rgb(var(--accent)/0.14)] bg-[rgb(var(--surface-2-rgb)/0.98)] px-3 pb-1 pt-1 shadow-[0_12px_24px_rgba(3,9,16,0.14)]")}>
+      {!isStretchHubSelected && selectedStats && (hasLast || hasBest) ? (
+        <div
+          className={cn(
+            appTokens.exercisePickerStatsStack,
+            didApplyLast ? appTokens.exercisePickerStatsEmphasis : undefined,
+            appTokens.exercisePickerStatsCompact,
+            "pb-0.5",
+          )}
+        >
+          {hasLast ? (
+            <div className="flex items-start justify-between gap-3">
+              <p className={cn(appTokens.exercisePickerStatsText, "min-w-0 flex-1")}>Last: {lastSummaryText}{selectedStats.lastPerformedAt ? ` \u00b7 ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p>
+              <AppButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0 self-start"
+                onClick={() => {
+                  setGoalState((current) => {
+                    const nextMeasurements = new Set(current.measurements);
+                    const hasLastWeight = typeof selectedStats.lastWeight === "number" && selectedStats.lastWeight > 0;
+                    const hasLastReps = typeof selectedStats.lastReps === "number" && selectedStats.lastReps > 0;
+
+                    if (hasLastWeight) {
+                      nextMeasurements.add("weight");
+                    }
+                    if (hasLastReps) {
+                      nextMeasurements.add("reps");
+                    }
+
+                    return {
+                      ...current,
+                      weight: hasLastWeight ? String(selectedStats.lastWeight) : current.weight,
+                      repsMin: hasLastReps ? String(selectedStats.lastReps) : current.repsMin,
+                      repsMax: hasLastReps ? String(selectedStats.lastReps) : current.repsMax,
+                      weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
+                      measurements: Array.from(nextMeasurements),
+                    };
+                  });
+                  setDidApplyLast(true);
+                  setTimeout(() => setDidApplyLast(false), 1200);
+                }}
+              >
+                Use last
+              </AppButton>
+            </div>
+          ) : null}
+          {hasBest ? (
+            <p className={appTokens.exercisePickerStatsText}>
+              Best: {bestSummaryText}
+              {selectedStats.actualPrAt ? ` \u00b7 ${formatStatDate(selectedStats.actualPrAt)}` : ""}
+              {selectedStats.prEst1rm != null ? `${bestSummaryText || selectedStats.actualPrAt ? " \u00b7 " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <SharedExerciseGoalForm
+        modality={goalModality}
+        state={goalState}
+        onStateChange={setGoalState}
+        names={{
+          sets: "targetSets",
+          repsMin: "targetRepsMin",
+          repsMax: "targetRepsMax",
+          weight: "targetWeight",
+          duration: "targetDuration",
+          distance: "targetDistance",
+          calories: "targetCalories",
+          weightUnit: "targetWeightUnit",
+          distanceUnit: "targetDistanceUnit",
+        }}
+        includeSetsInSummary={false}
+        showValidationMessage={false}
+        hideEmptySummary
+        hideSummary
+        footerContent={goalPreviewNode}
+        measurementLayoutMode="horizontal-scroll"
+        visibleMetrics={isMeasurementOptionalSelected ? [] : undefined}
+        visibleMetricOrder={isMeasurementOptionalSelected ? [] : undefined}
+      />
+    </section>
+  ) : null;
+
+  usePublishBottomActions(footerNode ?? null);
 
   useEffect(() => {
     if (goalState.measurements.length > 0) return;
+    if (isMeasurementOptionalSelected) return;
     setGoalState((current) => ({
       ...current,
       measurements: getDefaultMeasurementsForGoalModality(goalModality),
     }));
-  }, [goalModality, goalState.measurements.length]);
+  }, [goalModality, goalState.measurements.length, isMeasurementOptionalSelected]);
 
   const exerciseListContent = (
     <ul
       className={cn(
         "space-y-1 md:space-y-0",
-        listShellClasses.viewport,
-        "max-md:pr-0.5 md:snap-y md:snap-mandatory md:scroll-py-2",
+        "pr-0 md:snap-y md:snap-mandatory md:scroll-py-2",
       )}
     >
       {filteredExercises.map((exercise) => (
@@ -555,7 +773,7 @@ export function ExercisePicker({
           exercise={exercise}
           isSelected={exercise.id === selectedId}
           hasStats={hasExerciseStatsSignal(statsByExerciseId.get(resolveCanonicalExerciseId(exercise)))}
-          metadata={exerciseMetadataById.get(exercise.id) ?? ""}
+          metadata={<ExerciseMetaLine items={exerciseMetadataById.get(exercise.id) ?? []} />}
           onPress={handleExercisePress}
         />
       ))}
@@ -564,134 +782,46 @@ export function ExercisePicker({
   );
 
   return (
-    <div className={appTokens.exercisePickerRoot}>
+    <div className={cn(appTokens.exercisePickerRoot, "relative flex min-h-0 flex-1 flex-col space-y-0 overflow-visible")}>
       <input type="hidden" name={name} value={selectedCanonicalExerciseId ?? selectedId} required />
 
-      <section className={appTokens.exercisePickerPanel}>
-        <ExerciseSearchFilters
-          query={search}
-          onQueryChange={setSearch}
-          selectedTags={selectedTags}
-          onTagsChange={setSelectedTags}
-          groups={availableTagGroups}
-          resultCount={filteredExercises.length}
-          className="space-y-1.5"
-          filterClassName="space-y-1"
-        />
-
-        <PickerListViewport
-          className="[--picker-mobile-tray-max-h:var(--exercise-picker-mobile-tray-max-h)]"
-          viewportClassName="pr-0 md:pr-1"
-          showFade
-          plainOnMobile
-          mobileTray
-          constrainOnDesktop
-        >
-          {exerciseListContent}
-        </PickerListViewport>
-      </section>
-
-      {routineTargetConfig && selectedExercise ? (
-        <section className={cn(appTokens.exercisePickerGoalPanel, appTokens.exercisePickerGoalCompact, "mt-3")}>
-          <p className={cn(appTokens.exercisePickerSectionEyebrow, "pl-[4px] pt-[4px]")}>Configure goal</p>
-          {selectedStats && (hasLast || hasBest) ? (
-            <div
-              className={cn(
-                appTokens.exercisePickerStatsStack,
-                didApplyLast ? appTokens.exercisePickerStatsEmphasis : undefined,
-                appTokens.exercisePickerStatsCompact,
-              )}
-            >
-              {hasLast ? (
-                <div className="flex items-start justify-between gap-3">
-                  <p className={cn(appTokens.exercisePickerStatsText, "min-w-0 flex-1")}>Last: {lastSummaryText}{selectedStats.lastPerformedAt ? ` \u00b7 ${formatStatDate(selectedStats.lastPerformedAt)}` : ""}</p>
-                  <AppButton
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 self-start"
-                    onClick={() => {
-                      setGoalState((current) => {
-                        const nextMeasurements = new Set(current.measurements);
-                        const hasLastWeight = typeof selectedStats.lastWeight === "number" && selectedStats.lastWeight > 0;
-                        const hasLastReps = typeof selectedStats.lastReps === "number" && selectedStats.lastReps > 0;
-
-                        if (hasLastWeight) {
-                          nextMeasurements.add("weight");
-                        }
-                        if (hasLastReps) {
-                          nextMeasurements.add("reps");
-                        }
-
-                        return {
-                          ...current,
-                          weight: hasLastWeight ? String(selectedStats.lastWeight) : current.weight,
-                          repsMin: hasLastReps ? String(selectedStats.lastReps) : current.repsMin,
-                          repsMax: hasLastReps ? String(selectedStats.lastReps) : current.repsMax,
-                          weightUnit: selectedStats.lastUnit === "kg" || selectedStats.lastUnit === "lbs" ? selectedStats.lastUnit : current.weightUnit,
-                          measurements: Array.from(nextMeasurements),
-                        };
-                      });
-                      setDidApplyLast(true);
-                      setTimeout(() => setDidApplyLast(false), 1200);
-                    }}
-                  >
-                    Use last
-                  </AppButton>
-                </div>
-              ) : null}
-              {hasBest ? (
-                <p className={appTokens.exercisePickerStatsText}>
-                  Best: {bestSummaryText}
-                  {selectedStats.actualPrAt ? ` \u00b7 ${formatStatDate(selectedStats.actualPrAt)}` : ""}
-                  {selectedStats.prEst1rm != null ? `${bestSummaryText || selectedStats.actualPrAt ? " \u00b7 " : ""}Est 1RM ${Math.round(selectedStats.prEst1rm)}` : ""}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <SharedExerciseGoalForm
-            modality={goalModality}
-            state={goalState}
-            onStateChange={setGoalState}
-            names={{
-              sets: "targetSets",
-              repsMin: "targetRepsMin",
-              repsMax: "targetRepsMax",
-              weight: "targetWeight",
-              duration: "targetDuration",
-              distance: "targetDistance",
-              calories: "targetCalories",
-              weightUnit: "targetWeightUnit",
-              distanceUnit: "targetDistanceUnit",
-            }}
-            includeSetsInSummary={false}
-            showValidationMessage={false}
-            hideEmptySummary
-            hideSummary
+      <div className="sticky top-0 z-30 bg-[linear-gradient(180deg,rgba(7,14,24,0.985),rgba(7,14,24,0.95)_66%,rgba(7,14,24,0.18)_88%,rgba(7,14,24,0)_100%)] backdrop-blur-md">
+        <ExercisePickerBleed className="overflow-visible pb-2 pt-1">
+          <section className={cn(appTokens.exercisePickerPanel, "space-y-1 rounded-none border-0 bg-transparent px-4 pb-2 pt-0 shadow-none")}>
+          <ExerciseSearchFilters
+            query={search}
+            onQueryChange={setSearch}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            groups={availableTagGroups}
+            resultCount={filteredExercises.length}
+            className="space-y-1.5"
+            filterClassName="space-y-1"
           />
+          </section>
+        </ExercisePickerBleed>
+      </div>
 
-          <div className={cn(appTokens.currentSessionLoggerSummaryCard, "mt-1 border-[rgb(var(--accent)/0.16)] bg-[rgb(var(--surface-2-rgb)/0.2)]")}>
-            <p className={cn(appTokens.currentSessionLoggerSummaryEyebrow, "pl-[4px] pt-[4px]")}>Preview goal</p>
-            <div className="flex min-h-[52px] items-center justify-center text-center">
-              <p className={cn(appTokens.currentSessionLoggerSummaryText, "text-center text-[14px] leading-[1.25]")}>
-                {goalPreviewText}
-              </p>
-            </div>
+      <div className="relative mt-1 flex min-h-0 flex-1 w-full max-w-full overflow-hidden">
+        <PickerListViewport
+          plainOnMobile
+          showFade={false}
+          className="flex h-full min-h-0 flex-1"
+          viewportClassName="hide-scrollbar h-full min-h-0 overflow-y-auto overscroll-contain px-0 pb-[calc(var(--bottom-actions-height,10.5rem)+11.5rem)] pr-0"
+        >
+          <div className="min-h-full pl-1.5 pr-0.5 pb-4">
+            {exerciseListContent}
           </div>
-        </section>
-      ) : null}
+        </PickerListViewport>
+      </div>
 
-      {renderFooter ? renderFooter({
-        selectedExercise,
-        selectedCanonicalExerciseId,
-        filteredExercises,
-        openExerciseInfo,
-        goalValidation: {
-          isValid: goalValidation.isValid,
-          message: goalValidation.message,
-        },
-      }) : footerSlot}
+      {configureGoalDockNode ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--bottom-actions-height,10.5rem)+0.15rem)] z-50">
+          <div className={`${BOTTOM_ACTION_SHELL_CLASSNAME} pointer-events-auto`}>
+            {configureGoalDockNode}
+          </div>
+        </div>
+      ) : null}
 
       <ExerciseInfo
         exerciseId={selectedCanonicalExerciseId}
@@ -703,3 +833,4 @@ export function ExercisePicker({
     </div>
   );
 }
+

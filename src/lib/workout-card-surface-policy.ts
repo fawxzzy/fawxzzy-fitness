@@ -60,7 +60,7 @@ export function resolveWorkoutCardSurfacePolicy(
       };
     case "view-day":
       return {
-        showMedia: false,
+        showMedia: true,
         showIdentityChips: false,
         showDetailedMetrics: false,
         mediaRailWidth: resolveWorkoutCardMediaRailWidth(surface),

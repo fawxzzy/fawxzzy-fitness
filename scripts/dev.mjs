@@ -21,6 +21,12 @@ const DEV_ENV_KEYS = [
   "APP_URL",
   "HISTORY_QA_PREVIEW_ENABLED",
 ];
+const middlewareManifestStub = JSON.stringify({
+  version: 3,
+  middleware: {},
+  functions: {},
+  sortedMiddleware: [],
+}, null, 2);
 
 function parseDotenvFile(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -107,6 +113,21 @@ function printLanHint() {
   );
 }
 
+function ensureMiddlewareManifestStub() {
+  const serverDir = path.join(repoRoot, ".next", "server");
+  const manifestPath = path.join(serverDir, "middleware-manifest.json");
+  const hasRealMiddlewareSource = fs.existsSync(path.join(repoRoot, "middleware.ts"))
+    || fs.existsSync(path.join(repoRoot, "middleware.js"))
+    || fs.existsSync(path.join(repoRoot, "src", "middleware.ts"))
+    || fs.existsSync(path.join(repoRoot, "src", "middleware.js"));
+
+  if (hasRealMiddlewareSource || !fs.existsSync(serverDir) || fs.existsSync(manifestPath)) {
+    return;
+  }
+
+  fs.writeFileSync(manifestPath, `${middlewareManifestStub}\n`, "utf8");
+}
+
 for (const key of DEV_ENV_KEYS) {
   const fileValue = fileEnv[key];
   if (typeof fileValue !== "string" || fileValue.length === 0) {
@@ -133,8 +154,16 @@ const child = spawn(process.execPath, [nextBin, "dev", ...devArgs], {
   env: childEnv,
   stdio: "inherit",
 });
+const middlewareManifestInterval = setInterval(() => {
+  try {
+    ensureMiddlewareManifestStub();
+  } catch (error) {
+    process.stderr.write(`[dev] Failed to ensure middleware-manifest.json stub: ${String(error)}\n`);
+  }
+}, 750);
 
 child.on("exit", (code, signal) => {
+  clearInterval(middlewareManifestInterval);
   if (signal) {
     process.kill(process.pid, signal);
     return;

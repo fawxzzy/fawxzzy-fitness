@@ -1,17 +1,14 @@
 import { notFound } from "next/navigation";
-import { RoutineEditorPageHeader } from "@/components/routines/RoutineEditorShared";
-import { ContentRail } from "@/components/layout/ContentRail";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { AppShell } from "@/components/ui/app/AppShell";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { addRoutineDayExerciseAction } from "@/app/routines/[id]/edit/day/actions";
 import { EditDayAddExerciseScreen } from "@/app/routines/[id]/edit/day/[dayId]/EditDayAddExerciseScreen";
+import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
+import { appTokens } from "@/components/ui/app/tokens";
 import { requireUser } from "@/lib/auth";
-import { listExercises } from "@/lib/exercises";
-import { mapExerciseStatsForPicker } from "@/lib/exercise-picker-stats";
-import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
+import { cn } from "@/lib/cn";
+import { loadExerciseChooserRouteData } from "@/lib/exercise-chooser-route-data";
 import { getRoutineDayEditHref } from "@/lib/routine-day-navigation";
+import { formatRoutineDayDisplayName } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +26,7 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
 
   const { data: routine } = await supabase
     .from("routines")
-    .select("id, user_id, name, weight_unit")
+    .select("id, user_id, name, weight_unit, start_date")
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
@@ -44,38 +41,38 @@ export default async function EditDayAddExercisePage({ params }: PageProps) {
     .single();
   if (!day) notFound();
 
-  const exerciseOptions = await listExercises();
-  const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, exerciseOptions.map((exercise) => exercise.id));
+  const { exercises, exerciseStats } = await loadExerciseChooserRouteData(user.id);
   const backHref = getRoutineDayEditHref(params.id, params.dayId);
+  const dayLabel = formatRoutineDayDisplayName({
+    name: day.name,
+    dayIndex: day.day_index,
+    startDate: routine.start_date ?? null,
+  });
 
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="logSet">
-      <ScrollScreenWithBottomActions
-        floatingHeader={(
-          <ContentRail className="py-1">
-            <ScreenScaffold recipe="editDay" className="w-full">
-              <RoutineEditorPageHeader
-                title="Add Exercise"
-                action={<TopRightBackButton href={backHref} ariaLabel="Back to Edit Day" historyBehavior="fallback-only" />}
-              />
-            </ScreenScaffold>
-          </ContentRail>
-        )}
-      >
-        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <ScreenScaffold recipe="editDay" className="w-full">
-            <EditDayAddExerciseScreen
-              routineId={params.id}
-              routineDayId={params.dayId}
-              exercises={exerciseOptions}
-              weightUnit={routine.weight_unit}
-              addExerciseAction={addRoutineDayExerciseAction}
-              exerciseStats={mapExerciseStatsForPicker(exerciseOptions, exerciseStatsByExerciseId)}
-              backHref={backHref}
-            />
-          </ScreenScaffold>
-        </ContentRail>
-      </ScrollScreenWithBottomActions>
-    </AppShell>
+    <ExerciseChooserRouteScaffold
+      recipe="editDay"
+      title={(
+        <RoutineDayHeaderTitle
+          leadingItems={["Add Exercise to", routine.name]}
+          dayLabel={dayLabel}
+        />
+      )}
+      backHref={backHref}
+      backAriaLabel="Back to Edit Day"
+      headerAlign="center"
+      floatingHeaderRailClassName={cn(appTokens.historyFloatingHeaderRail, "relative z-30 pointer-events-auto")}
+      backButtonClassName="relative z-30 pointer-events-auto"
+    >
+      <EditDayAddExerciseScreen
+        routineId={params.id}
+        routineDayId={params.dayId}
+        exercises={exercises}
+        weightUnit={routine.weight_unit}
+        addExerciseAction={addRoutineDayExerciseAction}
+        exerciseStats={exerciseStats}
+        backHref={backHref}
+      />
+    </ExerciseChooserRouteScaffold>
   );
 }

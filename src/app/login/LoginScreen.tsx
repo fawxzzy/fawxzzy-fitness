@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { startTransition, type FormEvent, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { login, requestPasswordResetInline } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import {
   getLoginScreenViewState,
   getSyncedLoginFieldState,
-  resolveLoginRouteMessages,
   shouldStartCredentialStepOpenForLogin,
 } from "@/app/login/loginScreenState";
 import { AUTH_MODE_COPY, PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
@@ -69,17 +68,11 @@ export function LoginScreen({
   previewShowCredentialStep?: boolean;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const sessionProbeStartedRef = useRef(false);
   const copy = AUTH_MODE_COPY["password-login"];
-  const routeState = resolveLoginRouteMessages({
-    errorCode: searchParams?.get("error"),
-    infoCode: searchParams?.get("info"),
-    verified: searchParams?.get("verified"),
-  });
-  const resolvedError = error ?? routeState.error;
-  const resolvedInfo = info ?? routeState.info;
-  const resolvedRequiresReauth = requiresReauth || routeState.requiresReauth;
+  const resolvedError = error;
+  const resolvedInfo = info;
+  const resolvedRequiresReauth = requiresReauth;
   const shouldStartCredentialStepOpen =
     previewShowCredentialStep || shouldStartCredentialStepOpenForLogin({ error: resolvedError, requiresReauth: resolvedRequiresReauth });
   const [email, setEmail] = useState("");

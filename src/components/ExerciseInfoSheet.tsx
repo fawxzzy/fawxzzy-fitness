@@ -1,19 +1,55 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { DetailHeader, DetailSection } from "@/components/DetailSurface";
+import { DetailHeader } from "@/components/DetailSurface";
 import { ExerciseAssetImage } from "@/components/ExerciseAssetImage";
 import { ContentRail } from "@/components/layout/ContentRail";
+import { AppPanel } from "@/components/ui/app/AppPanel";
+import { SignatureInlineList, SignatureMiniPipe } from "@/components/ui/app/SignatureSeparator";
+import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { appTokens } from "@/components/ui/app/tokens";
-import { MetricGrid, MetricStrip, type MetricDatum } from "@/components/ui/MetricItem";
+import { MetricGrid, type MetricDatum } from "@/components/ui/MetricItem";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { EyebrowText } from "@/components/ui/text-roles";
+import { StretchLibraryPanel } from "@/components/stretch/StretchLibraryPanel";
 import { Glass } from "@/components/ui/Glass";
 import { cn } from "@/lib/cn";
 import { getExerciseHowToImageSrc } from "@/lib/exerciseImages";
+import { getRecoveryExerciseFallbackDescription } from "@/lib/exercise-metadata";
+import { STRETCH_HUB_GUIDE_COPY, STRETCH_HUB_HERO_SRC, isStretchHubExercise } from "@/lib/stretch-library";
 import { useBodyScrollLock } from "@/lib/useBodyScrollLock";
+
+function toTitleCase(value: string) {
+  return value.replace(/\b([a-z])/g, (match) => match.toUpperCase());
+}
+
+function mergeExerciseInfoSummaryMetrics(
+  quickMetrics: MetricDatum[],
+  performanceMetrics: MetricDatum[],
+) {
+  const redundantPerformanceLabels = new Set(["Top Set", "Last"]);
+  const seenSignatures = new Set(
+    quickMetrics.map((item) => `${item.label.toLowerCase()}::${item.value.toLowerCase()}`),
+  );
+
+  const uniquePerformanceMetrics = performanceMetrics.filter((item) => {
+    if (redundantPerformanceLabels.has(item.label)) {
+      return false;
+    }
+
+    const signature = `${item.label.toLowerCase()}::${item.value.toLowerCase()}`;
+    if (seenSignatures.has(signature)) {
+      return false;
+    }
+
+    seenSignatures.add(signature);
+    return true;
+  });
+
+  return [...quickMetrics, ...uniquePerformanceMetrics];
+}
 
 export type ExerciseInfoSheetExercise = {
   id: string;
@@ -76,56 +112,27 @@ export type ExerciseInfoSheetStats = {
 
 function buildExerciseInfoMeta(exercise: ExerciseInfoSheetExercise) {
   return [
-    exercise.equipment ? { label: "Equipment", value: exercise.equipment } : null,
-    exercise.primary_muscle ? { label: "Primary", value: exercise.primary_muscle } : null,
-    exercise.movement_pattern ? { label: "Pattern", value: exercise.movement_pattern } : null,
-  ].filter((item): item is { label: string; value: string } => Boolean(item));
+    exercise.equipment ? toTitleCase(exercise.equipment) : null,
+    exercise.primary_muscle ? toTitleCase(exercise.primary_muscle) : null,
+    exercise.movement_pattern ? toTitleCase(exercise.movement_pattern) : null,
+  ].filter((item): item is string => Boolean(item));
 }
 
-function describeOverview(stats: ExerciseInfoSheetStats | null) {
-  switch (stats?.presentationKind ?? stats?.kind) {
-    case "bodyweight":
-      return "Rep PRs, recent totals, and repeatable bodyweight work.";
-    case "timed":
-      return "Best holds, recent work time, and repeatability.";
-    case "cardio":
-      return "Pace, distance, duration, and recent effort.";
-    default:
-      return "Top sets, estimated max, volume, and recent progression.";
-  }
-}
-
-function ExerciseInfoHeaderMetaGrid({
+function ExerciseInfoHeaderMetaLine({
   items,
 }: {
-  items: Array<{ label: string; value: string }>;
+  items: string[];
 }) {
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <div
-      className={cn(
-        "grid gap-1.5 pl-[4px] pt-[6px]",
-        items.length === 1
-          ? "grid-cols-1"
-          : items.length === 2
-            ? "grid-cols-2"
-            : "grid-cols-3",
-      )}
-    >
-      {items.map((item) => (
-        <div
-          key={`${item.label}-${item.value}`}
-          className="min-w-0 rounded-[1rem] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.58)] px-2.5 py-2"
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--text-muted)/0.74)]">
-            {item.label}
-          </p>
-          <p className="pt-1 text-[12px] font-semibold leading-[1.18] text-[rgb(var(--text)/0.96)] [text-wrap:balance]">
-            {item.value}
-          </p>
+    <div className="flex w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-[5px] text-center text-[11px] font-medium leading-[1.15] text-[rgb(var(--text-secondary)/0.84)]">
+      {items.map((item, index) => (
+        <div key={`${item}-${index}`} className="flex min-w-0 items-center gap-2">
+          {index > 0 ? <span className="h-[4px] w-[4px] rounded-full bg-[rgb(var(--accent)/0.9)]" /> : null}
+          <p className="min-w-0 [text-wrap:balance]">{item}</p>
         </div>
       ))}
     </div>
@@ -162,27 +169,31 @@ function ExerciseInfoOverviewMedia({
   exercise: ExerciseInfoSheetExercise;
   howToImageSrc: string;
 }) {
+  const fallbackDescription = getRecoveryExerciseFallbackDescription(exercise);
+  const overviewCopy = exercise.how_to_short?.trim() || fallbackDescription;
+
   return (
-    <div className={appTokens.detailMediaCard}>
-      <div className={appTokens.detailMediaFrame}>
+    <div className={cn(appTokens.detailMediaCard, "gap-0 overflow-hidden border-transparent bg-transparent p-0 shadow-none")}>
+      <div className={cn(appTokens.detailMediaFrame, "border-transparent bg-transparent shadow-none")}>
         <ExerciseAssetImage
           src={howToImageSrc}
           alt={`${exercise.name} demonstration`}
           className="h-full w-full"
           preferNaturalAspectRatio
-          containerStyle={{ minHeight: "15rem", maxHeight: "24rem" }}
+          containerStyle={{ minHeight: "11.4rem", maxHeight: "16.25rem" }}
           imageClassName="object-contain object-center"
-          imageStyle={{ padding: "clamp(0.35rem, 1.6vw, 0.65rem)" }}
+          imageStyle={{ padding: "clamp(0.12rem, 0.7vw, 0.26rem)" }}
           sizes="(max-width: 768px) 100vw, 520px"
           priority
         />
       </div>
-      {exercise.how_to_short ? (
-        <p className={cn(appTokens.detailBodyText, "[text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
-          {exercise.how_to_short}
+      <div className="mx-3 mt-1.5 h-px bg-[linear-gradient(90deg,rgba(71,215,196,0),rgba(71,215,196,0.9),rgba(71,215,196,0))]" />
+      {overviewCopy ? (
+        <p className={cn(appTokens.detailBodyText, "px-3 pb-2 pt-1.5 text-center text-[13px] leading-[1.55] [text-wrap:pretty] text-[rgb(var(--text)/0.94)]")}>
+          {overviewCopy}
         </p>
       ) : (
-        <p className={appTokens.detailBodyMutedText}>
+        <p className={cn(appTokens.detailBodyMutedText, "px-3 pb-2 pt-1.5 text-center text-[13px] leading-[1.5]")}>
           Log a few sessions to unlock more specific cues and trends for this exercise.
         </p>
       )}
@@ -200,21 +211,26 @@ function ExerciseInfoRecentHistoryList({ stats }: { stats: ExerciseInfoSheetStat
       {stats.progress.performances.map((entry) => (
         <div
           key={`${entry.label}-${entry.value}`}
-          className={appTokens.detailHistoryRow}
+          className={cn(appTokens.detailHistoryRow, "px-2.5 py-2")}
         >
-          <div className="flex min-w-0 flex-wrap items-start gap-2">
-            <EyebrowText as="p" className="min-w-0 flex-1 text-[rgb(var(--text-muted)/0.88)]">
-              {entry.label}
-            </EyebrowText>
-            {entry.context ? (
-              <p className="min-w-0 max-w-full text-[11px] leading-[1.35] text-[rgb(var(--text-secondary)/0.72)] [text-wrap:pretty]">
-                {entry.context}
-              </p>
-            ) : null}
+          <EyebrowText as="p" className="min-w-0 px-px pt-px text-[10px] text-[rgb(var(--text-muted)/0.88)]">
+            <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <span>{entry.label}</span>
+              {entry.context ? (
+                <>
+                  <span className="h-[4px] w-[4px] rounded-full bg-[rgb(var(--accent)/0.9)]" />
+                  <span>{entry.context}</span>
+                </>
+              ) : null}
+            </span>
+          </EyebrowText>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <SignatureInlineList
+              items={entry.value.split(" | ")}
+              separator="pipe"
+              itemClassName={cn(appTokens.detailBodyText, "whitespace-nowrap text-[13px] leading-[1.35] text-[rgb(var(--text-primary)/0.95)]")}
+            />
           </div>
-          <p className={cn(appTokens.detailBodyText, "mt-1 min-w-0 text-[rgb(var(--text-primary)/0.95)] [text-wrap:pretty]")}>
-            {entry.value}
-          </p>
         </div>
       ))}
     </div>
@@ -229,6 +245,7 @@ export function ExerciseInfoSheet({
   onOpenChange,
   onClose,
   inline = false,
+  sourceContext,
 }: {
   exercise: ExerciseInfoSheetExercise | null;
   stats: ExerciseInfoSheetStats | null;
@@ -237,11 +254,12 @@ export function ExerciseInfoSheet({
   onOpenChange: (open: boolean) => void;
   onClose?: () => void;
   inline?: boolean;
+  sourceContext?: string;
 }) {
   const router = useRouter();
   const statsPanelId = useId();
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-  useBodyScrollLock(open);
+  useBodyScrollLock(open && !inline);
 
   useEffect(() => {
     setPortalTarget(document.body);
@@ -270,34 +288,39 @@ export function ExerciseInfoSheet({
   }, [handleClose, open]);
 
   const canonicalExerciseId = exercise ? (exercise.exercise_id ?? exercise.id) : null;
-  const metadata = exercise ? buildExerciseInfoMeta(exercise) : [];
+  const isStretchHub = isStretchHubExercise(exercise);
+  const stretchPanelContext = sourceContext === "SessionExerciseFocus" ? "session" : "detail";
+  const metadata = exercise && !isStretchHub ? buildExerciseInfoMeta(exercise) : [];
   const howToImageSrc = exercise ? getExerciseHowToImageSrc(exercise) : "/exercises/icons/_placeholder.svg";
+  const stretchHeroImageSrc = howToImageSrc.includes("/placeholders/") ? STRETCH_HUB_HERO_SRC : howToImageSrc;
   const detailHeader = (
-    <DetailHeader
-      title={exercise?.name ?? "Exercise"}
-      titleClassName="pl-[4px] pt-[4px] pr-3"
-      actionClassName="pt-[4px]"
-      action={(
-        <TopRightBackButton
-          onClick={(event) => {
-            event.preventDefault();
-            if (onClose) {
-              onClose();
-              return;
-            }
-            router.back();
-          }}
-          ariaLabel="Back"
-        />
-      )}
-      meta={metadata.length > 0 ? (
-        <ExerciseInfoHeaderMetaGrid items={metadata} />
-      ) : undefined}
-    />
+    <div className="sticky top-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.25rem)] z-30">
+      <DetailHeader
+        title={exercise?.name ?? "Exercise"}
+        titleClassName="pl-[4px] pt-[5px] pr-3 text-[1.02rem] leading-[1.12]"
+        align="center"
+        action={(
+          <TopRightBackButton
+            onClick={(event) => {
+              event.preventDefault();
+              if (onClose) {
+                onClose();
+                return;
+              }
+              router.back();
+            }}
+            ariaLabel="Back"
+          />
+        )}
+        meta={metadata.length > 0 ? (
+          <ExerciseInfoHeaderMetaLine items={metadata} />
+        ) : undefined}
+      />
+    </div>
   );
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || !open || !exercise) return;
+    if (process.env.NODE_ENV !== "development" || !open || !exercise || isStretchHub) return;
 
     const statsNode = document.getElementById(statsPanelId);
     if (!statsNode) {
@@ -305,89 +328,76 @@ export function ExerciseInfoSheet({
         exerciseId: canonicalExerciseId,
       });
     }
-  }, [canonicalExerciseId, exercise, open, statsPanelId]);
+  }, [canonicalExerciseId, exercise, isStretchHub, open, statsPanelId]);
 
   if (!open || !exercise || (!inline && !portalTarget)) return null;
   const resolvedPortalTarget = portalTarget;
   const performanceMetrics = stats?.performanceMetrics ?? [];
   const progressMetrics = stats?.progress.metrics ?? [];
-  const historyCount = stats?.progress.performances.length ?? 0;
+  const summaryMetrics = stats ? mergeExerciseInfoSummaryMetrics(stats.quickMetrics, performanceMetrics) : [];
+  const combinedMetrics = [...summaryMetrics, ...progressMetrics];
 
   const sheetBody = (
-    <main className="app-page-scroll min-h-[100dvh]">
-      <ContentRail className="flex min-h-[100dvh] flex-col gap-3 pt-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.75rem)]">
-        {detailHeader}
+    <div className="relative isolate min-h-[100dvh] bg-[rgb(var(--bg))]">
+      <AmbientBackground />
+      <main className="app-page-scroll relative z-10 min-h-[100dvh]">
+        <ContentRail className="flex min-h-[100dvh] flex-col gap-2 pt-[calc(max(var(--app-safe-top),var(--vv-top,0px))+0.7rem)]">
+          {detailHeader}
 
-        <Glass variant="base" className="overflow-hidden rounded-[34px]">
-          <div className="px-4 pb-6 pt-4">
-            <div className="space-y-3">
-              <DetailSection title="Movement" description="Reference image and form cue for this exercise.">
-                <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
-              </DetailSection>
+          <Glass variant="base" className="overflow-hidden rounded-[34px]">
+            <div className="px-3 pb-4 pt-2.5">
+              <div className="space-y-2">
+                {isStretchHub ? (
+                  <StretchLibraryPanel
+                    context={stretchPanelContext}
+                    heroCopy={STRETCH_HUB_GUIDE_COPY}
+                    heroImageSrc={stretchHeroImageSrc}
+                  />
+                ) : (
+                  <>
+                    <AppPanel className={cn(appTokens.detailSection, "border-0 bg-transparent p-0 shadow-none")}>
+                      <ExerciseInfoOverviewMedia exercise={exercise} howToImageSrc={howToImageSrc} />
+                    </AppPanel>
 
-              <DetailSection title="Overview" description={describeOverview(stats)}>
-                <div
-                  id={statsPanelId}
-                  data-testid="exercise-info-stats-box"
-                  className="min-h-[140px] space-y-3 text-xs text-muted"
-                >
-                  {statsLoading ? <ExerciseInfoLoadingMetrics /> : null}
-                  {!statsLoading && stats ? <MetricGrid items={stats.quickMetrics} className="gap-2.5" /> : null}
-                  {!statsLoading && !stats ? (
-                    <p className={appTokens.detailBodyMutedText}>
-                      No stats yet. Log a set to generate performance history for this exercise.
-                    </p>
-                  ) : null}
-                </div>
-              </DetailSection>
+                    <AppPanel className={cn(appTokens.detailSection, "p-2.5")}>
+                      <div
+                        id={statsPanelId}
+                        data-testid="exercise-info-stats-box"
+                        className="space-y-2 text-xs text-muted"
+                      >
+                        {statsLoading ? <ExerciseInfoLoadingMetrics /> : null}
+                        {!statsLoading && stats ? (
+                          <MetricGrid
+                            items={combinedMetrics}
+                            className="gap-1"
+                            compact
+                            autoColumns
+                            labelPlacement="top"
+                            labelClassName="text-[rgb(var(--accent)/0.92)]"
+                          />
+                        ) : null}
+                        {!statsLoading && !stats ? (
+                          <p className={appTokens.detailBodyMutedText}>
+                            No stats yet. Log a set to generate performance history for this exercise.
+                          </p>
+                        ) : null}
+                      </div>
+                    </AppPanel>
 
-              {statsLoading || stats ? (
-                <DetailSection
-                  title="Performance"
-                  description="Key metrics for this exercise type."
-                >
-                  {statsLoading ? (
-                    <ExerciseInfoLoadingMetrics />
-                  ) : performanceMetrics.length > 0 ? (
-                    <MetricGrid items={performanceMetrics} className="gap-2.5" compact />
-                  ) : (
-                    <p className={appTokens.detailBodyMutedText}>
-                      No performance metrics available yet.
-                    </p>
-                  )}
-                </DetailSection>
-              ) : null}
-
-              {statsLoading || stats ? (
-                <DetailSection
-                  title="Progress"
-                  description="Recent comparisons and training frequency."
-                >
-                  {statsLoading ? (
-                    <ExerciseInfoLoadingMetrics />
-                  ) : progressMetrics.length > 0 ? (
-                    <MetricStrip items={progressMetrics} />
-                  ) : (
-                    <p className={appTokens.detailBodyMutedText}>
-                      No progress comparisons available yet.
-                    </p>
-                  )}
-                </DetailSection>
-              ) : null}
-
-              {statsLoading || stats ? (
-                <DetailSection
-                  title="Recent History"
-                  description={historyCount > 0 ? `Last ${Math.min(historyCount, 3)} logged performances.` : "Most recent logged performances."}
-                >
-                  {statsLoading ? <ExerciseInfoLoadingRows /> : stats ? <ExerciseInfoRecentHistoryList stats={stats} /> : null}
-                </DetailSection>
-              ) : null}
+                    {statsLoading || stats ? (
+                      <AppPanel className={cn(appTokens.detailSection, "space-y-2 p-2")}>
+                        <h3 className={cn(appTokens.detailSectionTitle, "px-2 pt-0.5 text-center text-[1.18rem]")}>Recent History</h3>
+                        {statsLoading ? <ExerciseInfoLoadingRows /> : stats ? <ExerciseInfoRecentHistoryList stats={stats} /> : null}
+                      </AppPanel>
+                    ) : null}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </Glass>
-      </ContentRail>
-    </main>
+          </Glass>
+        </ContentRail>
+      </main>
+    </div>
   );
 
   if (inline) {
@@ -400,7 +410,7 @@ export function ExerciseInfoSheet({
 
   return createPortal(
     <div
-      className="pointer-events-auto fixed inset-0 z-50 scroll-y bg-[rgb(var(--bg))]"
+      className="pointer-events-auto fixed inset-0 z-50 overflow-y-auto overscroll-none bg-[rgb(var(--bg))]"
       role="dialog"
       aria-modal="true"
       aria-label="Exercise info"

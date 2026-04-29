@@ -49,7 +49,7 @@ export function AuthShell({
   );
 }
 
-export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
+export function AuthIntro({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
   return (
     <header className={cn(appTokens.authIntro, appTokens.authIntroFrame)} data-testid="auth-intro">
       <p className={appTokens.authWordmark}>{PASSWORD_LOGIN_UI_COPY.wordmark}</p>

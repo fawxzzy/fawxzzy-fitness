@@ -8,6 +8,8 @@ import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { ConfirmedServerFormButton } from "@/components/destructive/ConfirmedServerFormButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
 import { AppBadge } from "@/components/ui/app/AppBadge";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
+import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionSplit } from "@/components/layout/CanonicalBottomActions";
 import {
@@ -24,7 +26,6 @@ import { ensureProfile } from "@/lib/profile";
 import { supabaseServer } from "@/lib/supabase/server";
 import {
   buildTodayRoutinePayloadState,
-  formatTodayHeaderTitle,
   getTodayGlobalErrorMessage,
   resolveTodayDisplayDay,
 } from "@/lib/today-page-state";
@@ -567,13 +568,26 @@ export default async function TodayPage({ searchParams }: { searchParams?: { err
           todayPayload.inProgressSessionId || !hasDetailedRoutineState ? (
             <TodayFloatingHeaderRail>
               <TodayOverviewHeader
-                title={formatTodayHeaderTitle(todayPayload.routine.name, todayPayload.routine.dayName)}
+                title={(
+                  <RoutineDayHeaderTitle
+                    leadingItems={[todayPayload.routine.name]}
+                    dayLabel={todayPayload.routine.dayName}
+                  />
+                )}
                 align="center"
                 subtitle={getDayTaxonomyHeaderSummaryParts({
                   dayName: todayPayload.routine.dayName,
                   summary: getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest),
                   isRest: todayPayload.routine.isRest,
-                }).countsSummary}
+                }).countsSummary ? (
+                  <AccentDotSeparatedText
+                    text={getDayTaxonomyHeaderSummaryParts({
+                      dayName: todayPayload.routine.dayName,
+                      summary: getRestDayExerciseCountSummaryFromInputs(todayPayload.exercises, todayPayload.routine.isRest),
+                      isRest: todayPayload.routine.isRest,
+                    }).countsSummary}
+                  />
+                ) : undefined}
                 action={completedDayIndexes.includes(todayPayload.routine.dayIndex)
                   ? <AppBadge tone="success">Completed</AppBadge>
                   : undefined}

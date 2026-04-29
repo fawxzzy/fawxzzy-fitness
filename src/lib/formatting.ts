@@ -47,7 +47,6 @@ export function formatDateShort(value: string | Date): string {
   if (Number.isNaN(date.getTime())) return typeof value === "string" ? value : "";
 
   return new Intl.DateTimeFormat(DEFAULT_LOCALE, {
-    weekday: "short",
     month: "short",
     day: "numeric",
   }).format(date);

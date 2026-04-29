@@ -1,3 +1,5 @@
+import { formatDurationPreview } from "./duration";
+
 export type SessionQuickLogTarget = {
   repsMin?: number;
   repsMax?: number;
@@ -9,6 +11,7 @@ export type SessionQuickLogTarget = {
   distanceUnit?: "mi" | "km" | "m";
   calories?: number;
   measurementType?: "reps" | "time" | "distance" | "time_distance" | "none";
+  allowMeasurementlessLog?: boolean;
 };
 
 type QuickLogPayload = {
@@ -29,16 +32,9 @@ function hasValue(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
-function formatDurationPreview(totalSeconds: number) {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-  const minutes = Math.floor(safeSeconds / 60);
-  const seconds = safeSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
 function resolveSingleValue(min?: number, max?: number) {
-  if (hasValue(min)) return min ?? null;
   if (hasValue(max)) return max ?? null;
+  if (hasValue(min)) return min ?? null;
   return null;
 }
 
@@ -65,6 +61,10 @@ export function formatQuickLogPreviewLabel({
   const caloriesSummary = hasValue(target?.calories) ? `${target?.calories} cal` : null;
 
   const measurementType = target?.measurementType ?? "reps";
+  if (target?.allowMeasurementlessLog || measurementType === "none") {
+    return "";
+  }
+
   const metricSummaryByType: Record<"reps" | "time" | "distance" | "time_distance" | "none", string | null> = {
     reps: [repsSummary, weightSummary].filter(Boolean).join(" • ") || null,
     time: [durationSummary, caloriesSummary].filter(Boolean).join(" • ") || null,
@@ -89,7 +89,7 @@ export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefi
     return { ok: false, reason: "No goal target available for quick log." };
   }
 
-  if (target.measurementType === "none") {
+  if (target.allowMeasurementlessLog || target.measurementType === "none") {
     return {
       ok: true,
       payload: {
@@ -104,7 +104,7 @@ export function resolveQuickLogFromTarget(target: SessionQuickLogTarget | undefi
     };
   }
 
-  const reps = target.repsMin ?? target.repsMax;
+  const reps = target.repsMax ?? target.repsMin;
   const weight = target.weightMin ?? target.weightMax ?? 0;
   const durationSeconds = target.durationSeconds ?? null;
   const distance = target.distance ?? null;

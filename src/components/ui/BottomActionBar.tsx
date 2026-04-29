@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
+import { BOTTOM_ACTION_SHELL_CLASSNAME, BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME } from "@/components/layout/CanonicalBottomActions";
 import { cn } from "@/lib/cn";
 
 export const BOTTOM_ACTION_BAR_HEIGHT_PX = 92;
@@ -90,7 +90,7 @@ export function BottomActionBar({
         className,
       )}
     >
-      <div className={cn("mx-auto w-full max-w-[720px] px-4 pointer-events-auto", BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME)}>
+      <div className={cn(BOTTOM_ACTION_SHELL_CLASSNAME, "pointer-events-auto", BOTTOM_ACTION_SURFACE_OUTER_CLASSNAME)}>
         <div
           className={cn(
             "flex items-center justify-center gap-3",

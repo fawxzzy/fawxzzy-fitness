@@ -6,11 +6,11 @@ import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
-type MeasurementType = "reps" | "time" | "distance" | "time_distance";
+type MeasurementType = "reps" | "time" | "distance" | "time_distance" | "none";
 type DistanceUnit = "mi" | "km" | "m";
 
 function resolveMeasurementType(value: unknown): MeasurementType | null {
-  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" ? value : null;
+  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" || value === "none" ? value : null;
 }
 
 function resolveDistanceUnit(value: unknown): DistanceUnit | null {
@@ -67,24 +67,24 @@ export async function getSessionPageData(sessionId: string) {
   const sessionExercises = ((sessionExercisesData ?? []) as Array<SessionExerciseRow & {
     exercise?: {
       name?: string | null;
-      measurement_type?: "reps" | "time" | "distance" | "time_distance";
+      measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none";
       default_unit?: "mi" | "km" | "m" | null;
     } | null | Array<{
       name?: string | null;
-      measurement_type?: "reps" | "time" | "distance" | "time_distance";
+      measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none";
       default_unit?: "mi" | "km" | "m" | null;
     }>;
     routine_day_exercise?: {
       id: string;
       exercise_id: string;
       position: number;
-      measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
+      measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
       default_unit: "mi" | "km" | "m" | null;
     } | null | Array<{
       id: string;
       exercise_id: string;
       position: number;
-      measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
+      measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
       default_unit: "mi" | "km" | "m" | null;
     }>;
   }>).map((item) => {
@@ -100,7 +100,7 @@ export async function getSessionPageData(sessionId: string) {
     const effectiveDefaultUnit = resolveDistanceUnit(item.default_unit)
       ?? resolveDistanceUnit(linkedRoutine?.default_unit)
       ?? resolveDistanceUnit(exerciseRow?.default_unit)
-      ?? "mi";
+      ?? (effectiveMeasurementType === "none" ? null : "mi");
 
     const hasSessionGoal = item.target_sets_min !== null
       || item.target_sets_max !== null

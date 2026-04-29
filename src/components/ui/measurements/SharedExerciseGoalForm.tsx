@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { ExerciseGoalForm, type ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { deriveGoalMeasurementSelections, getDefaultMeasurementsForGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
+import type { MeasurementMetrics } from "@/components/ui/measurements/ModifyMeasurements";
 
 export function inferGoalModeFromState(state: ExerciseGoalFormState): GoalModality {
   const selections = deriveGoalMeasurementSelections("cardio_time_distance", {
@@ -31,6 +32,10 @@ export function SharedExerciseGoalForm({
   showValidationMessage,
   hideEmptySummary,
   hideSummary,
+  footerContent,
+  visibleMetrics,
+  visibleMetricOrder,
+  measurementLayoutMode,
 }: {
   modality: GoalModality;
   state: ExerciseGoalFormState;
@@ -41,10 +46,15 @@ export function SharedExerciseGoalForm({
   showValidationMessage?: boolean;
   hideEmptySummary?: boolean;
   hideSummary?: boolean;
+  footerContent?: ReactNode;
+  visibleMetrics?: Array<keyof MeasurementMetrics>;
+  visibleMetricOrder?: Array<keyof MeasurementMetrics>;
+  measurementLayoutMode?: "grid" | "horizontal-scroll";
 }) {
   const effectiveGoalModality: GoalModality = modality === "cardio_time_distance"
     ? inferGoalModeFromState(state)
     : modality;
+  const stackClassName = measurementLayoutMode === "horizontal-scroll" ? "space-y-1" : "space-y-3";
 
   const goalModeChoices = useMemo(() => {
     if (modality !== "cardio_time_distance") return [];
@@ -56,7 +66,7 @@ export function SharedExerciseGoalForm({
   }, [modality]);
 
   return (
-    <div className="space-y-3">
+    <div className={stackClassName}>
       {goalModeChoices.length ? (
         <div className="space-y-1">
           <p className="px-0.5 text-xs text-muted">Goal mode</p>
@@ -89,6 +99,10 @@ export function SharedExerciseGoalForm({
         showValidationMessage={showValidationMessage}
         hideEmptySummary={hideEmptySummary}
         hideSummary={hideSummary}
+        footerContent={footerContent}
+        visibleMetrics={visibleMetrics}
+        visibleMetricOrder={visibleMetricOrder}
+        measurementLayoutMode={measurementLayoutMode}
       />
       <input type="hidden" name="goalModality" value={effectiveGoalModality} />
       <input type="hidden" name="defaultUnit" value={state.distanceUnit} />

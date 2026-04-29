@@ -25,7 +25,7 @@ export type CachedTodayExercise = {
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   isCardio?: boolean | null;
   kind?: string | null;
   type?: string | null;

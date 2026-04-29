@@ -1,9 +1,14 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
-import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardMediaLeftCornerMode } from "@/components/ExerciseCard";
+import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardMediaLeftCornerMode, type ExerciseCardRightIconMode } from "@/components/ExerciseCard";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
-import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
+import {
+  getExerciseGoalSummaryState,
+  getExerciseGoalSummaryText,
+  hasMeaningfulExerciseGoalSummary,
+  type ExerciseGoalSummaryValue,
+} from "@/lib/exercise-goal-summary";
 import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
 import { resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
@@ -51,6 +56,8 @@ type StandardExerciseRowProps = {
   surface?: WorkoutCardSurface;
   showAccentRail?: boolean;
   mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
+  hideEmptySummary?: boolean;
+  rightIconMode?: ExerciseCardRightIconMode;
 };
 
 export function StandardExerciseRow({
@@ -88,9 +95,15 @@ export function StandardExerciseRow({
   surface = "exercise-picker",
   showAccentRail = true,
   mediaLeftCornerMode,
+  hideEmptySummary = false,
+  rightIconMode,
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
-  const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
+  const hasMeaningfulSummary = hasMeaningfulExerciseGoalSummary(resolvedSummary);
+  const resolvedSubtitle = hideEmptySummary && !hasMeaningfulSummary
+    ? undefined
+    : getExerciseGoalSummaryText(resolvedSummary);
+  const resolvedState = state ?? (hideEmptySummary && !hasMeaningfulSummary ? "default" : getExerciseGoalSummaryState(resolvedSummary));
   const resolvedDensity = density ?? (variant === "standard" || variant === "expanded" || variant === "summary" ? "detailed" : "compact");
   const usesCompactDensity = resolvedDensity === "compact";
   const surfacePolicy = resolveWorkoutCardSurfacePolicy(surface, resolvedDensity);
@@ -116,7 +129,7 @@ export function StandardExerciseRow({
     <ExerciseCard
       title={exercise.name}
       titleMeta={titleMeta}
-      subtitle={getExerciseGoalSummaryText(resolvedSummary)}
+      subtitle={resolvedSubtitle}
       variant={variant}
       state={resolvedState}
       density={resolvedDensity}
@@ -128,6 +141,7 @@ export function StandardExerciseRow({
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}
+      rightIconMode={rightIconMode}
       actions={actions}
       className={cn("shadow-none", shellClassName, className)}
       shellStyle={shellStyle}

@@ -1,21 +1,24 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
 import { EXERCISE_OPTIONS } from "@/lib/exercise-options";
+import { normalizeExerciseCurationTags, type ExerciseCurationTags } from "@/lib/exercise-curation";
 import { supabaseServerAnon } from "@/lib/supabase/server-anon";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { ExerciseRow } from "@/types/db";
 import { logDebugSummary } from "@/lib/observability";
+import globalExercisesCanonical from "../../supabase/data/global_exercises_canonical.json";
 
 const FALLBACK_CREATED_AT = "1970-01-01T00:00:00.000Z";
 let hasLoggedMissingExerciseId = false;
 
 const VALID_MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "carry", "rotation"] as const;
-const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight"] as const;
+const VALID_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight", "cardio machine", "plate", "sled", "smith machine"] as const;
 const EXERCISE_LIST_SELECT =
-  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_icon_path, image_howto_path, slug, how_to_short, created_at";
+  "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, image_icon_path, image_howto_path, slug, how_to_short, curation_tags, created_at";
 const EXERCISE_LIST_SELECT_LEGACY =
   "id, name, user_id, is_global, primary_muscle, equipment, movement_pattern, measurement_type, default_unit, calories_estimation_method, created_at";
 const EXERCISE_OPTIONAL_METADATA_COLUMNS = [
@@ -24,10 +27,23 @@ const EXERCISE_OPTIONAL_METADATA_COLUMNS = [
   "image_howto_path",
   "slug",
   "how_to_short",
+  "curation_tags",
 ] as const;
 
 const SENTINEL_EXERCISE_ID = "66666666-6666-6666-6666-666666666666";
 const LEGACY_PLACEHOLDER_IDS = new Set<string>([SENTINEL_EXERCISE_ID, ...EXERCISE_OPTIONS.map((exercise) => exercise.id)]);
+const canonicalCurationTagsByName = new Map<string, ExerciseCurationTags>(
+  (globalExercisesCanonical as Array<{ name?: string; curation_tags?: unknown }>)
+    .flatMap((exercise) => {
+      const normalizedName = typeof exercise.name === "string" ? normalizeExerciseName(exercise.name).toLowerCase() : "";
+      const curationTags = normalizeExerciseCurationTags(exercise.curation_tags);
+      if (!normalizedName || !curationTags) {
+        return [];
+      }
+
+      return [[normalizedName, curationTags] as const];
+    }),
+);
 
 function isLegacyPlaceholderExercise(exercise: ExerciseRow) {
   const id = typeof exercise.id === "string" ? exercise.id.trim() : "";
@@ -94,6 +110,7 @@ function hydrateExerciseRow(row: Partial<ExerciseRow>): ExerciseRow {
     image_howto_path: row.image_howto_path ?? null,
     slug: row.slug ?? null,
     how_to_short: row.how_to_short ?? null,
+    curation_tags: row.curation_tags ?? null,
     created_at: row.created_at ?? FALLBACK_CREATED_AT,
   };
 }
@@ -147,12 +164,24 @@ function fallbackGlobalExercises(): ExerciseRow[] {
     image_howto_path: null,
     slug: null,
     how_to_short: exercise.how_to_short,
+    curation_tags: null,
     created_at: FALLBACK_CREATED_AT,
   }));
 }
 
 function normalizeExerciseName(name: string) {
   return name.trim().replace(/\s+/g, " ");
+}
+
+function enrichExerciseMetadata(exercise: ExerciseRow): ExerciseRow {
+  const normalizedName = normalizeExerciseName(exercise.name).toLowerCase();
+  const canonicalCurationTags = canonicalCurationTagsByName.get(normalizedName) ?? null;
+  const normalizedCurationTags = normalizeExerciseCurationTags(exercise.curation_tags) ?? canonicalCurationTags;
+
+  return {
+    ...exercise,
+    curation_tags: normalizedCurationTags,
+  };
 }
 
 export function validateExerciseName(name: string) {
@@ -185,11 +214,11 @@ export function validateMovementPattern(value: string) {
   throw new Error(`Movement pattern must be one of: ${VALID_MOVEMENT_PATTERNS.join(", ")}.`);
 }
 
-export async function listExercises() {
-  const user = await requireUser();
-  const globalExercises = await listGlobalExercisesCached();
-  const customExercises = await listUserExercises(user.id);
-
+function mergeAndNormalizeExercises(args: {
+  globalExercises: ExerciseRow[];
+  customExercises: ExerciseRow[];
+}) {
+  const { globalExercises, customExercises } = args;
   const mergedExercises = [...customExercises, ...globalExercises];
   let suppressedLegacyPlaceholderCount = 0;
   const validExercises = mergedExercises.flatMap((exercise) => {
@@ -227,12 +256,26 @@ export async function listExercises() {
   }
 
   return Array.from(dedupedExercises.values())
-    .map((exercise) => ({ ...exercise, name: normalizeExerciseDisplayName({ exerciseId: exercise.id, name: exercise.name }) }))
+    .map((exercise) => enrichExerciseMetadata({
+      ...exercise,
+      name: normalizeExerciseDisplayName({ exerciseId: exercise.id, name: exercise.name }),
+    }))
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-async function listUserExercises(userId: string): Promise<ExerciseRow[]> {
-  const supabase = supabaseServer();
+export async function listExercisesForUser(userId: string, client?: SupabaseClient) {
+  const globalExercises = await listGlobalExercisesCached();
+  const customExercises = await listUserExercises(userId, client);
+  return mergeAndNormalizeExercises({ globalExercises, customExercises });
+}
+
+export async function listExercises() {
+  const user = await requireUser();
+  return listExercisesForUser(user.id);
+}
+
+async function listUserExercises(userId: string, client?: SupabaseClient): Promise<ExerciseRow[]> {
+  const supabase = client ?? supabaseServer();
   const { data: customData, error: customError } = await readExercisesWithMetadataFallback<Partial<ExerciseRow>[]>({
     query: (columns) => supabase
       .from("exercises")

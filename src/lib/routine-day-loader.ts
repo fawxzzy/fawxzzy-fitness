@@ -36,7 +36,7 @@ type ExerciseDetailsRow = {
   image_icon_path: string | null;
   slug: string | null;
   how_to_short: string | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: string | null;
   kind?: string | null;
   type?: string | null;
@@ -290,12 +290,12 @@ export async function buildCanonicalDaySummaries(args: {
     exercises: allDayExercises,
   });
 
-  const normalizedDayExercises = allDayExercises.map((exercise) => ({
+  const normalizedDayExercises: RoutineDayExerciseRow[] = allDayExercises.map((exercise) => ({
     ...exercise,
     exercise_id: canonicalExerciseIdByRawId.get(exercise.exercise_id.trim()) ?? exercise.exercise_id,
   }));
 
-  const summaries = routineDays.map((day) => {
+  const summaries: CanonicalDaySummary[] = routineDays.map((day) => {
     const dayExercises = normalizedDayExercises.filter((exercise) => exercise.routine_day_id === day.id);
     const { runnableExercises, invalidExercises } = normalizeRunnableDayExercises(dayExercises, canonicalExerciseIdSet, {
       logSource: "buildCanonicalDaySummaries",

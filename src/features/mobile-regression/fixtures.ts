@@ -638,18 +638,6 @@ export const mobileRegressionScenarios: readonly MobileFixtureScenario[] = [
     cardStates: [{ cardId: "editable-row-reorder", state: "active", badgeText: "Reordering" }],
   }),
   buildDayFixture({
-    id: "edit-day-rest",
-    family: "Exercise cards",
-    route: "editDay",
-    name: "Edit Day: rest",
-    fixture: "rest",
-    fixtureState: "edit-day-rest-v1",
-    restDay: true,
-    headerPinned: true,
-    hasExtraLowerFillerBox: false,
-    cardStates: [{ cardId: "rest-day-card", state: "empty", badgeText: "Rest" }],
-  }),
-  buildDayFixture({
     id: "edit-day-empty",
     family: "Exercise cards",
     route: "editDay",

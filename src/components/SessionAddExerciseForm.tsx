@@ -19,7 +19,7 @@ type ExerciseOption = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
@@ -75,7 +75,7 @@ export function SessionAddExerciseForm({
                 secondary={(
                   <BottomDockButton
                     type="button"
-                    intent="info"
+                    intent="toggleActive"
                     onClick={openExerciseInfo}
                     disabled={!selectedCanonicalExerciseId}
                   >

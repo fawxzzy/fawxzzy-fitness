@@ -25,7 +25,7 @@ export type EditorExerciseOption = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance";
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit: string | null;
   calories_estimation_method: string | null;
   image_howto_path: string | null;
@@ -81,12 +81,20 @@ export function RoutineDetailsScreenShell({
   children,
   backHref,
   title = "Routine Details",
+  subtitle,
+  align = "left",
 }: {
   children: ReactNode;
   backHref: string;
   title?: ReactNode;
+  subtitle?: ReactNode;
+  align?: "left" | "center";
 }) {
-  return <RoutineDetailsScreenShellClient backHref={backHref} title={title}>{children}</RoutineDetailsScreenShellClient>;
+  return (
+    <RoutineDetailsScreenShellClient backHref={backHref} title={title} subtitle={subtitle} align={align}>
+      {children}
+    </RoutineDetailsScreenShellClient>
+  );
 }
 
 export function RoutineEditorSection({

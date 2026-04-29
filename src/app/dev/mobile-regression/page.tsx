@@ -18,6 +18,7 @@ import { NewRoutineDraftForm } from "@/app/routines/new/NewRoutineDraftForm";
 import { EditRoutineAutosaveForm } from "@/app/routines/[id]/edit/EditRoutineAutosaveForm";
 import { SessionPageClient } from "@/components/SessionPageClient";
 import { AppNav } from "@/components/AppNav";
+import { ExerciseChooserRouteScaffold } from "@/components/exercises/ExerciseChooserScreenFamily";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
@@ -29,12 +30,12 @@ import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { AppShell } from "@/components/ui/app/AppShell";
+import { AppBadge } from "@/components/ui/app/AppBadge";
 import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
 import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
-import { AppBadge } from "@/components/ui/app/AppBadge";
 import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
-import { ActiveRoutineStatusBadge, ActiveRoutineSummaryCard } from "@/components/routines/RoutinesScreenFamily";
 import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorShared";
 import { HistoryPageHeader } from "@/components/history/HistoryShared";
 import { AppHeader } from "@/components/ui/app/AppHeader";
@@ -49,6 +50,7 @@ import {
   type MobileFixtureScenario,
 } from "@/features/mobile-regression/fixtures";
 import { getRestDayExerciseCountSummaryFromInputs } from "@/lib/day-summary";
+import { formatTodayHeaderTitle } from "@/lib/today-page-state";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -419,7 +421,7 @@ const mockViewDayExercises = [
   {
     id: "view-1",
     name: "Back Squat",
-    goalLine: "4 sets x 5 reps @ 225 lb",
+    targets: "4 sets x 5 reps @ 225 lb",
     exerciseId: MOCK_EXERCISE_IDS.squat,
     image_icon_path: "/missing/icon-squat.png",
     image_howto_path: "/missing/howto-squat.png",
@@ -428,7 +430,7 @@ const mockViewDayExercises = [
   {
     id: "view-2",
     name: "Walking Lunge With Very Long Accessory Naming For Wrapping Proof",
-    goalLine: LONG_GOAL_SUMMARY,
+    targets: LONG_GOAL_SUMMARY,
     exerciseId: MOCK_EXERCISE_IDS.lunge,
     image_icon_path: "/missing/icon-lunge.png",
     image_howto_path: null,
@@ -739,6 +741,7 @@ const mockHistorySessions = [
     durationSec: 3120,
     exerciseCount: 6,
     setCount: 18,
+    repCount: 88,
     prCounts: { reps: 0, weight: 1, total: 1 },
     prLabel: "1 PR",
     topSet: { exerciseName: "Bench Press", display: "205 lb x 4" },
@@ -756,6 +759,7 @@ const mockHistorySessions = [
     durationSec: 3660,
     exerciseCount: 7,
     setCount: 24,
+    repCount: 102,
     prCounts: { reps: 1, weight: 1, total: 3 },
     prLabel: "3 PRs",
     topSet: { exerciseName: "Back Squat", display: "275 lb x 3" },
@@ -773,6 +777,7 @@ const mockHistorySessions = [
     durationSec: 2280,
     exerciseCount: 4,
     setCount: 12,
+    repCount: 0,
     prCounts: { reps: 0, weight: 0, total: 0 },
     prLabel: "",
     totalVolume: 0,
@@ -1152,21 +1157,17 @@ function renderRoutinesScenario(scenario: MobileFixtureScenario) {
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(
           <ContentRail>
-            <ActiveRoutineSummaryCard
-              title="Lower Rotation"
-              metadata="4 training • 1 rest"
-              status={<ActiveRoutineStatusBadge active />}
-            />
+            <div id="routines-floating-header" />
           </ContentRail>
         )}
       >
         <ContentRail className="space-y-3">
           <RoutinesPageClient
-            activeRoutineId={isListView ? null : activeRoutine.id}
-            activeRoutineName={isListView ? null : activeRoutine.name}
-            activeRoutineSummary={isListView ? null : activeRoutine.summary}
-            activeRoutineStartDate={isListView ? null : "2026-04-21"}
-            activeRoutineEditHref={isListView ? null : `/routines/${activeRoutine.id}/edit`}
+            activeRoutineId={activeRoutine.id}
+            activeRoutineName={activeRoutine.name}
+            activeRoutineSummary={activeRoutine.summary}
+            activeRoutineStartDate="2026-04-21"
+            activeRoutineEditHref={`/routines/${activeRoutine.id}/edit`}
             newRoutineHref="/routines/new"
             initialRoutineListOpen={isListView}
             setActiveRoutineAction={noopRoutineSwitchAction}
@@ -1204,8 +1205,9 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
               <SharedScreenHeader
                 recipe="viewDay"
                 title="Lower Rotation"
-                subtitle={<DayTaxonomyHeaderSummary dayName={isRestFixture ? "Recovery" : isEmptyFixture ? "Travel Reset" : "Lower"} summary={viewDaySummary} isRest={isRestFixture} />}
+                subtitle={<DayTaxonomyHeaderSummary dayName={isRestFixture ? "Recovery" : isEmptyFixture ? "Travel Reset" : "Lower"} summary={viewDaySummary} isRest={isRestFixture} includeDayName />}
                 action={<TopRightBackButton href="/routines" ariaLabel="Back to routines" historyBehavior="fallback-only" />}
+                align="center"
               />
             </ScreenScaffold>
           </ContentRail>
@@ -1213,25 +1215,32 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
       >
         <ContentRail>
           <ScreenScaffold recipe="viewDay" className="w-full">
-            <SharedSectionShell recipe="viewDay" bodyClassName="space-y-3">
-              {isRestFixture ? (
-                <DayDetailStateCard
-                  tone="rest"
-                  title="Rest day"
-                  body="Use this day for recovery, mobility, or an easy walk."
-                />
-              ) : isEmptyFixture ? (
-                <DayDetailStateCard
-                  tone="neutral"
-                  title="No exercises planned"
-                  body="Add exercises to this day to start a workout."
-                />
-              ) : (
-                <RoutineDayExerciseList
-                  exercises={[...mockViewDayExercises]}
-                />
-              )}
-            </SharedSectionShell>
+            {isRestFixture || isEmptyFixture ? (
+              <SharedSectionShell
+                recipe="viewDay"
+                label={isRestFixture ? "Recovery plan" : "Day status"}
+                context={isRestFixture ? "Recovery, mobility, or an easy walk fit here." : "Add exercises to this day to start a workout."}
+                bodyClassName="space-y-2.5"
+              >
+                {isRestFixture ? (
+                  <DayDetailStateCard
+                    tone="rest"
+                    title="Rest day"
+                    body="Use this day for recovery, mobility, or an easy walk."
+                  />
+                ) : (
+                  <DayDetailStateCard
+                    tone="neutral"
+                    title="No exercises planned"
+                    body="Add exercises to this day to start a workout."
+                  />
+                )}
+              </SharedSectionShell>
+            ) : (
+              <RoutineDayExerciseList
+                exercises={[...mockViewDayExercises]}
+              />
+            )}
           </ScreenScaffold>
         </ContentRail>
 
@@ -1247,7 +1256,7 @@ function renderViewDayScenario(scenario: MobileFixtureScenario) {
 }
 
 function renderEditDayScenario(scenario: MobileFixtureScenario) {
-  const fixture = scenario.fixture as "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
+  const fixture = scenario.fixture as "default" | "reorder" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
   const editDayExercises = fixture === "empty"
     ? []
     : [
@@ -1295,7 +1304,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
               <SharedScreenHeader
                 recipe="editDay"
                 title="Lower"
-                subtitle={<DayTaxonomyHeaderSummary dayName={fixture === "rest" ? "Recovery" : fixture === "empty" ? "Travel Reset" : "Lower"} summary={fixture === "rest" ? getRestDayExerciseCountSummaryFromInputs([], true) : fixture === "empty" ? getRestDayExerciseCountSummaryFromInputs([], false) : { strength: 2, cardio: 1, bodyweight: 0, unknown: 0 }} isRest={fixture === "rest"} />}
+                subtitle={<DayTaxonomyHeaderSummary dayName={fixture === "empty" ? "Travel Reset" : "Lower"} summary={fixture === "empty" ? getRestDayExerciseCountSummaryFromInputs([], false) : { strength: 2, cardio: 1, bodyweight: 0, unknown: 0 }} isRest={false} />}
                 action={<TopRightBackButton href="/routines" ariaLabel="Back to day" historyBehavior="fallback-only" />}
               >
                 {fixture === "reorder" ? (
@@ -1318,11 +1327,7 @@ function renderEditDayScenario(scenario: MobileFixtureScenario) {
         </ContentRail>
 
         <PublishBottomActions>
-          {fixture === "rest" ? (
-            <BottomActionSingle>
-              <RegressionDayRestToggleDockControl isRest />
-            </BottomActionSingle>
-          ) : fixture === "edit-exercise" ? (
+          {fixture === "edit-exercise" ? (
             <BottomActionDock
               left={<BottomDockButton type="button" intent="info">View</BottomDockButton>}
               right={<BottomDockButton type="button" intent="danger">Delete</BottomDockButton>}
@@ -1351,6 +1356,7 @@ function renderCreateRoutineScenario(scenario: MobileFixtureScenario) {
             startWeekday: "monday",
             timezone: "America/New_York",
             weightUnit: "lbs",
+            distanceUnit: "mi",
           }}
         />
       </div>
@@ -1381,35 +1387,23 @@ function renderEditRoutineScenario(scenario: MobileFixtureScenario) {
 
 function renderAddExerciseScenario(scenario: MobileFixtureScenario) {
   return (
-    <AppShell topNavMode="none" className="h-[100dvh]" ambientPreset="logSet">
+    <ExerciseChooserRouteScaffold
+      recipe="sessionAddExercise"
+      title={<RoutineDayHeaderTitle leadingItems={["Add Exercise to", "Starter Split"]} dayLabel="Lower" />}
+      backHref="/session/dev-session"
+      backAriaLabel="Back to session"
+      headerAlign="center"
+    >
       <RegressionMarker scenario={scenario} />
-      <ScrollScreenWithBottomActions
-        floatingHeader={(
-          <ContentRail className="py-1">
-            <ScreenScaffold recipe="sessionAddExercise" className="w-full">
-              <SharedScreenHeader
-                recipe="sessionAddExercise"
-                title="Add Exercise"
-                action={<TopRightBackButton href="/session/dev-session" ariaLabel="Back to session" historyBehavior="fallback-only" />}
-              />
-            </ScreenScaffold>
-          </ContentRail>
-        )}
-      >
-        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <ScreenScaffold recipe="sessionAddExercise" className="w-full">
-            <SessionQuickAddExerciseForm
-              sessionId="dev-session"
-              exercises={[...mockPickerExercises]}
-              weightUnit="lbs"
-              exerciseStats={[]}
-              backHref="/session/dev-session"
-              quickAddExerciseAction={noopActionResult}
-            />
-          </ScreenScaffold>
-        </ContentRail>
-      </ScrollScreenWithBottomActions>
-    </AppShell>
+      <SessionQuickAddExerciseForm
+        sessionId="dev-session"
+        exercises={[...mockPickerExercises]}
+        weightUnit="lbs"
+        exerciseStats={[]}
+        backHref="/session/dev-session"
+        addExerciseAction={noopActionResult}
+      />
+    </ExerciseChooserRouteScaffold>
   );
 }
 

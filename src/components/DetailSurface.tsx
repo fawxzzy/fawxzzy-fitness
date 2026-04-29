@@ -15,6 +15,7 @@ export function DetailHeader({
   children,
   className,
   actionClassName,
+  align = "left",
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -25,6 +26,7 @@ export function DetailHeader({
   children?: ReactNode;
   className?: string;
   actionClassName?: string;
+  align?: "left" | "center";
 }) {
   return (
     <SharedScreenHeader
@@ -37,6 +39,7 @@ export function DetailHeader({
       meta={meta}
       className={className}
       actionClassName={actionClassName}
+      align={align}
     >
       {children}
     </SharedScreenHeader>

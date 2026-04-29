@@ -60,7 +60,7 @@ export function SharedScreenHeader({
     return (
       <div
         data-shared-screen-header="true"
-        className={cn(standaloneHeaderFamily.panelClassName, screenRecipe.headerPanelClassName, className)}
+        className={cn(screenRecipe.headerPanelClassName, className)}
       >
         {headerNode}
       </div>
