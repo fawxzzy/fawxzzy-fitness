@@ -14,6 +14,7 @@ import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenW
 import { appTokens } from "@/components/ui/app/tokens";
 import { resolveScreenRecipe } from "@/components/ui/app/screenContract";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { getReturnNavigationHref, useReturnNavigation } from "@/components/ui/useReturnNavigation";
 import { toastActionResult } from "@/lib/action-feedback";
 import type { ActionResult } from "@/lib/action-result";
@@ -130,6 +131,7 @@ export function SessionPageClient({
   const [durationSeconds, setDurationSeconds] = useState(baseDurationSeconds);
   const [hasMountedTimer, setHasMountedTimer] = useState(false);
   const toast = useToast();
+  useToastMessageEffect("error", searchError, { id: "session-search-error" });
   const fallbackReturnHref = useMemo(
     () => getReturnNavigationHref({ fallbackHref: "/today", currentPath: `/session/${sessionId}`, requestedReturnTo }),
     [requestedReturnTo, sessionId],
@@ -240,7 +242,6 @@ export function SessionPageClient({
               <OfflineSyncBadge userId={userId} />
             </div>
           ) : null}
-          {searchError ? <p className={appTokens.currentSessionInlineError}>{searchError}</p> : null}
           <ActionFeedbackToasts />
 
           {hasExercises ? (

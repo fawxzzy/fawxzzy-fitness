@@ -22,7 +22,6 @@ import {
   AuthForm,
   AuthFormFields,
   AuthInlineLinkButton,
-  AuthMessage,
   AuthShell,
   AuthStack,
   AuthStatusCard,
@@ -31,6 +30,7 @@ import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/compon
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { cn } from "@/lib/cn";
 import {
   buildRememberedLoginState,
@@ -93,6 +93,9 @@ export function LoginScreen({
   const [isRedirectingAuthenticatedUser, setIsRedirectingAuthenticatedUser] = useState(false);
   const [showCredentialStep, setShowCredentialStep] = useState(shouldStartCredentialStepOpen);
   const toast = useToast();
+
+  useToastMessageEffect("error", resolvedError, { id: "login-route-error" });
+  useToastMessageEffect("success", resolvedInfo, { id: "login-route-info" });
 
   useEffect(() => {
     if (previewRememberedLogin || previewShowCredentialStep || sessionProbeStartedRef.current) {
@@ -415,10 +418,6 @@ export function LoginScreen({
               </LabeledEditorField>
             </AuthStack>
           </AuthFormFields>
-
-          {resolvedError ? <AuthMessage tone="error">{resolvedError}</AuthMessage> : null}
-          {resolvedInfo ? <AuthMessage tone="success">{resolvedInfo}</AuthMessage> : null}
-
         </AuthForm>
 
         {showManualAuth ? (

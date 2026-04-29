@@ -12,6 +12,7 @@ import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { NavigationReturnInput } from "@/components/ui/NavigationReturnInput";
 import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { updateRoutineAction } from "@/app/routines/actions";
 import { buildRoutineDetailsSnapshot, type RoutineDetailsDraft, validateRoutineDetailsDraft } from "@/lib/routine-details-form";
 import { RoutineDetailsSaveState } from "@/components/routines/RoutineDetailsFormState";
@@ -25,9 +26,25 @@ type Props = {
   startWeekday: string;
   timezone: string;
   weightUnit: string;
+  distanceUnit: "mi" | "km";
   error?: string;
   deleteAction?: ReactNode;
 };
+
+function resolveRoutineDraftFieldValue(field: string, value: string, previousCycleLength: number) {
+  if (field === "cycleLengthDays") {
+    const nextCycleLength = Math.floor(Number(value));
+    return Number.isFinite(nextCycleLength)
+      ? Math.max(1, Math.min(365, nextCycleLength))
+      : previousCycleLength;
+  }
+
+  if (field === "name") {
+    return value.slice(0, 15);
+  }
+
+  return value;
+}
 
 export function EditRoutineAutosaveForm(props: Props) {
   const toast = useToast();
@@ -39,8 +56,11 @@ export function EditRoutineAutosaveForm(props: Props) {
     startWeekday: props.startWeekday,
     timezone: props.timezone,
     weightUnit: props.weightUnit,
+    distanceUnit: props.distanceUnit,
   });
   const [isSaving, startTransition] = useTransition();
+
+  useToastMessageEffect("error", props.error, { id: "edit-routine-route-error" });
 
   const initialSnapshot = useMemo(
     () =>
@@ -50,8 +70,9 @@ export function EditRoutineAutosaveForm(props: Props) {
         startWeekday: props.startWeekday,
         timezone: props.timezone,
         weightUnit: props.weightUnit,
+        distanceUnit: props.distanceUnit,
       }),
-    [props.cycleLengthDays, props.name, props.startWeekday, props.timezone, props.weightUnit],
+    [props.cycleLengthDays, props.distanceUnit, props.name, props.startWeekday, props.timezone, props.weightUnit],
   );
 
   useEffect(() => {
@@ -102,6 +123,7 @@ export function EditRoutineAutosaveForm(props: Props) {
       formData.set("startWeekday", draft.startWeekday);
       formData.set("timezone", draft.timezone);
       formData.set("weightUnit", draft.weightUnit);
+      formData.set("distanceUnit", draft.distanceUnit);
       formData.set("returnTo", props.returnHref);
 
       const result = await updateRoutineAction(formData);
@@ -124,22 +146,25 @@ export function EditRoutineAutosaveForm(props: Props) {
         <input type="hidden" name="existingStartDate" value={props.existingStartDate} />
         <NavigationReturnInput fallbackHref="/routines" value={props.returnHref} />
         <RoutineEditorPageBody>
-          <RoutineEditorFormFields
-            titleInput
-            cycleLengthDefaultValue={draft.cycleLengthDays}
-            startWeekdayDefaultValue={draft.startWeekday}
-            timezoneDefaultValue={draft.timezone}
-            weightUnitDefaultValue={draft.weightUnit}
-            values={draft}
-            onFieldChange={(field, value) => {
-              setDraft((current) => ({
-                ...current,
-                [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
-              }));
-            }}
-          />
+          <div className="pt-4">
+            <RoutineEditorFormFields
+              titleInput
+              cycleLengthDefaultValue={draft.cycleLengthDays}
+              startWeekdayDefaultValue={draft.startWeekday}
+              timezoneDefaultValue={draft.timezone}
+              weightUnitDefaultValue={draft.weightUnit}
+              distanceUnitDefaultValue={draft.distanceUnit}
+              values={draft}
+              onFieldChange={(field, value) => {
+                setDraft((current) => ({
+                  ...current,
+                  [field]: resolveRoutineDraftFieldValue(field, value, current.cycleLengthDays),
+                }));
+              }}
+            />
+          </div>
 
-          <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={isDirty} mode="edit" />
+          <RoutineDetailsSaveState error={error} />
         </RoutineEditorPageBody>
       </form>
 

@@ -5,6 +5,7 @@ import { establishRecoverySession } from "@/app/reset-password/actions";
 import { hasRecoveryFragment, readRecoveryTokensFromHash } from "@/app/reset-password/recovery-fragment";
 import { AuthStack, AuthStatusText } from "@/components/auth/AuthShell";
 import { RouteLoading } from "@/components/RouteLoading";
+import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
 const RECOVERY_SESSION_ERROR = "Reset link expired.";
@@ -16,6 +17,8 @@ type RecoverySessionBridgeProps = {
 export function RecoverySessionBridge({ initialError }: RecoverySessionBridgeProps) {
   const [error, setError] = useState(initialError ?? null);
   const [isPending, setIsPending] = useState(!initialError);
+
+  useToastMessageEffect("error", error, { id: "recovery-session-error" });
 
   useEffect(() => {
     if (initialError) {

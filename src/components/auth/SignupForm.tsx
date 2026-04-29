@@ -6,9 +6,12 @@ import { signup } from "@/app/auth/actions";
 import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { BottomDockButton } from "@/components/layout/BottomDockButton";
 import { AUTH_MODE_COPY } from "@/components/auth/authCopy";
-import { AuthCard, AuthDock, AuthField, AuthFooter, AuthFooterText, AuthForm, AuthIntro, AuthMessage, AuthStack } from "@/components/auth/AuthShell";
+import { AuthCard, AuthDock, AuthFooter, AuthFooterText, AuthForm, AuthFormFields, AuthIntro } from "@/components/auth/AuthShell";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
+import { useToastMessageEffect } from "@/components/ui/useToastMessageEffect";
+import { cn } from "@/lib/cn";
 import { writeRememberedLoginState } from "@/lib/remembered-login";
 
 const SIGNUP_FORM_ID = "signup-form";
@@ -29,6 +32,9 @@ export function SignupForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const canCreate = EMAIL_PATTERN.test(email.trim().toLowerCase()) && password.length >= 6;
+
+  useToastMessageEffect("error", error, { id: "signup-route-error" });
+  useToastMessageEffect("success", info, { id: "signup-route-info" });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const formData = new FormData(event.currentTarget);
@@ -51,42 +57,48 @@ export function SignupForm({
       <AuthCard className={appTokens.authInteractiveCard}>
         <AuthIntro eyebrow="" title={copy.title} subtitle={copy.subtitle} />
         <AuthForm id={SIGNUP_FORM_ID} action={signup} onSubmit={handleSubmit}>
-          <AuthStack>
-            <AuthField label="Username" hideLabel>
+          <AuthFormFields>
+            <LabeledEditorField label="Username">
               <Input
                 type="text"
                 name="username"
                 minLength={2}
-                maxLength={24}
+                maxLength={15}
                 autoComplete="username"
-                placeholder="username (optional)"
+                className={cn(
+                  labeledEditorFieldControlClassName,
+                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                )}
               />
-            </AuthField>
-            <AuthField label="Email" hideLabel>
+            </LabeledEditorField>
+            <LabeledEditorField label="Email">
               <Input
                 type="email"
                 name="email"
                 required
                 autoComplete="email"
-                placeholder="you@example.com"
+                className={cn(
+                  labeledEditorFieldControlClassName,
+                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                )}
                 onChange={(event) => setEmail(event.target.value)}
               />
-            </AuthField>
-            <AuthField label="Password" hideLabel>
+            </LabeledEditorField>
+            <LabeledEditorField label="Password">
               <Input
                 type="password"
                 name="password"
                 minLength={6}
                 required
                 autoComplete="new-password"
-                placeholder="password"
+                className={cn(
+                  labeledEditorFieldControlClassName,
+                  "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+                )}
                 onChange={(event) => setPassword(event.target.value)}
               />
-            </AuthField>
-          </AuthStack>
-
-          {error ? <AuthMessage tone="error">{error}</AuthMessage> : null}
-          {info ? <AuthMessage tone="success">{info}</AuthMessage> : null}
+            </LabeledEditorField>
+          </AuthFormFields>
         </AuthForm>
 
         <AuthFooter>
@@ -106,7 +118,7 @@ export function SignupForm({
             intent="positive"
             disabled={!canCreate}
           >
-            Create
+            Create account
           </BottomDockButton>
         </BottomActionSingle>
       </AuthDock>

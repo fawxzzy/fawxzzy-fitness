@@ -13,14 +13,31 @@ import {
   RoutineDetailsDiscardConfirmationDock,
   useRoutineDetailsDirtyState,
   useRoutineDetailsExitGuard,
+  useRoutineDetailsHeaderTitle,
 } from "@/components/routines/RoutineDetailsExitGuard";
 import { RoutineEditorFormFields } from "@/components/routines/RoutineEditorForm";
 import { useToast } from "@/components/ui/ToastProvider";
 import { createRoutineAction } from "@/app/routines/actions";
 import { buildRoutineDetailsSnapshot, normalizeRoutineDetailsDraft, validateRoutineDetailsDraft, type RoutineDetailsDraft } from "@/lib/routine-details-form";
 import { RoutineDetailsSaveState } from "@/components/routines/RoutineDetailsFormState";
+import { cn } from "@/lib/cn";
 
 const STORAGE_KEY = "routine-new-draft-v1";
+
+function resolveRoutineDraftFieldValue(field: string, value: string, previousCycleLength: number) {
+  if (field === "cycleLengthDays") {
+    const nextCycleLength = Math.floor(Number(value));
+    return Number.isFinite(nextCycleLength)
+      ? Math.max(1, Math.min(365, nextCycleLength))
+      : previousCycleLength;
+  }
+
+  if (field === "name") {
+    return value.slice(0, 15);
+  }
+
+  return value;
+}
 
 export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraft }) {
   const toast = useToast();
@@ -37,13 +54,21 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<RoutineDetailsDraft>;
-        setDraft((current) => normalizeRoutineDetailsDraft(parsed, current));
+        const normalizedParsed = normalizeRoutineDetailsDraft(parsed, defaults);
+        const shouldResetStartWeekday =
+          normalizedParsed.name.trim().length === 0
+          && normalizedParsed.cycleLengthDays === defaults.cycleLengthDays;
+
+        setDraft({
+          ...normalizedParsed,
+          startWeekday: shouldResetStartWeekday ? defaults.startWeekday : normalizedParsed.startWeekday,
+        });
       }
     } catch {
       // ignore malformed local drafts
     }
     setLoadedDraft(true);
-  }, []);
+  }, [defaults]);
 
   useEffect(() => {
     if (!loadedDraft) return;
@@ -54,13 +79,14 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
         setError(null);
       } catch {
         setError("Could not save local draft.");
+        toast.error("Could not save local draft.");
       }
     }, 400);
 
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [draft, loadedDraft]);
+  }, [draft, loadedDraft, toast]);
 
   const validation = validateRoutineDetailsDraft(draft);
   const initialSnapshot = buildRoutineDetailsSnapshot(defaults);
@@ -69,6 +95,9 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   const hasDirtyChanges = hasUserEdited && isDirty;
   const canCreate = validation.valid && isDirty && !isSaving;
   const { isConfirmingDiscard } = useRoutineDetailsExitGuard();
+  const trimmedRoutineName = draft.name.trim().slice(0, 15);
+
+  useRoutineDetailsHeaderTitle(trimmedRoutineName ? `New Routine | ${trimmedRoutineName}` : "New Routine");
 
   useRoutineDetailsDirtyState(hasDirtyChanges);
 
@@ -87,22 +116,45 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   return (
     <>
       <RoutineEditorPageBody className={appTokens.routineEditorSectionStack}>
-        <RoutineEditorFormFields
-          titleInput
-          cycleLengthDefaultValue={draft.cycleLengthDays}
-          startWeekdayDefaultValue={draft.startWeekday}
-          timezoneDefaultValue={draft.timezone}
-          weightUnitDefaultValue={draft.weightUnit}
-          values={draft}
-          onFieldChange={(field, value) => {
-            setHasUserEdited(true);
-            setDraft((current) => ({
-              ...current,
-              [field]: field === "cycleLengthDays" ? Number(value || current.cycleLengthDays) : value,
-            }));
-          }}
-        />
-        <RoutineDetailsSaveState error={error} isSaving={isSaving} isDirty={hasDirtyChanges} mode="create" />
+        <div className={cn("pt-4", appTokens.routineEditorCompactStack)}>
+          <RoutineEditorFormFields
+            titleInput
+            fields={["name", "cycleLengthDays"]}
+            cycleLengthDefaultValue={draft.cycleLengthDays}
+            startWeekdayDefaultValue={draft.startWeekday}
+            timezoneDefaultValue={draft.timezone}
+            weightUnitDefaultValue={draft.weightUnit}
+            distanceUnitDefaultValue={draft.distanceUnit}
+            values={draft}
+            onFieldChange={(field, value) => {
+              setHasUserEdited(true);
+              setDraft((current) => ({
+                ...current,
+                [field]: resolveRoutineDraftFieldValue(field, value, current.cycleLengthDays),
+              }));
+            }}
+          />
+        </div>
+
+        <div className={appTokens.routineEditorCompactStack}>
+          <RoutineEditorFormFields
+            fields={["startWeekday", "timezone", "weightUnit", "distanceUnit"]}
+            cycleLengthDefaultValue={draft.cycleLengthDays}
+            startWeekdayDefaultValue={draft.startWeekday}
+            timezoneDefaultValue={draft.timezone}
+            weightUnitDefaultValue={draft.weightUnit}
+            distanceUnitDefaultValue={draft.distanceUnit}
+            values={draft}
+            onFieldChange={(field, value) => {
+              setHasUserEdited(true);
+              setDraft((current) => ({
+                ...current,
+                [field]: resolveRoutineDraftFieldValue(field, value, current.cycleLengthDays),
+              }));
+            }}
+          />
+        </div>
+        <RoutineDetailsSaveState error={error} />
       </RoutineEditorPageBody>
 
       {isConfirmingDiscard ? (
@@ -127,11 +179,12 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
                   }
 
                   const formData = new FormData();
-                  formData.set("name", draft.name.trim());
+                  formData.set("name", trimmedRoutineName);
                   formData.set("cycleLengthDays", String(draft.cycleLengthDays));
                   formData.set("startWeekday", draft.startWeekday);
                   formData.set("timezone", draft.timezone);
                   formData.set("weightUnit", draft.weightUnit);
+                  formData.set("distanceUnit", draft.distanceUnit);
                   const result = await createRoutineAction(formData);
                   if (!result.ok) {
                     const nextError = result.error ?? "Could not create routine.";
