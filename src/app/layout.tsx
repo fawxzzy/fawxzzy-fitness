@@ -12,6 +12,9 @@ const APP_NAME = "FawxzzyFitness";
 const APP_DESCRIPTION = "Track sessions and progress with a focused training workflow.";
 const APP_PREVIEW_IMAGE = "/app/previews/today.png";
 const APP_SHELL_COLOR = "#07111b";
+// iOS home-screen PWAs misplace bottom-anchored UI when black-translucent is
+// combined with viewport-fit=cover, so keep the status bar in default mode.
+const IOS_STANDALONE_STATUS_BAR_STYLE = "default" as const;
 
 function resolveMetadataBase() {
   const candidates = [
@@ -44,7 +47,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: APP_NAME,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: IOS_STANDALONE_STATUS_BAR_STYLE,
   },
   openGraph: {
     type: "website",
@@ -77,7 +80,7 @@ export const metadata: Metadata = {
   other: {
     "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "apple-mobile-web-app-status-bar-style": IOS_STANDALONE_STATUS_BAR_STYLE,
     "apple-mobile-web-app-title": APP_NAME,
   },
 };

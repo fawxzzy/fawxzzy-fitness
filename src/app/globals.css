@@ -260,6 +260,17 @@ body {
   overscroll-behavior-y: none;
 }
 
+.app-standalone-safe-area-bleed {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background:
+    linear-gradient(180deg, rgb(var(--bg-0) / 0.08), rgb(var(--bg-0) / 0.78) 42%, rgb(var(--bg-0)) 100%);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
 .app-ambient {
   position: absolute;
   inset: 0;
@@ -1272,6 +1283,10 @@ html {
   overscroll-behavior-y: none;
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+html[data-display-mode="standalone"] .app-standalone-safe-area-bleed {
+  opacity: 1;
 }
 
 html::-webkit-scrollbar,
