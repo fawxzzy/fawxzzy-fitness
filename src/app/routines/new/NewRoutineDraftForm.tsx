@@ -24,6 +24,10 @@ import { cn } from "@/lib/cn";
 
 const STORAGE_KEY = "routine-new-draft-v1";
 
+type NewRoutineDraftDefaults = Omit<RoutineDetailsDraft, "distanceUnit"> & {
+  distanceUnit?: string;
+};
+
 function resolveRoutineDraftFieldValue(field: string, value: string, previousCycleLength: number) {
   if (field === "cycleLengthDays") {
     const nextCycleLength = Math.floor(Number(value));
@@ -39,10 +43,18 @@ function resolveRoutineDraftFieldValue(field: string, value: string, previousCyc
   return value;
 }
 
-export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraft }) {
+export function NewRoutineDraftForm({ defaults }: { defaults: NewRoutineDraftDefaults }) {
   const toast = useToast();
   const router = useRouter();
-  const [draft, setDraft] = useState<RoutineDetailsDraft>(defaults);
+  const normalizedDefaults = normalizeRoutineDetailsDraft(defaults, {
+    name: defaults.name,
+    cycleLengthDays: defaults.cycleLengthDays,
+    startWeekday: defaults.startWeekday,
+    timezone: defaults.timezone,
+    weightUnit: defaults.weightUnit,
+    distanceUnit: defaults.distanceUnit === "km" ? "km" : "mi",
+  });
+  const [draft, setDraft] = useState<RoutineDetailsDraft>(normalizedDefaults);
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [loadedDraft, setLoadedDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,21 +66,21 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<RoutineDetailsDraft>;
-        const normalizedParsed = normalizeRoutineDetailsDraft(parsed, defaults);
+        const normalizedParsed = normalizeRoutineDetailsDraft(parsed, normalizedDefaults);
         const shouldResetStartWeekday =
           normalizedParsed.name.trim().length === 0
-          && normalizedParsed.cycleLengthDays === defaults.cycleLengthDays;
+          && normalizedParsed.cycleLengthDays === normalizedDefaults.cycleLengthDays;
 
         setDraft({
           ...normalizedParsed,
-          startWeekday: shouldResetStartWeekday ? defaults.startWeekday : normalizedParsed.startWeekday,
+          startWeekday: shouldResetStartWeekday ? normalizedDefaults.startWeekday : normalizedParsed.startWeekday,
         });
       }
     } catch {
       // ignore malformed local drafts
     }
     setLoadedDraft(true);
-  }, [defaults]);
+  }, [normalizedDefaults]);
 
   useEffect(() => {
     if (!loadedDraft) return;
@@ -89,7 +101,7 @@ export function NewRoutineDraftForm({ defaults }: { defaults: RoutineDetailsDraf
   }, [draft, loadedDraft, toast]);
 
   const validation = validateRoutineDetailsDraft(draft);
-  const initialSnapshot = buildRoutineDetailsSnapshot(defaults);
+  const initialSnapshot = buildRoutineDetailsSnapshot(normalizedDefaults);
   const currentSnapshot = buildRoutineDetailsSnapshot(draft);
   const isDirty = currentSnapshot !== initialSnapshot;
   const hasDirtyChanges = hasUserEdited && isDirty;
