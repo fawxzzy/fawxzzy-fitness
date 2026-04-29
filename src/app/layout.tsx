@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ServiceWorkerBootstrap } from "@/components/ServiceWorkerBootstrap";
+import { ProtectedAppInstallGate } from "@/components/install/ProtectedAppInstallGate";
 import { GlassEffectsBootstrap } from "@/components/ui/GlassEffectsBootstrap";
 import { DisplayModeBootstrap } from "@/components/ui/app/DisplayModeBootstrap";
 import { PersistentAppChrome } from "@/components/ui/app/PersistentAppChrome";
@@ -10,6 +11,7 @@ import "./globals.css";
 const APP_NAME = "FawxzzyFitness";
 const APP_DESCRIPTION = "Track sessions and progress with a focused training workflow.";
 const APP_PREVIEW_IMAGE = "/app/previews/today.png";
+const APP_SHELL_COLOR = "#07111b";
 
 function resolveMetadataBase() {
   const candidates = [
@@ -81,7 +83,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07111b",
+  themeColor: APP_SHELL_COLOR,
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -103,8 +105,8 @@ export default function RootLayout({
           <GlassEffectsBootstrap />
           <DisplayModeBootstrap />
           <MobileViewportGuard />
-          <main className="safe-area-main relative z-10 flex min-h-[100dvh] w-full flex-col overflow-hidden">
-            {children}
+          <main className="safe-area-main relative z-10 flex min-h-0 flex-1 w-full flex-col overflow-hidden">
+            <ProtectedAppInstallGate>{children}</ProtectedAppInstallGate>
           </main>
         </ToastProvider>
       </body>
