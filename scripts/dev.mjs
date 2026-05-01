@@ -21,6 +21,7 @@ const DEV_ENV_KEYS = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_APP_URL",
   "APP_URL",
+  "ALLOW_PROD_SUPABASE_IN_DEV",
 ];
 const rawDevArgs = process.argv.slice(2);
 
