@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const iconSourcePath = path.join(rootDir, "public", "brand", "atlas-sigil-master.png");
+const defaultIconBackground = "#07111b";
 
 const outputs = [
   { relativePath: path.join("public", "icons", "icon-512.png"), size: 512 },
@@ -17,6 +18,22 @@ const outputs = [
   { relativePath: path.join("public", "favicon-32x32.png"), size: 32 },
   { relativePath: path.join("public", "favicon-16x16.png"), size: 16 },
 ];
+
+function parseHexColor(value) {
+  const normalized = value.trim().replace(/^#/, "");
+  if (!/^[\da-fA-F]{6}$/.test(normalized)) {
+    throw new Error(`FITNESS_ICON_BG must be a 6-digit hex color. Received: ${value}`);
+  }
+
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+    alpha: 1,
+  };
+}
+
+const iconBackgroundColor = parseHexColor(process.env.FITNESS_ICON_BG ?? defaultIconBackground);
 
 async function main() {
   let sourcePng;
@@ -36,7 +53,7 @@ async function main() {
       return sharp(sourcePng)
         .resize(size, size, {
           fit: "contain",
-          background: { r: 0, g: 0, b: 0, alpha: 1 },
+          background: iconBackgroundColor,
         })
         .png({ quality: 100, compressionLevel: 9 })
         .toFile(outputPath);

@@ -62,6 +62,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-01 - Ambient ownership must be global, not shell-local
+- Type: Pattern
+- Summary: Route shells and auth shells should not paint competing full-screen backgrounds once a global app ambient exists. Shells may set route intent and presets, but the persistent ambient owner should render once near the app root.
+- Suggested Playbook File: docs/PATTERNS/app-ambient-ownership.md
+- Rationale: Prevents route-local backdrops from hiding app-wide theme changes, creating route-family drift, and breaking alignment between the visible app surface and icon or theme-color changes.
+- Failure Mode: Local shell backdrops create route-to-route visual drift, hide app-wide theme changes, and make icon/theme-color updates diverge from the visible app surface.
+- Evidence: src/lib/ambient/route-preset.ts, src/components/ui/app/AppShell.tsx, src/components/auth/AuthShell.tsx, src/components/ui/AppAmbientThemeBootstrap.tsx, src/app/globals.css, scripts/generate-icons.mjs, src/app/layout.tsx
+- Status: Proposed
+
 ## 2026-05-01 - Canonical deploy source only
 - Type: Guardrail
 - Summary: `fawxzzy-fitness` production deploys must come from the canonical `fawxzzy/fawxzzy-fitness` repo. A dirty Vercel CLI deploy whose `gitCommitSha` is missing from GitHub is a recovery incident and must be reconciled before the next prod deploy.
