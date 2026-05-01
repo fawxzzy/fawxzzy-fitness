@@ -3,23 +3,27 @@ import type { AmbientPreset } from "@/lib/ambient/tuning";
 const LOCAL_CHROME_PATH_PREFIX = "/dev/mobile-regression";
 
 export function resolveAmbientPresetForPathname(pathname: string | null): AmbientPreset | null {
-  if (!pathname || pathname === "/" || pathname.startsWith("/entry")) {
+  if (pathname?.startsWith(LOCAL_CHROME_PATH_PREFIX)) {
     return null;
   }
 
-  if (pathname.startsWith(LOCAL_CHROME_PATH_PREFIX)) {
-    return null;
+  if (!pathname || pathname === "/" || pathname.startsWith("/entry")) {
+    return "modal";
   }
 
   if (
-    pathname.startsWith("/login")
+    pathname.startsWith("/install")
+    || pathname.startsWith("/login")
     || pathname.startsWith("/signup")
     || pathname.startsWith("/forgot-password")
     || pathname.startsWith("/reset-password")
     || pathname.startsWith("/auth")
-    || pathname.startsWith("/curated-onboarding")
   ) {
-    return null;
+    return "modal";
+  }
+
+  if (pathname.startsWith("/curated-onboarding")) {
+    return "today";
   }
 
   if (pathname.startsWith("/today")) {
@@ -46,7 +50,7 @@ export function resolveAmbientPresetForPathname(pathname: string | null): Ambien
     return "viewDay";
   }
 
-  return null;
+  return "viewDay";
 }
 
 export function shouldRenderLocalAppChrome(pathname: string | null) {

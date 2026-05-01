@@ -194,6 +194,39 @@
   --bottom-nav-h: 92px;
 }
 
+:root[data-ambient-theme="mint"] {
+  --accent: 71 215 196;
+  --accent-strong: 47 230 210;
+  --accent-mint: 71 215 196;
+  --accent-mint-strong: 47 230 210;
+  --ambient-orb-one: 104 232 208;
+  --ambient-orb-two: 113 159 204;
+  --ambient-line-teal: 92 228 214;
+  --ambient-line-cyan: 160 214 255;
+}
+
+:root[data-ambient-theme="ember"] {
+  --accent: 240 178 78;
+  --accent-strong: 255 198 102;
+  --accent-mint: 240 178 78;
+  --accent-mint-strong: 255 198 102;
+  --ambient-orb-one: 240 178 78;
+  --ambient-orb-two: 255 111 131;
+  --ambient-line-teal: 255 198 102;
+  --ambient-line-cyan: 255 148 118;
+}
+
+:root[data-ambient-theme="violet"] {
+  --accent: 170 132 255;
+  --accent-strong: 196 167 255;
+  --accent-mint: 170 132 255;
+  --accent-mint-strong: 196 167 255;
+  --ambient-orb-one: 170 132 255;
+  --ambient-orb-two: 113 159 204;
+  --ambient-line-teal: 196 167 255;
+  --ambient-line-cyan: 160 214 255;
+}
+
 @media (min-width: 640px) {
   :root {
     --screen-gutter: 20px;
@@ -249,6 +282,9 @@
 
 body {
   min-height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background-color: rgb(var(--bg));
   background-image: linear-gradient(180deg, rgb(var(--bg-1)), rgb(var(--bg-0)) 42%, rgb(var(--bg-0)));
   color: rgb(var(--text));

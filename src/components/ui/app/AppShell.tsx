@@ -41,7 +41,7 @@ export function AppShell({
 
   return (
     <div
-      className={cn("app-shell relative isolate flex h-[100dvh] min-h-0 min-w-0 max-w-full flex-col overflow-x-hidden overflow-y-hidden bg-[rgb(var(--bg-app))] pt-[var(--app-top-offset)] touch-pan-y [overscroll-behavior-x:none]", className)}
+      className={cn("app-shell relative isolate flex h-full min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden overflow-y-hidden bg-transparent pt-[var(--app-top-offset)] touch-pan-y [overscroll-behavior-x:none]", className)}
       data-top-nav-mode={topNavMode}
       style={shellStyle}
     >

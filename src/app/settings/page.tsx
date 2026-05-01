@@ -1,14 +1,12 @@
 import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
-import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
-import { GlassEffectsSettings } from "@/components/settings/GlassEffectsSettings";
-import { LegacyMigrationSettings } from "@/components/settings/LegacyMigrationSettings";
+import { SettingsAccordionClient } from "@/components/settings/SettingsAccordionClient";
 import { SettingsBottomSignOutAction } from "@/components/settings/SettingsBottomSignOutAction";
+import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
+import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { AppHeader } from "@/components/ui/app/AppHeader";
 import { appTokens } from "@/components/ui/app/tokens";
-import { Chip } from "@/components/ui/Chip";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { requireUser } from "@/lib/auth";
 import { optionalEnv } from "@/lib/env";
@@ -33,55 +31,26 @@ export default async function SettingsPage() {
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="modal">
-      <ScrollScreenWithBottomActions
-        topChrome={<AppNav mode="topChrome" />}
-        floatingHeader={(
-          <ContentRail className="py-1">
-            <SurfaceCard dense>
-              <AppHeader
-                title="Settings"
-                subtitle="Account, defaults, and appearance"
-                meta={user.email ?? "Unknown email"}
-                action={<Chip tone="success">Signed in</Chip>}
-                className={appTokens.settingsCardHeader}
+      <SettingsScreenStateProvider>
+        <ScrollScreenWithBottomActions
+          topChrome={<AppNav mode="topChrome" />}
+          floatingHeader={<SettingsFloatingHeader email={user.email ?? ""} username={username} />}
+        >
+          <ContentRail className={appTokens.settingsContentRail}>
+            <SurfaceCard className="border-transparent shadow-none">
+              <SettingsAccordionClient
+                email={user.email ?? ""}
+                username={username}
+                legacyBridgeConfigured={legacyBridgeConfigured}
+                preferredWeightUnit={profile.preferred_weight_unit ?? "lbs"}
+                preferredDistanceUnit={profile.preferred_distance_unit ?? "mi"}
               />
             </SurfaceCard>
           </ContentRail>
-        )}
-      >
-        <ContentRail className="flex min-h-0 flex-1 flex-col gap-3 py-1">
-          <SurfaceCard>
-            <AppHeader
-              title="Data & Account"
-              meta="Keep your sign-in email current, and import legacy data only if you still need the old project moved over."
-              titleAs="h2"
-              className={appTokens.settingsCardHeader}
-              titleClassName={appTokens.settingsSectionTitle}
-            />
-            <AccountSettingsForm email={user.email ?? ""} username={username} />
-            <LegacyMigrationSettings
-              legacyBridgeConfigured={legacyBridgeConfigured}
-              defaultLegacyEmail={user.email ?? ""}
-            />
-          </SurfaceCard>
 
-          <SurfaceCard>
-            <AppHeader
-              title="Preferences"
-              meta="Tune visual density and default units without changing the rest of the app shell."
-              titleAs="h2"
-              className={appTokens.settingsCardHeader}
-              titleClassName={appTokens.settingsSectionTitle}
-            />
-            <GlassEffectsSettings
-              preferredWeightUnit={profile.preferred_weight_unit ?? "lbs"}
-              preferredDistanceUnit={profile.preferred_distance_unit ?? "mi"}
-            />
-          </SurfaceCard>
-        </ContentRail>
-
-        <SettingsBottomSignOutAction />
-      </ScrollScreenWithBottomActions>
+          <SettingsBottomSignOutAction />
+        </ScrollScreenWithBottomActions>
+      </SettingsScreenStateProvider>
     </MainTabScreen>
   );
 }

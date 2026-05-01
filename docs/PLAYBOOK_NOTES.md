@@ -62,6 +62,24 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-01 - Ambient ownership must be global, not shell-local
+- Type: Pattern
+- Summary: Route shells and auth shells should not paint competing full-screen backgrounds once a global app ambient exists. Shells may set route intent and presets, but the persistent ambient owner should render once near the app root.
+- Suggested Playbook File: docs/PATTERNS/app-ambient-ownership.md
+- Rationale: Prevents route-local backdrops from hiding app-wide theme changes, creating route-family drift, and breaking alignment between the visible app surface and icon or theme-color changes.
+- Failure Mode: Local shell backdrops create route-to-route visual drift, hide app-wide theme changes, and make icon/theme-color updates diverge from the visible app surface.
+- Evidence: src/lib/ambient/route-preset.ts, src/components/ui/app/AppShell.tsx, src/components/auth/AuthShell.tsx, src/components/ui/AppAmbientThemeBootstrap.tsx, src/app/globals.css, scripts/generate-icons.mjs, src/app/layout.tsx
+- Status: Proposed
+
+## 2026-05-01 - Canonical deploy source only
+- Type: Guardrail
+- Summary: `fawxzzy-fitness` production deploys must come from the canonical `fawxzzy/fawxzzy-fitness` repo. A dirty Vercel CLI deploy whose `gitCommitSha` is missing from GitHub is a recovery incident and must be reconciled before the next prod deploy.
+- Suggested Playbook File: docs/GUARDRAILS/deploy-identity.md
+- Rationale: Prevents current GitHub `main` from silently overwriting unrecovered prod-only UI or behavior that exists only in a dirty workspace deploy.
+- Failure Mode: Deploying current GitHub `main` while prod is serving an unrecovered dirty workspace can silently delete prod-only UI/code.
+- Evidence: Vercel prod `dpl_5ATWWNntLPsHMaC1oGVNTKy5Sw2F`, `docs/LOCAL-PROD-DATA-SYNC.md`, `.vercel/project.json`
+- Status: Proposed
+
 ## 2026-04-22 - Remembered-account login flows should derive submit readiness from the active auth identity
 - Type: Guardrail
 - Summary: When login hides the email field for a remembered account, submit readiness, helper copy, and CTA labels must still derive from the remembered identity plus the current password state instead of treating the hidden email input as empty or treating every remembered-account password step as exceptional reauth.
