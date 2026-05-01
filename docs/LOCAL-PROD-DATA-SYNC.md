@@ -20,6 +20,8 @@ Do not treat local-against-production-data as the default mode.
 That guard applies to:
 
 - `npm run dev`
+- `npm run qa:dev`
+- `npm run qa:dev:lan`
 - QA scripts that load `scripts/qa/fitness-qa-config.mjs`
 
 ## Recover Production Code First
@@ -58,13 +60,13 @@ PowerShell:
 ```powershell
 $env:FITNESS_ENV_FILE = ".env.production.local"
 $env:ALLOW_PROD_SUPABASE_IN_DEV = "1"
-npm run dev
+npm run qa:dev:lan
 ```
 
 Or pass the override file directly to the dev script:
 
 ```powershell
-npm run dev -- --env-file .env.production.local
+npm run qa:dev:lan -- --env-file .env.production.local
 ```
 
 POSIX shell:

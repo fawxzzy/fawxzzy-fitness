@@ -1,0 +1,261 @@
+{
+    "recoveryDate":  "2026-05-01",
+    "canonicalRepo":  "C:\\ATLAS\\repos\\fawxzzy-fitness",
+    "quarantineSource":  "C:\\ATLAS\\repos\\fawxzzy-fitness-quarantine",
+    "canonicalBaselineSha":  "e06e19fbe86ea224a7c6aad1ace4f14cb92af658",
+    "auditEvidence":  [
+                          "docs/recovery/fitness-quarantine-audit-2026-05-01.json",
+                          "docs/recovery/fitness-quarantine-audit-2026-05-01.md"
+                      ],
+    "countsByTargetStatus":  [
+                                 {
+                                     "target":  "docs/LOCAL-PROD-DATA-SYNC.md",
+                                     "status":  "different",
+                                     "count":  1
+                                 },
+                                 {
+                                     "target":  "docs/PLAYBOOK_NOTES.md",
+                                     "status":  "only_canonical",
+                                     "count":  1
+                                 },
+                                 {
+                                     "target":  "middleware.ts",
+                                     "status":  "only_canonical",
+                                     "count":  1
+                                 },
+                                 {
+                                     "target":  "next.config.mjs",
+                                     "status":  "only_canonical",
+                                     "count":  1
+                                 },
+                                 {
+                                     "target":  "package.json",
+                                     "status":  "different",
+                                     "count":  1
+                                 },
+                                 {
+                                     "target":  "public/app",
+                                     "status":  "different",
+                                     "count":  1
+                                 },
+                                 {
+                                     "target":  "public/exercises",
+                                     "status":  "different",
+                                     "count":  3
+                                 },
+                                 {
+                                     "target":  "scripts",
+                                     "status":  "different",
+                                     "count":  11
+                                 },
+                                 {
+                                     "target":  "scripts",
+                                     "status":  "only_quarantine",
+                                     "count":  20
+                                 },
+                                 {
+                                     "target":  "src/app",
+                                     "status":  "different",
+                                     "count":  39
+                                 },
+                                 {
+                                     "target":  "src/components",
+                                     "status":  "different",
+                                     "count":  67
+                                 },
+                                 {
+                                     "target":  "src/features",
+                                     "status":  "different",
+                                     "count":  5
+                                 },
+                                 {
+                                     "target":  "src/generated",
+                                     "status":  "different",
+                                     "count":  2
+                                 },
+                                 {
+                                     "target":  "src/lib",
+                                     "status":  "different",
+                                     "count":  36
+                                 },
+                                 {
+                                     "target":  "supabase",
+                                     "status":  "different",
+                                     "count":  1
+                                 },
+                                 {
+                                     "target":  "supabase",
+                                     "status":  "only_quarantine",
+                                     "count":  7
+                                 },
+                                 {
+                                     "target":  "tests",
+                                     "status":  "different",
+                                     "count":  2
+                                 },
+                                 {
+                                     "target":  "vercel.json",
+                                     "status":  "different",
+                                     "count":  1
+                                 }
+                             ],
+    "classifications":  {
+                            "recovered":  [
+                                             "package.json",
+                                             "supabase/migrations/038_fix_strength_exercise_measurement_labels.sql",
+                                             "supabase/migrations/039_seed_global_stretch.sql",
+                                             "supabase/migrations/040_exercise_curation_tags_and_howto_refresh.sql",
+                                             "supabase/migrations/041_allow_measurement_optional_session_and_routine_goals.sql",
+                                             "supabase/data/global_exercises_canonical.json",
+                                             "docs/LOCAL-PROD-DATA-SYNC.md",
+                                             "scripts/dev.mjs",
+                                             "scripts/env-file.mjs",
+                                             "scripts/next-workspace-guard.mjs",
+                                             "scripts/generate-exercise-icon-manifest.mjs",
+                                             "scripts/generate-icons.mjs",
+                                             "scripts/release.mjs",
+                                             "scripts/verify-history-family-ui.mjs",
+                                             "public/favicon.ico",
+                                             "src/generated/exerciseIconManifest.ts",
+                                             "tests/design-system-contract.test.mjs",
+                                             "tests/mobile-regression/build-mobile-regression-boards.test.ts"
+                                         ],
+                            "intentionallyDiscarded":  [
+                                                         "vercel.json"
+                                                     ],
+                            "generatedCacheNoise":  [
+                                                     "public/app/previews/manifest.json",
+                                                     "src/generated/appBuildManifest.json",
+                                                     "public/brand/atlas-sigil-master.png",
+                                                     "supabase/data/global_exercises_catalog_index.csv",
+                                                     "supabase/data/global_exercises_catalog_index.json",
+                                                     "supabase/data/global_exercises_review_queue.json",
+                                                     "supabase/.temp/cli-latest",
+                                                     "scripts/generate-pwa-assets.mjs",
+                                                     "scripts/generate-app-build-manifest.mjs",
+                                                     "scripts/generate-stretch-library-split.mjs",
+                                                     "scripts/next-cli.mjs",
+                                                     "scripts/qa-ui-pass.mjs",
+                                                     "scripts/qa/fitness-qa-config.mjs",
+                                                     "scripts/mobile_regression/__pycache__/__init__.cpython-313.pyc",
+                                                     "scripts/mobile_regression/__pycache__/board_builder.cpython-313.pyc",
+                                                     "tsconfig.tsbuildinfo"
+                                                 ],
+                            "atlasOnlyUnrelated":  [
+                                                     "scripts/analyze-exercise-catalog.mjs",
+                                                     "scripts/build-timing.mjs",
+                                                     "scripts/next-build-guard.mjs",
+                                                     "scripts/profile-next-build.mjs",
+                                                     "scripts/refresh-exercise-catalog.mjs",
+                                                     "scripts/typecheck-debt-inventory.mjs",
+                                                     "scripts/qa/cdp-edge.mjs",
+                                                     "scripts/qa/dev-fresh.mjs",
+                                                     "scripts/qa/fitness-auth-artifact.mjs",
+                                                     "scripts/qa/fitness-local-feedback.mjs",
+                                                     "scripts/qa/fitness-mobile-loop.mjs",
+                                                     "scripts/qa/fitness-qa-user.mjs",
+                                                     "scripts/qa/fitness-tunnel.mjs",
+                                                     "scripts/qa/update-app-preview-assets.mjs",
+                                                     "scripts/qa/visual-fitness-readiness.mjs",
+                                                     "scripts/qa/visual-fitness-runner.mjs",
+                                                     "scripts/qa/visual-fitness-suites.mjs",
+                                                     "scripts/qa/visual-fitness-theme.mjs"
+                                                 ],
+                            "stillPending":  [
+                                                 {
+                                                     "lane":  "A-shell-auth-theme-settings",
+                                                     "targets":  [
+                                                                     "src/app",
+                                                                     "src/components",
+                                                                     "src/lib"
+                                                                 ],
+                                                     "includePaths":  [
+                                                                          "layout.tsx",
+                                                                          "globals.css",
+                                                                          "page.tsx",
+                                                                          "entry\\\\",
+                                                                          "login\\\\",
+                                                                          "signup\\\\",
+                                                                          "settings\\\\",
+                                                                          "components\\\\auth\\\\",
+                                                                          "components\\\\settings\\\\",
+                                                                          "components\\\\ui\\\\",
+                                                                          "components\\\\ui\\\\app\\\\",
+                                                                          "lib\\\\app-theme",
+                                                                          "lib\\\\ambient\\\\",
+                                                                          "AppNav.tsx",
+                                                                          "install\\\\"
+                                                                      ],
+                                                     "source":  "fitness-quarantine-audit-2026-05-01.json"
+                                                 },
+                                                 {
+                                                     "lane":  "B-today-routines-session-editor",
+                                                     "targets":  [
+                                                                     "src/app",
+                                                                     "src/components",
+                                                                     "src/lib",
+                                                                     "src/shared",
+                                                                     "src/types"
+                                                                 ],
+                                                     "includePaths":  [
+                                                                          "today\\\\",
+                                                                          "routines\\\\",
+                                                                          "components\\\\session\\\\",
+                                                                          "day-list\\\\",
+                                                                          "shared\\\\day-cta-dock\\\\",
+                                                                          "lib\\\\today",
+                                                                          "lib\\\\session",
+                                                                          "lib\\\\routine",
+                                                                          "types\\\\db.ts"
+                                                                      ],
+                                                     "source":  "fitness-quarantine-audit-2026-05-01.json"
+                                                 },
+                                                 {
+                                                     "lane":  "C-history-exercise-stretch-curated-onboarding-assets",
+                                                     "targets":  [
+                                                                     "src/app",
+                                                                     "src/components",
+                                                                     "src/lib",
+                                                                     "src/features",
+                                                                     "public/exercises"
+                                                                 ],
+                                                     "includePaths":  [
+                                                                          "history\\\\",
+                                                                          "exercises\\\\",
+                                                                          "curated-onboarding\\\\",
+                                                                          "components\\\\history\\\\",
+                                                                          "ExerciseCard.tsx",
+                                                                          "ExerciseInfoSheet.tsx",
+                                                                          "StandardExerciseRow.tsx",
+                                                                          "lib\\\\exercise",
+                                                                          "lib\\\\history",
+                                                                          "lib\\\\stretch",
+                                                                          "features\\\\curated-onboarding\\\\",
+                                                                          "icons\\\\overhead-triceps-extension.svg",
+                                                                          "icons\\\\stretch.svg",
+                                                                          "stretch-hub-hero.svg"
+                                                                      ],
+                                                     "source":  "fitness-quarantine-audit-2026-05-01.json"
+                                                 }
+                                             ],
+                            "canonicalOnlySafety":  [
+                                                        {
+                                                            "path":  "docs/PLAYBOOK_NOTES.md",
+                                                            "reason":  "Canonical deploy and recovery safety note already added after quarantine diverged."
+                                                        },
+                                                        {
+                                                            "path":  "middleware.ts",
+                                                            "reason":  "Canonical-only runtime safety file introduced after quarantine split."
+                                                        },
+                                                        {
+                                                            "path":  "next.config.mjs",
+                                                            "reason":  "Canonical-only config file not present in quarantine; preserve pending explicit comparison if needed."
+                                                        }
+                                                    ]
+                        },
+    "notes":  [
+                  "Quarantine Git metadata is not authoritative; filesystem diff only.",
+                  "Still pending must be driven to zero before deploy.",
+                  "No product/runtime file may remain unclassified."
+              ]
+}

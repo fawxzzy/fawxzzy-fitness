@@ -1,0 +1,1202 @@
+[
+    {
+        "target":  "docs/LOCAL-PROD-DATA-SYNC.md",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  ""
+    },
+    {
+        "target":  "docs/PLAYBOOK_NOTES.md",
+        "status":  "only_canonical",
+        "normalizedStatus":  "only_canonical",
+        "path":  ""
+    },
+    {
+        "target":  "middleware.ts",
+        "status":  "only_canonical",
+        "normalizedStatus":  "only_canonical",
+        "path":  ""
+    },
+    {
+        "target":  "next.config.mjs",
+        "status":  "only_canonical",
+        "normalizedStatus":  "only_canonical",
+        "path":  ""
+    },
+    {
+        "target":  "package.json",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  ""
+    },
+    {
+        "target":  "public/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "previews\\manifest.json"
+    },
+    {
+        "target":  "public/exercises",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "icons\\overhead-triceps-extension.svg"
+    },
+    {
+        "target":  "public/exercises",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "icons\\stretch.svg"
+    },
+    {
+        "target":  "public/exercises",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "stretch-hub-hero.svg"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "dev.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "env-file.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "generate-exercise-icon-manifest.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "generate-icons.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "next-cli.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "qa\\cdp-edge.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "qa\\fitness-qa-config.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "qa-ui-pass.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "release.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "tsc-cli.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "verify-history-family-ui.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "analyze-exercise-catalog.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "build-timing.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "generate-app-build-manifest.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "generate-stretch-library-split.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "next-build-guard.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "next-workspace-guard.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "profile-next-build.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\dev-fresh.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\fitness-auth-artifact.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\fitness-local-feedback.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\fitness-mobile-loop.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\fitness-qa-user.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\fitness-tunnel.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\update-app-preview-assets.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\visual-fitness-readiness.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\visual-fitness-runner.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\visual-fitness-suites.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "qa\\visual-fitness-theme.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "refresh-exercise-catalog.mjs"
+    },
+    {
+        "target":  "scripts",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "typecheck-debt-inventory.mjs"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "api\\app-version\\route.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "auth\\actions.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "dev\\auth-screen-lab\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "dev\\mobile-regression\\DevMobileRegressionRoute.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "dev\\mobile-regression\\EditDayRegressionSurface.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "dev\\mobile-regression\\MeasurementComboBoard.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "dev\\mobile-regression\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "dev\\ui-system\\DevUiSystemRoute.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "dev\\ui-system\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "entry\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "forgot-password\\alias-target.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "forgot-password\\page.test.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "forgot-password\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "globals.css"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history\\exercises\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history\\loading.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "layout.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "loading.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "login\\LoginScreen.contract.test.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "login\\loginScreenState.test.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "login\\loginScreenState.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "manifest.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "reset-password\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "reset-password\\recovery-fragment.test.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "reset-password\\recovery-fragment.ts"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "reset-password\\RecoverySessionBridge.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "reset-password\\ResetPasswordForm.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routines\\loading.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routines\\new\\NewRoutineDraftForm.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routines\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routines\\RoutinesPageClient.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "settings\\loading.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "settings\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "today\\loading.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "today\\page.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "today\\TodayDayPicker.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "today\\TodayExerciseRows.tsx"
+    },
+    {
+        "target":  "src/app",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "today\\TodayStartButton.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "AppNav.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "auth\\AuthShell.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "auth\\InitialExperienceGate.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "auth\\SignupForm.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "cardSemanticTones.ts"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ExerciseAssetImage.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ExerciseCard.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ExerciseInfoSheet.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ExercisePicker.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "exercises\\ExerciseThumb.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history\\HistoryDetailExerciseCard.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history\\HistoryExerciseCard.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history\\HistoryMetaLine.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history\\HistorySessionCard.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history\\HistoryShared.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\InstallAppButton.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\InstallGateChrome.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\InstallRouteSurface.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\IOSAddToHomeScreenGate.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\IOSOpenInSafariGate.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\ProtectedAppInstallGate.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\usePWAInstallPrompt.ts"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "layout\\bottomActionIntents.ts"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "RouteLoading.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routines\\day-detail\\DayDetailExerciseList.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routines\\RoutineDetailsExitGuard.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routines\\RoutineEditorForm.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routines\\RoutineEditorShared.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "RoutineSwitcherBar.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ServiceWorkerBootstrap.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "session\\SessionExerciseBlock.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "SessionExerciseFocus.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "SessionPageClient.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "SessionTimers.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "settings\\AccountSettingsForm.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "settings\\AppThemeSettings.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "settings\\GlassEffectsSettings.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "settings\\LegacyMigrationSettings.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "settings\\SettingsFloatingHeader.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "settings\\SettingsHeaderIdentity.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "shared\\LoadingDiagnosticsClientBridge.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "stretch\\StretchLibraryPanel.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\app\\AnchoredSelectorPanel.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\app\\AppHeader.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\app\\AppPanel.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\app\\designSystem.ts"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\app\\RoutineDayHeaderTitle.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\app\\SignatureSeparator.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\AppAmbientThemeBootstrap.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\AppThemeBootstrap.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\ConfirmDestructiveModal.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\FawxzzySigilLoader.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\Glass.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\measurements\\ExerciseGoalForm.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\measurements\\MeasurementPanelV2.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\measurements\\SharedExerciseGoalForm.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\MetricItem.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\OverlayChrome.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\PickerListViewport.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\Pill.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\SegmentedControl.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\text-roles.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\ToastFeedbackBridge.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\ToastMessageCard.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\ToastProvider.tsx"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ui\\useToastMessageEffect.ts"
+    },
+    {
+        "target":  "src/components",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "workout\\ExerciseDisclosureCard.tsx"
+    },
+    {
+        "target":  "src/features",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "curated-onboarding\\components\\CuratedOnboardingShell.tsx"
+    },
+    {
+        "target":  "src/features",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "curated-onboarding\\reducer.test.ts"
+    },
+    {
+        "target":  "src/features",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "curated-onboarding\\reducer.ts"
+    },
+    {
+        "target":  "src/features",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "curated-onboarding\\storage.test.ts"
+    },
+    {
+        "target":  "src/features",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "day-summary\\taxonomy.ts"
+    },
+    {
+        "target":  "src/generated",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "appBuildManifest.json"
+    },
+    {
+        "target":  "src/generated",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "exerciseIconManifest.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "app-build.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "app-theme.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "app-update-state.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "app-update-state.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "auth.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "day-summary.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ecosystem\\fitness-funnel-dashboard.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "ecosystem\\fitness-shadow-placement.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "edit-day-exercise-draft.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "exercise-count-summary.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "exercise-count-summary.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "exercise-curation.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "exercise-goal-format.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "exercise-goal-validation.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "history-log-normalization.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\config.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\getInstallContext.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\getInstallContext.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "install\\useInstallContextOverride.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "loading-diagnostics.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "measurement-sanitization.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "migration\\fitness-legacy-bridge.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routine-day-loader.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "routine-details-form.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "screen-focus-mode.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "session-row-state.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "session-row-state.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "session-targets.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "stretch-library.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "stretch-library-details.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "stretch-library-index.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "stretch-library-index.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "stretch-library-summaries.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "stretch-library-types.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "today-page-state.test.ts"
+    },
+    {
+        "target":  "src/lib",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "today-page-state.ts"
+    },
+    {
+        "target":  "supabase",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "data\\global_exercises_canonical.json"
+    },
+    {
+        "target":  "supabase",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "data\\global_exercises_catalog_index.csv"
+    },
+    {
+        "target":  "supabase",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "data\\global_exercises_catalog_index.json"
+    },
+    {
+        "target":  "supabase",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "data\\global_exercises_review_queue.json"
+    },
+    {
+        "target":  "supabase",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "migrations\\038_fix_strength_exercise_measurement_labels.sql"
+    },
+    {
+        "target":  "supabase",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "migrations\\039_seed_global_stretch.sql"
+    },
+    {
+        "target":  "supabase",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "migrations\\040_exercise_curation_tags_and_howto_refresh.sql"
+    },
+    {
+        "target":  "supabase",
+        "status":  "only_quarantine",
+        "normalizedStatus":  "only_quarantine",
+        "path":  "migrations\\041_allow_measurement_optional_session_and_routine_goals.sql"
+    },
+    {
+        "target":  "tests",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "design-system-contract.test.mjs"
+    },
+    {
+        "target":  "tests",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  "mobile-regression\\build-mobile-regression-boards.test.ts"
+    },
+    {
+        "target":  "vercel.json",
+        "status":  "different",
+        "normalizedStatus":  "same_ignore_crlf",
+        "path":  ""
+    }
+]

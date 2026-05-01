@@ -1,0 +1,1002 @@
+[
+    {
+        "Target":  "docs/LOCAL-PROD-DATA-SYNC.md",
+        "Status":  "different",
+        "Path":  "."
+    },
+    {
+        "Target":  "docs/PLAYBOOK_NOTES.md",
+        "Status":  "only_canonical",
+        "Path":  "."
+    },
+    {
+        "Target":  "middleware.ts",
+        "Status":  "only_canonical",
+        "Path":  "."
+    },
+    {
+        "Target":  "next.config.mjs",
+        "Status":  "only_canonical",
+        "Path":  "."
+    },
+    {
+        "Target":  "package.json",
+        "Status":  "different",
+        "Path":  "."
+    },
+    {
+        "Target":  "public/app",
+        "Status":  "different",
+        "Path":  "previews\\manifest.json"
+    },
+    {
+        "Target":  "public/exercises",
+        "Status":  "different",
+        "Path":  "icons\\overhead-triceps-extension.svg"
+    },
+    {
+        "Target":  "public/exercises",
+        "Status":  "different",
+        "Path":  "icons\\stretch.svg"
+    },
+    {
+        "Target":  "public/exercises",
+        "Status":  "different",
+        "Path":  "stretch-hub-hero.svg"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "dev.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "env-file.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "generate-exercise-icon-manifest.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "generate-icons.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "next-cli.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "qa\\cdp-edge.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "qa\\fitness-qa-config.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "qa-ui-pass.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "release.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "tsc-cli.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "different",
+        "Path":  "verify-history-family-ui.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "analyze-exercise-catalog.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "build-timing.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "generate-app-build-manifest.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "generate-stretch-library-split.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "next-build-guard.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "next-workspace-guard.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "profile-next-build.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\dev-fresh.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\fitness-auth-artifact.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\fitness-local-feedback.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\fitness-mobile-loop.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\fitness-qa-user.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\fitness-tunnel.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\update-app-preview-assets.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\visual-fitness-readiness.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\visual-fitness-runner.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\visual-fitness-suites.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "qa\\visual-fitness-theme.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "refresh-exercise-catalog.mjs"
+    },
+    {
+        "Target":  "scripts",
+        "Status":  "only_quarantine",
+        "Path":  "typecheck-debt-inventory.mjs"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "api\\app-version\\route.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "auth\\actions.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "dev\\auth-screen-lab\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "dev\\mobile-regression\\DevMobileRegressionRoute.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "dev\\mobile-regression\\EditDayRegressionSurface.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "dev\\mobile-regression\\MeasurementComboBoard.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "dev\\mobile-regression\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "dev\\ui-system\\DevUiSystemRoute.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "dev\\ui-system\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "entry\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "forgot-password\\alias-target.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "forgot-password\\page.test.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "forgot-password\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "globals.css"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "history\\exercises\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "history\\loading.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "history\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "layout.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "loading.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "login\\LoginScreen.contract.test.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "login\\loginScreenState.test.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "login\\loginScreenState.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "manifest.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "reset-password\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "reset-password\\recovery-fragment.test.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "reset-password\\recovery-fragment.ts"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "reset-password\\RecoverySessionBridge.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "reset-password\\ResetPasswordForm.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "routines\\loading.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "routines\\new\\NewRoutineDraftForm.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "routines\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "routines\\RoutinesPageClient.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "settings\\loading.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "settings\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "today\\loading.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "today\\page.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "today\\TodayDayPicker.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "today\\TodayExerciseRows.tsx"
+    },
+    {
+        "Target":  "src/app",
+        "Status":  "different",
+        "Path":  "today\\TodayStartButton.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "AppNav.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "auth\\AuthShell.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "auth\\InitialExperienceGate.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "auth\\SignupForm.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "cardSemanticTones.ts"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ExerciseAssetImage.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ExerciseCard.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ExerciseInfoSheet.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ExercisePicker.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "exercises\\ExerciseThumb.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "history\\HistoryDetailExerciseCard.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "history\\HistoryExerciseCard.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "history\\HistoryMetaLine.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "history\\HistorySessionCard.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "history\\HistoryShared.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "install\\InstallAppButton.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "install\\InstallGateChrome.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "install\\InstallRouteSurface.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "install\\IOSAddToHomeScreenGate.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "install\\IOSOpenInSafariGate.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "install\\ProtectedAppInstallGate.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "install\\usePWAInstallPrompt.ts"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "layout\\bottomActionIntents.ts"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "RouteLoading.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "routines\\day-detail\\DayDetailExerciseList.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "routines\\RoutineDetailsExitGuard.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "routines\\RoutineEditorForm.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "routines\\RoutineEditorShared.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "RoutineSwitcherBar.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ServiceWorkerBootstrap.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "session\\SessionExerciseBlock.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "SessionExerciseFocus.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "SessionPageClient.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "SessionTimers.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "settings\\AccountSettingsForm.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "settings\\AppThemeSettings.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "settings\\GlassEffectsSettings.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "settings\\LegacyMigrationSettings.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "settings\\SettingsFloatingHeader.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "settings\\SettingsHeaderIdentity.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "shared\\LoadingDiagnosticsClientBridge.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "stretch\\StretchLibraryPanel.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\app\\AnchoredSelectorPanel.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\app\\AppHeader.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\app\\AppPanel.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\app\\designSystem.ts"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\app\\RoutineDayHeaderTitle.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\app\\SignatureSeparator.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\AppAmbientThemeBootstrap.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\AppThemeBootstrap.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\ConfirmDestructiveModal.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\FawxzzySigilLoader.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\Glass.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\measurements\\ExerciseGoalForm.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\measurements\\MeasurementPanelV2.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\measurements\\SharedExerciseGoalForm.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\MetricItem.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\OverlayChrome.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\PickerListViewport.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\Pill.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\SegmentedControl.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\text-roles.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\ToastFeedbackBridge.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\ToastMessageCard.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\ToastProvider.tsx"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "ui\\useToastMessageEffect.ts"
+    },
+    {
+        "Target":  "src/components",
+        "Status":  "different",
+        "Path":  "workout\\ExerciseDisclosureCard.tsx"
+    },
+    {
+        "Target":  "src/features",
+        "Status":  "different",
+        "Path":  "curated-onboarding\\components\\CuratedOnboardingShell.tsx"
+    },
+    {
+        "Target":  "src/features",
+        "Status":  "different",
+        "Path":  "curated-onboarding\\reducer.test.ts"
+    },
+    {
+        "Target":  "src/features",
+        "Status":  "different",
+        "Path":  "curated-onboarding\\reducer.ts"
+    },
+    {
+        "Target":  "src/features",
+        "Status":  "different",
+        "Path":  "curated-onboarding\\storage.test.ts"
+    },
+    {
+        "Target":  "src/features",
+        "Status":  "different",
+        "Path":  "day-summary\\taxonomy.ts"
+    },
+    {
+        "Target":  "src/generated",
+        "Status":  "different",
+        "Path":  "appBuildManifest.json"
+    },
+    {
+        "Target":  "src/generated",
+        "Status":  "different",
+        "Path":  "exerciseIconManifest.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "app-build.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "app-theme.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "app-update-state.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "app-update-state.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "auth.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "day-summary.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "ecosystem\\fitness-funnel-dashboard.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "ecosystem\\fitness-shadow-placement.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "edit-day-exercise-draft.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "exercise-count-summary.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "exercise-count-summary.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "exercise-curation.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "exercise-goal-format.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "exercise-goal-validation.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "history-log-normalization.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "install\\config.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "install\\getInstallContext.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "install\\getInstallContext.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "install\\useInstallContextOverride.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "loading-diagnostics.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "measurement-sanitization.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "migration\\fitness-legacy-bridge.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "routine-day-loader.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "routine-details-form.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "screen-focus-mode.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "session-row-state.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "session-row-state.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "session-targets.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "stretch-library.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "stretch-library-details.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "stretch-library-index.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "stretch-library-index.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "stretch-library-summaries.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "stretch-library-types.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "today-page-state.test.ts"
+    },
+    {
+        "Target":  "src/lib",
+        "Status":  "different",
+        "Path":  "today-page-state.ts"
+    },
+    {
+        "Target":  "supabase",
+        "Status":  "different",
+        "Path":  "data\\global_exercises_canonical.json"
+    },
+    {
+        "Target":  "supabase",
+        "Status":  "only_quarantine",
+        "Path":  "data\\global_exercises_catalog_index.csv"
+    },
+    {
+        "Target":  "supabase",
+        "Status":  "only_quarantine",
+        "Path":  "data\\global_exercises_catalog_index.json"
+    },
+    {
+        "Target":  "supabase",
+        "Status":  "only_quarantine",
+        "Path":  "data\\global_exercises_review_queue.json"
+    },
+    {
+        "Target":  "supabase",
+        "Status":  "only_quarantine",
+        "Path":  "migrations\\038_fix_strength_exercise_measurement_labels.sql"
+    },
+    {
+        "Target":  "supabase",
+        "Status":  "only_quarantine",
+        "Path":  "migrations\\039_seed_global_stretch.sql"
+    },
+    {
+        "Target":  "supabase",
+        "Status":  "only_quarantine",
+        "Path":  "migrations\\040_exercise_curation_tags_and_howto_refresh.sql"
+    },
+    {
+        "Target":  "supabase",
+        "Status":  "only_quarantine",
+        "Path":  "migrations\\041_allow_measurement_optional_session_and_routine_goals.sql"
+    },
+    {
+        "Target":  "tests",
+        "Status":  "different",
+        "Path":  "design-system-contract.test.mjs"
+    },
+    {
+        "Target":  "tests",
+        "Status":  "different",
+        "Path":  "mobile-regression\\build-mobile-regression-boards.test.ts"
+    },
+    {
+        "Target":  "vercel.json",
+        "Status":  "different",
+        "Path":  "."
+    }
+]
