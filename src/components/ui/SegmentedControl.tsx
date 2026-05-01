@@ -64,6 +64,7 @@ export function SegmentedControl({
   inactiveClassName,
   activeIntent = "info",
   inactiveIntent = "neutral",
+  fitContent = false,
 }: {
   options: SegmentedControlOption[];
   value: string;
@@ -76,15 +77,20 @@ export function SegmentedControl({
   inactiveClassName?: string;
   activeIntent?: ActionChromeIntent;
   inactiveIntent?: ActionChromeIntent;
+  fitContent?: boolean;
 }) {
   const itemClassName = size === "sm"
     ? cn(
       ACTION_CHROME_CONTROL_CLASS_NAME,
-      "min-h-10 min-w-0 flex-1 basis-0 rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
+      fitContent
+        ? "min-h-10 min-w-fit shrink-0 rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] focus-visible:ring-[rgb(var(--accent)/0.2)]"
+        : "min-h-10 min-w-0 flex-1 basis-0 rounded-[var(--action-chrome-segment-radius-compact)] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] focus-visible:ring-[rgb(var(--accent)/0.2)]",
     )
     : cn(
       ACTION_CHROME_CONTROL_CLASS_NAME,
-      "min-h-12 min-w-0 flex-1 basis-0 rounded-[var(--action-chrome-segment-radius-compact)] px-4 text-[13px] font-semibold focus-visible:ring-[rgb(var(--accent)/0.2)]",
+      fitContent
+        ? "min-h-12 min-w-fit shrink-0 rounded-[var(--action-chrome-segment-radius-compact)] px-4 text-[13px] font-semibold focus-visible:ring-[rgb(var(--accent)/0.2)]"
+        : "min-h-12 min-w-0 flex-1 basis-0 rounded-[var(--action-chrome-segment-radius-compact)] px-4 text-[13px] font-semibold focus-visible:ring-[rgb(var(--accent)/0.2)]",
     );
 
   return (
@@ -94,7 +100,7 @@ export function SegmentedControl({
       className={cn(
         ACTION_CHROME_RAIL_CLASS_NAME,
         ACTION_CHROME_RAIL_GRID_CLASS_NAME,
-        "w-full",
+        fitContent ? "w-fit" : "w-full",
         shellClassName,
         className,
       )}

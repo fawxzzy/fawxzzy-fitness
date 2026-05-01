@@ -62,6 +62,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Status: Proposed | Promoted | Upstreamed | Rejected
 
 ## PROPOSED
+## 2026-05-01 - Canonical deploy source only
+- Type: Guardrail
+- Summary: `fawxzzy-fitness` production deploys must come from the canonical `fawxzzy/fawxzzy-fitness` repo. A dirty Vercel CLI deploy whose `gitCommitSha` is missing from GitHub is a recovery incident and must be reconciled before the next prod deploy.
+- Suggested Playbook File: docs/GUARDRAILS/deploy-identity.md
+- Rationale: Prevents current GitHub `main` from silently overwriting unrecovered prod-only UI or behavior that exists only in a dirty workspace deploy.
+- Failure Mode: Deploying current GitHub `main` while prod is serving an unrecovered dirty workspace can silently delete prod-only UI/code.
+- Evidence: Vercel prod `dpl_5ATWWNntLPsHMaC1oGVNTKy5Sw2F`, `docs/LOCAL-PROD-DATA-SYNC.md`, `.vercel/project.json`
+- Status: Proposed
+
 ## 2026-04-22 - Remembered-account login flows should derive submit readiness from the active auth identity
 - Type: Guardrail
 - Summary: When login hides the email field for a remembered account, submit readiness, helper copy, and CTA labels must still derive from the remembered identity plus the current password state instead of treating the hidden email input as empty or treating every remembered-account password step as exceptional reauth.

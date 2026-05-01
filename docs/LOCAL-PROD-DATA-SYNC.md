@@ -9,6 +9,10 @@ This app has two separate sync surfaces:
 
 Do not treat local-against-production-data as the default mode.
 
+- Production deploys must come from the canonical `fawxzzy/fawxzzy-fitness` repo, not from an ATLAS-linked workspace or any other mirror.
+- A dirty Vercel CLI deployment is a recovery event, not a normal release source.
+- Before any new production deploy, the current Vercel production SHA must exist in Git or be explicitly superseded by a verified recovery branch.
+
 - Keep `.env.local` for the normal local project you use during development.
 - Use a separate override file such as `.env.production.local` only when you intentionally want local actions to read and write production data.
 - The local dev entrypoints now refuse to start from a `production`-named env file unless `ALLOW_PROD_SUPABASE_IN_DEV=1` is explicitly set.
@@ -74,3 +78,4 @@ FITNESS_ENV_FILE=.env.production.local ALLOW_PROD_SUPABASE_IN_DEV=1 npm run dev
 - Pushing code does not delete Supabase rows by itself.
 - Running local against production data does mean local actions can mutate production immediately.
 - `.env*` files are ignored from Git in this repo and should stay local-only.
+- If `.env.local` or any other local env file was ever committed in earlier history, rotate the affected keys before trusting production.
