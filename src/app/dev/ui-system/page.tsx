@@ -1,11 +1,8 @@
 import { notFound } from "next/navigation";
-import { ContentRail } from "@/components/layout/ContentRail";
-import { UiSystemShowcase } from "@/app/dev/ui-system/UiSystemShowcase";
-import { resolveUiSystemFixture } from "@/lib/dev/uiSystemFixtures";
 
 export const dynamic = "force-dynamic";
 
-export default function DevUiSystemPage({
+export default async function DevUiSystemPage({
   searchParams,
 }: {
   searchParams?: {
@@ -16,11 +13,6 @@ export default function DevUiSystemPage({
     notFound();
   }
 
-  const fixture = resolveUiSystemFixture(searchParams?.fixture);
-
-  return (
-    <ContentRail>
-      <UiSystemShowcase fixtureId={fixture.id} />
-    </ContentRail>
-  );
+  const { default: DevUiSystemRoute } = await import("@/app/dev/ui-system/DevUiSystemRoute");
+  return <DevUiSystemRoute searchParams={searchParams} />;
 }

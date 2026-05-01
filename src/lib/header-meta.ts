@@ -38,3 +38,22 @@ export function splitSessionHeaderTitle(input: string | null | undefined): { tit
 
   return { title: maybeTitle, subtitle: maybeSubtitle };
 }
+
+export function splitWeekdayDisplayLabel(input: string | null | undefined): { weekday: string; remainder?: string } | null {
+  const value = String(input ?? "").trim();
+  if (!value) return null;
+
+  const separatorMatch = value.match(/^(.+?)\s*(?:\u00B7|\|)\s*(.+)$/);
+  if (!separatorMatch) {
+    return { weekday: value };
+  }
+
+  const weekday = separatorMatch[1]?.trim();
+  const remainder = separatorMatch[2]?.trim();
+
+  if (!weekday) {
+    return null;
+  }
+
+  return remainder ? { weekday, remainder } : { weekday };
+}

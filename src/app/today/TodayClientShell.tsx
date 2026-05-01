@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import { TodayExerciseRows } from "@/app/today/TodayExerciseRows";
 import { TodayStartButton } from "@/app/today/TodayStartButton";
 import { OfflineSyncBadge } from "@/components/OfflineSyncBadge";
-import { ContentRail } from "@/components/layout/ContentRail";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { TodayOverviewContent, TodayOverviewScaffold } from "@/components/today/TodayScreenFamily";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { readTodayCache, type TodayCacheSnapshot } from "@/lib/offline/today-cache";
 import { ACTIVE_SESSION_EVENT, clearActiveSessionHint, readActiveSessionHint } from "@/lib/session-state-sync";
@@ -29,7 +28,7 @@ type TodayPayload = {
     primary_muscle?: string | null;
     equipment?: string | null;
     movement_pattern?: string | null;
-    measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+    measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
     isCardio?: boolean | null;
     kind?: string | null;
     type?: string | null;
@@ -120,21 +119,21 @@ export function TodayClientShell({
 
   if (!display) {
     return (
-      <ContentRail>
-        <ScreenScaffold recipe="todayOverview" className="w-full">
+      <TodayOverviewContent>
+        <TodayOverviewScaffold>
           <div className="flex flex-col gap-[0.625rem]">
             <Link href="/routines" className="block rounded-[var(--radius-md)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-2-rgb)/0.72)] px-3 py-2 text-center text-sm text-[rgb(var(--text-primary))] transition-colors hover:bg-[rgb(var(--surface-3-rgb)/0.9)]">
               Go to Routines
             </Link>
           </div>
-        </ScreenScaffold>
-      </ContentRail>
+        </TodayOverviewScaffold>
+      </TodayOverviewContent>
     );
   }
 
   return (
-    <ContentRail>
-      <ScreenScaffold recipe="todayOverview" className="w-full">
+    <TodayOverviewContent>
+      <TodayOverviewScaffold>
         <div className="flex flex-col gap-[0.625rem]">
           <OfflineSyncBadge userId={userId} />
           {display.staleAt ? (
@@ -165,7 +164,7 @@ export function TodayClientShell({
             </SubtitleText>
           )}
         </div>
-      </ScreenScaffold>
-    </ContentRail>
+      </TodayOverviewScaffold>
+    </TodayOverviewContent>
   );
 }

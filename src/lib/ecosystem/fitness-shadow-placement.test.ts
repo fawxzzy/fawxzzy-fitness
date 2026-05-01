@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { buildFitnessSnapshots, type FitnessOutboundSnapshot } from "./fitness-integration-client.ts";
 import {
   buildTodayRecoveryShadowPlacementHref,
   buildTodayRecoveryShadowPlacementModel,
@@ -9,6 +10,59 @@ import {
   prepareTodayRecoveryShadowPlacement,
   type PrepareTodayRecoveryShadowPlacementDependencies,
 } from "./fitness-shadow-placement.ts";
+
+function createSnapshotBatch(): ReturnType<PrepareTodayRecoveryShadowPlacementDependencies["packageSnapshots"]> {
+  const snapshots = buildFitnessSnapshots({
+    memberId: "member-shadow-1",
+    capturedAt: "2026-04-19T10:30:00.000Z",
+    weekStartDate: "2026-04-14",
+    plannedWorkoutCount: 3,
+    completedWorkoutCount: 1,
+    activeStreakDays: 0,
+    lastCompletedDate: "2026-04-18",
+    consecutiveMisses: 1,
+    lastMissedSessionDate: "2026-04-19",
+    completedMinutesLast7Days: 45,
+    completedMinutesPrevious7Days: 60,
+    inProgressSessionId: null,
+    inProgressExerciseCount: 0,
+  });
+
+  const exported: readonly [FitnessOutboundSnapshot, FitnessOutboundSnapshot, FitnessOutboundSnapshot] = [
+    {
+      fixtureId: "fitness-live-snapshot-athlete-readiness-state-snap-shadow-1",
+      outboundId: "out-shadow-athlete-readiness",
+      capturedAt: "2026-04-19T10:30:00.000Z",
+      appId: "fawxzzy-fitness",
+      snapshotType: "athlete_readiness_state",
+      snapshot: snapshots.athleteReadiness,
+      reason: "pilot_measurement",
+    },
+    {
+      fixtureId: "fitness-live-snapshot-weekly-progress-state-snap-shadow-1",
+      outboundId: "out-shadow-weekly-progress",
+      capturedAt: "2026-04-19T10:30:00.000Z",
+      appId: "fawxzzy-fitness",
+      snapshotType: "weekly_progress_state",
+      snapshot: snapshots.weeklyProgress,
+      reason: "pilot_measurement",
+    },
+    {
+      fixtureId: "fitness-live-snapshot-streak-health-state-snap-shadow-1",
+      outboundId: "out-shadow-streak-health",
+      capturedAt: "2026-04-19T10:30:00.000Z",
+      appId: "fawxzzy-fitness",
+      snapshotType: "streak_health_state",
+      snapshot: snapshots.streakHealth,
+      reason: "pilot_measurement",
+    },
+  ];
+
+  return {
+    snapshots,
+    exported,
+  };
+}
 
 function createPrepareTodayRecoveryShadowPlacementDependencies(
   overrides: Partial<PrepareTodayRecoveryShadowPlacementDependencies> = {},
@@ -26,9 +80,7 @@ function createPrepareTodayRecoveryShadowPlacementDependencies(
       signalType: "recovery_warning",
       outboundId: "out-shadow-latest",
     }] as ReturnType<PrepareTodayRecoveryShadowPlacementDependencies["evaluateAndPackageSignals"]>),
-    packageSnapshots: () => ({
-      exported: [],
-    } as ReturnType<PrepareTodayRecoveryShadowPlacementDependencies["packageSnapshots"]>),
+    packageSnapshots: createSnapshotBatch,
     emitFitnessShadowTelemetryBatch: async () => ({
       receiptRefs: [],
       errors: [],
@@ -218,20 +270,6 @@ test("buildTodayRecoveryShadowPlacementModel selects the latest shadow-placed ca
     placement?.destinationHref,
     "/today?memberId=member-shadow-1&sourceOutboundId=out-shadow-latest&placementId=recovery_reset_shadow_placement&cohortId=fitness_growth_shadow_recovery_reset_v1%3Atreatment_shadow%3A80&shadowPlacement=recovery_reset_shadow_placement&focus=recovery_reset_shadow",
   );
-});
-
-test("prepareTodayRecoveryShadowPlacement returns null when the ATLAS stack root is unavailable", async () => {
-  const result = await prepareTodayRecoveryShadowPlacement(
-    {
-      memberId: "member-shadow-1",
-      now: "2026-04-19T10:30:00.000Z",
-    },
-    createPrepareTodayRecoveryShadowPlacementDependencies({
-      existsSync: () => false,
-    }),
-  );
-
-  assert.equal(result, null);
 });
 
 test("prepareTodayRecoveryShadowPlacement returns null when report generation fails", async () => {

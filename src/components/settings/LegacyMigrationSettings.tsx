@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AppRow } from "@/components/ui/app/AppRow";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
+import { BottomDockButton } from "@/components/layout/BottomDockButton";
+import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
+import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
-import { AppButton } from "@/components/ui/AppButton";
-import { Chip } from "@/components/ui/Chip";
+import { LabeledEditorField, labeledEditorFieldControlClassName } from "@/components/ui/LabeledEditorField";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 
@@ -42,7 +44,6 @@ type ParityResponse = {
   notes: string[];
 };
 
-const DEFAULT_SNAPSHOT_TEXT = "";
 const LEGACY_MIGRATION_STATUS_KEY = "fawxzzy:legacy-migration-status";
 
 type LegacyMigrationStatus = {
@@ -60,7 +61,7 @@ function formatCounts(counts: SnapshotCountMap) {
     `sessions ${counts.sessions}`,
     `session exercises ${counts.session_exercises}`,
     `sets ${counts.sets}`,
-  ].join(" | ");
+  ];
 }
 
 function readLegacyMigrationStatus(): LegacyMigrationStatus {
@@ -100,7 +101,7 @@ function writeLegacyMigrationStatus(status: LegacyMigrationStatus) {
 
 function formatMigrationStatus(status: LegacyMigrationStatus) {
   if (status.state !== "imported") {
-    return "Not migrated";
+    return null;
   }
 
   if (!status.importedAt) {
@@ -125,21 +126,23 @@ export function LegacyMigrationSettings({
   const router = useRouter();
   const [legacyEmail, setLegacyEmail] = useState(defaultLegacyEmail);
   const [legacyPassword, setLegacyPassword] = useState("");
-  const [snapshotText, setSnapshotText] = useState(DEFAULT_SNAPSHOT_TEXT);
   const [status, setStatus] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [exportCounts, setExportCounts] = useState<SnapshotCountMap | null>(null);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const [parity, setParity] = useState<ParityResponse | null>(null);
   const [migrationStatus, setMigrationStatus] = useState<LegacyMigrationStatus>({ state: "not-migrated" });
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const statusClassName = useMemo(() => {
     if (status?.tone === "error") {
-      return "text-[rgb(var(--button-destructive-text))]";
+      return appTokens.settingsStatusError;
     }
 
-    return "text-[rgb(var(--text-secondary)/0.92)]";
+    if (status?.tone === "success") {
+      return appTokens.settingsStatusSuccess;
+    }
+
+    return appTokens.settingsStatusMuted;
   }, [status]);
   const migrationStatusLabel = useMemo(() => formatMigrationStatus(migrationStatus), [migrationStatus]);
 
@@ -147,20 +150,16 @@ export function LegacyMigrationSettings({
     setMigrationStatus(readLegacyMigrationStatus());
   }, []);
 
-  function parseSnapshotText() {
-    try {
-      return JSON.parse(snapshotText) as unknown;
-    } catch {
-      throw new Error("Snapshot JSON is invalid.");
-    }
-  }
+  const canRunMigration = legacyBridgeConfigured && legacyEmail.trim().length > 0 && legacyPassword.length > 0;
 
-  const handleExport = () => {
+  const handleRunMigration = () => {
     setStatus(null);
+    setExportCounts(null);
+    setImportSummary(null);
     setParity(null);
     startTransition(async () => {
       try {
-        const response = await fetch("/api/migration/export", {
+        const exportResponse = await fetch("/api/migration/export", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -168,235 +167,152 @@ export function LegacyMigrationSettings({
             legacyPassword,
           }),
         });
-        const result = (await response.json()) as {
+        const exportResult = (await exportResponse.json()) as {
           ok: boolean;
           error?: string;
           data?: { snapshot: unknown; counts: SnapshotCountMap };
         };
 
-        if (!response.ok || !result.ok || !result.data) {
-          throw new Error(result.error ?? "Legacy export failed.");
+        if (!exportResponse.ok || !exportResult.ok || !exportResult.data) {
+          throw new Error(exportResult.error ?? "Legacy export failed.");
         }
 
-        setSnapshotText(JSON.stringify(result.data.snapshot, null, 2));
-        setExportCounts(result.data.counts);
-        setImportSummary(null);
-        setStatus({
-          tone: "success",
-          text: "Legacy snapshot exported. Review the payload, then import it into this account.",
-        });
-      } catch (error) {
-        setStatus({
-          tone: "error",
-          text: error instanceof Error ? error.message : "Legacy export failed.",
-        });
-      }
-    });
-  };
+        setExportCounts(exportResult.data.counts);
 
-  const handleImport = () => {
-    setStatus(null);
-    setParity(null);
-    startTransition(async () => {
-      try {
-        const snapshot = parseSnapshotText();
-        const response = await fetch("/api/migration/import", {
+        const importResponse = await fetch("/api/migration/import", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ snapshot }),
+          body: JSON.stringify({ snapshot: exportResult.data.snapshot }),
         });
-        const result = (await response.json()) as {
+        const importResult = (await importResponse.json()) as {
           ok: boolean;
           error?: string;
           data?: ImportSummary;
         };
 
-        if (!response.ok || !result.ok || !result.data) {
-          throw new Error(result.error ?? "Legacy import failed.");
+        if (!importResponse.ok || !importResult.ok || !importResult.data) {
+          throw new Error(importResult.error ?? "Legacy import failed.");
         }
 
-        setImportSummary(result.data);
+        setImportSummary(importResult.data);
         const nextStatus = { state: "imported" as const, importedAt: new Date().toISOString() };
         writeLegacyMigrationStatus(nextStatus);
         setMigrationStatus(nextStatus);
-        setStatus({
-          tone: "success",
-          text: result.data.rebuiltExerciseStatsCount && result.data.rebuiltExerciseStatsCount > 0
-            ? `Legacy snapshot imported and ${result.data.rebuiltExerciseStatsCount} exercise stat ${result.data.rebuiltExerciseStatsCount === 1 ? "record was" : "records were"} rebuilt from logged sessions.`
-            : "Legacy snapshot imported into the current account.",
-        });
-        router.refresh();
-      } catch (error) {
-        setStatus({
-          tone: "error",
-          text: error instanceof Error ? error.message : "Legacy import failed.",
-        });
-      }
-    });
-  };
 
-  const handleParity = () => {
-    setStatus(null);
-    startTransition(async () => {
-      try {
-        const snapshot = parseSnapshotText();
-        const response = await fetch("/api/migration/parity", {
+        const parityResponse = await fetch("/api/migration/parity", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ snapshot }),
+          body: JSON.stringify({ snapshot: exportResult.data.snapshot }),
         });
-        const result = (await response.json()) as {
+        const parityResult = (await parityResponse.json()) as {
           ok: boolean;
           error?: string;
           data?: ParityResponse;
         };
 
-        if (!response.ok || !result.ok || !result.data) {
-          throw new Error(result.error ?? "Parity check failed.");
+        if (!parityResponse.ok || !parityResult.ok || !parityResult.data) {
+          throw new Error(parityResult.error ?? "Parity check failed.");
         }
 
-        setParity(result.data);
+        setParity(parityResult.data);
+        const parityMatches = parityResult.data.counts.every((count) => count.matches);
         setStatus({
-          tone: "success",
-          text: result.data.counts.every((count) => count.matches)
-            ? "Parity counts match the imported snapshot."
-            : "Parity completed with one or more count mismatches.",
+          tone: parityMatches ? "success" : "error",
+          text: parityMatches
+            ? "Legacy export, import, and parity completed."
+            : "Legacy import completed, but parity found one or more mismatches.",
         });
+        router.refresh();
       } catch (error) {
         setStatus({
           tone: "error",
-          text: error instanceof Error ? error.message : "Parity check failed.",
+          text: error instanceof Error ? error.message : "Legacy migration failed.",
         });
       }
     });
   };
 
   return (
-    <div className={cn("space-y-3", appTokens.settingsDivider)}>
-      <AppRow
-        leftTop="Import legacy data"
-        leftBottom={migrationStatusLabel}
-        rightTop={(
-          <Chip tone={migrationStatus.state === "imported" ? "success" : legacyBridgeConfigured ? "warning" : "default"}>
-            {migrationStatus.state === "imported" ? "Imported" : legacyBridgeConfigured ? "Available" : "Unavailable"}
-          </Chip>
-        )}
-        rightBottom={isExpanded ? "Hide" : "Open"}
-        onClick={() => setIsExpanded((current) => !current)}
-        className={appTokens.settingsRow}
-      />
+    <div className="space-y-3 pt-2">
+      <PublishBottomActions>
+        <BottomActionSingle>
+          <BottomDockButton
+            type="button"
+            intent="positive"
+            onClick={handleRunMigration}
+            loading={isPending}
+            disabled={!canRunMigration}
+          >
+            Run Migration
+          </BottomDockButton>
+        </BottomActionSingle>
+      </PublishBottomActions>
 
-      {isExpanded ? (
-        <div className={appTokens.settingsExpandedPanel}>
-          <div className="flex flex-wrap items-center gap-2">
-            <Chip tone={legacyBridgeConfigured ? "success" : "warning"}>
-              {legacyBridgeConfigured ? "Legacy bridge ready" : "Legacy env missing"}
-            </Chip>
-            <p className={appTokens.settingsBodyText}>
-              Export from the old Supabase project, import into the current account, then run parity from that same snapshot.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className={appTokens.settingsFieldStack}>
-              <label htmlFor="legacy-email" className={cn("block", appTokens.measurementLabel)}>
-                Legacy email
-              </label>
-              <Input
-                id="legacy-email"
-                type="email"
-                autoComplete="email"
-                value={legacyEmail}
-                onChange={(event) => setLegacyEmail(event.target.value)}
-                placeholder="legacy@email.com"
-              />
-            </div>
-            <div className={appTokens.settingsFieldStack}>
-              <label htmlFor="legacy-password" className={cn("block", appTokens.measurementLabel)}>
-                Legacy password
-              </label>
-              <Input
-                id="legacy-password"
-                type="password"
-                autoComplete="current-password"
-                value={legacyPassword}
-                onChange={(event) => setLegacyPassword(event.target.value)}
-                placeholder="Required for export"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <AppButton
-              type="button"
-              variant="secondary"
-              onClick={handleExport}
-              loading={isPending}
-              disabled={!legacyBridgeConfigured || !legacyEmail.trim() || !legacyPassword}
-            >
-              Export legacy snapshot
-            </AppButton>
-            <AppButton
-              type="button"
-              variant="primary"
-              onClick={handleImport}
-              loading={isPending}
-              disabled={!snapshotText.trim()}
-            >
-              Import into this account
-            </AppButton>
-            <AppButton
-              type="button"
-              variant="secondary"
-              onClick={handleParity}
-              loading={isPending}
-              disabled={!snapshotText.trim()}
-            >
-              Run parity
-            </AppButton>
-          </div>
-
-          <div className={appTokens.settingsFieldStack}>
-            <label htmlFor="legacy-snapshot" className={cn("block", appTokens.measurementLabel)}>
-              Snapshot JSON
-            </label>
-            <textarea
-              id="legacy-snapshot"
-              value={snapshotText}
-              onChange={(event) => setSnapshotText(event.target.value)}
-              rows={12}
-              spellCheck={false}
-              className={appTokens.settingsTextarea}
-              placeholder='{"metadata":{"snapshot_version":"fitness-legacy-v1"}}'
-            />
-          </div>
-
-          <div className={appTokens.settingsFieldStack}>
-            {exportCounts ? (
-              <p className={appTokens.settingsBodyText}>
-                Export counts: {formatCounts(exportCounts)}
-              </p>
-            ) : null}
-            {importSummary ? (
-              <p className={appTokens.settingsBodyText}>
-                Imported {formatCounts(importSummary.importedCounts)}. Global exercises resolved {importSummary.resolvedGlobalExercises}; created {importSummary.createdGlobalExercises}.
-              </p>
-            ) : null}
-            {parity ? (
-              <div className={cn(appTokens.settingsBodyText, "space-y-1")}>
-                {parity.counts.map((count) => (
-                  <p key={count.metric}>
-                    {count.metric}: snapshot {count.snapshot} / database {count.database} / {count.matches ? "match" : "mismatch"}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            <p className={cn(appTokens.settingsBodyText, statusClassName)}>
-              {status?.text ?? "Import assumes the current account is blank or already contains only this snapshot."}
-            </p>
-          </div>
-        </div>
+      {migrationStatusLabel ? (
+        <p className={cn(appTokens.settingsBodyText, "text-[rgb(var(--text-secondary)/0.92)]")}>{migrationStatusLabel}</p>
       ) : null}
+
+      <div className={appTokens.settingsTwoColumnGrid}>
+        <div className={appTokens.settingsFieldStack}>
+          <LabeledEditorField label="Legacy email">
+            <Input
+              id="legacy-email"
+              type="email"
+              autoComplete="email"
+              value={legacyEmail}
+              onChange={(event) => setLegacyEmail(event.target.value)}
+              placeholder="legacy@email.com"
+              className={cn(
+                labeledEditorFieldControlClassName,
+                "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+              )}
+            />
+          </LabeledEditorField>
+        </div>
+        <div className={appTokens.settingsFieldStack}>
+          <LabeledEditorField label="Legacy password">
+            <Input
+              id="legacy-password"
+              type="password"
+              autoComplete="current-password"
+              value={legacyPassword}
+              onChange={(event) => setLegacyPassword(event.target.value)}
+              placeholder="Required for export"
+              className={cn(
+                labeledEditorFieldControlClassName,
+                "h-12 px-4 py-3 !border-0 !bg-transparent !shadow-none focus-visible:!border-0 focus-visible:!ring-0",
+              )}
+            />
+          </LabeledEditorField>
+        </div>
+      </div>
+
+      <div className={appTokens.settingsFieldStack}>
+        {exportCounts ? (
+          <p className={appTokens.settingsBodyText}>
+            Export counts: <SignatureInlineList items={formatCounts(exportCounts)} separator="pipe" className="align-middle" />
+          </p>
+        ) : null}
+        {importSummary ? (
+          <p className={appTokens.settingsBodyText}>
+            Imported <SignatureInlineList items={formatCounts(importSummary.importedCounts)} separator="pipe" className="align-middle" />. Global exercises resolved {importSummary.resolvedGlobalExercises}; created {importSummary.createdGlobalExercises}.
+          </p>
+        ) : null}
+        {parity ? (
+          <div className={cn(appTokens.settingsBodyText, appTokens.settingsStatusStack)}>
+            {parity.counts.map((count) => (
+              <p key={count.metric}>
+                {count.metric}: snapshot {count.snapshot} / database {count.database} / {count.matches ? "match" : "mismatch"}
+              </p>
+            ))}
+          </div>
+        ) : null}
+        {status?.text ? (
+          <p className={cn(appTokens.settingsBodyText, statusClassName)}>
+            {status.text}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

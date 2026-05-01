@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
-import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
+import { TodayOverviewSection } from "@/components/today/TodayScreenFamily";
 import { AppBadge } from "@/components/ui/app/AppBadge";
 import { AccentSubtitleText, SubtitleText } from "@/components/ui/text-roles";
 import { cn } from "@/lib/cn";
@@ -127,9 +126,7 @@ export function TodayRecoveryShadowPlacement(props: {
 
   return (
     <div id="today-recovery-shadow-placement">
-      <ScreenScaffold recipe="todayOverview" className="w-full">
-      <SharedSectionShell
-        recipe="todayOverview"
+      <TodayOverviewSection
         label="Recovery reset follow-up"
         action={<AppBadge tone="warning">Shadow only</AppBadge>}
         bodyClassName="flex flex-col gap-[0.75rem]"
@@ -199,8 +196,7 @@ export function TodayRecoveryShadowPlacement(props: {
             <AppBadge tone="success">{props.cohortId.includes("treatment_shadow") ? "Treatment shadow" : "Shadow cohort"}</AppBadge>
           </div>
         </div>
-      </SharedSectionShell>
-      </ScreenScaffold>
+      </TodayOverviewSection>
     </div>
   );
 }

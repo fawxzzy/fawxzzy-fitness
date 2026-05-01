@@ -6,9 +6,9 @@ import { EditDaySettingsAutosaveForm } from "@/app/routines/[id]/edit/day/[dayId
 import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
 import { requireUser } from "@/lib/auth";
 import { normalizeExerciseDisplayName } from "@/lib/exercise-display";
+import { formatExerciseGoalSummary } from "@/lib/exercise-goal-format";
 import { getExerciseNameMap } from "@/lib/exercises";
 import { isCardioExercise } from "@/lib/exercise-metadata";
-import { formatGoalInlineSummaryText } from "@/lib/measurement-display";
 import { loadCanonicalExerciseCatalog } from "@/lib/routine-day-loader";
 import { getRoutineDayEditHref, resolveRoutineDayEditBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -112,7 +112,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
       image_icon_path: matchingExercise?.image_icon_path ?? null,
       image_howto_path: matchingExercise?.image_howto_path ?? null,
       slug: matchingExercise?.slug ?? null,
-      targetSummary: formatGoalInlineSummaryText({
+      targetSummary: formatExerciseGoalSummary({
         sets: exercise.target_sets,
         reps: exercise.target_reps_min ?? exercise.target_reps,
         repsMax: exercise.target_reps_max ?? exercise.target_reps,
@@ -150,7 +150,14 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
   const activeExerciseCountSummary = getRestDayExerciseCountSummaryFromInputs(
     editableExercises.map((exercise) => ({
       measurement_type: exercise.measurementType,
+      equipment: exercise.equipment,
+      movement_pattern: exercise.movement_pattern,
+      primary_muscle: exercise.primary_muscle,
       isCardio: exercise.isCardio,
+      kind: exercise.kind,
+      type: exercise.type,
+      tags: exercise.tags,
+      categories: exercise.categories,
     })),
     day.is_rest,
   );
@@ -163,6 +170,7 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
         <EditDaySettingsAutosaveForm
           routineId={params.id}
           daySummaryCounts={activeExerciseCountSummary}
+          routineName={(routine as RoutineRow).name}
           backHref={backHref}
           routineDayId={params.dayId}
           dayIndex={day.day_index}
@@ -170,7 +178,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           startDate={(routine as RoutineRow).start_date}
           isRest={(day as RoutineDayRow).is_rest}
           floatingHeaderSlotId="edit-day-floating-header-slot"
-          headerActionSlotId="planned-workout-header-action-slot"
         />
 
         <EditableRoutineDayExerciseList
@@ -183,7 +190,6 @@ export default async function RoutineDayEditorPage({ params, searchParams }: Pag
           reorderAction={reorderRoutineDayExercisesAction}
           initialIsRest={(day as RoutineDayRow).is_rest}
           addExerciseHref={addExerciseHref}
-          headerActionSlotId="planned-workout-header-action-slot"
         />
       </DetailScreenScaffold>
     </AppShell>

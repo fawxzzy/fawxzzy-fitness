@@ -22,7 +22,7 @@ export type SessionExerciseRow = {
   performed_index?: number | null;
   notes: string | null;
   is_skipped: boolean;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance";
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none";
   default_unit?: string | null;
   target_sets_min?: number | null;
   target_sets_max?: number | null;
@@ -103,7 +103,7 @@ export type RoutineDayExerciseRow = {
   target_distance: number | null;
   target_distance_unit: "mi" | "km" | "m" | null;
   target_calories: number | null;
-  measurement_type?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit?: "mi" | "km" | "m" | null;
   notes: string | null;
 };
@@ -125,5 +125,6 @@ export type ExerciseRow = {
   image_howto_path: string | null;
   slug?: string | null;
   how_to_short: string | null;
+  curation_tags?: Record<string, string[]> | null;
   created_at: string;
 };

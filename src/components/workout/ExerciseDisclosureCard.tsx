@@ -1,13 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { StandardExerciseRow } from "@/components/StandardExerciseRow";
-import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { ChevronDownIcon, ChevronRightIcon } from "@/components/ui/Chevrons";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
 import { buildExerciseDisclosureContract } from "@/lib/exercise-disclosure";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
-import type { ExerciseCardButtonProps, ExerciseCardDensity, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
+import type { ExerciseCardButtonProps, ExerciseCardDensity, ExerciseCardMediaLeftCornerMode, ExerciseCardRightIconMode, ExerciseCardState, ExerciseCardVariant } from "@/components/ExerciseCard";
 import type { ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
 import type { WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
@@ -20,6 +20,8 @@ type ExerciseCardVisual = {
   image_icon_path?: string | null;
   image_howto_path?: string | null;
 };
+
+const mediaDisclosureShellClassName = "rounded-l-none rounded-tl-none rounded-bl-none";
 
 export function ExerciseDisclosureCard({
   scope,
@@ -36,11 +38,23 @@ export function ExerciseDisclosureCard({
   variant = "interactive",
   children,
   showLeadingVisual = false,
+  showAccentRail = true,
   leadingVisual,
+  cardClassName,
+  shellClassName,
+  shellStyle,
+  titleMeta,
   trailingClassName,
+  rightRailClassName,
   bodyClassName,
+  contentClassName,
+  subtitleClassName,
   panelClassName,
+  subtitleTone,
   className,
+  mediaLeftCornerMode,
+  rightIconMode,
+  hideEmptySummary = false,
 }: {
   scope: DisclosureScope;
   itemId: string;
@@ -56,17 +70,32 @@ export function ExerciseDisclosureCard({
   variant?: ExerciseCardVariant;
   children?: ReactNode;
   showLeadingVisual?: boolean;
+  showAccentRail?: boolean;
   leadingVisual?: ReactNode;
+  cardClassName?: string;
+  shellClassName?: string;
+  shellStyle?: CSSProperties;
+  titleMeta?: ReactNode;
   trailingClassName?: string;
+  rightRailClassName?: string;
   bodyClassName?: string;
+  contentClassName?: string;
+  subtitleClassName?: string;
   panelClassName?: string;
+  subtitleTone?: "panel" | "plain";
   className?: string;
+  mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
+  rightIconMode?: ExerciseCardRightIconMode;
+  hideEmptySummary?: boolean;
 }) {
   const contract = buildExerciseDisclosureContract({ itemId, scope });
   const surface: WorkoutCardSurface = scope === "session-exercise" ? "current-session" : "view-day";
+  const isCompletedSessionCard = scope === "session-exercise" && state === "completed";
+
+  const sharpMediaEdgeClassName = showLeadingVisual ? mediaDisclosureShellClassName : undefined;
 
   return (
-    <div className={cn(appTokens.workoutCardDisclosureShell, className)}>
+    <div className={cn(appTokens.workoutCardDisclosureShell, expanded ? "rounded-b-none [border-bottom-right-radius:0px]" : undefined, sharpMediaEdgeClassName, className)}>
       <StandardExerciseRow
         exercise={exercise}
         summary={summary}
@@ -79,21 +108,29 @@ export function ExerciseDisclosureCard({
         onPress={onToggle}
         showLeadingVisual={showLeadingVisual}
         leadingVisual={leadingVisual}
+        titleMeta={titleMeta}
         buttonProps={{
           "aria-expanded": expanded,
           "aria-controls": contract.panelId,
           "data-testid": contract.buttonTestId,
         } satisfies ExerciseCardButtonProps}
-        className={cn("shadow-none", expanded ? "rounded-b-none" : undefined)}
+        shellClassName={shellClassName}
+        shellStyle={shellStyle}
+        mediaLeftCornerMode={mediaLeftCornerMode}
+        className={cn("shadow-none", expanded ? "rounded-b-none [border-bottom-right-radius:0px]" : undefined, cardClassName)}
         trailingClassName={trailingClassName}
+        rightRailClassName={rightRailClassName}
         bodyClassName={bodyClassName}
+        contentClassName={contentClassName}
+        subtitleClassName={subtitleClassName}
+        subtitleTone={subtitleTone}
+        showAccentRail={showAccentRail}
+        hideEmptySummary={hideEmptySummary}
+        rightIconMode={rightIconMode}
         rightIcon={(
-          <ChevronRightIcon
-            className={cn(
-              "h-5 w-5 shrink-0 transition-transform duration-150 motion-reduce:transition-none",
-              expanded ? "rotate-90 text-[rgb(var(--accent)/0.92)]" : "rotate-0 text-[rgb(var(--text-muted)/0.92)]",
-            )}
-          />
+          expanded
+            ? <ChevronDownIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--accent)/0.92)]", appTokens.historyChevronIcon)} />
+            : <ChevronRightIcon className={cn("h-5 w-5 shrink-0", isCompletedSessionCard ? "text-[rgb(var(--success-rgb)/0.98)]" : "text-[rgb(var(--text-muted)/0.92)]", appTokens.historyChevronIcon)} />
         )}
         badgeText={badgeText}
       />

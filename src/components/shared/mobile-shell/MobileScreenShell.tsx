@@ -125,13 +125,13 @@ function MobileScreenShellFrame({
           scrollPaddingBottom: scrollBottomReserve,
         } as CSSProperties}
       >
-        <div
-          ref={scrollContentRef}
-          className={cn(
-            "min-w-0 max-w-full overflow-x-hidden",
-            shouldApplyTopChromeContentGap ? "pt-[var(--app-top-chrome-content-gap,8px)]" : "",
-          )}
-        >
+          <div
+            ref={scrollContentRef}
+            className={cn(
+              "min-w-0 max-w-full overflow-x-clip",
+              shouldApplyTopChromeContentGap ? "pt-[var(--app-top-chrome-content-gap,8px)]" : "",
+            )}
+          >
           {children}
         </div>
       </ScrollContainer>

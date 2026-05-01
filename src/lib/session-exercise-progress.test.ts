@@ -104,5 +104,6 @@ test("deriveSessionExerciseProgressState keeps completed badge but exposes unski
   assert.equal(state.executionState, "completed");
   assert.equal(state.badgeText, "Completed");
   assert.equal(state.skipActionLabel, "Unskip");
-  assert.equal(state.allowQuickLog, false);
+  assert.equal(state.allowQuickLog, true);
+  assert.equal(state.allowSkipToggle, false);
 });

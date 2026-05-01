@@ -139,5 +139,15 @@ export function ExerciseInfo({
     };
   }, [exerciseId, open, sourceContext, toast]);
 
-  return <ExerciseInfoSheet exercise={exercise} stats={stats} statsLoading={statsLoading} open={open} onOpenChange={onOpenChange} onClose={onClose} />;
+  return (
+    <ExerciseInfoSheet
+      exercise={exercise}
+      stats={stats}
+      statsLoading={statsLoading}
+      open={open}
+      onOpenChange={onOpenChange}
+      onClose={onClose}
+      sourceContext={sourceContext}
+    />
+  );
 }

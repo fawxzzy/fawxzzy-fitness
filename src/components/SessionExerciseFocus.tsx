@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SetLoggerCard } from "@/components/SessionTimers";
 import { ExerciseInfo } from "@/components/ExerciseInfo";
-import { AppButton } from "@/components/ui/AppButton";
+import { appTokens } from "@/components/ui/app/tokens";
 import { useToast } from "@/components/ui/ToastProvider";
 import { AttachedQuickActionStrip, SessionExerciseBlock, SessionExerciseCard } from "@/components/session/SessionExerciseBlock";
 import { resolveScreenContract } from "@/components/ui/app/screenContract";
@@ -16,9 +16,11 @@ import { resolveQuickLogFromTarget, type SessionQuickLogTarget } from "@/lib/ses
 import { buildInitialSessionRowClientState, reconcileSessionRowClientState, type SessionRowClientState } from "@/components/session/sessionRowClientState";
 import { mergeLoggedSetCountState } from "@/components/session/setCountSync";
 import { deriveSessionExerciseRowViewModel } from "@/lib/session-row-view-model";
+import { cn } from "@/lib/cn";
 import { scrollDockAwareIntoView } from "@/lib/scrollDockAwareIntoView";
 import { resolveWorkoutCardSurfacePolicy } from "@/lib/workout-card-surface-policy";
 import { createStableSetId } from "@/lib/offline/set-log-reconciliation";
+import { isStretchHubExercise } from "@/lib/stretch-library";
 import type { SetRow } from "@/types/db";
 
 type AddSetPayload = {
@@ -74,7 +76,7 @@ export type SessionExerciseFocusItem = {
   isSkipped: boolean;
   defaultUnit: "mi" | "km" | "m" | null;
   isCardio: boolean;
-  measurementType?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
@@ -107,12 +109,12 @@ function resolveSessionExerciseTone(args: {
   isCompleted: boolean;
   isAddedToday: boolean;
 }) {
-  if (args.isSkipped) {
-    return "attention";
-  }
-
   if (args.isCompleted) {
     return "completed";
+  }
+
+  if (args.isSkipped) {
+    return "attention";
   }
 
   if (args.loggedSetCount > 0) {
@@ -271,15 +273,20 @@ export function SessionExerciseFocus({
   }, [patchRowState]);
 
   const toggleExercise = useCallback((exerciseId: string) => {
+    const rowViewModel = rowViewModelBySessionExerciseId.get(exerciseId);
+    if (rowViewModel?.isSkipped) {
+      return;
+    }
     setSetLoggerResetSignal((value) => value + 1);
     onSelectedExerciseIdChange(selectedExerciseId === exerciseId ? null : exerciseId);
-  }, [onSelectedExerciseIdChange, selectedExerciseId]);
+  }, [onSelectedExerciseIdChange, rowViewModelBySessionExerciseId, selectedExerciseId]);
 
   const handleSkipToggle = useCallback(async (
     exerciseId: string,
     previousSkipped: boolean,
     isQuickLogPending: boolean,
     isSkipPending: boolean,
+    loggedSetCount: number,
   ) => {
     if (isQuickLogPending || isSkipPending) {
       return;
@@ -299,11 +306,16 @@ export function SessionExerciseFocus({
       formData.set("nextSkipped", String(nextSkipped));
       const result = await toggleSkipAction(formData);
       toastActionResult(toast, result, {
-        success: previousSkipped ? "Exercise unskipped." : "Exercise skipped.",
+        success: previousSkipped
+          ? "Exercise unskipped."
+          : (loggedSetCount > 0 ? "Skipped. Logged sets were saved." : "Exercise skipped."),
         error: "Could not update skip state.",
       });
 
       if (result.ok) {
+        if (nextSkipped && selectedExerciseId === exerciseId) {
+          onSelectedExerciseIdChange(null);
+        }
         router.refresh();
       } else {
         patchRowState(exerciseId, (current) => ({
@@ -318,14 +330,15 @@ export function SessionExerciseFocus({
         isSkipPending: false,
       }));
     }
-  }, [patchRowState, router, sessionId, toast, toggleSkipAction]);
+  }, [onSelectedExerciseIdChange, patchRowState, router, selectedExerciseId, sessionId, toast, toggleSkipAction]);
 
   return (
-    <div className="flex flex-col gap-2.5" data-row-interaction={contract.rowInteraction}>
-      <ul className="space-y-1.5">
+    <div className={appTokens.currentSessionFocusStack} data-row-interaction={contract.rowInteraction}>
+      <ul className={cn(appTokens.currentSessionFocusList, "space-y-0")}>
         {visibleExercises.map((exercise) => {
           const isRemoving = removingExerciseIds.includes(exercise.id);
           const isExpanded = selectedExerciseId === exercise.id;
+          const isStretchHub = isStretchHubExercise(exercise);
           const rowViewModel = rowViewModelBySessionExerciseId.get(exercise.id) ?? deriveSessionExerciseRowViewModel({
             exerciseId: exercise.id,
             loggedSetCount: exercise.loggedSetCount,
@@ -339,168 +352,214 @@ export function SessionExerciseFocus({
           });
           const setCount = rowViewModel.loggedSetCount;
           const rowState = rowViewModel.rowState;
+          const isCompletedRow = rowState.cardState === "completed";
           const progressState = deriveSessionExerciseProgressState({
             loggedSetCount: setCount,
             isSkipped: rowViewModel.isSkipped,
             targetSetsMin: exercise.targetSetsMin,
             targetSetsMax: exercise.targetSetsMax,
           });
+          const titleMeta = progressState.goalSetTarget !== null && progressState.loggedSetCount > 0
+            ? (
+              <span className={isCompletedRow ? "text-[rgb(var(--success-rgb)/0.98)]" : undefined}>
+                {progressState.loggedSetCount} / {progressState.goalSetTarget}
+              </span>
+            )
+            : undefined;
+          const exerciseSummary = isStretchHub ? null : exercise.goalLabel;
           const semanticTone = resolveSessionExerciseTone({
             loggedSetCount: setCount,
             isSkipped: rowViewModel.isSkipped,
             isCompleted: rowState.cardState === "completed",
             isAddedToday: exercise.routineDayExerciseId === null,
           });
+          const shouldRenderCompactSkippedRow = rowViewModel.isSkipped && rowState.cardState !== "completed";
+
+          const disclosureCard = (
+            <ExerciseDisclosureCard
+              scope="session-exercise"
+              itemId={exercise.id}
+              expanded={isExpanded}
+              onToggle={() => toggleExercise(exercise.id)}
+              exercise={exercise}
+              summary={exerciseSummary}
+              summaryLabel=""
+              density="compact"
+              state={rowState.cardState === "completed" ? "completed" : (isExpanded ? "selected" : rowState.cardState)}
+              semanticTone={semanticTone}
+              trailingClassName={appTokens.metaText}
+              badgeText={rowViewModel.isSkipped ? undefined : (titleMeta ? undefined : rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined))}
+              showLeadingVisual={surfacePolicy.showMedia}
+              subtitleTone="plain"
+              subtitleClassName={isCompletedRow ? "!text-[rgb(var(--success-rgb)/0.98)]" : undefined}
+              className={isExpanded ? "overflow-visible" : "overflow-hidden rounded-none shadow-none ring-0"}
+              shellClassName={[
+                isExpanded ? "sticky top-0 z-20 shadow-[0_14px_28px_rgb(0_0_0/0.3)]" : "rounded-none shadow-none ring-0",
+                rowState.cardState === "completed"
+      ? "border-[rgb(var(--success-rgb)/0.96)] bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.76),rgb(var(--surface-2-rgb)/0.99))] ring-1 ring-[rgb(var(--success-rgb)/0.42)]"
+                  : undefined,
+              ].filter(Boolean).join(" ")}
+              shellStyle={isExpanded ? {
+                borderBottomRightRadius: "0px",
+              } : {
+                borderTopRightRadius: "var(--card-radius)",
+                borderBottomRightRadius: "0px",
+              }}
+              cardClassName={!isExpanded ? "rounded-none shadow-none ring-0" : undefined}
+              contentClassName="pl-3"
+              mediaLeftCornerMode={isExpanded ? "top-rounded" : undefined}
+              titleMeta={titleMeta}
+              showAccentRail={!isStretchHub}
+              hideEmptySummary={isStretchHub}
+            >
+              <>
+                <SetLoggerCard
+                  userId={userId}
+                  sessionId={sessionId}
+                  sessionExerciseId={exercise.id}
+                  addSetAction={addSetAction}
+                  syncQueuedSetLogsAction={syncQueuedSetLogsAction}
+                  unitLabel={unitLabel}
+                  initialSets={exercise.initialSets}
+                  prefill={exercise.prefill}
+                  defaultDistanceUnit={exercise.defaultUnit}
+                  isCardio={exercise.isCardio}
+                  useIntervalLanguage={exercise.useIntervalLanguage}
+                  initialEnabledMetrics={exercise.initialEnabledMetrics}
+                  routineDayExerciseId={exercise.routineDayExerciseId}
+                  planTargetsHash={exercise.planTargetsHash}
+                  deleteSetAction={deleteSetAction}
+                  resetSignal={setLoggerResetSignal}
+                  secondaryActionLabel="View"
+                  onSecondaryAction={() => setExerciseInfoExerciseId(exercise.exerciseId)}
+                  warmupValue={warmupDraft}
+                  onWarmupValueChange={setWarmupDraft}
+                  onSetCountChange={(count) => {
+                    handleSetCountChange(exercise.id, count);
+                  }}
+                />
+              </>
+            </ExerciseDisclosureCard>
+          );
+
+          const quickActionStrip = !isExpanded ? (
+            <AttachedQuickActionStrip
+              className="rounded-bl-none [border-bottom-left-radius:0px]"
+              rowContract={{
+                label: rowState.quickLogLabel,
+                skipLabel: rowState.skipActionLabel,
+                quickLogActionClassName: rowState.quickLogActionClassName,
+                skipActionClassName: rowState.skipActionClassName,
+                actionRowClassName: rowState.actionRowClassName,
+                isQuickLogDisabled: rowState.isQuickLogDisabled,
+                isSkipDisabled: rowState.isSkipDisabled,
+                quickLogDisabledMessage: rowState.quickLogDisabledMessage,
+                isSkipPending: rowViewModel.isSkipPending,
+                isQuickLogPending: rowViewModel.isQuickLogPending,
+              }}
+              onSkip={() => {
+                void handleSkipToggle(
+                  exercise.id,
+                  rowViewModel.isSkipped,
+                  rowViewModel.isQuickLogPending,
+                  rowViewModel.isSkipPending,
+                  setCount,
+                );
+              }}
+              onPress={async () => {
+                if (rowViewModel.isQuickLogPending || rowViewModel.isSkipPending || rowState.isQuickLogDisabled) {
+                  return;
+                }
+                patchRowState(exercise.id, (current) => ({
+                  ...current,
+                  isQuickLogPending: true,
+                }));
+                try {
+                  const quickLogResolution = resolveQuickLogFromTarget(exercise.quickLogTarget, unitLabel === "lbs" ? "lbs" : "kg");
+                  if (!quickLogResolution.ok) {
+                    toast.error(quickLogResolution.reason);
+                    toggleExercise(exercise.id);
+                    return;
+                  }
+
+                  const result = await addSetAction({
+                    sessionId,
+                    sessionExerciseId: exercise.id,
+                    ...quickLogResolution.payload,
+                    isWarmup: false,
+                    rpe: null,
+                    notes: null,
+                    clientLogId: createStableSetId(),
+                  });
+
+                  toastActionResult(toast, result, {
+                    success: "Set logged.",
+                    error: "Could not quick log set.",
+                  });
+
+                  if (result.ok) {
+                    handleSetCountChange(exercise.id, setCount + 1);
+                    router.refresh();
+                  }
+                } finally {
+                  patchRowState(exercise.id, (current) => ({
+                    ...current,
+                    isQuickLogPending: false,
+                  }));
+                }
+              }}
+            />
+          ) : null;
 
           return (
             <li
               key={exercise.id}
               className={[
-                "origin-top overflow-hidden transition-all duration-150 motion-reduce:transition-none",
-                isRemoving ? "max-h-0 scale-[0.98] opacity-0" : isExpanded ? "max-h-[240rem] scale-100 opacity-100" : "max-h-72 scale-100 opacity-100",
+                "origin-top transition-all duration-150 motion-reduce:transition-none",
+                isRemoving
+                  ? "max-h-0 scale-[0.98] overflow-hidden opacity-0"
+                  : isExpanded
+                    ? "max-h-[240rem] scale-100 overflow-visible opacity-100"
+                    : "max-h-72 scale-100 overflow-hidden opacity-100",
               ].join(" ")}
             >
               <SessionExerciseBlock>
-                <SessionExerciseCard>
-                  <ExerciseDisclosureCard
-                    scope="session-exercise"
-                    itemId={exercise.id}
-                    expanded={isExpanded}
-                    onToggle={() => toggleExercise(exercise.id)}
-                    exercise={exercise}
-                    summary={exercise.goalLabel}
-                    summaryLabel="Goal"
-                    density="compact"
-                    state={isExpanded ? "selected" : rowState.cardState}
-                    semanticTone={semanticTone}
-                    trailingClassName="text-muted"
-                    badgeText={rowState.badgeText ?? (exercise.routineDayExerciseId === null ? "Added" : undefined)}
-                    showLeadingVisual={surfacePolicy.showMedia}
-                  >
-                    <>
-                      {progressState.kind === "skipped" || progressState.kind === "partialSkipped" ? (
-                        <div className="mb-3 flex items-start justify-between gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
-                          <p className="min-w-0 flex-1 leading-6">
-                            {progressState.kind === "partialSkipped"
-                              ? `${progressState.progressLabel ?? "Partial progress"} - ended early for this session. Unskip to keep logging.`
-                              : "Skipped for this session. Unskip to keep logging."}
-                          </p>
-                          <AppButton
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            disabled={rowViewModel.isQuickLogPending || rowViewModel.isSkipPending}
-                            onClick={() => {
-                              void handleSkipToggle(
-                                exercise.id,
-                                rowViewModel.isSkipped,
-                                rowViewModel.isQuickLogPending,
-                                rowViewModel.isSkipPending,
-                              );
-                            }}
-                            className="shrink-0"
-                          >
-                            {rowViewModel.isSkipPending ? "Saving..." : "Unskip"}
-                          </AppButton>
-                        </div>
-                      ) : null}
-
-                      <SetLoggerCard
-                        userId={userId}
-                        sessionId={sessionId}
-                        sessionExerciseId={exercise.id}
-                        addSetAction={addSetAction}
-                        syncQueuedSetLogsAction={syncQueuedSetLogsAction}
-                        unitLabel={unitLabel}
-                        initialSets={exercise.initialSets}
-                        prefill={exercise.prefill}
-                        defaultDistanceUnit={exercise.defaultUnit}
-                        isCardio={exercise.isCardio}
-                        useIntervalLanguage={exercise.useIntervalLanguage}
-                        initialEnabledMetrics={exercise.initialEnabledMetrics}
-                        routineDayExerciseId={exercise.routineDayExerciseId}
-                        planTargetsHash={exercise.planTargetsHash}
-                        deleteSetAction={deleteSetAction}
-                        resetSignal={setLoggerResetSignal}
-                        secondaryActionLabel="View"
-                        onSecondaryAction={() => setExerciseInfoExerciseId(exercise.exerciseId)}
-                        warmupValue={warmupDraft}
-                        onWarmupValueChange={setWarmupDraft}
-                        onSetCountChange={(count) => {
-                          handleSetCountChange(exercise.id, count);
-                        }}
-                      />
-                    </>
-                  </ExerciseDisclosureCard>
-
-                  {!isExpanded ? (
-                    <AttachedQuickActionStrip
-                        rowContract={{
-                          label: rowState.quickLogLabel,
-                          skipLabel: rowState.skipActionLabel,
-                          quickLogActionIntent: rowState.quickLogActionIntent,
-                          skipActionIntent: rowState.skipActionIntent,
-                          quickLogActionClassName: rowState.quickLogActionClassName,
-                          skipActionClassName: rowState.skipActionClassName,
-                          actionRowClassName: rowState.actionRowClassName,
-                          isQuickLogDisabled: rowState.isQuickLogDisabled,
-                          quickLogDisabledMessage: rowState.quickLogDisabledMessage,
-                          isSkipPending: rowViewModel.isSkipPending,
-                          isQuickLogPending: rowViewModel.isQuickLogPending,
-                        }}
-                        onSkip={() => {
-                          void handleSkipToggle(
-                            exercise.id,
-                            rowViewModel.isSkipped,
-                            rowViewModel.isQuickLogPending,
-                            rowViewModel.isSkipPending,
-                          );
-                        }}
-                        onPress={async () => {
-                          if (rowViewModel.isQuickLogPending || rowViewModel.isSkipPending || rowState.isQuickLogDisabled) {
-                            return;
-                          }
-                          patchRowState(exercise.id, (current) => ({
-                            ...current,
-                            isQuickLogPending: true,
-                          }));
-                          try {
-                            const quickLogResolution = resolveQuickLogFromTarget(exercise.quickLogTarget, unitLabel === "lbs" ? "lbs" : "kg");
-                            if (!quickLogResolution.ok) {
-                              toast.error(quickLogResolution.reason);
-                              toggleExercise(exercise.id);
-                              return;
-                            }
-
-                            const result = await addSetAction({
-                              sessionId,
-                              sessionExerciseId: exercise.id,
-                              ...quickLogResolution.payload,
-                              isWarmup: false,
-                              rpe: null,
-                              notes: null,
-                              clientLogId: createStableSetId(),
-                            });
-
-                            toastActionResult(toast, result, {
-                              success: "Set logged.",
-                              error: "Could not quick log set.",
-                            });
-
-                            if (result.ok) {
-                              handleSetCountChange(exercise.id, setCount + 1);
-                              router.refresh();
-                            }
-                          } finally {
-                            patchRowState(exercise.id, (current) => ({
-                              ...current,
-                              isQuickLogPending: false,
-                            }));
-                          }
-                        }}
-                      />
-                  ) : null}
-                </SessionExerciseCard>
+                <div className={cn(!isExpanded ? "mx-auto w-full min-[360px]:max-w-[22.75rem]" : undefined)}>
+                  {shouldRenderCompactSkippedRow ? (
+                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.86)]">
+                      <div className="flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2.5">
+                        <p className="min-w-0 flex-1 whitespace-normal break-words text-[0.95rem] font-semibold leading-[1.2] text-[rgb(var(--text)/0.96)]">
+                          {exercise.name}
+                        </p>
+                        <button
+                          type="button"
+                          disabled={rowViewModel.isSkipPending}
+                          onClick={() => {
+                            void handleSkipToggle(
+                              exercise.id,
+                              rowViewModel.isSkipped,
+                              rowViewModel.isQuickLogPending,
+                              rowViewModel.isSkipPending,
+                              setCount,
+                            );
+                          }}
+                          className="shrink-0 rounded-[999px] border border-[rgb(var(--danger-rgb)/0.24)] bg-[rgb(var(--danger-rgb)/0.14)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--button-destructive-text))] transition-colors hover:bg-[rgb(var(--danger-rgb)/0.22)] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {rowViewModel.isSkipPending ? "Saving..." : "Unskip"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : isExpanded ? (
+                    <SessionExerciseCard>
+                      {disclosureCard}
+                    </SessionExerciseCard>
+                  ) : (
+                    <div className="overflow-hidden rounded-none rounded-r-[var(--card-radius)] border border-[rgb(var(--border-strong)/0.18)] bg-transparent">
+                      {disclosureCard}
+                      {quickActionStrip}
+                    </div>
+                  )}
+                </div>
               </SessionExerciseBlock>
             </li>
           );

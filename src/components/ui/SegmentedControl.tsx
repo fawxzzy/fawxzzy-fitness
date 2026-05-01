@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { KeyboardEvent } from "react";
 import {
   ACTION_CHROME_CONTROL_CLASS_NAME,
@@ -79,6 +80,8 @@ export function SegmentedControl({
   inactiveIntent?: ActionChromeIntent;
   fitContent?: boolean;
 }) {
+  const pathname = usePathname();
+  const shouldPrefetchLinks = !(pathname === "/dev" || pathname?.startsWith("/dev/"));
   const itemClassName = size === "sm"
     ? cn(
       ACTION_CHROME_CONTROL_CLASS_NAME,
@@ -179,6 +182,7 @@ export function SegmentedControl({
           <Link
             key={option.value}
             href={option.href}
+            prefetch={shouldPrefetchLinks}
             role="tab"
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}

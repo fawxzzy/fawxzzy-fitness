@@ -1,19 +1,22 @@
 import "server-only";
 
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
+import type { MetricDatum } from "@/components/ui/MetricItem";
 import { evaluatePrSummaries, formatPrBreakdown } from "@/lib/pr-evaluator";
 import { requireUser } from "@/lib/auth";
+import { normalizeExerciseCurationTags, type ExerciseCurationTags } from "@/lib/exercise-curation";
 import {
   buildCardioDeltaFromBest as buildCardioDeltaFromBestShared,
   buildStrengthDeltaFromBest as buildStrengthDeltaFromBestShared,
   formatSignedDelta as formatSignedDeltaShared,
 } from "@/lib/exercise-analytics";
-import { listExercises } from "@/lib/exercises";
+import { listExercises, listExercisesForUser } from "@/lib/exercises";
 import { supabaseServer } from "@/lib/supabase/server";
 import { formatDistance, formatDurationShort, formatPace, positive } from "@/lib/exercise-stats-formatting";
 import { chooseCardioBestMetric, getDisplayPace, isCardioMeasurementType, resolveEffectiveKind, shouldShowCardioBest } from "@/lib/cardio-best";
 import { aggregateCardioSessions, groupNormalizedSetsByExercise, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
+import { formatWeight } from "@/lib/formatting";
 
 type ExerciseCatalogRow = {
   id: string;
@@ -28,6 +31,7 @@ type ExerciseCatalogRow = {
   how_to_short: string | null;
   measurement_type: string | null;
   default_unit: string | null;
+  curation_tags: ExerciseCurationTags | null;
 };
 
 type ExerciseStatsRow = {
@@ -55,6 +59,7 @@ export type ExerciseBrowserRow = {
   primary_muscle: string | null;
   equipment: string | null;
   movement_pattern: string | null;
+  curation_tags?: ExerciseCurationTags | null;
   last_performed_at: string | null;
   last_weight: number | null;
   last_reps: number | null;
@@ -71,6 +76,10 @@ export type ExerciseBrowserRow = {
   prLabel: string;
   prCount: number;
   sessionCount: number;
+  setCount?: number;
+  sessionsLast30Days?: number;
+  activityRank?: number | null;
+  detailedMetrics?: MetricDatum[];
   deltaFromBest: string | null;
   tagsSummary: string | null;
 };
@@ -139,6 +148,274 @@ export function buildCardioDeltaFromBest(args: {
   return buildCardioDeltaFromBestShared(args);
 }
 
+type StrengthSessionSummary = {
+  performedAt: string;
+  weight: number;
+  reps: number;
+  unit: "lb" | "lbs" | "kg" | null;
+  bodyweightReps: number;
+  setCount: number;
+};
+
+type CardioSessionSummary = {
+  performedAt: string;
+  durationSeconds: number;
+  distance: number;
+  distanceUnit: "mi" | "km" | "m" | null;
+  calories: number;
+  setCount: number;
+};
+
+function buildThirtyDaySessionCount(performedAtValues: string[]) {
+  const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  return performedAtValues.reduce((total, value) => {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) && timestamp >= cutoff ? total + 1 : total;
+  }, 0);
+}
+
+function buildStrengthSessionSummaries(rows: Array<{
+  sessionId: string;
+  performedAt: string;
+  set_index: number;
+  weight: number | null;
+  reps: number | null;
+  weightUnit?: "lb" | "lbs" | "kg" | null;
+  weight_unit?: "lb" | "lbs" | "kg" | null;
+}>): StrengthSessionSummary[] {
+  const rowsBySession = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const existing = rowsBySession.get(row.sessionId) ?? [];
+    existing.push(row);
+    rowsBySession.set(row.sessionId, existing);
+  }
+
+  return [...rowsBySession.values()]
+    .map((sessionRows) => {
+      const rankedRows = [...sessionRows].sort((left, right) => {
+        const leftWeight = positive(left.weight);
+        const rightWeight = positive(right.weight);
+        if (rightWeight !== leftWeight) return rightWeight - leftWeight;
+        const leftReps = positive(left.reps);
+        const rightReps = positive(right.reps);
+        if (rightReps !== leftReps) return rightReps - leftReps;
+        return right.set_index - left.set_index;
+      });
+      const bestRow = rankedRows.find((row) => positive(row.weight) > 0 || positive(row.reps) > 0) ?? null;
+      const bodyweightReps = rankedRows.reduce((max, row) => Math.max(max, positive(row.weight) === 0 ? positive(row.reps) : 0), 0);
+
+      return {
+        performedAt: sessionRows[0]?.performedAt ?? "",
+        weight: positive(bestRow?.weight),
+        reps: positive(bestRow?.reps),
+        unit: bestRow?.weightUnit ?? bestRow?.weight_unit ?? null,
+        bodyweightReps,
+        setCount: sessionRows.length,
+      } satisfies StrengthSessionSummary;
+    })
+    .filter((session) => Boolean(session.performedAt))
+    .sort((left, right) => right.performedAt.localeCompare(left.performedAt));
+}
+
+function buildStrengthRepTrendMetric(latest: StrengthSessionSummary | null, previous: StrengthSessionSummary | null): MetricDatum | null {
+  const latestWeightedReps = positive(latest?.weight) > 0 ? positive(latest?.reps) : 0;
+  const previousWeightedReps = positive(previous?.weight) > 0 ? positive(previous?.reps) : 0;
+  const latestBodyweightReps = positive(latest?.weight) === 0 ? positive(latest?.bodyweightReps) : 0;
+  const previousBodyweightReps = positive(previous?.weight) === 0 ? positive(previous?.bodyweightReps) : 0;
+  const latestReps = latestWeightedReps > 0 ? latestWeightedReps : latestBodyweightReps;
+  const previousReps = previousWeightedReps > 0 ? previousWeightedReps : previousBodyweightReps;
+
+  if (latestReps <= 0 || previousReps <= 0) {
+    return null;
+  }
+
+  const delta = latestReps - previousReps;
+  return {
+    label: "REPS",
+    value: `${Math.abs(delta)}`,
+    valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
+    valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
+  };
+}
+
+function buildStrengthWeightTrendMetric(latest: StrengthSessionSummary | null, previous: StrengthSessionSummary | null): MetricDatum | null {
+  const latestWeight = positive(latest?.weight);
+  const previousWeight = positive(previous?.weight);
+  const unit = latest?.unit ?? previous?.unit ?? null;
+
+  if (latestWeight <= 0 || previousWeight <= 0) {
+    return null;
+  }
+
+  if (latestWeight === previousWeight) {
+    return {
+      label: "Weight",
+      value: unit === "kg" ? "0 kg" : unit === "lb" || unit === "lbs" ? "0 lb" : "0",
+      valuePrefix: "\u2192",
+      valueTone: "muted",
+    };
+  }
+
+  const delta = latestWeight - previousWeight;
+  return {
+    label: "Weight",
+    value: formatWeight(Math.abs(delta), unit) ?? `${Math.round(Math.abs(delta))}`,
+    valuePrefix: delta > 0 ? "\u2191" : "\u2193",
+    valueTone: delta > 0 ? "success" : "danger",
+  };
+}
+
+function buildCardioProgressMetric(
+  latest: CardioSessionSummary | null,
+  previous: CardioSessionSummary | null,
+  measurementType: string | null,
+): MetricDatum | null {
+  if (!latest || !previous) {
+    return null;
+  }
+
+  const primaryMetric = resolveCardioPrimaryMetric(measurementType);
+  if (primaryMetric === "distance" && positive(latest.distance) > 0 && positive(previous.distance) > 0) {
+    const delta = latest.distance - previous.distance;
+    return {
+      label: "Vs Previous",
+      value: formatDistance(Math.abs(delta), latest.distanceUnit ?? previous.distanceUnit) ?? `${Math.abs(delta)}`,
+      valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
+      valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
+    };
+  }
+
+  if (primaryMetric === "duration" && positive(latest.durationSeconds) > 0 && positive(previous.durationSeconds) > 0) {
+    const delta = latest.durationSeconds - previous.durationSeconds;
+    return {
+      label: "Vs Previous",
+      value: formatDurationShort(Math.abs(delta)) ?? `${Math.abs(delta)}s`,
+      valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
+      valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
+    };
+  }
+
+  if (primaryMetric === "calories" && positive(latest.calories) > 0 && positive(previous.calories) > 0) {
+    const delta = latest.calories - previous.calories;
+    return {
+      label: "Vs Previous",
+      value: `${Math.abs(Math.round(delta))} cal`,
+      valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
+      valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
+    };
+  }
+
+  return null;
+}
+
+function buildStrengthDetailedMetrics(args: {
+  lastSummary: string | null;
+  bestSummary: string | null;
+  prCount: number;
+  sessionCount: number;
+  setCount: number;
+  prEst1rm?: number | null;
+  unit?: string | null;
+  sessionsLast30Days: number;
+  latestSession: StrengthSessionSummary | null;
+  previousSession: StrengthSessionSummary | null;
+}) {
+  const metrics: MetricDatum[] = [
+    { label: "Last", value: args.lastSummary ?? "Not yet" },
+    { label: "Best", value: args.bestSummary?.replace(/^Best\s*\|\s*/i, "") ?? "Not yet" },
+  ];
+
+  const estimatedMax = positive(args.prEst1rm) > 0
+    ? formatWeight(Math.round(positive(args.prEst1rm)), args.unit) ?? `${Math.round(positive(args.prEst1rm))}`
+    : null;
+  if (estimatedMax) {
+    metrics.push({ label: "Max Est.", value: estimatedMax });
+  }
+
+  metrics.push(
+    { label: "Sessions", value: `${args.sessionCount}` },
+    { label: "Sets", value: `${args.setCount}` },
+    { label: "PRs", value: `${args.prCount}` },
+  );
+
+  const repTrend = buildStrengthRepTrendMetric(args.latestSession, args.previousSession);
+  if (repTrend) {
+    metrics.push(repTrend);
+  }
+
+  const weightTrend = buildStrengthWeightTrendMetric(args.latestSession, args.previousSession);
+  if (weightTrend) {
+    metrics.push(weightTrend);
+  }
+
+  metrics.push({
+    label: "30 Days",
+    value: `${args.sessionsLast30Days} ${args.sessionsLast30Days === 1 ? "session" : "sessions"}`,
+  });
+
+  return metrics;
+}
+
+function buildCardioDetailedMetrics(args: {
+  lastSummary: string | null;
+  bestSummary: string | null;
+  sessionCount: number;
+  setCount: number;
+  sessionsLast30Days: number;
+  measurementType: string | null;
+  latestSession: CardioSessionSummary | null;
+  previousSession: CardioSessionSummary | null;
+  bestSession: CardioSessionSummary | null;
+}) {
+  const metrics: MetricDatum[] = [
+    { label: "Last", value: args.lastSummary ?? "Not yet" },
+    { label: "Best", value: args.bestSummary?.replace(/^Best\s*\|\s*/i, "") ?? "Not yet" },
+    { label: "Sessions", value: `${args.sessionCount}` },
+    { label: "Sets", value: `${args.setCount}` },
+  ];
+
+  const bestPace = args.bestSession
+    ? formatPace(
+        getDisplayPace(args.bestSession.durationSeconds, args.bestSession.distance, args.bestSession.distanceUnit)?.paceSecondsPerUnit,
+        args.bestSession.distanceUnit,
+      )
+    : null;
+  if (bestPace) {
+    metrics.push({ label: "Best Pace", value: bestPace });
+  }
+
+  const trendMetric = buildCardioProgressMetric(args.latestSession, args.previousSession, args.measurementType);
+  if (trendMetric) {
+    metrics.push(trendMetric);
+  }
+
+  metrics.push({
+    label: "30 Days",
+    value: `${args.sessionsLast30Days} ${args.sessionsLast30Days === 1 ? "session" : "sessions"}`,
+  });
+
+  return metrics;
+}
+
+function applyHistoryExerciseActivityRanks(rows: ExerciseBrowserRow[]) {
+  const rankEntries = rows
+    .filter((row) => positive(row.setCount) > 0)
+    .sort((left, right) => {
+      if (right.sessionCount !== left.sessionCount) return right.sessionCount - left.sessionCount;
+      if (positive(right.setCount) !== positive(left.setCount)) return positive(right.setCount) - positive(left.setCount);
+      if ((right.last_performed_at ?? "") !== (left.last_performed_at ?? "")) {
+        return (right.last_performed_at ?? "").localeCompare(left.last_performed_at ?? "");
+      }
+      return left.name.localeCompare(right.name);
+    });
+  const rankByExerciseId = new Map(rankEntries.map((row, index) => [row.exerciseId, index + 1]));
+
+  return rows.map((row) => ({
+    ...row,
+    activityRank: rankByExerciseId.get(row.exerciseId) ?? null,
+  }));
+}
+
 function compareExerciseBrowserRows(a: ExerciseBrowserRow, b: ExerciseBrowserRow) {
   const aLast = a.last_performed_at;
   const bLast = b.last_performed_at;
@@ -196,13 +473,11 @@ function runDevExerciseBrowserVerification(row: ExerciseBrowserRow) {
   }
 }
 
-export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow[]> {
+async function getExercisesWithStats(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserRow[]> {
   noStore();
+  const supabase = client ?? supabaseServer();
 
-  const user = await requireUser();
-  const supabase = supabaseServer();
-
-  const exerciseRows = await listExercises();
+  const exerciseRows = client ? await listExercisesForUser(userId, client) : await listExercises();
 
   const exercises: ExerciseCatalogRow[] = exerciseRows
     .filter((row) => row.id && row.name)
@@ -219,6 +494,7 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
       how_to_short: row.how_to_short ?? null,
       measurement_type: row.measurement_type ?? null,
       default_unit: row.default_unit ?? null,
+      curation_tags: normalizeExerciseCurationTags("curation_tags" in row ? row.curation_tags : null),
     }));
 
   const canonicalIds = Array.from(new Set(exercises.map((row) => row.id)));
@@ -230,13 +506,13 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
     supabase
       .from("exercise_stats")
       .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, actual_pr_weight, actual_pr_reps, actual_pr_at")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .in("exercise_id", canonicalIds),
     supabase
       .from("sets")
       .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(status, performed_at))")
-      .eq("user_id", user.id)
-      .eq("session_exercise.user_id", user.id)
+      .eq("user_id", userId)
+      .eq("session_exercise.user_id", userId)
       .in("session_exercise.exercise_id", canonicalIds)
       .eq("session_exercise.session.status", "completed"),
   ]);
@@ -270,13 +546,17 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
   ));
   const { exerciseSummaryById } = evaluatePrSummaries(prSets);
 
-  return exercises
+  const rows = exercises
     .map((exercise) => {
       const exerciseId = exercise.id;
       const stats = statsByExerciseId.get(exerciseId);
       const setRows = setRowsByExerciseId.get(exerciseId) ?? [];
       const prSummary = exerciseSummaryById.get(exerciseId);
       const sessionCount = new Set(setRows.map((row) => row.sessionId)).size;
+      const setCount = setRows.length;
+      const sessionsLast30Days = buildThirtyDaySessionCount(
+        Array.from(new Set(setRows.map((row) => row.performedAt))),
+      );
 
       const latestSetBySession = new Map<string, { performedAt: string; sets: typeof setRows }>();
       for (const row of setRows) {
@@ -338,6 +618,22 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
             .filter((row) => positive(row.weight) === positive(stats?.actual_pr_weight))
             .reduce((max, row) => Math.max(max, positive(row.reps)), 0)
         : 0;
+      const strengthSessions = buildStrengthSessionSummaries(setRows);
+      const latestStrengthSession = strengthSessions[0] ?? null;
+      const previousStrengthSession = strengthSessions[1] ?? null;
+      const cardioSessions = [...sessionAggregates]
+        .map((row) => ({
+          performedAt: row.performedAt ?? "",
+          durationSeconds: row.durationSeconds,
+          distance: row.distance,
+          distanceUnit: row.distanceUnit,
+          calories: row.calories,
+          setCount: row.setCount,
+        }))
+        .filter((row) => Boolean(row.performedAt))
+        .sort((left, right) => right.performedAt.localeCompare(left.performedAt));
+      const latestCardioTrendSession = cardioSessions[0] ?? null;
+      const previousCardioTrendSession = cardioSessions[1] ?? null;
 
       const lastSummary = kind === "strength"
         ? (!hasWeightedBest && bodyweightPr > 0
@@ -391,6 +687,39 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
             best: bestCardioSession,
             measurementType: exercise.measurement_type,
           });
+      const detailedMetrics = kind === "strength"
+        ? buildStrengthDetailedMetrics({
+            lastSummary,
+            bestSummary,
+            prCount: prSummary?.counts.total ?? 0,
+            sessionCount,
+            setCount,
+            prEst1rm: stats?.pr_est_1rm ?? null,
+            unit: stats?.last_unit ?? null,
+            sessionsLast30Days,
+            latestSession: latestStrengthSession,
+            previousSession: previousStrengthSession,
+          })
+        : buildCardioDetailedMetrics({
+            lastSummary,
+            bestSummary,
+            sessionCount,
+            setCount,
+            sessionsLast30Days,
+            measurementType: exercise.measurement_type,
+            latestSession: latestCardioTrendSession,
+            previousSession: previousCardioTrendSession,
+            bestSession: bestCardioSession
+              ? {
+                  performedAt: bestCardioSession.performedAt ?? "",
+                  durationSeconds: bestCardioSession.durationSeconds,
+                  distance: bestCardioSession.distance,
+                  distanceUnit: bestCardioSession.distanceUnit,
+                  calories: bestCardioSession.calories,
+                  setCount: bestCardioSession.setCount,
+                }
+              : null,
+          });
 
       const nextRow: ExerciseBrowserRow = {
         exerciseId,
@@ -403,6 +732,7 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         primary_muscle: exercise.primary_muscle,
         equipment: exercise.equipment,
         movement_pattern: exercise.movement_pattern,
+        curation_tags: exercise.curation_tags,
         last_performed_at: kind === "cardio"
           ? (latestCardioSession?.performedAt ?? stats?.last_performed_at ?? latestSession?.performedAt ?? null)
           : (stats?.last_performed_at ?? latestSession?.performedAt ?? null),
@@ -421,6 +751,9 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
         prLabel: kind === "strength" ? formatPrBreakdown(prSummary?.counts ?? { reps: 0, weight: 0, total: 0 }) : "",
         prCount: kind === "strength" ? (prSummary?.counts.total ?? 0) : 0,
         sessionCount,
+        setCount,
+        sessionsLast30Days,
+        detailedMetrics,
         deltaFromBest,
         tagsSummary: formatTagSummary(exercise),
       };
@@ -429,4 +762,15 @@ export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow
       return nextRow;
     })
     .sort(compareExerciseBrowserRows);
+
+  return applyHistoryExerciseActivityRanks(rows);
+}
+
+export async function getExercisesWithStatsForUser(): Promise<ExerciseBrowserRow[]> {
+  const user = await requireUser();
+  return getExercisesWithStats(user.id);
+}
+
+export async function getExercisesWithStatsForExplicitUser(userId: string, client?: SupabaseClient): Promise<ExerciseBrowserRow[]> {
+  return getExercisesWithStats(userId, client);
 }

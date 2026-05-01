@@ -1,32 +1,59 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { listExercises } from "@/lib/exercises";
-import { getSessionTargets } from "@/lib/session-targets";
+import { buildSessionTargetsFromRows } from "@/lib/session-targets";
 import { getExerciseStatsForExercises } from "@/lib/exercise-stats";
+import type { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SessionExerciseRow, SessionRow, SetRow } from "@/types/db";
 
-type MeasurementType = "reps" | "time" | "distance" | "time_distance";
+type MeasurementType = "reps" | "time" | "distance" | "time_distance" | "none";
 type DistanceUnit = "mi" | "km" | "m";
 
 function resolveMeasurementType(value: unknown): MeasurementType | null {
-  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" ? value : null;
+  return value === "reps" || value === "time" || value === "distance" || value === "time_distance" || value === "none" ? value : null;
 }
 
 function resolveDistanceUnit(value: unknown): DistanceUnit | null {
   return value === "mi" || value === "km" || value === "m" ? value : null;
 }
 
-export async function getSessionPageData(sessionId: string) {
-  const user = await requireUser();
+export async function getSessionPageData(
+  sessionId: string,
+  options?: {
+    diagnostics?: LoadingDiagnosticsCollector;
+  },
+) {
+  const diagnostics = options?.diagnostics;
+  const user = await requireUser({
+    gate: "session.auth.session",
+    route: `/session/${sessionId}`,
+    blockingReason: "Waiting for authenticated session before opening the session log.",
+    timeoutMs: 5000,
+    collector: diagnostics ?? null,
+  });
   const supabase = supabaseServer();
 
-  const { data: session } = await supabase
-    .from("sessions")
-    .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
-    .eq("id", sessionId)
-    .eq("user_id", user.id)
-    .single();
+  const { data: session } = diagnostics
+    ? await diagnostics.measure("session.record.fetch", async () => await supabase
+      .from("sessions")
+      .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
+      .eq("id", sessionId)
+      .eq("user_id", user.id)
+      .single(), {
+      blockingReason: "Waiting for the requested session record.",
+      metadata: {
+        sessionId,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    })
+    : await supabase
+      .from("sessions")
+      .select("id, user_id, performed_at, notes, routine_id, routine_day_index, name, routine_day_name, duration_seconds, status")
+      .eq("id", sessionId)
+      .eq("user_id", user.id)
+      .single();
 
   if (!session) {
     notFound();
@@ -67,24 +94,24 @@ export async function getSessionPageData(sessionId: string) {
   const sessionExercises = ((sessionExercisesData ?? []) as Array<SessionExerciseRow & {
     exercise?: {
       name?: string | null;
-      measurement_type?: "reps" | "time" | "distance" | "time_distance";
+      measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none";
       default_unit?: "mi" | "km" | "m" | null;
     } | null | Array<{
       name?: string | null;
-      measurement_type?: "reps" | "time" | "distance" | "time_distance";
+      measurement_type?: "reps" | "time" | "distance" | "time_distance" | "none";
       default_unit?: "mi" | "km" | "m" | null;
     }>;
     routine_day_exercise?: {
       id: string;
       exercise_id: string;
       position: number;
-      measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
+      measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
       default_unit: "mi" | "km" | "m" | null;
     } | null | Array<{
       id: string;
       exercise_id: string;
       position: number;
-      measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
+      measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
       default_unit: "mi" | "km" | "m" | null;
     }>;
   }>).map((item) => {
@@ -100,7 +127,7 @@ export async function getSessionPageData(sessionId: string) {
     const effectiveDefaultUnit = resolveDistanceUnit(item.default_unit)
       ?? resolveDistanceUnit(linkedRoutine?.default_unit)
       ?? resolveDistanceUnit(exerciseRow?.default_unit)
-      ?? "mi";
+      ?? (effectiveMeasurementType === "none" ? null : "mi");
 
     const hasSessionGoal = item.target_sets_min !== null
       || item.target_sets_max !== null
@@ -146,6 +173,7 @@ export async function getSessionPageData(sessionId: string) {
 
     return {
       ...item,
+      exercise_name: exerciseRow?.name ?? null,
       ...(inheritedGoalColumns ?? {}),
       measurement_type: effectiveMeasurementType,
       default_unit: effectiveDefaultUnit,
@@ -172,12 +200,34 @@ export async function getSessionPageData(sessionId: string) {
     setsByExercise.set(set.session_exercise_id, current);
   }
 
-  const sessionTargets = await getSessionTargets(sessionId);
-  const exerciseOptions = await listExercises();
+  const sessionTargets = buildSessionTargetsFromRows({
+    sessionExercises: (sessionExercisesData ?? []) as Array<SessionExerciseRow>,
+    routineDayExercises: routineRows,
+  });
+  const exerciseOptions = diagnostics
+    ? await diagnostics.measure("session.exercise-catalog.fetch", () => listExercises(), {
+      blockingReason: "Waiting for exercise catalog metadata for the session page.",
+      metadata: {
+        sessionId,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    })
+    : await listExercises();
   const exerciseNameMap = new Map(exerciseOptions.map((exercise) => [exercise.id, exercise.name]));
   // exercise_stats is keyed by canonical exercises.id UUIDs (never session_exercises.id / routine_day_exercises.id / slug).
   const canonicalExerciseIds = Array.from(new Set(sessionExercises.map((exercise) => exercise.exercise_id).filter((exerciseId): exerciseId is string => Boolean(exerciseId))));
-  const exerciseStatsByExerciseId = await getExerciseStatsForExercises(user.id, canonicalExerciseIds);
+  const exerciseStatsByExerciseId = diagnostics
+    ? await diagnostics.measure("session.exercise-stats.fetch", () => getExerciseStatsForExercises(user.id, canonicalExerciseIds), {
+      blockingReason: "Waiting for session exercise stats.",
+      metadata: {
+        canonicalExerciseCount: canonicalExerciseIds.length,
+        sessionId,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    })
+    : await getExerciseStatsForExercises(user.id, canonicalExerciseIds);
 
   return {
     sessionRow: session as SessionRow,

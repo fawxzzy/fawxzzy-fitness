@@ -5,6 +5,7 @@ import { RoutineDetailsScreenShell } from "@/components/routines/RoutineEditorSh
 import { ROUTINE_START_WEEKDAYS, getRoutineStartWeekdayFromDate } from "@/lib/routines";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { ensureProfile } from "@/lib/profile";
 import { normalizeRoutineTimezone } from "@/lib/timezones";
 import type { RoutineRow } from "@/types/db";
 
@@ -17,6 +18,7 @@ type PageProps = {
 
 export default async function EditRoutinePage({ params, searchParams }: PageProps) {
   const user = await requireUser();
+  const profile = await ensureProfile(user.id);
   const supabase = supabaseServer();
 
   const { data: routine } = await supabase
@@ -33,7 +35,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
   const startWeekdayDefault = getRoutineStartWeekdayFromDate((routine as RoutineRow).start_date) ?? ROUTINE_START_WEEKDAYS[0];
 
   return (
-    <RoutineDetailsScreenShell backHref={returnHref}>
+    <RoutineDetailsScreenShell backHref={returnHref} title={(routine as RoutineRow).name} align="center">
       <EditRoutineAutosaveForm
         routineId={routine.id}
         existingStartDate={(routine as RoutineRow).start_date}
@@ -43,6 +45,7 @@ export default async function EditRoutinePage({ params, searchParams }: PageProp
         startWeekday={startWeekdayDefault}
         timezone={routineTimezoneDefault}
         weightUnit={(routine as RoutineRow).weight_unit ?? "lbs"}
+        distanceUnit={profile.preferred_distance_unit ?? "mi"}
         error={searchParams?.error}
         deleteAction={<DeleteRoutineButton routineId={routine.id} routineName={(routine as RoutineRow).name} />}
       />

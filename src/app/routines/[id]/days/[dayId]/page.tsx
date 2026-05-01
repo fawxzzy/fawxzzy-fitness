@@ -1,23 +1,26 @@
 import { notFound } from "next/navigation";
-import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
-import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
+import { ContentRail } from "@/components/layout/ContentRail";
 import { PublishBottomActions } from "@/components/layout/PublishBottomActions";
 import { BottomActionDock } from "@/components/layout/BottomActionDock";
 import { BottomDockLink } from "@/components/layout/BottomDockButton";
+import { BottomActionSingle } from "@/components/layout/CanonicalBottomActions";
 import { DayRestToggleAutosaveDock } from "@/components/day/DayRestToggleAutosaveDock";
-import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
 import { RoutineDayExerciseList } from "@/app/routines/[id]/days/[dayId]/RoutineDayExerciseList";
-import { DayTaxonomyHeaderSummary } from "@/components/day-list/DayTaxonomyHeaderSummary";
-import { REST_DAY_CARD_COPY } from "@/components/day-list/DayList";
-import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
-import { DetailScreenScaffold } from "@/components/routines/day-detail/DetailScreenScaffold";
+import {
+  TodayOverviewContent,
+  TodayOverviewScaffold,
+  TodayRouteScaffold,
+} from "@/components/today/TodayScreenFamily";
+import { RoutineDayHeaderTitle } from "@/components/ui/app/RoutineDayHeaderTitle";
+import { TopRightBackButton } from "@/components/ui/TopRightBackButton";
+import { ScreenScaffold } from "@/components/ui/app/ScreenScaffold";
+import { SharedScreenHeader } from "@/components/ui/app/SharedScreenHeader";
 import { requireUser } from "@/lib/auth";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { isCardioExercise } from "@/lib/exercise-metadata";
 import { isRunnableDayState } from "@/lib/runnable-day";
 import { getRoutineDayEditHref, getRoutineDayViewHref, resolveRoutineDayViewBackHref } from "@/lib/routine-day-navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getRestDayExerciseCountSummaryFromCanonicalDayOrFallback } from "@/lib/day-summary";
 import { formatRoutineDayDisplayName, getRoutineDayEditableName } from "@/lib/routines";
 import type { RoutineDayExerciseRow, RoutineDayRow, RoutineRow } from "@/types/db";
 
@@ -32,7 +35,6 @@ type PageProps = {
     returnTo?: string;
   };
 };
-
 
 export default async function RoutineDayDetailPage({ params, searchParams }: PageProps) {
   const user = await requireUser();
@@ -87,64 +89,38 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
     dayIndex: dayRow.day_index,
     startDate: routineRow.start_date,
   });
-  const daySummary = getRestDayExerciseCountSummaryFromCanonicalDayOrFallback(canonicalDay, dayRow.is_rest);
-  const isRestState = dayRow.is_rest || canonicalDay?.state === "rest";
-  const hasWarningSummary = canonicalDay?.state === "partial";
-  const hasBlockingIssue = Boolean(canonicalDay?.invalidExercises.length);
   const hasExerciseRows = Boolean(canonicalDay && isRunnableDayState(canonicalDay.state));
-  const isEmptyTrainingDay = !isRestState && !hasWarningSummary && !hasBlockingIssue && !hasExerciseRows;
   const returnToPath = getRoutineDayViewHref(routineRow.id, dayRow.id);
-  const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
   const editDayHref = getRoutineDayEditHref(routineRow.id, dayRow.id, returnToPath);
-  const preservedExerciseMeta = dayExercises.length > 0
-    ? `${dayExercises.length} planned ${dayExercises.length === 1 ? "exercise remains" : "exercises remain"} attached to this day.`
-    : undefined;
-  const detailSectionVisible = isRestState || hasWarningSummary || hasBlockingIssue || hasExerciseRows || isEmptyTrainingDay;
+  const backHref = resolveRoutineDayViewBackHref(searchParams?.returnTo);
 
   return (
-    <MainTabScreen topNavMode="none" className="space-y-0" ambientPreset="viewDay">
-      <DetailScreenScaffold
-        recipe="viewDay"
-        floatingHeader={(
-          <SharedScreenHeader
-            recipe="viewDay"
-            title={routineRow.name}
-            subtitle={<DayTaxonomyHeaderSummary dayName={dayLabel} summary={daySummary} isRest={isRestState} />}
-            action={<TopRightBackButton href={backHref} ariaLabel="Back to Routines" historyBehavior="fallback-only" />}
-          />
-        )}
-      >
-        {detailSectionVisible ? (
-          <div className="space-y-3">
-            {hasWarningSummary ? (
-              <DayDetailStateCard
-                tone="warning"
-                title="Partial workout"
-                body="Some exercises could not be loaded and will be skipped when you start this workout."
-              />
-            ) : null}
-
-            {isRestState ? (
-              <DayDetailStateCard
-                tone="rest"
-                title="Rest day"
-                body={REST_DAY_CARD_COPY}
-                meta={preservedExerciseMeta}
-              />
-            ) : hasBlockingIssue ? (
-              <DayDetailStateCard
-                tone="blocking"
-                title="Invalid exercises"
-                body="This day has invalid exercises. Edit the day before starting a workout."
-              />
-            ) : hasExerciseRows ? (
+    <TodayRouteScaffold
+      floatingHeader={(
+        <ContentRail className="py-1">
+          <ScreenScaffold recipe="viewDay" className="w-full">
+            <SharedScreenHeader
+              recipe="historyDetail"
+              title={<RoutineDayHeaderTitle leadingItems={[routineRow.name.trim() || "Routine"]} dayLabel={dayLabel} />}
+              action={<TopRightBackButton href={backHref} ariaLabel="Back to routines" historyBehavior="fallback-only" />}
+              align="center"
+              className="pl-1"
+            />
+          </ScreenScaffold>
+        </ContentRail>
+      )}
+    >
+      <TodayOverviewContent>
+        {hasExerciseRows ? (
+          <TodayOverviewScaffold>
+            <div className="flex flex-col gap-[0.625rem]">
               <RoutineDayExerciseList
                 exercises={(canonicalDay?.runnableExercises ?? []).map((exercise) => ({
                   id: exercise.id,
+                  targets: exercise.goalLine,
                   name: exercise.displayName,
-                  goalLine: exercise.goalLine,
                   exerciseId: exercise.details?.id ?? exercise.exercise_id,
-                  measurementType: exercise.measurement_type ?? exercise.details?.measurement_type ?? null,
+                  measurement_type: exercise.measurement_type ?? exercise.details?.measurement_type ?? null,
                   primary_muscle: exercise.details?.primary_muscle ?? null,
                   equipment: exercise.details?.equipment ?? null,
                   movement_pattern: exercise.details?.movement_pattern ?? null,
@@ -168,17 +144,22 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
                   slug: exercise.details?.slug ?? null,
                 }))}
               />
-            ) : (
-              <DayDetailStateCard
-                tone="neutral"
-                title="No exercises planned"
-                body="Add exercises to this day to start a workout."
-              />
-            )}
-          </div>
+            </div>
+          </TodayOverviewScaffold>
         ) : null}
+      </TodayOverviewContent>
 
-        <PublishBottomActions>
+      <PublishBottomActions>
+        {dayRow.is_rest ? (
+          <BottomActionSingle>
+            <DayRestToggleAutosaveDock
+              routineId={routineRow.id}
+              routineDayId={dayRow.id}
+              initialIsRest={dayRow.is_rest}
+              name={editableDayName}
+            />
+          </BottomActionSingle>
+        ) : (
           <BottomActionDock
             left={(
               <DayRestToggleAutosaveDock
@@ -194,8 +175,8 @@ export default async function RoutineDayDetailPage({ params, searchParams }: Pag
               </BottomDockLink>
             )}
           />
-        </PublishBottomActions>
-      </DetailScreenScaffold>
-    </MainTabScreen>
+        )}
+      </PublishBottomActions>
+    </TodayRouteScaffold>
   );
 }

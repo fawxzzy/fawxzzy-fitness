@@ -8,13 +8,13 @@ test("today cards stay text-first while detailed mode keeps the richer metric ro
   const detailed = resolveWorkoutCardSurfacePolicy("today", "detailed");
 
   assert.deepEqual(compact, {
-    showMedia: false,
+    showMedia: true,
     showIdentityChips: false,
     showDetailedMetrics: false,
     mediaRailWidth: 56,
   });
   assert.deepEqual(detailed, {
-    showMedia: false,
+    showMedia: true,
     showIdentityChips: false,
     showDetailedMetrics: true,
     mediaRailWidth: 56,

@@ -1,6 +1,7 @@
 import { PASSWORD_LOGIN_UI_COPY } from "@/components/auth/authCopy";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{1,14}$/i;
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -8,6 +9,40 @@ function normalizeEmail(value: string) {
 
 export function shouldStartCredentialStepOpenForLogin(args: { error?: string; requiresReauth?: boolean }) {
   return Boolean(args.requiresReauth || args.error);
+}
+
+export function resolveLoginRouteMessages(args: {
+  errorCode?: string | null;
+  infoCode?: string | null;
+  verified?: string | null;
+}) {
+  const error =
+    args.errorCode === "confirm_failed"
+      ? "Could not verify your link. Please request a new one."
+      : args.errorCode === "recovery_session_missing"
+        ? "Your reset link expired. Please request a new one."
+        : args.errorCode === "rate_limited"
+          ? "Too many reset requests. Please wait a few minutes and try again."
+          : args.errorCode === "send_failed"
+            ? "Could not send reset email. Please try again in a few minutes."
+        : args.errorCode === "session_expired"
+          ? "Session refresh failed. Re-enter your password to continue."
+          : args.errorCode ?? undefined;
+  const requiresReauth = args.errorCode === "session_expired";
+  const info =
+    args.verified === "1" || args.infoCode === "confirmed"
+      ? "Email verified. You can log in now."
+      : args.infoCode === "reset_requested"
+        ? "Reset email sent. Check your inbox."
+      : args.infoCode === "magic_link_sent"
+        ? PASSWORD_LOGIN_UI_COPY.helper.default ?? undefined
+        : args.infoCode ?? undefined;
+
+  return {
+    error,
+    info,
+    requiresReauth,
+  };
 }
 
 export function getAuthoritativeLoginEmail(args: {
@@ -53,10 +88,6 @@ export function getLoginHelperText(args: {
   showCredentialStep: boolean;
   requiresReauth?: boolean;
 }) {
-  if (args.requiresReauth) {
-    return PASSWORD_LOGIN_UI_COPY.helper.reauth;
-  }
-
   if (args.hasRememberedAccount && !args.showCredentialStep) {
     return PASSWORD_LOGIN_UI_COPY.helper.remembered;
   }
@@ -75,10 +106,6 @@ export function getLoginSubmitLabel(args: {
 }) {
   if (args.isSubmitting) {
     return PASSWORD_LOGIN_UI_COPY.cta.pending;
-  }
-
-  if (args.isExceptionalReauth) {
-    return PASSWORD_LOGIN_UI_COPY.cta.reauth;
   }
 
   if (args.formReady) {
@@ -106,7 +133,7 @@ export function getLoginScreenViewState(args: {
     rememberedEmail: args.rememberedEmail,
     showEmailField,
   });
-  const emailValid = EMAIL_PATTERN.test(normalizeEmail(effectiveEmail));
+  const emailValid = EMAIL_PATTERN.test(normalizeEmail(effectiveEmail)) || USERNAME_PATTERN.test(effectiveEmail.trim());
   const passwordValid = args.password.length >= 6;
   const formReady = emailValid && passwordValid;
 

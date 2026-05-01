@@ -41,7 +41,7 @@ export function EditRoutineDaysSection({
         </div>
       ) : null}
       {days.length > 0 ? (
-        <ul className="space-y-2">
+        <ul className={appTokens.routineEditorDayList}>
           {days.map((day) => {
             const subtitle = day.needsSetup ? "Not configured yet • Tap to set up this day" : [day.summary, day.notes?.trim() || null].filter(Boolean).join(" • ");
             return (

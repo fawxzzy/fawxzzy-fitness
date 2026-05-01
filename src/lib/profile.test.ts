@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { ensureProfileWithClient } from "./profile-core.ts";
+import { ensureProfileForEntryBootstrap, ensureProfileWithClient } from "./profile-core.ts";
 
-type QueryResult = { data: unknown; error: { message: string } | null };
+type QueryResult = {
+  data: unknown;
+  error: { code?: string; details?: string; message: string } | null;
+};
 
 function createFakeSupabase(script: { maybeSingle: QueryResult[]; single: QueryResult[] }) {
   const tracker = {
@@ -196,7 +199,7 @@ test("ensureProfile creates a profile in legacy mode without preference columns 
   assert.equal(profile.preferred_distance_unit, "mi");
 });
 
-test("ensureProfile recovers from a concurrent create race by reloading the inserted row", async () => {
+test("ensureProfile recovers from a read-then-insert collision by reloading the inserted row", async () => {
   const fake = createFakeSupabase({
     maybeSingle: [
       { data: null, error: null },
@@ -232,4 +235,101 @@ test("ensureProfile recovers from a concurrent create race by reloading the inse
     "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
     "id, timezone, active_routine_id, preferred_weight_unit, preferred_distance_unit",
   ]);
+});
+
+test("ensureProfile recovers when a transient read failure is followed by a concurrent create collision", async () => {
+  const fake = createFakeSupabase({
+    maybeSingle: [
+      {
+        data: null,
+        error: {
+          code: "PGRST003",
+          message: "request timed out before profile read completed",
+        },
+      },
+      {
+        data: {
+          id: "user-5",
+          timezone: "America/Chicago",
+          active_routine_id: null,
+          preferred_weight_unit: "lbs",
+          preferred_distance_unit: "mi",
+        },
+        error: null,
+      },
+    ],
+    single: [
+      {
+        data: null,
+        error: {
+          code: "23505",
+          message: "duplicate key value violates unique constraint \"profiles_pkey\"",
+        },
+      },
+    ],
+  });
+
+  const profile = await ensureProfileWithClient("user-5", fake.client as never);
+
+  assert.equal(profile.id, "user-5");
+  assert.equal(profile.timezone, "America/Chicago");
+  assert.equal(fake.tracker.inserts.length, 1);
+});
+
+test("ensureProfile re-reads after a recoverable insert failure and returns the created row", async () => {
+  const fake = createFakeSupabase({
+    maybeSingle: [
+      { data: null, error: null },
+      {
+        data: {
+          id: "user-6",
+          timezone: "America/Los_Angeles",
+          active_routine_id: null,
+          preferred_weight_unit: "lbs",
+          preferred_distance_unit: "mi",
+        },
+        error: null,
+      },
+    ],
+    single: [
+      {
+        data: null,
+        error: {
+          code: "PGRST003",
+          message: "request timed out before insert response completed",
+        },
+      },
+    ],
+  });
+
+  const profile = await ensureProfileWithClient("user-6", fake.client as never);
+
+  assert.equal(profile.id, "user-6");
+  assert.equal(profile.timezone, "America/Los_Angeles");
+  assert.equal(fake.tracker.inserts.length, 1);
+});
+
+test("ensureProfileForEntryBootstrap logs and fails open when profile bootstrap stays flaky", async () => {
+  const logs: Array<{ message: string; details: Record<string, unknown> }> = [];
+
+  const result = await ensureProfileForEntryBootstrap("user-7", {
+    ensureProfileImpl: async () => {
+      throw Object.assign(new Error("profiles unavailable"), {
+        code: "PGRST003",
+        details: "request timed out",
+      });
+    },
+    logError: (message, details) => {
+      logs.push({ message, details });
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.profile, null);
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0]?.message, "[entry] profile bootstrap failed; continuing with authenticated fallback");
+  assert.equal(logs[0]?.details.route, "/entry");
+  assert.equal(logs[0]?.details.stage, "ensureProfile");
+  assert.equal(logs[0]?.details.userId, "user-7");
+  assert.equal(logs[0]?.details.errorMessage, "profiles unavailable");
 });

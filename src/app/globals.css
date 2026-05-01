@@ -8,23 +8,27 @@
   --bg-1: 11 23 36;
   --bg-2: 15 29 45;
 
-  --surface-1-rgb: 14 24 38;
-  --surface-2-rgb: 18 31 48;
-  --surface-3-rgb: 23 38 58;
+  --surface-1-rgb: 9 13 18;
+  --surface-2-rgb: 10 11 15;
+  --surface-3-rgb: 40 40 44;
 
   --stroke-soft: 190 214 238;
   --stroke-strong: 190 214 238;
   --text-primary: 244 248 252;
   --text-secondary: 205 217 232;
   --text-muted: 144 164 188;
-  --accent-mint: 71 215 196;
-  --accent-mint-strong: 47 230 210;
-  --accent-blue: 71 215 196;
+  --accent-mint: 32 151 78;
+  --accent-mint-strong: 68 168 106;
+  --accent-blue: 32 151 78;
+  --secondary-action-rgb: 205 151 66;
+  --accent-divider-rgb: 32 151 78;
+  --selection-rgb: 32 151 78;
+  --loader-scan-rgb: 32 121 78;
   --accent-yellow-off: 240 178 78;
   --accent-yellow-on: 240 178 78;
   --accent-red: 255 111 131;
-  --accent-purple: 71 215 196;
-  --success-rgb: 79 209 126;
+  --accent-purple: 32 151 78;
+  --success-rgb: 32 151 78;
   --warning-rgb: 240 178 78;
   --danger-rgb: 255 111 131;
   --ambient-depth-top: 12 22 33;
@@ -101,6 +105,7 @@
   --button-focus-ring: rgb(var(--accent) / 0.32);
   --button-transition: 120ms cubic-bezier(0.22, 1, 0.36, 1);
   --button-press-scale: 0.992;
+  --bottom-action-radius: 999px;
 
   --action-chrome-shell-radius: 1.5rem;
   --action-chrome-segment-radius: 1.25rem;
@@ -188,7 +193,7 @@
   --exercise-row-media-min-height-detailed: 3.8rem;
   --exercise-row-media-radius-compact: 0.95rem;
   --exercise-row-media-radius-detailed: 1.05rem;
-  --exercise-row-trailing-min-width: 2rem;
+  --exercise-row-trailing-min-width: 1.5rem;
   --exercise-row-gap: 0.5rem;
   --exercise-row-badge-gap: 0.5rem;
   --bottom-nav-h: 92px;
@@ -251,7 +256,7 @@
     --exercise-row-min-height-detailed: 4.7rem;
     --exercise-row-media-min-height-compact: 3rem;
     --exercise-row-media-min-height-detailed: 3.3rem;
-    --exercise-row-trailing-min-width: 1.5rem;
+    --exercise-row-trailing-min-width: 1.2rem;
     --exercise-row-gap: 0.425rem;
   }
 }
@@ -296,6 +301,17 @@ body {
   overscroll-behavior-y: none;
 }
 
+.app-standalone-safe-area-bleed {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background:
+    linear-gradient(180deg, rgb(var(--bg-0) / 0.08), rgb(var(--bg-0) / 0.78) 42%, rgb(var(--bg-0)) 100%);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
 .app-ambient {
   position: absolute;
   inset: 0;
@@ -316,6 +332,11 @@ body {
   --app-edge-frame-radius: 28px;
   --app-edge-frame-line-rgb: var(--text, 244 248 252);
   --app-edge-frame-accent-rgb: var(--accent-strong, 47 230 210);
+  transition: opacity 120ms ease;
+}
+
+html[data-route-loading="true"] .app-edge-frame {
+  opacity: 0;
 }
 
 .app-edge-frame__buffer,
@@ -725,7 +746,7 @@ body {
     180deg,
     transparent 0%,
     transparent 42%,
-    rgb(var(--ambient-line-cyan) / 0.12) 50%,
+    rgb(var(--loader-scan-rgb) / 0.12) 50%,
     transparent 58%,
     transparent 100%
   );
@@ -880,6 +901,17 @@ body {
   .app-ambient__geometry-motion {
     opacity: calc(var(--app-ambient-alpha) * var(--app-ambient-reduced-geometry-multiplier)) !important;
   }
+}
+
+/* Remove decorative flashing / cursor-like line indicators app-wide. */
+.app-edge-frame__rail,
+.route-loading__scan {
+  display: none;
+}
+
+.app-edge-frame__rail-path--highlight {
+  animation: none;
+  opacity: 0;
 }
 
 .ambient-background {
@@ -1302,12 +1334,19 @@ body {
 
 html {
   height: 100%;
+  min-height: 100dvh;
+  background-color: rgb(var(--bg));
+  background-image: linear-gradient(180deg, rgb(var(--bg-1)), rgb(var(--bg-0)) 42%, rgb(var(--bg-0)));
   overflow-x: hidden;
   overflow-y: hidden;
   overscroll-behavior-x: none;
   overscroll-behavior-y: none;
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+html[data-display-mode="standalone"] .app-standalone-safe-area-bleed {
+  opacity: 1;
 }
 
 html::-webkit-scrollbar,
@@ -1573,51 +1612,51 @@ button,
 }
 
 .action-chrome[data-action-chrome-intent="info"] {
-  --action-chrome-border-color: rgb(var(--accent) / 0.24);
-  --action-chrome-border-color-hover: rgb(var(--accent) / 0.36);
-  --action-chrome-overlay-top: rgb(var(--accent) / 0.08);
-  --action-chrome-overlay-bottom: rgb(var(--accent) / 0.03);
-  --action-chrome-overlay-top-hover: rgb(var(--accent) / 0.12);
-  --action-chrome-overlay-bottom-hover: rgb(var(--accent) / 0.05);
-  --action-chrome-overlay-top-active: rgb(var(--accent) / 0.16);
-  --action-chrome-overlay-bottom-active: rgb(var(--accent) / 0.07);
-  --action-chrome-text-color: rgb(var(--text-primary) / 0.96);
+  --action-chrome-border-color: rgb(var(--secondary-action-rgb) / 0.26);
+  --action-chrome-border-color-hover: rgb(var(--secondary-action-rgb) / 0.4);
+  --action-chrome-overlay-top: rgb(var(--secondary-action-rgb) / 0.1);
+  --action-chrome-overlay-bottom: rgb(var(--secondary-action-rgb) / 0.04);
+  --action-chrome-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.14);
+  --action-chrome-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.06);
+  --action-chrome-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.18);
+  --action-chrome-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.08);
+  --action-chrome-text-color: rgb(var(--secondary-action-rgb) / 0.98);
 }
 
 .action-chrome[data-action-chrome-intent="toggleInactive"] {
-  --action-chrome-border-color: rgb(var(--warning-rgb) / 0.24);
-  --action-chrome-border-color-hover: rgb(var(--warning-rgb) / 0.36);
-  --action-chrome-overlay-top: rgb(var(--warning-rgb) / 0.08);
-  --action-chrome-overlay-bottom: rgb(var(--warning-rgb) / 0.03);
-  --action-chrome-overlay-top-hover: rgb(var(--warning-rgb) / 0.12);
-  --action-chrome-overlay-bottom-hover: rgb(var(--warning-rgb) / 0.05);
-  --action-chrome-overlay-top-active: rgb(var(--warning-rgb) / 0.16);
-  --action-chrome-overlay-bottom-active: rgb(var(--warning-rgb) / 0.06);
-  --action-chrome-text-color: rgb(255 239 214 / 0.94);
+  --action-chrome-border-color: rgb(var(--secondary-action-rgb) / 0.24);
+  --action-chrome-border-color-hover: rgb(var(--secondary-action-rgb) / 0.36);
+  --action-chrome-overlay-top: rgb(var(--secondary-action-rgb) / 0.08);
+  --action-chrome-overlay-bottom: rgb(var(--secondary-action-rgb) / 0.03);
+  --action-chrome-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.12);
+  --action-chrome-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.05);
+  --action-chrome-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.16);
+  --action-chrome-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.06);
+  --action-chrome-text-color: rgb(var(--secondary-action-rgb) / 0.96);
 }
 
 .action-chrome[data-action-chrome-intent="toggleActive"] {
-  --action-chrome-border-color: rgb(var(--warning-rgb) / 0.34);
-  --action-chrome-border-color-hover: rgb(var(--warning-rgb) / 0.48);
-  --action-chrome-overlay-top: rgb(var(--warning-rgb) / 0.14);
-  --action-chrome-overlay-bottom: rgb(var(--warning-rgb) / 0.06);
-  --action-chrome-overlay-top-hover: rgb(var(--warning-rgb) / 0.18);
-  --action-chrome-overlay-bottom-hover: rgb(var(--warning-rgb) / 0.08);
-  --action-chrome-overlay-top-active: rgb(var(--warning-rgb) / 0.22);
-  --action-chrome-overlay-bottom-active: rgb(var(--warning-rgb) / 0.1);
-  --action-chrome-text-color: rgb(255 243 221 / 0.98);
+  --action-chrome-border-color: rgb(var(--secondary-action-rgb) / 0.34);
+  --action-chrome-border-color-hover: rgb(var(--secondary-action-rgb) / 0.48);
+  --action-chrome-overlay-top: rgb(var(--secondary-action-rgb) / 0.14);
+  --action-chrome-overlay-bottom: rgb(var(--secondary-action-rgb) / 0.06);
+  --action-chrome-overlay-top-hover: rgb(var(--secondary-action-rgb) / 0.18);
+  --action-chrome-overlay-bottom-hover: rgb(var(--secondary-action-rgb) / 0.08);
+  --action-chrome-overlay-top-active: rgb(var(--secondary-action-rgb) / 0.22);
+  --action-chrome-overlay-bottom-active: rgb(var(--secondary-action-rgb) / 0.1);
+  --action-chrome-text-color: rgb(var(--secondary-action-rgb) / 0.98);
 }
 
 .action-chrome[data-action-chrome-intent="danger"] {
-  --action-chrome-border-color: rgb(var(--danger-rgb) / 0.34);
-  --action-chrome-border-color-hover: rgb(var(--danger-rgb) / 0.5);
-  --action-chrome-overlay-top: rgb(var(--danger-rgb) / 0.08);
-  --action-chrome-overlay-bottom: rgb(var(--danger-rgb) / 0.03);
-  --action-chrome-overlay-top-hover: rgb(var(--danger-rgb) / 0.12);
-  --action-chrome-overlay-bottom-hover: rgb(var(--danger-rgb) / 0.05);
-  --action-chrome-overlay-top-active: rgb(var(--danger-rgb) / 0.16);
-  --action-chrome-overlay-bottom-active: rgb(var(--danger-rgb) / 0.06);
-  --action-chrome-text-color: rgb(255 223 229 / 0.98);
+  --action-chrome-border-color: rgb(var(--danger-rgb) / 0.22);
+  --action-chrome-border-color-hover: rgb(var(--danger-rgb) / 0.34);
+  --action-chrome-overlay-top: rgb(var(--danger-rgb) / 0.02);
+  --action-chrome-overlay-bottom: rgb(var(--danger-rgb) / 0.008);
+  --action-chrome-overlay-top-hover: rgb(var(--danger-rgb) / 0.04);
+  --action-chrome-overlay-bottom-hover: rgb(var(--danger-rgb) / 0.016);
+  --action-chrome-overlay-top-active: rgb(var(--danger-rgb) / 0.06);
+  --action-chrome-overlay-bottom-active: rgb(var(--danger-rgb) / 0.024);
+  --action-chrome-text-color: rgb(var(--danger-rgb) / 0.96);
 }
 
 .action-chrome[data-action-chrome-intent="ghost"] {
@@ -1686,13 +1725,23 @@ a:focus-visible {
 }
 
 .bottom-action--secondary {
-  background: rgb(var(--surface-muted) / 0.92);
-  color: rgb(var(--text-secondary) / 0.96);
+  border-color: rgb(var(--secondary-action-rgb) / 0.24);
+  background:
+    linear-gradient(180deg, rgb(var(--secondary-action-rgb) / 0.12), rgb(var(--surface-muted) / 0.92));
+  color: rgb(var(--secondary-action-rgb) / 0.98);
 }
 
 .bottom-action[data-bottom-action-intent="toggleActive"] {
-  border-color: rgb(var(--accent-yellow-on) / 0.22);
-  color: rgb(var(--accent-yellow-on) / 0.96);
+  border-color: rgb(var(--secondary-action-rgb) / 0.28);
+  background:
+    linear-gradient(180deg, rgb(var(--secondary-action-rgb) / 0.16), rgb(var(--surface-muted) / 0.94));
+  color: rgb(var(--secondary-action-rgb) / 0.98);
+}
+
+.bottom-action[data-bottom-action-intent="toggleInactive"] {
+  border-color: rgb(var(--secondary-action-rgb) / 0.2);
+  background: rgb(var(--surface-muted) / 0.92);
+  color: rgb(var(--secondary-action-rgb) / 0.94);
 }
 
 .bottom-action[data-bottom-action-intent="danger"] {
@@ -1908,6 +1957,26 @@ a:focus-visible {
 .picker-scroll-viewport::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+.filter-scroll-viewport {
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--accent) / 0.5) rgb(var(--surface-1-rgb) / 0.24);
+}
+
+.filter-scroll-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-scroll-viewport::-webkit-scrollbar-track {
+  background: rgb(var(--surface-1-rgb) / 0.24);
+  border-radius: 999px;
+}
+
+.filter-scroll-viewport::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgb(var(--accent) / 0.82), rgb(var(--accent) / 0.52));
+  border-radius: 999px;
 }
 
 .app-page-scroll {

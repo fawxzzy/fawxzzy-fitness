@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseServer } from "@/lib/supabase/server";
 import { unstable_noStore as noStore } from "next/cache";
 import { aggregateExerciseStatsFromSets, type HistoricalSetRow } from "@/lib/exercise-history-aggregation";
@@ -173,14 +174,18 @@ export async function rebuildExerciseStatsFromLoggedSessions(userId: string): Pr
   return affectedExerciseIds;
 }
 
-export async function getExerciseStatsForExercises(userId: string, exerciseIds: string[]): Promise<Map<string, ExerciseStatsRow>> {
+export async function getExerciseStatsForExercises(
+  userId: string,
+  exerciseIds: string[],
+  client?: SupabaseClient,
+): Promise<Map<string, ExerciseStatsRow>> {
   noStore();
 
   if (!exerciseIds.length) {
     return new Map();
   }
 
-  const supabase = supabaseServer();
+  const supabase = client ?? supabaseServer();
   const { data } = await supabase
     .from("exercise_stats")
     .select("exercise_id, last_weight, last_reps, last_unit, last_performed_at, pr_weight, pr_reps, pr_est_1rm, pr_achieved_at, actual_pr_weight, actual_pr_reps, actual_pr_at")
@@ -210,10 +215,14 @@ export type ExerciseStatsLookupResult = {
   error: ExerciseStatsLookupError | null;
 };
 
-export async function getExerciseStatsForExercise(userId: string, exerciseId: string): Promise<ExerciseStatsLookupResult> {
+export async function getExerciseStatsForExercise(
+  userId: string,
+  exerciseId: string,
+  client?: SupabaseClient,
+): Promise<ExerciseStatsLookupResult> {
   noStore();
 
-  const supabase = supabaseServer();
+  const supabase = client ?? supabaseServer();
 
   const { data: canonicalExercise, error: canonicalExerciseError } = await supabase
     .from("exercises")

@@ -150,7 +150,7 @@ export function ExerciseThumb({
             asset={railSpec.assets[1]}
             alt={alt ?? ""}
             sizes={sizes ?? `${resolvedRailWidth}px`}
-            className="border-t border-white/8"
+            className="border-t border-[rgb(var(--accent-divider-rgb)/0.18)]"
           />
         </div>
       );

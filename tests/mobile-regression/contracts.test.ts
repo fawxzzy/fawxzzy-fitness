@@ -216,7 +216,8 @@ test("history-browser compact rows stay on the shared history card wrapper with 
   assert.match(browserSource, /density=\{viewMode\}/);
   assert.doesNotMatch(browserSource, /<StandardExerciseRow/);
   assert.match(cardSource, /data-history-card="exercise"/);
-  assert.match(cardSource, /showLeadingVisual=\{density === "compact"\}/);
+  assert.match(cardSource, /leadingVisual=\{/);
+  assert.match(cardSource, /<ExerciseThumb/);
 });
 
 test("standard exercise rows gate rail media behind the surface policy", () => {
@@ -234,7 +235,7 @@ test("exercise card body stays clipping-safe while exposing shared media and den
   assert.match(source, /overflow-visible/);
   assert.match(source, /data-exercise-card-density=\{resolvedDensity\}/);
   assert.match(source, /data-exercise-card-media=\{usesRailMedia \? "rail" : usesInlineMedia \? "inline" : "none"\}/);
-  assert.match(source, /bottom-px left-px top-px w-\[3px\] rounded-r-full/);
+  assert.match(source, /bottom-px left-px top-px w-\[4px\] rounded-r-full/);
 });
 
 test("history sessions keep compact chips and detailed metrics on the shared card shell", () => {

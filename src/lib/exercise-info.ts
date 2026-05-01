@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MetricDatum } from "@/components/ui/MetricItem";
 import {
   buildCardioProgressDelta as buildCardioProgressDeltaShared,
@@ -45,6 +46,8 @@ export type ExerciseProgressEntry = {
   value: string;
   context?: string | null;
 };
+
+type MetricValueTone = "default" | "success" | "danger" | "muted";
 
 export type ExerciseStatsVM = {
   exercise_id: string;
@@ -130,8 +133,10 @@ type NormalizedSet = {
 };
 
 type StrengthSessionPerformance = {
+  sessionId: string;
   performedAt: string;
   summary: string | null;
+  setSummaries: string[];
   weight: number;
   reps: number;
   unit: "lbs" | "lb" | "kg" | null;
@@ -140,8 +145,10 @@ type StrengthSessionPerformance = {
 };
 
 type CardioSessionPerformance = {
+  sessionId: string;
   performedAt: string;
   summary: string | null;
+  setSummaries: string[];
   durationSeconds: number;
   distance: number;
   distanceUnit: "mi" | "km" | "m" | null;
@@ -209,6 +216,165 @@ function formatCardioSummary(args: {
   return parts.length > 0 ? parts.join(" | ") : null;
 }
 
+function formatSetMeasurementSummary(args: {
+  reps?: number | null;
+  weight?: number | null;
+  weightUnit?: string | null;
+  durationSeconds?: number | null;
+  distance?: number | null;
+  distanceUnit?: "mi" | "km" | "m" | null;
+  calories?: number | null;
+}) {
+  const weightReps = formatWeightReps(args.weight ?? null, args.reps ?? null, args.weightUnit ?? null);
+  if (weightReps) {
+    return weightReps;
+  }
+
+  const parts = [
+    formatDurationShort(args.durationSeconds),
+    formatDistance(args.distance, args.distanceUnit),
+    formatCalories(args.calories),
+  ].filter((value): value is string => Boolean(value));
+
+  return parts.length > 0 ? parts.join(" / ") : "No measurements";
+}
+
+function buildTrendMetric(value: string | null, positiveToken: string): MetricDatum | null {
+  if (!value) return null;
+
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  if (/^matched/i.test(normalized)) {
+    return {
+      label: "Vs Previous",
+      value: normalized.replace(/\s+vs previous$/i, ""),
+      valuePrefix: "→",
+      valueTone: "muted",
+    };
+  }
+
+  const direction = normalized.startsWith("+") ? "up" : normalized.startsWith("-") ? "down" : null;
+  const tone: MetricValueTone = direction === "up"
+    ? "success"
+    : direction === "down"
+      ? "danger"
+      : "default";
+  const prefix = direction === "up"
+    ? "↑"
+    : direction === "down"
+      ? "↓"
+      : null;
+  const cleaned = normalized
+    .replace(/^[+-]/, "")
+    .replace(/\s+vs previous$/i, "")
+    .trim();
+
+  return {
+    label: "Vs Previous",
+    value: cleaned || positiveToken,
+    valuePrefix: prefix,
+    valueTone: tone,
+  };
+}
+
+function buildExerciseInfoTrendMetric(
+  value: string | null,
+  positiveToken: string,
+  options?: {
+    label?: string;
+    stripPattern?: RegExp;
+  },
+): MetricDatum | null {
+  if (!value) return null;
+
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  if (/^matched/i.test(normalized)) {
+    return {
+      label: "Vs Previous",
+      value: positiveToken,
+      valuePrefix: "\u2192",
+      valueTone: "muted",
+    };
+  }
+
+  const direction = normalized.startsWith("+") ? "up" : normalized.startsWith("-") ? "down" : null;
+  const cleaned = normalized
+    .replace(/^[+-]/, "")
+    .replace(/\s+vs previous$/i, "")
+    .replace(options?.stripPattern ?? /$^/, "")
+    .trim();
+
+  return {
+    label: options?.label ?? "Vs Previous",
+    value: cleaned || positiveToken,
+    valuePrefix: direction === "up" ? "\u2191" : direction === "down" ? "\u2193" : null,
+    valueTone: direction === "up" ? "success" : direction === "down" ? "danger" : "default",
+  };
+}
+
+function buildExerciseInfoRepTrendMetric(args: {
+  latest: StrengthSessionPerformance | null;
+  previous: StrengthSessionPerformance | null;
+}): MetricDatum | null {
+  const latestWeightedReps = positive(args.latest?.weight) > 0 ? positive(args.latest?.reps) : 0;
+  const previousWeightedReps = positive(args.previous?.weight) > 0 ? positive(args.previous?.reps) : 0;
+  const latestBodyweightReps = positive(args.latest?.weight) === 0 ? positive(args.latest?.bodyweightReps) : 0;
+  const previousBodyweightReps = positive(args.previous?.weight) === 0 ? positive(args.previous?.bodyweightReps) : 0;
+
+  const latestReps = latestWeightedReps > 0 ? latestWeightedReps : latestBodyweightReps;
+  const previousReps = previousWeightedReps > 0 ? previousWeightedReps : previousBodyweightReps;
+  if (latestReps <= 0 || previousReps <= 0) {
+    return null;
+  }
+
+  const delta = latestReps - previousReps;
+  return {
+    label: "REPS",
+    value: `${Math.abs(delta)}`,
+    valuePrefix: delta > 0 ? "\u2191" : delta < 0 ? "\u2193" : "\u2192",
+    valueTone: delta > 0 ? "success" : delta < 0 ? "danger" : "muted",
+  };
+}
+
+function buildExerciseInfoWeightTrendMetric(args: {
+  latest: StrengthSessionPerformance | null;
+  previous: StrengthSessionPerformance | null;
+}): MetricDatum | null {
+  const latestWeight = positive(args.latest?.weight);
+  const previousWeight = positive(args.previous?.weight);
+  const normalizedUnit = args.latest?.unit ?? args.previous?.unit ?? null;
+
+  if (latestWeight <= 0 || previousWeight <= 0) {
+    return null;
+  }
+
+  const zeroWeightLabel = normalizedUnit === "kg"
+    ? "0 kg"
+    : normalizedUnit === "lb" || normalizedUnit === "lbs"
+      ? "0 lb"
+      : "0";
+
+  if (latestWeight === previousWeight) {
+    return {
+      label: "Weight",
+      value: zeroWeightLabel,
+      valuePrefix: "\u2192",
+      valueTone: "muted",
+    };
+  }
+
+  const delta = latestWeight - previousWeight;
+  return {
+    label: "Weight",
+    value: formatWeight(Math.abs(delta), normalizedUnit) ?? `${Math.round(Math.abs(delta))}`,
+    valuePrefix: delta > 0 ? "\u2191" : "\u2193",
+    valueTone: delta > 0 ? "success" : "danger",
+  };
+}
+
 function hasMeaningfulCardioSet(measurementType: string | null | undefined, row: NormalizedSet) {
   const normalized = String(measurementType ?? "").trim().toLowerCase();
   const duration = positive(row.durationSeconds);
@@ -235,8 +401,10 @@ function resolveCardioPrimaryMetric(measurementType: string | null | undefined):
   return "effort";
 }
 
-async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string) {
-  return supabaseServer()
+async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string, client?: SupabaseClient) {
+  const supabase = client ?? supabaseServer();
+
+  return supabase
     .from("sets")
     .select("set_index, weight, reps, duration_seconds, distance, distance_unit, calories, weight_unit, session_exercise:session_exercises!inner(session_id, exercise_id, session:sessions!inner(performed_at, status))")
     .eq("user_id", userId)
@@ -245,8 +413,8 @@ async function loadHistoricalSetRows(userId: string, canonicalExerciseId: string
     .eq("session_exercise.session.status", "completed");
 }
 
-async function repairMissingExerciseIdLinks(userId: string, canonicalExerciseId: string): Promise<void> {
-  const supabase = supabaseServer();
+async function repairMissingExerciseIdLinks(userId: string, canonicalExerciseId: string, client?: SupabaseClient): Promise<void> {
+  const supabase = client ?? supabaseServer();
   const { data: orphanRows, error: orphanError } = await supabase
     .from("session_exercises")
     .select("id, routine_day_exercise:routine_day_exercises!inner(exercise_id)")
@@ -317,16 +485,17 @@ function buildFrequencyMetric(performedAtValues: string[]): MetricDatum {
   }, 0);
 
   return {
-    label: "30D Frequency",
+    label: "30 Days",
     value: `${count} ${count === 1 ? "session" : "sessions"}`,
-    timeframe: "last 30 days",
   };
 }
 
-function buildProgressEntries<T extends { performedAt: string; summary: string | null; setCount: number }>(performances: T[]) {
+function buildProgressEntries<T extends { performedAt: string; summary: string | null; setCount: number; setSummaries: string[] }>(performances: T[]) {
   return performances.slice(0, 3).map((performance) => ({
     label: formatDateShort(performance.performedAt),
-    value: performance.summary ?? "Logged",
+    value: performance.setSummaries.length > 0
+      ? performance.setSummaries.join(" | ")
+      : (performance.summary ?? "Logged"),
     context: `${performance.setCount} ${performance.setCount === 1 ? "set" : "sets"}`,
   }));
 }
@@ -355,8 +524,16 @@ function buildStrengthSessionPerformances(rows: NormalizedSet[]): StrengthSessio
       const bodyweightReps = rankedRows.reduce((max, row) => Math.max(max, positive(row.weight) === 0 ? positive(row.reps) : 0), 0);
 
       return {
+        sessionId: sessionRows[0]?.sessionId ?? "",
         performedAt: sessionRows[0]?.performedAt ?? "",
         summary: formatWeightReps(bestRow?.weight ?? null, bestRow?.reps ?? null, bestRow?.weightUnit ?? null),
+        setSummaries: [...sessionRows]
+          .sort((a, b) => a.setIndex - b.setIndex)
+          .map((row) => formatSetMeasurementSummary({
+            reps: row.reps,
+            weight: row.weight,
+            weightUnit: row.weightUnit,
+          })),
         weight: positive(bestRow?.weight),
         reps: positive(bestRow?.reps),
         unit: bestRow?.weightUnit ?? null,
@@ -377,6 +554,7 @@ export function buildStrengthProgressDelta(
 
 function buildCardioSessionPerformances(args: {
   sessionAggregates: Array<{
+    sessionId: string;
     performedAt: string | null;
     durationSeconds: number;
     distance: number;
@@ -384,30 +562,34 @@ function buildCardioSessionPerformances(args: {
     calories: number;
     setCount: number;
   }>;
-}) {
-  return args.sessionAggregates
-    .map((aggregate) => {
-      if (!aggregate.performedAt) return null;
-      const pace = getDisplayPace(aggregate.durationSeconds, aggregate.distance, aggregate.distanceUnit);
-      return {
-        performedAt: aggregate.performedAt,
-        summary: formatCardioSummary({
-          durationSeconds: aggregate.durationSeconds,
-          distance: aggregate.distance,
-          calories: aggregate.calories,
-          paceSecondsPerUnit: pace?.paceSecondsPerUnit ?? null,
-          distanceUnit: pace?.distanceUnit ?? aggregate.distanceUnit,
-        }),
+}): CardioSessionPerformance[] {
+  const performances: CardioSessionPerformance[] = [];
+
+  for (const aggregate of args.sessionAggregates) {
+    if (!aggregate.performedAt) continue;
+
+    const pace = getDisplayPace(aggregate.durationSeconds, aggregate.distance, aggregate.distanceUnit);
+    performances.push({
+      sessionId: aggregate.sessionId,
+      performedAt: aggregate.performedAt,
+      summary: formatCardioSummary({
         durationSeconds: aggregate.durationSeconds,
         distance: aggregate.distance,
-        distanceUnit: aggregate.distanceUnit,
         calories: aggregate.calories,
         paceSecondsPerUnit: pace?.paceSecondsPerUnit ?? null,
-        setCount: aggregate.setCount,
-      } satisfies CardioSessionPerformance;
-    })
-    .filter((performance): performance is CardioSessionPerformance => Boolean(performance?.performedAt))
-    .sort((a, b) => b.performedAt.localeCompare(a.performedAt));
+        distanceUnit: pace?.distanceUnit ?? aggregate.distanceUnit,
+      }),
+      setSummaries: [],
+      durationSeconds: aggregate.durationSeconds,
+      distance: aggregate.distance,
+      distanceUnit: aggregate.distanceUnit,
+      calories: aggregate.calories,
+      paceSecondsPerUnit: pace?.paceSecondsPerUnit ?? null,
+      setCount: aggregate.setCount,
+    });
+  }
+
+  return performances.sort((a, b) => b.performedAt.localeCompare(a.performedAt));
 }
 
 export function buildCardioProgressDelta(
@@ -424,29 +606,29 @@ function buildQuickMetrics(args: {
   lastSummary: string | null;
   bestSummary: string | null;
   prCount: number;
-  prLabel: string;
   totalSessions: number;
   totalSets: number;
 }) {
   return [
     {
       label: "Last",
-      value: args.lastPerformedAt ? formatDateShort(args.lastPerformedAt) : "Not yet",
-      timeframe: args.lastSummary ?? null,
+      value: args.lastSummary ?? (args.lastPerformedAt ? formatDateShort(args.lastPerformedAt) : "Not yet"),
     },
     {
-      label: args.kind === "cardio" ? "Best" : "Best Set",
+      label: "Best",
       value: args.bestSummary ?? "Not yet",
     },
     {
       label: "PRs",
       value: `${args.prCount}`,
-      timeframe: args.prCount > 0 ? args.prLabel : (args.kind === "cardio" ? "Not tracked" : "No PRs yet"),
     },
     {
       label: "Sessions",
       value: `${args.totalSessions}`,
-      timeframe: args.totalSets > 0 ? `${args.totalSets} ${args.totalSets === 1 ? "set" : "sets"} logged` : null,
+    },
+    {
+      label: "Sets",
+      value: `${args.totalSets}`,
     },
   ] satisfies MetricDatum[];
 }
@@ -508,16 +690,8 @@ function buildStrengthPerformanceMetrics(args: {
   const estimatedOneRepMax = formatEstimatedOneRepMax(args.prEst1rm, args.unit);
   if (estimatedOneRepMax) {
     metrics.push({
-      label: "e1RM",
+      label: "Max Est.",
       value: estimatedOneRepMax,
-    });
-  }
-
-  const recentVolume = buildStrengthVolumeMetric(args.rows, 28, args.unit);
-  if (recentVolume) {
-    metrics.push({
-      label: "4W Load",
-      value: recentVolume,
     });
   }
 
@@ -673,8 +847,12 @@ function runDevStatsVerification(exercise: ExerciseInfoExercise, stats: Exercise
   }
 }
 
-export async function getExerciseInfoBase(exerciseId: string, userId: string): Promise<ExerciseInfoExercise | null> {
-  const supabase = supabaseServer();
+export async function getExerciseInfoBase(
+  exerciseId: string,
+  userId: string,
+  client?: SupabaseClient,
+): Promise<ExerciseInfoExercise | null> {
+  const supabase = client ?? supabaseServer();
 
   const { data, error } = await supabase
     .from("exercises")
@@ -735,11 +913,12 @@ export async function getExerciseInfoStats(
   measurementType?: string | null,
   defaultUnit?: string | null,
   requestId?: string,
+  client?: SupabaseClient,
 ): Promise<ExerciseStatsVM | null> {
   try {
     const [statsLookup, historicalSetRows] = await Promise.all([
-      getExerciseStatsForExercise(userId, canonicalExerciseId),
-      loadHistoricalSetRows(userId, canonicalExerciseId),
+      getExerciseStatsForExercise(userId, canonicalExerciseId, client),
+      loadHistoricalSetRows(userId, canonicalExerciseId, client),
     ]);
 
     const statsLookupError: ExerciseStatsLookupError | null = statsLookup.error;
@@ -753,8 +932,8 @@ export async function getExerciseInfoStats(
 
     let historicalRows = historicalSetRows.data ?? [];
     if (!historicalRows.length) {
-      await repairMissingExerciseIdLinks(userId, canonicalExerciseId);
-      const repairedRows = await loadHistoricalSetRows(userId, canonicalExerciseId);
+      await repairMissingExerciseIdLinks(userId, canonicalExerciseId, client);
+      const repairedRows = await loadHistoricalSetRows(userId, canonicalExerciseId, client);
       historicalRows = repairedRows.data ?? historicalRows;
     }
 
@@ -796,6 +975,7 @@ export async function getExerciseInfoStats(
         const distance = distanceUnit ? (distanceByUnit.get(distanceUnit) ?? 0) : 0;
         return {
           performedAt: rows[0]?.performedAt ?? null,
+          sessionId: rows[0]?.sessionId ?? "",
           setIndex: Math.max(...rows.map((row) => row.setIndex), 0),
           durationSeconds,
           distance,
@@ -853,6 +1033,17 @@ export async function getExerciseInfoStats(
       );
       const performances = buildStrengthSessionPerformances(normalizedRows);
       const progressDelta = buildStrengthProgressDelta(performances[0] ?? null, performances[1] ?? null);
+      const trendMetric = buildExerciseInfoRepTrendMetric({
+        latest: performances[0] ?? null,
+        previous: performances[1] ?? null,
+      }) ?? buildExerciseInfoTrendMetric(progressDelta, "0", {
+        label: "REPS",
+        stripPattern: /\s+reps?$/i,
+      });
+      const weightTrendMetric = buildExerciseInfoWeightTrendMetric({
+        latest: performances[0] ?? null,
+        previous: performances[1] ?? null,
+      });
       const presentationKind = resolveStrengthPresentationKind({ bestWeight, bestBodyweightReps });
       const performanceMetrics = buildStrengthPerformanceMetrics({
         presentationKind,
@@ -892,14 +1083,14 @@ export async function getExerciseInfoStats(
           lastSummary,
           bestSummary: bestSetSummary,
           prCount: prCounts.total,
-          prLabel,
           totalSessions: totals.sessions,
           totalSets: totals.sets,
         }),
         performanceMetrics,
         progress: {
           metrics: [
-            ...(progressDelta ? [{ label: "Vs Previous", value: progressDelta }] : []),
+            ...(trendMetric ? [trendMetric] : []),
+            ...(weightTrendMetric ? [weightTrendMetric] : []),
             buildFrequencyMetric(performances.map((performance) => performance.performedAt)),
           ],
           performances: buildProgressEntries(performances),
@@ -970,8 +1161,22 @@ export async function getExerciseInfoStats(
       paceSecondsPerUnit: latestSessionAggregate ? aggregatePace(latestSessionAggregate)?.paceSecondsPerUnit : null,
       distanceUnit: distanceUnitForPace,
     });
-    const performances = buildCardioSessionPerformances({ sessionAggregates });
+    const performances = buildCardioSessionPerformances({ sessionAggregates }).map((performance) => ({
+      ...performance,
+      setSummaries: (rowsBySessionId.get(performance.sessionId) ?? [])
+        .sort((a, b) => a.setIndex - b.setIndex)
+        .map((row) => formatSetMeasurementSummary({
+          reps: row.reps,
+          weight: row.weight,
+          weightUnit: row.weightUnit,
+          durationSeconds: row.durationSeconds,
+          distance: row.distance,
+          distanceUnit: row.distanceUnit,
+          calories: row.calories,
+        })),
+    }));
     const progressDelta = buildCardioProgressDelta(performances[0] ?? null, performances[1] ?? null, measurementType);
+    const trendMetric = buildExerciseInfoTrendMetric(progressDelta, "0");
     const presentationKind = resolveCardioPresentationKind(measurementType);
     const performanceMetrics = buildCardioPerformanceMetrics({
       presentationKind,
@@ -1027,14 +1232,13 @@ export async function getExerciseInfoStats(
         lastSummary,
         bestSummary: bestSetSummary,
         prCount: 0,
-        prLabel: "",
         totalSessions: sessionAggregates.length,
         totalSets: meaningfulRows.length,
       }),
       performanceMetrics,
       progress: {
         metrics: [
-          ...(progressDelta ? [{ label: "Vs Previous", value: progressDelta }] : []),
+          ...(trendMetric ? [trendMetric] : []),
           buildFrequencyMetric(performances.map((performance) => performance.performedAt)),
         ],
         performances: buildProgressEntries(performances),
@@ -1060,13 +1264,24 @@ export function resolveExerciseInfoImages(exercise: ExerciseInfoExercise): Exerc
   };
 }
 
-export async function getExerciseInfoPayload(exerciseId: string, userId: string): Promise<ExerciseInfoPayload | null> {
-  const exercise = await getExerciseInfoBase(exerciseId, userId);
+export async function getExerciseInfoPayload(
+  exerciseId: string,
+  userId: string,
+  client?: SupabaseClient,
+): Promise<ExerciseInfoPayload | null> {
+  const exercise = await getExerciseInfoBase(exerciseId, userId, client);
   if (!exercise) {
     return null;
   }
 
-  const stats = await getExerciseInfoStats(userId, exercise.exercise_id, exercise.measurement_type, exercise.default_unit);
+  const stats = await getExerciseInfoStats(
+    userId,
+    exercise.exercise_id,
+    exercise.measurement_type,
+    exercise.default_unit,
+    undefined,
+    client,
+  );
   const exerciseWithImages = resolveExerciseInfoImages(exercise);
 
   if (process.env.NODE_ENV === "development"

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="stretch-accent" x1="96" y1="88" x2="404" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6FE6D5"/>
+      <stop offset="1" stop-color="#2FAF9A"/>
+    </linearGradient>
+    <linearGradient id="stretch-body" x1="188" y1="96" x2="330" y2="332" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3FBF9"/>
+      <stop offset="1" stop-color="#A9C1BE"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="256" cy="432" rx="154" ry="24" fill="#071018" fill-opacity=".7"/>
+  <path d="M92 366C141 350 182 344 223 344H421" stroke="url(#stretch-accent)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M239 161C252 147 271 145 287 155C303 165 308 186 300 203L275 252C270 263 261 271 249 275L217 286" stroke="url(#stretch-body)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M214 279L172 327" stroke="url(#stretch-body)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M247 280L311 341" stroke="url(#stretch-body)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M308 341L390 353" stroke="url(#stretch-accent)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M215 287L140 356" stroke="url(#stretch-accent)" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="267" cy="118" r="34" fill="#091521" stroke="url(#stretch-accent)" stroke-width="14"/>
+  <path d="M188 333L151 333" stroke="#F3FBF9" stroke-opacity=".88" stroke-width="16" stroke-linecap="round"/>
+  <path d="M390 353L427 353" stroke="#F3FBF9" stroke-opacity=".88" stroke-width="16" stroke-linecap="round"/>
+</svg>

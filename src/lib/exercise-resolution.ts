@@ -1,15 +1,21 @@
 import "server-only";
 
 import { listExercises } from "@/lib/exercises";
-import { defaultUnitForSessionExerciseMeasurementType, resolveSessionExerciseMeasurementType } from "@/lib/session-exercise-measurement";
+import {
+  defaultUnitForSessionExerciseMeasurementType,
+  resolveSessionExerciseMeasurementType,
+  type SessionExerciseDefaultUnit,
+  type SessionExerciseMeasurementType,
+} from "@/lib/session-exercise-measurement";
+import { isMeasurementOptionalExercise } from "@/lib/exercise-metadata";
 import type { ExerciseRow } from "@/types/db";
 
 type ResolvedExercise = {
   id: string;
   name: string;
   slug: string | null;
-  measurementType: "reps" | "time" | "distance" | "time_distance";
-  defaultUnit: "reps" | "time" | "distance" | "time_distance";
+  measurementType: SessionExerciseMeasurementType;
+  defaultUnit: SessionExerciseDefaultUnit;
 };
 
 function normalizeExerciseText(value: string) {
@@ -47,7 +53,9 @@ export async function resolveCanonicalExercise(input: {
     return null;
   }
 
-  const measurementType = resolveSessionExerciseMeasurementType(matched.measurement_type);
+  const measurementType = isMeasurementOptionalExercise(matched)
+    ? "none"
+    : resolveSessionExerciseMeasurementType(matched.measurement_type);
   const defaultUnit = defaultUnitForSessionExerciseMeasurementType(measurementType);
 
   return {

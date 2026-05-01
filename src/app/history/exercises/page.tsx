@@ -2,11 +2,13 @@ import { isNotFoundError } from "next/dist/client/components/not-found";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { cookies } from "next/headers";
 import { HistoryRouteScaffold } from "@/components/history/HistoryRouteScaffold";
+import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { SharedSectionShell } from "@/components/ui/app/SharedSectionShell";
 import { appTokens } from "@/components/ui/app/tokens";
 import { getExercisesWithStatsForUser } from "@/lib/exercises-browser";
 import { getHistoryPreviewExerciseRows } from "@/lib/history-preview-fixtures";
 import { isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
+import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ExerciseBrowserClient } from "./ExerciseBrowserClient";
 
 export const dynamic = "force-dynamic";
@@ -28,21 +30,26 @@ function ExercisesBrowserError() {
 }
 
 export default async function HistoryExercisesPage() {
+  const diagnostics = new LoadingDiagnosticsCollector("/history/exercises");
   const initialViewMode = resolveInitialViewMode();
 
   try {
     const rows = isHistoryPreviewActiveForRequest()
       ? getHistoryPreviewExerciseRows()
-      : await getExercisesWithStatsForUser();
+      : await diagnostics.measure("history.exercises.fetch", () => getExercisesWithStatsForUser(), {
+        blockingReason: "Waiting for exercise history stats.",
+        timeoutMs: 7000,
+      });
 
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="History"
-        subtitle={`${rows.length} tracked exercises`}
+        title="Exercises"
         activeTab="exercises"
+        headerChrome="controlsOnly"
         floatingHeaderSlot={<div id="history-exercises-floating-header" />}
       >
+        <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <ExerciseBrowserClient rows={rows} initialViewMode={initialViewMode} />
       </HistoryRouteScaffold>
     );
@@ -56,10 +63,11 @@ export default async function HistoryExercisesPage() {
     return (
       <HistoryRouteScaffold
         mode="overview"
-        title="History"
-        subtitle="Exercise history unavailable"
+        title="Exercises"
         activeTab="exercises"
+        headerChrome="controlsOnly"
       >
+        <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
         <ExercisesBrowserError />
       </HistoryRouteScaffold>
     );

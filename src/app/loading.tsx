@@ -6,6 +6,8 @@ export default function AppLoading() {
       label="Opening FawxzzyFitness"
       detail="Preparing your start screen."
       variant="boot"
+      gateName="app.boot.root"
+      blockingReason="Opening the root app shell."
     />
   );
 }

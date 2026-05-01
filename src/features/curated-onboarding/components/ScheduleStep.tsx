@@ -1,3 +1,4 @@
+import { appTokens } from "@/components/ui/app/tokens";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { DAYS_PER_WEEK_OPTIONS, SESSION_LENGTH_OPTIONS } from "../constants.ts";
 import type { CuratedOnboardingData } from "../types.ts";
@@ -12,9 +13,9 @@ export function ScheduleStep({
   onSessionLengthChange: (value: number) => void;
 }) {
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Days per week</p>
+    <div className={appTokens.curatedLooseStack}>
+      <div className={appTokens.curatedSubsectionStack}>
+        <p className={appTokens.curatedSectionLabel}>Days per week</p>
         <SegmentedControl
           value={data.daysPerWeek ? String(data.daysPerWeek) : ""}
           onChange={(value) => onDaysChange(Number(value))}
@@ -26,8 +27,8 @@ export function ScheduleStep({
         />
       </div>
 
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Session length</p>
+      <div className={appTokens.curatedSubsectionStack}>
+        <p className={appTokens.curatedSectionLabel}>Session length</p>
         <SegmentedControl
           value={data.sessionLengthMinutes ? String(data.sessionLengthMinutes) : ""}
           onChange={(value) => onSessionLengthChange(Number(value))}

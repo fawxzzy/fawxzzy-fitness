@@ -3,10 +3,12 @@ import { AppNav } from "@/components/AppNav";
 import { ContentRail } from "@/components/layout/ContentRail";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { ScrollScreenWithBottomActions } from "@/components/layout/ScrollScreenWithBottomActions";
+import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { getAppButtonClassName } from "@/components/ui/appButtonClasses";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RoutinesPageClient } from "@/app/routines/RoutinesPageClient";
 import { requireUser } from "@/lib/auth";
+import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 import { buildCanonicalDaySummaries } from "@/lib/routine-day-loader";
 import { getRoutineDayComputation, getTimeZoneDayWindow } from "@/lib/routines";
@@ -59,30 +61,56 @@ export default async function RoutinesPage({
 }: {
   searchParams?: Promise<{ view?: string }>;
 }) {
+  const diagnostics = new LoadingDiagnosticsCollector("/routines");
   const resolvedSearchParams = await searchParams;
   const initialRoutineListOpen = resolvedSearchParams?.view === "list";
-  const user = await requireUser();
-  const profile = await ensureProfile(user.id);
+  const user = await requireUser({
+    gate: "routines.auth.session",
+    route: "/routines",
+    blockingReason: "Waiting for authenticated session before loading routines.",
+    timeoutMs: 5000,
+    collector: diagnostics,
+  });
+  const profile = await diagnostics.measure("routines.profile.bootstrap", () => ensureProfile(user.id), {
+    blockingReason: "Waiting for routines profile bootstrap.",
+    metadata: {
+      userId: user.id,
+    },
+    timeoutMs: 5000,
+  });
   const supabase = supabaseServer();
 
-  const { data } = await supabase
+  const { data } = await diagnostics.measure("routines.list.fetch", async () => await supabase
     .from("routines")
     .select("id, user_id, name, cycle_length_days, start_date, timezone, updated_at, weight_unit")
     .eq("user_id", user.id)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false }), {
+    blockingReason: "Waiting for routines overview list.",
+    metadata: {
+      userId: user.id,
+    },
+    timeoutMs: 7000,
+  });
 
   const routines = (data ?? []) as RoutineRow[];
   const activeRoutine = routines.find((routine) => routine.id === profile.active_routine_id) ?? routines[0] ?? null;
   const routineIds = routines.map((routine) => routine.id);
 
   const { data: allRoutineDaysData } = routineIds.length
-    ? await supabase
+    ? await diagnostics.measure("routines.days.fetch", async () => await supabase
       .from("routine_days")
-      .select("id, routine_id, is_rest")
+      .select("id, user_id, routine_id, day_index, name, is_rest, notes")
       .in("routine_id", routineIds)
-      .eq("user_id", user.id)
+      .eq("user_id", user.id), {
+      blockingReason: "Waiting for routines day summaries.",
+      metadata: {
+        routineCount: routineIds.length,
+        userId: user.id,
+      },
+      timeoutMs: 7000,
+    })
     : { data: [] };
-  const allRoutineDays = (allRoutineDaysData ?? []) as Array<Pick<RoutineDayRow, "id" | "routine_id" | "is_rest">>;
+  const allRoutineDays = (allRoutineDaysData ?? []) as RoutineDayRow[];
 
   const allRoutineDayIds = allRoutineDays.map((day) => day.id);
   const { data: allRoutineDayExercisesData } = allRoutineDayIds.length
@@ -115,14 +143,9 @@ export default async function RoutinesPage({
   let activeRoutineExerciseSummaries = new Map<string, ReturnType<typeof getRestDayExerciseCountSummaryFromCanonicalDay>>();
 
   if (activeRoutine) {
-    const { data: routineDays } = await supabase
-      .from("routine_days")
-      .select("id, user_id, routine_id, day_index, name, is_rest, notes")
-      .eq("routine_id", activeRoutine.id)
-      .eq("user_id", user.id)
-      .order("day_index", { ascending: true });
-
-    activeRoutineDays = (routineDays ?? []) as RoutineDayRow[];
+    activeRoutineDays = allRoutineDays
+      .filter((day) => day.routine_id === activeRoutine.id)
+      .sort((left, right) => left.day_index - right.day_index);
 
     if (activeRoutineDays.length > 0) {
       const { data: routineDayExercises } = await supabase
@@ -232,6 +255,7 @@ export default async function RoutinesPage({
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="viewDay">
+      <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <ScrollScreenWithBottomActions
         topChrome={<AppNav mode="topChrome" />}
         floatingHeader={(

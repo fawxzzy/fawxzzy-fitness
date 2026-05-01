@@ -36,9 +36,9 @@ function createSemanticText<TDefault extends ElementType>(
   };
 }
 
-export const TitleText = createSemanticText("title", "span", "font-semibold leading-tight tracking-[-0.02em]");
-export const SubtitleText = createSemanticText("subtitle", "span", "text-sm leading-snug");
-export const AccentSubtitleText = createSemanticText("accentSubtitle", "span", "text-sm font-medium leading-snug");
-export const EyebrowText = createSemanticText("eyebrow", "span", "");
+export const TitleText = createSemanticText("title", "span", "block pl-[2px] pr-px py-px font-semibold leading-tight tracking-[-0.02em]");
+export const SubtitleText = createSemanticText("subtitle", "span", "block px-px py-px text-sm leading-snug");
+export const AccentSubtitleText = createSemanticText("accentSubtitle", "span", "block px-px py-px text-sm font-medium leading-snug");
+export const EyebrowText = createSemanticText("eyebrow", "span", "block px-px py-px");
 
 export const textRoles = textRoleClassNames;

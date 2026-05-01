@@ -5,18 +5,33 @@ import { SettingsAccordionClient } from "@/components/settings/SettingsAccordion
 import { SettingsBottomSignOutAction } from "@/components/settings/SettingsBottomSignOutAction";
 import { SettingsFloatingHeader } from "@/components/settings/SettingsFloatingHeader";
 import { SettingsScreenStateProvider } from "@/components/settings/SettingsScreenState";
+import { LoadingDiagnosticsClientBridge } from "@/components/shared/LoadingDiagnosticsClientBridge";
 import { MainTabScreen } from "@/components/ui/app/MainTabScreen";
 import { appTokens } from "@/components/ui/app/tokens";
 import { SurfaceCard } from "@/components/ui/SurfaceCard";
 import { requireUser } from "@/lib/auth";
 import { optionalEnv } from "@/lib/env";
+import { LoadingDiagnosticsCollector } from "@/lib/loading-diagnostics";
 import { ensureProfile } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const user = await requireUser();
-  const profile = await ensureProfile(user.id);
+  const diagnostics = new LoadingDiagnosticsCollector("/settings");
+  const user = await requireUser({
+    gate: "settings.auth.session",
+    route: "/settings",
+    blockingReason: "Waiting for authenticated session before opening Settings.",
+    timeoutMs: 5000,
+    collector: diagnostics,
+  });
+  const profile = await diagnostics.measure("settings.profile.bootstrap", () => ensureProfile(user.id), {
+    blockingReason: "Waiting for Settings profile bootstrap.",
+    metadata: {
+      userId: user.id,
+    },
+    timeoutMs: 5000,
+  });
   const rawMetadata = user.user_metadata && typeof user.user_metadata === "object" && !Array.isArray(user.user_metadata)
     ? user.user_metadata as Record<string, unknown>
     : {};
@@ -31,6 +46,7 @@ export default async function SettingsPage() {
 
   return (
     <MainTabScreen topNavMode="none" ambientPreset="modal">
+      <LoadingDiagnosticsClientBridge entries={diagnostics.snapshot()} />
       <SettingsScreenStateProvider>
         <ScrollScreenWithBottomActions
           topChrome={<AppNav mode="topChrome" />}

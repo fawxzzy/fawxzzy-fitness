@@ -50,9 +50,11 @@ function normalizePositive(value: number | null | undefined): number {
 export function evaluatePrSummaries(sets: PrEvaluationSet[]): {
   sessionCountsById: Map<string, PrCountByCategory>;
   exerciseSummaryById: Map<string, ExercisePrSummary>;
+  sessionPrExerciseIdsById: Map<string, Set<string>>;
 } {
   const sessionCountsById = new Map<string, PrCountByCategory>();
   const exerciseSummaryById = new Map<string, ExercisePrSummary>();
+  const sessionPrExerciseIdsById = new Map<string, Set<string>>();
   const bestsByExerciseId = new Map<string, ExercisePrBests>();
 
   const orderedSets = [...sets].sort(compareChronological);
@@ -69,28 +71,32 @@ export function evaluatePrSummaries(sets: PrEvaluationSet[]): {
     };
 
     const sessionCounts = sessionCountsById.get(set.sessionId) ?? emptyPrCounts();
+    const sessionPrExerciseIds = sessionPrExerciseIdsById.get(set.sessionId) ?? new Set<string>();
 
     if (weight > 0 && weight > bests.bestWeight) {
       incrementPrCount(sessionCounts, "weight");
       incrementPrCount(exerciseSummary.counts, "weight");
       bests.bestWeight = weight;
+      sessionPrExerciseIds.add(set.exerciseId);
     }
 
     if (weight === 0 && reps > bests.bestBodyweightReps) {
       incrementPrCount(sessionCounts, "reps");
       incrementPrCount(exerciseSummary.counts, "reps");
       bests.bestBodyweightReps = reps;
+      sessionPrExerciseIds.add(set.exerciseId);
     }
 
     exerciseSummary.bestWeight = bests.bestWeight;
     exerciseSummary.bestBodyweightReps = bests.bestBodyweightReps;
 
     sessionCountsById.set(set.sessionId, sessionCounts);
+    sessionPrExerciseIdsById.set(set.sessionId, sessionPrExerciseIds);
     exerciseSummaryById.set(set.exerciseId, exerciseSummary);
     bestsByExerciseId.set(set.exerciseId, bests);
   }
 
-  return { sessionCountsById, exerciseSummaryById };
+  return { sessionCountsById, exerciseSummaryById, sessionPrExerciseIdsById };
 }
 
 function formatPrCategory(count: number, label: "Rep PR" | "Weight PR") {

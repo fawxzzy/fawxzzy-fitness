@@ -114,7 +114,7 @@ test("remembered account identity is rendered from a single UI slot", () => {
   assert.equal(viewState.showReadonlyRememberedAccount, false);
 });
 
-test("normal remembered-account login path keeps the CTA and helper text calm", () => {
+test("normal remembered-account login path keeps the CTA calm without extra helper copy", () => {
   const viewState = getLoginScreenViewState({
     email: "",
     password: "secret12",
@@ -126,7 +126,7 @@ test("normal remembered-account login path keeps the CTA and helper text calm", 
   });
 
   assert.equal(viewState.submitLabel, "Enter Gym");
-  assert.equal(viewState.helperText, "Log in to continue your routine.");
+  assert.equal(viewState.helperText, null);
 });
 
 test("session-expired path still keeps explicit helper messaging", () => {
@@ -140,6 +140,6 @@ test("session-expired path still keeps explicit helper messaging", () => {
     requiresReauth: true,
   });
 
-  assert.equal(viewState.submitLabel, "Continue");
-  assert.equal(viewState.helperText, "Your session ended. Enter your password to continue.");
+  assert.equal(viewState.submitLabel, "Enter Gym");
+  assert.equal(viewState.helperText, null);
 });

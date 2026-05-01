@@ -22,6 +22,26 @@ const expectedBoardHashes = {
 
 const boardNames = [...mobileRegressionBoardFamilies.map((reviewFamily) => reviewFamily.boardFile), "mega-board.png"];
 
+type ScenarioCapture = {
+  width: number;
+  file: string;
+  imageWidth: number;
+  imageHeight: number;
+  background: readonly [number, number, number];
+  outline: readonly [number, number, number];
+  accent: readonly [number, number, number];
+};
+
+type ManifestScenarioInput = {
+  id: string;
+  name: string;
+  family: string;
+  route: string;
+  screen: string;
+  fixture: string;
+  captures: ReadonlyArray<ScenarioCapture>;
+};
+
 const scenarioFixtures = [
   {
     id: "exercise-alpha",
@@ -137,7 +157,7 @@ const scenarioFixtures = [
   },
 ] as const;
 
-async function runPython(args: string[], options?: { cwd?: string; env?: NodeJS.ProcessEnv }) {
+async function runPython(args: string[], options?: { cwd?: string; env?: Partial<NodeJS.ProcessEnv> }) {
   return await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
     const child = spawn("python", args, {
       cwd: options?.cwd ?? repoRoot,
@@ -170,7 +190,7 @@ async function makeFixtureRoot(t: TestContext) {
   return fixtureRoot;
 }
 
-function buildManifest(scenarios = scenarioFixtures) {
+function buildManifest(scenarios: ReadonlyArray<ManifestScenarioInput> = scenarioFixtures) {
   return {
     generatedAt: "2026-04-11T00:00:00.000Z",
     baseUrl: "http://127.0.0.1:3000",
@@ -191,7 +211,7 @@ async function writeManifest(root: string, manifest: object) {
   await writeFile(path.join(root, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 }
 
-async function writeSyntheticCaptures(root: string, scenarios = scenarioFixtures) {
+async function writeSyntheticCaptures(root: string, scenarios: ReadonlyArray<ManifestScenarioInput> = scenarioFixtures) {
   const capturePayload = scenarios.flatMap((scenario) => scenario.captures);
   const generator = `
 import json

@@ -7,6 +7,7 @@ import {
   isHistoryPreviewEnabledInEnv,
 } from "@/lib/history-preview-fixtures";
 import { isHistoryPreviewAvailableForRequest, isHistoryPreviewActiveForRequest } from "@/lib/history-preview.server";
+import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +36,15 @@ export default function DevHistoryPreviewPage() {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold tracking-[-0.03em]">Status</h2>
           <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.92)]">
-            Env flag: <code>{HISTORY_PREVIEW_FLAG_ENV}=1</code>
-            {" | "}
-            Request host allowed: <strong>{previewAvailable ? "yes" : "no"}</strong>
-            {" | "}
-            Preview cookie active: <strong>{previewActive ? "yes" : "no"}</strong>
+            <SignatureInlineList
+              items={[
+                <>Env flag: <code>{HISTORY_PREVIEW_FLAG_ENV}=1</code></>,
+                <>Request host allowed: <strong>{previewAvailable ? "yes" : "no"}</strong></>,
+                <>Preview cookie active: <strong>{previewActive ? "yes" : "no"}</strong></>,
+              ]}
+              separator="pipe"
+              className="align-middle"
+            />
           </p>
           {!isHistoryPreviewEnabledInEnv() ? (
             <p className="text-sm leading-6 text-[rgb(var(--text-secondary)/0.92)]">

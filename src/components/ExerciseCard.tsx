@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { Glass } from "@/components/ui/Glass";
 import { ChevronRightIcon } from "@/components/ui/Chevrons";
+import { AccentDotSeparatedText } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { textRoles } from "@/components/ui/text-roles";
 import { type CardSemanticTone, cardAccentRailClassNames, cardBadgeToneClassNames, cardMediaToneClassNames, cardShellToneClassNames } from "@/components/cardSemanticTones";
@@ -13,6 +14,8 @@ export type ExerciseCardButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElemen
   [key: `data-${string}`]: string | number | boolean | undefined;
 };
 export type ExerciseCardMediaLayout = "rail" | "inline";
+export type ExerciseCardMediaLeftCornerMode = "sharp" | "top-rounded";
+export type ExerciseCardRightIconMode = "rail" | "overlay";
 
 const densityByVariant: Record<ExerciseCardVariant, ExerciseCardDensity> = {
   standard: "detailed",
@@ -37,18 +40,18 @@ const densityStyles: Record<ExerciseCardDensity, {
   compact: {
     shell: "min-h-[var(--exercise-row-min-height-compact)] py-[var(--exercise-row-shell-padding-y-compact)] pr-[var(--exercise-row-shell-padding-x)]",
     shellWithMedia: "pl-0",
-    titleClamp: "line-clamp-2",
-    subtitleClamp: "line-clamp-2",
+    titleClamp: "",
+    subtitleClamp: "",
     titleSize: "text-[0.92rem]",
     contentGap: "gap-0.5",
     goalRow: appTokens.workoutCardGoalRowCompact,
-    childrenSpacing: "mt-[0.1875rem]",
+    childrenSpacing: "mt-[0.125rem]",
   },
   detailed: {
     shell: "min-h-[var(--exercise-row-min-height-detailed)] py-[var(--exercise-row-shell-padding-y-detailed)] pr-[var(--exercise-row-shell-padding-x)]",
     shellWithMedia: "pl-0",
-    titleClamp: "line-clamp-2",
-    subtitleClamp: "line-clamp-3",
+    titleClamp: "",
+    subtitleClamp: "",
     titleSize: "text-[clamp(1rem,2.35vw,1.05rem)]",
     contentGap: "gap-1",
     goalRow: appTokens.workoutCardGoalRowDetailed,
@@ -57,24 +60,24 @@ const densityStyles: Record<ExerciseCardDensity, {
 };
 
 export const EXERCISE_CARD_LABEL_CLASS_NAME = appTokens.measurementLabel;
-export const EXERCISE_CARD_SUMMARY_CLASS_NAME = "text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]";
-export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = appTokens.workoutCardDetailCompact;
+export const EXERCISE_CARD_SUMMARY_CLASS_NAME = cn("text-safe-wrap pr-0.5 text-[12px] leading-[1.3] [text-wrap:pretty]", appTokens.exerciseCardSummaryTextPad);
+export const EXERCISE_CARD_TERTIARY_TEXT_CLASS_NAME = cn(appTokens.workoutCardDetailCompact, appTokens.exerciseCardTertiaryTextPad);
 export const EXERCISE_CARD_BADGE_CLASS_NAME = cn(appTokens.badgeBase, "min-h-[1.5rem] px-2.5 py-1 text-[10px] tracking-[0.12em]");
 export const EXERCISE_CARD_TRAILING_ICON_CLASS_NAME = "flex h-full min-h-10 items-center justify-end";
 
 const shellStateClassNames: Record<ExerciseCardState, string> = {
   default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-1-rgb)/0.88)]",
-  selected: "border-[rgb(var(--accent)/0.34)] bg-[linear-gradient(180deg,rgba(71,215,196,0.12),rgba(14,24,38,0.96))] ring-1 ring-[rgb(var(--accent)/0.1)]",
-  active: "border-[rgb(var(--accent)/0.42)] bg-[linear-gradient(180deg,rgba(71,215,196,0.16),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--accent)/0.14)]",
-  completed: "border-[rgb(var(--success-rgb)/0.34)] bg-[linear-gradient(180deg,rgba(79,209,126,0.14),rgba(18,31,48,0.96))] ring-1 ring-[rgb(var(--success-rgb)/0.12)]",
+  selected: "border-[rgb(var(--selection-rgb)/0.34)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.12),rgb(var(--surface-1-rgb)/0.96))] ring-1 ring-[rgb(var(--selection-rgb)/0.1)]",
+  active: "border-[rgb(var(--selection-rgb)/0.42)] bg-[linear-gradient(180deg,rgb(var(--selection-rgb)/0.16),rgb(var(--surface-2-rgb)/0.96))] ring-1 ring-[rgb(var(--selection-rgb)/0.14)]",
+  completed: "border-[rgb(var(--success-rgb)/0.92)] bg-[linear-gradient(180deg,rgb(var(--success-rgb)/0.62),rgb(var(--surface-2-rgb)/0.98))] ring-1 ring-[rgb(var(--success-rgb)/0.48)]",
   empty: "border-dashed border-[rgb(var(--warning-rgb)/0.3)] bg-[rgb(var(--surface-1-rgb)/0.76)]",
 };
 
 const thumbStateClassNames: Record<ExerciseCardState, string> = {
   default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--bg-2)/0.56)]",
-  selected: "border-[rgb(var(--accent)/0.28)] bg-[rgb(var(--accent)/0.08)]",
-  active: "border-[rgb(var(--accent)/0.32)] bg-[rgb(var(--accent)/0.1)]",
-  completed: "border-[rgb(var(--success-rgb)/0.3)] bg-[rgb(var(--success-rgb)/0.1)]",
+  selected: "border-[rgb(var(--selection-rgb)/0.28)] bg-[rgb(var(--selection-rgb)/0.08)]",
+  active: "border-[rgb(var(--selection-rgb)/0.32)] bg-[rgb(var(--selection-rgb)/0.1)]",
+  completed: "border-[rgb(var(--success-rgb)/0.72)] bg-[rgb(var(--success-rgb)/0.4)]",
   empty: "border-dashed border-[rgb(var(--warning-rgb)/0.26)] bg-[rgb(var(--warning-rgb)/0.08)]",
 };
 
@@ -82,7 +85,7 @@ const titleStateClassNames: Record<ExerciseCardState, string> = {
   default: textRoles.title,
   selected: "text-[rgb(var(--text)/1)]",
   active: "text-[rgb(var(--text)/0.98)]",
-  completed: "text-[rgb(244_249_248)]",
+  completed: "text-[rgb(216_255_229)]",
   empty: "text-[rgb(var(--text)/0.92)]",
 };
 
@@ -90,15 +93,15 @@ const subtitleStateClassNames: Record<ExerciseCardState, string> = {
   default: textRoles.subtitle,
   selected: "text-[rgb(var(--text-secondary)/0.96)]",
   active: "text-[rgb(var(--text-secondary)/0.98)]",
-  completed: "text-[rgb(var(--text-secondary)/0.96)]",
+  completed: "text-[rgb(198_245_214/0.99)]",
   empty: "text-[rgb(var(--text-muted)/0.98)]",
 };
 
 const badgeStateClassNames: Record<ExerciseCardState, string> = {
   default: "border-[rgb(var(--border-strong)/0.18)] bg-[rgb(var(--surface-3-rgb)/0.92)] text-[rgb(var(--text-primary)/0.88)]",
-  selected: "border-[rgb(var(--accent)/0.32)] bg-[rgb(var(--accent)/0.14)] text-[rgb(var(--text-primary))]",
-  active: "border-[rgb(var(--accent)/0.34)] bg-[rgb(var(--accent)/0.16)] text-[rgb(var(--text-primary))]",
-  completed: "border-[rgb(var(--success-rgb)/0.34)] bg-[rgb(var(--success-rgb)/0.14)] text-[rgb(var(--text-primary))]",
+  selected: "border-[rgb(var(--selection-rgb)/0.32)] bg-[rgb(var(--selection-rgb)/0.14)] text-[rgb(var(--text-primary))]",
+  active: "border-[rgb(var(--selection-rgb)/0.34)] bg-[rgb(var(--selection-rgb)/0.16)] text-[rgb(var(--text-primary))]",
+  completed: "border-[rgb(var(--success-rgb)/0.82)] bg-[rgb(var(--success-rgb)/0.46)] text-[rgb(250_255_252)]",
   empty: "border-[rgb(var(--warning-rgb)/0.32)] bg-[rgb(var(--warning-rgb)/0.14)] text-[rgb(255_242_220)]",
 };
 
@@ -138,8 +141,44 @@ function resolveDefaultSemanticTone(state: ExerciseCardState): CardSemanticTone 
   return "neutral";
 }
 
+function renderAccentDotSummary(subtitle: ReactNode, subtitleClassName?: string) {
+  if (typeof subtitle !== "string" || !subtitle.includes("•")) {
+    return subtitle;
+  }
+
+  return (
+    <AccentDotSeparatedText
+      text={subtitle}
+      itemClassName={subtitleClassName}
+      separatorClassName="bg-[rgb(var(--accent-divider-rgb)/0.96)]"
+      pipeClassName="w-[0.48rem]"
+      pipeBarClassName="h-[0.82em] w-[2.5px] bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.96),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.92))] shadow-[0_0_12px_rgb(var(--accent-divider-rgb)/0.46)]"
+    />
+  );
+}
+
+function renderStructuredSummary(subtitle: ReactNode, subtitleClassName?: string) {
+  if (
+    typeof subtitle !== "string"
+    || (!subtitle.includes("|") && !subtitle.includes("•") && !subtitle.includes("â€¢"))
+  ) {
+    return subtitle;
+  }
+
+  return (
+    <AccentDotSeparatedText
+      text={subtitle}
+      itemClassName={subtitleClassName}
+      separatorClassName="bg-[rgb(var(--accent-divider-rgb)/0.96)]"
+      pipeClassName="w-[0.48rem]"
+      pipeBarClassName="h-[0.82em] w-[2.5px] bg-[linear-gradient(180deg,rgb(var(--accent-divider-rgb)/0.96),rgb(var(--accent-divider-rgb)/1),rgb(var(--accent-divider-rgb)/0.92))] shadow-[0_0_12px_rgb(var(--accent-divider-rgb)/0.46)]"
+    />
+  );
+}
+
 export function ExerciseCard({
   title,
+  titleMeta,
   subtitle,
   children,
   leadingVisual,
@@ -161,14 +200,19 @@ export function ExerciseCard({
   subtitleLabel,
   subtitleTone = "panel",
   buttonProps,
+  showAccentRail = true,
   variant = "standard",
   state = "default",
   density,
   semanticTone,
   mediaLayout = "rail",
   mediaRailWidth,
+  shellStyle,
+  mediaLeftCornerMode = "sharp",
+  rightIconMode = "rail",
 }: {
-  title: string;
+  title: ReactNode;
+  titleMeta?: ReactNode;
   subtitle?: ReactNode;
   children?: ReactNode;
   leadingVisual?: ReactNode;
@@ -190,12 +234,16 @@ export function ExerciseCard({
   subtitleLabel?: string;
   subtitleTone?: "panel" | "plain";
   buttonProps?: ExerciseCardButtonProps;
+  showAccentRail?: boolean;
   variant?: ExerciseCardVariant;
   state?: ExerciseCardState;
   density?: ExerciseCardDensity;
   semanticTone?: CardSemanticTone;
   mediaLayout?: ExerciseCardMediaLayout;
   mediaRailWidth?: number;
+  shellStyle?: CSSProperties;
+  mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
+  rightIconMode?: ExerciseCardRightIconMode;
 }) {
   const resolvedDensity = density ?? densityByVariant[variant];
   const styles = densityStyles[resolvedDensity];
@@ -205,15 +253,26 @@ export function ExerciseCard({
   const usesRailMedia = hasLeadingVisual && mediaLayout === "rail";
   const usesInlineMedia = hasLeadingVisual && mediaLayout === "inline";
   const hasRightIcon = rightIcon !== null && rightIcon !== undefined;
+  const hasTitleMeta = titleMeta !== null && titleMeta !== undefined && titleMeta !== false;
   const hasBadgeText = Boolean(badgeText?.trim());
   const hasSupportingContent = Boolean(subtitle) || Boolean(children);
+  const resolvedSubtitleLabel = typeof subtitleLabel === "string" && subtitleLabel.trim().toLowerCase() === "goal"
+    ? undefined
+    : subtitleLabel;
   const resolvedMediaRailWidth = mediaRailWidth ?? (resolvedDensity === "detailed" ? 76 : 72);
-  const bodyGridStyle = { gridTemplateColumns: hasRightIcon ? "minmax(0,1fr) auto" : "minmax(0,1fr)" } satisfies CSSProperties;
+  const bodyGridStyle = { gridTemplateColumns: hasRightIcon && rightIconMode === "rail" ? "minmax(0,1fr) auto" : "minmax(0,1fr)" } satisfies CSSProperties;
   const mediaColumnStyle = usesRailMedia
     ? { gridTemplateColumns: `${resolvedMediaRailWidth}px minmax(0,1fr)` } satisfies CSSProperties
     : usesInlineMedia
       ? { gridTemplateColumns: "auto minmax(0,1fr)" } satisfies CSSProperties
       : undefined;
+  const resolvedShellStyle = usesRailMedia
+    ? {
+        ...shellStyle,
+        borderTopLeftRadius: mediaLeftCornerMode === "top-rounded" ? "var(--card-radius)" : "0px",
+        borderBottomLeftRadius: "0px",
+      } satisfies CSSProperties
+    : shellStyle;
 
   const bodyContent = (
     <div
@@ -227,13 +286,16 @@ export function ExerciseCard({
       data-exercise-card-density={resolvedDensity}
       data-exercise-card-media={usesRailMedia ? "rail" : usesInlineMedia ? "inline" : "none"}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute bottom-px left-px top-px w-[3px] rounded-r-full",
-          cardAccentRailClassNames[resolvedSemanticTone],
-        )}
-      />
+      {showAccentRail ? (
+        <span
+          aria-hidden="true"
+          data-exercise-card-accent-rail="true"
+          className={cn(
+            "pointer-events-none absolute bottom-px left-px top-px w-[4px] rounded-r-full",
+            cardAccentRailClassNames[resolvedSemanticTone],
+          )}
+        />
+      ) : null}
       {hasBadgeText ? (
         <span
           className={cn(
@@ -272,29 +334,43 @@ export function ExerciseCard({
               "flex min-h-full min-w-0 flex-col",
               hasSupportingContent ? "justify-start" : "justify-center",
               styles.contentGap,
-              hasBadgeText ? (resolvedDensity === "compact" ? "pr-[5.2rem]" : "pr-[5.6rem]") : undefined,
+              hasBadgeText && !hasTitleMeta ? (resolvedDensity === "compact" ? "pr-[5.2rem]" : "pr-[5.6rem]") : undefined,
               titleContainerClassName,
             )}
           >
-            <p
-              className={cn(
-                "text-safe-wrap min-w-0 leading-tight [text-wrap:pretty]",
-                styles.titleClamp,
-                styles.titleSize,
-                "font-semibold",
-                titleStateClassNames[state],
-                titleClassName,
-              )}
-              data-exercise-card-title="true"
-            >
-              {title}
-            </p>
+            <div className="flex min-w-0 items-start justify-between gap-1.5">
+              <p
+                className={cn(
+                  "text-safe-wrap min-w-0 flex-1 leading-tight [text-wrap:pretty]",
+                  styles.titleClamp,
+                  styles.titleSize,
+                  appTokens.exerciseCardTitleTextPad,
+                  "font-semibold",
+                  titleStateClassNames[state],
+                  titleClassName,
+                )}
+                data-exercise-card-title="true"
+              >
+                {title}
+              </p>
+              {hasTitleMeta ? (
+                <div
+                  className={cn(
+                    "shrink-0 whitespace-nowrap px-1 text-[1rem] font-semibold leading-tight",
+                    titleStateClassNames[state],
+                  )}
+                  data-exercise-card-title-meta="true"
+                >
+                  {titleMeta}
+                </div>
+              ) : null}
+            </div>
             {subtitle ? (
               subtitleTone === "plain" ? (
                 <div className="min-w-0">
-                  {subtitleLabel ? (
+                  {resolvedSubtitleLabel ? (
                     <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME)}>
-                      {subtitleLabel}
+                      {resolvedSubtitleLabel}
                     </p>
                   ) : null}
                   <div
@@ -306,14 +382,14 @@ export function ExerciseCard({
                     )}
                     data-exercise-card-summary="true"
                   >
-                    {subtitle}
+                {renderStructuredSummary(subtitle, subtitleClassName)}
                   </div>
                 </div>
               ) : (
                 <div className={cn("min-w-0", styles.goalRow)}>
-                  {subtitleLabel ? (
+                  {resolvedSubtitleLabel ? (
                     <p className={cn("mb-0.5", EXERCISE_CARD_LABEL_CLASS_NAME)}>
-                      {subtitleLabel}
+                      {resolvedSubtitleLabel}
                     </p>
                   ) : null}
                   <div
@@ -325,7 +401,7 @@ export function ExerciseCard({
                     )}
                     data-exercise-card-summary="true"
                   >
-                    {subtitle}
+              {renderStructuredSummary(subtitle, subtitleClassName)}
                   </div>
                 </div>
               )
@@ -339,7 +415,7 @@ export function ExerciseCard({
         </div>
       </div>
 
-      {hasRightIcon ? (
+      {hasRightIcon && rightIconMode === "rail" ? (
         <div
           className={cn(
             "relative flex min-h-full min-w-[var(--exercise-row-trailing-min-width)] shrink-0 items-center self-stretch justify-end",
@@ -357,6 +433,23 @@ export function ExerciseCard({
             </div>
         </div>
       ) : null}
+      {hasRightIcon && rightIconMode === "overlay" ? (
+        <div
+          className={cn(
+            "pointer-events-none absolute right-[var(--exercise-row-shell-padding-x)] top-1/2 z-[1] -translate-y-1/2",
+            rightRailClassName,
+          )}
+        >
+          <div
+            className={cn(
+              "flex items-center justify-center",
+              trailingStackClassName,
+            )}
+          >
+            {rightIcon}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 
@@ -369,8 +462,8 @@ export function ExerciseCard({
   );
 
   if (actions) {
-    return (
-      <Glass variant="base" interactive={!disabled} className={shellClassName}>
+      return (
+      <Glass variant="base" interactive={!disabled} className={shellClassName} style={resolvedShellStyle}>
         <div className="flex w-full items-stretch gap-2">
           {onPress ? (
             <button
@@ -393,7 +486,7 @@ export function ExerciseCard({
 
   if (onPress) {
     return (
-      <Glass variant="base" interactive={!disabled} className={shellClassName}>
+      <Glass variant="base" interactive={!disabled} className={shellClassName} style={resolvedShellStyle}>
         <button
           type="button"
           {...buttonProps}
@@ -408,7 +501,7 @@ export function ExerciseCard({
   }
 
   return (
-    <Glass variant="base" className={shellClassName}>
+    <Glass variant="base" className={shellClassName} style={resolvedShellStyle}>
       {bodyContent}
     </Glass>
   );

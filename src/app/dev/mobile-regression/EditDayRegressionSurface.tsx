@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { ReorderExerciseRow } from "@/app/routines/[id]/edit/day/[dayId]/ReorderExerciseRow";
 import { DayDetailExerciseList, type DayDetailExerciseListItem } from "@/components/routines/day-detail/DayDetailExerciseList";
+import { appTokens } from "@/components/ui/app/tokens";
 import { DayDetailStateCard } from "@/components/routines/day-detail/DayDetailStateCard";
 import { SharedExerciseGoalForm } from "@/components/ui/measurements/SharedExerciseGoalForm";
 import type { ExerciseGoalFormState } from "@/components/ui/measurements/ExerciseGoalForm";
+import { AttachedCardActionStripFrame, getAttachedCardActionButtonClassName } from "@/components/session/SessionExerciseBlock";
+import { cn } from "@/lib/cn";
 import { resolveEditDayExercisePreview, type EditDayExerciseDraft } from "@/lib/edit-day-exercise-draft";
 import { resolveGoalModality, type GoalModality } from "@/lib/exercise-goal-validation";
 
-type EditDayFixture = "default" | "reorder" | "rest" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
+type EditDayFixture = "default" | "reorder" | "empty" | "edit-exercise" | "add-exercise" | "card-parity";
 
 type EditDayExercise = {
   id: string;
@@ -17,7 +20,7 @@ type EditDayExercise = {
   summary: string | null;
   iconSrc: string;
   orderNumber: number;
-  measurementType?: "reps" | "time" | "distance" | "time_distance" | null;
+  measurementType?: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   primary_muscle?: string | null;
   equipment?: string | null;
   movement_pattern?: string | null;
@@ -41,9 +44,21 @@ function buildGoalState(): ExerciseGoalFormState {
   };
 }
 
-function resolveInlineModality(measurementType: "reps" | "time" | "distance" | "time_distance", equipment: string | null): GoalModality {
-  return resolveGoalModality({ measurementType, equipment, tags: undefined });
+function resolveInlineModality(
+  measurementType: "reps" | "time" | "distance" | "time_distance" | "none",
+  equipment: string | null,
+  name?: string | null,
+): GoalModality {
+  return resolveGoalModality({ measurementType: measurementType === "none" ? "reps" : measurementType, equipment, name, tags: undefined });
 }
+
+const INLINE_VIEW_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "toggleActive",
+});
+
+const INLINE_DELETE_ACTION_BUTTON_CLASS_NAME = getAttachedCardActionButtonClassName({
+  intent: "danger",
+});
 
 export function EditDayRegressionSurface({
   fixture,
@@ -53,24 +68,15 @@ export function EditDayRegressionSurface({
   exercises: EditDayExercise[];
 }) {
   const [goalState, setGoalState] = useState<ExerciseGoalFormState>(buildGoalState);
-  const [manualOrder, setManualOrder] = useState<string>(fixture === "edit-exercise" ? String(exercises[0]?.orderNumber ?? 1) : "1");
   const [expandedId, setExpandedId] = useState<string | null>(fixture === "edit-exercise" ? exercises[0]?.id ?? null : null);
   const activeExercise = expandedId ? exercises.find((exercise) => exercise.id === expandedId) ?? null : null;
   const activeDraft: EditDayExerciseDraft | null = fixture === "edit-exercise" && activeExercise
     ? {
       goalState,
-      manualOrder,
-      modality: resolveInlineModality(activeExercise.measurementType ?? "reps", activeExercise.equipment ?? null),
+      manualOrder: "1",
+      modality: resolveInlineModality(activeExercise.measurementType ?? "reps", activeExercise.equipment ?? null, activeExercise.name),
     }
     : null;
-
-  if (fixture === "rest") {
-    return (
-      <div className="rounded-[1.25rem] border border-dashed border-border/45 bg-[rgb(var(--surface-2-soft)/0.42)] px-4 py-5 text-sm text-[rgb(var(--text-muted)/0.92)]">
-        Recovery day enabled. Training rows are hidden and the rest toggle becomes the only bottom action.
-      </div>
-    );
-  }
 
   if (fixture === "empty") {
     return (
@@ -86,7 +92,7 @@ export function EditDayRegressionSurface({
     return (
       <ul className="space-y-2">
         {exercises.map((exercise, index) => (
-          <li key={exercise.id} className="rounded-[1.3rem] transition-all">
+          <li key={exercise.id} className={appTokens.routineEditorReorderItem}>
             <ReorderExerciseRow
               exerciseId={exercise.id}
               exerciseName={exercise.name}
@@ -195,7 +201,9 @@ export function EditDayRegressionSurface({
     );
   }
 
-  const items: DayDetailExerciseListItem[] = exercises.map((exercise) => ({
+  const visibleExercises = exercises;
+
+  const items: DayDetailExerciseListItem[] = visibleExercises.map((exercise) => ({
     ...resolveEditDayExercisePreview({
       savedSummary: exercise.summary ?? "Goal missing",
       savedOrderNumber: exercise.orderNumber,
@@ -219,44 +227,42 @@ export function EditDayRegressionSurface({
       <DayDetailExerciseList
         mode="editable"
         items={items}
+        showOrderBadges={false}
         activeItemId={expandedId}
         onSelectItem={fixture === "default" ? undefined : (item) => setExpandedId((current) => current === item.id ? null : item.id)}
         renderExpandedContent={(item) => {
           if (fixture !== "edit-exercise" || expandedId !== item.id) return null;
           return (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label htmlFor={`manual-order-${item.id}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  Order
-                </label>
-                <input
-                  id={`manual-order-${item.id}`}
-                  name="manualOrder"
-                  type="number"
-                  min={1}
-                  max={exercises.length}
-                  value={manualOrder}
-                  onChange={(event) => setManualOrder(event.target.value)}
-                  className="h-10 w-full rounded-xl border border-border/45 bg-[rgb(var(--surface-2-soft)/0.62)] px-3 text-sm text-text outline-none"
+            <div className={appTokens.routineEditorCompactStack}>
+              <AttachedCardActionStripFrame gridClassName="grid-cols-[minmax(112px,0.92fr)_minmax(0,1.78fr)]">
+                  <button type="button" className={cn(INLINE_VIEW_ACTION_BUTTON_CLASS_NAME, "!border-r !border-r-[rgb(var(--border-strong)/0.18)]")}>
+                    <span className="bottom-action__label">View</span>
+                  </button>
+                  <button type="button" data-bottom-action-intent="danger" className={INLINE_DELETE_ACTION_BUTTON_CLASS_NAME}>
+                    <span className="bottom-action__label">Delete</span>
+                  </button>
+              </AttachedCardActionStripFrame>
+              <div className="pt-[2px]">
+                <SharedExerciseGoalForm
+                  modality="strength"
+                  state={goalState}
+                  onStateChange={setGoalState}
+                  names={{
+                    sets: "targetSets",
+                    repsMin: "targetRepsMin",
+                    repsMax: "targetRepsMax",
+                    weight: "targetWeight",
+                    duration: "targetDuration",
+                    distance: "targetDistance",
+                    calories: "targetCalories",
+                    weightUnit: "targetWeightUnit",
+                    distanceUnit: "targetDistanceUnit",
+                  }}
+                  emptySummaryLabel="Goal missing"
+                  hideSummary
+                  measurementLayoutMode="horizontal-scroll"
                 />
               </div>
-              <SharedExerciseGoalForm
-                modality="strength"
-                state={goalState}
-                onStateChange={setGoalState}
-                names={{
-                  sets: "targetSets",
-                  repsMin: "targetRepsMin",
-                  repsMax: "targetRepsMax",
-                  weight: "targetWeight",
-                  duration: "targetDuration",
-                  distance: "targetDistance",
-                  calories: "targetCalories",
-                  weightUnit: "targetWeightUnit",
-                  distanceUnit: "targetDistanceUnit",
-                }}
-                emptySummaryLabel="Goal missing"
-              />
             </div>
           );
         }}

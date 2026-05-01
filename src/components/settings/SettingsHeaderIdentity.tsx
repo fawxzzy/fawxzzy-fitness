@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SignatureInlineList } from "@/components/ui/app/SignatureSeparator";
 import { appTokens } from "@/components/ui/app/tokens";
 import { cn } from "@/lib/cn";
-import { deriveRememberedLoginDisplayName, readRememberedLoginState } from "@/lib/remembered-login";
+import { deriveRememberedLoginDisplayName } from "@/lib/remembered-login";
+import { readRememberedLoginState } from "@/lib/remembered-login";
 
 export function SettingsHeaderIdentity({
   email,
@@ -31,16 +33,14 @@ export function SettingsHeaderIdentity({
     }
   }, [email, username]);
 
-  const items = resolvedUsername ? [resolvedUsername, email || "Unknown email"] : [email || "Unknown email"];
-
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 text-center">
-      {items.map((item, index) => (
-        <span key={`${item}-${index}`} className="flex items-center gap-2">
-          {index > 0 ? <span aria-hidden="true" className="h-[6px] w-[6px] rounded-full bg-[rgb(var(--accent-divider-rgb)/1)]" /> : null}
-          <span className={cn(appTokens.settingsBodyText, "text-[rgb(var(--text-primary)/0.96)]")}>{item}</span>
-        </span>
-      ))}
+    <div className="flex flex-col items-center justify-center text-center">
+      <SignatureInlineList
+        items={resolvedUsername ? [resolvedUsername, email || "Unknown email"] : [email || "Unknown email"]}
+        separator="pipe"
+        className="justify-center"
+        itemClassName={cn(appTokens.settingsBodyText, "text-[rgb(var(--text-primary)/0.96)]")}
+      />
     </div>
   );
 }

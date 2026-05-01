@@ -9,7 +9,7 @@ export type ExerciseMetadata = {
   image_path: string | null;
   image_icon_path: string | null;
   image_howto_path: string | null;
-  measurement_type: "reps" | "time" | "distance" | "time_distance" | null;
+  measurement_type: "reps" | "time" | "distance" | "time_distance" | "none" | null;
   default_unit: string | null;
 };
 

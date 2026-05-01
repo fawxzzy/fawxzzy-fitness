@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseServer, supabaseServerWithSession } from "@/lib/supabase/server";
 
 export type EmailUpdateState = {
   status: "idle" | "success" | "error";
@@ -11,7 +11,7 @@ export type EmailUpdateState = {
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_REGEX = /^[A-Za-z0-9._-]{2,24}$/;
+const USERNAME_REGEX = /^[A-Za-z0-9._-]{2,15}$/;
 const PROFILE_PREFERENCE_COLUMN_MISSING_MESSAGE =
   "Unit preferences require the latest profile migration. Run migrations and try again.";
 
@@ -39,7 +39,7 @@ function toMetadataRecord(value: unknown) {
 
 export async function updateAccountEmailAction(formData: FormData): Promise<EmailUpdateState> {
   const user = await requireUser();
-  const supabase = supabaseServer();
+  const supabase = await supabaseServerWithSession();
   const nextEmail = String(formData.get("email") ?? "").trim().toLowerCase();
   const nextUsername = String(formData.get("username") ?? "").trim();
   const currentMetadata = toMetadataRecord(user.user_metadata);
@@ -56,7 +56,7 @@ export async function updateAccountEmailAction(formData: FormData): Promise<Emai
   if (nextUsername && !USERNAME_REGEX.test(nextUsername)) {
     return {
       status: "error",
-      message: "Username must be 2-24 characters and use letters, numbers, periods, underscores, or hyphens.",
+      message: "Username must be 2-15 characters and use letters, numbers, periods, underscores, or hyphens.",
     };
   }
 

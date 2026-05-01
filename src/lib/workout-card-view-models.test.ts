@@ -80,6 +80,18 @@ test("buildExerciseIdentityChips stays empty when no identity signal exists", ()
   assert.deepEqual(chips, []);
 });
 
+test("buildExerciseIdentityChips gives Stretch a dedicated hub identity", () => {
+  const chips = buildExerciseIdentityChips({
+    name: "Stretch",
+    slug: "stretch",
+    primaryMuscle: "recovery",
+    equipment: "bodyweight",
+    movementPattern: "mobility",
+  });
+
+  assert.deepEqual(chips.map((chip) => chip.label), ["Mobility", "Recovery", "Bodyweight"]);
+});
+
 test("resolveWorkoutCardPresentationKind keeps cardio, bodyweight, and timed buckets distinct", () => {
   assert.equal(resolveWorkoutCardPresentationKind({
     measurementType: "reps",
@@ -162,6 +174,18 @@ test("buildPlannedExerciseDetailMetrics keeps skipped cards to next and tracking
   assert.equal(metrics[1]?.value, "Time");
 });
 
+test("buildPlannedExerciseDetailMetrics gives Stretch a reference-only metric set", () => {
+  const metrics = buildPlannedExerciseDetailMetrics({
+    name: "Stretch",
+    slug: "stretch",
+    primaryMuscle: "recovery",
+    equipment: "bodyweight",
+    movementPattern: "mobility",
+  });
+
+  assert.deepEqual(metrics, []);
+});
+
 test("buildHistoryExerciseCardViewModel keeps bodyweight history cards on the shared identity and metric contract", () => {
   const viewModel = buildHistoryExerciseCardViewModel(makeExerciseBrowserRow({
     name: "Pull-Up",
@@ -183,7 +207,7 @@ test("buildHistoryExerciseCardViewModel keeps bodyweight history cards on the sh
   }));
 
   assert.equal(viewModel.presentationKind, "bodyweight");
-  assert.equal(viewModel.semanticTone, "pr");
+  assert.equal(viewModel.semanticTone, "logged");
   assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Bodyweight", "Pull Up Bar", "Vertical Pull"]);
   assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Best Reps", "Vs Best", "PRs", "Last"]);
 });
@@ -203,9 +227,24 @@ test("buildHistoryExerciseCardViewModel keeps cardio history cards on the shared
   }));
 
   assert.equal(viewModel.presentationKind, "cardio");
-  assert.equal(viewModel.semanticTone, "neutral");
+  assert.equal(viewModel.semanticTone, "logged");
   assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Cardio", "Treadmill", "Gait"]);
   assert.deepEqual(viewModel.detailedMetrics.map((metric) => metric.label), ["Best", "Vs Best", "Sessions", "Last"]);
+});
+
+test("buildHistoryExerciseCardViewModel gives Stretch a library-first history card", () => {
+  const viewModel = buildHistoryExerciseCardViewModel(makeExerciseBrowserRow({
+    name: "Stretch",
+    slug: "stretch",
+    primary_muscle: "recovery",
+    equipment: "bodyweight",
+    movement_pattern: "mobility",
+    kind: "strength",
+  }));
+
+  assert.equal(viewModel.summaryLabel, "");
+  assert.deepEqual(viewModel.chips.map((chip) => chip.label), ["Mobility", "Recovery", "Bodyweight"]);
+  assert.deepEqual(viewModel.detailedMetrics, []);
 });
 
 test("buildStrengthVolumeMetric preserves fitness-native unit wording", () => {
@@ -218,5 +257,5 @@ test("buildStrengthVolumeMetric preserves fitness-native unit wording", () => {
     { weight: 315, reps: 2, performedAt: fortyDaysAgo },
   ], 28, "lb");
 
-  assert.equal(metric, "2,605 lb");
+  assert.equal(metric, "2,605 lbs");
 });

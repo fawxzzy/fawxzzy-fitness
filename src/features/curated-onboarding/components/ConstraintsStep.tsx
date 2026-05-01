@@ -1,4 +1,5 @@
 import { AuthField } from "@/components/auth/AuthShell";
+import { appTokens } from "@/components/ui/app/tokens";
 import { Input } from "@/components/ui/Input";
 import { formatCuratedListInput, parseCuratedListInput } from "../schema.ts";
 import type { CuratedOnboardingData } from "../types.ts";
@@ -15,14 +16,14 @@ export function ConstraintsStep({
   onTargetAreasChange: (value: string[]) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className={appTokens.curatedOuterStack}>
       <AuthField label="Injuries or limitations">
         <textarea
           rows={4}
           value={data.limitations ?? ""}
           onChange={(event) => onLimitationsChange(event.target.value)}
           placeholder="Shoulder irritation overhead, low-back fatigue, limited space..."
-          className="w-full rounded-[1.15rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white placeholder:text-slate-500"
+          className={appTokens.curatedTextarea}
         />
       </AuthField>
 
@@ -31,7 +32,7 @@ export function ConstraintsStep({
           value={formatCuratedListInput(data.exerciseDislikes)}
           onChange={(event) => onDislikesChange(parseCuratedListInput(event.target.value))}
           placeholder="Burpees, upright rows, long treadmill blocks"
-          className="h-14 rounded-[1.15rem] border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+          className={appTokens.curatedInput}
         />
       </AuthField>
 
@@ -40,7 +41,7 @@ export function ConstraintsStep({
           value={formatCuratedListInput(data.targetAreas)}
           onChange={(event) => onTargetAreasChange(parseCuratedListInput(event.target.value))}
           placeholder="Glutes, upper back, conditioning"
-          className="h-14 rounded-[1.15rem] border-white/10 bg-black/20 text-white placeholder:text-slate-500"
+          className={appTokens.curatedInput}
         />
       </AuthField>
     </div>

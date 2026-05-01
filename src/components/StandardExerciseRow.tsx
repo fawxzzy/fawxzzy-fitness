@@ -1,9 +1,14 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ExerciseThumb } from "@/components/exercises/ExerciseThumb";
-import { ExerciseCard, type ExerciseCardButtonProps } from "@/components/ExerciseCard";
+import { ExerciseCard, type ExerciseCardButtonProps, type ExerciseCardMediaLeftCornerMode, type ExerciseCardRightIconMode } from "@/components/ExerciseCard";
 import type { CardSemanticTone } from "@/components/cardSemanticTones";
 import { cn } from "@/lib/cn";
-import { getExerciseGoalSummaryState, getExerciseGoalSummaryText, type ExerciseGoalSummaryValue } from "@/lib/exercise-goal-summary";
+import {
+  getExerciseGoalSummaryState,
+  getExerciseGoalSummaryText,
+  hasMeaningfulExerciseGoalSummary,
+  type ExerciseGoalSummaryValue,
+} from "@/lib/exercise-goal-summary";
 import type { ExerciseThumbSourceKind } from "@/lib/exerciseImages";
 import { resolveWorkoutCardSurfacePolicy, type WorkoutCardSurface } from "@/lib/workout-card-surface-policy";
 
@@ -25,6 +30,8 @@ type StandardExerciseRowProps = {
   rightIcon?: ReactNode;
   actions?: ReactNode;
   className?: string;
+  shellClassName?: string;
+  shellStyle?: CSSProperties;
   trailingClassName?: string;
   rightRailClassName?: string;
   trailingStackClassName?: string;
@@ -33,6 +40,7 @@ type StandardExerciseRowProps = {
   contentClassName?: string;
   titleContainerClassName?: string;
   titleClassName?: string;
+  titleMeta?: ReactNode;
   subtitleClassName?: string;
   summaryLabel?: string;
   subtitleTone?: "panel" | "plain";
@@ -46,6 +54,10 @@ type StandardExerciseRowProps = {
   imageSizes?: string;
   buttonProps?: ExerciseCardButtonProps;
   surface?: WorkoutCardSurface;
+  showAccentRail?: boolean;
+  mediaLeftCornerMode?: ExerciseCardMediaLeftCornerMode;
+  hideEmptySummary?: boolean;
+  rightIconMode?: ExerciseCardRightIconMode;
 };
 
 export function StandardExerciseRow({
@@ -57,6 +69,8 @@ export function StandardExerciseRow({
   rightIcon,
   actions,
   className,
+  shellClassName,
+  shellStyle,
   trailingClassName,
   rightRailClassName,
   trailingStackClassName,
@@ -65,6 +79,7 @@ export function StandardExerciseRow({
   contentClassName,
   titleContainerClassName,
   titleClassName,
+  titleMeta,
   subtitleClassName,
   summaryLabel,
   subtitleTone,
@@ -78,9 +93,17 @@ export function StandardExerciseRow({
   imageSizes,
   buttonProps,
   surface = "exercise-picker",
+  showAccentRail = true,
+  mediaLeftCornerMode,
+  hideEmptySummary = false,
+  rightIconMode,
 }: StandardExerciseRowProps) {
   const resolvedSummary = summary ?? subtitle;
-  const resolvedState = state ?? getExerciseGoalSummaryState(resolvedSummary);
+  const hasMeaningfulSummary = hasMeaningfulExerciseGoalSummary(resolvedSummary);
+  const resolvedSubtitle = hideEmptySummary && !hasMeaningfulSummary
+    ? undefined
+    : getExerciseGoalSummaryText(resolvedSummary);
+  const resolvedState = state ?? (hideEmptySummary && !hasMeaningfulSummary ? "default" : getExerciseGoalSummaryState(resolvedSummary));
   const resolvedDensity = density ?? (variant === "standard" || variant === "expanded" || variant === "summary" ? "detailed" : "compact");
   const usesCompactDensity = resolvedDensity === "compact";
   const surfacePolicy = resolveWorkoutCardSurfacePolicy(surface, resolvedDensity);
@@ -105,7 +128,8 @@ export function StandardExerciseRow({
   return (
     <ExerciseCard
       title={exercise.name}
-      subtitle={getExerciseGoalSummaryText(resolvedSummary)}
+      titleMeta={titleMeta}
+      subtitle={resolvedSubtitle}
       variant={variant}
       state={resolvedState}
       density={resolvedDensity}
@@ -113,11 +137,14 @@ export function StandardExerciseRow({
       leadingVisual={resolvedLeadingVisual}
       mediaLayout="rail"
       mediaRailWidth={resolvedLeadingVisual ? mediaRailWidth : undefined}
+      mediaLeftCornerMode={mediaLeftCornerMode}
       badgeText={badgeText}
       onPress={onPress}
       rightIcon={rightIcon}
+      rightIconMode={rightIconMode}
       actions={actions}
-      className={cn("shadow-none", className)}
+      className={cn("shadow-none", shellClassName, className)}
+      shellStyle={shellStyle}
       trailingClassName={trailingClassName}
       rightRailClassName={rightRailClassName}
       trailingStackClassName={trailingStackClassName}
@@ -129,6 +156,7 @@ export function StandardExerciseRow({
       subtitleClassName={subtitleClassName}
       subtitleLabel={summaryLabel}
       subtitleTone={subtitleTone}
+      showAccentRail={showAccentRail}
       buttonProps={buttonProps}
     >
       {children}
