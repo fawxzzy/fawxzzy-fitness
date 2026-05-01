@@ -8,6 +8,7 @@ import {
   atlasRoot,
   buildSessionCookies,
   repoRoot,
+  resolveBaseUrl,
   sessionArtifactPath,
 } from "./fitness-qa-config.mjs";
 import { inspectQaSession } from "./fitness-qa-user.mjs";
@@ -82,6 +83,10 @@ function normalizeBaseUrl(rawValue) {
   return String(rawValue).replace(/\/+$/, "");
 }
 
+function isLoopbackBaseUrl(baseUrl) {
+  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(baseUrl);
+}
+
 function buildTimestampStamp(date = new Date()) {
   return date
     .toISOString()
@@ -132,6 +137,32 @@ async function readFreshDevReceipt() {
   return {
     path: DEV_RECEIPT_PATH,
     value: receipt,
+  };
+}
+
+async function resolveBaseUrlAndReceipt(flags) {
+  const explicitBaseUrl = typeof flags["base-url"] === "string" && flags["base-url"].trim().length > 0
+    ? normalizeBaseUrl(flags["base-url"].trim())
+    : null;
+  if (explicitBaseUrl) {
+    return {
+      baseUrl: explicitBaseUrl,
+      receipt: null,
+    };
+  }
+
+  const configuredBaseUrl = normalizeBaseUrl(resolveBaseUrl());
+  if (configuredBaseUrl && !isLoopbackBaseUrl(configuredBaseUrl)) {
+    return {
+      baseUrl: configuredBaseUrl,
+      receipt: null,
+    };
+  }
+
+  const receipt = await readFreshDevReceipt();
+  return {
+    baseUrl: normalizeBaseUrl(receipt.value.baseUrl),
+    receipt,
   };
 }
 
@@ -202,6 +233,90 @@ async function resolveQaSession(baseUrl) {
   };
 }
 
+function normalizePlaywrightCookies(cookies, fallbackBaseUrl) {
+  return cookies
+    .map((cookie) => {
+      if (!cookie || typeof cookie !== "object") {
+        return null;
+      }
+
+      const name = typeof cookie.name === "string" ? cookie.name.trim() : "";
+      const value = typeof cookie.value === "string" ? cookie.value : "";
+      if (!name || !value) {
+        return null;
+      }
+
+      const normalized = {
+        name,
+        value,
+        httpOnly: Boolean(cookie.httpOnly),
+        secure: typeof cookie.secure === "boolean" ? cookie.secure : fallbackBaseUrl.startsWith("https://"),
+        sameSite: cookie.sameSite ?? "Lax",
+      };
+
+      if (Number.isFinite(cookie.expires)) {
+        normalized.expires = cookie.expires;
+      }
+
+      const domain = typeof cookie.domain === "string" ? cookie.domain.trim() : "";
+      if (domain) {
+        normalized.domain = domain;
+        normalized.path = typeof cookie.path === "string" && cookie.path.trim().length > 0 ? cookie.path : "/";
+        return normalized;
+      }
+
+      normalized.url = normalizeBaseUrl(
+        typeof cookie.url === "string" && cookie.url.trim().length > 0 ? cookie.url : fallbackBaseUrl,
+      );
+      return normalized;
+    })
+    .filter(Boolean);
+}
+
+async function runSuiteInteraction(page, suite) {
+  const interaction = suite.interaction;
+  if (!interaction) {
+    return {
+      performed: false,
+      bodyText: null,
+      missingExpectedText: [],
+    };
+  }
+
+  if (interaction.type === "open-settings-panel") {
+    const trigger = page.getByRole("button", { name: new RegExp(interaction.triggerLabel, "i") }).first();
+    const visible = await trigger.isVisible().catch(() => false);
+    if (!visible) {
+      return {
+        performed: false,
+        bodyText: null,
+        missingExpectedText: interaction.expectedText ?? [],
+        blockedReason: `Unable to find the "${interaction.triggerLabel}" settings panel trigger.`,
+      };
+    }
+
+    await trigger.click();
+    await page.waitForTimeout(1000);
+    const bodyText = ((await page.textContent("body")) ?? "").replace(/\s+/g, " ").trim();
+    const normalizedBodyText = bodyText.toLowerCase();
+    const missingExpectedText = (interaction.expectedText ?? []).filter((text) => !normalizedBodyText.includes(text.toLowerCase()));
+    return {
+      performed: true,
+      bodyText,
+      missingExpectedText,
+      blockedReason: missingExpectedText.length > 0
+        ? `Missing expected App Theme text: ${missingExpectedText.join(", ")}.`
+        : null,
+    };
+  }
+
+  return {
+    performed: false,
+    bodyText: null,
+    missingExpectedText: [],
+  };
+}
+
 async function applyThemePreset(page, baseUrl, themePreset) {
   await page.goto(`${baseUrl}/login`, {
     waitUntil: "domcontentloaded",
@@ -228,11 +343,7 @@ function isAuthRedirect(finalUrl, baseUrl) {
 }
 
 async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
-  const baseUrl = normalizeBaseUrl(
-    typeof flags["base-url"] === "string" && flags["base-url"].trim().length > 0
-      ? flags["base-url"].trim()
-      : receipt.value.baseUrl,
-  );
+  const baseUrl = normalizeBaseUrl(flags.__resolvedBaseUrl ?? receipt?.value?.baseUrl ?? resolveBaseUrl());
   const viewport = resolveViewport(flags.viewport, suite.viewport);
   const outputDir = buildOutputDir({
     suiteName: suite.name,
@@ -294,7 +405,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
 
   try {
     if (suite.authRequired && qaSession.available) {
-      await context.addCookies(qaSession.cookies);
+      await context.addCookies(normalizePlaywrightCookies(qaSession.cookies, baseUrl));
     }
 
     await applyThemePreset(page, baseUrl, suite.themePreset);
@@ -305,6 +416,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
     });
     await page.waitForTimeout(suite.waitMs ?? 1600);
     await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    const interactionResult = await runSuiteInteraction(page, suite);
     await page.screenshot({
       path: screenshotPath,
       fullPage: suite.fullPage ?? false,
@@ -326,6 +438,8 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       ? (qaSession.reason ?? qaSession.summary)
       : authBlockedReason === "blocked: auth redirect"
         ? "Protected route redirected to /login despite a valid QA session."
+        : interactionResult.blockedReason
+          ? interactionResult.blockedReason
         : (responseStatus !== null && responseStatus >= 400
           ? `Route returned HTTP ${responseStatus}.`
           : null);
@@ -356,7 +470,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       seamKind: suite.seamKind ?? null,
       coversProtectedRoutes: suite.coversProtectedRoutes ?? [],
       baseUrl,
-      devReceiptPath: receipt.path,
+      devReceiptPath: receipt?.path ?? null,
       browserProfileMode: "codex-isolated-ephemeral",
       route: suite.route,
       viewport: viewport.label,
@@ -373,6 +487,10 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       httpStatus: responseStatus,
       finalUrl,
       bodyPreview: bodyText,
+      interaction: {
+        performed: interactionResult.performed,
+        missingExpectedText: interactionResult.missingExpectedText,
+      },
       loadingDiagnostics,
       consoleMessages,
       qaSession: {
@@ -421,7 +539,7 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       seamKind: suite.seamKind ?? null,
       coversProtectedRoutes: suite.coversProtectedRoutes ?? [],
       baseUrl,
-      devReceiptPath: receipt.path,
+      devReceiptPath: receipt?.path ?? null,
       browserProfileMode: "codex-isolated-ephemeral",
       route: suite.route,
       viewport: viewport.label,
@@ -438,6 +556,10 @@ async function captureSuite({ suite, flags, receipt, browserExecutablePath }) {
       httpStatus: null,
       finalUrl,
       bodyPreview: null,
+      interaction: {
+        performed: false,
+        missingExpectedText: suite.interaction?.expectedText ?? [],
+      },
       loadingDiagnostics: [],
       consoleMessages,
       qaSession: {
@@ -471,7 +593,7 @@ async function writeLoadingDiagnosticsReceipt({ receiptPath, results }) {
   const latestPath = path.join(LOADING_RECEIPT_DIR, "loading-diagnostics.latest.json");
   const payload = {
     generatedAt: toIso(Date.now()),
-    devReceiptPath: receiptPath,
+    devReceiptPath: receiptPath ?? null,
     suites: results.map((result) => ({
       suite: result.suite,
       route: result.route,
@@ -520,21 +642,26 @@ function resolveSuites(flags) {
 export async function runVisualFitnessSuites(argv = process.argv.slice(2)) {
   const { flags } = parseArgs(argv);
   const suites = resolveSuites(flags);
-  const receipt = await readFreshDevReceipt();
+  const target = await resolveBaseUrlAndReceipt(flags);
+  const receipt = target.receipt;
   const browserExecutablePath = await resolveBrowserExecutablePath();
   const results = [];
+  const suiteFlags = {
+    ...flags,
+    __resolvedBaseUrl: target.baseUrl,
+  };
 
   for (const suite of suites) {
     const result = await captureSuite({
       suite,
-      flags,
+      flags: suiteFlags,
       receipt,
       browserExecutablePath,
     });
     results.push(result);
   }
   const loadingReceipt = await writeLoadingDiagnosticsReceipt({
-    receiptPath: receipt.path,
+    receiptPath: receipt?.path ?? null,
     results,
   });
 
@@ -551,7 +678,7 @@ export async function runVisualFitnessSuites(argv = process.argv.slice(2)) {
 
   const aggregate = {
     generatedAt: toIso(Date.now()),
-    devReceiptPath: receipt.path,
+    devReceiptPath: receipt?.path ?? null,
     loadingDiagnosticsReceiptPath: loadingReceipt.latestPath,
     suites: results.map((result) => ({
       suite: result.suite,
