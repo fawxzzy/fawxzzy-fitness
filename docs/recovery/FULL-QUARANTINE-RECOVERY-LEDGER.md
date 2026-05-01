@@ -22,10 +22,53 @@ Hard rules:
 - `Still pending` must be empty before deploy.
 
 ## 1. Recovered
-- Lane D/E recovery completed in this wave. See section 5 for the recovered file list.
+- Recovery docs and audits:
+  - `docs/recovery/FULL-QUARANTINE-RECOVERY-LEDGER.md`
+  - `docs/recovery/fitness-quarantine-audit-2026-05-01.json`
+  - `docs/recovery/fitness-quarantine-audit-2026-05-01.md`
+  - `docs/recovery/full-quarantine-recovery-inventory.json`
+  - `docs/recovery/full-quarantine-normalized-audit.json`
+  - `docs/recovery/full-quarantine-normalized-audit.md`
+  - `docs/recovery/final-quarantine-diff-audit.json`
+  - `docs/recovery/final-quarantine-diff-audit.md`
+- Support-layer recovery landed into canonical:
+  - `package.json`
+  - `package-lock.json`
+  - `docs/LOCAL-PROD-DATA-SYNC.md`
+  - `scripts/dev.mjs`
+  - `scripts/generate-exercise-icon-manifest.mjs`
+  - `scripts/generate-icons.mjs`
+  - `scripts/next-workspace-guard.mjs`
+  - `scripts/release.mjs`
+  - `scripts/verify-history-family-ui.mjs`
+  - `scripts/qa/cdp-edge.mjs`
+  - quarantine-only helper scripts under `scripts/**` needed for QA/build/recovery support
+  - `supabase/data/global_exercises_canonical.json`
+  - `supabase/data/global_exercises_catalog_index.csv`
+  - `supabase/data/global_exercises_catalog_index.json`
+  - `supabase/data/global_exercises_review_queue.json`
+  - `supabase/migrations/038_fix_strength_exercise_measurement_labels.sql`
+  - `supabase/migrations/039_seed_global_stretch.sql`
+  - `supabase/migrations/040_exercise_curation_tags_and_howto_refresh.sql`
+  - `supabase/migrations/041_allow_measurement_optional_session_and_routine_goals.sql`
+  - `tests/design-system-contract.test.mjs`
+- Packaging fix required by recovered visual scripts:
+  - `playwright` added to `devDependencies` and `package-lock.json`
 
 ## 2. Intentionally Discarded
-- Lane D/E discards and generated/noise exclusions are documented in section 5.
+- Exact quarantine versions intentionally not taken verbatim where canonical needed a merged or stronger form:
+  - `package.json`
+    - kept canonical strict verify/build scripts and added recovered QA/live-loop commands plus `playwright`
+  - `scripts/dev.mjs`
+    - kept canonical production-data safety guard and merged quarantine LAN/dev-receipt behavior
+  - `docs/LOCAL-PROD-DATA-SYNC.md`
+    - kept canonical deploy-safety rules and merged recovered `qa:dev` / `qa:dev:lan` workflow
+  - `tests/design-system-contract.test.mjs`
+    - kept the recovered bridge coverage but replaced stale quarantine-only assertions with checks that match the current component token usage
+- Canonical-only files intentionally preserved because they represent post-quarantine safety work:
+  - `docs/PLAYBOOK_NOTES.md`
+  - `middleware.ts`
+  - `next.config.mjs`
 
 ## 3. Generated/Cache/Noise
 - CRLF-only or normalized-equal filesystem noise identified by the normalized audit:
@@ -41,105 +84,40 @@ Hard rules:
   - `vercel.json / same_ignore_crlf`: `1`
 
 ## 4. ATLAS-Only Unrelated
-- Lane D/E audit did not identify any additional ATLAS-only recovery candidates beyond the general quarantine-only QA/diagnostic helpers listed in section 5.
+- Quarantine Git metadata and ATLAS-root linkage were treated as non-authoritative and were not used as recovery truth.
 
-## 5. Lane D/E Result
-Recovered in this wave:
-- `package.json`
-- `docs/LOCAL-PROD-DATA-SYNC.md`
-- `supabase/migrations/038_fix_strength_exercise_measurement_labels.sql`
-- `supabase/migrations/039_seed_global_stretch.sql`
-- `supabase/migrations/040_exercise_curation_tags_and_howto_refresh.sql`
-- `supabase/migrations/041_allow_measurement_optional_session_and_routine_goals.sql`
-- `supabase/data/global_exercises_canonical.json`
-- `scripts/dev.mjs`
-- `scripts/env-file.mjs`
-- `scripts/next-workspace-guard.mjs`
-- `scripts/generate-exercise-icon-manifest.mjs`
-- `scripts/generate-icons.mjs`
-- `scripts/release.mjs`
-- `scripts/verify-history-family-ui.mjs`
-- `public/favicon.ico`
-- `src/generated/exerciseIconManifest.ts`
-- `tests/design-system-contract.test.mjs`
-- `tests/mobile-regression/build-mobile-regression-boards.test.ts`
-
-Intentionally left out for this lane:
-- `public/app/previews/manifest.json`
-- `src/generated/appBuildManifest.json`
-- `public/brand/atlas-sigil-master.png`
-- `scripts/generate-pwa-assets.mjs`
-- `scripts/next-cli.mjs`
-- `scripts/qa-ui-pass.mjs`
-- `scripts/qa/fitness-qa-config.mjs`
-- quarantine-only QA/diagnostic helpers outside the narrow product-supporting path
-
-Notes:
-- `src/types/db.ts` did not need a change for this wave because it already includes `curation_tags` and the new migration set stays inside that type surface.
-- `vercel.json` was identical and required no recovery.
-
-## 6. Still Pending
-
-Raw byte-level inventory totals from the May 1 audit:
-- `src/components / different`: `67`
-- `src/app / different`: `39`
-- `src/lib / different`: `36`
-- `scripts / only_quarantine`: `20`
-- `scripts / different`: `11`
-- `supabase / only_quarantine`: `7`
-- `src/features / different`: `5`
-- `public/exercises / different`: `3`
-- `tests / different`: `2`
-- `src/generated / different`: `2`
-- `package.json / different`: `1`
-- `public/app / different`: `1`
-- `supabase / different`: `1`
-- `vercel.json / different`: `1`
-- `docs/LOCAL-PROD-DATA-SYNC.md / different`: `1`
-
-Normalized audit result:
-- Lane A product files are currently text-equal after CRLF normalization.
-- Lane B product files are currently text-equal after CRLF normalization.
-- Lane C product files are currently text-equal after CRLF normalization.
-- Remaining material queue is concentrated in scripts, Supabase data/migrations, package/docs, and one test file.
-
-Pending recovery lanes after normalization:
-- Lane D: Supabase, DB types, product data contracts
-  - Material targets:
-    - `supabase/data/global_exercises_canonical.json`
-    - `supabase/data/global_exercises_catalog_index.csv`
-    - `supabase/data/global_exercises_catalog_index.json`
-    - `supabase/data/global_exercises_review_queue.json`
-    - `supabase/migrations/038_fix_strength_exercise_measurement_labels.sql`
-    - `supabase/migrations/039_seed_global_stretch.sql`
-    - `supabase/migrations/040_exercise_curation_tags_and_howto_refresh.sql`
-    - `supabase/migrations/041_allow_measurement_optional_session_and_routine_goals.sql`
-- Lane E: scripts, generated artifacts, QA/dev tooling
-  - Material targets:
-    - `package.json`
-    - `docs/LOCAL-PROD-DATA-SYNC.md`
-    - `scripts/dev.mjs`
-    - `scripts/generate-exercise-icon-manifest.mjs`
-    - `scripts/generate-icons.mjs`
-    - `scripts/qa/cdp-edge.mjs`
-    - `scripts/release.mjs`
-    - `scripts/verify-history-family-ui.mjs`
-    - quarantine-only scripts under `scripts/**`
-    - `tests/design-system-contract.test.mjs`
-
-Canonical-only safety items to preserve during recovery:
-- `docs/PLAYBOOK_NOTES.md`
-- `middleware.ts`
-- `next.config.mjs`
+## 5. Still Pending
+- None.
+- Final audit remainder is fully classified in `docs/recovery/final-quarantine-diff-audit.md`.
 
 ## 6. Verification Evidence
-- Pending.
+- `node --check` passed across the recovered script surface
+- `node --test tests/design-system-contract.test.mjs` passed
+- `npm run test:app-theme-contracts` passed
+- `npm run test:auth-ui-contracts` passed
+- `npm run verify` passed
+- `npm run verify:strict` passed
+- `npm run build` passed
+- `npm run migration:validate` failed with expected drift because local migrations `038` through `041` are now ahead of the remote baseline that still reports them as missing
 
 ## 7. Visual Smoke Evidence
-- Pending.
+- HTTP smoke from canonical local dev server:
+  - `/login` -> `200`
+  - `/signup` -> `200`
+  - `/entry` -> `200`
+  - `/today` -> `200`
+  - `/routines` -> `200`
+  - `/history` -> `200`
+  - `/settings` -> `200`
+- Screenshot smoke captured through recovered QA tooling:
+  - `C:\ATLAS\tmp\recovery-login-smoke.png`
+  - `C:\ATLAS\tmp\recovery-entry-smoke.png`
+- Browser-tool limitation:
+  - the Codex Playwright MCP launcher still fails on this machine with Chrome `spawn UNKNOWN`, so local visual smoke used the repo’s recovered screenshot path instead
 
 ## 8. Prod Deploy Evidence
 - Current clean production baseline before this wave:
   - SHA: `e06e19fbe86ea224a7c6aad1ace4f14cb92af658`
   - Deployment: `dpl_7Mp8KNSv43rkVxcS6r1KzRUGUNhi`
   - Status: GitHub-backed and clean
+- This recovery wave has not deployed production yet.
