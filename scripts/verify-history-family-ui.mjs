@@ -38,6 +38,24 @@ function buildHeaderFirstCardRhythmExpression(cardSelector) {
   })()`;
 }
 
+function buildTopAreaFirstCardRhythmExpression(topSelector, cardSelector) {
+  return `(() => {
+    const topArea = document.querySelector(${JSON.stringify(topSelector)});
+    const card = document.querySelector(${JSON.stringify(cardSelector)});
+    if (!(topArea instanceof HTMLElement) || !(card instanceof HTMLElement)) return false;
+
+    const topRect = topArea.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const topIsVisible = topRect.width > 0 && topRect.height >= 32 && topRect.top >= -1;
+    const topToCardGap = cardRect.top - topRect.bottom;
+    const cardFollowsTop = cardRect.top >= topRect.top
+      && cardRect.top < Math.max(360, window.innerHeight * 0.58)
+      && topToCardGap >= -24
+      && topToCardGap <= 112;
+    return topIsVisible && cardFollowsTop;
+  })()`;
+}
+
 function buildNoCardTextClipExpression(cardSelector) {
   return `(() => {
     const cards = Array.from(document.querySelectorAll(${JSON.stringify(cardSelector)})).slice(0, 5);
@@ -92,6 +110,25 @@ function buildCompactTopRhythmExpression(cardSelector) {
   })()`;
 }
 
+function buildStoreFirstCardHeightExpression(cardSelector, storageKey) {
+  return `(() => {
+    const card = document.querySelector(${JSON.stringify(cardSelector)});
+    if (!(card instanceof HTMLElement)) return false;
+    window[${JSON.stringify(storageKey)}] = card.getBoundingClientRect().height;
+    return Number.isFinite(window[${JSON.stringify(storageKey)}]) && window[${JSON.stringify(storageKey)}] > 0;
+  })()`;
+}
+
+function buildFirstCardHeightMatchesStoredExpression(cardSelector, storageKey) {
+  return `(() => {
+    const card = document.querySelector(${JSON.stringify(cardSelector)});
+    const originalHeight = window[${JSON.stringify(storageKey)}];
+    if (!(card instanceof HTMLElement) || !Number.isFinite(originalHeight)) return false;
+    const nextHeight = card.getBoundingClientRect().height;
+    return Math.abs(nextHeight - originalHeight) <= 2;
+  })()`;
+}
+
 async function writeCaptureConfig(directoryPath, name, captureConfig) {
   const filePath = path.join(directoryPath, `${name}.capture.json`);
   await fs.writeFile(filePath, `${JSON.stringify(captureConfig, null, 2)}\n`, "utf8");
@@ -112,6 +149,30 @@ async function main() {
         { type: "navigate", url: `${BASE_URL}/history` },
         { type: "waitForSelector", selector: `a[href='/history/${HISTORY_DETAIL_SESSION_ID}?returnTab=sessions']`, timeoutMs: 10000 },
         { type: "waitForSelector", selector: "[data-shared-screen-header='true']", timeoutMs: 10000 },
+        {
+          type: "assertExpression",
+          message: "History sessions header must be title-only with Sessions and the logged count.",
+          expression: `(() => {
+            const header = document.querySelector("[data-shared-screen-header='true']");
+            if (!(header instanceof HTMLElement)) return false;
+            const text = header.innerText.replace(/\\s+/g, " ").trim();
+            return text === "Sessions 3 logged";
+          })()`,
+        },
+        {
+          type: "assertExpression",
+          message: "History sessions header must not include the old tabs or top view controls.",
+          expression: `(() => {
+            const header = document.querySelector("[data-shared-screen-header='true']");
+            if (!(header instanceof HTMLElement)) return false;
+            const text = header.innerText.toLowerCase();
+            return !text.includes("history")
+              && !text.includes("exercises")
+              && !text.includes("compact")
+              && !text.includes("detailed")
+              && !header.querySelector("[aria-label='History tabs'], [aria-label='History view mode']");
+          })()`,
+        },
         {
           type: "assertExpression",
           message: "History sessions must render compact explicit session cards on the shared no-media card shell.",
@@ -156,6 +217,24 @@ async function main() {
         { type: "waitForText", text: "Back Squat", timeoutMs: 10000 },
         {
           type: "assertExpression",
+          message: "History exercises top area must not render the old History/count/tabs shared header block.",
+          expression: `(() => {
+            const oldHeader = document.querySelector("[data-shared-screen-header='true']");
+            const hasTabs = Boolean(document.querySelector("[aria-label='History tabs']"));
+            const bodyText = document.body?.innerText?.toLowerCase() ?? "";
+            return !oldHeader && !hasTabs && !bodyText.includes("tracked exercises");
+          })()`,
+        },
+        {
+          type: "assertExpression",
+          message: "History exercises top area must keep only compact exercise controls.",
+          expression: `(() => Boolean(
+            document.querySelector("[data-history-floating-header] input[placeholder='Search exercises']")
+            && document.querySelector("[data-history-floating-header] button")
+          ))()`,
+        },
+        {
+          type: "assertExpression",
           message: "History exercises must render compact explicit exercise cards on the recovered history-browser media shell.",
           expression: `(() => {
             const cards = Array.from(document.querySelectorAll("[data-history-card='exercise'][data-history-surface='history-browser']"));
@@ -185,8 +264,8 @@ async function main() {
         },
         {
           type: "assertExpression",
-          message: "History exercises must keep the floating header and first card in the recovered top rhythm.",
-          expression: buildHeaderFirstCardRhythmExpression("[data-history-card='exercise'][data-history-surface='history-browser']"),
+          message: "History exercises must keep controls and first card in the recovered top rhythm.",
+          expression: buildTopAreaFirstCardRhythmExpression("[data-history-floating-header]", "[data-history-card='exercise'][data-history-surface='history-browser']"),
         },
         {
           type: "assertExpression",
@@ -197,6 +276,20 @@ async function main() {
           type: "assertExpression",
           message: "History compact exercise metadata must sit tight under the summary without creating a top gap.",
           expression: buildCompactTopRhythmExpression("[data-history-card='exercise'][data-history-surface='history-browser']"),
+        },
+        {
+          type: "assertExpression",
+          message: "History exercise compact height must be captured before density toggling.",
+          expression: buildStoreFirstCardHeightExpression("[data-history-card='exercise'][data-history-surface='history-browser']", "__historyExerciseCompactHeight"),
+        },
+        { type: "click", selector: "[data-history-density-toggle='exercises']" },
+        { type: "waitForSelector", selector: "[data-history-card='exercise'][data-history-density='detailed']", timeoutMs: 10000 },
+        { type: "click", selector: "[data-history-density-toggle='exercises']" },
+        { type: "waitForSelector", selector: "[data-history-card='exercise'][data-history-density='compact']", timeoutMs: 10000 },
+        {
+          type: "assertExpression",
+          message: "History exercise compact->detailed->compact must restore the original compact card height.",
+          expression: buildFirstCardHeightMatchesStoredExpression("[data-history-card='exercise'][data-history-surface='history-browser']", "__historyExerciseCompactHeight"),
         },
       ],
       finalWaitMs: 900,

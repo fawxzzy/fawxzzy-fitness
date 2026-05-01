@@ -3,16 +3,32 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import net from "node:net";
-import { spawn, execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
+import { chromium } from "playwright";
+import {
+  buildCookiesFromArtifactSession,
+  ensureFreshSessionArtifactFile,
+} from "./fitness-auth-artifact.mjs";
 
-const execFileAsync = promisify(execFile);
 const DEFAULT_TIMEOUT_MS = 20000;
+const execFileAsync = promisify(execFile);
+const scriptPath = fileURLToPath(import.meta.url);
+const scriptDir = path.dirname(scriptPath);
+const repoRoot = path.resolve(scriptDir, "..", "..");
+const atlasRoot = path.resolve(repoRoot, "..", "..");
+const runtimeRoot = path.join(atlasRoot, "runtime", "fitness");
 const DEFAULT_EDGE_PATHS = [
   process.env.QA_EDGE_PATH,
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+].filter((value) => typeof value === "string" && value.length > 0);
+const DEFAULT_CHROME_PATHS = [
+  process.env.QA_CHROME_PATH,
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Users\\zjhre\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
 ].filter((value) => typeof value === "string" && value.length > 0);
 
 function delay(ms) {
@@ -26,8 +42,12 @@ async function readConfig(configPath) {
   return JSON.parse(raw);
 }
 
-async function resolveEdgePath() {
-  for (const candidate of DEFAULT_EDGE_PATHS) {
+async function resolveBrowserPath(candidatePath) {
+  const candidates = candidatePath
+    ? [candidatePath]
+    : [...DEFAULT_EDGE_PATHS, ...DEFAULT_CHROME_PATHS];
+
+  for (const candidate of candidates) {
     try {
       await fs.access(candidate);
       return candidate;
@@ -36,255 +56,436 @@ async function resolveEdgePath() {
     }
   }
 
-  throw new Error(`Unable to locate a Chromium browser. Set QA_EDGE_PATH to a valid executable path.`);
+  throw new Error("Unable to locate a Chromium browser. Set QA_EDGE_PATH to a valid executable path.");
 }
 
-async function findFreePort() {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.unref();
-    server.on("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (!address || typeof address === "string") {
-        reject(new Error("Unable to resolve a local debugging port."));
+function isInterimNextErrorMarkup(markup) {
+  return typeof markup === "string" && markup.toLowerCase().includes("missing required error components");
+}
+
+function isRecoverableLocalUrl(url) {
+  try {
+    const parsed = new URL(String(url));
+    return parsed.protocol === "http:" && (parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost");
+  } catch {
+    return false;
+  }
+}
+
+function resolveLocalPort(url) {
+  const parsed = new URL(String(url));
+  return Number(parsed.port || 80);
+}
+
+async function readListeningPids(port) {
+  if (process.platform !== "win32") {
+    return [];
+  }
+
+  const { stdout } = await execFileAsync("cmd.exe", ["/c", "netstat -ano -p tcp"], {
+    windowsHide: true,
+    timeout: 10000,
+  });
+  const lines = stdout.split(/\r?\n/);
+  const needle = `:${port}`;
+  const pids = new Set();
+
+  for (const line of lines) {
+    if (!line.includes("LISTENING") || !line.includes(needle)) {
+      continue;
+    }
+
+    const match = line.trim().match(/\s+(\d+)$/);
+    if (match) {
+      pids.add(Number(match[1]));
+    }
+  }
+
+  return [...pids];
+}
+
+async function waitForPortToClose(port, timeoutMs = 15000) {
+  const startedAt = Date.now();
+
+  while ((Date.now() - startedAt) < timeoutMs) {
+    const pids = await readListeningPids(port);
+    if (pids.length === 0) {
+      return;
+    }
+
+    await delay(250);
+  }
+
+  throw new Error(`Timed out waiting for port ${port} to close before restarting the local dev server.`);
+}
+
+async function waitForHealthyServer(baseUrl, timeoutMs = 30000) {
+  const loginUrl = `${String(baseUrl).replace(/\/+$/, "")}/login`;
+  const startedAt = Date.now();
+
+  while ((Date.now() - startedAt) < timeoutMs) {
+    try {
+      const response = await fetch(loginUrl, { redirect: "manual" });
+      const body = await response.text();
+      if (response.status >= 200 && response.status < 400 && !isInterimNextErrorMarkup(body)) {
         return;
       }
+    } catch {
+      // Keep polling until the local server is ready again.
+    }
 
-      const { port } = address;
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(port);
-      });
-    });
-  });
+    await delay(500);
+  }
+
+  throw new Error(`Timed out waiting for local dev server recovery at ${loginUrl}`);
 }
 
-async function waitForJson(url, timeoutMs = DEFAULT_TIMEOUT_MS) {
+async function waitForHealthyRoute(url, timeoutMs = 30000) {
   const startedAt = Date.now();
 
   while ((Date.now() - startedAt) < timeoutMs) {
     try {
-      const response = await fetch(url);
-      if (response.ok) {
-        return await response.json();
+      const response = await fetch(String(url), { redirect: "manual" });
+      const body = await response.text();
+      if (response.status >= 200 && response.status < 400 && !isInterimNextErrorMarkup(body)) {
+        return;
       }
     } catch {
-      // Keep polling until the debugging endpoint is available.
+      // Keep polling until the route compiles cleanly.
     }
 
-    await delay(100);
+    await delay(750);
   }
 
-  throw new Error(`Timed out waiting for DevTools endpoint: ${url}`);
+  throw new Error(`Timed out waiting for route recovery at ${url}`);
 }
 
-async function killProcessTree(pid) {
-  if (!pid) return;
-
-  if (process.platform === "win32") {
-    try {
-      await execFileAsync("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true });
-      return;
-    } catch {
-      // Fall back to a direct kill when taskkill is unavailable.
-    }
+async function recoverLocalDevServer(url) {
+  if (process.platform !== "win32") {
+    return;
   }
+
+  const port = resolveLocalPort(url);
+  const pids = await readListeningPids(port);
+  for (const pid of pids) {
+    await execFileAsync("powershell.exe", ["-NoProfile", "-Command", `Stop-Process -Id ${pid} -Force`], {
+      windowsHide: true,
+      timeout: 10000,
+    }).catch(() => {});
+  }
+  await waitForPortToClose(port);
+
+  await fs.rm(path.join(repoRoot, ".next"), {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 100,
+  }).catch(() => {});
+
+  await fs.mkdir(runtimeRoot, { recursive: true });
+  const outHandle = await fs.open(path.join(runtimeRoot, "app-3000.out.log"), "w");
+  const errHandle = await fs.open(path.join(runtimeRoot, "app-3000.err.log"), "w");
 
   try {
-    process.kill(pid, "SIGKILL");
+    const child = spawn(process.execPath, ["scripts/dev.mjs", "--hostname", "127.0.0.1", "--port", String(port)], {
+      cwd: repoRoot,
+      detached: true,
+      windowsHide: true,
+      stdio: ["ignore", outHandle.fd, errHandle.fd],
+    });
+    child.unref();
+  } finally {
+    await outHandle.close();
+    await errHandle.close();
+  }
+
+  await waitForHealthyServer(new URL(String(url)).origin);
+  await waitForHealthyRoute(url);
+}
+
+function normalizeSameSite(value) {
+  if (value === "Strict" || value === "Lax" || value === "None") {
+    return value;
+  }
+
+  return undefined;
+}
+
+function isLocalHostUrl(url) {
+  try {
+    const parsed = new URL(String(url));
+    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
   } catch {
-    // Ignore cleanup failures.
+    return false;
   }
 }
 
-class CdpClient {
-  constructor(webSocketUrl) {
-    this.webSocketUrl = webSocketUrl;
-    this.socket = null;
-    this.nextMessageId = 0;
-    this.pending = new Map();
-    this.eventListeners = new Map();
-  }
+function mergeCookies(existingCookies, nextCookies) {
+  const merged = Array.isArray(existingCookies) ? [...existingCookies] : [];
 
-  async connect() {
-    if (typeof WebSocket !== "function") {
-      throw new Error("This Node runtime does not expose WebSocket, which is required for CDP screenshots.");
+  for (const nextCookie of nextCookies) {
+    const index = merged.findIndex((cookie) => cookie?.name === nextCookie.name);
+    if (index >= 0) {
+      merged[index] = nextCookie;
+      continue;
     }
 
-    await new Promise((resolve, reject) => {
-      const socket = new WebSocket(this.webSocketUrl);
-      this.socket = socket;
-
-      socket.addEventListener("open", () => {
-        resolve();
-      }, { once: true });
-
-      socket.addEventListener("error", (event) => {
-        reject(event.error ?? new Error("Unable to connect to the DevTools websocket."));
-      }, { once: true });
-
-      socket.addEventListener("message", (event) => {
-        const payload = JSON.parse(String(event.data));
-        if (typeof payload.id === "number") {
-          const resolver = this.pending.get(payload.id);
-          if (!resolver) {
-            return;
-          }
-
-          this.pending.delete(payload.id);
-          if (payload.error) {
-            resolver.reject(new Error(payload.error.message ?? "CDP command failed."));
-            return;
-          }
-
-          resolver.resolve(payload.result ?? {});
-          return;
-        }
-
-        const listeners = this.eventListeners.get(payload.method) ?? [];
-        for (const listener of listeners) {
-          listener(payload.params ?? {});
-        }
-      });
-    });
+    merged.push(nextCookie);
   }
 
-  async close() {
-    if (!this.socket) return;
-    this.socket.close();
-    this.socket = null;
-  }
-
-  send(method, params = {}) {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      throw new Error(`Cannot send CDP command ${method}; websocket is not open.`);
-    }
-
-    const id = this.nextMessageId += 1;
-    const message = JSON.stringify({ id, method, params });
-
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.socket.send(message);
-    });
-  }
-
-  waitForEvent(method, predicate = () => true, timeoutMs = DEFAULT_TIMEOUT_MS) {
-    return new Promise((resolve, reject) => {
-      const listeners = this.eventListeners.get(method) ?? [];
-      const handler = (params) => {
-        if (!predicate(params)) {
-          return;
-        }
-
-        clearTimeout(timeoutId);
-        const current = this.eventListeners.get(method) ?? [];
-        this.eventListeners.set(method, current.filter((entry) => entry !== handler));
-        resolve(params);
-      };
-
-      const timeoutId = setTimeout(() => {
-        const current = this.eventListeners.get(method) ?? [];
-        this.eventListeners.set(method, current.filter((entry) => entry !== handler));
-        reject(new Error(`Timed out waiting for CDP event: ${method}`));
-      }, timeoutMs);
-
-      this.eventListeners.set(method, [...listeners, handler]);
-    });
-  }
+  return merged;
 }
 
-async function evaluate(client, expression) {
-  const result = await client.send("Runtime.evaluate", {
-    expression,
-    returnByValue: true,
-    awaitPromise: true,
+async function resolveAuthArtifactConfig(config) {
+  const artifactPath = typeof config.authArtifactPath === "string" && config.authArtifactPath.length > 0
+    ? path.resolve(config.authArtifactPath)
+    : null;
+  if (!artifactPath) {
+    return config;
+  }
+
+  const url = String(config.url);
+  const origin = new URL(url).origin;
+  const artifactState = await ensureFreshSessionArtifactFile(artifactPath, {
+    minTtlSeconds: Number(config.authArtifactMinTtlSeconds ?? 90),
   });
+  const nextConfig = {
+    ...config,
+  };
 
-  if (result.exceptionDetails) {
-    throw new Error(`Runtime.evaluate failed for expression: ${expression}`);
+  if (config.useAuthArtifactCookies !== false) {
+    nextConfig.cookies = mergeCookies(
+      Array.isArray(config.cookies) ? config.cookies : [],
+      buildCookiesFromArtifactSession(artifactState.session, origin),
+    );
   }
 
-  return result.result?.value;
-}
-
-async function waitForCondition(client, expression, timeoutMs, failureMessage) {
-  const startedAt = Date.now();
-
-  while ((Date.now() - startedAt) < timeoutMs) {
-    const matched = await evaluate(client, expression);
-    if (matched) {
-      return;
-    }
-    await delay(100);
+  if (config.useAuthArtifactHeader !== false && isLocalHostUrl(url)) {
+    nextConfig.headers = {
+      ...(config.headers && typeof config.headers === "object" ? config.headers : {}),
+      "x-atlas-access-token": artifactState.session.accessToken,
+    };
   }
 
-  throw new Error(failureMessage);
+  return nextConfig;
 }
 
-async function runAction(client, action) {
+function buildContextOptions(config, windowWidth, windowHeight, deviceScaleFactor) {
+  return {
+    viewport: { width: windowWidth, height: windowHeight },
+    deviceScaleFactor,
+    isMobile: Boolean(config.mobile),
+    hasTouch: Boolean(config.mobile),
+    javaScriptEnabled: !config.disableJavaScript,
+    extraHTTPHeaders: config.headers && typeof config.headers === "object" ? config.headers : undefined,
+  };
+}
+
+async function waitForText(page, text, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const normalizedText = String(text).toLowerCase();
+  await page.waitForFunction(
+    (wantedText) => (document.body?.innerText?.toLowerCase() ?? "").includes(wantedText),
+    normalizedText,
+    { timeout: timeoutMs },
+  );
+}
+
+async function evaluateExpression(page, expression) {
+  return page.evaluate((source) => {
+    // eslint-disable-next-line no-eval
+    return (0, eval)(source);
+  }, String(expression));
+}
+
+async function runAction(page, action) {
   switch (action.type) {
     case "navigate": {
-      const loadPromise = client.waitForEvent("Page.loadEventFired");
-      await client.send("Page.navigate", { url: String(action.url) });
-      await loadPromise;
+      await page.goto(String(action.url), {
+        waitUntil: "domcontentloaded",
+        timeout: Number(action.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+      });
       return;
     }
     case "sleep":
-      await delay(Number(action.ms ?? 0));
+      await page.waitForTimeout(Number(action.ms ?? 0));
       return;
     case "scrollToBottom":
-      await evaluate(client, "(() => { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }); return true; })()");
+      await page.evaluate(() => {
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
+      });
+      return;
+    case "scrollTo":
+      await page.evaluate((top) => {
+        window.scrollTo({ top, behavior: "instant" });
+      }, Number(action.top ?? 0));
       return;
     case "waitForSelector":
-      await waitForCondition(
-        client,
-        `(() => Boolean(document.querySelector(${JSON.stringify(action.selector)})))()`,
-        Number(action.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-        `Timed out waiting for selector: ${action.selector}`,
-      );
+      await page.waitForSelector(String(action.selector), {
+        timeout: Number(action.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+      });
       return;
     case "waitForText":
-      await waitForCondition(
-        client,
-        `(() => {
-          const bodyText = document.body?.innerText?.toLowerCase() ?? "";
-          return bodyText.includes(${JSON.stringify(String(action.text).toLowerCase())});
-        })()`,
-        Number(action.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-        `Timed out waiting for text: ${action.text}`,
-      );
+      await waitForText(page, action.text, Number(action.timeoutMs ?? DEFAULT_TIMEOUT_MS));
       return;
     case "assertExpression": {
-      const passed = await evaluate(client, String(action.expression));
+      const passed = await evaluateExpression(page, String(action.expression));
       if (!passed) {
         throw new Error(String(action.message ?? `Render assertion failed: ${action.expression}`));
       }
       return;
     }
-    case "click": {
-      const clicked = await evaluate(
-        client,
-        `(() => {
-          const element = document.querySelector(${JSON.stringify(action.selector)});
-          if (!(element instanceof HTMLElement)) return false;
-          element.scrollIntoView({ block: "center", inline: "center" });
-          element.click();
-          return true;
-        })()`,
-      );
-
-      if (!clicked) {
-        throw new Error(`Unable to click selector: ${action.selector}`);
-      }
+    case "click":
+      await page.locator(String(action.selector)).click({ timeout: Number(action.timeoutMs ?? DEFAULT_TIMEOUT_MS) });
       return;
-    }
+    case "setInputValue":
+      await page.locator(String(action.selector)).fill(String(action.value ?? ""), {
+        timeout: Number(action.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+      });
+      return;
+    case "evaluate":
+      await evaluateExpression(page, String(action.expression ?? ""));
+      return;
     default:
       throw new Error(`Unsupported capture action type: ${action.type}`);
+  }
+}
+
+async function applyCookies(context, cookies) {
+  const normalizedCookies = [];
+
+  for (const cookie of cookies) {
+    if (!cookie || typeof cookie !== "object") {
+      continue;
+    }
+
+    const name = String(cookie.name ?? "");
+    const value = String(cookie.value ?? "");
+    if (!name || !value) {
+      throw new Error("Each configured cookie must include a non-empty name and value.");
+    }
+
+    const payload = {
+      name,
+      value,
+      url: typeof cookie.url === "string" && cookie.url.length > 0 ? cookie.url : undefined,
+      domain: typeof cookie.domain === "string" && cookie.domain.length > 0 ? cookie.domain : undefined,
+      path: typeof cookie.url === "string" && cookie.url.length > 0
+        ? undefined
+        : (typeof cookie.path === "string" && cookie.path.length > 0 ? cookie.path : undefined),
+      httpOnly: typeof cookie.httpOnly === "boolean" ? cookie.httpOnly : undefined,
+      secure: typeof cookie.secure === "boolean" ? cookie.secure : undefined,
+      sameSite: normalizeSameSite(cookie.sameSite),
+      expires: typeof cookie.expires === "number" && Number.isFinite(cookie.expires) ? cookie.expires : undefined,
+    };
+
+    normalizedCookies.push(payload);
+  }
+
+  if (normalizedCookies.length > 0) {
+    await context.addCookies(normalizedCookies);
+  }
+}
+
+async function launchCaptureSession(config, browserPath, contextOptions, profileDir) {
+  const args = ["--disable-background-networking", "--disable-sync", "--disable-extensions", "--disable-default-apps", "--no-first-run", "--no-default-browser-check"];
+  if (typeof config.profileDirectory === "string" && config.profileDirectory.length > 0) {
+    args.push(`--profile-directory=${config.profileDirectory}`);
+  }
+
+  const persistentContext = await chromium.launchPersistentContext(profileDir, {
+    ...contextOptions,
+    headless: true,
+    executablePath: browserPath,
+    args,
+  });
+
+  const page = persistentContext.pages()[0] ?? await persistentContext.newPage();
+  return { context: persistentContext, page };
+}
+
+async function captureOnce(config) {
+  const browserPath = await resolveBrowserPath(
+    typeof config.browserPath === "string" && config.browserPath.length > 0 ? config.browserPath : undefined,
+  );
+  const windowWidth = Number(config.width ?? 430);
+  const windowHeight = Number(config.height ?? 932);
+  const deviceScaleFactor = Number(config.deviceScaleFactor ?? 1);
+  const providedUserDataDir = typeof config.userDataDir === "string" && config.userDataDir.length > 0
+    ? path.resolve(config.userDataDir)
+    : null;
+  const profileDir = providedUserDataDir ?? await fs.mkdtemp(path.join(os.tmpdir(), "fitness-playwright-"));
+  const contextOptions = buildContextOptions(config, windowWidth, windowHeight, deviceScaleFactor);
+
+  let captureContext = null;
+
+  try {
+    captureContext = await launchCaptureSession(config, browserPath, contextOptions, profileDir);
+    const { context, page } = captureContext;
+
+    if (Array.isArray(config.cookies) && config.cookies.length > 0) {
+      await applyCookies(context, config.cookies);
+    }
+
+    const navigationTimeoutMs = Number(config.navigationTimeoutMs ?? DEFAULT_TIMEOUT_MS);
+    const navigationRetryCount = Number(config.navigationRetryCount ?? 3);
+    const navigationRetryDelayMs = Number(config.navigationRetryDelayMs ?? 1200);
+    let lastStatus = null;
+
+    for (let attempt = 1; attempt <= navigationRetryCount; attempt += 1) {
+      const response = await page.goto(String(config.url), {
+        waitUntil: "domcontentloaded",
+        timeout: navigationTimeoutMs,
+      });
+      lastStatus = response?.status() ?? null;
+
+      if (lastStatus !== null && lastStatus < 400) {
+        break;
+      }
+
+      if (attempt < navigationRetryCount) {
+        await delay(navigationRetryDelayMs);
+      }
+    }
+
+    if (lastStatus !== null && lastStatus >= 400) {
+      throw new Error(`Navigation failed with ${lastStatus} for ${config.url}`);
+    }
+
+    if (Number(config.initialWaitMs ?? 0) > 0) {
+      await delay(Number(config.initialWaitMs));
+    }
+
+    for (const action of Array.isArray(config.actions) ? config.actions : []) {
+      await runAction(page, action);
+    }
+
+    if (Number(config.finalWaitMs ?? 0) > 0) {
+      await delay(Number(config.finalWaitMs));
+    }
+
+    if (config.waitForNetworkIdle !== false) {
+      await page.waitForLoadState("networkidle", {
+        timeout: Number(config.networkIdleTimeoutMs ?? DEFAULT_TIMEOUT_MS),
+      }).catch(() => {});
+    }
+
+    const outPath = path.resolve(String(config.outPath));
+    await fs.mkdir(path.dirname(outPath), { recursive: true });
+    await page.screenshot({
+      path: outPath,
+      fullPage: Boolean(config.captureBeyondViewport ?? config.fullPage ?? false),
+      timeout: Number(config.screenshotTimeoutMs ?? DEFAULT_TIMEOUT_MS),
+    });
+  } finally {
+    await captureContext?.context?.close().catch(() => {});
+    if (!providedUserDataDir) {
+      await fs.rm(profileDir, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 100,
+      }).catch(() => {});
+    }
   }
 }
 
@@ -294,108 +495,18 @@ async function main() {
     throw new Error("Usage: node scripts/qa/cdp-edge.mjs <capture-config.json>");
   }
 
-  const config = await readConfig(configPath);
-  const edgePath = await resolveEdgePath();
-  const debuggingPort = await findFreePort();
-  const profileDir = await fs.mkdtemp(path.join(os.tmpdir(), "fitness-cdp-edge-"));
-  const windowWidth = Number(config.width ?? 430);
-  const windowHeight = Number(config.height ?? 932);
-  const deviceScaleFactor = Number(config.deviceScaleFactor ?? 1);
-  const browserArgs = [
-    "--headless=new",
-    "--disable-gpu",
-    "--hide-scrollbars",
-    "--disable-background-networking",
-    "--disable-sync",
-    "--disable-extensions",
-    "--disable-default-apps",
-    "--no-first-run",
-    "--no-default-browser-check",
-    `--remote-debugging-port=${debuggingPort}`,
-    `--user-data-dir=${profileDir}`,
-    `--window-size=${windowWidth},${windowHeight}`,
-    `--force-device-scale-factor=${deviceScaleFactor}`,
-    "about:blank",
-  ];
-
-  const browser = spawn(edgePath, browserArgs, {
-    stdio: "ignore",
-    windowsHide: true,
-  });
-
-  let client = null;
-
+  const rawConfig = await readConfig(configPath);
+  const config = await resolveAuthArtifactConfig(rawConfig);
   try {
-    const versionInfo = await waitForJson(`http://127.0.0.1:${debuggingPort}/json/version`);
-    const targets = await waitForJson(`http://127.0.0.1:${debuggingPort}/json/list`);
-    const pageTarget = targets.find((target) => target.type === "page" && typeof target.webSocketDebuggerUrl === "string");
-
-    if (!pageTarget?.webSocketDebuggerUrl) {
-      throw new Error("Unable to find a debuggable page target for the screenshot run.");
+    await captureOnce(config);
+  } catch (error) {
+    if (isRecoverableLocalUrl(config.url) && config.autoRecoverLocalDevServer !== false) {
+      await recoverLocalDevServer(config.url);
+      await captureOnce(config);
+      return;
     }
 
-    if (!versionInfo.Browser) {
-      throw new Error("DevTools version endpoint did not return browser metadata.");
-    }
-
-    client = new CdpClient(pageTarget.webSocketDebuggerUrl);
-    await client.connect();
-    await client.send("Page.enable");
-    await client.send("Runtime.enable");
-    await client.send("Network.enable");
-    if (config.disableJavaScript) {
-      await client.send("Emulation.setScriptExecutionDisabled", { value: true });
-    }
-    await client.send("Emulation.setDeviceMetricsOverride", {
-      width: windowWidth,
-      height: windowHeight,
-      deviceScaleFactor,
-      mobile: Boolean(config.mobile),
-      screenWidth: windowWidth,
-      screenHeight: windowHeight,
-    });
-
-    if (config.mobile) {
-      await client.send("Emulation.setTouchEmulationEnabled", {
-        enabled: true,
-        maxTouchPoints: 5,
-      });
-    }
-
-    const loadPromise = client.waitForEvent("Page.loadEventFired");
-    await client.send("Page.navigate", { url: String(config.url) });
-    await loadPromise;
-
-    if (Number(config.initialWaitMs ?? 0) > 0) {
-      await delay(Number(config.initialWaitMs));
-    }
-
-    for (const action of Array.isArray(config.actions) ? config.actions : []) {
-      await runAction(client, action);
-    }
-
-    if (Number(config.finalWaitMs ?? 0) > 0) {
-      await delay(Number(config.finalWaitMs));
-    }
-
-    const screenshot = await client.send("Page.captureScreenshot", {
-      format: "png",
-      fromSurface: true,
-      captureBeyondViewport: false,
-    });
-
-    const outPath = path.resolve(String(config.outPath));
-    await fs.mkdir(path.dirname(outPath), { recursive: true });
-    await fs.writeFile(outPath, Buffer.from(String(screenshot.data), "base64"));
-  } finally {
-    await client?.close().catch(() => {});
-    await killProcessTree(browser.pid);
-    await fs.rm(profileDir, {
-      recursive: true,
-      force: true,
-      maxRetries: 10,
-      retryDelay: 100,
-    }).catch(() => {});
+    throw error;
   }
 }
 

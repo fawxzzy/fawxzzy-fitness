@@ -60,12 +60,45 @@ test("live app primitives bridge the frozen design-system pack", () => {
   const appTokens = readText("src/components/ui/app/tokens.ts");
   const headerTokens = readText("src/components/ui/app/headerTokens.ts");
   const standaloneHeaderFamily = readText("src/components/ui/app/standaloneHeaderFamily.ts");
+  const workoutEntrySection = readText("src/components/ui/workout-entry/EntrySection.tsx");
+  const compactLogRow = readText("src/components/ui/workout-entry/CompactLogRow.tsx");
+  const measurementPanel = readText("src/components/ui/measurements/MeasurementPanelV2.tsx");
+  const measurementSummary = readText("src/components/ui/measurements/MeasurementSummary.tsx");
+  const exerciseGoalForm = readText("src/components/ui/measurements/ExerciseGoalForm.tsx");
+  const sessionTimers = readText("src/components/SessionTimers.tsx");
+  const dayDetailStateCard = readText("src/components/routines/day-detail/DayDetailStateCard.tsx");
 
   assert.ok(designSystemBridge.includes("truth-pack/fitness/design-system/tokens.v1.json"));
   assert.ok(designSystemBridge.includes("truth-pack/fitness/design-system/primitives.v1.json"));
   assert.ok(appTokens.includes("fitnessDesignPrimitiveClassNames.card"));
   assert.ok(headerTokens.includes("fitnessDesignPrimitiveClassNames.header"));
   assert.ok(standaloneHeaderFamily.includes("fitnessDesignPrimitiveClassNames.headerFamily"));
+  assert.ok(workoutEntrySection.includes("appTokens.exerciseLogSectionHeaderCopy"));
+  assert.ok(workoutEntrySection.includes("appTokens.exerciseLogMetricValueWarning"));
+  assert.ok(compactLogRow.includes("appTokens.exerciseLogRowAction"));
+  assert.ok(appTokens.includes("measurementInlineSideLabel"));
+  assert.ok(appTokens.includes("measurementInlineValueLabel"));
+  assert.ok(appTokens.includes("measurementInlineValueLabelLower"));
+  assert.ok(appTokens.includes("measurementPanelStack"));
+  assert.ok(appTokens.includes("measurementPanelGrid"));
+  assert.ok(measurementPanel.includes("appTokens.measurementInlineSideLabel"));
+  assert.ok(measurementPanel.includes("appTokens.measurementInlineValueLabel"));
+  assert.ok(measurementPanel.includes("appTokens.measurementInlineValueLabelLower"));
+  assert.ok(measurementPanel.includes("appTokens.measurementPanelStack"));
+  assert.ok(measurementPanel.includes("appTokens.measurementPanelGrid"));
+  assert.ok(measurementSummary.includes("appTokens.exerciseLogSummaryBadgeRow"));
+  assert.ok(exerciseGoalForm.includes("appTokens.measurementInput"));
+  assert.ok(exerciseGoalForm.includes("appTokens.measurementValidation"));
+  assert.ok(sessionTimers.includes("appTokens.currentSessionLoggerSummaryCard"));
+  assert.ok(sessionTimers.includes("appTokens.currentSessionLoggerPanel"));
+  assert.ok(appTokens.includes("detailStateRest"));
+  assert.ok(appTokens.includes("detailStateWarning"));
+  assert.ok(appTokens.includes("detailStateBlocking"));
+  assert.ok(appTokens.includes("detailStateNeutral"));
+  assert.ok(dayDetailStateCard.includes("appTokens.detailStateRest"));
+  assert.ok(dayDetailStateCard.includes("appTokens.detailStateWarning"));
+  assert.ok(dayDetailStateCard.includes("appTokens.detailStateBlocking"));
+  assert.ok(dayDetailStateCard.includes("appTokens.detailStateNeutral"));
 });
 
 test("repo-local documentation points at the owner truth pack", () => {

@@ -70,6 +70,9 @@ const currentVersion = String(packageJson.version);
 const nextVersion = bumpVersion(currentVersion, bumpType);
 const releaseTag = `v${nextVersion}`;
 
+console.log('[release] Running release preflight: npm run verify && npm run typecheck && npm run build');
+runInherit('npm run release:preflight');
+
 packageJson.version = nextVersion;
 fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 

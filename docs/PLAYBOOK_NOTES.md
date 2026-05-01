@@ -80,6 +80,15 @@ This file is a project-local inbox for repo-specific Playbook notes that may lat
 - Evidence: Vercel prod `dpl_5ATWWNntLPsHMaC1oGVNTKy5Sw2F`, `docs/LOCAL-PROD-DATA-SYNC.md`, `.vercel/project.json`
 - Status: Proposed
 
+## 2026-05-01 - Catalog recovery migrations should ship with an explicit runtime gate
+- Type: Guardrail
+- Summary: When quarantine recovery adds exercise catalog data snapshots, review queues, seed migrations, or schema-alignment SQL without changing the normalized runtime trees, the branch must record whether the current app code actually depends on those artifacts before promotion.
+- Suggested Playbook File: docs/GUARDRAILS/recovery-migration-gate.md
+- Rationale: Prevents a clean recovery branch from stalling indefinitely on expected remote migration drift while also preventing silent promotion of runtime code that truly requires unapplied schema or catalog changes.
+- Failure Mode: Operators either block safe support-layer recoveries forever because `migration:validate` drifts, or they wave through a branch that actually introduced new runtime dependence on unapplied migrations.
+- Evidence: supabase/data/global_exercises_canonical.json, supabase/data/global_exercises_catalog_index.csv, supabase/data/global_exercises_catalog_index.json, supabase/data/global_exercises_review_queue.json, supabase/migrations/038_fix_strength_exercise_measurement_labels.sql, supabase/migrations/039_seed_global_stretch.sql, supabase/migrations/040_exercise_curation_tags_and_howto_refresh.sql, supabase/migrations/041_allow_measurement_optional_session_and_routine_goals.sql, docs/recovery/FULL-QUARANTINE-RECOVERY-LEDGER.md, docs/recovery/full-quarantine-normalized-audit.md
+- Status: Proposed
+
 ## 2026-04-22 - Remembered-account login flows should derive submit readiness from the active auth identity
 - Type: Guardrail
 - Summary: When login hides the email field for a remembered account, submit readiness, helper copy, and CTA labels must still derive from the remembered identity plus the current password state instead of treating the hidden email input as empty or treating every remembered-account password step as exceptional reauth.

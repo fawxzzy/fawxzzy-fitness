@@ -1,0 +1,44 @@
+[
+    {
+        "target":  "scripts",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "dev.mjs"
+    },
+    {
+        "target":  "tests",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "design-system-contract.test.mjs"
+    },
+    {
+        "target":  "docs/LOCAL-PROD-DATA-SYNC.md",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "."
+    },
+    {
+        "target":  "docs/PLAYBOOK_NOTES.md",
+        "status":  "only_canonical",
+        "normalizedStatus":  "only_canonical",
+        "path":  "."
+    },
+    {
+        "target":  "package.json",
+        "status":  "different",
+        "normalizedStatus":  "material_different",
+        "path":  "."
+    },
+    {
+        "target":  "next.config.mjs",
+        "status":  "only_canonical",
+        "normalizedStatus":  "only_canonical",
+        "path":  "."
+    },
+    {
+        "target":  "middleware.ts",
+        "status":  "only_canonical",
+        "normalizedStatus":  "only_canonical",
+        "path":  "."
+    }
+]
